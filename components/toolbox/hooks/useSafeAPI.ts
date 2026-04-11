@@ -18,17 +18,17 @@ interface SafeAPIResponse<T = any> {
 
 /**
  * Custom hook for calling the Safe API backend
- * 
+ *
  * @example
  * ```tsx
  * const { callSafeAPI } = useSafeAPI();
- * 
+ *
  * // Get Safe info
  * const safeInfo = await callSafeAPI('getSafeInfo', {
  *   chainId: '43114',
  *   safeAddress: '0x123...'
  * });
- * 
+ *
  * // Get Safes by owner
  * const safes = await callSafeAPI('getSafesByOwner', {
  *   chainId: '43114',
@@ -37,10 +37,7 @@ interface SafeAPIResponse<T = any> {
  * ```
  */
 export const useSafeAPI = () => {
-  const callSafeAPI = useCallback(async <T = any>(
-    action: string,
-    params: SafeAPIParams = {}
-  ): Promise<T> => {
+  const callSafeAPI = useCallback(async <T = any>(action: string, params: SafeAPIParams = {}): Promise<T> => {
     const response = await fetch('/api/safe', {
       method: 'POST',
       headers: {
@@ -136,4 +133,4 @@ interface TransactionResponse {
 export interface AshWalletUrlResponse {
   url: string;
   shortName: string;
-} 
+}

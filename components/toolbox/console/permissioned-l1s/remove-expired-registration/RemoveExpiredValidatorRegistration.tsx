@@ -1,31 +1,31 @@
-"use client";
+'use client';
 
-import React, { useEffect, useMemo, useState } from "react";
-import type { Abi, AbiEvent, Address, Log } from "viem";
-import { bytesToHex, hexToBytes } from "viem";
-import { Alert } from "@/components/toolbox/components/Alert";
-import { Button } from "@/components/toolbox/components/Button";
-import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
-import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
-import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useResolvedWalletClient } from "@/components/toolbox/hooks/useResolvedWalletClient";
-import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
-import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json";
-import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
-import { GetRegistrationJustification } from "@/components/toolbox/console/permissioned-l1s/validator-manager/justification";
-import { packL1ValidatorRegistration } from "@/components/toolbox/coreViem/utils/convertWarp";
-import { packWarpIntoAccessList } from "@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
-import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
-import versions from "@/scripts/versions.json";
+import React, { useEffect, useMemo, useState } from 'react';
+import type { Abi, AbiEvent, Address, Log } from 'viem';
+import { bytesToHex, hexToBytes } from 'viem';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { Button } from '@/components/toolbox/components/Button';
+import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
+import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
+import PoAManagerABI from '@/contracts/icm-contracts/compiled/PoAManager.json';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
+import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import versions from '@/scripts/versions.json';
 import {
   Search,
   Clock,
@@ -37,9 +37,9 @@ import {
   RefreshCw,
   CheckCircle2,
   XCircle,
-} from "lucide-react";
+} from 'lucide-react';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
 type ParsedInitiatedRegistration = {
   validationId: string;
@@ -50,14 +50,14 @@ type ParsedInitiatedRegistration = {
 };
 
 const metadata: ConsoleToolMetadata = {
-  title: "Remove Expired Validator Registration",
-  description: "Find and remove expired validator registrations that are stuck in PendingAdded state",
+  title: 'Remove Expired Validator Registration',
+  description: 'Find and remove expired validator registrations that are stuck in PendingAdded state',
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function RemoveExpiredValidatorRegistration() {
-  const [subnetId, setSubnetId] = useState<string>(useCreateChainStore()((s) => s.subnetId) || "");
+  const [subnetId, setSubnetId] = useState<string>(useCreateChainStore()((s) => s.subnetId) || '');
   const { avalancheNetworkID } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
@@ -65,14 +65,14 @@ function RemoveExpiredValidatorRegistration() {
   const { notify } = useConsoleNotifications();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fromBlock, setFromBlock] = useState<string>("");
+  const [fromBlock, setFromBlock] = useState<string>('');
   const [events, setEvents] = useState<ParsedInitiatedRegistration[]>([]);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState<boolean>(false);
   const [isLoadingValidators, setIsLoadingValidators] = useState<boolean>(false);
   const [validatorIdHexSet, setValidatorIdHexSet] = useState<Set<string>>(new Set());
   const [validatorStatusById, setValidatorStatusById] = useState<Record<string, number>>({});
   const [fetchProgress, setFetchProgress] = useState<{ current: number; total: number } | null>(null);
-  const [selectedFunction, setSelectedFunction] = useState<string>("completeValidatorRemoval");
+  const [selectedFunction, setSelectedFunction] = useState<string>('completeValidatorRemoval');
   const [actionState, setActionState] = useState<
     Record<
       string,
@@ -107,7 +107,7 @@ function RemoveExpiredValidatorRegistration() {
 
   const initiatedEventAbi = useMemo(() => {
     const abi = ValidatorManagerABI.abi as unknown as Abi;
-    return abi.find((i) => i.type === "event" && i.name === "InitiatedValidatorRegistration") as AbiEvent | undefined;
+    return abi.find((i) => i.type === 'event' && i.name === 'InitiatedValidatorRegistration') as AbiEvent | undefined;
   }, []);
 
   useEffect(() => {
@@ -115,7 +115,7 @@ function RemoveExpiredValidatorRegistration() {
     const bootstrapFromBlock = async () => {
       try {
         const latest = await chainPublicClient!.getBlockNumber();
-        const suggested = latest > 100000n ? (latest - 100000n).toString() : "0";
+        const suggested = latest > 100000n ? (latest - 100000n).toString() : '0';
         if (!cancelled) setFromBlock((prev) => (prev ? prev : suggested));
       } catch {
         // ignore
@@ -141,13 +141,13 @@ function RemoveExpiredValidatorRegistration() {
         const ids = new Set<string>();
         for await (const page of result) {
           let validatorsArr: any[] = [];
-          if ("result" in page && page.result && "validators" in page.result) {
+          if ('result' in page && page.result && 'validators' in page.result) {
             validatorsArr = (page.result as any).validators as any[];
           }
           for (const v of validatorsArr) {
             if (!v?.validationId) continue;
             try {
-              const hex = ("0x" + cb58ToHex(v.validationId)).toLowerCase();
+              const hex = ('0x' + cb58ToHex(v.validationId)).toLowerCase();
               ids.add(hex);
             } catch {
               // ignore
@@ -169,11 +169,11 @@ function RemoveExpiredValidatorRegistration() {
 
   const fetchEvents = async () => {
     if (!validatorManagerAddress) {
-      setError("Validator Manager address not found for selected subnet");
+      setError('Validator Manager address not found for selected subnet');
       return;
     }
     if (!initiatedEventAbi) {
-      setError("InitiatedValidatorRegistration ABI not found");
+      setError('InitiatedValidatorRegistration ABI not found');
       return;
     }
     setIsLoading(true);
@@ -221,8 +221,8 @@ function RemoveExpiredValidatorRegistration() {
       });
       setEvents(parsed);
     } catch (e) {
-      console.error("Error fetching logs", e);
-      setError((e as Error).message || "Failed to fetch logs");
+      console.error('Error fetching logs', e);
+      setError((e as Error).message || 'Failed to fetch logs');
     } finally {
       setIsLoading(false);
       setFetchProgress(null);
@@ -238,14 +238,14 @@ function RemoveExpiredValidatorRegistration() {
           if (!cancelled) setValidatorStatusById({});
           return;
         }
-        const uniqueIds = Array.from(new Set(events.map((e) => (e.validationId || "").toLowerCase()).filter(Boolean)));
+        const uniqueIds = Array.from(new Set(events.map((e) => (e.validationId || '').toLowerCase()).filter(Boolean)));
         const entries = await Promise.all(
           uniqueIds.map(async (id) => {
             try {
               const res: any = await chainPublicClient!.readContract({
                 address: validatorManagerAddress as `0x${string}`,
                 abi: ValidatorManagerABI.abi as Abi,
-                functionName: "getValidator",
+                functionName: 'getValidator',
                 args: [id as `0x${string}`],
               });
               const statusNum = Array.isArray(res) ? Number(res[0]) : Number(res?.status ?? 0);
@@ -253,7 +253,7 @@ function RemoveExpiredValidatorRegistration() {
             } catch {
               return [id, 0] as const;
             }
-          })
+          }),
         );
         if (cancelled) return;
         const map: Record<string, number> = {};
@@ -282,34 +282,34 @@ function RemoveExpiredValidatorRegistration() {
   const statusLabel = (status?: number) => {
     switch (status) {
       case 1:
-        return "PendingAdded";
+        return 'PendingAdded';
       case 2:
-        return "Active";
+        return 'Active';
       case 3:
-        return "PendingRemoved";
+        return 'PendingRemoved';
       case 4:
-        return "Completed";
+        return 'Completed';
       case 5:
-        return "Invalidated";
+        return 'Invalidated';
       default:
-        return "Unknown";
+        return 'Unknown';
     }
   };
 
   const statusBadgeClass = (status?: number) => {
     switch (status) {
       case 1:
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
       case 2:
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
       case 3:
-        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
       case 4:
-        return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300";
+        return 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300';
       case 5:
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
       default:
-        return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300";
+        return 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300';
     }
   };
 
@@ -317,7 +317,7 @@ function RemoveExpiredValidatorRegistration() {
     try {
       const base = (viemChain as any)?.blockExplorers?.default?.url as string | undefined;
       if (!base || !hash) return undefined;
-      return `${base.replace(/\/$/, "")}/tx/${hash}`;
+      return `${base.replace(/\/$/, '')}/tx/${hash}`;
     } catch {
       return undefined;
     }
@@ -326,7 +326,7 @@ function RemoveExpiredValidatorRegistration() {
   const nowSeconds = Math.floor(Date.now() / 1000);
   const isLoadingStatuses = useMemo(() => {
     if (events.length === 0) return false;
-    const ids = new Set(events.map((e) => (e.validationId || "").toLowerCase()).filter(Boolean));
+    const ids = new Set(events.map((e) => (e.validationId || '').toLowerCase()).filter(Boolean));
     for (const id of ids) {
       if (validatorStatusById[id] === undefined) return true;
     }
@@ -335,11 +335,11 @@ function RemoveExpiredValidatorRegistration() {
 
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
-      const status = validatorStatusById[(e.validationId || "").toLowerCase()];
+      const status = validatorStatusById[(e.validationId || '').toLowerCase()];
       if (status !== 1) return false;
       const isExpired = Number(e.registrationExpiry) < nowSeconds;
       if (!isExpired) return false;
-      const present = validatorIdHexSet.has((e.validationId || "").toLowerCase());
+      const present = validatorIdHexSet.has((e.validationId || '').toLowerCase());
       return !present;
     });
   }, [events, validatorIdHexSet, nowSeconds, validatorStatusById]);
@@ -354,23 +354,23 @@ function RemoveExpiredValidatorRegistration() {
       },
     }));
     try {
-      if (!validatorManagerAddress) throw new Error("Validator Manager address not found");
-      if (!walletClient || !viemChain || !walletClient.account) throw new Error("Wallet/chain not initialized");
-      if (!subnetId) throw new Error("Subnet ID required");
+      if (!validatorManagerAddress) throw new Error('Validator Manager address not found');
+      if (!walletClient || !viemChain || !walletClient.account) throw new Error('Wallet/chain not initialized');
+      if (!subnetId) throw new Error('Subnet ID required');
 
-      const useMultisig = ownerType === "PoAManager";
+      const useMultisig = ownerType === 'PoAManager';
       const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
       const targetAbi = useMultisig ? (PoAManagerABI.abi as Abi) : (ValidatorManagerABI.abi as Abi);
 
       const justification = await GetRegistrationJustification(validationId, subnetId, chainPublicClient!);
-      if (!justification) throw new Error("Could not build justification for this validation ID");
+      if (!justification) throw new Error('Could not build justification for this validation ID');
 
       const validationIDBytes = hexToBytes(validationId as `0x${string}`);
       const removeValidatorMessage = packL1ValidatorRegistration(
         validationIDBytes,
         false,
         avalancheNetworkID,
-        "11111111111111111111111111111111LpoYY"
+        '11111111111111111111111111111111LpoYY',
       );
       const signaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
@@ -379,10 +379,10 @@ function RemoveExpiredValidatorRegistration() {
       });
       notify(
         {
-          type: "local",
-          name: "Aggregate Signatures",
+          type: 'local',
+          name: 'Aggregate Signatures',
         },
-        signaturePromise
+        signaturePromise,
       );
       const signature = await signaturePromise;
       const signedMessage = signature.signedMessage;
@@ -392,7 +392,7 @@ function RemoveExpiredValidatorRegistration() {
       const writePromise = walletClient!.writeContract({
         address: targetContractAddress as `0x${string}`,
         abi: targetAbi,
-        functionName: "completeValidatorRemoval",
+        functionName: 'completeValidatorRemoval',
         args: [0],
         accessList,
         account: walletClient!.account,
@@ -400,11 +400,11 @@ function RemoveExpiredValidatorRegistration() {
       });
       notify(
         {
-          type: "call",
-          name: "Complete Validator Removal",
+          type: 'call',
+          name: 'Complete Validator Removal',
         },
         writePromise,
-        viemChain ?? undefined
+        viemChain ?? undefined,
       );
       const hash = await writePromise;
       const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
@@ -427,7 +427,7 @@ function RemoveExpiredValidatorRegistration() {
         [validationId]: {
           ...(s[validationId] || {}),
           isProcessing: false,
-          error: e?.message || "Failed to force remove",
+          error: e?.message || 'Failed to force remove',
         },
       }));
     }
@@ -444,7 +444,7 @@ function RemoveExpiredValidatorRegistration() {
             <div>
               <h3 className="text-sm font-medium text-amber-900 dark:text-amber-100">About Expired Registrations</h3>
               <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                When a validator registration is initiated but not completed before the expiry time, it gets stuck in{" "}
+                When a validator registration is initiated but not completed before the expiry time, it gets stuck in{' '}
                 <code className="px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40">PendingAdded</code> state. This
                 tool finds those expired registrations and allows you to remove them.
               </p>
@@ -469,7 +469,7 @@ function RemoveExpiredValidatorRegistration() {
               className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
             >
               {isDetailsExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-              {isDetailsExpanded ? "Hide" : "Show"} Validator Manager Details
+              {isDetailsExpanded ? 'Hide' : 'Show'} Validator Manager Details
             </button>
             {isDetailsExpanded && (
               <div className="mt-3">
@@ -514,7 +514,7 @@ function RemoveExpiredValidatorRegistration() {
                   className="flex-1 px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                 />
                 <button
-                  onClick={() => setFromBlock("0")}
+                  onClick={() => setFromBlock('0')}
                   className="px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl border border-zinc-200 dark:border-zinc-700 transition-colors"
                 >
                   Search All
@@ -531,7 +531,7 @@ function RemoveExpiredValidatorRegistration() {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  {fetchProgress ? `Fetching… (${fetchProgress.current}/${fetchProgress.total})` : "Fetching…"}
+                  {fetchProgress ? `Fetching… (${fetchProgress.current}/${fetchProgress.total})` : 'Fetching…'}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
@@ -572,7 +572,7 @@ function RemoveExpiredValidatorRegistration() {
               <div className="space-y-3">
                 {filteredEvents.map((ev, idx) => {
                   const state = actionState[ev.validationId];
-                  const status = validatorStatusById[(ev.validationId || "").toLowerCase()];
+                  const status = validatorStatusById[(ev.validationId || '').toLowerCase()];
                   const explorerUrl = getExplorerTxUrl(ev.txHash as unknown as string);
 
                   return (
@@ -584,7 +584,9 @@ function RemoveExpiredValidatorRegistration() {
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusBadgeClass(status)}`}>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusBadgeClass(status)}`}
+                            >
                               {statusLabel(status)}
                             </span>
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
@@ -621,7 +623,9 @@ function RemoveExpiredValidatorRegistration() {
                           <span className="text-zinc-500 dark:text-zinc-400">Expiry</span>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <Clock className="w-3 h-3 text-zinc-400" />
-                            <span className="text-zinc-700 dark:text-zinc-300">{formatExpiry(ev.registrationExpiry)}</span>
+                            <span className="text-zinc-700 dark:text-zinc-300">
+                              {formatExpiry(ev.registrationExpiry)}
+                            </span>
                           </div>
                         </div>
                         <div>

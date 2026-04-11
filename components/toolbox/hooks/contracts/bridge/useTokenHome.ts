@@ -23,7 +23,7 @@ export interface TokenHomeHook {
     teleporterRegistryAddress: string,
     teleporterManager: string,
     tokenContractAddress: string,
-    decimals: number
+    decimals: number,
   ) => Promise<string>;
   transferOwnership: (newOwner: string) => Promise<string>;
   updateMinTeleporterVersion: (minTeleporterVersion: bigint) => Promise<string>;
@@ -42,22 +42,13 @@ export interface TokenHomeHook {
  * @param tokenType - The type of token ('erc20' or 'native')
  * @param abi - Optional custom ABI (defaults based on tokenType)
  */
-export function useTokenHome(
-  contractAddress: string | null,
-  tokenType: TokenType,
-  customAbi?: any
-): TokenHomeHook {
-  const abi = customAbi ?? (
-    tokenType === 'erc20'
-      ? ERC20TokenHomeAbi.abi
-      : NativeTokenHomeAbi.abi
-  );
+export function useTokenHome(contractAddress: string | null, tokenType: TokenType, customAbi?: any): TokenHomeHook {
+  const abi = customAbi ?? (tokenType === 'erc20' ? ERC20TokenHomeAbi.abi : NativeTokenHomeAbi.abi);
 
   const contract = useContractActions(contractAddress, abi);
 
   // Read functions
-  const getTokenAddress = () =>
-    contract.read('getTokenAddress') as Promise<string>;
+  const getTokenAddress = () => contract.read('getTokenAddress') as Promise<string>;
 
   const getRemoteTokenTransferrerSettings = (blockchainID: string) =>
     contract.read('getRemoteTokenTransferrerSettings', [blockchainID]) as Promise<RemoteTokenTransferrerSettings>;
@@ -65,14 +56,11 @@ export function useTokenHome(
   const getTransferredBalance = (blockchainID: string) =>
     contract.read('getTransferredBalance', [blockchainID]) as Promise<bigint>;
 
-  const getBlockchainID = () =>
-    contract.read('getBlockchainID') as Promise<string>;
+  const getBlockchainID = () => contract.read('getBlockchainID') as Promise<string>;
 
-  const owner = () =>
-    contract.read('owner') as Promise<string>;
+  const owner = () => contract.read('owner') as Promise<string>;
 
-  const getMinTeleporterVersion = () =>
-    contract.read('getMinTeleporterVersion') as Promise<bigint>;
+  const getMinTeleporterVersion = () => contract.read('getMinTeleporterVersion') as Promise<bigint>;
 
   const isTeleporterAddressPaused = (address: string) =>
     contract.read('isTeleporterAddressPaused', [address]) as Promise<boolean>;
@@ -83,7 +71,7 @@ export function useTokenHome(
       'send',
       [input, amount],
       `Send ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Home`,
-      tokenType === 'native' ? { value: amount } : undefined
+      tokenType === 'native' ? { value: amount } : undefined,
     );
 
   const sendAndCall = (input: any, amount: bigint) =>
@@ -91,7 +79,7 @@ export function useTokenHome(
       'sendAndCall',
       [input, amount],
       `Send And Call ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Home`,
-      tokenType === 'native' ? { value: amount } : undefined
+      tokenType === 'native' ? { value: amount } : undefined,
     );
 
   const addCollateral = (blockchainID: string, remoteContractAddress: string, amount: bigint) => {
@@ -100,13 +88,13 @@ export function useTokenHome(
         'addCollateral',
         [blockchainID as `0x${string}`, remoteContractAddress as `0x${string}`],
         'Add Collateral to Token Home',
-        { value: amount }
+        { value: amount },
       );
     }
     return contract.write(
       'addCollateral',
       [blockchainID as `0x${string}`, remoteContractAddress as `0x${string}`, amount],
-      'Add Collateral to Token Home'
+      'Add Collateral to Token Home',
     );
   };
 
@@ -114,12 +102,13 @@ export function useTokenHome(
     teleporterRegistryAddress: string,
     teleporterManager: string,
     tokenContractAddress: string,
-    decimals: number
-  ) => contract.write(
-    'initialize',
-    [teleporterRegistryAddress, teleporterManager, tokenContractAddress, decimals],
-    `Initialize ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Home`
-  );
+    decimals: number,
+  ) =>
+    contract.write(
+      'initialize',
+      [teleporterRegistryAddress, teleporterManager, tokenContractAddress, decimals],
+      `Initialize ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Home`,
+    );
 
   const transferOwnership = (newOwner: string) =>
     contract.write('transferOwnership', [newOwner], 'Transfer Token Home Ownership');

@@ -1,22 +1,20 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
-import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
-import { useChangeWeightStore } from "@/components/toolbox/stores/changeWeightStore";
-import { useValidatorManagerContext } from "@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext";
-import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
-import { StepCodeViewer } from "@/components/console/step-code-viewer";
-import { STEP_CONFIG } from "../codeConfig";
+import React, { useState, useEffect } from 'react';
+import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
+import { useChangeWeightStore } from '@/components/toolbox/stores/changeWeightStore';
+import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { StepCodeViewer } from '@/components/console/step-code-viewer';
+import { STEP_CONFIG } from '../codeConfig';
 
 export default function SelectSubnetStep() {
   const store = useChangeWeightStore();
   const vmcCtx = useValidatorManagerContext();
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState(false);
 
-  const createChainStoreSubnetId = useCreateChainStore()(
-    (state: { subnetId: string }) => state.subnetId
-  );
+  const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
   useEffect(() => {
     if (!store.subnetIdL1 && createChainStoreSubnetId) {
@@ -52,16 +50,10 @@ export default function SelectSubnetStep() {
           ownerType={vmcCtx.ownerType}
           isDetectingOwnerType={vmcCtx.isDetectingOwnerType}
           isExpanded={isValidatorManagerDetailsExpanded}
-          onToggleExpanded={() =>
-            setIsValidatorManagerDetailsExpanded((prev) => !prev)
-          }
+          onToggleExpanded={() => setIsValidatorManagerDetailsExpanded((prev) => !prev)}
         />
       </div>
-      <StepCodeViewer
-        activeStep={0}
-        steps={STEP_CONFIG}
-        className="lg:sticky lg:top-4 lg:self-start"
-      />
+      <StepCodeViewer activeStep={0} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
     </div>
   );
 }

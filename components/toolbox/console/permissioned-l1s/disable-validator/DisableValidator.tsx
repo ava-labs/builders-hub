@@ -1,23 +1,27 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Loader2, CheckCircle2, ArrowUpRight, Users, ShieldOff } from "lucide-react";
-import { Button } from "../../../components/Button";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import SelectSubnetId from "../../../components/SelectSubnetId";
-import { WalletRequirementsConfigKey } from "../../../hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { Alert } from "../../../components/Alert";
-import { useSubmitPChainTx } from "@/components/toolbox/hooks/useSubmitPChainTx";
-import { useDisableL1Validator, ValidatorData } from "./DisableL1ValidatorContext";
-import ValidatorSelector from "./ValidatorSelector";
-import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
-import { SDKCodeViewer, SDKCodeSource } from "@/components/console/sdk-code-viewer";
-import { CliAlternative } from "@/components/console/cli-alternative";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { parsePChainError } from "@/components/toolbox/hooks/contracts";
+import { useState, useEffect } from 'react';
+import { Loader2, CheckCircle2, ArrowUpRight, Users, ShieldOff } from 'lucide-react';
+import { Button } from '../../../components/Button';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import SelectSubnetId from '../../../components/SelectSubnetId';
+import { WalletRequirementsConfigKey } from '../../../hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../../components/WithConsoleToolMetadata';
+import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { Alert } from '../../../components/Alert';
+import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
+import { useDisableL1Validator, ValidatorData } from './DisableL1ValidatorContext';
+import ValidatorSelector from './ValidatorSelector';
+import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
+import { SDKCodeViewer, SDKCodeSource } from '@/components/console/sdk-code-viewer';
+import { CliAlternative } from '@/components/console/cli-alternative';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 
 // TypeScript code showing the P-Chain disable operation
 const DISABLE_VALIDATOR_CODE = `// Disable an L1 Validator directly on the P-Chain
@@ -53,21 +57,20 @@ const txHash = await walletClient.disableL1Validator({
 // Code sources for the SDK viewer
 const CODE_SOURCES: SDKCodeSource[] = [
   {
-    name: "Disable Validator",
-    filename: "disableL1Validator.ts",
+    name: 'Disable Validator',
+    filename: 'disableL1Validator.ts',
     code: DISABLE_VALIDATOR_CODE,
-    description: "Direct P-Chain operation to disable a validator (bypasses Validator Manager)",
-    githubUrl: "https://github.com/ava-labs/avalanche-sdk",
+    description: 'Direct P-Chain operation to disable a validator (bypasses Validator Manager)',
+    githubUrl: 'https://github.com/ava-labs/avalanche-sdk',
   },
 ];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Disable L1 Validator",
-  description: "Disable an L1 validator directly on the P-Chain. This is an emergency operation that bypasses the Validator Manager Contract and can be used when the L1 is down or unreachable.",
-  toolRequirements: [
-    WalletRequirementsConfigKey.WalletConnected
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Disable L1 Validator',
+  description:
+    'Disable an L1 validator directly on the P-Chain. This is an emergency operation that bypasses the Validator Manager Contract and can be used when the L1 is down or unreachable.',
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
@@ -97,7 +100,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
   // Normalize P-Chain address by removing the "P-" prefix for comparison
   // SDK returns addresses like "fuji1abc..." while wallet returns "P-fuji1abc..."
   const normalizePChainAddress = (addr: string): string => {
-    return addr.replace(/^P-/i, "").toLowerCase();
+    return addr.replace(/^P-/i, '').toLowerCase();
   };
 
   // Check if current wallet is authorized to disable the selected validator
@@ -120,7 +123,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
 
     // Find if the current P-Chain address is in the deactivation owners list
     const index = deactivationOwner.addresses.findIndex(
-      (addr) => normalizePChainAddress(addr) === normalizedWalletAddr
+      (addr) => normalizePChainAddress(addr) === normalizedWalletAddr,
     );
 
     if (index >= 0) {
@@ -134,7 +137,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
 
   const handleDisableValidator = async () => {
     if (!selectedValidator || !coreWalletClient || authIndex < 0) {
-      setError("Missing required information or not authorized");
+      setError('Missing required information or not authorized');
       return;
     }
 
@@ -156,7 +159,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
       setOperationSuccessful(true);
       onSuccess?.();
     } catch (err) {
-      console.error("Error disabling validator:", err);
+      console.error('Error disabling validator:', err);
       setError(parsePChainError(err));
     } finally {
       setIsProcessing(false);
@@ -182,13 +185,17 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
           <div className="text-center space-y-2">
             <h4 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Validator Disabled</h4>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              The validator has been successfully disabled on the P-Chain. Any remaining balance will be returned to the remaining balance owner.
+              The validator has been successfully disabled on the P-Chain. Any remaining balance will be returned to the
+              remaining balance owner.
             </p>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Subnet ID</span>
-              <span className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]" title={subnetId}>
+              <span
+                className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]"
+                title={subnetId}
+              >
                 {subnetId.substring(0, 12)}...
               </span>
             </div>
@@ -196,13 +203,19 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
               <>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Node ID</span>
-                  <span className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]" title={selectedValidator.nodeId}>
+                  <span
+                    className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]"
+                    title={selectedValidator.nodeId}
+                  >
                     {selectedValidator.nodeId.substring(0, 16)}...
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Validation ID</span>
-                  <span className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]" title={selectedValidator.validationId}>
+                  <span
+                    className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]"
+                    title={selectedValidator.validationId}
+                  >
                     {selectedValidator.validationId.substring(0, 12)}...
                   </span>
                 </div>
@@ -211,7 +224,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Transaction</span>
               <a
-                href={`https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${txHash}`}
+                href={`https://${isTestnet ? 'subnets-test' : 'subnets'}.avax.network/p-chain/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-semibold text-red-500 hover:text-red-400 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1"
@@ -221,11 +234,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
               </a>
             </div>
           </div>
-          <Button
-            variant="secondary"
-            onClick={handleReset}
-            className="w-full py-2 px-4 text-sm font-medium"
-          >
+          <Button variant="secondary" onClick={handleReset} className="w-full py-2 px-4 text-sm font-medium">
             Disable Another Validator
           </Button>
         </div>
@@ -238,7 +247,10 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
       <div className="space-y-4 w-full">
         {/* Warning Banner */}
         <Alert variant="warning">
-          <span><strong>Emergency Operation:</strong> This operation disables a validator directly on the P-Chain, bypassing the Validator Manager Contract. Use this only when the L1 is down or unreachable.</span>
+          <span>
+            <strong>Emergency Operation:</strong> This operation disables a validator directly on the P-Chain, bypassing
+            the Validator Manager Contract. Use this only when the L1 is down or unreachable.
+          </span>
         </Alert>
 
         {/* Step 1: Select Subnet */}
@@ -272,19 +284,20 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
             {selectedValidator.deactivationOwner ? (
               <div className="space-y-2">
                 <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                  <span className="font-medium">Threshold:</span> {selectedValidator.deactivationOwner.threshold} of {selectedValidator.deactivationOwner.addresses.length}
+                  <span className="font-medium">Threshold:</span> {selectedValidator.deactivationOwner.threshold} of{' '}
+                  {selectedValidator.deactivationOwner.addresses.length}
                 </div>
                 <div className="space-y-1">
                   {selectedValidator.deactivationOwner.addresses.map((addr, idx) => {
-                    const isCurrentWallet = pChainAddress &&
-                      normalizePChainAddress(addr) === normalizePChainAddress(pChainAddress);
+                    const isCurrentWallet =
+                      pChainAddress && normalizePChainAddress(addr) === normalizePChainAddress(pChainAddress);
                     return (
                       <div
                         key={idx}
                         className={`text-xs font-mono p-2 rounded ${
                           isCurrentWallet
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
-                            : "bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400"
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+                            : 'bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400'
                         }`}
                       >
                         {addr}
@@ -304,7 +317,8 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
 
             {isAuthorized === false && (
               <Alert variant="error" className="mt-2">
-                Your connected P-Chain address ({pChainAddress?.substring(0, 16)}...) is not authorized to disable this validator.
+                Your connected P-Chain address ({pChainAddress?.substring(0, 16)}...) is not authorized to disable this
+                validator.
               </Alert>
             )}
 
@@ -324,7 +338,8 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
               <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300">Remaining Balance Owner</h4>
             </div>
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              When disabled, the validator's remaining balance ({formatAvaxBalance(parseFloat(selectedValidator.remainingBalance))}) will be returned to:
+              When disabled, the validator's remaining balance (
+              {formatAvaxBalance(parseFloat(selectedValidator.remainingBalance))}) will be returned to:
             </p>
             <div className="space-y-1">
               {selectedValidator.remainingBalanceOwner.addresses.map((addr, idx) => (
@@ -339,21 +354,13 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
           </div>
         )}
 
-        {error && (
-          <Alert variant="error">{error}</Alert>
-        )}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {/* Submit Button */}
         <Button
           variant="primary"
           onClick={handleDisableValidator}
-          disabled={
-            isProcessing ||
-            !selectedValidator ||
-            !isAuthorized ||
-            !coreWalletClient
-          }
-
+          disabled={isProcessing || !selectedValidator || !isAuthorized || !coreWalletClient}
           className="w-full py-2 px-4 text-sm font-medium"
         >
           {isProcessing ? (
@@ -369,7 +376,9 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
           )}
         </Button>
 
-        <CliAlternative command={`avalanche validator disable --validation-id ${selectedValidator?.validationId || "<validation-id>"} --network ${isTestnet ? "fuji" : "mainnet"}`} />
+        <CliAlternative
+          command={`avalanche validator disable --validation-id ${selectedValidator?.validationId || '<validation-id>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`}
+        />
       </div>
     </SDKCodeViewer>
   );

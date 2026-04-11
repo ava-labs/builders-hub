@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
@@ -51,14 +51,14 @@ const DisableL1ValidatorContext = createContext<DisableL1ValidatorState | null>(
 
 // Provider component
 export function DisableL1ValidatorProvider({ children }: { children: ReactNode }) {
-  const [subnetId, setSubnetId] = useState<string>("");
+  const [subnetId, setSubnetId] = useState<string>('');
   const [selectedValidator, setSelectedValidator] = useState<ValidatorData | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reset = useCallback(() => {
-    setSubnetId("");
+    setSubnetId('');
     setSelectedValidator(null);
     setIsProcessing(false);
     setTxHash(null);
@@ -79,11 +79,7 @@ export function DisableL1ValidatorProvider({ children }: { children: ReactNode }
     reset,
   };
 
-  return (
-    <DisableL1ValidatorContext.Provider value={value}>
-      {children}
-    </DisableL1ValidatorContext.Provider>
-  );
+  return <DisableL1ValidatorContext.Provider value={value}>{children}</DisableL1ValidatorContext.Provider>;
 }
 
 // Hook to use the context

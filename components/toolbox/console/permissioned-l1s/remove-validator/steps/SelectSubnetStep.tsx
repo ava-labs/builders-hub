@@ -1,22 +1,20 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
-import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
-import { useRemoveValidatorStore } from "@/components/toolbox/stores/removeValidatorStore";
-import { useValidatorManagerContext } from "@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext";
-import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
-import { StepCodeViewer } from "@/components/console/step-code-viewer";
-import { STEP_CONFIG } from "../codeConfig";
+import React, { useState, useEffect } from 'react';
+import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
+import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValidatorStore';
+import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { StepCodeViewer } from '@/components/console/step-code-viewer';
+import { STEP_CONFIG } from '../codeConfig';
 
 export default function SelectSubnetStep() {
   const store = useRemoveValidatorStore();
   const vmcCtx = useValidatorManagerContext();
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState(false);
 
-  const createChainStoreSubnetId = useCreateChainStore()(
-    (state: { subnetId: string }) => state.subnetId
-  );
+  const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
   useEffect(() => {
     if (!store.subnetIdL1 && createChainStoreSubnetId) {
@@ -27,9 +25,7 @@ export default function SelectSubnetStep() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        <p className="text-sm text-gray-500 mb-4">
-          Choose the L1 subnet where you want to remove the validator.
-        </p>
+        <p className="text-sm text-gray-500 mb-4">Choose the L1 subnet where you want to remove the validator.</p>
         <div className="space-y-2">
           <SelectSubnetId
             value={store.subnetIdL1}
@@ -53,17 +49,11 @@ export default function SelectSubnetStep() {
             ownerType={vmcCtx.ownerType}
             isDetectingOwnerType={vmcCtx.isDetectingOwnerType}
             isExpanded={isValidatorManagerDetailsExpanded}
-            onToggleExpanded={() =>
-              setIsValidatorManagerDetailsExpanded((prev) => !prev)
-            }
+            onToggleExpanded={() => setIsValidatorManagerDetailsExpanded((prev) => !prev)}
           />
         </div>
       </div>
-      <StepCodeViewer
-        activeStep={0}
-        steps={STEP_CONFIG}
-        className="lg:sticky lg:top-4 lg:self-start"
-      />
+      <StepCodeViewer activeStep={0} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
     </div>
   );
 }

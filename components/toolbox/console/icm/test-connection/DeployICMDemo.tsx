@@ -1,28 +1,31 @@
-"use client";
+'use client';
 
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState, useEffect } from "react";
-import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
+import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useState, useEffect } from 'react';
+import ICMDemoABI from '@/contracts/example-contracts/compiled/ICMDemo.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
-import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { StepCodeViewer, StepConfig } from "@/components/console/step-code-viewer";
-import { Check, Rocket, AlertCircle, ExternalLink, ArrowRight, Radio } from "lucide-react";
+import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../../components/WithConsoleToolMetadata';
+import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { StepCodeViewer, StepConfig } from '@/components/console/step-code-viewer';
+import { Check, Rocket, AlertCircle, ExternalLink, ArrowRight, Radio } from 'lucide-react';
 
-const SENDER_C_CHAIN_ADDRESS = "0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289";
+const SENDER_C_CHAIN_ADDRESS = '0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289';
 
 const metadata: ConsoleToolMetadata = {
-  title: "Deploy ICM Demo Contract",
-  description: "Deploy a demo contract that can receive messages from the C-Chain using Avalanche's Inter-Chain Messaging (ICM) protocol",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Deploy ICM Demo Contract',
+  description:
+    "Deploy a demo contract that can receive messages from the C-Chain using Avalanche's Inter-Chain Messaging (ICM) protocol",
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 // ICMDemo contract source code
@@ -77,34 +80,31 @@ contract ICMDemo is ITeleporterReceiver {
     }
 }`;
 
-const getCodeSteps = (params: {
-  chainId: string;
-  rpcUrl: string;
-  contractAddress: string;
-}): StepConfig[] => [
+const getCodeSteps = (params: { chainId: string; rpcUrl: string; contractAddress: string }): StepConfig[] => [
   {
-    id: "contract-source",
-    title: "ICMDemo Contract",
-    description: "Cross-chain sender and receiver",
-    codeType: "solidity",
-    filename: "ICMDemo.sol",
+    id: 'contract-source',
+    title: 'ICMDemo Contract',
+    description: 'Cross-chain sender and receiver',
+    codeType: 'solidity',
+    filename: 'ICMDemo.sol',
     code: ICM_DEMO_SOURCE,
-    githubUrl: "https://github.com/ava-labs/avalanche-starter-kit/blob/main/contracts/interchain-messaging/send-receive/",
+    githubUrl:
+      'https://github.com/ava-labs/avalanche-starter-kit/blob/main/contracts/interchain-messaging/send-receive/',
   },
   {
-    id: "deploy-sdk",
-    title: "Deploy via SDK",
-    description: "Using viem to deploy the contract",
-    codeType: "typescript",
-    filename: "deploy-icm-demo.ts",
+    id: 'deploy-sdk',
+    title: 'Deploy via SDK',
+    description: 'Using viem to deploy the contract',
+    codeType: 'typescript',
+    filename: 'deploy-icm-demo.ts',
     code: `import { createWalletClient, createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 // Your L1 chain configuration
 const chain = {
-  id: ${params.chainId || "YOUR_CHAIN_ID"},
+  id: ${params.chainId || 'YOUR_CHAIN_ID'},
   name: "Your L1",
-  rpcUrls: { default: { http: ["${params.rpcUrl || "YOUR_RPC_URL"}"] } },
+  rpcUrls: { default: { http: ["${params.rpcUrl || 'YOUR_RPC_URL'}"] } },
   nativeCurrency: { name: "Token", symbol: "TKN", decimals: 18 }
 };
 
@@ -130,20 +130,20 @@ const receipt = await publicClient.waitForTransactionReceipt({ hash });
 console.log("ICMDemo deployed at:", receipt.contractAddress);`,
   },
   {
-    id: "verify-deployment",
-    title: "Verify Deployment",
-    description: "Check the contract is working",
-    codeType: "typescript",
-    filename: "verify-icm-demo.ts",
+    id: 'verify-deployment',
+    title: 'Verify Deployment',
+    description: 'Check the contract is working',
+    codeType: 'typescript',
+    filename: 'verify-icm-demo.ts',
     code: `import { createPublicClient, http } from "viem";
 
 const publicClient = createPublicClient({
-  transport: http("${params.rpcUrl || "YOUR_RPC_URL"}")
+  transport: http("${params.rpcUrl || 'YOUR_RPC_URL'}")
 });
 
 // Read the TeleporterMessenger address from the contract
 const messengerAddress = await publicClient.readContract({
-  address: "${params.contractAddress || "0x..."}",
+  address: "${params.contractAddress || '0x...'}",
   abi: [{
     name: "messenger",
     type: "function",
@@ -159,7 +159,7 @@ console.log("TeleporterMessenger:", messengerAddress);
 
 // Read the last received message
 const lastMessage = await publicClient.readContract({
-  address: "${params.contractAddress || "0x..."}",
+  address: "${params.contractAddress || '0x...'}",
   abi: [{
     name: "lastMessage",
     type: "function",
@@ -208,20 +208,24 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
 
   async function handleDeploy() {
     setIsDeploying(true);
-    setIcmReceiverAddress("");
+    setIcmReceiverAddress('');
     try {
       const deployPromise = walletClient.deployContract({
         abi: ICMDemoABI.abi as any,
         bytecode: ICMDemoABI.bytecode.object as `0x${string}`,
         args: [],
         account: walletEVMAddress as `0x${string}`,
-        chain: viemChain
+        chain: viemChain,
       });
 
-      notify({
-        type: 'deploy',
-        name: 'ICMDemo'
-      }, deployPromise, viemChain ?? undefined);
+      notify(
+        {
+          type: 'deploy',
+          name: 'ICMDemo',
+        },
+        deployPromise,
+        viemChain ?? undefined,
+      );
 
       const hash = await deployPromise;
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -240,18 +244,16 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   }
 
   const codeSteps = getCodeSteps({
-    chainId: selectedL1?.evmChainId?.toString() || "",
-    rpcUrl: selectedL1?.rpcUrl || "",
-    contractAddress: icmReceiverAddress || "",
+    chainId: selectedL1?.evmChainId?.toString() || '',
+    rpcUrl: selectedL1?.rpcUrl || '',
+    contractAddress: icmReceiverAddress || '',
   });
 
   const deployForm = (
     <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          Deploy ICM Demo
-        </h3>
+        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Deploy ICM Demo</h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
           Test cross-chain messaging with a simple sender/receiver contract
         </p>
@@ -262,8 +264,8 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
         {/* Info callout */}
         <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
           <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-            ICMDemo is a combined sender/receiver contract that demonstrates Avalanche's
-            Inter-Chain Messaging protocol. It can both send and receive cross-chain messages.
+            ICMDemo is a combined sender/receiver contract that demonstrates Avalanche's Inter-Chain Messaging protocol.
+            It can both send and receive cross-chain messages.
           </p>
         </div>
 
@@ -283,34 +285,35 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
         </div>
 
         {/* Teleporter Status */}
-        <div className={`p-3 rounded-xl border ${
-          isTeleporterDeployed
-            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-        }`}>
+        <div
+          className={`p-3 rounded-xl border ${
+            isTeleporterDeployed
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+          }`}
+        >
           <div className="flex items-center gap-2">
             {isTeleporterDeployed ? (
               <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
             ) : (
               <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
             )}
-            <span className={`text-sm font-medium ${
-              isTeleporterDeployed
-                ? 'text-green-700 dark:text-green-300'
-                : 'text-red-700 dark:text-red-300'
-            }`}>
+            <span
+              className={`text-sm font-medium ${
+                isTeleporterDeployed ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
+              }`}
+            >
               {isTeleporterDeployed ? 'TeleporterMessenger Detected' : 'TeleporterMessenger Not Found'}
             </span>
           </div>
-          <p className={`text-xs mt-1 ${
-            isTeleporterDeployed
-              ? 'text-green-600 dark:text-green-400'
-              : 'text-red-600 dark:text-red-400'
-          }`}>
+          <p
+            className={`text-xs mt-1 ${
+              isTeleporterDeployed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            }`}
+          >
             {isTeleporterDeployed
               ? `Found at ${TeleporterMessengerAddress.content.slice(0, 10)}...`
-              : 'Deploy TeleporterMessenger first to enable cross-chain messaging.'
-            }
+              : 'Deploy TeleporterMessenger first to enable cross-chain messaging.'}
           </p>
         </div>
 
@@ -318,9 +321,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
         <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
           <div className="flex items-center gap-2 mb-2">
             <Radio className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
-              C-Chain Pre-deployed Sender
-            </span>
+            <span className="text-sm font-medium text-amber-700 dark:text-amber-300">C-Chain Pre-deployed Sender</span>
           </div>
           <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed mb-2">
             Use the pre-deployed sender contract on C-Chain to send test messages to your L1.
@@ -397,9 +398,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
           <ExternalLink className="w-3 h-3" />
           ICM Basics Tutorial
         </a>
-        <span className="text-[11px] text-zinc-400">
-          ICM Demo
-        </span>
+        <span className="text-[11px] text-zinc-400">ICM Demo</span>
       </div>
     </div>
   );
@@ -407,11 +406,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       {deployForm}
-      <StepCodeViewer
-        activeStep={activeStep}
-        steps={codeSteps}
-        className="h-[600px]"
-      />
+      <StepCodeViewer activeStep={activeStep} steps={codeSteps} className="h-[600px]" />
     </div>
   );
 }

@@ -23,10 +23,7 @@ export interface ProxyAdminHook {
  * @param contractAddress - The address of the ProxyAdmin contract
  * @param abi - Optional custom ABI (defaults to ProxyAdmin.json abi)
  */
-export function useProxyAdmin(
-  contractAddress: string | null,
-  abi?: any
-): ProxyAdminHook {
+export function useProxyAdmin(contractAddress: string | null, abi?: any): ProxyAdminHook {
   const contract = useContractActions(contractAddress, abi ?? ProxyAdminAbi.abi);
 
   return {
@@ -36,14 +33,11 @@ export function useProxyAdmin(
     getProxyAdmin: (proxy) => contract.read('getProxyAdmin', [proxy]) as Promise<string>,
 
     // Write functions
-    transferOwnership: (newOwner) =>
-      contract.write('transferOwnership', [newOwner], 'Transfer Proxy Admin Ownership'),
-    upgrade: (proxy, implementation) =>
-      contract.write('upgrade', [proxy, implementation], 'Upgrade Proxy'),
+    transferOwnership: (newOwner) => contract.write('transferOwnership', [newOwner], 'Transfer Proxy Admin Ownership'),
+    upgrade: (proxy, implementation) => contract.write('upgrade', [proxy, implementation], 'Upgrade Proxy'),
     upgradeAndCall: (proxy, implementation, data) =>
       contract.write('upgradeAndCall', [proxy, implementation, data], 'Upgrade And Call Proxy'),
-    changeProxyAdmin: (proxy, newAdmin) =>
-      contract.write('changeProxyAdmin', [proxy, newAdmin], 'Change Proxy Admin'),
+    changeProxyAdmin: (proxy, newAdmin) => contract.write('changeProxyAdmin', [proxy, newAdmin], 'Change Proxy Admin'),
 
     // Metadata
     contractAddress: contract.contractAddress,

@@ -1,47 +1,48 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { Button } from "@/components/toolbox/components/Button";
-import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
-import { ResultField } from "@/components/toolbox/components/ResultField";
-import rewardManagerAbi from "@/contracts/precompiles/RewardManager.json";
-import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { PrecompileCodeViewer } from "@/components/console/precompile-code-viewer";
-import { cn } from "@/components/toolbox/lib/utils";
-import { Gift, Users, MapPin, XCircle, RefreshCw } from "lucide-react";
+import { useState } from 'react';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { Button } from '@/components/toolbox/components/Button';
+import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
+import { AllowlistComponent } from '@/components/toolbox/components/AllowListComponents';
+import { ResultField } from '@/components/toolbox/components/ResultField';
+import rewardManagerAbi from '@/contracts/precompiles/RewardManager.json';
+import { CheckPrecompile } from '@/components/toolbox/components/CheckPrecompile';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../components/WithConsoleToolMetadata';
+import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { PrecompileCodeViewer } from '@/components/console/precompile-code-viewer';
+import { cn } from '@/components/toolbox/lib/utils';
+import { Gift, Users, MapPin, XCircle, RefreshCw } from 'lucide-react';
 
 // Default Reward Manager address
-const DEFAULT_REWARD_MANAGER_ADDRESS =
-  "0x0200000000000000000000000000000000000004";
+const DEFAULT_REWARD_MANAGER_ADDRESS = '0x0200000000000000000000000000000000000004';
 
 const TABS = [
-  { id: "allow", label: "Allow Recipients", icon: Users, function: "allowFeeRecipients" },
-  { id: "set", label: "Set Address", icon: MapPin, function: "setRewardAddress" },
-  { id: "disable", label: "Disable Rewards", icon: XCircle, function: "disableRewards" },
+  { id: 'allow', label: 'Allow Recipients', icon: Users, function: 'allowFeeRecipients' },
+  { id: 'set', label: 'Set Address', icon: MapPin, function: 'setRewardAddress' },
+  { id: 'disable', label: 'Disable Rewards', icon: XCircle, function: 'disableRewards' },
 ] as const;
 
-type TabId = typeof TABS[number]["id"];
+type TabId = (typeof TABS)[number]['id'];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Reward Manager",
-  description: "Manage reward settings for the network including fee recipients and reward addresses",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Reward Manager',
+  description: 'Manage reward settings for the network including fee recipients and reward addresses',
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 interface StatusCardProps {
   title: string;
   value: string | null;
-  status?: "active" | "inactive" | "loading";
+  status?: 'active' | 'inactive' | 'loading';
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
@@ -53,13 +54,15 @@ function StatusCard({ title, value, status, onRefresh, isRefreshing }: StatusCar
         <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{title}</span>
         <div className="flex items-center gap-2">
           {status && (
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-xs font-medium",
-              status === "active" && "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
-              status === "inactive" && "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
-              status === "loading" && "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-            )}>
-              {status === "loading" ? "Checking..." : status === "active" ? "Active" : "Inactive"}
+            <span
+              className={cn(
+                'px-2 py-0.5 rounded-full text-xs font-medium',
+                status === 'active' && 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+                status === 'inactive' && 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+                status === 'loading' && 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+              )}
+            >
+              {status === 'loading' ? 'Checking...' : status === 'active' ? 'Active' : 'Inactive'}
             </span>
           )}
           {onRefresh && (
@@ -68,14 +71,12 @@ function StatusCard({ title, value, status, onRefresh, isRefreshing }: StatusCar
               disabled={isRefreshing}
               className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5 text-zinc-500", isRefreshing && "animate-spin")} />
+              <RefreshCw className={cn('w-3.5 h-3.5 text-zinc-500', isRefreshing && 'animate-spin')} />
             </button>
           )}
         </div>
       </div>
-      {value && (
-        <p className="text-xs font-mono text-zinc-600 dark:text-zinc-400 break-all">{value}</p>
-      )}
+      {value && <p className="text-xs font-mono text-zinc-600 dark:text-zinc-400 break-all">{value}</p>}
     </div>
   );
 }
@@ -86,7 +87,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const viemChain = useViemChainStore();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<TabId>("allow");
+  const [activeTab, setActiveTab] = useState<TabId>('allow');
 
   // Action states
   const [isAllowingFeeRecipients, setIsAllowingFeeRecipients] = useState(false);
@@ -97,16 +98,16 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
 
   // Result states
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [rewardAddress, setRewardAddress] = useState<string>("");
+  const [rewardAddress, setRewardAddress] = useState<string>('');
   const [isFeeRecipientsAllowed, setIsFeeRecipientsAllowed] = useState<boolean | null>(null);
   const [currentRewardAddress, setCurrentRewardAddress] = useState<string | null>(null);
 
   // Code viewer highlight state
-  const [highlightFunction, setHighlightFunction] = useState<string>("allowFeeRecipients");
+  const [highlightFunction, setHighlightFunction] = useState<string>('allowFeeRecipients');
 
   const handleAllowFeeRecipients = async () => {
     if (!walletClient.account) {
-      throw new Error("Please connect your wallet first");
+      throw new Error('Please connect your wallet first');
     }
 
     setIsAllowingFeeRecipients(true);
@@ -116,19 +117,19 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
       const hash = await walletClient.writeContract({
         address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
-        functionName: "allowFeeRecipients",
+        functionName: 'allowFeeRecipients',
         account: walletClient.account,
         chain: viemChain,
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      if (receipt.status === "success") {
+      if (receipt.status === 'success') {
         setTxHash(hash);
         await checkFeeRecipientsAllowed();
         onSuccess?.();
       } else {
-        throw new Error("Transaction failed");
+        throw new Error('Transaction failed');
       }
     } finally {
       setIsAllowingFeeRecipients(false);
@@ -141,7 +142,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     const result = await publicClient.readContract({
       address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
       abi: rewardManagerAbi.abi,
-      functionName: "areFeeRecipientsAllowed",
+      functionName: 'areFeeRecipientsAllowed',
     });
 
     setIsFeeRecipientsAllowed(result as boolean);
@@ -150,7 +151,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
 
   const handleDisableRewards = async () => {
     if (!walletClient.account) {
-      throw new Error("Please connect your wallet first");
+      throw new Error('Please connect your wallet first');
     }
 
     setIsDisablingRewards(true);
@@ -160,19 +161,19 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
       const hash = await walletClient.writeContract({
         address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
-        functionName: "disableRewards",
+        functionName: 'disableRewards',
         account: walletClient.account,
         chain: viemChain,
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      if (receipt.status === "success") {
+      if (receipt.status === 'success') {
         setTxHash(hash);
         await checkCurrentRewardAddress();
         onSuccess?.();
       } else {
-        throw new Error("Transaction failed");
+        throw new Error('Transaction failed');
       }
     } finally {
       setIsDisablingRewards(false);
@@ -185,7 +186,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     const result = await publicClient.readContract({
       address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
       abi: rewardManagerAbi.abi,
-      functionName: "currentRewardAddress",
+      functionName: 'currentRewardAddress',
     });
 
     setCurrentRewardAddress(result as string);
@@ -194,11 +195,11 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
 
   const handleSetRewardAddress = async () => {
     if (!walletClient.account) {
-      throw new Error("Please connect your wallet first");
+      throw new Error('Please connect your wallet first');
     }
 
     if (!rewardAddress) {
-      throw new Error("Reward address is required");
+      throw new Error('Reward address is required');
     }
 
     setIsSettingRewardAddress(true);
@@ -208,7 +209,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
       const hash = await walletClient.writeContract({
         address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
-        functionName: "setRewardAddress",
+        functionName: 'setRewardAddress',
         args: [rewardAddress],
         account: walletClient.account,
         chain: viemChain,
@@ -216,12 +217,12 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      if (receipt.status === "success") {
+      if (receipt.status === 'success') {
         setTxHash(hash);
         await checkCurrentRewardAddress();
         onSuccess?.();
       } else {
-        throw new Error("Transaction failed");
+        throw new Error('Transaction failed');
       }
     } finally {
       setIsSettingRewardAddress(false);
@@ -231,35 +232,24 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const handleTabChange = (tabId: TabId) => {
     setActiveTab(tabId);
     setTxHash(null);
-    const tab = TABS.find(t => t.id === tabId);
+    const tab = TABS.find((t) => t.id === tabId);
     if (tab) {
       setHighlightFunction(tab.function);
     }
   };
 
-  const isAnyOperationInProgress =
-    isAllowingFeeRecipients ||
-    isDisablingRewards ||
-    isSettingRewardAddress;
+  const isAnyOperationInProgress = isAllowingFeeRecipients || isDisablingRewards || isSettingRewardAddress;
 
-  const canSetRewardAddress = Boolean(
-    rewardAddress &&
-    walletEVMAddress &&
-    walletClient &&
-    !isSettingRewardAddress
-  );
+  const canSetRewardAddress = Boolean(rewardAddress && walletEVMAddress && walletClient && !isSettingRewardAddress);
 
   return (
-    <CheckPrecompile
-      configKey="rewardManagerConfig"
-      precompileName="Reward Manager"
-    >
+    <CheckPrecompile configKey="rewardManagerConfig" precompileName="Reward Manager">
       <PrecompileCodeViewer
         precompileName="RewardManager"
         highlightFunction={highlightFunction}
         collapsibleSections={[
           {
-            title: "Manage Allowlist",
+            title: 'Manage Allowlist',
             defaultOpen: false,
             children: (
               <AllowlistComponent
@@ -289,15 +279,29 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <StatusCard
               title="Fee Recipients"
-              value={isFeeRecipientsAllowed !== null ? (isFeeRecipientsAllowed ? "Validators can set custom fee recipients" : "Fee recipients not allowed") : null}
-              status={isCheckingFeeRecipients ? "loading" : isFeeRecipientsAllowed === null ? undefined : isFeeRecipientsAllowed ? "active" : "inactive"}
+              value={
+                isFeeRecipientsAllowed !== null
+                  ? isFeeRecipientsAllowed
+                    ? 'Validators can set custom fee recipients'
+                    : 'Fee recipients not allowed'
+                  : null
+              }
+              status={
+                isCheckingFeeRecipients
+                  ? 'loading'
+                  : isFeeRecipientsAllowed === null
+                    ? undefined
+                    : isFeeRecipientsAllowed
+                      ? 'active'
+                      : 'inactive'
+              }
               onRefresh={checkFeeRecipientsAllowed}
               isRefreshing={isCheckingFeeRecipients}
             />
             <StatusCard
               title="Reward Address"
-              value={currentRewardAddress || "Not set"}
-              status={isCheckingRewardAddress ? "loading" : currentRewardAddress ? "active" : "inactive"}
+              value={currentRewardAddress || 'Not set'}
+              status={isCheckingRewardAddress ? 'loading' : currentRewardAddress ? 'active' : 'inactive'}
               onRefresh={checkCurrentRewardAddress}
               isRefreshing={isCheckingRewardAddress}
             />
@@ -312,10 +316,10 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+                    'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
                     activeTab === tab.id
-                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                      : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300',
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -327,11 +331,11 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
 
           {/* Tab Content */}
           <div className="pt-2">
-            {activeTab === "allow" && (
+            {activeTab === 'allow' && (
               <div className="space-y-4">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Allow validators to specify their own fee recipient address. When enabled, each validator
-                  can direct transaction fees to their preferred address.
+                  Allow validators to specify their own fee recipient address. When enabled, each validator can direct
+                  transaction fees to their preferred address.
                 </p>
                 <Button
                   variant="primary"
@@ -346,11 +350,11 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
               </div>
             )}
 
-            {activeTab === "set" && (
+            {activeTab === 'set' && (
               <div className="space-y-4">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Set a specific address to receive all block rewards. This address will receive
-                  all transaction fees from the network.
+                  Set a specific address to receive all block rewards. This address will receive all transaction fees
+                  from the network.
                 </p>
                 <EVMAddressInput
                   label="Reward Address"
@@ -371,11 +375,11 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
               </div>
             )}
 
-            {activeTab === "disable" && (
+            {activeTab === 'disable' && (
               <div className="space-y-4">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Disable reward distribution entirely. Transaction fees will be burned instead of
-                  being distributed to validators or a reward address.
+                  Disable reward distribution entirely. Transaction fees will be burned instead of being distributed to
+                  validators or a reward address.
                 </p>
                 <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                   <p className="text-sm text-amber-700 dark:text-amber-400">
@@ -397,13 +401,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
           </div>
 
           {/* Success Message */}
-          {txHash && (
-            <ResultField
-              label="Transaction Successful"
-              value={txHash}
-              showCheck={true}
-            />
-          )}
+          {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
         </div>
       </PrecompileCodeViewer>
     </CheckPrecompile>

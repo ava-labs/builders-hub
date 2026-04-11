@@ -1,5 +1,9 @@
 import { parseAbiItem, hexToBytes } from 'viem';
-import { unpackRegisterL1ValidatorPayload, calculateValidationID, SolidityValidationPeriod } from '@/components/toolbox/coreViem/utils/convertWarp';
+import {
+  unpackRegisterL1ValidatorPayload,
+  calculateValidationID,
+  SolidityValidationPeriod,
+} from '@/components/toolbox/coreViem/utils/convertWarp';
 import { utils } from '@avalabs/avalanchejs';
 import { Buffer } from 'buffer';
 import { sha256 } from '@noble/hashes/sha256';
@@ -7,29 +11,28 @@ import { WARP_PRECOMPILE_ADDRESS } from '@/components/toolbox/utils/warp';
 
 /**
  * Extracts the addressedCall from an unsignedWarpMessage
- * 
+ *
  * UnsignedMessage structure from convertWarp.ts:
  * - codecVersion (uint16 - 2 bytes)
  * - networkID (uint32 - 4 bytes)
  * - sourceChainID (32 bytes)
  * - message length (uint32 - 4 bytes)
  * - message (the variable-length bytes we want)
- * 
+ *
  * @param messageBytes - The raw unsignedWarpMessage bytes
  * @returns The extracted message (addressedCall)
  */
 function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
   try {
-    if (messageBytes.length < 42) { // 2 + 4 + 32 + 4 = minimum 42 bytes
+    if (messageBytes.length < 42) {
+      // 2 + 4 + 32 + 4 = minimum 42 bytes
       return new Uint8Array();
     }
 
     const codecVersion = (messageBytes[0] << 8) | messageBytes[1];
 
-    const messageLength = (messageBytes[38] << 24) |
-      (messageBytes[39] << 16) |
-      (messageBytes[40] << 8) |
-      messageBytes[41];
+    const messageLength =
+      (messageBytes[38] << 24) | (messageBytes[39] << 16) | (messageBytes[40] << 8) | messageBytes[41];
 
     if (messageLength <= 0 || 42 + messageLength > messageBytes.length) {
       return new Uint8Array();
@@ -43,7 +46,6 @@ function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
     return new Uint8Array();
   }
 }
-
 
 /**
  * Encodes a non-negative integer into Protobuf Varint format.
@@ -86,8 +88,6 @@ function computeDerivedID(baseIDBytes: Uint8Array, index: number): Uint8Array {
   return combined;
 }
 
-
-
 /**
  * Decodes a Base58Check encoded ID string (like SubnetID or ChainID) into its raw bytes.
  * Returns null if decoding fails.
@@ -96,17 +96,16 @@ function computeDerivedID(baseIDBytes: Uint8Array, index: number): Uint8Array {
  */
 function decodeID(idString: string): Uint8Array | null {
   if (!idString) {
-    console.error("Invalid ID format: empty string");
+    console.error('Invalid ID format: empty string');
     return null;
   }
   try {
     return utils.base58check.decode(idString);
   } catch (e) {
-    console.error("Error decoding ID:", idString, e);
+    console.error('Error decoding ID:', idString, e);
     return null;
   }
 }
-
 
 /**
  * Compares two Uint8Arrays for byte equality.
@@ -151,13 +150,18 @@ function marshalConvertSubnetToL1TxDataJustification(subnetIDBytes: Uint8Array, 
   const indexTag = new Uint8Array([0x10]); // Field 2, wire type 0
   const indexVarint = encodeVarint(index);
 
-  const innerMsgLength = subnetIdTag.length + subnetIdLen.length + subnetIDBytes.length + indexTag.length + indexVarint.length;
+  const innerMsgLength =
+    subnetIdTag.length + subnetIdLen.length + subnetIDBytes.length + indexTag.length + indexVarint.length;
   const innerMsgBytes = new Uint8Array(innerMsgLength);
   let offset = 0;
-  innerMsgBytes.set(subnetIdTag, offset); offset += subnetIdTag.length;
-  innerMsgBytes.set(subnetIdLen, offset); offset += subnetIdLen.length;
-  innerMsgBytes.set(subnetIDBytes, offset); offset += subnetIDBytes.length;
-  innerMsgBytes.set(indexTag, offset); offset += indexTag.length;
+  innerMsgBytes.set(subnetIdTag, offset);
+  offset += subnetIdTag.length;
+  innerMsgBytes.set(subnetIdLen, offset);
+  offset += subnetIdLen.length;
+  innerMsgBytes.set(subnetIDBytes, offset);
+  offset += subnetIDBytes.length;
+  innerMsgBytes.set(indexTag, offset);
+  offset += indexTag.length;
   innerMsgBytes.set(indexVarint, offset);
 
   // Marshal Outer L1ValidatorRegistrationJustification message
@@ -167,8 +171,10 @@ function marshalConvertSubnetToL1TxDataJustification(subnetIDBytes: Uint8Array, 
 
   const justificationBytes = new Uint8Array(outerTag.length + outerLen.length + innerMsgBytes.length);
   offset = 0;
-  justificationBytes.set(outerTag, offset); offset += outerTag.length;
-  justificationBytes.set(outerLen, offset); offset += outerLen.length;
+  justificationBytes.set(outerTag, offset);
+  offset += outerTag.length;
+  justificationBytes.set(outerLen, offset);
+  offset += outerLen.length;
   justificationBytes.set(innerMsgBytes, offset);
 
   return justificationBytes;
@@ -195,8 +201,10 @@ function extractPayloadFromAddressedCall(addressedCall: Uint8Array): Uint8Array 
     }
 
     // Source Address Length starts at index 6
-    const sourceAddrLen = (addressedCall[6] << 24) | (addressedCall[7] << 16) | (addressedCall[8] << 8) | addressedCall[9];
-    if (sourceAddrLen < 0) { // Should not happen with unsigned bytes, but good practice
+    const sourceAddrLen =
+      (addressedCall[6] << 24) | (addressedCall[7] << 16) | (addressedCall[8] << 8) | addressedCall[9];
+    if (sourceAddrLen < 0) {
+      // Should not happen with unsigned bytes, but good practice
       // console.warn('Invalid Source Address Length (<0)');
       return null;
     }
@@ -211,7 +219,8 @@ function extractPayloadFromAddressedCall(addressedCall: Uint8Array): Uint8Array 
     }
 
     // Read Payload Length
-    const payloadLen = (addressedCall[payloadLenPos] << 24) |
+    const payloadLen =
+      (addressedCall[payloadLenPos] << 24) |
       (addressedCall[payloadLenPos + 1] << 16) |
       (addressedCall[payloadLenPos + 2] << 8) |
       addressedCall[payloadLenPos + 3];
@@ -234,7 +243,6 @@ function extractPayloadFromAddressedCall(addressedCall: Uint8Array): Uint8Array 
     // Extract Payload
     const payloadBytes = addressedCall.slice(payloadStartPos, payloadEndPos);
     return payloadBytes;
-
   } catch (error) {
     console.error('Error extracting payload from AddressedCall:', error);
     return null;
@@ -243,7 +251,7 @@ function extractPayloadFromAddressedCall(addressedCall: Uint8Array): Uint8Array 
 
 // Define the ABI for the SendWarpMessage event
 const sendWarpMessageEventAbi = parseAbiItem(
-  'event SendWarpMessage(address indexed sourceAddress, bytes32 indexed unsignedMessageID, bytes message)'
+  'event SendWarpMessage(address indexed sourceAddress, bytes32 indexed unsignedMessageID, bytes message)',
 );
 
 /**
@@ -261,7 +269,7 @@ const sendWarpMessageEventAbi = parseAbiItem(
 export async function GetRegistrationJustification(
   validationIDHex: string,
   subnetIDStr: string,
-  publicClient: { getBlockNumber: () => Promise<bigint>, getLogs: (args: any) => Promise<any[]> }
+  publicClient: { getBlockNumber: () => Promise<bigint>; getLogs: (args: any) => Promise<any[]> },
 ): Promise<Uint8Array | null> {
   const WARP_ADDRESS = WARP_PRECOMPILE_ADDRESS;
   const NUM_BOOTSTRAP_VALIDATORS_TO_SEARCH = 100;
@@ -299,7 +307,6 @@ export async function GetRegistrationJustification(
     }
   }
 
-
   // 2. If not a bootstrap validator, search Warp logs
   try {
     const CHUNK_SIZE = 2000; // Number of blocks to query in each chunk (reduced to stay within RPC limits)
@@ -311,9 +318,7 @@ export async function GetRegistrationJustification(
 
     while (!foundMatch && chunksSearched < MAX_CHUNKS) {
       // Get the current block number for this iteration
-      const latestBlockNum = toBlock === 'latest'
-        ? await publicClient.getBlockNumber()
-        : toBlock;
+      const latestBlockNum = toBlock === 'latest' ? await publicClient.getBlockNumber() : toBlock;
 
       // Calculate the fromBlock for this chunk
       const fromBlockNum = Math.max(0, Number(latestBlockNum) - CHUNK_SIZE);
@@ -338,7 +343,8 @@ export async function GetRegistrationJustification(
 
             // Check TypeID within AddressedCall for RegisterL1ValidatorMessage
             if (addressedCall.length < 6) continue;
-            const acTypeID = (addressedCall[2] << 24) | (addressedCall[3] << 16) | (addressedCall[4] << 8) | addressedCall[5];
+            const acTypeID =
+              (addressedCall[2] << 24) | (addressedCall[3] << 16) | (addressedCall[4] << 8) | addressedCall[5];
             const REGISTER_L1_VALIDATOR_MESSAGE_TYPE_ID_IN_AC = 1;
             if (acTypeID !== REGISTER_L1_VALIDATOR_MESSAGE_TYPE_ID_IN_AC) {
               continue;
@@ -390,7 +396,6 @@ export async function GetRegistrationJustification(
     }
 
     return marshalledJustification;
-
   } catch (fetchLogError) {
     console.error(`Error fetching or decoding logs for ValidationID ${validationIDHex}:`, fetchLogError);
     return null;

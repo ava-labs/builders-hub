@@ -23,9 +23,7 @@ export function useResolvedWalletClient(): WalletClient | undefined {
 
     if (!walletEVMAddress || !viemChain) return undefined;
 
-    const provider = typeof window !== 'undefined'
-      ? (window.avalanche || (window as any).ethereum)
-      : null;
+    const provider = typeof window !== 'undefined' ? window.avalanche || (window as any).ethereum : null;
     if (!provider) return undefined;
 
     return createWalletClient({

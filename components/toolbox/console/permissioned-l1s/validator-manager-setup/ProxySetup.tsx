@@ -1,50 +1,55 @@
-"use client";
+'use client';
 
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore, useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
-import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/toolbox/components/Button";
-import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
-import TransparentUpgradeableProxyABI from "@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json";
-import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
-import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useResolvedWalletClient } from "@/components/toolbox/hooks/useResolvedWalletClient";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
-import { Check, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from "lucide-react";
-import Link from "next/link";
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/toolbox/components/Button';
+import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
+import TransparentUpgradeableProxyABI from '@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json';
+import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../../components/WithConsoleToolMetadata';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
+import { Check, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 
 // Storage slot with the admin of the proxy (following EIP1967)
-const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
+const ADMIN_SLOT = '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103';
 
 // Pre-deployed proxy address on L1s created via Builder Console
-const GENESIS_PROXY_ADDRESS = "0xfacade0000000000000000000000000000000000";
+const GENESIS_PROXY_ADDRESS = '0xfacade0000000000000000000000000000000000';
 
 // OpenZeppelin v4.9.0 source URLs
-const OZ_VERSION = "v4.9.0";
+const OZ_VERSION = 'v4.9.0';
 const CONTRACT_SOURCES: ContractSource[] = [
   {
-    name: "TransparentUpgradeableProxy",
-    filename: "TransparentUpgradeableProxy.sol",
+    name: 'TransparentUpgradeableProxy',
+    filename: 'TransparentUpgradeableProxy.sol',
     url: `https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/${OZ_VERSION}/contracts/proxy/transparent/TransparentUpgradeableProxy.sol`,
-    description: "EIP-1967 compliant proxy that delegates calls to an implementation contract while preserving state.",
+    description: 'EIP-1967 compliant proxy that delegates calls to an implementation contract while preserving state.',
   },
   {
-    name: "ProxyAdmin",
-    filename: "ProxyAdmin.sol",
+    name: 'ProxyAdmin',
+    filename: 'ProxyAdmin.sol',
     url: `https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/${OZ_VERSION}/contracts/proxy/transparent/ProxyAdmin.sol`,
-    description: "Manages proxy upgrades. For production, this should be a multisig since it controls the validator manager implementation.",
+    description:
+      'Manages proxy upgrades. For production, this should be a multisig since it controls the validator manager implementation.',
   },
 ];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Proxy Setup",
-  description: "Upgrade or deploy the TransparentUpgradeableProxy for the ValidatorManager",
+  title: 'Proxy Setup',
+  description: 'Upgrade or deploy the TransparentUpgradeableProxy for the ValidatorManager',
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -61,20 +66,20 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
   // Upgrade state
   const [proxyAddress, setProxyAddress] = useState<string>(GENESIS_PROXY_ADDRESS);
-  const [proxyAdminAddress, setProxyAdminAddress] = useState<string>("");
-  const [currentImplementation, setCurrentImplementation] = useState<string>("");
-  const [desiredImplementation, setDesiredImplementation] = useState<string>("");
+  const [proxyAdminAddress, setProxyAdminAddress] = useState<string>('');
+  const [currentImplementation, setCurrentImplementation] = useState<string>('');
+  const [desiredImplementation, setDesiredImplementation] = useState<string>('');
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isLoadingProxyInfo, setIsLoadingProxyInfo] = useState(false);
-  const [proxyError, setProxyError] = useState<string>("");
+  const [proxyError, setProxyError] = useState<string>('');
 
   // Deploy state (optional advanced flow)
   const [showDeploySection, setShowDeploySection] = useState(false);
   const [isDeployingProxyAdmin, setIsDeployingProxyAdmin] = useState(false);
   const [isDeployingProxy, setIsDeployingProxy] = useState(false);
-  const [newProxyAdminAddress, setNewProxyAdminAddress] = useState<string>("");
-  const [newProxyAddress, setNewProxyAddress] = useState<string>("");
-  const [deployImplementationAddress, setDeployImplementationAddress] = useState<string>("");
+  const [newProxyAdminAddress, setNewProxyAdminAddress] = useState<string>('');
+  const [newProxyAddress, setNewProxyAddress] = useState<string>('');
+  const [deployImplementationAddress, setDeployImplementationAddress] = useState<string>('');
 
   // Load proxy address from selected L1
   useEffect(() => {
@@ -89,7 +94,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
           setProxyAddress(contractAddress);
         }
       } catch (error) {
-        console.error("Failed to load L1 info:", error);
+        console.error('Failed to load L1 info:', error);
       }
     })();
   }, [selectedL1?.subnetId]);
@@ -110,14 +115,14 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
   async function readProxyInfo(address: string) {
     if (!chainPublicClient) {
-      setProxyError("Chain not configured. Connect your wallet to the target L1.");
+      setProxyError('Chain not configured. Connect your wallet to the target L1.');
       return;
     }
 
     setIsLoadingProxyInfo(true);
-    setProxyError("");
-    setProxyAdminAddress("");
-    setCurrentImplementation("");
+    setProxyError('');
+    setProxyAdminAddress('');
+    setCurrentImplementation('');
 
     try {
       // Read admin from EIP-1967 storage slot
@@ -126,8 +131,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
         slot: ADMIN_SLOT as `0x${string}`,
       });
 
-      if (!adminData || adminData === "0x0000000000000000000000000000000000000000000000000000000000000000") {
-        setProxyError("No proxy admin found at this address. The contract may not be an EIP-1967 proxy.");
+      if (!adminData || adminData === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        setProxyError('No proxy admin found at this address. The contract may not be an EIP-1967 proxy.');
         return;
       }
 
@@ -139,12 +144,12 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
         const implementation = await chainPublicClient.readContract({
           address: adminAddress as `0x${string}`,
           abi: ProxyAdminABI.abi,
-          functionName: "getProxyImplementation",
+          functionName: 'getProxyImplementation',
           args: [address],
         });
         setCurrentImplementation(implementation as string);
       } catch (implError) {
-        setProxyError("Failed to read current implementation. ProxyAdmin may not be compatible.");
+        setProxyError('Failed to read current implementation. ProxyAdmin may not be compatible.');
       }
     } catch (error) {
       setProxyError("Failed to read proxy storage. Make sure you're connected to the correct network.");
@@ -158,17 +163,17 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
     setIsUpgrading(true);
     try {
-      if (!walletClient) throw new Error("Wallet not connected");
+      if (!walletClient) throw new Error('Wallet not connected');
       const upgradePromise = walletClient.writeContract({
         address: proxyAdminAddress as `0x${string}`,
         abi: ProxyAdminABI.abi,
-        functionName: "upgrade",
+        functionName: 'upgrade',
         args: [proxyAddress, desiredImplementation as `0x${string}`],
         chain: viemChain ?? undefined,
         account: walletEVMAddress as `0x${string}`,
       });
 
-      notify({ type: "call", name: "Upgrade Proxy" }, upgradePromise, viemChain ?? undefined);
+      notify({ type: 'call', name: 'Upgrade Proxy' }, upgradePromise, viemChain ?? undefined);
 
       const hash = await upgradePromise;
       await chainPublicClient.waitForTransactionReceipt({ hash });
@@ -180,13 +185,13 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function deployProxyAdmin() {
-    if (!chainPublicClient) throw new Error("Chain not configured");
+    if (!chainPublicClient) throw new Error('Chain not configured');
 
     setIsDeployingProxyAdmin(true);
-    setNewProxyAdminAddress("");
+    setNewProxyAdminAddress('');
 
     try {
-      if (!walletClient) throw new Error("Wallet not connected");
+      if (!walletClient) throw new Error('Wallet not connected');
       const deployPromise = walletClient.deployContract({
         abi: ProxyAdminABI.abi as any,
         bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
@@ -195,7 +200,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
         account: walletEVMAddress as `0x${string}`,
       });
 
-      notify({ type: "deploy", name: "ProxyAdmin" }, deployPromise, viemChain ?? undefined);
+      notify({ type: 'deploy', name: 'ProxyAdmin' }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
       const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
@@ -211,19 +216,19 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
     if (!deployImplementationAddress || !newProxyAdminAddress || !chainPublicClient) return;
 
     setIsDeployingProxy(true);
-    setNewProxyAddress("");
+    setNewProxyAddress('');
 
     try {
-      if (!walletClient) throw new Error("Wallet not connected");
+      if (!walletClient) throw new Error('Wallet not connected');
       const deployPromise = walletClient.deployContract({
         abi: TransparentUpgradeableProxyABI.abi as any,
         bytecode: TransparentUpgradeableProxyABI.bytecode.object as `0x${string}`,
-        args: [deployImplementationAddress, newProxyAdminAddress, "0x"],
+        args: [deployImplementationAddress, newProxyAdminAddress, '0x'],
         chain: viemChain ?? undefined,
         account: walletEVMAddress as `0x${string}`,
       });
 
-      notify({ type: "deploy", name: "TransparentUpgradeableProxy" }, deployPromise, viemChain ?? undefined);
+      notify({ type: 'deploy', name: 'TransparentUpgradeableProxy' }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
       const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
@@ -255,26 +260,24 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
           <div
             className={`p-3 rounded-xl border transition-colors ${
               upgradeComplete
-                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
                   upgradeComplete
-                    ? "bg-green-500 text-white"
-                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                    ? 'bg-green-500 text-white'
+                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
                 }`}
               >
-                {upgradeComplete ? <Check className="w-3 h-3" /> : "1"}
+                {upgradeComplete ? <Check className="w-3 h-3" /> : '1'}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  Upgrade Proxy Implementation
-                </h3>
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Upgrade Proxy Implementation</h3>
                 <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                  Point proxy to ValidatorManager. Genesis proxy:{" "}
+                  Point proxy to ValidatorManager. Genesis proxy:{' '}
                   <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px]">
                     {GENESIS_PROXY_ADDRESS.slice(0, 12)}...
                   </code>
@@ -301,7 +304,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                       className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                       title="Refresh"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isLoadingProxyInfo ? "animate-spin" : ""}`} />
+                      <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isLoadingProxyInfo ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
 
@@ -311,10 +314,18 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                   ) : proxyAdminAddress ? (
                     <div className="flex gap-4 text-[11px] px-1">
                       <span className="text-zinc-500">
-                        Admin: <code className="text-zinc-700 dark:text-zinc-300">{proxyAdminAddress.slice(0, 8)}...{proxyAdminAddress.slice(-4)}</code>
+                        Admin:{' '}
+                        <code className="text-zinc-700 dark:text-zinc-300">
+                          {proxyAdminAddress.slice(0, 8)}...{proxyAdminAddress.slice(-4)}
+                        </code>
                       </span>
                       <span className="text-zinc-500">
-                        Impl: <code className="text-zinc-700 dark:text-zinc-300">{currentImplementation ? `${currentImplementation.slice(0, 8)}...${currentImplementation.slice(-4)}` : "None"}</code>
+                        Impl:{' '}
+                        <code className="text-zinc-700 dark:text-zinc-300">
+                          {currentImplementation
+                            ? `${currentImplementation.slice(0, 8)}...${currentImplementation.slice(-4)}`
+                            : 'None'}
+                        </code>
                       </span>
                     </div>
                   ) : null}
@@ -347,10 +358,10 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                       className="w-full"
                     >
                       {!proxyAdminAddress
-                        ? "Enter Proxy Address"
+                        ? 'Enter Proxy Address'
                         : !desiredImplementation
-                        ? "Enter Implementation"
-                        : "Upgrade Proxy"}
+                          ? 'Enter Implementation'
+                          : 'Upgrade Proxy'}
                     </Button>
                   )}
                 </div>
@@ -371,7 +382,9 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
               )}
               <span className="flex-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Deploy New Proxy
-                <span className="ml-2 text-[10px] font-normal text-amber-600 dark:text-amber-400">C-Chain / Custom</span>
+                <span className="ml-2 text-[10px] font-normal text-amber-600 dark:text-amber-400">
+                  C-Chain / Custom
+                </span>
               </span>
               <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
             </button>
@@ -380,7 +393,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
               <div className="px-3 pb-3 space-y-3 border-t border-zinc-200 dark:border-zinc-700 pt-3">
                 {/* Warning */}
                 <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 px-2 py-1.5 rounded-lg">
-                  Only for L1s without genesis proxy. Builder Console L1s have proxy at <code>{GENESIS_PROXY_ADDRESS.slice(0,10)}...</code>
+                  Only for L1s without genesis proxy. Builder Console L1s have proxy at{' '}
+                  <code>{GENESIS_PROXY_ADDRESS.slice(0, 10)}...</code>
                 </p>
 
                 {/* Two-column layout for deploy steps */}
@@ -394,7 +408,9 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                     {newProxyAdminAddress ? (
                       <div className="flex items-center gap-1">
                         <Check className="w-3 h-3 text-green-500" />
-                        <code className="text-[10px] font-mono text-zinc-500 truncate">{newProxyAdminAddress.slice(0,10)}...</code>
+                        <code className="text-[10px] font-mono text-zinc-500 truncate">
+                          {newProxyAdminAddress.slice(0, 10)}...
+                        </code>
                       </div>
                     ) : (
                       <Button
@@ -410,7 +426,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                   </div>
 
                   {/* Step 2: Deploy Proxy */}
-                  <div className={`space-y-1.5 ${!newProxyAdminAddress ? "opacity-40" : ""}`}>
+                  <div className={`space-y-1.5 ${!newProxyAdminAddress ? 'opacity-40' : ''}`}>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] tabular-nums text-zinc-400">02</span>
                       <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Proxy</span>
@@ -418,7 +434,9 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                     {newProxyAddress ? (
                       <div className="flex items-center gap-1">
                         <Check className="w-3 h-3 text-green-500" />
-                        <code className="text-[10px] font-mono text-zinc-500 truncate">{newProxyAddress.slice(0,10)}...</code>
+                        <code className="text-[10px] font-mono text-zinc-500 truncate">
+                          {newProxyAddress.slice(0, 10)}...
+                        </code>
                       </div>
                     ) : (
                       <Button

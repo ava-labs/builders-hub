@@ -55,46 +55,39 @@ export function usePrecompiles(): PrecompilesHook {
   return {
     feeManager: {
       setFeeConfig: (config: FeeConfig) =>
-        feeManagerContract.write('setFeeConfig', [
-          config.gasLimit,
-          config.targetBlockRate,
-          config.minBaseFee,
-          config.targetGas,
-          config.baseFeeChangeDenominator,
-          config.minBlockGasCost,
-          config.maxBlockGasCost,
-          config.blockGasCostStep,
-        ], 'Set Fee Config'),
+        feeManagerContract.write(
+          'setFeeConfig',
+          [
+            config.gasLimit,
+            config.targetBlockRate,
+            config.minBaseFee,
+            config.targetGas,
+            config.baseFeeChangeDenominator,
+            config.minBlockGasCost,
+            config.maxBlockGasCost,
+            config.blockGasCostStep,
+          ],
+          'Set Fee Config',
+        ),
       getFeeConfig: () => feeManagerContract.read('getFeeConfig') as Promise<FeeConfig>,
       getFeeConfigLastChangedAt: () => feeManagerContract.read('getFeeConfigLastChangedAt') as Promise<bigint>,
     },
 
     rewardManager: {
-      allowFeeRecipients: () =>
-        rewardManagerContract.write('allowFeeRecipients', [], 'Allow Fee Recipients'),
-      areFeeRecipientsAllowed: () =>
-        rewardManagerContract.read('areFeeRecipientsAllowed') as Promise<boolean>,
-      disableRewards: () =>
-        rewardManagerContract.write('disableRewards', [], 'Disable Rewards'),
-      currentRewardAddress: () =>
-        rewardManagerContract.read('currentRewardAddress') as Promise<string>,
-      setRewardAddress: (address) =>
-        rewardManagerContract.write('setRewardAddress', [address], 'Set Reward Address'),
+      allowFeeRecipients: () => rewardManagerContract.write('allowFeeRecipients', [], 'Allow Fee Recipients'),
+      areFeeRecipientsAllowed: () => rewardManagerContract.read('areFeeRecipientsAllowed') as Promise<boolean>,
+      disableRewards: () => rewardManagerContract.write('disableRewards', [], 'Disable Rewards'),
+      currentRewardAddress: () => rewardManagerContract.read('currentRewardAddress') as Promise<string>,
+      setRewardAddress: (address) => rewardManagerContract.write('setRewardAddress', [address], 'Set Reward Address'),
     },
 
     nativeMinter: {
-      mintNativeCoin: (to, amount) =>
-        nativeMinterContract.write('mintNativeCoin', [to, amount], 'Mint Native Coin'),
-      readAllowList: (address) =>
-        nativeMinterContract.read('readAllowList', [address]) as Promise<number>,
-      setAdmin: (address) =>
-        nativeMinterContract.write('setAdmin', [address], 'Set Native Minter Admin'),
-      setEnabled: (address) =>
-        nativeMinterContract.write('setEnabled', [address], 'Set Native Minter Enabled'),
-      setManager: (address) =>
-        nativeMinterContract.write('setManager', [address], 'Set Native Minter Manager'),
-      setNone: (address) =>
-        nativeMinterContract.write('setNone', [address], 'Set Native Minter None'),
+      mintNativeCoin: (to, amount) => nativeMinterContract.write('mintNativeCoin', [to, amount], 'Mint Native Coin'),
+      readAllowList: (address) => nativeMinterContract.read('readAllowList', [address]) as Promise<number>,
+      setAdmin: (address) => nativeMinterContract.write('setAdmin', [address], 'Set Native Minter Admin'),
+      setEnabled: (address) => nativeMinterContract.write('setEnabled', [address], 'Set Native Minter Enabled'),
+      setManager: (address) => nativeMinterContract.write('setManager', [address], 'Set Native Minter Manager'),
+      setNone: (address) => nativeMinterContract.write('setNone', [address], 'Set Native Minter None'),
     },
 
     isReady,

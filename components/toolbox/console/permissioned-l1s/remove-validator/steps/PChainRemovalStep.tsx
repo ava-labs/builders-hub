@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Alert } from "@/components/toolbox/components/Alert";
-import { useRemoveValidatorStore } from "@/components/toolbox/stores/removeValidatorStore";
-import { useValidatorManagerContext } from "@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext";
-import SubmitPChainTxRemoval from "../SubmitPChainTxRemoval";
-import { StepCodeViewer } from "@/components/console/step-code-viewer";
-import { STEP_CONFIG } from "../codeConfig";
+import React from 'react';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValidatorStore';
+import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import SubmitPChainTxRemoval from '../SubmitPChainTxRemoval';
+import { StepCodeViewer } from '@/components/console/step-code-viewer';
+import { STEP_CONFIG } from '../codeConfig';
 
 export default function PChainRemovalStep() {
   const store = useRemoveValidatorStore();
@@ -17,7 +17,8 @@ export default function PChainRemovalStep() {
       <div className="space-y-4">
         {!store.initiateRemovalTxHash && (
           <Alert variant="warning">
-            No transaction hash from the initiation step. You can enter it manually below, or go back to <strong>Initiate Removal</strong>.
+            No transaction hash from the initiation step. You can enter it manually below, or go back to{' '}
+            <strong>Initiate Removal</strong>.
           </Alert>
         )}
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
@@ -39,11 +40,7 @@ export default function PChainRemovalStep() {
           </div>
         </div>
       </div>
-      <StepCodeViewer
-        activeStep={2}
-        steps={STEP_CONFIG}
-        className="lg:sticky lg:top-4 lg:self-start"
-      />
+      <StepCodeViewer activeStep={2} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
     </div>
   );
 }

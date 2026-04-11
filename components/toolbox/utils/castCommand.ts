@@ -8,9 +8,7 @@ export function generateCastSendCommand(opts: {
   accessList?: any[];
   rpcUrl: string;
 }): string {
-  const accessListArg = opts.accessList
-    ? `--access-list '${JSON.stringify(opts.accessList)}'`
-    : '';
+  const accessListArg = opts.accessList ? `--access-list '${JSON.stringify(opts.accessList)}'` : '';
   return [
     `cast send ${opts.address} \\`,
     `  ${opts.calldata} \\`,

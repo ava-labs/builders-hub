@@ -14,12 +14,7 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 interface InitiateChangeWeightProps {
   subnetId: string;
   validatorManagerAddress: string;
-  onSuccess: (data: {
-    txHash: `0x${string}`;
-    nodeId: string;
-    validationId: string;
-    weight: string;
-  }) => void;
+  onSuccess: (data: { txHash: `0x${string}`; nodeId: string; validationId: string; weight: string }) => void;
   onError: (message: string) => void;
   resetForm?: boolean;
   initialNodeId?: string;
@@ -49,7 +44,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   const chainPublicClient = useChainPublicClient();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
-    nodeId: initialNodeId || ''
+    nodeId: initialNodeId || '',
   });
   const [weight, setWeight] = useState(initialWeight || '');
 
@@ -64,7 +59,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     if (resetForm) {
       setValidation({ validationId: initialValidationId || '', nodeId: initialNodeId || '' });
       setWeight(initialWeight || '');
-      setComponentKey(prevKey => prevKey + 1);
+      setComponentKey((prevKey) => prevKey + 1);
       setIsProcessing(false);
       setErrorState(null);
       setTxSuccess(null);
@@ -76,34 +71,42 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     setTxSuccess(null);
 
     if (!connectedAddress) {
-      setErrorState("Wallet not connected");
+      setErrorState('Wallet not connected');
       return;
     }
 
     if (!validation.validationId.trim()) {
-      setErrorState("Validation ID is required"); return;
+      setErrorState('Validation ID is required');
+      return;
     }
     if (!validation.nodeId.trim()) {
-      setErrorState("Node ID is required"); return;
+      setErrorState('Node ID is required');
+      return;
     }
     if (!weight.trim()) {
-      setErrorState("Weight is required"); return;
+      setErrorState('Weight is required');
+      return;
     }
     const weightNum = Number(weight);
     if (isNaN(weightNum) || weightNum <= 0) {
-      setErrorState("Weight must be a positive number"); return;
+      setErrorState('Weight must be a positive number');
+      return;
     }
     if (!validatorManagerAddress) {
-      setErrorState("Validator Manager Address is required. Please select a valid L1 subnet."); return;
+      setErrorState('Validator Manager Address is required. Please select a valid L1 subnet.');
+      return;
     }
     if (ownershipState === 'differentEOA') {
-      setErrorState("You are not the owner of this contract. Only the contract owner can change validator weights."); return;
+      setErrorState('You are not the owner of this contract. Only the contract owner can change validator weights.');
+      return;
     }
     if (ownershipState === 'loading') {
-      setErrorState("Verifying contract ownership... please wait."); return;
+      setErrorState('Verifying contract ownership... please wait.');
+      return;
     }
     if (ownershipState === 'error') {
-      setErrorState("Ownership verification failed. Please retry."); return;
+      setErrorState('Ownership verification failed. Please retry.');
+      return;
     }
 
     setIsProcessing(true);
@@ -113,7 +116,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         validatorCurrentWeight = await getValidatorWeight(
           chainPublicClient!,
           validatorManagerAddress as `0x${string}`,
-          validation.validationId
+          validation.validationId,
         );
       }
 
@@ -122,10 +125,10 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         const validationDetails = validateStakePercentage(
           contractTotalWeight,
           weightBigInt,
-          validatorCurrentWeight || 0n
+          validatorCurrentWeight || 0n,
         );
         if (validationDetails.exceedsMaximum) {
-          const currentWeightDisplay = validatorCurrentWeight?.toString() || "0";
+          const currentWeightDisplay = validatorCurrentWeight?.toString() || '0';
           const errorMessage = `The proposed weight change from ${currentWeightDisplay} to ${weight} represents ${validationDetails.percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This adjustment percentage must be less than 20%.`;
           setErrorState(errorMessage);
           setIsProcessing(false);
@@ -140,7 +143,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
 
       // Wait for transaction receipt to check if it was successful
       const receipt = await chainPublicClient!.waitForTransactionReceipt({
-        hash: hash as `0x${string}`
+        hash: hash as `0x${string}`,
       });
 
       if (receipt.status === 'reverted') {
@@ -182,11 +185,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetId) {
-    return (
-      <div className="text-sm text-zinc-500 dark:text-zinc-400">
-        Please select an L1 subnet first.
-      </div>
-    );
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
   }
 
   return (
@@ -207,7 +206,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         placeholder="Enter new weight"
         label="New Weight"
         disabled={isProcessing || !subnetId}
-        error={error && (error.includes("Weight") || error.includes("positive number")) ? error : undefined}
+        error={error && (error.includes('Weight') || error.includes('positive number')) ? error : undefined}
       />
 
       {ownershipState === 'contract' && (
@@ -217,11 +216,25 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
           args={[validation.validationId, BigInt(weight || 0)]}
           onSuccess={handleMultisigSuccess}
           onError={handleMultisigError}
-          disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
+          disabled={
+            isProcessing ||
+            !validation.validationId ||
+            !validation.nodeId ||
+            !weight ||
+            !validatorManagerAddress ||
+            txSuccess !== null
+          }
         >
           <Button
             onClick={handleInitiateChangeWeight}
-            disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
+            disabled={
+              isProcessing ||
+              !validation.validationId ||
+              !validation.nodeId ||
+              !weight ||
+              !validatorManagerAddress ||
+              txSuccess !== null
+            }
           >
             Initiate Change Weight
           </Button>
@@ -231,10 +244,17 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       {ownershipState === 'currentWallet' && (
         <Button
           onClick={handleInitiateChangeWeight}
-          disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
-          error={!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined}
+          disabled={
+            isProcessing ||
+            !validation.validationId ||
+            !validation.nodeId ||
+            !weight ||
+            !validatorManagerAddress ||
+            txSuccess !== null
+          }
+          error={!validatorManagerAddress && subnetId ? 'Could not find Validator Manager for this L1.' : undefined}
         >
-          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : 'Initiate Change Weight')}
+          {txSuccess ? 'Transaction Completed' : isProcessing ? 'Processing...' : 'Initiate Change Weight'}
         </Button>
       )}
 
@@ -249,11 +269,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       )}
 
       {ownershipState === 'loading' && (
-        <Button
-          onClick={handleInitiateChangeWeight}
-          disabled={true}
-          error="Verifying ownership..."
-        >
+        <Button onClick={handleInitiateChangeWeight} disabled={true} error="Verifying ownership...">
           Verifying...
         </Button>
       )}
@@ -261,24 +277,24 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       {ownershipState === 'error' && (
         <Button
           onClick={() => refetchOwnership?.()}
-          error={ownershipError || "Failed to verify contract ownership. Click to retry."}
+          error={ownershipError || 'Failed to verify contract ownership. Click to retry.'}
         >
           Retry Ownership Check
         </Button>
       )}
 
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {txSuccess && (
         <Success
           label="Transaction Hash"
-          value={txSuccess.replace('Transaction successful! Hash: ', '').replace('Multisig transaction proposed! Hash: ', '')}
+          value={txSuccess
+            .replace('Transaction successful! Hash: ', '')
+            .replace('Multisig transaction proposed! Hash: ', '')}
         />
       )}
     </div>
   );
 };
 
-export default InitiateChangeWeight; 
+export default InitiateChangeWeight;

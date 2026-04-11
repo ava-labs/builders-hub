@@ -52,39 +52,25 @@ export interface ValidatorManagerHook {
  * @param contractAddress - The address of the ValidatorManager contract
  * @param abi - Optional custom ABI (defaults to ValidatorManager.json abi)
  */
-export function useValidatorManager(
-  contractAddress: string | null,
-  abi?: any
-): ValidatorManagerHook {
-  const { read, write, isReady, isReadReady } = useContractActions(
-    contractAddress,
-    abi ?? ValidatorManagerAbi.abi
-  );
+export function useValidatorManager(contractAddress: string | null, abi?: any): ValidatorManagerHook {
+  const { read, write, isReady, isReadReady } = useContractActions(contractAddress, abi ?? ValidatorManagerAbi.abi);
 
   return {
     // Read functions
-    getValidator: (validationID) =>
-      read('getValidator', [validationID]) as Promise<ValidatorData>,
-    owner: () =>
-      read('owner') as Promise<string>,
-    l1TotalWeight: () =>
-      read('l1TotalWeight') as Promise<bigint>,
-    subnetID: () =>
-      read('subnetID') as Promise<string>,
-    isValidatorSetInitialized: () =>
-      read('isValidatorSetInitialized') as Promise<boolean>,
-    getNodeValidationID: (nodeID) =>
-      read('getNodeValidationID', [nodeID]) as Promise<string>,
+    getValidator: (validationID) => read('getValidator', [validationID]) as Promise<ValidatorData>,
+    owner: () => read('owner') as Promise<string>,
+    l1TotalWeight: () => read('l1TotalWeight') as Promise<bigint>,
+    subnetID: () => read('subnetID') as Promise<string>,
+    isValidatorSetInitialized: () => read('isValidatorSetInitialized') as Promise<boolean>,
+    getNodeValidationID: (nodeID) => read('getNodeValidationID', [nodeID]) as Promise<string>,
 
     // Write functions
     initiateValidatorRegistration: (params) =>
-      write('initiateValidatorRegistration', [
-        params.nodeID,
-        params.blsPublicKey,
-        params.remainingBalanceOwner,
-        params.disableOwner,
-        params.weight,
-      ], 'Initiate Validator Registration'),
+      write(
+        'initiateValidatorRegistration',
+        [params.nodeID, params.blsPublicKey, params.remainingBalanceOwner, params.disableOwner, params.weight],
+        'Initiate Validator Registration',
+      ),
 
     completeValidatorRegistration: (index, accessList?) =>
       write('completeValidatorRegistration', [index], 'Complete Validator Registration', { accessList }),
@@ -113,11 +99,9 @@ export function useValidatorManager(
         accessList,
       }),
 
-    initialize: (params) =>
-      write('initialize', [params.settings], 'Initialize Validator Manager'),
+    initialize: (params) => write('initialize', [params.settings], 'Initialize Validator Manager'),
 
-    transferOwnership: (newOwner) =>
-      write('transferOwnership', [newOwner], 'Transfer Validator Manager Ownership'),
+    transferOwnership: (newOwner) => write('transferOwnership', [newOwner], 'Transfer Validator Manager Ownership'),
 
     migrateFromV1: (params) =>
       write('migrateFromV1', [params.validationID as `0x${string}`, params.receivedNonce], 'Migrate From V1'),

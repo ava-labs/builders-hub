@@ -1,29 +1,30 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Container } from "@/components/toolbox/components/Container";
-import { Input } from "@/components/toolbox/components/Input";
-import { getBlockchainInfo, getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
-import InputChainId from "@/components/toolbox/components/InputChainId";
-import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
-import BlockchainDetailsDisplay from "@/components/toolbox/components/BlockchainDetailsDisplay";
+import { useState, useEffect } from 'react';
+import { Container } from '@/components/toolbox/components/Container';
+import { Input } from '@/components/toolbox/components/Input';
+import { getBlockchainInfo, getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import InputChainId from '@/components/toolbox/components/InputChainId';
+import InputSubnetId from '@/components/toolbox/components/InputSubnetId';
+import BlockchainDetailsDisplay from '@/components/toolbox/components/BlockchainDetailsDisplay';
 import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
-import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { nodeConfigBase64 } from "./config";
-import { useL1ByChainId } from "@/components/toolbox/stores/l1ListStore";
-import { Success } from "@/components/toolbox/components/Success";
-import { nipify, HostInput } from "@/components/toolbox/components/HostInput";
-import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
-import { RPCURLInput } from "@/components/toolbox/components/RPCURLInput";
-import { useNetworkInfo } from "@/components/toolbox/stores/walletStore";
-import { DockerInstallation } from "@/components/toolbox/components/DockerInstallation";
-import { NodeBootstrapCheck } from "@/components/toolbox/components/NodeBootstrapCheck";
-import { Checkbox } from "@/components/toolbox/components/Checkbox";
-import { Button } from "@/components/toolbox/components/Button";
+import { nodeConfigBase64 } from './config';
+import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
+import { Success } from '@/components/toolbox/components/Success';
+import { nipify, HostInput } from '@/components/toolbox/components/HostInput';
+import { RadioGroup } from '@/components/toolbox/components/RadioGroup';
+import { RPCURLInput } from '@/components/toolbox/components/RPCURLInput';
+import { useNetworkInfo } from '@/components/toolbox/stores/walletStore';
+import { DockerInstallation } from '@/components/toolbox/components/DockerInstallation';
+import { NodeBootstrapCheck } from '@/components/toolbox/components/NodeBootstrapCheck';
+import { Checkbox } from '@/components/toolbox/components/Checkbox';
+import { Button } from '@/components/toolbox/components/Button';
 
-
-const getDockerComposePsOutput = (versions: any) => `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
+const getDockerComposePsOutput = (
+  versions: any,
+) => `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
 avago         avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}  "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
 backend       blockscout/blockscout:6.10.1                       "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
 bc_frontend   ghcr.io/blockscout/frontend:v1.37.4                "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
@@ -38,7 +39,7 @@ caddy         caddy:latest                          "caddy run --config …"   c
 db            postgres:15                           "docker-entrypoint.s…"   db            1 minute ago   Up 1 minute   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
 redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
 
-const genCaddyfile = (domain: string,) => `
+const genCaddyfile = (domain: string) => `
 ${nipify(domain)} {
     # Backend API routes
     handle /api* {
@@ -72,7 +73,7 @@ ${nipify(domain)} {
         reverse_proxy bc_frontend:3000
     }
 }
-`
+`;
 
 interface DockerComposeConfig {
   domain: string;
@@ -206,7 +207,8 @@ services:
       - "80:80"
       - "443:443"`;
 
-  const avalancheGoService = config.includeAvago ? `
+  const avalancheGoService = config.includeAvago
+    ? `
   avago:
     image: avaplatform/subnet-evm_avalanchego:${config.versions['avaplatform/subnet-evm_avalanchego']}
     container_name: avago
@@ -219,7 +221,7 @@ services:
     environment:
       AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true"
       AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns"
-      AVAGO_NETWORK_ID: ${config.isTestnet ? "fuji" : "mainnet"}
+      AVAGO_NETWORK_ID: ${config.isTestnet ? 'fuji' : 'mainnet'}
       AVAGO_HTTP_HOST: "0.0.0.0"
       AVAGO_TRACK_SUBNETS: "${config.subnetId}" 
       AVAGO_HTTP_ALLOWED_HOSTS: "*"
@@ -228,7 +230,8 @@ services:
       driver: json-file
       options:
         max-size: "50m"
-        max-file: "3"` : '';
+        max-file: "3"`
+    : '';
 
   return `${composeConfig}${avalancheGoService}
 
@@ -236,26 +239,26 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
-`
-}
+`;
+};
 
 export default function BlockScout() {
   const { isTestnet } = useNetworkInfo();
   const versions = getContainerVersions(isTestnet);
   const dockerComposePsOutput = getDockerComposePsOutput(versions);
 
-  const [chainId, setChainId] = useState("");
-  const [subnetId, setSubnetId] = useState("");
+  const [chainId, setChainId] = useState('');
+  const [subnetId, setSubnetId] = useState('');
   const [subnet, setSubnet] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [domain, setDomain] = useState("");
-  const [networkName, setNetworkName] = useState("");
-  const [networkShortName, setNetworkShortName] = useState("");
-  const [tokenName, setTokenName] = useState("");
-  const [tokenSymbol, setTokenSymbol] = useState("");
+  const [domain, setDomain] = useState('');
+  const [networkName, setNetworkName] = useState('');
+  const [networkShortName, setNetworkShortName] = useState('');
+  const [tokenName, setTokenName] = useState('');
+  const [tokenSymbol, setTokenSymbol] = useState('');
   const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
-  const [composeYaml, setComposeYaml] = useState("");
-  const [caddyfile, setCaddyfile] = useState("");
+  const [composeYaml, setComposeYaml] = useState('');
+  const [caddyfile, setCaddyfile] = useState('');
   const [explorerReady, setExplorerReady] = useState(false);
   const [rpcOption, setRpcOption] = useState<'local' | 'existing'>('local');
   const [existingRpcUrl, setExistingRpcUrl] = useState('');
@@ -265,14 +268,14 @@ export default function BlockScout() {
 
   useEffect(() => {
     setSubnetIdError(null);
-    setSubnetId("");
+    setSubnetId('');
     setSubnet(null);
-    if (!chainId) return
+    if (!chainId) return;
 
     // Set defaults from L1 store if available
     if (l1Info) {
       setNetworkName(l1Info.name);
-      setNetworkShortName(l1Info.name.split(" ")[0]); // First word as short name
+      setNetworkShortName(l1Info.name.split(' ')[0]); // First word as short name
       setTokenName(l1Info.coinName);
       setTokenSymbol(l1Info.coinName);
     }
@@ -297,7 +300,8 @@ export default function BlockScout() {
   }, [chainId]);
 
   useEffect(() => {
-    let ready = !!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol && !subnetIdError
+    let ready =
+      !!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol && !subnetIdError;
 
     // Additional validation for existing RPC option
     if (rpcOption === 'existing') {
@@ -306,28 +310,40 @@ export default function BlockScout() {
 
     if (ready) {
       setCaddyfile(genCaddyfile(domain));
-      const rpcUrl = rpcOption === 'existing'
-        ? existingRpcUrl
-        : `http://avago:9650/ext/bc/${chainId}/rpc`;
+      const rpcUrl = rpcOption === 'existing' ? existingRpcUrl : `http://avago:9650/ext/bc/${chainId}/rpc`;
 
-      setComposeYaml(genDockerCompose({
-        domain,
-        subnetId,
-        blockchainId: chainId,
-        networkName,
-        networkShortName,
-        tokenName,
-        tokenSymbol,
-        rpcUrl,
-        includeAvago: rpcOption === 'local',
-        isTestnet: isTestnet ?? false,
-        versions
-      }));
+      setComposeYaml(
+        genDockerCompose({
+          domain,
+          subnetId,
+          blockchainId: chainId,
+          networkName,
+          networkShortName,
+          tokenName,
+          tokenSymbol,
+          rpcUrl,
+          includeAvago: rpcOption === 'local',
+          isTestnet: isTestnet ?? false,
+          versions,
+        }),
+      );
     } else {
-      setCaddyfile("");
-      setComposeYaml("");
+      setCaddyfile('');
+      setComposeYaml('');
     }
-  }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, subnetIdError, rpcOption, existingRpcUrl, versions]);
+  }, [
+    domain,
+    subnetId,
+    chainId,
+    networkName,
+    networkShortName,
+    tokenName,
+    tokenSymbol,
+    subnetIdError,
+    rpcOption,
+    existingRpcUrl,
+    versions,
+  ]);
 
   return (
     <>
@@ -339,55 +355,48 @@ export default function BlockScout() {
         <Steps>
           <Step>
             <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-            <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started. Choose more storage if the Explorer is for a long-running testnet or mainnet L1.</p>
+            <p>
+              Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM,
+              40GB storage is enough to get you started. Choose more storage if the Explorer is for a long-running
+              testnet or mainnet L1.
+            </p>
           </Step>
           <Step>
             <DockerInstallation />
           </Step>
 
-
-
           <Step>
             <h3 className="text-xl font-bold mb-4">Select L1</h3>
             <p>Enter the Avalanche Blockchain ID (not EVM chain ID) of the L1 you want to run a node for.</p>
 
-            <InputChainId
-              value={chainId}
-              onChange={setChainId}
-              error={subnetIdError}
-              hidePrimaryNetwork={true}
-            />
+            <InputChainId value={chainId} onChange={setChainId} error={subnetIdError} hidePrimaryNetwork={true} />
 
-            <InputSubnetId
-              value={subnetId}
-              onChange={setSubnetId}
-              readOnly={true}
-            />
+            <InputSubnetId value={subnetId} onChange={setSubnetId} readOnly={true} />
 
             {/* Show subnet details if available */}
-            <BlockchainDetailsDisplay
-              subnet={subnet}
-              isLoading={isLoading}
-            />
+            <BlockchainDetailsDisplay subnet={subnet} isLoading={isLoading} />
           </Step>
 
           {subnetId && (
             <>
               <Step>
                 <h3 className="text-xl font-bold mb-4">RPC Node Setup</h3>
-                <p>Choose how you want to set up the RPC node for your explorer. We don't recommend running the explorer on the same machine as a validator or public RPC.</p>
+                <p>
+                  Choose how you want to set up the RPC node for your explorer. We don't recommend running the explorer
+                  on the same machine as a validator or public RPC.
+                </p>
 
                 <div className="space-y-4 mt-4">
                   <RadioGroup
                     items={[
                       {
                         value: 'local',
-                        label: 'Spin up a new dedicated RPC node with the explorer'
+                        label: 'Spin up a new dedicated RPC node with the explorer',
                       },
                       {
                         value: 'existing',
-                        label: 'Use Existing RPC URL'
-                      }
+                        label: 'Use Existing RPC URL',
+                      },
                     ]}
                     value={rpcOption}
                     onChange={(value) => setRpcOption(value as 'local' | 'existing')}
@@ -409,7 +418,10 @@ export default function BlockScout() {
 
               <Step>
                 <h3 className="text-xl font-bold mb-4">Domain</h3>
-                <p>Enter your domain name or server's public IP address. For a free domain, use your server's public IP, we will automatically add .sslip.io for the generated files.</p>
+                <p>
+                  Enter your domain name or server's public IP address. For a free domain, use your server's public IP,
+                  we will automatically add .sslip.io for the generated files.
+                </p>
 
                 <p>You can use the following command to check your IP:</p>
                 <DynamicCodeBlock lang="bash" code="curl checkip.amazonaws.com" />
@@ -457,156 +469,181 @@ export default function BlockScout() {
                   />
                 </div>
               </Step>
-            </>)}
+            </>
+          )}
 
-          {composeYaml && (<>
-            <Step>
-              <h3 className="text-xl font-bold mb-4">Caddyfile</h3>
-              <p>Create and edit the Caddyfile using the following steps:</p>
+          {composeYaml && (
+            <>
+              <Step>
+                <h3 className="text-xl font-bold mb-4">Caddyfile</h3>
+                <p>Create and edit the Caddyfile using the following steps:</p>
 
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">1. Open the file in a text editor:</h4>
-                  <DynamicCodeBlock lang="bash" code="nano ~/Caddyfile" />
-                  <p className="text-sm mt-1">This will create and open the file in the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
-                  <DynamicCodeBlock lang="yaml" code={caddyfile} />
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">3. Save and exit (if using nano):</h4>
-                  <p className="text-sm">Press <code>Ctrl + X</code>, then <code>Y</code>, then <code>Enter</code> to save and exit</p>
-                </div>
-              </div>
-            </Step>
-            <Step>
-              <h3 className="text-xl font-bold mb-4">Docker Compose</h3>
-              <p>Create and edit the compose.yml file using the following steps:</p>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">1. Open the file in a text editor:</h4>
-                  <DynamicCodeBlock lang="bash" code="nano ~/compose.yml" />
-                  <p className="text-sm mt-1">This will create and open the file in the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
-                  <DynamicCodeBlock lang="yaml" code={composeYaml} />
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">3. Save and exit (if using nano):</h4>
-                  <p className="text-sm">Press <code>Ctrl + X</code>, then <code>Y</code>, then <code>Enter</code> to save and exit</p>
-                </div>
-              </div>
-            </Step>
-
-            <Step>
-              <h3 className="text-xl font-bold mb-4">Start Your Explorer</h3>
-              <p>Navigate to the directory containing your <code>Caddyfile</code> and <code>compose.yml</code> files and run these commands:</p>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Start the services (detached mode):</h4>
-                  <DynamicCodeBlock lang="bash" code="docker compose up -d" />
-                  <p className="text-sm mt-1">The <code>-d</code> flag runs containers in the background so you can close your terminal.</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Check if everything is running:</h4>
-                  <DynamicCodeBlock lang="bash" code="docker compose ps" />
-                  <p className="text-sm mt-1">You should see output similar to this:</p>
-                  <DynamicCodeBlock lang="bash" code={rpcOption === 'local' ? dockerComposePsOutput : dockerComposePsOutputNoAvago} />
-                  <p className="text-sm mt-1">All services should show "Up" in the STATUS column. If any service shows "Exit" or keeps restarting, check its logs.</p>
-                </div>
-
-                {rpcOption === 'local' && (
+                <div className="space-y-4">
                   <div>
-                    <h4 className="font-semibold mb-2">Monitor the AvalancheGo node sync progress:</h4>
-                    <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
-                    <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                      <h5 className="font-semibold mb-2">⚠️ Important Note About Sync Time</h5>
-                      <p>
-                        The AvalancheGo node needs to sync with the network before the explorer can function properly. For testnet, this process typically takes 5-10 minutes, for mainnet, it takes 1-2 hours. You'll see progress updates in the logs showing the syncing progress with the p-chain (fetching blocks & executing blocks).
-                      </p>
-                    </div>
-
-                    <p className="text-sm mt-4">
-                      Press <code>Ctrl+C</code> to stop watching logs.
+                    <h4 className="font-semibold mb-2">1. Open the file in a text editor:</h4>
+                    <DynamicCodeBlock lang="bash" code="nano ~/Caddyfile" />
+                    <p className="text-sm mt-1">
+                      This will create and open the file in the nano text editor. You can also use other editors like
+                      vim or your preferred text editor.
                     </p>
                   </div>
-                )}
 
-                <div>
-                  <h4 className="font-semibold mb-2">Stop everything and clean up:</h4>
-                  <DynamicCodeBlock lang="bash" code="docker compose down -v" />
-                  <p className="text-sm mt-4">The <code>-v</code> flag removes volumes (databases). <strong>Warning:</strong> This forces reindexing.</p>
+                  <div>
+                    <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
+                    <DynamicCodeBlock lang="yaml" code={caddyfile} />
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">3. Save and exit (if using nano):</h4>
+                    <p className="text-sm">
+                      Press <code>Ctrl + X</code>, then <code>Y</code>, then <code>Enter</code> to save and exit
+                    </p>
+                  </div>
+                </div>
+              </Step>
+              <Step>
+                <h3 className="text-xl font-bold mb-4">Docker Compose</h3>
+                <p>Create and edit the compose.yml file using the following steps:</p>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">1. Open the file in a text editor:</h4>
+                    <DynamicCodeBlock lang="bash" code="nano ~/compose.yml" />
+                    <p className="text-sm mt-1">
+                      This will create and open the file in the nano text editor. You can also use other editors like
+                      vim or your preferred text editor.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
+                    <DynamicCodeBlock lang="yaml" code={composeYaml} />
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">3. Save and exit (if using nano):</h4>
+                    <p className="text-sm">
+                      Press <code>Ctrl + X</code>, then <code>Y</code>, then <code>Enter</code> to save and exit
+                    </p>
+                  </div>
+                </div>
+              </Step>
+
+              <Step>
+                <h3 className="text-xl font-bold mb-4">Start Your Explorer</h3>
+                <p>
+                  Navigate to the directory containing your <code>Caddyfile</code> and <code>compose.yml</code> files
+                  and run these commands:
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Start the services (detached mode):</h4>
+                    <DynamicCodeBlock lang="bash" code="docker compose up -d" />
+                    <p className="text-sm mt-1">
+                      The <code>-d</code> flag runs containers in the background so you can close your terminal.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Check if everything is running:</h4>
+                    <DynamicCodeBlock lang="bash" code="docker compose ps" />
+                    <p className="text-sm mt-1">You should see output similar to this:</p>
+                    <DynamicCodeBlock
+                      lang="bash"
+                      code={rpcOption === 'local' ? dockerComposePsOutput : dockerComposePsOutputNoAvago}
+                    />
+                    <p className="text-sm mt-1">
+                      All services should show "Up" in the STATUS column. If any service shows "Exit" or keeps
+                      restarting, check its logs.
+                    </p>
+                  </div>
+
+                  {rpcOption === 'local' && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Monitor the AvalancheGo node sync progress:</h4>
+                      <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+                      <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                        <h5 className="font-semibold mb-2">⚠️ Important Note About Sync Time</h5>
+                        <p>
+                          The AvalancheGo node needs to sync with the network before the explorer can function properly.
+                          For testnet, this process typically takes 5-10 minutes, for mainnet, it takes 1-2 hours.
+                          You'll see progress updates in the logs showing the syncing progress with the p-chain
+                          (fetching blocks & executing blocks).
+                        </p>
+                      </div>
+
+                      <p className="text-sm mt-4">
+                        Press <code>Ctrl+C</code> to stop watching logs.
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Stop everything and clean up:</h4>
+                    <DynamicCodeBlock lang="bash" code="docker compose down -v" />
+                    <p className="text-sm mt-4">
+                      The <code>-v</code> flag removes volumes (databases). <strong>Warning:</strong> This forces
+                      reindexing.
+                    </p>
+                  </div>
+
+                  <p>
+                    If containers keep restarting, check logs with <code>docker logs [service-name]</code>. Use{' '}
+                    <code>docker compose restart [service-name]</code> to restart individual services.
+                  </p>
+                </div>
+              </Step>
+
+              <Step>
+                <h3 className="text-xl font-bold mb-4">Access Your Explorer</h3>
+                <p>Before launching your BlockScout explorer, please confirm the following:</p>
+
+                {rpcOption === 'local' && <NodeBootstrapCheck chainId={chainId} domain={domain || '127.0.0.1:9650'} />}
+
+                <div className="mt-6 space-y-4">
+                  <Checkbox
+                    label="All services are UP when running docker compose ps"
+                    checked={servicesChecked}
+                    onChange={setServicesChecked}
+                  />
+
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={() => {
+                        if (servicesChecked && (rpcOption === 'existing' || rpcOption === 'local')) {
+                          setExplorerReady(true);
+                          window.open(`https://${nipify(domain)}`, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      disabled={!servicesChecked}
+                      className="px-8 py-3 text-xl"
+                    >
+                      Launch Explorer
+                    </Button>
+                  </div>
                 </div>
 
-                <p>If containers keep restarting, check logs with <code>docker logs [service-name]</code>. Use <code>docker compose restart [service-name]</code> to restart individual services.
-                </p>
-              </div>
-            </Step>
+                <div className="mt-6">
+                  <img
+                    src="/images/blockscout-sample.png"
+                    alt="Blockscout Sample Image"
+                    className="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full"
+                  />
+                  <p className="text-sm mt-2 text-center">Preview of your BlockScout Explorer interface</p>
+                </div>
+              </Step>
 
-            <Step>
-              <h3 className="text-xl font-bold mb-4">Access Your Explorer</h3>
-              <p>Before launching your BlockScout explorer, please confirm the following:</p>
-
-              {rpcOption === 'local' && (
-                <NodeBootstrapCheck
-                  chainId={chainId}
-                  domain={domain || "127.0.0.1:9650"}
+              {explorerReady && (
+                <Success
+                  label="BlockScout Explorer Setup Completed"
+                  value="Your self-hosted BlockScout explorer is now running and accessible. You can use it to explore transactions, blocks, and accounts on your L1."
                 />
               )}
-
-              <div className="mt-6 space-y-4">
-                <Checkbox
-                  label="All services are UP when running docker compose ps"
-                  checked={servicesChecked}
-                  onChange={setServicesChecked}
-                />
-
-                <div className="flex justify-center">
-                  <Button
-                    onClick={() => {
-                      if (servicesChecked && (rpcOption === 'existing' || rpcOption === 'local')) {
-                        setExplorerReady(true);
-                        window.open(`https://${nipify(domain)}`, '_blank', 'noopener,noreferrer');
-                      }
-                    }}
-                    disabled={!servicesChecked}
-                    className="px-8 py-3 text-xl"
-                  >
-                    Launch Explorer
-                  </Button>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <img
-                  src="/images/blockscout-sample.png"
-                  alt="Blockscout Sample Image"
-                  className="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full"
-                />
-                <p className="text-sm mt-2 text-center">
-                  Preview of your BlockScout Explorer interface
-                </p>
-              </div>
-            </Step>
-
-            {explorerReady && (
-              <Success
-                label="BlockScout Explorer Setup Completed"
-                value="Your self-hosted BlockScout explorer is now running and accessible. You can use it to explore transactions, blocks, and accounts on your L1."
-              />
-            )}
-          </>)}
+            </>
+          )}
         </Steps>
       </Container>
     </>
   );
-};
+}

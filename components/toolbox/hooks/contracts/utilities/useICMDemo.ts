@@ -18,10 +18,7 @@ export interface ICMDemoHook {
  * @param contractAddress - The address of the ICMDemo contract
  * @param abi - Optional custom ABI (defaults to ICMDemo.json abi)
  */
-export function useICMDemo(
-  contractAddress: string | null,
-  abi?: any
-): ICMDemoHook {
+export function useICMDemo(contractAddress: string | null, abi?: any): ICMDemoHook {
   const contract = useContractActions(contractAddress, abi ?? ICMDemoAbi.abi);
 
   return {

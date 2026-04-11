@@ -34,9 +34,7 @@ export interface TokenRemoteHook {
   // Write functions - Remote-specific
   send: (input: SendTokensInput, amount: bigint) => Promise<string>;
   sendAndCall: (input: any, amount: bigint) => Promise<string>;
-  registerWithHome: (
-    feeInfo: readonly [`0x${string}`, bigint]
-  ) => Promise<string>;
+  registerWithHome: (feeInfo: readonly [`0x${string}`, bigint]) => Promise<string>;
   initialize: (
     teleporterRegistryAddress: string,
     teleporterManager: string,
@@ -45,7 +43,7 @@ export interface TokenRemoteHook {
     tokenHomeDecimals: number,
     tokenName: string,
     tokenSymbol: string,
-    tokenDecimals: number
+    tokenDecimals: number,
   ) => Promise<string>;
   transferOwnership: (newOwner: string) => Promise<string>;
   updateMinTeleporterVersion: (minTeleporterVersion: bigint) => Promise<string>;
@@ -64,16 +62,8 @@ export interface TokenRemoteHook {
  * @param tokenType - The type of token ('erc20' or 'native')
  * @param abi - Optional custom ABI (defaults based on tokenType)
  */
-export function useTokenRemote(
-  contractAddress: string | null,
-  tokenType: TokenType,
-  customAbi?: any
-): TokenRemoteHook {
-  const abi = customAbi ?? (
-    tokenType === 'erc20'
-      ? ERC20TokenRemoteAbi.abi
-      : NativeTokenRemoteAbi.abi
-  );
+export function useTokenRemote(contractAddress: string | null, tokenType: TokenType, customAbi?: any): TokenRemoteHook {
+  const abi = customAbi ?? (tokenType === 'erc20' ? ERC20TokenRemoteAbi.abi : NativeTokenRemoteAbi.abi);
 
   const contract = useContractActions(contractAddress, abi);
 
@@ -83,7 +73,8 @@ export function useTokenRemote(
   const decimals = () => contract.read('decimals') as Promise<number>;
   const balanceOf = (account: string) => contract.read('balanceOf', [account]) as Promise<bigint>;
   const totalSupply = () => contract.read('totalSupply') as Promise<bigint>;
-  const allowance = (ownerAddr: string, spender: string) => contract.read('allowance', [ownerAddr, spender]) as Promise<bigint>;
+  const allowance = (ownerAddr: string, spender: string) =>
+    contract.read('allowance', [ownerAddr, spender]) as Promise<bigint>;
 
   // Read functions - Remote-specific
   const getTokenHomeAddress = () => contract.read('getTokenHomeAddress') as Promise<string>;
@@ -95,11 +86,11 @@ export function useTokenRemote(
   const getMultiplyOnRemote = () => contract.read('getMultiplyOnRemote') as Promise<boolean>;
   const owner = () => contract.read('owner') as Promise<string>;
   const getMinTeleporterVersion = () => contract.read('getMinTeleporterVersion') as Promise<bigint>;
-  const isTeleporterAddressPaused = (address: string) => contract.read('isTeleporterAddressPaused', [address]) as Promise<boolean>;
+  const isTeleporterAddressPaused = (address: string) =>
+    contract.read('isTeleporterAddressPaused', [address]) as Promise<boolean>;
 
   // Write functions - ERC20-like
-  const transfer = (to: string, amount: bigint) =>
-    contract.write('transfer', [to, amount], 'Transfer Token Remote');
+  const transfer = (to: string, amount: bigint) => contract.write('transfer', [to, amount], 'Transfer Token Remote');
 
   const approve = (spender: string, amount: bigint) =>
     contract.write('approve', [spender, amount], 'Approve Token Remote');
@@ -109,17 +100,13 @@ export function useTokenRemote(
 
   // Write functions - Remote-specific
   const send = (input: SendTokensInput, amount: bigint) =>
-    contract.write(
-      'send',
-      [input, amount],
-      `Send ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
-    );
+    contract.write('send', [input, amount], `Send ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`);
 
   const sendAndCall = (input: any, amount: bigint) =>
     contract.write(
       'sendAndCall',
       [input, amount],
-      `Send And Call ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
+      `Send And Call ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`,
     );
 
   const registerWithHome = (feeInfo: readonly [`0x${string}`, bigint]) =>
@@ -133,12 +120,22 @@ export function useTokenRemote(
     tokenHomeDecimals: number,
     tokenName: string,
     tokenSymbol: string,
-    tokenDecimals: number
-  ) => contract.write(
-    'initialize',
-    [teleporterRegistryAddress, teleporterManager, tokenHomeBlockchainID, tokenHomeAddress, tokenHomeDecimals, tokenName, tokenSymbol, tokenDecimals],
-    `Initialize ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
-  );
+    tokenDecimals: number,
+  ) =>
+    contract.write(
+      'initialize',
+      [
+        teleporterRegistryAddress,
+        teleporterManager,
+        tokenHomeBlockchainID,
+        tokenHomeAddress,
+        tokenHomeDecimals,
+        tokenName,
+        tokenSymbol,
+        tokenDecimals,
+      ],
+      `Initialize ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`,
+    );
 
   const transferOwnership = (newOwner: string) =>
     contract.write('transferOwnership', [newOwner], 'Transfer Token Remote Ownership');

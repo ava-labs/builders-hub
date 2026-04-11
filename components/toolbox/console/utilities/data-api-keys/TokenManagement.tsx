@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/toolbox/components/Button";
-import { Plus, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/toolbox/components/Button';
+import { Plus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { GlacierApiClient } from "./api";
-import { ApiKeyListItem, CreateApiKeyResponse } from "./types";
-import ApiKeysList from "./ApiKeysList";
-import CreateApiKeyModal from "./CreateApiKeyModal";
-import ApiKeyCreatedModal from "./ApiKeyCreatedModal";
-import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import { GlacierApiClient } from './api';
+import { ApiKeyListItem, CreateApiKeyResponse } from './types';
+import ApiKeysList from './ApiKeysList';
+import CreateApiKeyModal from './CreateApiKeyModal';
+import ApiKeyCreatedModal from './ApiKeyCreatedModal';
+import DeleteConfirmDialog from './DeleteConfirmDialog';
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { AccountRequirementsConfigKey } from "../../../hooks/useAccountRequirements";
+} from '../../../components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { AccountRequirementsConfigKey } from '../../../hooks/useAccountRequirements';
 
 interface GlacierJwtResponse {
   glacierJwt: string;
@@ -25,9 +25,9 @@ interface GlacierJwtResponse {
 }
 
 const metadata: ConsoleToolMetadata = {
-  title: "API Keys",
+  title: 'API Keys',
   description:
-    "Manage your API keys for accessing the Data & Metrics APIs. Create, view, and revoke keys as needed for your applications.",
+    'Manage your API keys for accessing the Data & Metrics APIs. Create, view, and revoke keys as needed for your applications.',
   toolRequirements: [AccountRequirementsConfigKey.UserLoggedIn],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -50,9 +50,7 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
   // Create modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [createdKey, setCreatedKey] = useState<CreateApiKeyResponse | null>(
-    null
-  );
+  const [createdKey, setCreatedKey] = useState<CreateApiKeyResponse | null>(null);
 
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -66,25 +64,22 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
       setJwtError(null);
 
       try {
-        const response = await fetch("/api/glacier-jwt");
+        const response = await fetch('/api/glacier-jwt');
         if (!response.ok) {
           if (response.status === 401) {
-            setJwtError("Please log in to manage your API keys");
+            setJwtError('Please log in to manage your API keys');
           } else {
-            setJwtError("Failed to initialize. Please try again.");
+            setJwtError('Failed to initialize. Please try again.');
           }
           return;
         }
 
         const data: GlacierJwtResponse = await response.json();
         setJwtData(data);
-        apiClientRef.current = new GlacierApiClient(
-          data.glacierJwt,
-          data.endpoint
-        );
+        apiClientRef.current = new GlacierApiClient(data.glacierJwt, data.endpoint);
       } catch (err) {
-        console.error("Failed to fetch JWT:", err);
-        setJwtError("Failed to initialize. Please try again.");
+        console.error('Failed to fetch JWT:', err);
+        setJwtError('Failed to initialize. Please try again.');
       } finally {
         setJwtLoading(false);
       }
@@ -105,8 +100,8 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
       setApiKeys(response.keys);
       setMaxApiKeysAllowed(response.maxApiKeysAllowed);
     } catch (err) {
-      console.error("Failed to fetch API keys:", err);
-      setError(err instanceof Error ? err.message : "Failed to load API keys");
+      console.error('Failed to fetch API keys:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load API keys');
     } finally {
       setIsLoading(false);
     }
@@ -130,15 +125,14 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
       setCreatedKey(response);
       setShowCreateModal(false);
 
-      toast.success("API key created successfully");
+      toast.success('API key created successfully');
 
       // Delay to allow API to update
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await fetchApiKeys();
     } catch (err) {
-      console.error("Failed to create API key:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to create API key";
+      console.error('Failed to create API key:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create API key';
       toast.error(errorMessage);
       throw err;
     } finally {
@@ -165,15 +159,14 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
 
       setShowDeleteDialog(false);
       setKeyToDelete(null);
-      toast.success("API key deleted successfully");
+      toast.success('API key deleted successfully');
 
       // Delay to allow API to update
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await fetchApiKeys();
     } catch (err) {
-      console.error("Failed to delete API key:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to delete API key";
+      console.error('Failed to delete API key:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete API key';
       toast.error(errorMessage);
     } finally {
       setDeletingKeys((prev) => {
@@ -191,9 +184,7 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-        <span className="ml-3 text-zinc-500 dark:text-zinc-400">
-          Initializing...
-        </span>
+        <span className="ml-3 text-zinc-500 dark:text-zinc-400">Initializing...</span>
       </div>
     );
   }
@@ -224,11 +215,7 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
       />
 
       {/* API Key Created Modal */}
-      <ApiKeyCreatedModal
-        isOpen={!!createdKey}
-        onClose={() => setCreatedKey(null)}
-        createdKey={createdKey}
-      />
+      <ApiKeyCreatedModal isOpen={!!createdKey} onClose={() => setCreatedKey(null)} createdKey={createdKey} />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
@@ -239,19 +226,15 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
           setShowDeleteDialog(false);
           setKeyToDelete(null);
         }}
-        isDeleting={deletingKeys.has(keyToDelete?.keyId || "")}
+        isDeleting={deletingKeys.has(keyToDelete?.keyId || '')}
       />
 
       {/* Header with Create Button */}
       <div className="mb-8 not-prose">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-medium text-zinc-900 dark:text-white mb-1">
-              Your API Keys
-            </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Manage access tokens for the Data & Metrics API
-            </p>
+            <h2 className="text-lg font-medium text-zinc-900 dark:text-white mb-1">Your API Keys</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage access tokens for the Data & Metrics API</p>
           </div>
           <Button
             onClick={() => {

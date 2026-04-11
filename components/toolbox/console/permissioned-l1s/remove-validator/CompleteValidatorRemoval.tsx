@@ -92,33 +92,35 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setSuccessMessage(null);
 
     if (!pChainTxId.trim()) {
-      setErrorState("P-Chain transaction ID is required.");
-      onError("P-Chain transaction ID is required.");
+      setErrorState('P-Chain transaction ID is required.');
+      onError('P-Chain transaction ID is required.');
       return;
     }
     if (!subnetIdL1) {
-      setErrorState("L1 Subnet ID is required. Please select a subnet first.");
-      onError("L1 Subnet ID is required. Please select a subnet first.");
+      setErrorState('L1 Subnet ID is required. Please select a subnet first.');
+      onError('L1 Subnet ID is required. Please select a subnet first.');
       return;
     }
     if (!validatorManagerAddress) {
-      setErrorState("Validator Manager address is not set. Check L1 Subnet selection.");
-      onError("Validator Manager address is not set. Check L1 Subnet selection.");
+      setErrorState('Validator Manager address is not set. Check L1 Subnet selection.');
+      onError('Validator Manager address is not set. Check L1 Subnet selection.');
       return;
     }
     if (isContractOwner === false && !useMultisig) {
-      setErrorState("You are not the contract owner. Please contact the contract owner.");
-      onError("You are not the contract owner. Please contact the contract owner.");
+      setErrorState('You are not the contract owner. Please contact the contract owner.');
+      onError('You are not the contract owner. Please contact the contract owner.');
       return;
     }
     if (useMultisig && !contractOwner?.trim()) {
-      setErrorState("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
-      onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
+      setErrorState(
+        'PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.',
+      );
+      onError('PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.');
       return;
     }
     if (!chainPublicClient) {
-      setErrorState("Wallet or chain configuration is not properly initialized.");
-      onError("Wallet or chain configuration is not properly initialized.");
+      setErrorState('Wallet or chain configuration is not properly initialized.');
+      onError('Wallet or chain configuration is not properly initialized.');
       return;
     }
 
@@ -130,18 +132,18 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       setExtractedData({
         validationID: weightMessageData.validationID,
         nonce: weightMessageData.nonce,
-        weight: weightMessageData.weight
+        weight: weightMessageData.weight,
       });
 
       // Step 2: Get justification for the validation (using the extracted validation ID)
       const justification = await GetRegistrationJustification(
         weightMessageData.validationID,
         subnetIdL1,
-        chainPublicClient
+        chainPublicClient,
       );
 
       if (!justification) {
-        throw new Error("No justification logs found for this validation ID");
+        throw new Error('No justification logs found for this validation ID');
       }
 
       // Step 3: Create P-Chain warp signature for validator removal
@@ -150,7 +152,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         validationIDBytes,
         false, // false for removal
         avalancheNetworkID,
-        "11111111111111111111111111111111LpoYY" // always use P-Chain ID
+        '11111111111111111111111111111111LpoYY', // always use P-Chain ID
       );
 
       const aggregateSignaturePromise = aggregateSignature({
@@ -158,10 +160,13 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         justification: bytesToHex(justification),
         signingSubnetId,
       });
-      notify({
-        type: 'local',
-        name: 'Aggregate Signatures'
-      }, aggregateSignaturePromise);
+      notify(
+        {
+          type: 'local',
+          name: 'Aggregate Signatures',
+        },
+        aggregateSignaturePromise,
+      );
       const signature = await aggregateSignaturePromise;
 
       setPChainSignature(signature.signedMessage);
@@ -215,11 +220,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   // Don't render if no subnet is selected
   if (!subnetIdL1) {
-    return (
-      <div className="text-sm text-zinc-500 dark:text-zinc-400">
-        Please select an L1 subnet first.
-      </div>
-    );
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
   }
 
   const step1Complete = !!pChainTxId.trim();
@@ -227,29 +228,29 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   return (
     <div className="space-y-3">
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {isLoadingOwnership && (
-        <div className="text-sm text-zinc-500 dark:text-zinc-400">
-          Checking contract ownership...
-        </div>
+        <div className="text-sm text-zinc-500 dark:text-zinc-400">Checking contract ownership...</div>
       )}
 
       {/* Step 1: Enter P-Chain Transaction */}
-      <div className={`p-3 rounded-xl border transition-colors ${
-        step1Complete
-          ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-          : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
-      }`}>
+      <div
+        className={`p-3 rounded-xl border transition-colors ${
+          step1Complete
+            ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+            : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
+        }`}
+      >
         <div className="flex items-start gap-3">
-          <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-            step1Complete
-              ? "bg-green-500 text-white"
-              : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-          }`}>
-            {step1Complete ? <Check className="w-3 h-3" /> : "1"}
+          <div
+            className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+              step1Complete
+                ? 'bg-green-500 text-white'
+                : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+            }`}
+          >
+            {step1Complete ? <Check className="w-3 h-3" /> : '1'}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enter P-Chain Transaction</h3>
@@ -269,15 +270,21 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
               <div className="mt-2 space-y-1">
                 <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
                   <span className="text-green-600 font-sans font-medium">Validation ID:</span>
-                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">{extractedData.validationID}</code>
+                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">
+                    {extractedData.validationID}
+                  </code>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs">
                   <span className="text-green-600 dark:text-green-400 font-medium">Weight:</span>
-                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{extractedData.weight.toString()}</code>
+                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                    {extractedData.weight.toString()}
+                  </code>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs">
                   <span className="text-green-600 dark:text-green-400 font-medium">Nonce:</span>
-                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{extractedData.nonce.toString()}</code>
+                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                    {extractedData.nonce.toString()}
+                  </code>
                 </div>
               </div>
             )}
@@ -286,28 +293,36 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       </div>
 
       {/* Step 2: Aggregate & Complete Removal */}
-      <div className={`p-3 rounded-xl border transition-colors ${
-        step2Complete
-          ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-          : step1Complete || isProcessing
-          ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
-          : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
-      }`}>
+      <div
+        className={`p-3 rounded-xl border transition-colors ${
+          step2Complete
+            ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+            : step1Complete || isProcessing
+              ? 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
+              : 'bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50'
+        }`}
+      >
         <div className="flex items-start gap-3">
-          <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-            step2Complete
-              ? "bg-green-500 text-white"
-              : step1Complete || isProcessing
-              ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-              : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400"
-          }`}>
-            {step2Complete ? <Check className="w-3 h-3" /> : "2"}
+          <div
+            className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+              step2Complete
+                ? 'bg-green-500 text-white'
+                : step1Complete || isProcessing
+                  ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                  : 'bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400'
+            }`}
+          >
+            {step2Complete ? <Check className="w-3 h-3" /> : '2'}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className={`text-sm font-medium ${step1Complete || isProcessing ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"}`}>
+            <h3
+              className={`text-sm font-medium ${step1Complete || isProcessing ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-600'}`}
+            >
               Aggregate & Complete Removal
             </h3>
-            <p className={`mt-1 text-xs ${step1Complete || isProcessing ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"}`}>
+            <p
+              className={`mt-1 text-xs ${step1Complete || isProcessing ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-600'}`}
+            >
               Aggregate BLS signatures and submit the completeValidatorRemoval transaction
             </p>
 
@@ -325,11 +340,24 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
               <div className="mt-2">
                 <Button
                   onClick={handleCompleteRemoval}
-                  disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership || (!isCoreWallet && !!pChainSignature)}
+                  disabled={
+                    isProcessing ||
+                    !pChainTxId.trim() ||
+                    !!successMessage ||
+                    (isContractOwner === false && !useMultisig) ||
+                    isLoadingOwnership ||
+                    (!isCoreWallet && !!pChainSignature)
+                  }
                   loading={isProcessing}
                   className="w-full"
                 >
-                  {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Complete Validator Removal' : 'Aggregate Signatures'))}
+                  {isLoadingOwnership
+                    ? 'Checking ownership...'
+                    : isProcessing
+                      ? 'Processing...'
+                      : isCoreWallet
+                        ? 'Sign & Complete Validator Removal'
+                        : 'Aggregate Signatures'}
                 </Button>
               </div>
             ) : null}
@@ -348,12 +376,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       )}
 
       {/* Success */}
-      {transactionHash && (
-        <Success
-          label="Transaction Hash"
-          value={transactionHash}
-        />
-      )}
+      {transactionHash && <Success label="Transaction Hash" value={transactionHash} />}
     </div>
   );
 };

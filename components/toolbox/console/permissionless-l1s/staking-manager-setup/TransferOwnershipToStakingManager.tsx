@@ -1,47 +1,46 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
-import { TransferOwnership } from "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership";
-import { ConsoleToolMetadata, withConsoleToolMetadata, BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { StepCodeViewer, type StepConfig } from "@/components/console/step-code-viewer";
-import { Info, AlertTriangle } from "lucide-react";
-import versions from "@/scripts/versions.json";
+import { useState } from 'react';
+import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { TransferOwnership } from '@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership';
+import {
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+  BaseConsoleToolProps,
+} from '../../../components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { StepCodeViewer, type StepConfig } from '@/components/console/step-code-viewer';
+import { Info, AlertTriangle } from 'lucide-react';
+import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Transfer Ownership to Staking Manager",
-  description: "Transfer the ownership of the Validator Manager to your deployed Staking Manager",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance,
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Transfer Ownership to Staking Manager',
+  description: 'Transfer the ownership of the Validator Manager to your deployed Staking Manager',
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 // SDK code examples for ownership transfer
-const getCodeSteps = (params: {
-  validatorManagerAddress: string;
-  stakingManagerAddress: string;
-}): StepConfig[] => [
+const getCodeSteps = (params: { validatorManagerAddress: string; stakingManagerAddress: string }): StepConfig[] => [
   {
-    id: "understand-ownership",
-    title: "Understanding Ownership",
-    description: "Why ownership transfer is needed",
-    codeType: "solidity",
-    filename: "ValidatorManager.sol",
+    id: 'understand-ownership',
+    title: 'Understanding Ownership',
+    description: 'Why ownership transfer is needed',
+    codeType: 'solidity',
+    filename: 'ValidatorManager.sol',
     sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
-    highlightFunction: "transferOwnership",
+    highlightFunction: 'transferOwnership',
     githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
   },
   {
-    id: "transfer-sdk",
-    title: "Transfer via SDK",
-    description: "Using viem to transfer ownership",
-    codeType: "typescript",
-    filename: "transfer-ownership.ts",
+    id: 'transfer-sdk',
+    title: 'Transfer via SDK',
+    description: 'Using viem to transfer ownership',
+    codeType: 'typescript',
+    filename: 'transfer-ownership.ts',
     code: `import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { avalancheFuji } from "viem/chains";
@@ -63,10 +62,10 @@ const walletClient = createWalletClient({
 
 // Transfer ownership to the Staking Manager
 const hash = await walletClient.writeContract({
-  address: "${params.validatorManagerAddress || "0x..."}" as \`0x\${string}\`,
+  address: "${params.validatorManagerAddress || '0x...'}" as \`0x\${string}\`,
   abi,
   functionName: "transferOwnership",
-  args: ["${params.stakingManagerAddress || "0x..."}" as \`0x\${string}\`]
+  args: ["${params.stakingManagerAddress || '0x...'}" as \`0x\${string}\`]
 });
 
 console.log("Transfer tx hash:", hash);
@@ -81,11 +80,11 @@ const receipt = await publicClient.waitForTransactionReceipt({ hash });
 console.log("Transfer confirmed:", receipt.status);`,
   },
   {
-    id: "verify-ownership",
-    title: "Verify Ownership",
-    description: "Check the new owner address",
-    codeType: "typescript",
-    filename: "verify-ownership.ts",
+    id: 'verify-ownership',
+    title: 'Verify Ownership',
+    description: 'Check the new owner address',
+    codeType: 'typescript',
+    filename: 'verify-ownership.ts',
     code: `import { createPublicClient, http } from "viem";
 import { avalancheFuji } from "viem/chains";
 
@@ -105,7 +104,7 @@ const abi = [{
 
 // Read the current owner
 const owner = await publicClient.readContract({
-  address: "${params.validatorManagerAddress || "0x..."}" as \`0x\${string}\`,
+  address: "${params.validatorManagerAddress || '0x...'}" as \`0x\${string}\`,
   abi,
   functionName: "owner"
 });
@@ -113,7 +112,7 @@ const owner = await publicClient.readContract({
 console.log("Current owner:", owner);
 
 // Verify it's the Staking Manager
-const expectedOwner = "${params.stakingManagerAddress || "0x..."}";
+const expectedOwner = "${params.stakingManagerAddress || '0x...'}";
 if (owner.toLowerCase() === expectedOwner.toLowerCase()) {
   console.log("✓ Ownership transferred successfully!");
 } else {
@@ -128,12 +127,12 @@ function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) 
 
   // Prefer ERC20 if both are present
   const stakingManagerAddress = erc20StakingManagerAddress || nativeStakingManagerAddress;
-  const stakingManagerType = erc20StakingManagerAddress ? "ERC20 Token" : "Native Token";
+  const stakingManagerType = erc20StakingManagerAddress ? 'ERC20 Token' : 'Native Token';
 
   // Generate dynamic code steps
   const codeSteps = getCodeSteps({
-    validatorManagerAddress: "", // Will be filled by the TransferOwnership component
-    stakingManagerAddress: stakingManagerAddress || "",
+    validatorManagerAddress: '', // Will be filled by the TransferOwnership component
+    stakingManagerAddress: stakingManagerAddress || '',
   });
 
   return (
@@ -169,7 +168,8 @@ function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) 
                     No Staking Manager Found
                   </h3>
                   <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                    No staking manager address found. Please deploy and initialize a Staking Manager first, or manually enter the address below.
+                    No staking manager address found. Please deploy and initialize a Staking Manager first, or manually
+                    enter the address below.
                   </p>
                 </div>
               </div>
@@ -177,29 +177,20 @@ function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) 
           )}
 
           <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
-            <h3 className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
-              Why Transfer Ownership?
-            </h3>
+            <h3 className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">Why Transfer Ownership?</h3>
             <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-              The Staking Manager needs ownership of the Validator Manager to register validators
-              and manage the validator set. After transfer, only the Staking Manager contract
-              can call protected functions like <code className="text-amber-800 dark:text-amber-200">initializeValidatorRegistration</code>.
+              The Staking Manager needs ownership of the Validator Manager to register validators and manage the
+              validator set. After transfer, only the Staking Manager contract can call protected functions like{' '}
+              <code className="text-amber-800 dark:text-amber-200">initializeValidatorRegistration</code>.
             </p>
           </div>
 
-          <TransferOwnership
-            onSuccess={onSuccess}
-            defaultNewOwnerAddress={stakingManagerAddress}
-          />
+          <TransferOwnership onSuccess={onSuccess} defaultNewOwnerAddress={stakingManagerAddress} />
         </div>
       </div>
 
       {/* Right: Code Viewer */}
-      <StepCodeViewer
-        activeStep={activeStep}
-        steps={codeSteps}
-        className="h-[600px]"
-      />
+      <StepCodeViewer activeStep={activeStep} steps={codeSteps} className="h-[600px]" />
     </div>
   );
 }

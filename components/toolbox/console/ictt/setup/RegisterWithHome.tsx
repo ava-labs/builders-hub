@@ -1,59 +1,49 @@
-"use client";
+'use client';
 
-import {
-  useL1ByChainId,
-  useSelectedL1,
-} from "@/components/toolbox/stores/l1ListStore";
-import {
-  useToolboxStore,
-  useViemChainStore,
-} from "@/components/toolbox/stores/toolboxStore";
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { Button } from "@/components/toolbox/components/Button";
-import { Success } from "@/components/toolbox/components/Success";
-import ERC20TokenRemoteABI from "@/contracts/icm-contracts/compiled/ERC20TokenRemote.json";
-import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
-import { Abi, createPublicClient, http, PublicClient, zeroAddress } from "viem";
-import { Suggestion } from "@/components/toolbox/components/Input";
-import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { ListContractEvents } from "@/components/toolbox/components/ListContractEvents";
+import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Button } from '@/components/toolbox/components/Button';
+import { Success } from '@/components/toolbox/components/Success';
+import ERC20TokenRemoteABI from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
+import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
+import { Abi, createPublicClient, http, PublicClient, zeroAddress } from 'viem';
+import { Suggestion } from '@/components/toolbox/components/Input';
+import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
+import { ListContractEvents } from '@/components/toolbox/components/ListContractEvents';
 import { cb58ToHex } from '@/components/tools/common/utils/cb58';
-import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import SelectBlockchainId from '@/components/toolbox/components/SelectBlockchainId';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import versions from "@/scripts/versions.json";
-import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import versions from '@/scripts/versions.json';
+import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Register Remote Contract with Home",
-  description: "Register the remote contract with the home contract.",
+  title: 'Register Remote Contract with Home',
+  description: 'Register the remote contract with the home contract.',
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function RegisterWithHome() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
-  const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } =
-    useToolboxStore();
-  const [remoteAddress, setRemoteAddress] = useState("");
+  const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } = useToolboxStore();
+  const [remoteAddress, setRemoteAddress] = useState('');
   const walletClient = useResolvedWalletClient();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const selectedL1 = useSelectedL1();
-  const [sourceChainId, setSourceChainId] = useState<string>("");
+  const [sourceChainId, setSourceChainId] = useState<string>('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [lastTxId, setLastTxId] = useState<string>();
-  const [localError, setLocalError] = useState("");
-  const [homeContractAddress, setHomeContractAddress] = useState<string | null>(
-    null
-  );
-  const [homeContractClient, setHomeContractClient] =
-    useState<PublicClient | null>(null);
+  const [localError, setLocalError] = useState('');
+  const [homeContractAddress, setHomeContractAddress] = useState<string | null>(null);
+  const [homeContractClient, setHomeContractClient] = useState<PublicClient | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
 
@@ -66,9 +56,9 @@ function RegisterWithHome() {
 
   let sourceChainError: string | undefined = undefined;
   if (!sourceChainId) {
-    sourceChainError = "Please select a source chain";
+    sourceChainError = 'Please select a source chain';
   } else if (selectedL1?.id === sourceChainId) {
-    sourceChainError = "Source and destination chains must be different";
+    sourceChainError = 'Source and destination chains must be different';
   }
 
   // Move fetchSettings outside useEffect and wrap in useCallback for stable reference
@@ -92,7 +82,7 @@ function RegisterWithHome() {
       const tokenHomeAddress = await remotePublicClient.readContract({
         address: remoteAddress as `0x${string}`,
         abi: ERC20TokenRemoteABI.abi,
-        functionName: "getTokenHomeAddress",
+        functionName: 'getTokenHomeAddress',
       });
 
       setHomeContractAddress(tokenHomeAddress as string);
@@ -104,7 +94,7 @@ function RegisterWithHome() {
       const remoteSettings = (await homePublicClient.readContract({
         address: tokenHomeAddress as `0x${string}`,
         abi: ERC20TokenHomeABI.abi,
-        functionName: "getRemoteTokenTransferrerSettings",
+        functionName: 'getRemoteTokenTransferrerSettings',
         args: [remoteBlockchainIDHex, remoteAddress],
       })) as {
         registered: boolean;
@@ -115,43 +105,33 @@ function RegisterWithHome() {
 
       setIsRegistered(remoteSettings.registered);
     } catch (error: any) {
-      console.error("Error fetching token home address:", error);
-      setLocalError(
-        `Error fetching token home address: ${
-          error.shortMessage || error.message
-        }`
-      );
+      console.error('Error fetching token home address:', error);
+      setLocalError(`Error fetching token home address: ${error.shortMessage || error.message}`);
       setHomeContractAddress(null);
     } finally {
       setIsCheckingRegistration(false);
     }
-  }, [
-    remoteAddress,
-    sourceChainId,
-    viemChain?.id,
-    sourceL1?.rpcUrl,
-    selectedL1?.id,
-  ]);
+  }, [remoteAddress, sourceChainId, viemChain?.id, sourceL1?.rpcUrl, selectedL1?.id]);
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
   async function handleRegister() {
-    setLocalError("");
+    setLocalError('');
 
     if (!walletClient || !walletClient.account) {
-      setLocalError("Core wallet not found");
+      setLocalError('Core wallet not found');
       return;
     }
 
     if (!remoteAddress) {
-      setLocalError("Please enter a valid remote contract address");
+      setLocalError('Please enter a valid remote contract address');
       return;
     }
 
     if (!viemChain) {
-      setLocalError("Current chain configuration is missing");
+      setLocalError('Current chain configuration is missing');
       return;
     }
 
@@ -170,7 +150,7 @@ function RegisterWithHome() {
       const { request } = await publicClient.simulateContract({
         address: remoteAddress as `0x${string}`,
         abi: ERC20TokenRemoteABI.abi,
-        functionName: "registerWithHome",
+        functionName: 'registerWithHome',
         args: [feeInfo],
         chain: viemChain,
         account: walletClient!.account,
@@ -180,26 +160,22 @@ function RegisterWithHome() {
       const writePromise = walletClient!.writeContract(request);
       notify(
         {
-          type: "call",
-          name: "Register With Home",
+          type: 'call',
+          name: 'Register With Home',
         },
         writePromise,
-        viemChain ?? undefined
+        viemChain ?? undefined,
       );
       const hash = await writePromise;
       setLastTxId(hash);
 
       // Wait for confirmation
       await publicClient.waitForTransactionReceipt({ hash });
-      setLocalError("");
+      setLocalError('');
     } catch (error: any) {
-      console.error("Registration failed:", error);
-      setLocalError(
-        `Registration failed: ${error.shortMessage || error.message}`
-      );
-      setCriticalError(
-        error instanceof Error ? error : new Error(String(error))
-      );
+      console.error('Registration failed:', error);
+      setLocalError(`Registration failed: ${error.shortMessage || error.message}`);
+      setCriticalError(error instanceof Error ? error : new Error(String(error)));
     } finally {
       setIsRegistering(false);
     }
@@ -211,14 +187,14 @@ function RegisterWithHome() {
       result.push({
         title: erc20TokenRemoteAddress,
         value: erc20TokenRemoteAddress,
-        description: "ERC20 Token Remote Address",
+        description: 'ERC20 Token Remote Address',
       });
     }
     if (nativeTokenRemoteAddress) {
       result.push({
         title: nativeTokenRemoteAddress,
         value: nativeTokenRemoteAddress,
-        description: "Native Token Remote Address",
+        description: 'Native Token Remote Address',
       });
     }
     return result;
@@ -229,9 +205,8 @@ function RegisterWithHome() {
       <div className="space-y-4">
         <div>
           <p className="mt-2">
-            This will call the `registerWithHome` function on the remote contract
-            on the current chain ({selectedL1?.name}). This links the remote
-            bridge back to the home bridge on the source chain.
+            This will call the `registerWithHome` function on the remote contract on the current chain (
+            {selectedL1?.name}). This links the remote bridge back to the home bridge on the source chain.
           </p>
         </div>
 
@@ -248,16 +223,10 @@ function RegisterWithHome() {
           onChange={setRemoteAddress}
           disabled={isRegistering}
           suggestions={remoteAddressSuggestions}
-          helperText={
-            !remoteAddress ? "Please enter a remote contract address" : undefined
-          }
+          helperText={!remoteAddress ? 'Please enter a remote contract address' : undefined}
         />
 
-        {localError && (
-          <div className="text-red-500 mt-2 p-2 border border-red-300 rounded-lg">
-            {localError}
-          </div>
-        )}
+        {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded-lg">{localError}</div>}
 
         <Button
           variant="primary"
@@ -277,7 +246,7 @@ function RegisterWithHome() {
 
         {lastTxId && (
           <div className="space-y-2">
-            <Success label="Registration Transaction ID" value={lastTxId ?? ""} />
+            <Success label="Registration Transaction ID" value={lastTxId ?? ''} />
           </div>
         )}
 
@@ -285,26 +254,21 @@ function RegisterWithHome() {
           <div className="text-zinc-500 dark:text-zinc-400">Checking registration status...</div>
         )}
 
-        {!isCheckingRegistration && isRegistered && (
-          <div>Remote contract is registered with the Home contract</div>
-        )}
+        {!isCheckingRegistration && isRegistered && <div>Remote contract is registered with the Home contract</div>}
 
-        {!isCheckingRegistration &&
-          !isRegistered &&
-          sourceChainId &&
-          remoteAddress && (
-            <div>
-              Remote contract is not yet registered with the Home contract. ICM
-              message needs a few seconds to be processed.
-              <button
-                className="underline text-blue-500 px-1 py-0 h-auto"
-                onClick={fetchSettings}
-                disabled={isCheckingRegistration}
-              >
-                Refresh
-              </button>
-            </div>
-          )}
+        {!isCheckingRegistration && !isRegistered && sourceChainId && remoteAddress && (
+          <div>
+            Remote contract is not yet registered with the Home contract. ICM message needs a few seconds to be
+            processed.
+            <button
+              className="underline text-blue-500 px-1 py-0 h-auto"
+              onClick={fetchSettings}
+              disabled={isCheckingRegistration}
+            >
+              Refresh
+            </button>
+          </div>
+        )}
 
         {homeContractAddress && homeContractClient && (
           <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-800">
@@ -321,16 +285,16 @@ function RegisterWithHome() {
       <ContractFunctionViewer
         sources={[
           {
-            filename: "ERC20TokenRemote.sol",
+            filename: 'ERC20TokenRemote.sol',
             sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
             githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
-            highlightFunction: "registerWithHome",
+            highlightFunction: 'registerWithHome',
           },
           {
-            filename: "TokenRemote.sol",
+            filename: 'TokenRemote.sol',
             sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/TokenRemote.sol`,
             githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenRemote/TokenRemote.sol`,
-            highlightFunction: "registerWithHome",
+            highlightFunction: 'registerWithHome',
           },
         ]}
         showFunctionOnly={true}

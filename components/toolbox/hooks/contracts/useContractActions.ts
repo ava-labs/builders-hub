@@ -25,7 +25,7 @@ export interface ContractActions {
     functionName: string,
     args: readonly unknown[],
     notificationName: string,
-    options?: WriteOptions
+    options?: WriteOptions,
   ) => Promise<string>;
 
   /** True when wallet + contract address + chain are all available (can write) */
@@ -46,10 +46,7 @@ export interface ContractActions {
  *
  * Phase 2 will migrate individual hooks to use this as their base.
  */
-export function useContractActions(
-  contractAddress: string | null,
-  abi: Abi | readonly unknown[]
-): ContractActions {
+export function useContractActions(contractAddress: string | null, abi: Abi | readonly unknown[]): ContractActions {
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
@@ -73,7 +70,7 @@ export function useContractActions(
     functionName: string,
     args: readonly unknown[],
     notificationName: string,
-    options: WriteOptions = {}
+    options: WriteOptions = {},
   ): Promise<string> => {
     if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
@@ -94,10 +91,14 @@ export function useContractActions(
 
     const writePromise = walletClient.writeContract(txConfig);
 
-    notify({
-      type: 'call',
-      name: notificationName
-    }, writePromise, viemChain);
+    notify(
+      {
+        type: 'call',
+        name: notificationName,
+      },
+      writePromise,
+      viemChain,
+    );
 
     try {
       return await writePromise;

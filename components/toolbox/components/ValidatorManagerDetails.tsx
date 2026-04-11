@@ -36,7 +36,7 @@ export function ValidatorManagerDetails({
   ownerType,
   isDetectingOwnerType,
   isExpanded = true,
-  onToggleExpanded
+  onToggleExpanded,
 }: ValidatorManagerDetailsProps) {
   const [blockchainName, setBlockchainName] = useState<string | null>(null);
   const [isLoadingBlockchainName, setIsLoadingBlockchainName] = useState(false);
@@ -75,9 +75,7 @@ export function ValidatorManagerDetails({
     return null;
   }
 
-  const ownerTypeLabel = isDetectingOwnerType
-    ? 'detecting...'
-    : ownerType || null;
+  const ownerTypeLabel = isDetectingOwnerType ? 'detecting...' : ownerType || null;
 
   return (
     <div className="mt-4 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
@@ -85,22 +83,13 @@ export function ValidatorManagerDetails({
         onClick={handleToggleExpanded}
         className="w-full px-4 py-3 flex items-center justify-between text-left bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
       >
-        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Validator Manager Details
-        </span>
-        <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none">
-          {currentIsExpanded ? '−' : '+'}
-        </span>
+        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Validator Manager Details</span>
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none">{currentIsExpanded ? '−' : '+'}</span>
       </button>
 
       {currentIsExpanded && (
         <div className="px-4 py-3 space-y-3 text-sm border-t border-zinc-200 dark:border-zinc-800">
-          <Row
-            label="Contract Address"
-            value={validatorManagerAddress}
-            mono
-            copyable
-          />
+          <Row label="Contract Address" value={validatorManagerAddress} mono copyable />
 
           <Row
             label="Contract Owner"
@@ -114,11 +103,12 @@ export function ValidatorManagerDetails({
 
           {blockchainId && (
             <Row
-              label={blockchainName
-                ? `Home Chain — ${blockchainName}`
-                : isLoadingBlockchainName
-                  ? 'Home Chain — loading...'
-                  : 'Home Chain'
+              label={
+                blockchainName
+                  ? `Home Chain — ${blockchainName}`
+                  : isLoadingBlockchainName
+                    ? 'Home Chain — loading...'
+                    : 'Home Chain'
               }
               value={blockchainId}
               mono
@@ -127,12 +117,7 @@ export function ValidatorManagerDetails({
           )}
 
           {signingSubnetId && signingSubnetId !== subnetId && (
-            <Row
-              label="Signing Subnet ID"
-              value={signingSubnetId}
-              mono
-              copyable
-            />
+            <Row label="Signing Subnet ID" value={signingSubnetId} mono copyable />
           )}
 
           <Row
@@ -176,9 +161,7 @@ function Row({
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-          {label}
-        </span>
+        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</span>
         {badge && (
           <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
             {badge}
@@ -194,17 +177,18 @@ function Row({
             ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50'
             : 'text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50'
         } ${mono ? 'font-mono' : ''} ${loading ? 'animate-pulse' : ''} ${
-          copyable ? 'cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors' : 'cursor-default'
+          copyable
+            ? 'cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors'
+            : 'cursor-default'
         }`}
       >
         <span>{value}</span>
-        {copyable && (
-          copied ? (
+        {copyable &&
+          (copied ? (
             <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
           ) : (
             <Copy className="h-3.5 w-3.5 text-zinc-400 opacity-0 group-hover/copy:opacity-100 flex-shrink-0 transition-opacity" />
-          )
-        )}
+          ))}
       </button>
     </div>
   );

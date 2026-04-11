@@ -37,74 +37,74 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
 
   const allowance = async (owner: string, spender: string): Promise<string> => {
     if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
+
     const allowanceAmount = await readContract(avalancheWalletClient as any, {
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'allowance',
-      args: [owner, spender]
+      args: [owner, spender],
     });
-    
+
     return formatEther(allowanceAmount as bigint);
   };
 
   const balanceOf = async (account: string): Promise<string> => {
     if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
+
     const balance = await readContract(avalancheWalletClient as any, {
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'balanceOf',
-      args: [account]
+      args: [account],
     });
-    
+
     return formatEther(balance as bigint);
   };
 
   const totalSupply = async (): Promise<string> => {
     if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
+
     const supply = await readContract(avalancheWalletClient as any, {
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'totalSupply',
-      args: []
+      args: [],
     });
-    
+
     return formatEther(supply as bigint);
   };
 
   const name = async (): Promise<string> => {
     if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    return await readContract(avalancheWalletClient as any, {
+
+    return (await readContract(avalancheWalletClient as any, {
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'name',
-      args: []
-    }) as string;
+      args: [],
+    })) as string;
   };
 
   const symbol = async (): Promise<string> => {
     if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    return await readContract(avalancheWalletClient as any, {
+
+    return (await readContract(avalancheWalletClient as any, {
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'symbol',
-      args: []
-    }) as string;
+      args: [],
+    })) as string;
   };
 
   const decimals = async (): Promise<number> => {
     if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    return await readContract(avalancheWalletClient as any, {
+
+    return (await readContract(avalancheWalletClient as any, {
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'decimals',
-      args: []
-    }) as number;
+      args: [],
+    })) as number;
   };
 
   // Write functions (payable/nonpayable)
@@ -123,10 +123,14 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
       gas: BigInt(1_000_000),
     });
 
-    notify({
-      type: 'call',
-      name: 'Approve ERC20 Token'
-    }, writePromise, viemChain);
+    notify(
+      {
+        type: 'call',
+        name: 'Approve ERC20 Token',
+      },
+      writePromise,
+      viemChain,
+    );
 
     return await writePromise;
   };
@@ -146,10 +150,14 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
       gas: BigInt(1_000_000),
     });
 
-    notify({
-      type: 'call',
-      name: 'Transfer ERC20 Token'
-    }, writePromise, viemChain);
+    notify(
+      {
+        type: 'call',
+        name: 'Transfer ERC20 Token',
+      },
+      writePromise,
+      viemChain,
+    );
 
     return await writePromise;
   };
@@ -169,10 +177,14 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
       gas: BigInt(1_000_000),
     });
 
-    notify({
-      type: 'call',
-      name: 'Transfer From ERC20 Token'
-    }, writePromise, viemChain);
+    notify(
+      {
+        type: 'call',
+        name: 'Transfer From ERC20 Token',
+      },
+      writePromise,
+      viemChain,
+    );
 
     return await writePromise;
   };
@@ -185,14 +197,14 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
     name,
     symbol,
     decimals,
-    
+
     // Write functions
     approve,
     transfer,
     transferFrom,
-    
+
     // Metadata
     contractAddress: tokenAddress,
-    isReady
+    isReady,
   };
 }

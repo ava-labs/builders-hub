@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { Loader2, Search, Users, Coins, Calendar, ChevronDown, Check, RefreshCw } from "lucide-react";
-import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
-import { ValidatorData } from "./DisableL1ValidatorContext";
-import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
-import { Button } from "../../../components/Button";
-import { Alert } from "../../../components/Alert";
+import { useState, useEffect, useCallback } from 'react';
+import { Loader2, Search, Users, Coins, Calendar, ChevronDown, Check, RefreshCw } from 'lucide-react';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { ValidatorData } from './DisableL1ValidatorContext';
+import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
+import { Button } from '../../../components/Button';
+import { Alert } from '../../../components/Alert';
 
 interface ValidatorSelectorProps {
   subnetId: string;
@@ -14,17 +14,13 @@ interface ValidatorSelectorProps {
   selectedValidator: ValidatorData | null;
 }
 
-export default function ValidatorSelector({
-  subnetId,
-  onSelect,
-  selectedValidator,
-}: ValidatorSelectorProps) {
+export default function ValidatorSelector({ subnetId, onSelect, selectedValidator }: ValidatorSelectorProps) {
   const { listL1Validators } = useAvalancheSDKChainkit();
   const [validators, setValidators] = useState<ValidatorData[]>([]);
   const [filteredValidators, setFilteredValidators] = useState<ValidatorData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
   const fetchValidators = useCallback(async () => {
@@ -52,13 +48,13 @@ export default function ValidatorSelector({
       }
 
       // Filter to only show active validators (weight > 0)
-      const activeValidators = allValidators.filter(v => v.weight > 0);
+      const activeValidators = allValidators.filter((v) => v.weight > 0);
       setValidators(activeValidators);
       setFilteredValidators(activeValidators);
       setIsExpanded(true);
     } catch (err) {
-      console.error("Error fetching validators:", err);
-      setError("Failed to fetch validators");
+      console.error('Error fetching validators:', err);
+      setError('Failed to fetch validators');
     } finally {
       setIsLoading(false);
     }
@@ -73,9 +69,7 @@ export default function ValidatorSelector({
 
     const term = searchTerm.toLowerCase();
     const filtered = validators.filter(
-      (v) =>
-        v.nodeId.toLowerCase().includes(term) ||
-        v.validationId.toLowerCase().includes(term)
+      (v) => v.nodeId.toLowerCase().includes(term) || v.validationId.toLowerCase().includes(term),
     );
     setFilteredValidators(filtered);
   }, [searchTerm, validators]);
@@ -110,7 +104,7 @@ export default function ValidatorSelector({
           disabled={isLoading || !subnetId}
           className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 disabled:opacity-50"
         >
-          <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
@@ -176,9 +170,7 @@ export default function ValidatorSelector({
                   key={validator.validationId}
                   onClick={() => handleSelect(validator)}
                   className={`w-full text-left p-3 border-b border-zinc-100 dark:border-zinc-700 last:border-b-0 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors ${
-                    selectedValidator?.validationId === validator.validationId
-                      ? "bg-blue-50 dark:bg-blue-900/20"
-                      : ""
+                    selectedValidator?.validationId === validator.validationId ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -202,7 +194,8 @@ export default function ValidatorSelector({
                       </div>
                       {validator.deactivationOwner && (
                         <div className="text-xs text-zinc-400 dark:text-zinc-500">
-                          Deactivation: {validator.deactivationOwner.threshold}/{validator.deactivationOwner.addresses.length} owners
+                          Deactivation: {validator.deactivationOwner.threshold}/
+                          {validator.deactivationOwner.addresses.length} owners
                         </div>
                       )}
                     </div>
@@ -225,9 +218,7 @@ export default function ValidatorSelector({
           {!isLoading && !error && validators.length === 0 && (
             <div className="py-6 text-center space-y-2">
               <Users className="w-8 h-8 text-zinc-300 dark:text-zinc-600 mx-auto" />
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                No active validators found for this subnet.
-              </p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">No active validators found for this subnet.</p>
               <Button variant="secondary" onClick={fetchValidators} className="text-xs">
                 Try Again
               </Button>
@@ -237,11 +228,7 @@ export default function ValidatorSelector({
           {/* Close/Cancel */}
           {selectedValidator && (
             <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
-              <Button
-                variant="secondary"
-                onClick={() => setIsExpanded(false)}
-                className="w-full text-xs"
-              >
+              <Button variant="secondary" onClick={() => setIsExpanded(false)} className="w-full text-xs">
                 Keep Current Selection
               </Button>
             </div>
@@ -251,19 +238,14 @@ export default function ValidatorSelector({
 
       {/* Prompt to fetch validators */}
       {!isLoading && validators.length === 0 && !error && !isExpanded && !selectedValidator && (
-        <Button
-          variant="secondary"
-          onClick={fetchValidators}
-          disabled={!subnetId}
-          className="w-full"
-        >
+        <Button variant="secondary" onClick={fetchValidators} disabled={!subnetId} className="w-full">
           {isLoading ? (
             <span className="flex items-center justify-center">
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Loading...
             </span>
           ) : (
-            "Load Validators"
+            'Load Validators'
           )}
         </Button>
       )}

@@ -1,45 +1,49 @@
-"use client";
+'use client';
 
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState } from "react";
-import { createPublicClient, http } from "viem";
-import { Button } from "@/components/toolbox/components/Button";
-import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useResolvedWalletClient } from "@/components/toolbox/hooks/useResolvedWalletClient";
-import versions from "@/scripts/versions.json";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { getLinkedBytecode } from "@/components/toolbox/utils/contractDeployment";
-import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
-import { Check, BookOpen, GraduationCap } from "lucide-react";
-import { ManualAddressInput } from "./ManualAddressInput";
-import Link from "next/link";
+import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useState } from 'react';
+import { createPublicClient, http } from 'viem';
+import { Button } from '@/components/toolbox/components/Button';
+import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
+import ValidatorMessagesABI from '@/contracts/icm-contracts/compiled/ValidatorMessages.json';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../../components/WithConsoleToolMetadata';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import versions from '@/scripts/versions.json';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { getLinkedBytecode } from '@/components/toolbox/utils/contractDeployment';
+import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
+import { Check, BookOpen, GraduationCap } from 'lucide-react';
+import { ManualAddressInput } from './ManualAddressInput';
+import Link from 'next/link';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
 // GitHub raw URLs for source code
 const CONTRACT_SOURCES: ContractSource[] = [
   {
-    name: "ValidatorManager",
-    filename: "ValidatorManager.sol",
+    name: 'ValidatorManager',
+    filename: 'ValidatorManager.sol',
     url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
-    description: "Core contract for managing L1 validators. Emits ICM messages to update the validator set on P-Chain.",
+    description: 'Core contract for managing L1 validators. Emits ICM messages to update the validator set on P-Chain.',
   },
   {
-    name: "ValidatorMessages",
-    filename: "ValidatorMessages.sol",
+    name: 'ValidatorMessages',
+    filename: 'ValidatorMessages.sol',
     url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorMessages.sol`,
-    description: "Library for encoding/decoding validator management messages sent via ICM.",
+    description: 'Library for encoding/decoding validator management messages sent via ICM.',
   },
 ];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Deploy Validator Contracts",
-  description: "Deploy the ValidatorMessages library and ValidatorManager contract",
+  title: 'Deploy Validator Contracts',
+  description: 'Deploy the ValidatorMessages library and ValidatorManager contract',
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -60,17 +64,17 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
 
   const getLinkedValidatorManagerBytecode = () => {
     if (!validatorMessagesLibAddress) {
-      throw new Error("ValidatorMessages library must be deployed first");
+      throw new Error('ValidatorMessages library must be deployed first');
     }
     return getLinkedBytecode(ValidatorManagerABI.bytecode, validatorMessagesLibAddress);
   };
 
   async function deployValidatorMessages() {
-    if (!walletClient) throw new Error("Wallet not connected");
-    if (!viemChain) throw new Error("Viem chain not found");
+    if (!walletClient) throw new Error('Wallet not connected');
+    if (!viemChain) throw new Error('Viem chain not found');
 
     setIsDeployingMessages(true);
-    setValidatorMessagesLibAddress("");
+    setValidatorMessagesLibAddress('');
 
     try {
       await walletClient.addChain({ chain: viemChain });
@@ -84,7 +88,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         account: walletEVMAddress as `0x${string}`,
       });
 
-      notify({ type: "deploy", name: "ValidatorMessages Library" }, deployPromise, viemChain ?? undefined);
+      notify({ type: 'deploy', name: 'ValidatorMessages Library' }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
       const chainClient = createPublicClient({
@@ -93,7 +97,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       });
       const receipt = await chainClient.waitForTransactionReceipt({ hash });
       if (!receipt.contractAddress) {
-        throw new Error("No contract address in receipt");
+        throw new Error('No contract address in receipt');
       }
       setValidatorMessagesLibAddress(receipt.contractAddress as string);
     } finally {
@@ -102,11 +106,11 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function deployValidatorManager() {
-    if (!walletClient) throw new Error("Wallet not connected");
-    if (!viemChain) throw new Error("Viem chain not found");
+    if (!walletClient) throw new Error('Wallet not connected');
+    if (!viemChain) throw new Error('Viem chain not found');
 
     setIsDeployingManager(true);
-    setValidatorManagerAddress("");
+    setValidatorManagerAddress('');
 
     try {
       await walletClient.addChain({ chain: viemChain });
@@ -120,7 +124,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         account: walletEVMAddress as `0x${string}`,
       });
 
-      notify({ type: "deploy", name: "ValidatorManager" }, deployPromise, viemChain ?? undefined);
+      notify({ type: 'deploy', name: 'ValidatorManager' }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
       const chainClient = createPublicClient({
@@ -129,7 +133,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       });
       const receipt = await chainClient.waitForTransactionReceipt({ hash });
       if (!receipt.contractAddress) {
-        throw new Error("No contract address in receipt");
+        throw new Error('No contract address in receipt');
       }
       setValidatorManagerAddress(receipt.contractAddress as string);
       onSuccess?.();
@@ -150,27 +154,27 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
           <div
             className={`p-4 rounded-xl border transition-colors ${
               step1Complete
-                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ${
                   step1Complete
-                    ? "bg-green-500 text-white"
-                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                    ? 'bg-green-500 text-white'
+                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
                 }`}
               >
-                {step1Complete ? <Check className="w-4 h-4" /> : "1"}
+                {step1Complete ? <Check className="w-4 h-4" /> : '1'}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   Deploy ValidatorMessages Library
                 </h3>
                 <p className="mt-1.5 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  Shared library for message encoding/decoding with P-Chain. Handles validator
-                  registration messages and responses.
+                  Shared library for message encoding/decoding with P-Chain. Handles validator registration messages and
+                  responses.
                 </p>
 
                 {step1Complete ? (
@@ -182,8 +186,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                       <button
                         type="button"
                         onClick={() => {
-                          setValidatorMessagesLibAddress("");
-                          setValidatorManagerAddress("");
+                          setValidatorMessagesLibAddress('');
+                          setValidatorManagerAddress('');
                         }}
                         className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
                       >
@@ -215,51 +219,51 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
           <div
             className={`p-4 rounded-xl border transition-colors ${
               step2Complete
-                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
                 : step1Complete
-                ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
-                : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
+                  ? 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
+                  : 'bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50'
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ${
                   step2Complete
-                    ? "bg-green-500 text-white"
+                    ? 'bg-green-500 text-white'
                     : step1Complete
-                    ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-                    : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600"
+                      ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                      : 'bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600'
                 }`}
               >
-                {step2Complete ? <Check className="w-4 h-4" /> : "2"}
+                {step2Complete ? <Check className="w-4 h-4" /> : '2'}
               </div>
               <div className="flex-1 min-w-0">
                 <h3
                   className={`text-sm font-medium ${
-                    step1Complete ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"
+                    step1Complete ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-600'
                   }`}
                 >
                   Deploy ValidatorManager Contract
                 </h3>
                 <p
                   className={`mt-1.5 text-xs leading-relaxed ${
-                    step1Complete ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"
+                    step1Complete ? 'text-zinc-600 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-600'
                   }`}
                 >
-                  Core contract implementing{" "}
+                  Core contract implementing{' '}
                   <Link
                     href="/docs/acps/99-validatorsetmanager-contract"
                     className="text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     ACP-99
-                  </Link>{" "}
-                  for validator lifecycle management. Part of{" "}
+                  </Link>{' '}
+                  for validator lifecycle management. Part of{' '}
                   <Link
                     href="/docs/acps/77-reinventing-subnets"
                     className="text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     ACP-77
-                  </Link>{" "}
+                  </Link>{' '}
                   architecture.
                 </p>
 
@@ -272,7 +276,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                       <button
                         type="button"
                         onClick={() => {
-                          setValidatorManagerAddress("");
+                          setValidatorManagerAddress('');
                         }}
                         className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
                       >

@@ -83,7 +83,9 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     };
 
     extractWarpMessage();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [evmTxHashState, chainPublicClient]);
 
   const handleSubmitPChainTx = async () => {
@@ -91,38 +93,38 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setTxSuccess(null);
 
     if (isCoreWallet && !coreWalletClient) {
-      setErrorState("Core wallet not found");
+      setErrorState('Core wallet not found');
       return;
     }
 
     if (!evmTxHashState.trim()) {
-      setErrorState("EVM transaction hash is required.");
-      onError("EVM transaction hash is required.");
+      setErrorState('EVM transaction hash is required.');
+      onError('EVM transaction hash is required.');
       return;
     }
     if (!subnetIdL1) {
-      setErrorState("L1 Subnet ID is required.");
-      onError("L1 Subnet ID is required.");
+      setErrorState('L1 Subnet ID is required.');
+      onError('L1 Subnet ID is required.');
       return;
     }
     if (!validatorBalance) {
-      setErrorState("Validator balance is required.");
-      onError("Validator balance is required.");
+      setErrorState('Validator balance is required.');
+      onError('Validator balance is required.');
       return;
     }
     if (!blsProofOfPossession) {
-      setErrorState("BLS Proof of Possession is required.");
-      onError("BLS Proof of Possession is required.");
+      setErrorState('BLS Proof of Possession is required.');
+      onError('BLS Proof of Possession is required.');
       return;
     }
     if (!unsignedWarpMessage) {
-      setErrorState("Unsigned warp message not found. Check the transaction hash.");
-      onError("Unsigned warp message not found.");
+      setErrorState('Unsigned warp message not found. Check the transaction hash.');
+      onError('Unsigned warp message not found.');
       return;
     }
     if (isCoreWallet && !pChainAddress) {
-      setErrorState("P-Chain address is missing. Please connect your wallet.");
-      onError("P-Chain address is missing.");
+      setErrorState('P-Chain address is missing. Please connect your wallet.');
+      onError('P-Chain address is missing.');
       return;
     }
 
@@ -132,10 +134,13 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         message: unsignedWarpMessage,
         signingSubnetId,
       });
-      notify({
-        type: 'local',
-        name: 'Aggregate Signatures'
-      }, aggregateSignaturePromise);
+      notify(
+        {
+          type: 'local',
+          name: 'Aggregate Signatures',
+        },
+        aggregateSignaturePromise,
+      );
       const { signedMessage } = await aggregateSignaturePromise;
 
       setSignedWarpMessage(signedMessage);
@@ -193,26 +198,29 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   };
 
   if (!subnetIdL1) {
-    return (
-      <div className="text-sm text-zinc-500 dark:text-zinc-400">
-        Please select an L1 subnet first.
-      </div>
-    );
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
   }
 
   const step1Complete = !!unsignedWarpMessage;
   const step2Complete = !!signedWarpMessage;
   const step3Complete = !!txSuccess;
-  const hasInsufficientBalance = !!(userPChainBalanceNavax && validatorBalance && BigInt(Math.round(Number(validatorBalance) * 1e9)) > userPChainBalanceNavax);
+  const hasInsufficientBalance = !!(
+    userPChainBalanceNavax &&
+    validatorBalance &&
+    BigInt(Math.round(Number(validatorBalance) * 1e9)) > userPChainBalanceNavax
+  );
 
   return (
     <div className="space-y-3">
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {/* Step 1: Extract Warp Message */}
-      <StepFlowCard step={1} title="Extract Warp Message" description="Enter the EVM transaction hash to extract the unsigned Warp message" isComplete={step1Complete}>
+      <StepFlowCard
+        step={1}
+        title="Extract Warp Message"
+        description="Enter the EVM transaction hash to extract the unsigned Warp message"
+        isComplete={step1Complete}
+      >
         <div className="mt-2">
           <Input
             label="initiateValidatorRegistration Transaction Hash"
@@ -229,7 +237,9 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
                 {validatorBalance && (
                   <div className="flex items-center gap-1.5 text-xs">
                     <span className="text-green-600 dark:text-green-400 font-medium">Initial Balance:</span>
-                    <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{validatorBalance} AVAX</code>
+                    <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                      {validatorBalance} AVAX
+                    </code>
                   </div>
                 )}
                 {hasInsufficientBalance && (
@@ -265,7 +275,14 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       <StepFlowCard
         step={2}
         title="Sign & Submit to P-Chain"
-        description={<>Aggregate BLS signatures from L1 validators and submit <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono">RegisterL1ValidatorTx</code></>}
+        description={
+          <>
+            Aggregate BLS signatures from L1 validators and submit{' '}
+            <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono">
+              RegisterL1ValidatorTx
+            </code>
+          </>
+        }
         isComplete={step2Complete}
         isActive={step1Complete}
       >
@@ -292,7 +309,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
               loading={isProcessing}
               className="w-full"
             >
-              {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
+              {isProcessing ? 'Processing...' : isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures'}
             </Button>
           </div>
         ) : null}
@@ -300,19 +317,11 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       {/* Non-Core: CLI command */}
       {!isCoreWallet && signedWarpMessage && !txSuccess && (
-        <PChainManualSubmit
-          cliCommand={generateCLICommand()}
-          onSubmit={handleContinueWithManualTxId}
-        />
+        <PChainManualSubmit cliCommand={generateCLICommand()} onSubmit={handleContinueWithManualTxId} />
       )}
 
       {/* Step 3: Success */}
-      {txSuccess && (
-        <Success
-          label="P-Chain Transaction ID"
-          value={txSuccess}
-        />
-      )}
+      {txSuccess && <Success label="P-Chain Transaction ID" value={txSuccess} />}
     </div>
   );
 };

@@ -1,7 +1,7 @@
-import { create, type StoreApi, type UseBoundStore } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import { useWalletStore } from "./walletStore";
-import { localStorageComp, STORE_VERSION } from "./utils";
+import { create, type StoreApi, type UseBoundStore } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { useWalletStore } from './walletStore';
+import { localStorageComp, STORE_VERSION } from './utils';
 
 // Registry for resetAllStores
 const flowStoreRegistry: Array<{ reset: (isTestnet?: boolean) => void }> = [];
@@ -22,10 +22,7 @@ interface FlowStoreConfig<T> {
    * Factory that receives `set` and `isTestnet` and returns the full
    * state + actions object (including a `reset()` method).
    */
-  storeCreator: (
-    set: StoreApi<T>["setState"],
-    isTestnet: boolean
-  ) => T;
+  storeCreator: (set: StoreApi<T>['setState'], isTestnet: boolean) => T;
   /**
    * Optional partialize function to exclude transient fields from persistence.
    * If omitted, the entire state is persisted.
@@ -40,29 +37,23 @@ interface FlowStoreConfig<T> {
  *
  * Each created store is auto-registered for bulk reset via `getRegisteredFlowStores()`.
  */
-export function createFlowStore<T extends Record<string, any>>(
-  config: FlowStoreConfig<T>
-) {
+export function createFlowStore<T extends Record<string, any>>(config: FlowStoreConfig<T>) {
   const { name, storeCreator, partialize } = config;
   const storeCache: StoreCache<T> = {};
 
-  const storageKey = (isTestnet: boolean) =>
-    `${STORE_VERSION}-${name}-${isTestnet ? "testnet" : "mainnet"}`;
+  const storageKey = (isTestnet: boolean) => `${STORE_VERSION}-${name}-${isTestnet ? 'testnet' : 'mainnet'}`;
 
   const buildStore = (isTestnet: boolean) =>
     create<T>()(
-      persist(
-        (set) => storeCreator(set, isTestnet),
-        {
-          name: storageKey(isTestnet),
-          storage: createJSONStorage(localStorageComp),
-          ...(partialize ? { partialize: partialize as (state: T) => object } : {}),
-        }
-      )
+      persist((set) => storeCreator(set, isTestnet), {
+        name: storageKey(isTestnet),
+        storage: createJSONStorage(localStorageComp),
+        ...(partialize ? { partialize: partialize as (state: T) => object } : {}),
+      }),
     );
 
   const getStore = (isTestnet: boolean): UseBoundStore<StoreApi<T>> => {
-    const key = isTestnet ? "testnet" : "mainnet";
+    const key = isTestnet ? 'testnet' : 'mainnet';
     if (!storeCache[key]) {
       storeCache[key] = buildStore(isTestnet);
     }
@@ -90,7 +81,7 @@ export function createFlowStore<T extends Record<string, any>>(
   // Register for bulk reset
   flowStoreRegistry.push({
     reset: (isTestnet?: boolean) => {
-      if (typeof isTestnet !== "boolean") {
+      if (typeof isTestnet !== 'boolean') {
         getStore(true).getState().reset();
         getStore(false).getState().reset();
       } else {

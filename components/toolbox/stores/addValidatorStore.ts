@@ -1,5 +1,5 @@
-import { createFlowStore } from "./createFlowStore";
-import { STORE_VERSION } from "./utils";
+import { createFlowStore } from './createFlowStore';
+import { STORE_VERSION } from './utils';
 
 export interface SerializedValidator {
   nodeID: string;
@@ -41,69 +41,64 @@ interface AddValidatorState {
 }
 
 const initialValues = {
-  subnetIdL1: "",
+  subnetIdL1: '',
   validators: [] as SerializedValidator[],
-  evmTxHash: "",
-  validatorBalance: "",
-  blsProofOfPossession: "",
-  pChainTxId: "",
+  evmTxHash: '',
+  validatorBalance: '',
+  blsProofOfPossession: '',
+  pChainTxId: '',
   globalError: null as string | null,
   globalSuccess: null as string | null,
 };
 
-const { getStore: getAddValidatorStore, useStore: useAddValidatorStore } =
-  createFlowStore<AddValidatorState>({
-    name: "add-validator-store",
-    storeCreator: (set, isTestnet) => ({
-      ...initialValues,
+const { getStore: getAddValidatorStore, useStore: useAddValidatorStore } = createFlowStore<AddValidatorState>({
+  name: 'add-validator-store',
+  storeCreator: (set, isTestnet) => ({
+    ...initialValues,
 
-      setSubnetIdL1: (subnetIdL1: string) =>
-        set({
-          subnetIdL1,
-          validators: [],
-          evmTxHash: "",
-          validatorBalance: "",
-          blsProofOfPossession: "",
-          pChainTxId: "",
-          globalError: null,
-          globalSuccess: null,
-        }),
+    setSubnetIdL1: (subnetIdL1: string) =>
+      set({
+        subnetIdL1,
+        validators: [],
+        evmTxHash: '',
+        validatorBalance: '',
+        blsProofOfPossession: '',
+        pChainTxId: '',
+        globalError: null,
+        globalSuccess: null,
+      }),
 
-      setValidators: (validators: SerializedValidator[]) =>
-        set({
-          validators,
-          evmTxHash: "",
-          validatorBalance: "",
-          blsProofOfPossession: "",
-          pChainTxId: "",
-          globalError: null,
-          globalSuccess: null,
-        }),
+    setValidators: (validators: SerializedValidator[]) =>
+      set({
+        validators,
+        evmTxHash: '',
+        validatorBalance: '',
+        blsProofOfPossession: '',
+        pChainTxId: '',
+        globalError: null,
+        globalSuccess: null,
+      }),
 
-      setEvmTxHash: (evmTxHash: string) =>
-        set({ evmTxHash, pChainTxId: "", globalError: null, globalSuccess: null }),
+    setEvmTxHash: (evmTxHash: string) => set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
 
-      setValidatorBalance: (validatorBalance: string) => set({ validatorBalance }),
-      setBlsProofOfPossession: (blsProofOfPossession: string) => set({ blsProofOfPossession }),
+    setValidatorBalance: (validatorBalance: string) => set({ validatorBalance }),
+    setBlsProofOfPossession: (blsProofOfPossession: string) => set({ blsProofOfPossession }),
 
-      setPChainTxId: (pChainTxId: string) =>
-        set({ pChainTxId, globalError: null, globalSuccess: null }),
+    setPChainTxId: (pChainTxId: string) => set({ pChainTxId, globalError: null, globalSuccess: null }),
 
-      setGlobalError: (globalError: string | null) => set({ globalError }),
-      setGlobalSuccess: (globalSuccess: string | null) => set({ globalSuccess }),
+    setGlobalError: (globalError: string | null) => set({ globalError }),
+    setGlobalSuccess: (globalSuccess: string | null) => set({ globalSuccess }),
 
-      reset: () => {
-        set({ ...initialValues });
-        window?.localStorage.removeItem(
-          `${STORE_VERSION}-add-validator-store-${isTestnet ? "testnet" : "mainnet"}`
-        );
-      },
-    }),
-    partialize: (state) => {
-      const { globalError, globalSuccess, ...rest } = state;
-      return rest;
+    reset: () => {
+      set({ ...initialValues });
+      window?.localStorage.removeItem(`${STORE_VERSION}-add-validator-store-${isTestnet ? 'testnet' : 'mainnet'}`);
     },
-  });
+  }),
+  partialize: (state) => {
+    const { globalError, globalSuccess, ...rest } = state;
+    return rest;
+  },
+});
 
 export { getAddValidatorStore, useAddValidatorStore };
 
@@ -111,11 +106,9 @@ export { getAddValidatorStore, useAddValidatorStore };
 // Centralises the conversion between SerializedValidator (string weights, stored)
 // and ConvertToL1Validator (BigInt weights, used at runtime).
 
-import type { ConvertToL1Validator } from "@/components/toolbox/components/ValidatorListInput";
+import type { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 
-export function deserializeValidators(
-  serialized: SerializedValidator[]
-): ConvertToL1Validator[] {
+export function deserializeValidators(serialized: SerializedValidator[]): ConvertToL1Validator[] {
   return serialized.map((v) => ({
     ...v,
     validatorWeight: BigInt(v.validatorWeight),
@@ -123,9 +116,7 @@ export function deserializeValidators(
   }));
 }
 
-export function serializeValidators(
-  validators: ConvertToL1Validator[]
-): SerializedValidator[] {
+export function serializeValidators(validators: ConvertToL1Validator[]): SerializedValidator[] {
   return validators.map((v) => ({
     ...v,
     validatorWeight: v.validatorWeight.toString(),

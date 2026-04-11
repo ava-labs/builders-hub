@@ -1,33 +1,30 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Alert } from "@/components/toolbox/components/Alert";
-import { useChangeWeightStore } from "@/components/toolbox/stores/changeWeightStore";
-import { useValidatorManagerContext } from "@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext";
-import CompletePChainWeightUpdate from "../../../shared/CompletePChainWeightUpdate";
-import { StepCodeViewer } from "@/components/console/step-code-viewer";
-import { STEP_CONFIG } from "../codeConfig";
-import versions from "@/scripts/versions.json";
+import React from 'react';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { useChangeWeightStore } from '@/components/toolbox/stores/changeWeightStore';
+import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import CompletePChainWeightUpdate from '../../../shared/CompletePChainWeightUpdate';
+import { StepCodeViewer } from '@/components/console/step-code-viewer';
+import { STEP_CONFIG } from '../codeConfig';
+import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
 export default function CompleteWeightChangeStep() {
   const store = useChangeWeightStore();
   const vmcCtx = useValidatorManagerContext();
 
   const isContractOwner =
-    vmcCtx.ownershipStatus === "currentWallet"
-      ? true
-      : vmcCtx.ownershipStatus === "differentEOA"
-        ? false
-        : null;
+    vmcCtx.ownershipStatus === 'currentWallet' ? true : vmcCtx.ownershipStatus === 'differentEOA' ? false : null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
         {!store.pChainTxId && (
           <Alert variant="warning">
-            No P-Chain transaction ID from the previous step. You can enter it manually below, or go back to <strong>P-Chain Weight Update</strong>.
+            No P-Chain transaction ID from the previous step. You can enter it manually below, or go back to{' '}
+            <strong>P-Chain Weight Update</strong>.
           </Alert>
         )}
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
@@ -62,11 +59,7 @@ export default function CompleteWeightChangeStep() {
           </div>
         </div>
       </div>
-      <StepCodeViewer
-        activeStep={3}
-        steps={STEP_CONFIG}
-        className="lg:sticky lg:top-4 lg:self-start"
-      />
+      <StepCodeViewer activeStep={3} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
     </div>
   );
 }

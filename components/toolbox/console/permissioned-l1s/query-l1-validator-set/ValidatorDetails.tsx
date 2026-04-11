@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Calendar, Clock, Users, Coins, Copy, Check } from "lucide-react";
-import { Button } from "@/components/toolbox/components/Button";
-import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
-import { ValidatorResponse, formatTimestamp, formatStake } from "./types";
+import { Calendar, Clock, Users, Coins, Copy, Check } from 'lucide-react';
+import { Button } from '@/components/toolbox/components/Button';
+import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { ValidatorResponse, formatTimestamp, formatStake } from './types';
 
 interface ValidatorDetailsProps {
   validator: ValidatorResponse;
@@ -80,9 +80,7 @@ function OwnerSection({
         <div className="max-h-40 overflow-y-auto border border-zinc-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900/80 divide-y divide-zinc-200/80 dark:divide-zinc-800">
           {owner.addresses.map((address, index) => (
             <div key={index} className="flex items-center justify-between p-2.5">
-              <p className="font-mono text-xs break-all text-zinc-800 dark:text-zinc-200 pr-2">
-                {address}
-              </p>
+              <p className="font-mono text-xs break-all text-zinc-800 dark:text-zinc-200 pr-2">{address}</p>
               <button
                 onClick={() => copyToClipboard(address)}
                 className="p-0.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex-shrink-0"
@@ -102,15 +100,10 @@ function OwnerSection({
   );
 }
 
-export function ValidatorDetails({
-  validator,
-  onClose,
-  copyToClipboard,
-  copiedId,
-}: ValidatorDetailsProps) {
+export function ValidatorDetails({ validator, onClose, copyToClipboard, copiedId }: ValidatorDetailsProps) {
   const hexValidationId = (() => {
     try {
-      return "0x" + cb58ToHex(validator.validationId);
+      return '0x' + cb58ToHex(validator.validationId);
     } catch {
       return null;
     }
@@ -141,7 +134,10 @@ export function ValidatorDetails({
             <div className="p-2.5 bg-white dark:bg-zinc-900/80 rounded-lg border border-zinc-200/80 dark:border-zinc-800">
               <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Validation ID</p>
               <div className="flex items-center">
-                <p className="font-mono text-xs break-all text-zinc-800 dark:text-zinc-200" title={validator.validationId}>
+                <p
+                  className="font-mono text-xs break-all text-zinc-800 dark:text-zinc-200"
+                  title={validator.validationId}
+                >
                   {validator.validationId}
                 </p>
                 <button
@@ -186,8 +182,18 @@ export function ValidatorDetails({
               )}
             </div>
 
-            <CopyableField label="Node ID" value={validator.nodeId} copyToClipboard={copyToClipboard} copiedId={copiedId} />
-            <CopyableField label="Subnet ID" value={validator.subnetId} copyToClipboard={copyToClipboard} copiedId={copiedId} />
+            <CopyableField
+              label="Node ID"
+              value={validator.nodeId}
+              copyToClipboard={copyToClipboard}
+              copiedId={copiedId}
+            />
+            <CopyableField
+              label="Subnet ID"
+              value={validator.subnetId}
+              copyToClipboard={copyToClipboard}
+              copiedId={copiedId}
+            />
           </div>
         </div>
 

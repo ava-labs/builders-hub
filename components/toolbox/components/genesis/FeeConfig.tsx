@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-import { RawInput } from "../Input";
-import { Info, Zap, Building2, Settings2, HelpCircle, Gamepad2, TrendingUp } from "lucide-react";
-import { ValidationMessages } from "./types";
-import { useGenesisHighlight } from "./GenesisHighlightContext";
+import { useCallback, useEffect, useState } from 'react';
+import { RawInput } from '../Input';
+import { Info, Zap, Building2, Settings2, HelpCircle, Gamepad2, TrendingUp } from 'lucide-react';
+import { ValidationMessages } from './types';
+import { useGenesisHighlight } from './GenesisHighlightContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Helper function to convert gwei to wei
@@ -33,89 +33,92 @@ type FeeConfigProps = {
 // Preset configurations
 type PresetType = 'testnet' | 'mainnet' | 'gaming' | 'defi' | 'rwa' | 'custom';
 
-const PRESETS: Record<Exclude<PresetType, 'custom'>, {
-  name: string;
-  description: string;
-  icon: typeof Zap;
-  gasLimit: number;
-  feeConfig: FeeConfigType;
-  color: string;
-}> = {
+const PRESETS: Record<
+  Exclude<PresetType, 'custom'>,
+  {
+    name: string;
+    description: string;
+    icon: typeof Zap;
+    gasLimit: number;
+    feeConfig: FeeConfigType;
+    color: string;
+  }
+> = {
   testnet: {
     name: 'Testnet',
     description: 'Optimized for development and testing. Low fees, high throughput, static pricing.',
     icon: Zap,
     color: 'green',
-    gasLimit: 100000000,        // 100M - high throughput
+    gasLimit: 100000000, // 100M - high throughput
     feeConfig: {
       baseFeeChangeDenominator: 48,
-      blockGasCostStep: 0,       // Disable dynamic fees
-      maxBlockGasCost: 0,        // Disable dynamic fees
-      minBaseFee: 1000000000,    // 1 gwei - cheap
+      blockGasCostStep: 0, // Disable dynamic fees
+      maxBlockGasCost: 0, // Disable dynamic fees
+      minBaseFee: 1000000000, // 1 gwei - cheap
       minBlockGasCost: 0,
-      targetGas: 100000000       // Match gas limit for static pricing
-    }
+      targetGas: 100000000, // Match gas limit for static pricing
+    },
   },
   mainnet: {
     name: 'Mainnet',
     description: 'Balanced for production use. Standard fees with congestion protection.',
     icon: Building2,
     color: 'blue',
-    gasLimit: 15000000,         // 15M - standard
+    gasLimit: 15000000, // 15M - standard
     feeConfig: {
       baseFeeChangeDenominator: 48,
       blockGasCostStep: 200000,
       maxBlockGasCost: 1000000,
-      minBaseFee: 25000000000,   // 25 gwei
+      minBaseFee: 25000000000, // 25 gwei
       minBlockGasCost: 0,
-      targetGas: 15000000
-    }
+      targetGas: 15000000,
+    },
   },
   gaming: {
     name: 'Gaming',
     description: 'Maximum throughput with predictable, low-cost static fees.',
     icon: Gamepad2,
     color: 'pink',
-    gasLimit: 100000000,          // 100M - max throughput
+    gasLimit: 100000000, // 100M - max throughput
     feeConfig: {
       baseFeeChangeDenominator: 48,
-      blockGasCostStep: 0,        // Static pricing - no fee surprises mid-game
-      maxBlockGasCost: 0,         // Static pricing
-      minBaseFee: 1000000000,     // 1 gwei
+      blockGasCostStep: 0, // Static pricing - no fee surprises mid-game
+      maxBlockGasCost: 0, // Static pricing
+      minBaseFee: 1000000000, // 1 gwei
       minBlockGasCost: 0,
-      targetGas: 100000000        // Match gas limit for static pricing
-    }
+      targetGas: 100000000, // Match gas limit for static pricing
+    },
   },
   defi: {
     name: 'DeFi',
     description: 'Optimized for decentralized finance with MEV protection.',
     icon: TrendingUp,
     color: 'violet',
-    gasLimit: 30000000,           // 30M
+    gasLimit: 30000000, // 30M
     feeConfig: {
       baseFeeChangeDenominator: 36,
       blockGasCostStep: 500000,
-      maxBlockGasCost: 10000000,   // 10M - high for liquidations
-      minBaseFee: 10000000000,     // 10 gwei
+      maxBlockGasCost: 10000000, // 10M - high for liquidations
+      minBaseFee: 10000000000, // 10 gwei
       minBlockGasCost: 0,
-      targetGas: 15000000          // 15M
-    }
+      targetGas: 15000000, // 15M
+    },
   },
   rwa: {
     name: 'Tokenization',
     description: 'Compliant infrastructure for real-world asset tokenization.',
     icon: Building2,
     color: 'emerald',
-    gasLimit: 15000000,           // 15M
+    gasLimit: 15000000, // 15M
     feeConfig: {
       baseFeeChangeDenominator: 36,
       blockGasCostStep: 200000,
       maxBlockGasCost: 1000000,
-      minBaseFee: 25000000000,     // 25 gwei
+      minBaseFee: 25000000000, // 25 gwei
       minBlockGasCost: 0,
-      targetGas: 15000000
-    }
-  }
+      targetGas: 15000000,
+    },
+  },
 };
 
 // Field descriptions for tooltips
@@ -126,46 +129,53 @@ const FIELD_DESCRIPTIONS = {
   },
   gasLimit: {
     title: 'Gas Limit',
-    description: 'Maximum gas allowed per block. Higher values allow more transactions per block but require more validator resources.',
+    description:
+      'Maximum gas allowed per block. Higher values allow more transactions per block but require more validator resources.',
     recommendation: 'Testnet: 100M for high throughput. Mainnet: 15-40M for balanced performance. C-Chain uses 37.5M.',
-    unit: 'gas units'
+    unit: 'gas units',
   },
   minBaseFee: {
     title: 'Minimum Base Fee',
-    description: 'The lowest possible transaction fee. This is the floor that fees cannot go below, even during low network activity.',
+    description:
+      'The lowest possible transaction fee. This is the floor that fees cannot go below, even during low network activity.',
     recommendation: 'Testnet: 1 gwei (cheap). Mainnet: 25+ gwei (spam protection).',
-    unit: 'gwei'
+    unit: 'gwei',
   },
   baseFeeChangeDenominator: {
     title: 'Base Fee Change Denominator',
-    description: 'Controls how quickly fees adjust to congestion. Lower values = faster fee changes. The fee can change by at most 1/denominator per block.',
+    description:
+      'Controls how quickly fees adjust to congestion. Lower values = faster fee changes. The fee can change by at most 1/denominator per block.',
     recommendation: '48 is standard. Lower (8-24) for more reactive fees, higher (100+) for stability.',
-    unit: 'denominator'
+    unit: 'denominator',
   },
   targetGas: {
     title: 'Target Gas (per 10s)',
-    description: 'Target gas consumption over a 10-second window. When actual usage exceeds this, fees increase. Set higher than (gasLimit × 10 ÷ blockRate) for static pricing.',
+    description:
+      'Target gas consumption over a 10-second window. When actual usage exceeds this, fees increase. Set higher than (gasLimit × 10 ÷ blockRate) for static pricing.',
     recommendation: 'For static fees: set to gasLimit or higher. For dynamic fees: set to 50-100% of gasLimit.',
-    unit: 'gas units'
+    unit: 'gas units',
   },
   minBlockGasCost: {
     title: 'Min Block Gas Cost',
-    description: 'Minimum additional gas cost added to each block. Part of the dynamic fee mechanism that adjusts based on block fullness.',
+    description:
+      'Minimum additional gas cost added to each block. Part of the dynamic fee mechanism that adjusts based on block fullness.',
     recommendation: 'Usually 0. Only increase if you need a minimum fee floor that rises with usage.',
-    unit: 'gas units'
+    unit: 'gas units',
   },
   maxBlockGasCost: {
     title: 'Max Block Gas Cost',
-    description: 'Maximum additional gas cost per block. Caps how high dynamic fees can go. Set to 0 to disable dynamic fee adjustments.',
+    description:
+      'Maximum additional gas cost per block. Caps how high dynamic fees can go. Set to 0 to disable dynamic fee adjustments.',
     recommendation: 'Testnet: 0 (disabled). Mainnet: 1M for moderate fee ceiling.',
-    unit: 'gas units'
+    unit: 'gas units',
   },
   blockGasCostStep: {
     title: 'Block Gas Cost Step',
-    description: 'How much the block gas cost changes per block based on fullness. Set to 0 to disable dynamic fee adjustments entirely.',
+    description:
+      'How much the block gas cost changes per block based on fullness. Set to 0 to disable dynamic fee adjustments entirely.',
     recommendation: 'Testnet: 0 (static fees). Mainnet: 200K for gradual adjustments.',
-    unit: 'gas units per block'
-  }
+    unit: 'gas units per block',
+  },
 };
 
 // Tooltip component for field labels
@@ -180,9 +190,7 @@ const FieldTooltip = ({ field }: { field: keyof typeof FIELD_DESCRIPTIONS }) => 
         <div className="space-y-2">
           <p className="font-medium text-xs">{info.title}</p>
           <p className="text-xs text-zinc-300">{info.description}</p>
-          {'recommendation' in info && (
-            <p className="text-xs text-blue-300">💡 {info.recommendation}</p>
-          )}
+          {'recommendation' in info && <p className="text-xs text-blue-300">💡 {info.recommendation}</p>}
         </div>
       </TooltipContent>
     </Tooltip>
@@ -196,7 +204,7 @@ const Field = ({
   value,
   onChange,
   placeholder,
-  type = "number",
+  type = 'number',
   error,
   warning,
   onFocus,
@@ -235,7 +243,7 @@ const Field = ({
         onBlur={onBlur}
         placeholder={placeholder}
         className={`py-2 text-[14px] ${suffix ? 'pr-16' : ''}`}
-        inputMode={type === "text" ? "decimal" : "numeric"}
+        inputMode={type === 'text' ? 'decimal' : 'numeric'}
         autoComplete="off"
       />
       {suffix && (
@@ -257,48 +265,42 @@ const PRESET_COLORS: Record<string, { border: string; bg: string; icon: string; 
     border: 'border-green-500',
     bg: 'bg-green-50 dark:bg-green-950/30',
     icon: 'text-green-600 dark:text-green-400',
-    text: 'text-green-700 dark:text-green-300'
+    text: 'text-green-700 dark:text-green-300',
   },
   blue: {
     border: 'border-blue-500',
     bg: 'bg-blue-50 dark:bg-blue-950/30',
     icon: 'text-blue-600 dark:text-blue-400',
-    text: 'text-blue-700 dark:text-blue-300'
+    text: 'text-blue-700 dark:text-blue-300',
   },
   pink: {
     border: 'border-pink-500',
     bg: 'bg-pink-50 dark:bg-pink-950/30',
     icon: 'text-pink-600 dark:text-pink-400',
-    text: 'text-pink-700 dark:text-pink-300'
+    text: 'text-pink-700 dark:text-pink-300',
   },
   violet: {
     border: 'border-violet-500',
     bg: 'bg-violet-50 dark:bg-violet-950/30',
     icon: 'text-violet-600 dark:text-violet-400',
-    text: 'text-violet-700 dark:text-violet-300'
+    text: 'text-violet-700 dark:text-violet-300',
   },
   emerald: {
     border: 'border-emerald-500',
     bg: 'bg-emerald-50 dark:bg-emerald-950/30',
     icon: 'text-emerald-600 dark:text-emerald-400',
-    text: 'text-emerald-700 dark:text-emerald-300'
+    text: 'text-emerald-700 dark:text-emerald-300',
   },
   purple: {
     border: 'border-purple-500',
     bg: 'bg-purple-50 dark:bg-purple-950/30',
     icon: 'text-purple-600 dark:text-purple-400',
-    text: 'text-purple-700 dark:text-purple-300'
-  }
+    text: 'text-purple-700 dark:text-purple-300',
+  },
 };
 
 // Preset selector component
-const PresetSelector = ({
-  selected,
-  onSelect
-}: {
-  selected: PresetType;
-  onSelect: (preset: PresetType) => void;
-}) => {
+const PresetSelector = ({ selected, onSelect }: { selected: PresetType; onSelect: (preset: PresetType) => void }) => {
   const presetOrder: PresetType[] = ['testnet', 'mainnet', 'custom', 'gaming', 'defi', 'rwa'];
   const presetDescriptions: Record<PresetType, string> = {
     testnet: 'Low fees, high throughput',
@@ -306,7 +308,7 @@ const PresetSelector = ({
     custom: 'Fine-tune all parameters',
     gaming: 'High TPS, stable fees',
     defi: 'MEV protection, high gas',
-    rwa: 'Compliance & audit trail'
+    rwa: 'Compliance & audit trail',
   };
 
   return (
@@ -336,17 +338,25 @@ const PresetSelector = ({
                 isComingSoon
                   ? 'border-zinc-200 dark:border-zinc-800 opacity-50 cursor-not-allowed'
                   : isSelected
-                  ? `${colors.border} ${colors.bg}`
-                  : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                    ? `${colors.border} ${colors.bg}`
+                    : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
               }`}
             >
-              <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-                isComingSoon ? 'text-zinc-300 dark:text-zinc-600' : isSelected ? colors.icon : 'text-zinc-400'
-              }`} />
+              <Icon
+                className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                  isComingSoon ? 'text-zinc-300 dark:text-zinc-600' : isSelected ? colors.icon : 'text-zinc-400'
+                }`}
+              />
               <div className="min-w-0 flex-1 overflow-hidden">
-                <div className={`font-medium text-sm flex items-center gap-1.5 overflow-hidden ${
-                  isComingSoon ? 'text-zinc-400 dark:text-zinc-500' : isSelected ? colors.text : 'text-zinc-700 dark:text-zinc-300'
-                }`}>
+                <div
+                  className={`font-medium text-sm flex items-center gap-1.5 overflow-hidden ${
+                    isComingSoon
+                      ? 'text-zinc-400 dark:text-zinc-500'
+                      : isSelected
+                        ? colors.text
+                        : 'text-zinc-700 dark:text-zinc-300'
+                  }`}
+                >
                   <span className="truncate">{isCustom ? 'Custom' : preset!.name}</span>
                   {isComingSoon ? (
                     <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 whitespace-nowrap flex-shrink-0">
@@ -358,9 +368,11 @@ const PresetSelector = ({
                     </span>
                   ) : null}
                 </div>
-                <div className={`text-xs mt-0.5 truncate ${
-                  isComingSoon ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-500 dark:text-zinc-400'
-                }`}>
+                <div
+                  className={`text-xs mt-0.5 truncate ${
+                    isComingSoon ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-500 dark:text-zinc-400'
+                  }`}
+                >
                   {presetDescriptions[presetKey]}
                 </div>
               </div>
@@ -380,7 +392,7 @@ function FeeConfigBase({
   onFeeConfigChange,
   validationMessages,
   compact,
-  initialPreset
+  initialPreset,
 }: FeeConfigProps) {
   const { setHighlightPath } = useGenesisHighlight();
 
@@ -390,7 +402,7 @@ function FeeConfigBase({
   // Track when user explicitly selects a blueprint to prevent auto-detection overwriting it
   // Initialize from initialPreset if it's a blueprint to prevent auto-detection from overriding it
   const [userSelectedBlueprint, setUserSelectedBlueprint] = useState<PresetType | null>(
-    initialPreset && ['gaming', 'defi', 'rwa'].includes(initialPreset) ? (initialPreset as PresetType) : null
+    initialPreset && ['gaming', 'defi', 'rwa'].includes(initialPreset) ? (initialPreset as PresetType) : null,
   );
 
   // Track if initial preset has been applied to avoid re-applying on every render
@@ -398,7 +410,12 @@ function FeeConfigBase({
 
   // Apply initial preset on mount if provided (e.g., from blueprint navigation)
   useEffect(() => {
-    if (initialPreset && !initialPresetApplied && initialPreset !== 'custom' && PRESETS[initialPreset as Exclude<PresetType, 'custom'>]) {
+    if (
+      initialPreset &&
+      !initialPresetApplied &&
+      initialPreset !== 'custom' &&
+      PRESETS[initialPreset as Exclude<PresetType, 'custom'>]
+    ) {
       const presetKey = initialPreset as Exclude<PresetType, 'custom'>;
       const presetConfig = PRESETS[presetKey];
 
@@ -432,7 +449,9 @@ function FeeConfigBase({
   // Local string state for smooth typing
   const [gasLimitInput, setGasLimitInput] = useState(gasLimit.toString());
   const [minBaseFeeInput, setMinBaseFeeInput] = useState((feeConfig.minBaseFee / 1000000000).toString());
-  const [baseFeeChangeDenominatorInput, setBaseFeeChangeDenominatorInput] = useState(feeConfig.baseFeeChangeDenominator.toString());
+  const [baseFeeChangeDenominatorInput, setBaseFeeChangeDenominatorInput] = useState(
+    feeConfig.baseFeeChangeDenominator.toString(),
+  );
   const [minBlockGasCostInput, setMinBlockGasCostInput] = useState(feeConfig.minBlockGasCost.toString());
   const [maxBlockGasCostInput, setMaxBlockGasCostInput] = useState(feeConfig.maxBlockGasCost.toString());
   const [blockGasCostStepInput, setBlockGasCostStepInput] = useState(feeConfig.blockGasCostStep.toString());
@@ -475,33 +494,35 @@ function FeeConfigBase({
   }, [gasLimit, feeConfig, userSelectedBlueprint]);
 
   // Handle preset selection
-  const handlePresetSelect = useCallback((preset: PresetType) => {
-    setSelectedPreset(preset);
+  const handlePresetSelect = useCallback(
+    (preset: PresetType) => {
+      setSelectedPreset(preset);
 
-    // Track if user explicitly selected a blueprint preset
-    if (['gaming', 'defi', 'rwa'].includes(preset)) {
-      setUserSelectedBlueprint(preset);
-    } else {
-      // Clear user selection when switching to non-blueprint presets
-      setUserSelectedBlueprint(null);
-    }
+      // Track if user explicitly selected a blueprint preset
+      if (['gaming', 'defi', 'rwa'].includes(preset)) {
+        setUserSelectedBlueprint(preset);
+      } else {
+        // Clear user selection when switching to non-blueprint presets
+        setUserSelectedBlueprint(null);
+      }
 
-    if (preset !== 'custom') {
-      const presetConfig = PRESETS[preset];
-      setGasLimit(presetConfig.gasLimit);
-      onFeeConfigChange(presetConfig.feeConfig);
+      if (preset !== 'custom') {
+        const presetConfig = PRESETS[preset];
+        setGasLimit(presetConfig.gasLimit);
+        onFeeConfigChange(presetConfig.feeConfig);
 
-      // Update local inputs
-      setGasLimitInput(presetConfig.gasLimit.toString());
-      setMinBaseFeeInput((presetConfig.feeConfig.minBaseFee / 1000000000).toString());
-      setBaseFeeChangeDenominatorInput(presetConfig.feeConfig.baseFeeChangeDenominator.toString());
-      setMinBlockGasCostInput(presetConfig.feeConfig.minBlockGasCost.toString());
-      setMaxBlockGasCostInput(presetConfig.feeConfig.maxBlockGasCost.toString());
-      setBlockGasCostStepInput(presetConfig.feeConfig.blockGasCostStep.toString());
-      setTargetGasInput(presetConfig.feeConfig.targetGas.toString());
-
-    }
-  }, [setGasLimit, onFeeConfigChange]);
+        // Update local inputs
+        setGasLimitInput(presetConfig.gasLimit.toString());
+        setMinBaseFeeInput((presetConfig.feeConfig.minBaseFee / 1000000000).toString());
+        setBaseFeeChangeDenominatorInput(presetConfig.feeConfig.baseFeeChangeDenominator.toString());
+        setMinBlockGasCostInput(presetConfig.feeConfig.minBlockGasCost.toString());
+        setMaxBlockGasCostInput(presetConfig.feeConfig.maxBlockGasCost.toString());
+        setBlockGasCostStepInput(presetConfig.feeConfig.blockGasCostStep.toString());
+        setTargetGasInput(presetConfig.feeConfig.targetGas.toString());
+      }
+    },
+    [setGasLimit, onFeeConfigChange],
+  );
 
   // Sync local strings from props when not actively editing
   useEffect(() => {
@@ -511,7 +532,8 @@ function FeeConfigBase({
     if (focusedField !== 'minBaseFee') setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
   }, [feeConfig.minBaseFee, focusedField]);
   useEffect(() => {
-    if (focusedField !== 'baseFeeChangeDenominator') setBaseFeeChangeDenominatorInput(feeConfig.baseFeeChangeDenominator.toString());
+    if (focusedField !== 'baseFeeChangeDenominator')
+      setBaseFeeChangeDenominatorInput(feeConfig.baseFeeChangeDenominator.toString());
   }, [feeConfig.baseFeeChangeDenominator, focusedField]);
   useEffect(() => {
     if (focusedField !== 'minBlockGasCost') setMinBlockGasCostInput(feeConfig.minBlockGasCost.toString());
@@ -527,95 +549,132 @@ function FeeConfigBase({
   }, [feeConfig.targetGas, focusedField]);
 
   // Change handlers
-  const handleGasLimitChange = useCallback((value: string) => {
-    setGasLimitInput(value);
-    const parsed = parseInt(value);
-    if (!isNaN(parsed)) {
-      setGasLimit(parsed);
-    }
-  }, [setGasLimit]);
-
-  const handleMinBaseFeeChange = useCallback((value: string) => {
-    setMinBaseFeeInput(value);
-    const parsed = parseFloat(value);
-    if (!isNaN(parsed)) {
-      onFeeConfigChange({ ...feeConfig, minBaseFee: gweiToWei(parsed) });
-    }
-  }, [feeConfig, onFeeConfigChange]);
-
-  const handleFeeConfigNumberChange = useCallback((key: keyof FeeConfigType, value: string) => {
-    const setLocal = (v: string) => {
-      switch (key) {
-        case 'baseFeeChangeDenominator': setBaseFeeChangeDenominatorInput(v); break;
-        case 'minBlockGasCost': setMinBlockGasCostInput(v); break;
-        case 'maxBlockGasCost': setMaxBlockGasCostInput(v); break;
-        case 'blockGasCostStep': setBlockGasCostStepInput(v); break;
-        case 'targetGas': setTargetGasInput(v); break;
+  const handleGasLimitChange = useCallback(
+    (value: string) => {
+      setGasLimitInput(value);
+      const parsed = parseInt(value);
+      if (!isNaN(parsed)) {
+        setGasLimit(parsed);
       }
-    };
-    setLocal(value);
-    const parsed = parseInt(value);
-    if (!isNaN(parsed)) {
-      onFeeConfigChange({ ...feeConfig, [key]: parsed });
-    }
-  }, [feeConfig, onFeeConfigChange]);
+    },
+    [setGasLimit],
+  );
+
+  const handleMinBaseFeeChange = useCallback(
+    (value: string) => {
+      setMinBaseFeeInput(value);
+      const parsed = parseFloat(value);
+      if (!isNaN(parsed)) {
+        onFeeConfigChange({ ...feeConfig, minBaseFee: gweiToWei(parsed) });
+      }
+    },
+    [feeConfig, onFeeConfigChange],
+  );
+
+  const handleFeeConfigNumberChange = useCallback(
+    (key: keyof FeeConfigType, value: string) => {
+      const setLocal = (v: string) => {
+        switch (key) {
+          case 'baseFeeChangeDenominator':
+            setBaseFeeChangeDenominatorInput(v);
+            break;
+          case 'minBlockGasCost':
+            setMinBlockGasCostInput(v);
+            break;
+          case 'maxBlockGasCost':
+            setMaxBlockGasCostInput(v);
+            break;
+          case 'blockGasCostStep':
+            setBlockGasCostStepInput(v);
+            break;
+          case 'targetGas':
+            setTargetGasInput(v);
+            break;
+        }
+      };
+      setLocal(value);
+      const parsed = parseInt(value);
+      if (!isNaN(parsed)) {
+        onFeeConfigChange({ ...feeConfig, [key]: parsed });
+      }
+    },
+    [feeConfig, onFeeConfigChange],
+  );
 
   // Blur handlers
-  const normalizeOnBlur = useCallback((field: string) => {
-    switch (field) {
-      case 'gasLimit': {
-        const parsed = parseInt(gasLimitInput);
-        if (gasLimitInput === '' || isNaN(parsed)) setGasLimitInput(gasLimit.toString());
-        break;
+  const normalizeOnBlur = useCallback(
+    (field: string) => {
+      switch (field) {
+        case 'gasLimit': {
+          const parsed = parseInt(gasLimitInput);
+          if (gasLimitInput === '' || isNaN(parsed)) setGasLimitInput(gasLimit.toString());
+          break;
+        }
+        case 'minBaseFee': {
+          const parsed = parseFloat(minBaseFeeInput);
+          if (minBaseFeeInput === '' || isNaN(parsed))
+            setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
+          break;
+        }
+        case 'baseFeeChangeDenominator': {
+          const parsed = parseInt(baseFeeChangeDenominatorInput);
+          if (baseFeeChangeDenominatorInput === '' || isNaN(parsed))
+            setBaseFeeChangeDenominatorInput(feeConfig.baseFeeChangeDenominator.toString());
+          break;
+        }
+        case 'minBlockGasCost': {
+          const parsed = parseInt(minBlockGasCostInput);
+          if (minBlockGasCostInput === '' || isNaN(parsed))
+            setMinBlockGasCostInput(feeConfig.minBlockGasCost.toString());
+          break;
+        }
+        case 'maxBlockGasCost': {
+          const parsed = parseInt(maxBlockGasCostInput);
+          if (maxBlockGasCostInput === '' || isNaN(parsed))
+            setMaxBlockGasCostInput(feeConfig.maxBlockGasCost.toString());
+          break;
+        }
+        case 'blockGasCostStep': {
+          const parsed = parseInt(blockGasCostStepInput);
+          if (blockGasCostStepInput === '' || isNaN(parsed))
+            setBlockGasCostStepInput(feeConfig.blockGasCostStep.toString());
+          break;
+        }
+        case 'targetGas': {
+          const parsed = parseInt(targetGasInput);
+          if (targetGasInput === '' || isNaN(parsed)) setTargetGasInput(feeConfig.targetGas.toString());
+          break;
+        }
       }
-      case 'minBaseFee': {
-        const parsed = parseFloat(minBaseFeeInput);
-        if (minBaseFeeInput === '' || isNaN(parsed)) setMinBaseFeeInput((feeConfig.minBaseFee / 1000000000).toString());
-        break;
-      }
-      case 'baseFeeChangeDenominator': {
-        const parsed = parseInt(baseFeeChangeDenominatorInput);
-        if (baseFeeChangeDenominatorInput === '' || isNaN(parsed)) setBaseFeeChangeDenominatorInput(feeConfig.baseFeeChangeDenominator.toString());
-        break;
-      }
-      case 'minBlockGasCost': {
-        const parsed = parseInt(minBlockGasCostInput);
-        if (minBlockGasCostInput === '' || isNaN(parsed)) setMinBlockGasCostInput(feeConfig.minBlockGasCost.toString());
-        break;
-      }
-      case 'maxBlockGasCost': {
-        const parsed = parseInt(maxBlockGasCostInput);
-        if (maxBlockGasCostInput === '' || isNaN(parsed)) setMaxBlockGasCostInput(feeConfig.maxBlockGasCost.toString());
-        break;
-      }
-      case 'blockGasCostStep': {
-        const parsed = parseInt(blockGasCostStepInput);
-        if (blockGasCostStepInput === '' || isNaN(parsed)) setBlockGasCostStepInput(feeConfig.blockGasCostStep.toString());
-        break;
-      }
-      case 'targetGas': {
-        const parsed = parseInt(targetGasInput);
-        if (targetGasInput === '' || isNaN(parsed)) setTargetGasInput(feeConfig.targetGas.toString());
-        break;
-      }
-    }
-    setFocusedField(null);
-  }, [gasLimitInput, gasLimit, minBaseFeeInput, feeConfig, baseFeeChangeDenominatorInput, minBlockGasCostInput, maxBlockGasCostInput, blockGasCostStepInput, targetGasInput]);
+      setFocusedField(null);
+    },
+    [
+      gasLimitInput,
+      gasLimit,
+      minBaseFeeInput,
+      feeConfig,
+      baseFeeChangeDenominatorInput,
+      minBlockGasCostInput,
+      maxBlockGasCostInput,
+      blockGasCostStepInput,
+      targetGasInput,
+    ],
+  );
 
   // Calculate static gas pricing threshold (uses targetBlockRate from validator config, default 2s)
   const staticGasThreshold = Math.ceil((gasLimit * 10) / targetBlockRate);
   const isStaticPricing = feeConfig.targetGas >= staticGasThreshold;
 
   // Computed metrics for display
-  const blockUtilizationTarget = gasLimit > 0
-    ? Math.min(100, Math.round((feeConfig.targetGas * targetBlockRate) / (gasLimit * 10) * 100))
-    : 0;
+  const blockUtilizationTarget =
+    gasLimit > 0 ? Math.min(100, Math.round(((feeConfig.targetGas * targetBlockRate) / (gasLimit * 10)) * 100)) : 0;
 
   // Slider range for target gas — ensures static threshold is reachable
   const targetGasSliderMax = Math.max(staticGasThreshold * 1.2, 200000000);
 
   // Common slider class
-  const sliderClass = "w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm";
+  const sliderClass =
+    'w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm';
 
   // Format large numbers for display
   const formatNumber = (num: number) => {
@@ -634,23 +693,23 @@ function FeeConfigBase({
         {/* Header with live metrics */}
         <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h4 className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-              Core Parameters
-            </h4>
+            <h4 className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Core Parameters</h4>
             <div className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md ${
-                isStaticPricing
-                  ? 'bg-green-50 dark:bg-green-950/30'
-                  : 'bg-amber-50 dark:bg-amber-950/30'
-              }`}>
-                <div className={`h-1.5 w-1.5 rounded-full ${
-                  isStaticPricing ? 'bg-green-500' : 'bg-amber-500 animate-pulse'
-                }`} />
-                <span className={`text-[10px] uppercase tracking-wider font-medium ${
-                  isStaticPricing
-                    ? 'text-green-700 dark:text-green-400'
-                    : 'text-amber-700 dark:text-amber-400'
-                }`}>
+              <div
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md ${
+                  isStaticPricing ? 'bg-green-50 dark:bg-green-950/30' : 'bg-amber-50 dark:bg-amber-950/30'
+                }`}
+              >
+                <div
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    isStaticPricing ? 'bg-green-500' : 'bg-amber-500 animate-pulse'
+                  }`}
+                />
+                <span
+                  className={`text-[10px] uppercase tracking-wider font-medium ${
+                    isStaticPricing ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'
+                  }`}
+                >
                   {isStaticPricing ? 'Static' : 'Dynamic'}
                 </span>
               </div>
@@ -757,10 +816,7 @@ function FeeConfigBase({
                 <div className="relative h-5 mt-0.5">
                   <span className="absolute left-0 text-[9px] text-zinc-400">0 gwei</span>
                   <span className="absolute right-0 text-[9px] text-zinc-400">100 gwei</span>
-                  <span
-                    className="absolute -translate-x-1/2 flex flex-col items-center"
-                    style={{ left: '25%' }}
-                  >
+                  <span className="absolute -translate-x-1/2 flex flex-col items-center" style={{ left: '25%' }}>
                     <span className="w-px h-1.5 bg-zinc-300 dark:bg-zinc-600" />
                     <span className="text-[9px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap">25 gwei</span>
                   </span>
@@ -803,11 +859,13 @@ function FeeConfigBase({
                 </label>
                 <FieldTooltip field="targetGas" />
               </div>
-              <span className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ${
-                isStaticPricing
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-              }`}>
+              <span
+                className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ${
+                  isStaticPricing
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                    : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                }`}
+              >
                 {isStaticPricing ? 'Static pricing' : `Dynamic ${blockUtilizationTarget}%`}
               </span>
             </div>
@@ -831,14 +889,16 @@ function FeeConfigBase({
                     <div
                       className="absolute top-0 h-1.5 w-0 border-r-[2px] border-dashed border-green-500/50 pointer-events-none"
                       style={{
-                        left: `${((staticGasThreshold - 1000000) / (targetGasSliderMax - 1000000)) * 100}%`
+                        left: `${((staticGasThreshold - 1000000) / (targetGasSliderMax - 1000000)) * 100}%`,
                       }}
                     />
                   )}
                 </div>
                 <div className="relative h-5 mt-0.5">
                   <span className="absolute left-0 text-[9px] text-zinc-400">1M</span>
-                  <span className="absolute right-0 text-[9px] text-zinc-400">{formatNumber(Math.round(targetGasSliderMax))}</span>
+                  <span className="absolute right-0 text-[9px] text-zinc-400">
+                    {formatNumber(Math.round(targetGasSliderMax))}
+                  </span>
                   {staticGasThreshold > 1000000 && staticGasThreshold < targetGasSliderMax && (
                     <span
                       className="absolute -translate-x-1/2 flex flex-col items-center"
@@ -868,17 +928,18 @@ function FeeConfigBase({
               </div>
             </div>
             {/* Inline pricing explanation */}
-            <div className={`flex gap-2 p-2.5 rounded-md text-xs ${
-              isStaticPricing
-                ? 'bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400'
-                : 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400'
-            }`}>
+            <div
+              className={`flex gap-2 p-2.5 rounded-md text-xs ${
+                isStaticPricing
+                  ? 'bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400'
+                  : 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400'
+              }`}
+            >
               <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
               <span>
                 {isStaticPricing
                   ? 'Fees remain constant regardless of network activity. Ideal for testnets and predictable costs.'
-                  : `Fees adjust when block utilization exceeds ${blockUtilizationTarget}% of capacity. Threshold: ${formatNumber(staticGasThreshold)} gas.`
-                }
+                  : `Fees adjust when block utilization exceeds ${blockUtilizationTarget}% of capacity. Threshold: ${formatNumber(staticGasThreshold)} gas.`}
               </span>
             </div>
             {validationMessages.errors.targetGas && (
@@ -899,9 +960,7 @@ function FeeConfigBase({
       >
         <Settings2 className="h-4 w-4" />
         {showAdvanced ? 'Hide' : 'Show'} Advanced Fee Settings
-        <span className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>
-          ▼
-        </span>
+        <span className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>▼</span>
       </button>
 
       {/* Advanced Settings */}

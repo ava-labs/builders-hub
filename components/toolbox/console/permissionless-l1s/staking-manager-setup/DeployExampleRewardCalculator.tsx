@@ -1,43 +1,48 @@
-"use client";
+'use client';
 
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { useState } from "react";
-import { Button } from "@/components/toolbox/components/Button";
-import { Input } from "@/components/toolbox/components/Input";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import versions from "@/scripts/versions.json";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
-import ExampleRewardCalculator from "@/contracts/icm-contracts/compiled/ExampleRewardCalculator.json";
-import { Check, BookOpen, Calculator } from "lucide-react";
-import Link from "next/link";
+import { useState } from 'react';
+import { Button } from '@/components/toolbox/components/Button';
+import { Input } from '@/components/toolbox/components/Input';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../../components/WithConsoleToolMetadata';
+import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import versions from '@/scripts/versions.json';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
+import ExampleRewardCalculator from '@/contracts/icm-contracts/compiled/ExampleRewardCalculator.json';
+import { Check, BookOpen, Calculator } from 'lucide-react';
+import Link from 'next/link';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
 // GitHub raw URLs for source code
 const CONTRACT_SOURCES: ContractSource[] = [
   {
-    name: "ExampleRewardCalculator",
-    filename: "ExampleRewardCalculator.sol",
+    name: 'ExampleRewardCalculator',
+    filename: 'ExampleRewardCalculator.sol',
     url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ExampleRewardCalculator.sol`,
-    description: "Implements linear, non-compounding rewards. Rewards a set percentage of tokens per year based on stake duration.",
+    description:
+      'Implements linear, non-compounding rewards. Rewards a set percentage of tokens per year based on stake duration.',
   },
   {
-    name: "IRewardCalculator",
-    filename: "IRewardCalculator.sol",
+    name: 'IRewardCalculator',
+    filename: 'IRewardCalculator.sol',
     url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/interfaces/IRewardCalculator.sol`,
-    description: "Interface for reward calculators. Implement this to create custom reward strategies.",
+    description: 'Interface for reward calculators. Implement this to create custom reward strategies.',
   },
 ];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Deploy Example Reward Calculator",
-  description: "Deploy a reward calculator contract for calculating staking rewards",
+  title: 'Deploy Example Reward Calculator',
+  description: 'Deploy a reward calculator contract for calculating staking rewards',
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -48,15 +53,15 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
   const chainPublicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const [isDeploying, setIsDeploying] = useState(false);
-  const [rewardBasisPoints, setRewardBasisPoints] = useState<string>("500"); // Default 5% APR
+  const [rewardBasisPoints, setRewardBasisPoints] = useState<string>('500'); // Default 5% APR
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
 
   async function deployRewardCalculator() {
     setIsDeploying(true);
-    setRewardCalculatorAddress("");
+    setRewardCalculatorAddress('');
 
-    if (!viemChain) throw new Error("Viem chain not found");
+    if (!viemChain) throw new Error('Viem chain not found');
     await walletClient.addChain({ chain: viemChain });
     await walletClient.switchChain({ id: viemChain.id });
 
@@ -68,12 +73,12 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
       account: walletEVMAddress as `0x${string}`,
     });
 
-    notify({ type: "deploy", name: "ExampleRewardCalculator" }, deployPromise, viemChain ?? undefined);
+    notify({ type: 'deploy', name: 'ExampleRewardCalculator' }, deployPromise, viemChain ?? undefined);
 
     const hash = await deployPromise;
     const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
     if (!receipt.contractAddress) {
-      throw new Error("No contract address in receipt");
+      throw new Error('No contract address in receipt');
     }
     setRewardCalculatorAddress(receipt.contractAddress as string);
     setIsDeploying(false);
@@ -93,12 +98,10 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
             <div className="flex items-start gap-3">
               <Calculator className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  About Reward Calculators
-                </h3>
+                <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">About Reward Calculators</h3>
                 <p className="mt-1.5 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                  Reward calculators determine how staking rewards are distributed. The example calculator
-                  implements a simple linear, non-compounding reward formula based on stake duration.
+                  Reward calculators determine how staking rewards are distributed. The example calculator implements a
+                  simple linear, non-compounding reward formula based on stake duration.
                 </p>
               </div>
             </div>
@@ -108,19 +111,19 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
           <div
             className={`p-4 rounded-xl border transition-colors ${
               isComplete
-                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ${
                   isComplete
-                    ? "bg-green-500 text-white"
-                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                    ? 'bg-green-500 text-white'
+                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
                 }`}
               >
-                {isComplete ? <Check className="w-4 h-4" /> : "1"}
+                {isComplete ? <Check className="w-4 h-4" /> : '1'}
               </div>
               <div className="flex-1 min-w-0 space-y-4">
                 <div>
@@ -152,9 +155,7 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
                     <div className="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-zinc-600 dark:text-zinc-400">Annual Percentage Rate:</span>
-                        <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">
-                          {aprPercentage}%
-                        </span>
+                        <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">{aprPercentage}%</span>
                       </div>
                       <div className="flex items-center justify-between text-xs mt-1">
                         <span className="text-zinc-600 dark:text-zinc-400">Per 1000 tokens staked:</span>
@@ -171,9 +172,7 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
                     <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
                       {rewardCalculatorAddress.slice(0, 10)}...{rewardCalculatorAddress.slice(-6)}
                     </code>
-                    <span className="text-xs text-green-600 dark:text-green-400">
-                      @ {aprPercentage}% APR
-                    </span>
+                    <span className="text-xs text-green-600 dark:text-green-400">@ {aprPercentage}% APR</span>
                   </div>
                 ) : (
                   <Button

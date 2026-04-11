@@ -1,58 +1,62 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
-import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from "viem";
-import { packWarpIntoAccessList } from "../validator-manager/packWarp";
-import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import { Button } from "@/components/toolbox/components/Button";
-import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
-import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
-import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
-import { Check, ChevronDown, ChevronRight } from "lucide-react";
-import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
-import versions from "@/scripts/versions.json";
-import { fetchConversionData, ConversionData } from "./fetchConversionData";
+import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from 'viem';
+import { packWarpIntoAccessList } from '../validator-manager/packWarp';
+import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
+import { Button } from '@/components/toolbox/components/Button';
+import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../../components/WithConsoleToolMetadata';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
+import { Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import versions from '@/scripts/versions.json';
+import { fetchConversionData, ConversionData } from './fetchConversionData';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
-const add0x = (hex: string): `0x${string}` => (hex.startsWith("0x") ? (hex as `0x${string}`) : `0x${hex}`);
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const add0x = (hex: string): `0x${string}` => (hex.startsWith('0x') ? (hex as `0x${string}`) : `0x${hex}`);
 
 const metadata: ConsoleToolMetadata = {
-  title: "Initialize Validator Set",
-  description: "Initialize the ValidatorManager with the initial validator set from P-Chain",
+  title: 'Initialize Validator Set',
+  description: 'Initialize the ValidatorManager with the initial validator set from P-Chain',
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
-  const [conversionTxID, setConversionTxID] = useState<string>("");
-  const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
+  const [conversionTxID, setConversionTxID] = useState<string>('');
+  const [L1ConversionSignature, setL1ConversionSignature] = useState<string>('');
   const viemChain = useViemChainStore();
   const { walletEVMAddress, isTestnet } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const walletType = useWalletStore((s) => s.walletType);
-  const isCoreWallet = walletType === "core";
+  const isCoreWallet = walletType === 'core';
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collectedData, setCollectedData] = useState<Record<string, any>>({});
   const [showDebugData, setShowDebugData] = useState(false);
   const selectedL1 = useSelectedL1();
-  const [conversionTxIDError, setConversionTxIDError] = useState<string>("");
+  const [conversionTxIDError, setConversionTxIDError] = useState<string>('');
   const [isAggregating, setIsAggregating] = useState(false);
   const [txSuccess, setTxSuccess] = useState(false);
-  const [managerAddress, setManagerAddress] = useState<string>("");
+  const [managerAddress, setManagerAddress] = useState<string>('');
   const [conversionResult, setConversionResult] = useState<ConversionData | null>(null);
   const [isValidatorSetInit, setIsValidatorSetInit] = useState<boolean | null>(null);
   const [isCheckingInit, setIsCheckingInit] = useState(false);
@@ -82,7 +86,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       return signedMessage;
     })();
 
-    notify({ type: "local", name: "Aggregate Signatures" }, aggPromise);
+    notify({ type: 'local', name: 'Aggregate Signatures' }, aggPromise);
 
     try {
       await aggPromise;
@@ -94,7 +98,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   }
 
   useEffect(() => {
-    setConversionTxIDError("");
+    setConversionTxIDError('');
     const subnetId = selectedL1?.subnetId;
     if (!subnetId) return;
     getSubnetInfo(subnetId)
@@ -104,8 +108,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         if (contractAddr) setManagerAddress(contractAddr);
       })
       .catch((error) => {
-        console.error("Error getting subnet info:", error);
-        setConversionTxIDError((error as Error)?.message || "Unknown error");
+        console.error('Error getting subnet info:', error);
+        setConversionTxIDError((error as Error)?.message || 'Unknown error');
       });
   }, [selectedL1?.subnetId]);
 
@@ -113,17 +117,21 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   useEffect(() => {
     if (!managerAddress || !chainPublicClient) return;
     setIsCheckingInit(true);
-    chainPublicClient.readContract({
-      address: managerAddress as `0x${string}`,
-      abi: ValidatorManagerABI.abi,
-      functionName: "isValidatorSetInitialized",
-    }).then((result) => {
-      setIsValidatorSetInit(result as boolean);
-    }).catch(() => {
-      setIsValidatorSetInit(null);
-    }).finally(() => {
-      setIsCheckingInit(false);
-    });
+    chainPublicClient
+      .readContract({
+        address: managerAddress as `0x${string}`,
+        abi: ValidatorManagerABI.abi,
+        functionName: 'isValidatorSetInitialized',
+      })
+      .then((result) => {
+        setIsValidatorSetInit(result as boolean);
+      })
+      .catch(() => {
+        setIsValidatorSetInit(null);
+      })
+      .finally(() => {
+        setIsCheckingInit(false);
+      });
   }, [managerAddress, chainPublicClient]);
 
   // Build the transaction args from conversion data
@@ -135,14 +143,14 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         validatorManagerAddress: data.managerAddress as `0x${string}`,
         initialValidators: data.validators.map(
           ({ nodeID, weight, signer }: { nodeID: string; weight: number; signer: { publicKey: string } }) => {
-            const nodeIDBytes = nodeID.startsWith("0x") ? nodeID : add0x(nodeID);
-            const blsPublicKeyBytes = signer.publicKey.startsWith("0x") ? signer.publicKey : add0x(signer.publicKey);
+            const nodeIDBytes = nodeID.startsWith('0x') ? nodeID : add0x(nodeID);
+            const blsPublicKeyBytes = signer.publicKey.startsWith('0x') ? signer.publicKey : add0x(signer.publicKey);
             return {
               nodeID: nodeIDBytes,
               blsPublicKey: blsPublicKeyBytes,
               weight: weight,
             };
-          }
+          },
         ),
       },
       0,
@@ -152,15 +160,15 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   // Core Wallet path: send tx with access list in-browser
   const onInitialize = async () => {
     if (!conversionTxID) {
-      setError("Conversion Tx ID is required");
+      setError('Conversion Tx ID is required');
       return;
     }
     if (!walletClient) {
-      setError("Wallet not connected. Please connect via the wallet button in the header.");
+      setError('Wallet not connected. Please connect via the wallet button in the header.');
       return;
     }
     if (!conversionResult) {
-      setError("Aggregate signatures first");
+      setError('Aggregate signatures first');
       return;
     }
 
@@ -177,7 +185,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const initPromise = walletClient.writeContract({
         address: conversionResult.managerAddress as `0x${string}`,
         abi: ValidatorManagerABI.abi,
-        functionName: "initializeValidatorSet",
+        functionName: 'initializeValidatorSet',
         args: txArgs,
         accessList,
         gas: BigInt(2_000_000),
@@ -185,14 +193,16 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         account: walletEVMAddress as `0x${string}`,
       });
 
-      notify({ type: "call", name: "Initialize Validator Set" }, initPromise, viemChain ?? undefined);
+      notify({ type: 'call', name: 'Initialize Validator Set' }, initPromise, viemChain ?? undefined);
 
       const hash = await initPromise;
       const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
 
-      if (receipt.status !== "success") {
+      if (receipt.status !== 'success') {
         const decodedError = await debugTraceAndDecode(hash, selectedL1?.rpcUrl);
-        throw new Error(`Transaction reverted (gas used: ${receipt.gasUsed.toLocaleString()} / 2,000,000): ${decodedError}`);
+        throw new Error(
+          `Transaction reverted (gas used: ${receipt.gasUsed.toLocaleString()} / 2,000,000): ${decodedError}`,
+        );
       }
 
       setTxSuccess(true);
@@ -206,10 +216,10 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
   // Generate cast command with real encoded args for generic wallets
   function generateCastCommand(): string {
-    if (!conversionResult || !L1ConversionSignature) return "";
+    if (!conversionResult || !L1ConversionSignature) return '';
 
-    const rpcUrl = selectedL1?.rpcUrl || "<L1_RPC_URL>";
-    const addr = conversionResult.managerAddress || managerAddress || "<VALIDATOR_MANAGER_ADDRESS>";
+    const rpcUrl = selectedL1?.rpcUrl || '<L1_RPC_URL>';
+    const addr = conversionResult.managerAddress || managerAddress || '<VALIDATOR_MANAGER_ADDRESS>';
 
     const txArgs = buildTxArgs(conversionResult);
 
@@ -217,7 +227,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     // Passing raw calldata avoids cast trying to re-encode the args.
     const calldata = encodeFunctionData({
       abi: ValidatorManagerABI.abi as Abi,
-      functionName: "initializeValidatorSet",
+      functionName: 'initializeValidatorSet',
       args: txArgs,
     });
 
@@ -239,7 +249,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       `  --gas-limit 2000000 \\`,
       `  --rpc-url ${rpcUrl} \\`,
       `  --private-key $PRIVATE_KEY`,
-    ].join("\n");
+    ].join('\n');
   }
 
   const step1Complete = !!L1ConversionSignature;
@@ -254,31 +264,33 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
           <div
             className={`p-3 rounded-xl border transition-colors ${
               step1Complete
-                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
                   step1Complete
-                    ? "bg-green-500 text-white"
-                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                    ? 'bg-green-500 text-white'
+                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
                 }`}
               >
-                {step1Complete ? <Check className="w-3 h-3" /> : "1"}
+                {step1Complete ? <Check className="w-3 h-3" /> : '1'}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Aggregate Conversion Signature</h3>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  Collect BLS signatures from validators for the{" "}
+                  Collect BLS signatures from validators for the{' '}
                   <Link
                     href="/docs/rpcs/p-chain/txn-format#unsigned-convert-subnet-to-l1-tx"
                     className="text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     ConvertSubnetToL1Tx
                   </Link>
-                  . Ensure port <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-[10px]">9651</code> is open on all validators.
+                  . Ensure port{' '}
+                  <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-[10px]">9651</code>{' '}
+                  is open on all validators.
                 </p>
 
                 <div className="mt-2 space-y-2">
@@ -302,7 +314,9 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                         <Check className="w-3.5 h-3.5 text-green-500" />
                         <span className="text-xs text-green-600 font-medium">Signature aggregated</span>
                         {conversionResult?.signingSubnetId && (
-                          <span className="text-[10px] text-zinc-400 font-mono">subnet: {conversionResult.signingSubnetId.slice(0, 12)}...</span>
+                          <span className="text-[10px] text-zinc-400 font-mono">
+                            subnet: {conversionResult.signingSubnetId.slice(0, 12)}...
+                          </span>
                         )}
                       </div>
                       <details className="group">
@@ -322,7 +336,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                       disabled={!conversionTxID || isAggregating}
                       className="w-full"
                     >
-                      {isAggregating ? "Aggregating..." : "Aggregate Signatures"}
+                      {isAggregating ? 'Aggregating...' : 'Aggregate Signatures'}
                     </Button>
                   )}
                 </div>
@@ -334,38 +348,38 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
           <div
             className={`p-3 rounded-xl border transition-colors ${
               step2Complete
-                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
                 : step1Complete
-                ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
-                : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
+                  ? 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
+                  : 'bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50'
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
                   step2Complete
-                    ? "bg-green-500 text-white"
+                    ? 'bg-green-500 text-white'
                     : step1Complete
-                    ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-                    : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400"
+                      ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                      : 'bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400'
                 }`}
               >
-                {step2Complete ? <Check className="w-3 h-3" /> : "2"}
+                {step2Complete ? <Check className="w-3 h-3" /> : '2'}
               </div>
               <div className="flex-1 min-w-0">
                 <h3
                   className={`text-sm font-medium ${
-                    step1Complete ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"
+                    step1Complete ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-600'
                   }`}
                 >
                   Initialize Validator Set
                 </h3>
                 <p
                   className={`mt-1 text-xs ${
-                    step1Complete ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"
+                    step1Complete ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-600'
                   }`}
                 >
-                  Submit the aggregated signature to register initial validators on-chain via{" "}
+                  Submit the aggregated signature to register initial validators on-chain via{' '}
                   <a
                     href="https://eips.ethereum.org/EIPS/eip-2930"
                     target="_blank"
@@ -373,7 +387,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                     className="text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     EIP-2930
-                  </a>{" "}
+                  </a>{' '}
                   access list
                 </p>
 
@@ -455,16 +469,16 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       <ContractFunctionViewer
         sources={[
           {
-            filename: "ValidatorManager.sol",
+            filename: 'ValidatorManager.sol',
             sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
             githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
-            highlightFunction: "initializeValidatorSet",
+            highlightFunction: 'initializeValidatorSet',
           },
           {
-            filename: "IACP99Manager.sol",
+            filename: 'IACP99Manager.sol',
             sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/interfaces/IACP99Manager.sol`,
             githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/interfaces/IACP99Manager.sol`,
-            highlightFunction: "ConversionData",
+            highlightFunction: 'ConversionData',
           },
         ]}
         showFunctionOnly={true}
@@ -476,16 +490,16 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 export default withConsoleToolMetadata(InitValidatorSet, metadata);
 
 const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string | undefined) => {
-  if (!rpcEndpoint) return "No RPC endpoint available for debug trace";
+  if (!rpcEndpoint) return 'No RPC endpoint available for debug trace';
 
   try {
     const traceResponse = await fetch(rpcEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "debug_traceTransaction",
-        params: [txHash, { tracer: "callTracer" }],
+        jsonrpc: '2.0',
+        method: 'debug_traceTransaction',
+        params: [txHash, { tracer: 'callTracer' }],
         id: 1,
       }),
     });
@@ -493,17 +507,17 @@ const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string | undefin
     const trace = await traceResponse.json();
 
     if (trace.error) {
-      return `Revert reason unavailable (debug API returned: ${trace.error.message || "unknown error"}). Enable debug_traceTransaction on your node for detailed errors.`;
+      return `Revert reason unavailable (debug API returned: ${trace.error.message || 'unknown error'}). Enable debug_traceTransaction on your node for detailed errors.`;
     }
 
     const errorSelector = trace.result?.output;
-    if (errorSelector && errorSelector.startsWith("0x")) {
+    if (errorSelector && errorSelector.startsWith('0x')) {
       try {
         const errorResult = decodeErrorResult({
           abi: ValidatorManagerABI.abi as Abi,
           data: errorSelector,
         });
-        return `${errorResult.errorName}${errorResult.args ? ": " + errorResult.args.join(", ") : ""}`;
+        return `${errorResult.errorName}${errorResult.args ? ': ' + errorResult.args.join(', ') : ''}`;
       } catch {
         return `Unknown revert selector: ${errorSelector.slice(0, 10)}`;
       }
@@ -513,7 +527,7 @@ const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string | undefin
     const revertReason = trace.result?.revertReason;
     if (revertReason) return `Revert: ${revertReason}`;
 
-    return "Transaction reverted with no decoded reason. Try enabling debug_traceTransaction on your node.";
+    return 'Transaction reverted with no decoded reason. Try enabling debug_traceTransaction on your node.';
   } catch (err) {
     return `Could not fetch debug trace: ${(err as Error).message}`;
   }

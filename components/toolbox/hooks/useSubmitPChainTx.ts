@@ -17,9 +17,7 @@ export function useSubmitPChainTx() {
    * Switches Core to the correct network, re-reads the wallet client,
    * executes the callback, then restores the previous chain.
    */
-  const submitPChainTx = async <T>(
-    fn: (client: CoreWalletClientType) => Promise<T>
-  ): Promise<T> => {
+  const submitPChainTx = async <T>(fn: (client: CoreWalletClientType) => Promise<T>): Promise<T> => {
     const previousChainId = await ensureCoreNetworkMode(isTestnet);
 
     // After mode switch, chainChanged fires and creates a new coreWalletClient

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Loader2, Calendar, Search, Users, Copy, Check } from "lucide-react";
-import { Button } from "@/components/toolbox/components/Button";
-import { Tooltip } from "@/components/toolbox/components/Tooltip";
-import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
-import { ValidatorResponse, formatTimestamp, formatStake } from "./types";
+import { Loader2, Calendar, Search, Users, Copy, Check } from 'lucide-react';
+import { Button } from '@/components/toolbox/components/Button';
+import { Tooltip } from '@/components/toolbox/components/Tooltip';
+import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
+import { ValidatorResponse, formatTimestamp, formatStake } from './types';
 
 interface ValidatorTableProps {
   validators: ValidatorResponse[];
@@ -85,10 +85,7 @@ export function ValidatorTable({
               </thead>
               <tbody className="bg-white dark:bg-zinc-900 divide-y divide-zinc-200/80 dark:divide-zinc-800">
                 {filteredValidators.map((validator, index) => (
-                  <tr
-                    key={index}
-                    className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors duration-150"
-                  >
+                  <tr key={index} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors duration-150">
                     <td className="px-3 py-3 text-sm font-mono truncate max-w-[180px] text-zinc-800 dark:text-zinc-200">
                       <div className="flex items-center">
                         <span title={validator.nodeId} className="truncate">
@@ -98,7 +95,7 @@ export function ValidatorTable({
                           onClick={() => copyToClipboard(validator.nodeId)}
                           className="ml-1.5 p-0.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
                         >
-                          <Tooltip content={copiedId === validator.nodeId ? "Copied!" : "Copy Node ID"}>
+                          <Tooltip content={copiedId === validator.nodeId ? 'Copied!' : 'Copy Node ID'}>
                             {copiedId === validator.nodeId ? (
                               <Check size={12} className="text-green-500" />
                             ) : (
@@ -123,11 +120,7 @@ export function ValidatorTable({
                       </div>
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onViewDetails(validator)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => onViewDetails(validator)}>
                         Details
                       </Button>
                     </td>

@@ -9,21 +9,27 @@ export const WARP_MESSAGE_TOPIC = '0x56600c567728a800c0aa927500f831cb451df66a7af
  */
 export function extractWarpMessageFromReceipt(receipt: TransactionReceipt): string {
   if (!receipt.logs || receipt.logs.length === 0) {
-    throw new Error("Failed to get warp message from transaction receipt.");
+    throw new Error('Failed to get warp message from transaction receipt.');
   }
 
   let extractedWarpMessage: string | null = null;
 
   const warpEventLog = receipt.logs.find((log) => {
-    return log && log.address && log.address.toLowerCase() === WARP_PRECOMPILE_ADDRESS.toLowerCase() &&
-      log.topics && log.topics[0] && log.topics[0].toLowerCase() === WARP_MESSAGE_TOPIC.toLowerCase();
+    return (
+      log &&
+      log.address &&
+      log.address.toLowerCase() === WARP_PRECOMPILE_ADDRESS.toLowerCase() &&
+      log.topics &&
+      log.topics[0] &&
+      log.topics[0].toLowerCase() === WARP_MESSAGE_TOPIC.toLowerCase()
+    );
   });
 
   if (warpEventLog && warpEventLog.data) {
     try {
       const [decodedMessage] = decodeAbiParameters(
         [{ type: 'bytes', name: 'message' }],
-        warpEventLog.data as `0x${string}`
+        warpEventLog.data as `0x${string}`,
       );
       extractedWarpMessage = decodedMessage as string;
     } catch {
@@ -33,7 +39,7 @@ export function extractWarpMessageFromReceipt(receipt: TransactionReceipt): stri
     try {
       const [decodedMessage] = decodeAbiParameters(
         [{ type: 'bytes', name: 'message' }],
-        receipt.logs[1].data as `0x${string}`
+        receipt.logs[1].data as `0x${string}`,
       );
       extractedWarpMessage = decodedMessage as string;
     } catch {
@@ -43,7 +49,7 @@ export function extractWarpMessageFromReceipt(receipt: TransactionReceipt): stri
     try {
       const [decodedMessage] = decodeAbiParameters(
         [{ type: 'bytes', name: 'message' }],
-        receipt.logs[0].data as `0x${string}`
+        receipt.logs[0].data as `0x${string}`,
       );
       extractedWarpMessage = decodedMessage as string;
     } catch {
@@ -52,7 +58,7 @@ export function extractWarpMessageFromReceipt(receipt: TransactionReceipt): stri
   }
 
   if (!extractedWarpMessage) {
-    throw new Error("Could not extract warp message from transaction.");
+    throw new Error('Could not extract warp message from transaction.');
   }
 
   return extractedWarpMessage;

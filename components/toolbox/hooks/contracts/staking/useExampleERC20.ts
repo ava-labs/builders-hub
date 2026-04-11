@@ -32,8 +32,7 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
   const mint = (to: string, amount: string) =>
     contract.write('mint', [to, parseEther(amount)], 'Mint ExampleERC20 Token');
 
-  const burn = (amount: string) =>
-    contract.write('burn', [parseEther(amount)], 'Burn ExampleERC20 Token');
+  const burn = (amount: string) => contract.write('burn', [parseEther(amount)], 'Burn ExampleERC20 Token');
 
   const burnFrom = (from: string, amount: string) =>
     contract.write('burnFrom', [from, parseEther(amount)], 'Burn From ExampleERC20 Token');
@@ -47,6 +46,6 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
     mint,
     burn,
     burnFrom,
-    grantRole
+    grantRole,
   };
 }

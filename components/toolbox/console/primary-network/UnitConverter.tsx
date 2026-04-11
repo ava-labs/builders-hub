@@ -1,26 +1,38 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { Copy, Check } from "lucide-react";
+import { useState, useEffect, useCallback } from 'react';
+import { Copy, Check } from 'lucide-react';
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from "../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
-import Link from "next/link";
+} from '../../components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import Link from 'next/link';
 
 const metadata: ConsoleToolMetadata = {
-  title: "AVAX Unit Converter",
-  description: <>Convert between <Link href="/docs/rpcs/c-chain/api" className="text-primary hover:underline">C-Chain</Link> wei (10<sup>-18</sup>), <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">P-Chain</Link> nAVAX (10<sup>-9</sup>), and AVAX. Type in any field to convert.</>,
+  title: 'AVAX Unit Converter',
+  description: (
+    <>
+      Convert between{' '}
+      <Link href="/docs/rpcs/c-chain/api" className="text-primary hover:underline">
+        C-Chain
+      </Link>{' '}
+      wei (10<sup>-18</sup>),{' '}
+      <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">
+        P-Chain
+      </Link>{' '}
+      nAVAX (10<sup>-9</sup>), and AVAX. Type in any field to convert.
+    </>
+  ),
   toolRequirements: [],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 const units = [
-  { id: "AVAX", label: "AVAX", sublabel: "1", factor: BigInt("1000000000000000000"), step: "0.01" },
-  { id: "nAVAX", label: "nAVAX", sublabel: "P-Chain base unit", factor: BigInt("1000000000"), step: "1" },
-  { id: "wei", label: "Wei", sublabel: "C-Chain base unit", factor: BigInt("1"), step: "1" },
+  { id: 'AVAX', label: 'AVAX', sublabel: '1', factor: BigInt('1000000000000000000'), step: '0.01' },
+  { id: 'nAVAX', label: 'nAVAX', sublabel: 'P-Chain base unit', factor: BigInt('1000000000'), step: '1' },
+  { id: 'wei', label: 'Wei', sublabel: 'C-Chain base unit', factor: BigInt('1'), step: '1' },
 ] as const;
 
 function convertUnits(inputAmount: string, fromUnit: string): Record<string, string> | null {
@@ -31,9 +43,9 @@ function convertUnits(inputAmount: string, fromUnit: string): Record<string, str
 
   let baseAmount: bigint;
   try {
-    if (inputAmount.includes(".")) {
-      const [whole, decimal] = inputAmount.split(".");
-      const wholeValue = whole === "" ? BigInt(0) : BigInt(whole);
+    if (inputAmount.includes('.')) {
+      const [whole, decimal] = inputAmount.split('.');
+      const wholeValue = whole === '' ? BigInt(0) : BigInt(whole);
       const wholeInWei = wholeValue * sourceUnit.factor;
       const decimalPlaces = decimal.length;
       const decimalValue = BigInt(decimal);
@@ -49,7 +61,7 @@ function convertUnits(inputAmount: string, fromUnit: string): Record<string, str
   const results: Record<string, string> = {};
   for (const unit of units) {
     if (baseAmount === BigInt(0)) {
-      results[unit.id] = "0";
+      results[unit.id] = '0';
       continue;
     }
     const quotient = baseAmount / unit.factor;
@@ -57,16 +69,16 @@ function convertUnits(inputAmount: string, fromUnit: string): Record<string, str
     if (remainder === BigInt(0)) {
       results[unit.id] = quotient.toString();
     } else {
-      const decimalPart = remainder.toString().padStart(unit.factor.toString().length - 1, "0");
-      results[unit.id] = `${quotient}.${decimalPart.replace(/0+$/, "")}`;
+      const decimalPart = remainder.toString().padStart(unit.factor.toString().length - 1, '0');
+      results[unit.id] = `${quotient}.${decimalPart.replace(/0+$/, '')}`;
     }
   }
   return results;
 }
 
 function UnitConverterInner(_props: BaseConsoleToolProps) {
-  const [amount, setAmount] = useState("1");
-  const [selectedUnit, setSelectedUnit] = useState("AVAX");
+  const [amount, setAmount] = useState('1');
+  const [selectedUnit, setSelectedUnit] = useState('AVAX');
   const [results, setResults] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -84,7 +96,7 @@ function UnitConverterInner(_props: BaseConsoleToolProps) {
   return (
     <div className="space-y-2">
       {units.map((unit) => {
-        const value = unit.id === selectedUnit ? amount : (results[unit.id] ?? "");
+        const value = unit.id === selectedUnit ? amount : (results[unit.id] ?? '');
         const isSource = unit.id === selectedUnit;
 
         return (
@@ -102,7 +114,7 @@ function UnitConverterInner(_props: BaseConsoleToolProps) {
                   value={value}
                   onChange={(e) => {
                     const v = e.target.value;
-                    if (v === "" || /^[0-9]*\.?[0-9]*$/.test(v)) {
+                    if (v === '' || /^[0-9]*\.?[0-9]*$/.test(v)) {
                       setAmount(v);
                       setSelectedUnit(unit.id);
                     }

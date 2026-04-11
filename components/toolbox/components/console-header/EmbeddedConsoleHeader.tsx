@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { TestnetMainnetSwitch } from "./TestnetMainnetSwitch";
-import EvmNetworkWallet from "./evm-network-wallet";
-import { WalletPChain } from "./pchain-wallet";
-import { BuilderHubAccountButton } from "@/components/console/builder-hub-account-button";
+import { TestnetMainnetSwitch } from './TestnetMainnetSwitch';
+import EvmNetworkWallet from './evm-network-wallet';
+import { WalletPChain } from './pchain-wallet';
+import { BuilderHubAccountButton } from '@/components/console/builder-hub-account-button';
 
 export function EmbeddedConsoleHeader() {
   return (

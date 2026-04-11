@@ -40,4 +40,3 @@ export interface StatusData {
   iconType: 'expired' | 'warning' | 'active';
   label: string;
 }
-
