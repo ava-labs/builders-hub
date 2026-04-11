@@ -1,6 +1,7 @@
 'use client';
 
 import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState } from 'react';
 import { createPublicClient, http } from 'viem';
@@ -55,6 +56,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     setValidatorManagerAddress,
     validatorManagerAddress,
   } = useToolboxStore();
+  const setCreateChainManagerAddress = useCreateChainStore()((state) => state.setManagerAddress);
   const { walletEVMAddress } = useWalletStore();
   const walletClient = useResolvedWalletClient();
   const [isDeployingMessages, setIsDeployingMessages] = useState(false);
@@ -136,6 +138,9 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         throw new Error('No contract address in receipt');
       }
       setValidatorManagerAddress(receipt.contractAddress as string);
+      // Also write to createChainStore so Initialize step picks it up
+      // (createChainStore is its primary source of truth for managerAddress)
+      setCreateChainManagerAddress(receipt.contractAddress as string);
       onSuccess?.();
     } finally {
       setIsDeployingManager(false);
@@ -188,6 +193,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                         onClick={() => {
                           setValidatorMessagesLibAddress('');
                           setValidatorManagerAddress('');
+                          setCreateChainManagerAddress('');
                         }}
                         className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
                       >
@@ -277,6 +283,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                         type="button"
                         onClick={() => {
                           setValidatorManagerAddress('');
+                          setCreateChainManagerAddress('');
                         }}
                         className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
                       >
@@ -285,7 +292,10 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                     </div>
                     <ManualAddressInput
                       value={validatorManagerAddress}
-                      onChange={setValidatorManagerAddress}
+                      onChange={(addr) => {
+                        setValidatorManagerAddress(addr);
+                        setCreateChainManagerAddress(addr);
+                      }}
                       label="Or enter existing address"
                     />
                   </div>

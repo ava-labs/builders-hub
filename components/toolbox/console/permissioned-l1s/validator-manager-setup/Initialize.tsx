@@ -60,12 +60,12 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const vmcData = useVMCAddress(subnetId);
 
   // Glacier is authoritative for the on-chain registered address (always the proxy).
-  // toolboxStore is next (ProxySetup writes the proxy address here after upgrade).
-  // createChainStore is the baseline (set by DeployValidatorManager, may be the implementation).
+  // Only override if createChainStore doesn't already have a valid address from
+  // a previous step (DeployValidatorManager/ProxySetup write directly to it).
   useEffect(() => {
     if (vmcData.validatorManagerAddress) {
       setManagerAddress(vmcData.validatorManagerAddress);
-    } else if (toolboxStoreValidatorManagerAddress) {
+    } else if (toolboxStoreValidatorManagerAddress && !managerAddress) {
       setManagerAddress(toolboxStoreValidatorManagerAddress);
     }
   }, [vmcData.validatorManagerAddress, toolboxStoreValidatorManagerAddress]);

@@ -244,6 +244,10 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
         // Auto-fill the upgrade section with the new proxy
         setProxyAddress(receipt.contractAddress);
         setShowDeploySection(false);
+        // Persist the new proxy address to both stores so downstream steps
+        // (Initialize, TransferOwnership) use it and it survives navigation/refresh.
+        setValidatorManagerAddress(receipt.contractAddress);
+        setCreateChainManagerAddress(receipt.contractAddress);
       }
     } finally {
       setIsDeployingProxy(false);
