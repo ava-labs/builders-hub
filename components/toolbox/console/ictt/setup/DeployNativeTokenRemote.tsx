@@ -208,8 +208,6 @@ function DeployNativeTokenRemote() {
                 BigInt(burnedFeesReportingRewardPercentage)
             ];
 
-            console.log("Deploying NativeTokenRemote with args:", constructorArgs);
-
             const result = await deploy({
                 abi: NativeTokenRemote.abi as any,
                 bytecode: NativeTokenRemote.bytecode.object,

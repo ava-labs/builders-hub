@@ -845,7 +845,6 @@ export function newUnsignedMessage(networkID: number, sourceChainID: string, mes
 }
 
 export const compareNodeIDs = (a: string, b: string) => {
-    // console.log(a, b); // Removed console log
     let aNodeID: Uint8Array;
     let bNodeID: Uint8Array;
 

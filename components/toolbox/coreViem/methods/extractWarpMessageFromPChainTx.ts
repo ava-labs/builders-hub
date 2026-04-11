@@ -150,8 +150,6 @@ export async function extractWarpMessageFromPChainTx(client: AvalancheWalletClie
     const data = txData as any; // Type as any since the SDK types may not match the exact structure we need
 
     if (!data?.tx?.unsignedTx?.subnetID || !data?.tx?.unsignedTx?.chainID || !data?.tx?.unsignedTx?.address || !data?.tx?.unsignedTx?.validators) {
-        console.log('txId', txId)
-        console.log('data', data)
         throw new Error("Invalid transaction data, are you sure this is a conversion transaction?");
     }
 

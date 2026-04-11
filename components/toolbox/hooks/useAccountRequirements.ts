@@ -71,7 +71,6 @@ export function useAccountRequirements(configKey: AccountRequirementsConfigKey |
     // Action handler dispatcher
     const handleAction = useCallback((requirement: Requirement) => {
         if (!requirement.action) {
-            console.log('No action available for requirement:', requirement.id);
             return;
         }
 
@@ -88,7 +87,7 @@ export function useAccountRequirements(configKey: AccountRequirementsConfigKey |
                 openLoginModal();
                 break;
             default:
-                console.log('Unknown action:', action);
+                break;
         }
     }, [openLoginModal]);
 

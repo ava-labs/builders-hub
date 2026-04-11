@@ -217,8 +217,6 @@ function DeployERC20TokenRemote() {
         parseInt(tokenDecimals),
       ];
 
-      console.log("Deploying ERC20TokenRemote with args:", constructorArgs);
-
       const result = await deploy({
         abi: ERC20TokenRemote.abi as any,
         bytecode: ERC20TokenRemote.bytecode.object,

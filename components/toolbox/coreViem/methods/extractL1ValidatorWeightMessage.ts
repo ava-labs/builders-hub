@@ -43,8 +43,6 @@ export async function extractL1ValidatorWeightMessage(
   const data = txData as any;
 
   if (!data?.tx?.unsignedTx) {
-    console.log('txId', txId);
-    console.log('data', data);
     throw new Error("Invalid transaction data, are you sure this is a SetL1ValidatorWeightTx?");
   }
 
@@ -52,7 +50,6 @@ export async function extractL1ValidatorWeightMessage(
 
   // Extract the WarpMessage from the transaction
   if (!unsignedTx.message) {
-    console.log('Transaction structure:', JSON.stringify(unsignedTx, null, 2));
     throw new Error("Transaction does not contain a WarpMessage");
   }
 

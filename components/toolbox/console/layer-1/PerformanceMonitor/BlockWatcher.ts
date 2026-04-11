@@ -73,7 +73,6 @@ export class BlockWatcher {
         this.isRunning = true;
 
         let currentBlockNumber = BigInt(startFromBlock);
-        console.log('Starting from block', currentBlockNumber);
 
         const maxBatchSize = 200;
 
@@ -85,7 +84,6 @@ export class BlockWatcher {
                 1
             );
 
-            console.log(`Fetching ${blockHistory} historical blocks from ${historicalStartBlock} to ${latestBlock}`);
 
             // Process historical blocks in batches
             for (let i = historicalStartBlock; i < Number(latestBlock) && this.isRunning; i += maxBatchSize) {
@@ -102,12 +100,10 @@ export class BlockWatcher {
                     this.callback(this.parseBlock(block));
                 });
 
-                console.log(`Processed historical blocks ${i} to ${endBlock - 1}`);
             }
 
             // Set current block number to latest after historical sync
             currentBlockNumber = latestBlock;
-            console.log('Historical sync complete, now watching for new blocks');
         } catch (error) {
             console.error('Error fetching historical blocks:', error);
         }
@@ -118,7 +114,6 @@ export class BlockWatcher {
                 let lastBlock = await this.getBlockNumber();
 
                 while (lastBlock === currentBlockNumber) {
-                    console.log('Reached end of chain');
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     lastBlock = await this.getBlockNumber();
                 }
@@ -139,12 +134,10 @@ export class BlockWatcher {
                     this.callback(this.parseBlock(block));
                 });
 
-                console.log('Synced blocks', currentBlockNumber, 'to', endBlock);
                 currentBlockNumber = endBlock;
             } catch (error) {
                 if (error instanceof Error &&
                     error.message.includes('cannot query unfinalized data')) {
-                    console.log(`Block ${currentBlockNumber} not finalized yet, waiting...`);
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 } else {
                     console.error('Error fetching block:', error);
