@@ -13,6 +13,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from '../../../components/WithConsoleToolMetadata';
+import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -29,6 +30,15 @@ import versions from '@/scripts/versions.json';
 const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 const DEFAULT_NATIVE_MINTER_ADDRESS = '0x0200000000000000000000000000000000000001';
 const MINTER_ROLE = keccak256(toHex('MINTER_ROLE'));
+
+const ERC20_MINTING_SOURCES: ContractSource[] = [
+  {
+    name: 'ExampleERC20Mintable',
+    filename: 'ExampleERC20Mintable.sol',
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/mocks/ExampleERC20Mintable.sol`,
+    description: 'ERC20 token with AccessControl. The MINTER_ROLE must be granted to the staking manager.',
+  },
+];
 
 const metadata: ConsoleToolMetadata = {
   title: 'Enable Staking Manager Minting',
@@ -155,76 +165,78 @@ export function EnableStakingManagerMintingInner({ initialTokenType }: EnableSta
 
   // ── ERC20 Token Path ──
   return (
-    <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      <div className="p-5 space-y-4">
-        {error && <Alert variant="error">{error}</Alert>}
+    <ContractDeployViewer contracts={ERC20_MINTING_SOURCES}>
+      <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+        <div className="p-5 space-y-4">
+          {error && <Alert variant="error">{error}</Alert>}
 
-        <StepFlowCard
-          step={1}
-          title="Grant MINTER_ROLE to Staking Manager"
-          description="Allow the staking manager to mint reward tokens"
-          isComplete={!!grantTxHash}
-        >
-          <div className="mt-3 space-y-3">
-            <EVMAddressInput
-              label="Staking Manager Address"
-              value={stakingManagerAddress}
-              onChange={setStakingManagerAddress}
-              disabled={isGranting}
-            />
-            <EVMAddressInput
-              label="ERC20 Token Address"
-              value={stakingTokenAddress}
-              onChange={setStakingTokenAddress}
-              disabled={isGranting}
-            />
+          <StepFlowCard
+            step={1}
+            title="Grant MINTER_ROLE to Staking Manager"
+            description="Allow the staking manager to mint reward tokens"
+            isComplete={!!grantTxHash}
+          >
+            <div className="mt-3 space-y-3">
+              <EVMAddressInput
+                label="Staking Manager Address"
+                value={stakingManagerAddress}
+                onChange={setStakingManagerAddress}
+                disabled={isGranting}
+              />
+              <EVMAddressInput
+                label="ERC20 Token Address"
+                value={stakingTokenAddress}
+                onChange={setStakingTokenAddress}
+                disabled={isGranting}
+              />
 
-            {tokenName && (
-              <p className="text-xs text-zinc-500">
-                Token: <span className="font-medium text-zinc-700 dark:text-zinc-300">{tokenName}</span>
-              </p>
-            )}
+              {tokenName && (
+                <p className="text-xs text-zinc-500">
+                  Token: <span className="font-medium text-zinc-700 dark:text-zinc-300">{tokenName}</span>
+                </p>
+              )}
 
-            {grantTxHash ? (
-              <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-                <Check className="w-3.5 h-3.5" />
-                <span>MINTER_ROLE granted successfully</span>
-              </div>
-            ) : (
-              <Button
-                variant="primary"
-                onClick={handleGrantMinterRole}
-                loading={isGranting}
-                disabled={!stakingTokenAddress || !stakingManagerAddress || isGranting}
-              >
-                Grant MINTER_ROLE
-              </Button>
-            )}
+              {grantTxHash ? (
+                <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>MINTER_ROLE granted successfully</span>
+                </div>
+              ) : (
+                <Button
+                  variant="primary"
+                  onClick={handleGrantMinterRole}
+                  loading={isGranting}
+                  disabled={!stakingTokenAddress || !stakingManagerAddress || isGranting}
+                >
+                  Grant MINTER_ROLE
+                </Button>
+              )}
 
-            {stakingManagerAddress && (
-              <p className="text-[11px] text-zinc-400">
-                Granting to{' '}
-                <code className="font-mono">
-                  {stakingManagerAddress.slice(0, 10)}...{stakingManagerAddress.slice(-6)}
-                </code>
-              </p>
-            )}
-          </div>
-        </StepFlowCard>
+              {stakingManagerAddress && (
+                <p className="text-[11px] text-zinc-400">
+                  Granting to{' '}
+                  <code className="font-mono">
+                    {stakingManagerAddress.slice(0, 10)}...{stakingManagerAddress.slice(-6)}
+                  </code>
+                </p>
+              )}
+            </div>
+          </StepFlowCard>
+        </div>
+
+        <div className="shrink-0 px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
+          <span className="text-xs text-zinc-500">ERC20 MINTER_ROLE</span>
+          <a
+            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
+          >
+            @{ICM_COMMIT.slice(0, 7)}
+          </a>
+        </div>
       </div>
-
-      <div className="shrink-0 px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
-        <span className="text-xs text-zinc-500">ERC20 MINTER_ROLE</span>
-        <a
-          href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
-        >
-          @{ICM_COMMIT.slice(0, 7)}
-        </a>
-      </div>
-    </div>
+    </ContractDeployViewer>
   );
 }
 
