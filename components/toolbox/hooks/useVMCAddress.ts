@@ -83,11 +83,8 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
         const expectedChainIdForVMC = blockchainInfoForVMC.evmChainId;
 
         if (viemChain && viemChain.id !== expectedChainIdForVMC) {
-          setError(
-            `Please switch to chain ID ${expectedChainIdForVMC} to use this L1's Validator Manager. Current: ${viemChain.id}`,
-          );
-          setIsLoading(false);
-          return;
+          setError(`Switch to chain ${expectedChainIdForVMC} to write to this Validator Manager`);
+          // Don't return — still resolve the address for read-only consumers
         }
 
         // The signing subnet is the parent subnet of the chain where the VMC
