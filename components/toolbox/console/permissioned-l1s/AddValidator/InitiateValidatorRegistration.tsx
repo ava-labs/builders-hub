@@ -166,8 +166,23 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           blsProofOfPossession: validator.nodePOP.proofOfPossession,
         });
 
-      } catch (txError) {
-        // Attempt to get existing validation ID for fallback
+      } catch (txError: any) {
+        const primaryMessage = txError instanceof Error ? txError.message : String(txError);
+
+        // Only attempt the resend fallback if the error suggests the node might already
+        // have a pending registration (e.g. InvalidValidatorStatus or generic reverts).
+        // For user rejections, insufficient funds, bad BLS keys, etc. — surface directly.
+        const shouldAttemptFallback = primaryMessage.includes('reverted') ||
+          primaryMessage.includes('Invalid validator status') ||
+          primaryMessage.includes('execution');
+
+        if (!shouldAttemptFallback) {
+          setErrorState(`Transaction failed: ${primaryMessage}`);
+          onError(`Transaction failed: ${primaryMessage}`);
+          return;
+        }
+
+        // Attempt resend fallback for possible duplicate registration
         try {
           const nodeIdBytes = parseNodeID(validator.nodeID);
           const validationId = await getValidationIdHex(
@@ -176,64 +191,45 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             nodeIdBytes
           );
 
-          // Check if validation ID exists (not zero)
+          // No existing validation ID — the node was never registered, so the primary error is the real problem
           if (validationId === "0x0000000000000000000000000000000000000000000000000000000000000000") {
-            setErrorState("Transaction failed and no existing validation ID found for this node.");
-            onError("Transaction failed and no existing validation ID found for this node.");
+            setErrorState(`Transaction failed: ${primaryMessage}`);
+            onError(`Transaction failed: ${primaryMessage}`);
             return;
           }
 
-          // Use resendRegisterValidatorMessage as fallback
+          // Existing validation ID found — attempt to resend the registration message
           const fallbackHash = await validatorManager.resendRegisterValidatorMessage(validationId);
 
           const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
 
           if (fallbackReceipt.status === 'reverted') {
-            setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);
-            onError(`Fallback transaction reverted. Hash: ${fallbackHash}`);
+            setErrorState(`Resend registration message reverted. The node may already be fully registered. Hash: ${fallbackHash}`);
+            onError(`Resend registration message reverted. Hash: ${fallbackHash}`);
             return;
           }
 
           const unsignedWarpMessage = fallbackReceipt.logs[0].data ?? "";
 
-          setTxSuccess(`Fallback transaction successful! Hash: ${fallbackHash}`);
+          setTxSuccess(`Registration message resent successfully! Hash: ${fallbackHash}`);
           onSuccess({
             txHash: fallbackHash as `0x${string}`,
             nodeId: validator.nodeID,
             validationId: validationId,
             weight: validator.validatorWeight.toString(),
             unsignedWarpMessage: unsignedWarpMessage,
-            validatorBalance: (Number(validator.validatorBalance) / 1e9).toString(), // Convert from nAVAX to AVAX
+            validatorBalance: (Number(validator.validatorBalance) / 1e9).toString(),
             blsProofOfPossession: validator.nodePOP.proofOfPossession,
           });
 
         } catch (fallbackError: any) {
-          let fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-
-          // Handle specific fallback error types
-          if (fallbackMessage.includes('User rejected')) {
-            fallbackMessage = 'Transaction was rejected by user';
-          } else if (fallbackMessage.includes('insufficient funds')) {
-            fallbackMessage = 'Insufficient funds for transaction';
-          }
-
-          setErrorState(`Both primary transaction and fallback failed: ${fallbackMessage}`);
-          onError(`Both primary transaction and fallback failed: ${fallbackMessage}`);
+          const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          setErrorState(`Transaction failed: ${primaryMessage}`);
+          onError(`Transaction failed: ${primaryMessage}. Resend fallback also failed: ${fallbackMessage}`);
         }
       }
     } catch (err: any) {
-      let message = err instanceof Error ? err.message : String(err);
-
-      // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
-        message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
-      }
+      const message = err instanceof Error ? err.message : String(err);
 
       setErrorState(`Transaction failed: ${message}`);
       onError(`Transaction failed: ${message}`);

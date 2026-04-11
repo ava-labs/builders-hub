@@ -6,6 +6,7 @@ import { useWalletStore } from "./walletStore";
 interface SignatureAggregationParams {
     message: string;
     justification?: string;
+    signingSubnetId?: string;
     quorumPercentage?: number;
 }
 
@@ -33,12 +34,10 @@ interface GetSubnetByIdParams {
 export const useAvalancheSDKChainkit = (customNetwork?: "mainnet" | "fuji") => {
     const { isTestnet } = useWalletStore();
 
-    // Determine network name - follow the same pattern as existing avalanche-sdk usage
     const networkName = useMemo(() => {
         if (customNetwork) return customNetwork;
-        // return getNetworkName()
         return isTestnet ? "fuji" : "mainnet";
-    }, [customNetwork, isTestnet]); // [customNetwork, getNetworkName]);
+    }, [customNetwork, isTestnet]);
 
     // Create SDK instance using avalanche-sdk-typescript
     const sdk = useMemo(() => {
@@ -51,6 +50,7 @@ export const useAvalancheSDKChainkit = (customNetwork?: "mainnet" | "fuji") => {
     const aggregateSignature = useCallback(async ({
         message,
         justification,
+        signingSubnetId,
         quorumPercentage = 67,
     }: SignatureAggregationParams): Promise<SignatureAggregationResult> => {
         try {
@@ -63,6 +63,17 @@ export const useAvalancheSDKChainkit = (customNetwork?: "mainnet" | "fuji") => {
             // Add justification if provided
             if (justification) {
                 signatureAggregatorRequest.justification = justification;
+            }
+
+            // NOTE: signingSubnetId is accepted by the SDK type but the underlying
+            // aggregator service uses kebab-case field names. The SDK forwards
+            // camelCase which gets silently ignored. The service infers the signing
+            // subnet from the sourceChainID in the message, which works correctly
+            // when the source chain IS the L1. For P-Chain-sourced messages (e.g.
+            // ConvertSubnetToL1Tx), the justification bytes carry the subnet ID.
+            // Tracked: SDK should map signingSubnetId → signing-subnet-id.
+            if (signingSubnetId) {
+                signatureAggregatorRequest.signingSubnetId = signingSubnetId;
             }
 
             const result = await sdk.data.signatureAggregator.aggregate({

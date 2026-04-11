@@ -157,19 +157,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         weight: weight,
       });
     } catch (err: any) {
-      let message = err instanceof Error ? err.message : String(err);
-
-      // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
-        message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
-      }
-
+      const message = err instanceof Error ? err.message : String(err);
       setErrorState(`Transaction failed: ${message}`);
       onError(`Transaction failed: ${message}`);
     } finally {

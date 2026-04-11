@@ -134,19 +134,34 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           validationId: validation.validationId,
         });
 
-      } catch (txError) {
-        // Use resendValidatorRemovalMessage as fallback
+      } catch (txError: any) {
+        const primaryMessage = txError instanceof Error ? txError.message : String(txError);
+
+        // Only attempt resend fallback if the error suggests a pending removal
+        // (e.g. InvalidValidatorStatus or generic reverts). For user rejections,
+        // insufficient funds, ownership errors, etc. — the hook already parsed these.
+        const shouldAttemptFallback = primaryMessage.includes('reverted') ||
+          primaryMessage.includes('Invalid validator status') ||
+          primaryMessage.includes('execution');
+
+        if (!shouldAttemptFallback) {
+          setErrorState(`Transaction failed: ${primaryMessage}`);
+          onError(`Transaction failed: ${primaryMessage}`);
+          return;
+        }
+
+        // Attempt resend fallback for possible pending removal
         try {
           const fallbackHash = await validatorManager.resendValidatorRemovalMessage(validation.validationId);
           const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
 
           if (fallbackReceipt.status === 'reverted') {
-            setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);
-            onError(`Fallback transaction reverted. Hash: ${fallbackHash}`);
+            setErrorState(`Transaction failed: ${primaryMessage}`);
+            onError(`Transaction failed: ${primaryMessage}. Resend also reverted.`);
             return;
           }
 
-          setTxSuccess(`Fallback transaction successful! Hash: ${fallbackHash}`);
+          setTxSuccess(`Removal message resent successfully! Hash: ${fallbackHash}`);
           onSuccess({
             txHash: fallbackHash as `0x${string}`,
             nodeId: validation.nodeId,
@@ -154,33 +169,13 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           });
 
         } catch (fallbackError: any) {
-          let fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-
-          // Handle specific fallback error types
-          if (fallbackMessage.includes('User rejected')) {
-            fallbackMessage = 'Transaction was rejected by user';
-          } else if (fallbackMessage.includes('insufficient funds')) {
-            fallbackMessage = 'Insufficient funds for transaction';
-          }
-
-          setErrorState(`Both primary transaction and fallback failed: ${fallbackMessage}`);
-          onError(`Both primary transaction and fallback failed: ${fallbackMessage}`);
+          const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          setErrorState(`Transaction failed: ${primaryMessage}`);
+          onError(`Transaction failed: ${primaryMessage}. Resend fallback also failed: ${fallbackMessage}`);
         }
       }
     } catch (err: any) {
-      let message = err instanceof Error ? err.message : String(err);
-
-      // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
-        message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
-      }
-
+      const message = err instanceof Error ? err.message : String(err);
       setErrorState(`Transaction failed: ${message}`);
       onError(`Transaction failed: ${message}`);
     } finally {

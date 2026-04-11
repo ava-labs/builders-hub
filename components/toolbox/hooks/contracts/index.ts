@@ -15,3 +15,6 @@ export * from './precompiles';
 
 // Utilities
 export * from './utilities';
+
+// Error parsing
+export { parseContractError } from './parseContractError';
