@@ -41,6 +41,9 @@ jobs:
 
       # ── Console conventions ──────────────────────────────
 
+      - name: Prettier (toolbox)
+        run: npx prettier --check "components/toolbox/**/*.{ts,tsx}"
+
       - name: ESLint (toolbox)
         run: npx eslint components/toolbox/ --max-warnings 50
 

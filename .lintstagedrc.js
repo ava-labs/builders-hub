@@ -1,6 +1,7 @@
 module.exports = {
-  // Console toolbox: ESLint with toolbox-specific rules
+  // Console toolbox: ESLint with toolbox-specific rules + Prettier
   'components/toolbox/**/*.{ts,tsx}': [
+    'prettier --write',
     'eslint --max-warnings 0',
   ],
 
