@@ -70,17 +70,7 @@ const l1ListInitialStateFuji = {
         dripAmount: 0.5,
       },
       features: ['EVM-compatible blockchain', 'Deploy smart contracts'],
-      wellKnownERC20s: [
-        {
-          address: '0x5425890298aed601595a70AB815c96711a31Bc65',
-          name: 'USD Coin',
-          symbol: 'USDC',
-          decimals: 6,
-          logoUrl: 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/usd-coin-usdc-logo.png',
-          faucetUrl: 'https://faucet.circle.com/',
-          faucetInfo: "Request 1 USDC every 2 hours from Circle Faucet. Select 'USDC' and 'Avalanche Fuji'.",
-        },
-      ],
+      wellKnownERC20s: [],
     },
     {
       id: '98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp',
@@ -173,15 +163,7 @@ const l1ListInitialStateMainnet = {
       wellKnownTeleporterRegistryAddress: '0x7C43605E14F391720e1b37E49C78C4b03A488d98',
       hasBuilderHubFaucet: false,
       explorerUrl: 'https://subnets.avax.network/c-chain',
-      wellKnownERC20s: [
-        {
-          address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
-          name: 'USD Coin',
-          symbol: 'USDC',
-          decimals: 6,
-          logoUrl: 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/usd-coin-usdc-logo.png',
-        },
-      ],
+      wellKnownERC20s: [],
     },
   ] as L1ListItem[],
 };
