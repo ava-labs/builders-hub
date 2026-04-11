@@ -6,7 +6,7 @@ import { Input } from "@/components/toolbox/components/Input";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { MultisigOption } from "@/components/toolbox/components/MultisigOption";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";

@@ -18,7 +18,7 @@ import SelectSubnetId from "../../components/SelectSubnetId"
 import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements"
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata"
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url"
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl"
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer"
 import { CliAlternative } from "@/components/console/cli-alternative"
 import { cn } from "@/lib/utils"
@@ -119,8 +119,12 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
 
       // Ensure Core Wallet is in the correct network mode for P-Chain ops
       const previousChainId = await ensureCoreNetworkMode(isTestnet)
+      // Re-read the client from the store after mode switch — the closure's client
+      // may be configured for the wrong network.
+      const freshClient = useWalletStore.getState().coreWalletClient;
+      if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
 
-      const txHash = await coreWalletClient.increaseL1ValidatorBalance({
+      const txHash = await freshClient.increaseL1ValidatorBalance({
         validationId: validatorSelection.validationId,
         balanceInAvax: amountNumber,
       })

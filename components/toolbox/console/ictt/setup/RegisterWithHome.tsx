@@ -19,7 +19,7 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { ListContractEvents } from "@/components/toolbox/components/ListContractEvents";
 import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { useWalletClient } from 'wagmi';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";

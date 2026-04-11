@@ -6,7 +6,7 @@ import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { Container } from "@/components/toolbox/components/Container";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 
 // Utility functions for conversions
 const hexToBytes = (hex: string): Uint8Array => {

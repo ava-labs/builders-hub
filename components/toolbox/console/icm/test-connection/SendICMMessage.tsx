@@ -12,7 +12,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { StepCodeViewer, StepConfig } from "@/components/console/step-code-viewer";
 import { Check, Send, Search, ArrowRight, AlertCircle, ExternalLink, Radio } from "lucide-react";
 

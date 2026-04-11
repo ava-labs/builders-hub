@@ -24,7 +24,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import versions from "@/scripts/versions.json";
 import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
 

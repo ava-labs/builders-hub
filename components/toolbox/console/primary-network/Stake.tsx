@@ -14,7 +14,7 @@ import { AddValidatorControls } from '@/components/toolbox/components/ValidatorL
 import type { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { Alert } from '@/components/toolbox/components/Alert';
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer";
 import { CliAlternative } from "@/components/console/cli-alternative";

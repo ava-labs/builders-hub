@@ -10,7 +10,7 @@ import { ChevronDown, ChevronRight, RefreshCw, Check, Database, Activity } from 
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
 import versions from "@/scripts/versions.json";
 

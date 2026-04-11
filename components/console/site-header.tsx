@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 
-const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/testnet-mainnet-switch").then(m => m.TestnetMainnetSwitch), { ssr: false });
+const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/TestnetMainnetSwitch").then(m => m.TestnetMainnetSwitch), { ssr: false });
 const WalletPChain = dynamic(() => import("@/components/toolbox/components/console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
 const EvmNetworkWallet = dynamic(() => import("@/components/toolbox/components/console-header/evm-network-wallet/index").then(m => m.EvmNetworkWallet), { ssr: false });
 

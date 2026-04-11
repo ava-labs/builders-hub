@@ -10,7 +10,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from "../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
 import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";

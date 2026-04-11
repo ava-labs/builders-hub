@@ -4,7 +4,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "./ErrorFallback";
 import { SessionProvider } from "next-auth/react";
 
-import { EmbeddedConsoleHeader } from "@/components/toolbox/components/console-header/embedded-console-header";
+import { EmbeddedConsoleHeader } from "@/components/toolbox/components/console-header/EmbeddedConsoleHeader";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { LoginModal } from "@/components/login/LoginModal";
 

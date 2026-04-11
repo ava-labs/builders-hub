@@ -5,7 +5,7 @@ import { AllowlistRoleManager } from "@/components/toolbox/components/AllowListC
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { PrecompileCodeViewer } from "@/components/console/precompile-code-viewer";
 import { ArrowRightLeft } from "lucide-react";
 

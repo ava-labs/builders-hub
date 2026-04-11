@@ -10,8 +10,8 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from "@/scripts/versions.json";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
+import { getLinkedBytecode } from "@/components/toolbox/utils/contractDeployment";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";

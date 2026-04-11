@@ -14,7 +14,7 @@ import { Info } from "lucide-react";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { Alert } from "@/components/toolbox/components/Alert";
 import { useValidatorManager } from "@/components/toolbox/hooks/contracts";
 import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";

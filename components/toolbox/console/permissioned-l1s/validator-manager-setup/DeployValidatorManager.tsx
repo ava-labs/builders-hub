@@ -12,8 +12,8 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useWalletClient } from "wagmi";
 import versions from "@/scripts/versions.json";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
+import { getLinkedBytecode } from "@/components/toolbox/utils/contractDeployment";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
 import { Check, BookOpen, GraduationCap } from "lucide-react";
 import { ManualAddressInput } from "./ManualAddressInput";

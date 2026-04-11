@@ -11,7 +11,7 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
@@ -87,8 +87,12 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
         try {
             // Ensure Core Wallet is in the correct network mode for P-Chain ops
             const previousChainId = await ensureCoreNetworkMode(isTestnet);
+            // Re-read the client from the store after mode switch — the closure's client
+            // may be configured for the wrong network.
+            const freshClient = useWalletStore.getState().coreWalletClient;
+            if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
 
-            const convertSubnetToL1Tx = coreWalletClient.convertToL1({
+            const convertSubnetToL1Tx = freshClient.convertToL1({
                 subnetId: selection.subnetId,
                 chainId: validatorManagerChainID,
                 managerAddress: validatorManagerAddress,

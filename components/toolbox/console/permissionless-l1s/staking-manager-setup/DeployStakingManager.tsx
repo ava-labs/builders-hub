@@ -6,12 +6,12 @@ import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import versions from '@/scripts/versions.json';
-import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
+import { getLinkedBytecode } from "@/components/toolbox/utils/contractDeployment";
 import { useWalletClient } from 'wagmi';
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
 import { LibraryRequirementStatus } from "@/components/toolbox/components/LibraryRequirementStatus";

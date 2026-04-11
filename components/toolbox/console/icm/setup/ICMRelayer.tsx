@@ -12,7 +12,7 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DockerInstallation } from '@/components/toolbox/components/DockerInstallation';
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { GenesisHighlightProvider, useGenesisHighlight } from '@/components/toolbox/components/genesis/GenesisHighlightContext';
 import { NetworkSelector } from './NetworkSelector';
 import { RelayerFunding } from './RelayerFunding';
@@ -20,7 +20,7 @@ import { AdvancedSettings } from './AdvancedSettings';
 import { ConfigPreview } from './ConfigPreview';
 import { useRelayerKey } from './useRelayerKey';
 import { useConfigHighlighting } from './useConfigHighlighting';
-import { generateRelayerConfig, genConfigCommand, relayerDockerCommand } from './relayer-config';
+import { generateRelayerConfig, genConfigCommand, relayerDockerCommand } from './relayerConfig';
 
 const metadata: ConsoleToolMetadata = {
     title: "ICM Relayer",

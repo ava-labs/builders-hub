@@ -14,7 +14,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useWalletClient } from "wagmi";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
 import { Check, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from "lucide-react";
 import Link from "next/link";

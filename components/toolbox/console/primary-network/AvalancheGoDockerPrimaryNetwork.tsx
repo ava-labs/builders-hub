@@ -12,7 +12,7 @@ import { Button } from "@/components/toolbox/components/Button";
 import { SyntaxHighlightedJSON } from "@/components/toolbox/components/genesis/SyntaxHighlightedJSON";
 import { GenesisHighlightProvider, useGenesisHighlight } from "@/components/toolbox/components/genesis/GenesisHighlightContext";
 import { StorageRequirements } from "@/components/toolbox/components/StorageRequirements";
-import { generateChainConfig, generatePrimaryNetworkNodeConfig, generatePrimaryNetworkDockerCommand } from "@/components/toolbox/console/layer-1/node-config";
+import { generateChainConfig, generatePrimaryNetworkNodeConfig, generatePrimaryNetworkDockerCommand } from "@/components/toolbox/console/layer-1/nodeConfig";
 import { useNodeConfigHighlighting } from "@/components/toolbox/console/layer-1/useNodeConfigHighlighting";
 import { C_CHAIN_ID } from "@/components/toolbox/console/layer-1/create/config";
 import { useAddToWallet } from "@/hooks/useAddToWallet";

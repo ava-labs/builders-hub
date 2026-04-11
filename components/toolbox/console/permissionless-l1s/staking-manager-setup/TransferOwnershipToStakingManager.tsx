@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { TransferOwnership } from "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership";
 import { ConsoleToolMetadata, withConsoleToolMetadata, BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { StepCodeViewer, type StepConfig } from "@/components/console/step-code-viewer";
 import { Info, AlertTriangle } from "lucide-react";

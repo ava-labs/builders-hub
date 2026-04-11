@@ -23,7 +23,7 @@ import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome
 import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
 import { LockedContent } from "@/components/toolbox/components/LockedContent";

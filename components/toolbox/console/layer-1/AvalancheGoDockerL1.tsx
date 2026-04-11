@@ -15,13 +15,14 @@ import { SyntaxHighlightedJSON } from "../../components/genesis/SyntaxHighlighte
 import { ReverseProxySetup } from "../../components/ReverseProxySetup";
 import { GenesisHighlightProvider, useGenesisHighlight } from "../../components/genesis/GenesisHighlightContext";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
-import { generateChainConfig, generateNodeConfig, generateDockerCommand } from "./node-config";
+import { generateChainConfig, generateNodeConfig, generateDockerCommand } from "./nodeConfig";
 import { useNodeConfigHighlighting } from "./useNodeConfigHighlighting";
 import { DockerInstallation } from "../../components/DockerInstallation";
 import { AlertCircle } from "lucide-react";
 import { useAddToWallet } from "@/hooks/useAddToWallet";
 import { nipify } from "../../components/HostInput";
 import { useL1ListStore, type L1ListItem } from "../../stores/l1ListStore";
+import { networkIDs } from "@avalabs/avalanchejs";
 
 function AvalanchegoDockerInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -91,7 +92,13 @@ function AvalanchegoDockerInner() {
     const [detectedIsTestnet, setDetectedIsTestnet] = useState<boolean | null>(null);
 
     // Sync network selection with connected wallet
-    const { isTestnet: walletIsTestnet } = useWalletStore();
+    const {
+        isTestnet: walletIsTestnet,
+        setIsTestnet: setWalletIsTestnet,
+        setAvalancheNetworkID,
+        setWalletChainId,
+        updateL1Balance,
+    } = useWalletStore();
     useEffect(() => {
         setSelectedNetwork(walletIsTestnet ? "fuji" : "mainnet");
     }, [walletIsTestnet]);
@@ -155,7 +162,7 @@ function AvalanchegoDockerInner() {
             // - Pruning enabled (reduces disk usage)
             // - State sync enabled (fast bootstrap)
             setDomain("");
-            setEnableDebugTrace(false);
+            setEnableDebugTrace(selectedNetwork === "fuji");
             setAdminApiEnabled(false);
             setPruningEnabled(true);
             setLogLevel("info");
@@ -187,6 +194,12 @@ function AvalanchegoDockerInner() {
             setTransactionHistory(0);
         }
     }, [nodeType]);
+
+    // Default to debug trace enabled on testnet — devs need debug_traceTransaction
+    // for diagnosing reverts (e.g. initializeValidatorSet). User can still toggle off.
+    useEffect(() => {
+        setEnableDebugTrace(selectedNetwork === "fuji");
+    }, [selectedNetwork]);
 
     useEffect(() => {
         setSubnetIdError(null);
@@ -1133,6 +1146,7 @@ ls -la ~/avalanche-backup/staking/`} />
                                                 : `http://localhost:9650/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`;
                                             const evmChainId = blockchainInfo?.evmChainId;
                                             const name = blockchainInfo?.blockchainName || "Avalanche L1";
+                                            const isTestnetL1 = selectedNetwork === "fuji";
 
                                             // Add to console's L1 list so the header picks it up
                                             if (evmChainId) {
@@ -1144,7 +1158,7 @@ ls -la ~/avalanche-backup/staking/`} />
                                                         rpcUrl,
                                                         evmChainId,
                                                         coinName: "AVAX",
-                                                        isTestnet: selectedNetwork === "fuji",
+                                                        isTestnet: isTestnetL1,
                                                         subnetId,
                                                         wrappedTokenAddress: "",
                                                         validatorManagerAddress: "",
@@ -1153,11 +1167,38 @@ ls -la ~/avalanche-backup/staking/`} />
                                                 }
                                             }
 
-                                            await addToWallet({ rpcUrl, chainName: name, chainId: evmChainId });
+                                            // Save previous state for rollback if user rejects
+                                            const prevIsTestnet = useWalletStore.getState().isTestnet;
+                                            const prevNetworkID = useWalletStore.getState().avalancheNetworkID;
+
+                                            // Pre-set testnet mode so the chainChanged handler
+                                            // (which preserves isTestnet for L1 chains) picks up
+                                            // the correct value when creating the coreWalletClient
+                                            setWalletIsTestnet(isTestnetL1);
+                                            setAvalancheNetworkID(
+                                                isTestnetL1 ? networkIDs.FujiID : networkIDs.MainnetID
+                                            );
+
+                                            const success = await addToWallet({
+                                                rpcUrl,
+                                                chainName: name,
+                                                chainId: evmChainId,
+                                                isTestnet: isTestnetL1,
+                                            });
+
+                                            if (success && evmChainId) {
+                                                // Explicitly switch the console's active chain
+                                                setWalletChainId(evmChainId);
+                                                setTimeout(() => updateL1Balance(evmChainId.toString()), 800);
+                                            } else if (!success) {
+                                                // Restore previous network state on rejection/failure
+                                                setWalletIsTestnet(prevIsTestnet);
+                                                setAvalancheNetworkID(prevNetworkID);
+                                            }
                                         }}
                                         disabled={isAddingToWallet}
                                     >
-                                        {isAddingToWallet ? "Adding..." : "Add to Wallet"}
+                                        {isAddingToWallet ? "Adding..." : "Add to Wallet & Switch"}
                                     </Button>
                                 </div>
 

@@ -15,7 +15,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useWalletClient } from "wagmi";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { utils } from "@avalabs/avalanchejs";
 import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
 import { Alert } from "@/components/toolbox/components/Alert";

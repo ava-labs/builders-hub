@@ -13,7 +13,7 @@ import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { PrecompileCodeViewer } from "@/components/console/precompile-code-viewer";
 import { Coins } from "lucide-react";
 

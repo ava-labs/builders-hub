@@ -11,7 +11,7 @@ import { AmountInput } from "@/components/toolbox/components/AmountInput"
 import { StepIndicator } from "@/components/toolbox/components/StepCard"
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata"
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer";
 import { CliAlternative } from "@/components/console/cli-alternative";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";

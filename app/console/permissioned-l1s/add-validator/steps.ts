@@ -1,9 +1,9 @@
 import { type StepDefinition } from "@/components/console/step-flow";
-import SelectSubnetStep from "@/components/toolbox/console/permissioned-l1s/AddValidator/steps/SelectSubnetStep";
-import ValidatorDetailsStep from "@/components/toolbox/console/permissioned-l1s/AddValidator/steps/ValidatorDetailsStep";
-import InitiateRegistrationStep from "@/components/toolbox/console/permissioned-l1s/AddValidator/steps/InitiateRegistrationStep";
-import PChainRegistrationStep from "@/components/toolbox/console/permissioned-l1s/AddValidator/steps/PChainRegistrationStep";
-import CompleteRegistrationStep from "@/components/toolbox/console/permissioned-l1s/AddValidator/steps/CompleteRegistrationStep";
+import SelectSubnetStep from "@/components/toolbox/console/permissioned-l1s/add-validator/steps/SelectSubnetStep";
+import ValidatorDetailsStep from "@/components/toolbox/console/permissioned-l1s/add-validator/steps/ValidatorDetailsStep";
+import InitiateRegistrationStep from "@/components/toolbox/console/permissioned-l1s/add-validator/steps/InitiateRegistrationStep";
+import PChainRegistrationStep from "@/components/toolbox/console/permissioned-l1s/add-validator/steps/PChainRegistrationStep";
+import CompleteRegistrationStep from "@/components/toolbox/console/permissioned-l1s/add-validator/steps/CompleteRegistrationStep";
 
 export const steps: StepDefinition[] = [
   { type: "single", key: "select-subnet", title: "Select L1 Subnet", component: SelectSubnetStep },

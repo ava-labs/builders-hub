@@ -17,7 +17,7 @@ import SelectSafeWallet, { SafeSelection } from "@/components/toolbox/components
 
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";

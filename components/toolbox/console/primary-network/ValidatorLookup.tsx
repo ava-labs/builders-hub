@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Search, Activity, Blocks, Shield, AlertTriangle, Copy, Check } from "lucide-react";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 
 const metadata: ConsoleToolMetadata = {
   title: "Validator Lookup",

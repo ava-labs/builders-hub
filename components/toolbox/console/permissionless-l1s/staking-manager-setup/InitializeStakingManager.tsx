@@ -7,7 +7,7 @@ import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/
 import { Button } from "@/components/toolbox/components/Button";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { ConsoleToolMetadata, withConsoleToolMetadata, BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { Step, Steps } from "fumadocs-ui/components/steps";

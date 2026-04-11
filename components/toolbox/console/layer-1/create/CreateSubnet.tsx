@@ -7,7 +7,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import Link from "next/link";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 import { Success } from "@/components/toolbox/components/Success";
@@ -40,8 +40,12 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
         try {
             // Ensure Core Wallet is in the correct network mode for P-Chain ops
             const previousChainId = await ensureCoreNetworkMode(isTestnet);
+            // Re-read the client from the store after mode switch — the closure's client
+            // may be configured for the wrong network.
+            const freshClient = useWalletStore.getState().coreWalletClient;
+            if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
 
-            const createSubnetTx = coreWalletClient.createSubnet({
+            const createSubnetTx = freshClient.createSubnet({
                 subnetOwners: [pChainAddress]
             });
 

@@ -10,7 +10,7 @@ import { ResultField } from "@/components/toolbox/components/ResultField";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { Alert } from "@/components/toolbox/components/Alert";
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";

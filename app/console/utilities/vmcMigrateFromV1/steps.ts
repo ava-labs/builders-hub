@@ -1,8 +1,8 @@
 import { type StepDefinition } from "@/components/console/step-flow";
 import DeployValidatorManager from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager";
 import UpgradeProxy from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy";
-import QueryL1ValidatorSet from "@/components/toolbox/console/permissioned-l1s/QueryL1ValidatorSet";
-import MigrateV1ToV2 from "@/components/toolbox/console/utilities/vmcMigrateFromV1/MigrateV1ToV2";
+import QueryL1ValidatorSet from "@/components/toolbox/console/permissioned-l1s/query-l1-validator-set";
+import MigrateV1ToV2 from "@/components/toolbox/console/utilities/vmc-migrate-from-v1/MigrateV1ToV2";
 
 export const steps: StepDefinition[] = [
     {

@@ -17,7 +17,7 @@ import UnwrapNativeToken from "./wrappedNativeToken/UnwrapNativeToken";
 import DisplayNativeBalance from "./wrappedNativeToken/DisplayNativeBalance";
 import DisplayWrappedBalance from "./wrappedNativeToken/DisplayWrappedBalance";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import versions from "@/scripts/versions.json";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";

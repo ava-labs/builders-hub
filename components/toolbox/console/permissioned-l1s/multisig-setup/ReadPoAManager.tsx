@@ -10,7 +10,7 @@ import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicC
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput"
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 
 type ViewData = {
   [key: string]: any

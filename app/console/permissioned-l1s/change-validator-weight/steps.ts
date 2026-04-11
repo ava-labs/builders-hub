@@ -1,8 +1,8 @@
 import { type StepDefinition } from "@/components/console/step-flow";
-import SelectSubnetStep from "@/components/toolbox/console/permissioned-l1s/ChangeWeight/steps/SelectSubnetStep";
-import InitiateWeightChangeStep from "@/components/toolbox/console/permissioned-l1s/ChangeWeight/steps/InitiateWeightChangeStep";
-import PChainWeightUpdateStep from "@/components/toolbox/console/permissioned-l1s/ChangeWeight/steps/PChainWeightUpdateStep";
-import CompleteWeightChangeStep from "@/components/toolbox/console/permissioned-l1s/ChangeWeight/steps/CompleteWeightChangeStep";
+import SelectSubnetStep from "@/components/toolbox/console/permissioned-l1s/change-weight/steps/SelectSubnetStep";
+import InitiateWeightChangeStep from "@/components/toolbox/console/permissioned-l1s/change-weight/steps/InitiateWeightChangeStep";
+import PChainWeightUpdateStep from "@/components/toolbox/console/permissioned-l1s/change-weight/steps/PChainWeightUpdateStep";
+import CompleteWeightChangeStep from "@/components/toolbox/console/permissioned-l1s/change-weight/steps/CompleteWeightChangeStep";
 
 export const steps: StepDefinition[] = [
   { type: "single", key: "select-subnet", title: "Select L1 Subnet", component: SelectSubnetStep },

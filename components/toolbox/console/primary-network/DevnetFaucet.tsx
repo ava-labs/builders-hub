@@ -9,7 +9,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from "../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 

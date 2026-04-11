@@ -152,6 +152,7 @@ export function useUptimeProof() {
 
                     const signaturePromise = aggregateSignature({
                         message: unsignedWarpMessage,
+                        signingSubnetId,
                     });
 
                     const result = await Promise.race([signaturePromise, timeoutPromise]);

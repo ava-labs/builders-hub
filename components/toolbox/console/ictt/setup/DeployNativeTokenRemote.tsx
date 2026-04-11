@@ -22,7 +22,7 @@ import { AcknowledgementCallout } from "@/components/toolbox/components/Acknowle
 import { LockedContent } from "@/components/toolbox/components/LockedContent";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import versions from "@/scripts/versions.json";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";

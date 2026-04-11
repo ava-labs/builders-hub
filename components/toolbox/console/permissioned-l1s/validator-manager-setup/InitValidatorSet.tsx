@@ -8,7 +8,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useWalletClient } from 'wagmi';
 import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData, createWalletClient, custom } from "viem";
-import { packWarpIntoAccessList } from "../ValidatorManager/packWarp";
+import { packWarpIntoAccessList } from "../validator-manager/packWarp";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { Button } from "@/components/toolbox/components/Button";
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
@@ -16,7 +16,7 @@ import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalanch
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
 import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
