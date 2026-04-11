@@ -54,7 +54,7 @@ function DeployNativeTokenRemote() {
     const { walletEVMAddress } = useWalletStore();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
-    const selectedL1 = useSelectedL1()();
+    const selectedL1 = useSelectedL1();
     const { deploy, isDeploying } = useContractDeployer();
     const [sourceChainId, setSourceChainId] = useState<string>("");
     const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
@@ -74,7 +74,7 @@ function DeployNativeTokenRemote() {
         throw criticalError;
     }
 
-    const sourceL1 = useL1ByChainId(sourceChainId)();
+    const sourceL1 = useL1ByChainId(sourceChainId);
     const sourceToolboxStore = getToolboxStore(sourceChainId)();
 
     const tokenHomeBlockchainIDHex = useMemo(() => {

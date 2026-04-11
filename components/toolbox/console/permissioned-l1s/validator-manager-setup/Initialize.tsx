@@ -44,7 +44,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const viemChain = useViemChainStore();
 
   const chainPublicClient = useChainPublicClient();
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const [subnetId, setSubnetId] = useState("");
   const createChainStoreSubnetId = useCreateChainStore()((state) => state.subnetId);
   const managerAddress = useCreateChainStore()((state) => state.managerAddress);

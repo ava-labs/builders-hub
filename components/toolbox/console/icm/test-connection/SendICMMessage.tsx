@@ -176,7 +176,7 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { icmReceiverAddress, setIcmReceiverAddress } = useToolboxStore();
   const { walletClient } = useConnectedWallet();
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const [message, setMessage] = useState(Math.floor(Math.random() * 10000));
   const [destinationChainId, setDestinationChainId] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
@@ -192,7 +192,7 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
   }
 
   const targetToolboxStore = getToolboxStore(destinationChainId)()
-  const targetL1 = useL1ByChainId(destinationChainId)();
+  const targetL1 = useL1ByChainId(destinationChainId);
 
   const sourceContractError = icmReceiverAddress ? undefined : "Deploy ICMDemo on source chain first";
   const targetContractError = targetToolboxStore.icmReceiverAddress ? undefined : "Deploy ICMDemo on destination chain first";

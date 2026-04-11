@@ -329,30 +329,16 @@ export const useL1ListStore = () => {
 }
 
 
-export function useSelectedL1() {
-    const { walletChainId } = useWalletStore();
-    const l1ListStore = useL1ListStore();
+export const useSelectedL1 = (): L1ListItem | undefined => {
+    const walletChainId = useWalletStore((s) => s.walletChainId);
+    const l1List = useL1ListStore()((state: { l1List: L1ListItem[] }) => state.l1List);
+    return useMemo(() => l1List.find((l1: L1ListItem) => l1.evmChainId === walletChainId), [l1List, walletChainId]);
+};
 
-    return useMemo(() =>
-        () => {
-            const l1List = l1ListStore.getState().l1List;
-            return l1List.find((l1: L1ListItem) => l1.evmChainId === walletChainId) || undefined;
-        },
-        [walletChainId, l1ListStore]
-    );
-}
-
-export function useL1ByChainId(chainId: string) {
-    const l1ListStore = useL1ListStore();
-
-    return useMemo(() =>
-        () => {
-            const l1List = l1ListStore.getState().l1List;
-            return l1List.find((l1: L1ListItem) => l1.id === chainId) || undefined;
-        },
-        [chainId, l1ListStore]
-    );
-}
+export const useL1ByChainId = (chainId: string): L1ListItem | undefined => {
+    const l1List = useL1ListStore()((state: { l1List: L1ListItem[] }) => state.l1List);
+    return useMemo(() => l1List.find((l1: L1ListItem) => l1.id === chainId), [l1List, chainId]);
+};
 
 // Native currency hooks for L1 store
 export const useSetNativeCurrencyInfo = () => {
@@ -375,7 +361,7 @@ export const useNativeCurrencyInfo = (chainId?: number) => {
 
 // Wrapped native token hooks
 export const useWrappedNativeToken = () => {
-    const selectedL1 = useSelectedL1()();
+    const selectedL1 = useSelectedL1();
     return selectedL1?.wrappedTokenAddress || "";
 };
 

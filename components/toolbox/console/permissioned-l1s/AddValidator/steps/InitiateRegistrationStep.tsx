@@ -2,25 +2,14 @@
 
 import React from "react";
 import InitiateValidatorRegistration from "../InitiateValidatorRegistration";
-import { useAddValidatorStore } from "@/components/toolbox/stores/addValidatorStore";
+import { useAddValidatorStore, deserializeValidators } from "@/components/toolbox/stores/addValidatorStore";
 import { useValidatorManagerContext } from "@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext";
 import { Alert } from "@/components/toolbox/components/Alert";
-import type { ConvertToL1Validator } from "@/components/toolbox/components/ValidatorListInput";
 import { StepCodeViewer } from "@/components/console/step-code-viewer";
 import { STEP_CONFIG } from "../code-config";
 import versions from "@/scripts/versions.json";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
-
-function deserializeValidators(
-  serialized: ReturnType<typeof useAddValidatorStore>["validators"]
-): ConvertToL1Validator[] {
-  return serialized.map((v) => ({
-    ...v,
-    validatorWeight: BigInt(v.validatorWeight),
-    validatorBalance: BigInt(v.validatorBalance),
-  }));
-}
 
 export default function InitiateRegistrationStep() {
   const store = useAddValidatorStore();

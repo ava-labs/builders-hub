@@ -61,7 +61,7 @@ function DeployTokenHome() {
     nativeTokenHomeAddress,
   } = useToolboxStore();
   const wrappedNativeTokenAddress = useWrappedNativeToken();
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const { walletEVMAddress, walletChainId } = useWalletStore();
   const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
@@ -125,7 +125,7 @@ function DeployTokenHome() {
       tokenType === "erc20"
         ? exampleErc20Address
         : wrappedNativeTokenAddress || selectedL1?.wrappedTokenAddress;
-    setTokenAddress(tokenAddress);
+    setTokenAddress(tokenAddress ?? '');
   }, [tokenType, selectedL1, exampleErc20Address]);
 
   const [initTeleporterManagerRan, setInitTeleporterManagerRan] =

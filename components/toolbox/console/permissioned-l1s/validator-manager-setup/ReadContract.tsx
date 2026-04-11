@@ -48,7 +48,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
   const [eventLogs, setEventLogs] = useState<Record<string, any[]>>({});
   const chainPublicClient = useChainPublicClient();
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const [selectedFunction, setSelectedFunction] = useState<string>("admin");
 
   if (criticalError) {

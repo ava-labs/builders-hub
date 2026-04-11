@@ -51,7 +51,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     const [isMounted, setIsMounted] = useState(false);
 
     const setWrappedNativeToken = useSetWrappedNativeToken();
-    const selectedL1 = useSelectedL1()();
+    const selectedL1 = useSelectedL1();
     
     // Get cached values from wallet store
     const cachedWrappedToken = useWrappedNativeToken();

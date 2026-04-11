@@ -49,7 +49,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const { walletClient } = useConnectedWallet();
   const [isDeploying, setIsDeploying] = useState(false);
   const viemChain = useViemChainStore();
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const { notify } = useConsoleNotifications();
   const [copied, setCopied] = useState(false);
 

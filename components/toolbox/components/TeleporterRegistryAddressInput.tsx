@@ -9,7 +9,7 @@ export default function TeleporterRegistryAddressInput({ value, onChange, disabl
     const {
         teleporterRegistryAddress,
     } = useToolboxStore();
-    const selectedL1 = useSelectedL1()();
+    const selectedL1 = useSelectedL1();
 
     const teleporterRegistryAddressSuggestions: Suggestion[] = []
 

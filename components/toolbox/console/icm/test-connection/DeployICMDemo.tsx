@@ -182,7 +182,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isTeleporterDeployed, setIsTeleporterDeployed] = useState(false);
   const [criticalError, setCriticalError] = useState<Error | null>(null);
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const { notify } = useConsoleNotifications();
   const [activeStep, setActiveStep] = useState(0);
 

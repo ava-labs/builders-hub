@@ -32,7 +32,7 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
-    const selectedL1 = useSelectedL1()();
+    const selectedL1 = useSelectedL1();
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { isTestnet, walletEVMAddress } = useWalletStore();
     const { walletClient } = useConnectedWallet();

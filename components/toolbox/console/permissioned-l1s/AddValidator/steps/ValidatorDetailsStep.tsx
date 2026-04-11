@@ -5,32 +5,12 @@ import {
   ValidatorListInput,
   type ConvertToL1Validator,
 } from "@/components/toolbox/components/ValidatorListInput";
-import { useAddValidatorStore } from "@/components/toolbox/stores/addValidatorStore";
+import { useAddValidatorStore, deserializeValidators, serializeValidators } from "@/components/toolbox/stores/addValidatorStore";
 import { useValidatorManagerContext } from "@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { Alert } from "@/components/toolbox/components/Alert";
 import { StepCodeViewer } from "@/components/console/step-code-viewer";
 import { STEP_CONFIG } from "../code-config";
-
-function deserializeValidators(
-  serialized: ReturnType<typeof useAddValidatorStore>["validators"]
-): ConvertToL1Validator[] {
-  return serialized.map((v) => ({
-    ...v,
-    validatorWeight: BigInt(v.validatorWeight),
-    validatorBalance: BigInt(v.validatorBalance),
-  }));
-}
-
-function serializeValidators(
-  validators: ConvertToL1Validator[]
-): ReturnType<typeof useAddValidatorStore>["validators"] {
-  return validators.map((v) => ({
-    ...v,
-    validatorWeight: v.validatorWeight.toString(),
-    validatorBalance: v.validatorBalance.toString(),
-  }));
-}
 
 export default function ValidatorDetailsStep() {
   const store = useAddValidatorStore();

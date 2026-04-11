@@ -54,9 +54,33 @@ export const getToolboxStore = (chainId: string) => create(
     ),
 )
 
+const noopSetter = () => {};
+
+const emptyToolboxState = {
+    ...toolboxInitialState,
+    setValidatorMessagesLibAddress: noopSetter,
+    setValidatorManagerAddress: noopSetter,
+    setRewardCalculatorAddress: noopSetter,
+    setNativeStakingManagerAddress: noopSetter,
+    setErc20StakingManagerAddress: noopSetter,
+    setTeleporterRegistryAddress: noopSetter,
+    setIcmReceiverAddress: noopSetter,
+    setExampleErc20Address: noopSetter,
+    setErc20TokenHomeAddress: noopSetter,
+    setNativeTokenHomeAddress: noopSetter,
+    setErc20TokenRemoteAddress: noopSetter,
+    setNativeTokenRemoteAddress: noopSetter,
+    setPoaManagerAddress: noopSetter,
+    reset: noopSetter,
+};
+
 export const useToolboxStore = () => {
-    const selectedL1 = useSelectedL1()();
-    return getToolboxStore(selectedL1?.id || "")();
+    const selectedL1 = useSelectedL1();
+    const chainId = selectedL1?.id;
+    // During bootstrap (no L1 selected), return an inert default state
+    // so we never create a store keyed by "".
+    if (!chainId) return emptyToolboxState;
+    return getToolboxStore(chainId)();
 }
 
 export function useViemChainStore() {

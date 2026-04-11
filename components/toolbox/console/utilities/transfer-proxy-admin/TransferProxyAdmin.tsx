@@ -31,7 +31,7 @@ const metadata: ConsoleToolMetadata = {
 function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
-    const selectedL1 = useSelectedL1()();
+    const selectedL1 = useSelectedL1();
     const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
     const { walletClient } = useConnectedWallet();
     const [isTransferring, setIsTransferring] = useState(false);

@@ -46,7 +46,7 @@ function AddCollateral() {
     const { data: walletClient } = useWalletClient();
     const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
-    const selectedL1 = useSelectedL1()();
+    const selectedL1 = useSelectedL1();
     const l1List = useL1List();
     
     const [remoteContractAddress, setRemoteContractAddress] = useState<Address | "">("");
@@ -79,7 +79,7 @@ function AddCollateral() {
         throw criticalError;
     }
 
-    const sourceL1 = useL1ByChainId(sourceChainId || "")();
+    const sourceL1 = useL1ByChainId(sourceChainId || "");
     const sourceToolboxStore = getToolboxStore(sourceChainId || "")();
 
     const sourceL1ViemChain: Chain | null = useMemo(() => {
@@ -280,6 +280,7 @@ function AddCollateral() {
             }
 
             // 3. Get Collateral Info - get remote blockchain ID hex from current chain
+            if (!selectedL1) throw new Error('No L1 selected');
             const remoteBlockchainIDHex = cb58ToHex(selectedL1.id);
             const settings = await homePublicClient.readContract({
                 address: tokenHomeAddress as Address,

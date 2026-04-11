@@ -261,7 +261,7 @@ export default function BlockScout() {
   const [existingRpcUrl, setExistingRpcUrl] = useState('');
   const [servicesChecked, setServicesChecked] = useState(false);
 
-  const getL1Info = useL1ByChainId(chainId);
+  const l1Info = useL1ByChainId(chainId);
 
   useEffect(() => {
     setSubnetIdError(null);
@@ -270,7 +270,6 @@ export default function BlockScout() {
     if (!chainId) return
 
     // Set defaults from L1 store if available
-    const l1Info = getL1Info();
     if (l1Info) {
       setNetworkName(l1Info.name);
       setNetworkShortName(l1Info.name.split(" ")[0]); // First word as short name

@@ -44,7 +44,7 @@ function RegisterWithHome() {
   const { data: walletClient } = useWalletClient();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const [sourceChainId, setSourceChainId] = useState<string>("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [lastTxId, setLastTxId] = useState<string>();
@@ -62,7 +62,7 @@ function RegisterWithHome() {
     throw criticalError;
   }
 
-  const sourceL1 = useL1ByChainId(sourceChainId)();
+  const sourceL1 = useL1ByChainId(sourceChainId);
 
   let sourceChainError: string | undefined = undefined;
   if (!sourceChainId) {

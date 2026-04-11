@@ -51,7 +51,7 @@ const metadata: ConsoleToolMetadata = {
 
 function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const { validatorManagerAddress } = useToolboxStore();
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const { walletChainId, walletEVMAddress } = useWalletStore();
   const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();

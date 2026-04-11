@@ -32,7 +32,7 @@ export default function TokenBridge() {
     const { walletEVMAddress } = useWalletStore();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
-    const selectedL1 = useSelectedL1()();
+    const selectedL1 = useSelectedL1();
 
     // Only need to select destination chain (source is current chain)
     const [destinationSelection, setDestinationSelection] = useState<BlockchainSelection>({ blockchainId: "", blockchain: null });
@@ -76,7 +76,7 @@ export default function TokenBridge() {
     const [tokenAllowance, setTokenAllowance] = useState<bigint | null>(null);
 
     // Get chain info - source is current chain, destination is selected
-    const destL1 = useL1ByChainId(destinationSelection.blockchainId)();
+    const destL1 = useL1ByChainId(destinationSelection.blockchainId);
     const destToolboxStore = getToolboxStore(destinationSelection.blockchainId)();
 
     const { erc20TokenHomeAddress, nativeTokenHomeAddress } = useToolboxStore();

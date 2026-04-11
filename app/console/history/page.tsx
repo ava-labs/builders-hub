@@ -30,7 +30,7 @@ export default function ConsoleHistoryPage() {
   
   // Toolbox store data
   const { isTestnet } = useWalletStore();
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const toolboxStore = useToolboxStore();
   const createChainStore = useCreateChainStore()();
 
