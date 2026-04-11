@@ -59,6 +59,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   const [stakeAmount, setStakeAmount] = useState<string>('');
   const [delegationFeeBips, setDelegationFeeBips] = useState<string>('100');
   const [minStakeDuration, setMinStakeDuration] = useState<string>('86400');
+  const [rewardRecipient, setRewardRecipient] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -72,6 +73,13 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
   const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
   const isNative = tokenType === 'native';
+
+  // Default reward recipient to connected wallet
+  useEffect(() => {
+    if (walletEVMAddress && !rewardRecipient) {
+      setRewardRecipient(walletEVMAddress);
+    }
+  }, [walletEVMAddress, rewardRecipient]);
 
   // Fetch contract settings + resolve ERC20 token address from the staking manager
   useEffect(() => {
@@ -197,7 +205,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         addresses: disableOwnerAddresses.map((addr) => parsePChainAddress(addr)),
       };
 
-      const rewardRecipient = walletEVMAddress as `0x${string}`;
+      const recipient = (rewardRecipient || walletEVMAddress) as `0x${string}`;
       const nodeIDBytes = parseNodeID(nodeID);
 
       let hash: string;
@@ -209,7 +217,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           disableOwnerStruct,
           feeBips,
           BigInt(duration),
-          rewardRecipient,
+          recipient,
           amountWei,
         );
       } else {
@@ -221,7 +229,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           feeBips,
           BigInt(duration),
           amountWei,
-          rewardRecipient,
+          recipient,
         );
       }
       setTxHash(hash);
@@ -303,6 +311,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             helperText={contractSettings ? `Min: ${contractSettings.minimumStakeDuration}s` : '86400 = 1 day'}
           />
         </div>
+
+        <Input
+          label="Reward Recipient"
+          value={rewardRecipient}
+          onChange={setRewardRecipient}
+          placeholder="0x..."
+          disabled={isProcessing || isApproving}
+          helperText="EVM address that receives staking rewards. Defaults to connected wallet."
+        />
       </div>
 
       {/* ERC20: approve then register in sequence */}
