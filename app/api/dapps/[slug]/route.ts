@@ -92,10 +92,10 @@ export async function GET(request: Request, { params }: RouteParams) {
       // Check if this slug maps to a protocol in our registry
       const protocolName = SLUG_ALIASES[slug];
       if (protocolName) {
-        const contracts = getProtocolContracts(protocolName);
-        if (contracts.length > 0) {
+        const protocolData = getProtocolContracts(protocolName);
+        if (protocolData && protocolData.contracts.length > 0) {
           // This is a local-only protocol (has on-chain data but no DefiLlama entry)
-          const category = contracts[0].category as DAppCategory;
+          const category = protocolData.contracts[0].category as DAppCategory;
 
           const localDapp: DAppDetail = {
             id: `local-${slug}`,
@@ -106,7 +106,7 @@ export async function GET(request: Request, { params }: RouteParams) {
             tvl: 0,
             change_1d: null,
             change_7d: null,
-            description: `${protocolName} - ${contracts.length} tracked contract${contracts.length > 1 ? 's' : ''} on Avalanche C-Chain. This protocol has on-chain activity data but no TVL tracking on DefiLlama.`,
+            description: `${protocolName} - ${protocolData.contracts.length} tracked contract${protocolData.contracts.length > 1 ? 's' : ''} on Avalanche C-Chain. This protocol has on-chain activity data but no TVL tracking on DefiLlama.`,
             chains: ['Avalanche'],
             tvlHistory: [],
             chainTvls: {},

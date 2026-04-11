@@ -44,15 +44,15 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    const contracts = getProtocolContracts(protocolName);
-    if (contracts.length === 0) {
+    const protocolData = getProtocolContracts(protocolName);
+    if (!protocolData || protocolData.contracts.length === 0) {
       return NextResponse.json(
         { error: 'No contracts found for this protocol' },
         { status: 404 }
       );
     }
 
-    const addresses = contracts.map(c => c.address);
+    const addresses = protocolData.contracts.map(c => c.address);
 
     // Determine activity range based on requested days
     const activityDays = days > 0 ? Math.min(days, 90) : 90;

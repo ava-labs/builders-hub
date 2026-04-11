@@ -9,7 +9,7 @@ export function BodyFieldWithExpandedParams({
   fieldName: 'body'; 
   info: { schema: any; mediaType: string } 
 }) {
-  const { value, setValue } = Custom.useController([fieldName]);
+  const { field: { value, onChange: setValue } } = Custom.useController({ name: fieldName });
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set(['params']));
   
   const toggleField = (key: string) => {

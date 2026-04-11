@@ -248,13 +248,13 @@ export async function GET() {
       const slug = PROTOCOL_SLUGS[protocolName];
       if (slug && !existingSlugs.has(slug)) {
         // Skip the combined Valinor OatFi entry since we added individual RWA projects above
-        const contracts = getProtocolContracts(protocolName);
-        if (contracts.length > 0 && contracts[0].category === 'rwa') {
+        const protocolData = getProtocolContracts(protocolName);
+        if (protocolData && protocolData.contracts.length > 0 && protocolData.contracts[0].category === 'rwa') {
           continue;
         }
         // This protocol is in our registry but not in DefiLlama
-        if (contracts.length > 0) {
-          const category = contracts[0].category as DAppCategory;
+        if (protocolData && protocolData.contracts.length > 0) {
+          const category = protocolData.contracts[0].category as DAppCategory;
           localOnlyProtocols.push({
             id: `local-${slug}`,
             name: protocolName,
@@ -264,7 +264,7 @@ export async function GET() {
             tvl: 0, // No TVL data from DefiLlama
             change_1d: null,
             change_7d: null,
-            description: `${protocolName} - ${contracts.length} tracked contracts on Avalanche C-Chain`,
+            description: `${protocolName} - ${protocolData.contracts.length} tracked contracts on Avalanche C-Chain`,
           });
         }
       }
