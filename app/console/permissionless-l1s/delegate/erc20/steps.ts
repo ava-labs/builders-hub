@@ -3,10 +3,12 @@ import SelectL1ERC20Step from "@/components/toolbox/console/permissionless-l1s/d
 import InitiateDelegationStep from "@/components/toolbox/console/permissionless-l1s/delegate/steps/InitiateDelegationStep";
 import PChainWeightUpdateStep from "@/components/toolbox/console/permissionless-l1s/delegate/steps/PChainWeightUpdateStep";
 import CompleteDelegationStep from "@/components/toolbox/console/permissionless-l1s/delegate/steps/CompleteDelegationStep";
+import VerifyValidatorSetStep from "@/components/toolbox/console/permissioned-l1s/shared/VerifyValidatorSetStep";
 
 export const steps: StepDefinition[] = [
   { type: "single", key: "select-l1", title: "Select L1 Subnet", component: SelectL1ERC20Step },
   { type: "single", key: "initiate-delegation", title: "Initiate Delegation", component: InitiateDelegationStep },
   { type: "single", key: "pchain-weight-update", title: "P-Chain Weight Update", component: PChainWeightUpdateStep },
   { type: "single", key: "complete-delegation", title: "Complete Delegation", component: CompleteDelegationStep },
+  { type: "single", key: "verify-validator-set", title: "Verify Validator Set", optional: true, component: VerifyValidatorSetStep },
 ];

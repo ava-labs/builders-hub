@@ -3,10 +3,12 @@ import SelectL1DelegationStep from "@/components/toolbox/console/permissionless-
 import InitiateDelegatorRemovalStep from "@/components/toolbox/console/permissionless-l1s/withdraw/steps/InitiateDelegatorRemovalStep";
 import PChainDelegationWeightUpdateStep from "@/components/toolbox/console/permissionless-l1s/withdraw/steps/PChainDelegationWeightUpdateStep";
 import CompleteDelegatorRemovalStep from "@/components/toolbox/console/permissionless-l1s/withdraw/steps/CompleteDelegatorRemovalStep";
+import VerifyValidatorSetStep from "@/components/toolbox/console/permissioned-l1s/shared/VerifyValidatorSetStep";
 
 export const steps: StepDefinition[] = [
     { type: "single", key: "select-l1", title: "Select L1 Subnet", component: SelectL1DelegationStep },
     { type: "single", key: "initiate-removal", title: "Initiate Delegator Removal", component: InitiateDelegatorRemovalStep },
     { type: "single", key: "pchain-weight-update", title: "P-Chain Weight Update", component: PChainDelegationWeightUpdateStep },
     { type: "single", key: "complete-removal", title: "Complete Delegator Removal", component: CompleteDelegatorRemovalStep },
+    { type: "single", key: "verify-validator-set", title: "Verify Validator Set", optional: true, component: VerifyValidatorSetStep },
 ];
