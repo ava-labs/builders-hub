@@ -1,3 +1,4 @@
+import { WARP_PRECOMPILE_ADDRESS } from '@/components/toolbox/utils/warp';
 
 // Splits data into 32-byte chunks, adds 0xFF terminator, and pads with zeros
 export function packWarpIntoAccessList(warpMessageBytes: Uint8Array): [{
@@ -25,7 +26,7 @@ export function packWarpIntoAccessList(warpMessageBytes: Uint8Array): [{
     }
 
     return [{
-        address: "0x0200000000000000000000000000000000000005",
+        address: WARP_PRECOMPILE_ADDRESS,
         storageKeys: chunks as `0x${string}`[]
     }];
 }

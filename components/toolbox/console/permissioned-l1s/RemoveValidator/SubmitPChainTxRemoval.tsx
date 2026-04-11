@@ -10,6 +10,9 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
 import { Check } from 'lucide-react';
+import { WARP_PRECOMPILE_ADDRESS, WARP_MESSAGE_TOPIC, validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
+import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
+import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -58,16 +61,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     }
   }, [initialEvmTxHash]);
 
-  const validateAndCleanTxHash = (hash: string): `0x${string}` | null => {
-    if (!hash) return null;
-    const cleanHash = hash.trim().toLowerCase();
-    if (!cleanHash.startsWith('0x')) return null;
-    if (cleanHash.length !== 66) return null;
-    return cleanHash as `0x${string}`;
-  };
-
   // Extract warp message and event data when transaction hash changes
   useEffect(() => {
+    let cancelled = false;
     const extractWarpMessage = async () => {
       const validTxHash = validateAndCleanTxHash(evmTxHash);
       if (!chainPublicClient || !validTxHash) {
@@ -79,6 +75,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
       try {
         const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: validTxHash });
+        if (cancelled) return;
         if (!receipt.logs || receipt.logs.length === 0) {
           throw new Error("Failed to get warp message from transaction receipt.");
         }
@@ -88,12 +85,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
         // Method 1: Look for the warp message topic (most reliable)
         // This works for both direct and multisig transactions when the warp precompile emits the event
-        const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
-        const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
-
         const warpEventLog = receipt.logs.find((log) => {
-          return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-            log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+          return log && log.address && log.address.toLowerCase() === WARP_PRECOMPILE_ADDRESS.toLowerCase() &&
+            log.topics && log.topics[0] && log.topics[0].toLowerCase() === WARP_MESSAGE_TOPIC.toLowerCase();
         });
 
         if (warpEventLog && warpEventLog.data) {
@@ -112,6 +106,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
           throw new Error("Could not extract warp message from any log in the transaction receipt.");
         }
 
+        if (cancelled) return;
         setUnsignedWarpMessage(unsignedWarpMessage);
 
         // Extract event data for both InitiatedValidatorRemoval and InitiatedValidatorWeightUpdate
@@ -184,9 +179,11 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
           };
         }
 
+        if (cancelled) return;
         setEventData(parsedEventData);
         setErrorState(null);
       } catch (err: any) {
+        if (cancelled) return;
         const message = err instanceof Error ? err.message : String(err);
         setErrorState(`Failed to extract warp message: ${message}`);
         setUnsignedWarpMessage(null);
@@ -196,6 +193,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     };
 
     extractWarpMessage();
+    return () => { cancelled = true; };
   }, [evmTxHash, chainPublicClient]);
 
   const handleSubmitPChainTx = async () => {
@@ -351,142 +349,83 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       )}
 
       {/* Step 1: Extract Warp Message */}
-      <div className={`p-3 rounded-xl border transition-colors ${
-        step1Complete
-          ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-          : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
-      }`}>
-        <div className="flex items-start gap-3">
-          <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-            step1Complete
-              ? "bg-green-500 text-white"
-              : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-          }`}>
-            {step1Complete ? <Check className="w-3 h-3" /> : "1"}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Extract Warp Message</h3>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Enter the EVM transaction hash to extract the unsigned Warp message
-            </p>
-            <div className="mt-2">
-              <Input
-                label="initiateValidatorRemoval Transaction Hash"
-                value={evmTxHash}
-                onChange={handleTxHashChange}
-                placeholder="Enter the initiateValidatorRemoval transaction hash from step 2 (0x...)"
-                disabled={isProcessing || txSuccess !== null}
-              />
+      <StepFlowCard step={1} title="Extract Warp Message" description="Enter the EVM transaction hash to extract the unsigned Warp message" isComplete={step1Complete}>
+        <div className="mt-2">
+          <Input
+            label="initiateValidatorRemoval Transaction Hash"
+            value={evmTxHash}
+            onChange={handleTxHashChange}
+            placeholder="Enter the initiateValidatorRemoval transaction hash from step 2 (0x...)"
+            disabled={isProcessing || txSuccess !== null}
+          />
+        </div>
+        {step1Complete && eventData && (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
+              <span className="text-green-600 font-sans font-medium">Validation ID:</span>
+              <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">{eventData.validationID}</code>
             </div>
-            {step1Complete && eventData && (
-              <div className="mt-2 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
-                  <span className="text-green-600 font-sans font-medium">Validation ID:</span>
-                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">{eventData.validationID}</code>
-                </div>
-                {eventData.weight > 0n && (
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <span className="text-green-600 dark:text-green-400 font-medium">Weight:</span>
-                    <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{eventData.weight.toString()}</code>
-                  </div>
-                )}
-                {eventData.endTime > 0n && (
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <span className="text-green-600 dark:text-green-400 font-medium">End Time:</span>
-                    <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{eventData.endTime.toString()}</code>
-                  </div>
-                )}
-                <details className="mt-1">
-                  <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
-                    Show unsigned Warp message ({unsignedWarpMessage ? unsignedWarpMessage.length / 2 : 0} bytes)
-                  </summary>
-                  <div className="mt-1">
-                    <DynamicCodeBlock lang="text" code={unsignedWarpMessage || ''} />
-                  </div>
-                </details>
+            {eventData.weight > 0n && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-green-600 dark:text-green-400 font-medium">Weight:</span>
+                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{eventData.weight.toString()}</code>
               </div>
             )}
+            {eventData.endTime > 0n && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-green-600 dark:text-green-400 font-medium">End Time:</span>
+                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{eventData.endTime.toString()}</code>
+              </div>
+            )}
+            <details className="mt-1">
+              <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                Show unsigned Warp message ({unsignedWarpMessage ? unsignedWarpMessage.length / 2 : 0} bytes)
+              </summary>
+              <div className="mt-1">
+                <DynamicCodeBlock lang="text" code={unsignedWarpMessage || ''} />
+              </div>
+            </details>
           </div>
-        </div>
-      </div>
+        )}
+      </StepFlowCard>
 
       {/* Step 2: Sign & Submit to P-Chain */}
-      <div className={`p-3 rounded-xl border transition-colors ${
-        step2Complete
-          ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-          : step1Complete
-          ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
-          : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
-      }`}>
-        <div className="flex items-start gap-3">
-          <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-            step2Complete
-              ? "bg-green-500 text-white"
-              : step1Complete
-              ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-              : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400"
-          }`}>
-            {step2Complete ? <Check className="w-3 h-3" /> : "2"}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className={`text-sm font-medium ${step1Complete ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"}`}>
-              Sign & Submit to P-Chain
-            </h3>
-            <p className={`mt-1 text-xs ${step1Complete ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"}`}>
-              Aggregate BLS signatures from L1 validators and submit the removal to P-Chain
-            </p>
-
-            {step2Complete ? (
-              <div className="mt-2 space-y-1">
-                <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                  <Check className="w-3.5 h-3.5" />
-                  <span className="text-xs font-medium">Signatures aggregated</span>
-                </div>
-                <details>
-                  <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
-                    Show signed Warp message ({signedWarpMessage ? signedWarpMessage.length / 2 : 0} bytes)
-                  </summary>
-                  <div className="mt-1">
-                    <DynamicCodeBlock lang="text" code={signedWarpMessage || ''} />
-                  </div>
-                </details>
+      <StepFlowCard step={2} title="Sign & Submit to P-Chain" description="Aggregate BLS signatures from L1 validators and submit the removal to P-Chain" isComplete={step2Complete} isActive={step1Complete}>
+        {step2Complete ? (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+              <Check className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">Signatures aggregated</span>
+            </div>
+            <details>
+              <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                Show signed Warp message ({signedWarpMessage ? signedWarpMessage.length / 2 : 0} bytes)
+              </summary>
+              <div className="mt-1">
+                <DynamicCodeBlock lang="text" code={signedWarpMessage || ''} />
               </div>
-            ) : step1Complete && !step3Complete ? (
-              <div className="mt-2">
-                <Button
-                  onClick={handleSubmitPChainTx}
-                  disabled={isProcessing || !unsignedWarpMessage || !eventData || (!!signedWarpMessage && !isCoreWallet)}
-                  loading={isProcessing}
-                  className="w-full"
-                >
-                  {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
-                </Button>
-              </div>
-            ) : null}
+            </details>
           </div>
-        </div>
-      </div>
+        ) : step1Complete && !step3Complete ? (
+          <div className="mt-2">
+            <Button
+              onClick={handleSubmitPChainTx}
+              disabled={isProcessing || !unsignedWarpMessage || !eventData || (!!signedWarpMessage && !isCoreWallet)}
+              loading={isProcessing}
+              className="w-full"
+            >
+              {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
+            </Button>
+          </div>
+        ) : null}
+      </StepFlowCard>
 
       {/* Non-Core: CLI command panel */}
       {!isCoreWallet && signedWarpMessage && !txSuccess && (
-        <div className="p-3 rounded-xl border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 space-y-3">
-          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-            Run this command to submit the P-Chain transaction:
-          </p>
-          <DynamicCodeBlock lang="bash" code={generateCLICommand()} />
-          <Input
-            label="P-Chain Transaction ID"
-            value={manualPChainTxId}
-            onChange={setManualPChainTxId}
-            placeholder="Paste the P-Chain transaction ID after running the command above"
-          />
-          <Button
-            onClick={handleContinueWithManualTxId}
-            disabled={!manualPChainTxId.trim()}
-          >
-            Continue with P-Chain TX ID
-          </Button>
-        </div>
+        <PChainManualSubmit
+          cliCommand={generateCLICommand()}
+          onSubmit={handleContinueWithManualTxId}
+        />
       )}
 
       {/* Success */}

@@ -1,8 +1,9 @@
 import { parseAbiItem, hexToBytes } from 'viem';
 import { unpackRegisterL1ValidatorPayload, calculateValidationID, SolidityValidationPeriod } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { utils } from '@avalabs/avalanchejs';
-import { Buffer } from 'buffer'; // Import Buffer
-import { sha256 } from '@noble/hashes/sha256'; // Import sha256
+import { Buffer } from 'buffer';
+import { sha256 } from '@noble/hashes/sha256';
+import { WARP_PRECOMPILE_ADDRESS } from '@/components/toolbox/utils/warp';
 
 /**
  * Extracts the addressedCall from an unsignedWarpMessage
@@ -19,10 +20,7 @@ import { sha256 } from '@noble/hashes/sha256'; // Import sha256
  */
 function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
   try {
-    // console.log(`Parsing UnsignedMessage of length: ${messageBytes.length} bytes`);
-
     if (messageBytes.length < 42) { // 2 + 4 + 32 + 4 = minimum 42 bytes
-      // console.log('UnsignedMessage too short');
       return new Uint8Array();
     }
 
@@ -33,15 +31,11 @@ function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
       (messageBytes[40] << 8) |
       messageBytes[41];
 
-    // console.log(`UnsignedMessage -> AddressedCall length: ${messageLength} bytes`);
-
     if (messageLength <= 0 || 42 + messageLength > messageBytes.length) {
-      // console.log('Invalid message length or message extends beyond UnsignedMessage data bounds');
       return new Uint8Array();
     }
 
     const addressedCall = messageBytes.slice(42, 42 + messageLength);
-    // console.log(`Extracted AddressedCall of length ${addressedCall.length} bytes`);
 
     return addressedCall;
   } catch (error) {
@@ -269,7 +263,7 @@ export async function GetRegistrationJustification(
   subnetIDStr: string,
   publicClient: { getBlockNumber: () => Promise<bigint>, getLogs: (args: any) => Promise<any[]> }
 ): Promise<Uint8Array | null> {
-  const WARP_ADDRESS = '0x0200000000000000000000000000000000000005' as const;
+  const WARP_ADDRESS = WARP_PRECOMPILE_ADDRESS;
   const NUM_BOOTSTRAP_VALIDATORS_TO_SEARCH = 100;
 
   let targetValidationIDBytes: Uint8Array;

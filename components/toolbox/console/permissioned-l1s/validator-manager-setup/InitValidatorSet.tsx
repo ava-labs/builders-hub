@@ -7,7 +7,7 @@ import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useWalletClient } from 'wagmi';
-import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from "viem";
+import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData, createWalletClient, custom } from "viem";
 import { packWarpIntoAccessList } from "../ValidatorManager/packWarp";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { Button } from "@/components/toolbox/components/Button";
@@ -76,6 +76,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const { signedMessage } = await aggregateSignature({
         message: data.message,
         justification: data.justification,
+        signingSubnetId: data.signingSubnetId,
       });
       setL1ConversionSignature(signedMessage);
       return signedMessage;
@@ -154,8 +155,20 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       setError("Conversion Tx ID is required");
       return;
     }
-    if (!walletClient) {
-      setError("Core Wallet required for in-browser submission");
+    // Use wagmi wallet client, or fall back to a direct viem client from the
+    // wallet provider. After page refresh wagmi may not have reconnected yet
+    // even though the bootstrap already detected Core wallet.
+    const provider = window.avalanche || window.ethereum;
+    const effectiveClient = walletClient ?? (provider && walletEVMAddress
+      ? createWalletClient({
+          account: walletEVMAddress as `0x${string}`,
+          chain: viemChain || undefined,
+          transport: custom(provider),
+        })
+      : null);
+
+    if (!effectiveClient) {
+      setError("Wallet not connected. Please connect via the wallet button in the header.");
       return;
     }
     if (!conversionResult) {
@@ -173,7 +186,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
       const accessList = packWarpIntoAccessList(signatureBytes);
 
-      const initPromise = walletClient!.writeContract({
+      const initPromise = effectiveClient.writeContract({
         address: conversionResult.managerAddress as `0x${string}`,
         abi: ValidatorManagerABI.abi,
         functionName: "initializeValidatorSet",
@@ -189,10 +202,9 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const hash = await initPromise;
       const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
 
-      const evmChainRpcUrl = selectedL1?.rpcUrl;
       if (receipt.status !== "success") {
-        const decodedError = await debugTraceAndDecode(hash, evmChainRpcUrl!);
-        throw new Error(`Transaction failed: ${decodedError}`);
+        const decodedError = await debugTraceAndDecode(hash, selectedL1?.rpcUrl);
+        throw new Error(`Transaction reverted (gas used: ${receipt.gasUsed.toLocaleString()} / 2,000,000): ${decodedError}`);
       }
 
       setTxSuccess(true);
@@ -297,11 +309,22 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                   </div>
 
                   {step1Complete ? (
-                    <div className="flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-green-500" />
-                      <code className="text-[10px] font-mono text-zinc-500 truncate">
-                        {L1ConversionSignature.slice(0, 24)}...
-                      </code>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-green-500" />
+                        <span className="text-xs text-green-600 font-medium">Signature aggregated</span>
+                        {conversionResult?.signingSubnetId && (
+                          <span className="text-[10px] text-zinc-400 font-mono">subnet: {conversionResult.signingSubnetId.slice(0, 12)}...</span>
+                        )}
+                      </div>
+                      <details className="group">
+                        <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                          Show signed Warp message ({L1ConversionSignature.length / 2} bytes)
+                        </summary>
+                        <div className="mt-1">
+                          <DynamicCodeBlock lang="text" code={L1ConversionSignature} />
+                        </div>
+                      </details>
                     </div>
                   ) : (
                     <Button
@@ -464,31 +487,46 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
 export default withConsoleToolMetadata(InitValidatorSet, metadata);
 
-const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string) => {
-  const traceResponse = await fetch(rpcEndpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method: "debug_traceTransaction",
-      params: [txHash, { tracer: "callTracer" }],
-      id: 1,
-    }),
-  });
+const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string | undefined) => {
+  if (!rpcEndpoint) return "No RPC endpoint available for debug trace";
 
-  const trace = await traceResponse.json();
-  const errorSelector = trace.result.output;
-  if (errorSelector && errorSelector.startsWith("0x")) {
-    try {
-      const errorResult = decodeErrorResult({
-        abi: ValidatorManagerABI.abi as Abi,
-        data: errorSelector,
-      });
-      return `${errorResult.errorName}${errorResult.args ? ": " + errorResult.args.join(", ") : ""}`;
-    } catch (e: unknown) {
-      console.error("Error decoding error result:", e);
-      return "Unknown error selector found in trace";
+  try {
+    const traceResponse = await fetch(rpcEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "debug_traceTransaction",
+        params: [txHash, { tracer: "callTracer" }],
+        id: 1,
+      }),
+    });
+
+    const trace = await traceResponse.json();
+
+    if (trace.error) {
+      return `Revert reason unavailable (debug API returned: ${trace.error.message || "unknown error"}). Enable debug_traceTransaction on your node for detailed errors.`;
     }
+
+    const errorSelector = trace.result?.output;
+    if (errorSelector && errorSelector.startsWith("0x")) {
+      try {
+        const errorResult = decodeErrorResult({
+          abi: ValidatorManagerABI.abi as Abi,
+          data: errorSelector,
+        });
+        return `${errorResult.errorName}${errorResult.args ? ": " + errorResult.args.join(", ") : ""}`;
+      } catch {
+        return `Unknown revert selector: ${errorSelector.slice(0, 10)}`;
+      }
+    }
+
+    // No output — include what we do know from the trace
+    const revertReason = trace.result?.revertReason;
+    if (revertReason) return `Revert: ${revertReason}`;
+
+    return "Transaction reverted with no decoded reason. Try enabling debug_traceTransaction on your node.";
+  } catch (err) {
+    return `Could not fetch debug trace: ${(err as Error).message}`;
   }
-  return "No error selector found in trace";
 };

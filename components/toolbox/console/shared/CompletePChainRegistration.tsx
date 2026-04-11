@@ -20,6 +20,8 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
+import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -285,19 +287,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             const successMsg = 'Validator registration completed successfully!';
             onSuccess({ txHash: hash, message: successMsg });
         } catch (err: any) {
-            let message = err instanceof Error ? err.message : String(err);
-
-            if (message.includes('User rejected')) {
-                message = 'Transaction was rejected by user';
-            } else if (message.includes('InvalidValidationID')) {
-                message = 'Invalid validation ID. The validator may not have been registered on the P-Chain yet.';
-            } else if (message.includes('InvalidWarpMessage')) {
-                message = 'Invalid warp message. Ensure the P-Chain transaction was successful and wait for confirmation.';
-            } else if (message.includes('ValidatorAlreadyRegistered')) {
-                message = 'This validator has already been registered.';
-            } else if (message.includes('not found') && message.includes('P-Chain')) {
-                message = 'P-Chain transaction not found. Please verify the transaction ID and wait a few minutes.';
-            }
+            const message = err instanceof Error ? err.message : String(err);
 
             setErrorState(`Failed to complete validator registration: ${message}`);
             onError(`Failed to complete validator registration: ${message}`);
@@ -327,16 +317,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             args: [0],
         });
 
-        const accessListJson = JSON.stringify(castAccessList);
-
-        return [
-            `cast send ${addr} \\`,
-            `  ${calldata} \\`,
-            `  --access-list '${accessListJson}' \\`,
-            `  --gas-limit 2000000 \\`,
-            `  --rpc-url ${rpcUrl} \\`,
-            `  --private-key $PRIVATE_KEY`,
-        ].join('\n');
+        return generateCastSendCommand({ address: addr, calldata, accessList: castAccessList, rpcUrl });
     }
 
     if (!subnetIdL1) {
@@ -364,24 +345,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             )}
 
             {/* Step 1: Enter P-Chain Transaction */}
-            <div className={`p-3 rounded-xl border transition-colors ${
-                step1Complete
-                    ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-                    : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
-            }`}>
-                <div className="flex items-start gap-3">
-                    <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                        step1Complete
-                            ? "bg-green-500 text-white"
-                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-                    }`}>
-                        {step1Complete ? <Check className="w-3 h-3" /> : "1"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enter P-Chain Transaction</h3>
-                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                            Provide the P-Chain transaction ID to extract the registration data
-                        </p>
+            <StepFlowCard step={1} title="Enter P-Chain Transaction" description="Provide the P-Chain transaction ID to extract the registration data" isComplete={step1Complete}>
                         <div className="mt-2">
                             <Input
                                 label="P-Chain Transaction ID"
@@ -424,35 +388,10 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
                                 </div>
                             </div>
                         )}
-                    </div>
-                </div>
-            </div>
+            </StepFlowCard>
 
             {/* Step 2: Aggregate & Complete Registration */}
-            <div className={`p-3 rounded-xl border transition-colors ${
-                step2Complete
-                    ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-                    : step1Complete
-                    ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
-                    : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
-            }`}>
-                <div className="flex items-start gap-3">
-                    <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                        step2Complete
-                            ? "bg-green-500 text-white"
-                            : step1Complete
-                            ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-                            : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400"
-                    }`}>
-                        {step2Complete ? <Check className="w-3 h-3" /> : "2"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h3 className={`text-sm font-medium ${step1Complete ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"}`}>
-                            Aggregate & Complete Registration
-                        </h3>
-                        <p className={`mt-1 text-xs ${step1Complete ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"}`}>
-                            Aggregate BLS signatures and submit the registration transaction ({tokenLabel})
-                        </p>
+            <StepFlowCard step={2} title="Aggregate & Complete Registration" description={`Aggregate BLS signatures and submit the registration transaction (${tokenLabel})`} isComplete={step2Complete} isActive={step1Complete}>
 
                         {isLoadingOwnership && step1Complete && (
                             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -484,9 +423,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
                                 </Button>
                             </div>
                         ) : null}
-                    </div>
-                </div>
-            </div>
+            </StepFlowCard>
 
             {/* Non-Core: CLI command after aggregation */}
             {!isCoreWallet && pChainSignature && !txHash && (

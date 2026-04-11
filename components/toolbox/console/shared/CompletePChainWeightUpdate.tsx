@@ -19,6 +19,8 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
+import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -270,19 +272,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
                 : `Validator weight changed to ${weightMessageData.weight.toString()}.`;
             onSuccess({ txHash: hash, message: successMsg });
         } catch (err: any) {
-            let message = err instanceof Error ? err.message : String(err);
-
-            if (message.includes('User rejected')) {
-                message = 'Transaction was rejected by user';
-            } else if (message.includes('InvalidDelegationID')) {
-                message = 'Invalid delegation ID. The delegation may not have been initiated yet.';
-            } else if (message.includes('InvalidWarpMessage')) {
-                message = 'Invalid warp message. Ensure the P-Chain transaction was successful.';
-            } else if (message.includes('DelegatorAlreadyRegistered')) {
-                message = 'This delegation has already been completed.';
-            } else if (message.includes('not found') && message.includes('P-Chain')) {
-                message = 'P-Chain transaction not found. Please verify the transaction ID.';
-            }
+            const message = err instanceof Error ? err.message : String(err);
 
             const errorPrefix = isDelegation ? 'Failed to complete delegation' : 'Failed to complete weight change';
             setErrorState(`${errorPrefix}: ${message}`);
@@ -304,31 +294,19 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
         const rpcUrl = viemChain?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
         const addr = castTargetAddress || '<CONTRACT_ADDRESS>';
 
-        let calldata: string;
-        if (isDelegation) {
-            calldata = encodeFunctionData({
+        const calldata = isDelegation
+            ? encodeFunctionData({
                 abi: NativeTokenStakingManager.abi as Abi,
                 functionName: 'completeDelegatorRegistration',
                 args: [delegationIDState as `0x${string}`, 0],
-            });
-        } else {
-            calldata = encodeFunctionData({
+            })
+            : encodeFunctionData({
                 abi: ValidatorManagerABI.abi as Abi,
                 functionName: 'completeValidatorWeightUpdate',
                 args: [0],
             });
-        }
 
-        const accessListJson = JSON.stringify(castAccessList);
-
-        return [
-            `cast send ${addr} \\`,
-            `  ${calldata} \\`,
-            `  --access-list '${accessListJson}' \\`,
-            `  --gas-limit 2000000 \\`,
-            `  --rpc-url ${rpcUrl} \\`,
-            `  --private-key $PRIVATE_KEY`,
-        ].join('\n');
+        return generateCastSendCommand({ address: addr, calldata, accessList: castAccessList, rpcUrl });
     }
 
     if (!subnetIdL1) {

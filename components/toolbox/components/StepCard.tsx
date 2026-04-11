@@ -1,4 +1,65 @@
-import { ArrowRight, CheckCircle, Clock, ChevronRight } from "lucide-react";
+import { ArrowRight, Check, CheckCircle, Clock, ChevronRight } from "lucide-react";
+
+/**
+ * Lightweight step card used by the validator management flows.
+ * Renders a numbered circle (or checkmark when complete) with title, description, and children.
+ */
+export interface StepFlowCardProps {
+  step: number;
+  title: string;
+  description?: string | React.ReactNode;
+  isComplete: boolean;
+  isActive?: boolean;
+  children?: React.ReactNode;
+}
+
+export const StepFlowCard: React.FC<StepFlowCardProps> = ({
+  step,
+  title,
+  description,
+  isComplete,
+  isActive = true,
+  children,
+}) => {
+  const cardClasses = isComplete
+    ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+    : isActive
+    ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+    : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50";
+
+  const circleClasses = isComplete
+    ? "bg-green-500 text-white"
+    : isActive
+    ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+    : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400";
+
+  const titleClasses = isComplete || isActive
+    ? "text-zinc-900 dark:text-zinc-100"
+    : "text-zinc-400 dark:text-zinc-600";
+
+  const descriptionClasses = isComplete || isActive
+    ? "text-zinc-500 dark:text-zinc-400"
+    : "text-zinc-400 dark:text-zinc-600";
+
+  return (
+    <div className={`p-3 rounded-xl border transition-colors ${cardClasses}`}>
+      <div className="flex items-start gap-3">
+        <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${circleClasses}`}>
+          {isComplete ? <Check className="w-3 h-3" /> : step}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className={`text-sm font-medium ${titleClasses}`}>{title}</h3>
+          {description && (
+            <p className={`mt-1 text-xs ${descriptionClasses}`}>
+              {description}
+            </p>
+          )}
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const StepIndicator = ({ stepNumber, title, status, isLast = false }: {
     stepNumber: number,

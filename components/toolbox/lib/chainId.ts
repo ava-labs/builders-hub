@@ -1,13 +1,13 @@
 import { createPublicClient } from "viem";
 import { http } from "viem";
 import { utils } from "@avalabs/avalanchejs";
+import { WARP_PRECOMPILE_ADDRESS } from "@/components/toolbox/utils/warp";
 
 export async function fetchChainId(rpcUrl: string): Promise<{ ethereumChainId: number, avalancheChainId: string }> {
     try {
         const publicClient = createPublicClient({
             transport: http(rpcUrl),
         });
-        const WARP_PRECOMPILE_ADDRESS = "0x0200000000000000000000000000000000000005";
 
         // Get the Ethereum chain ID first
         const ethereumChainId = await publicClient.getChainId();
@@ -30,7 +30,6 @@ export async function fetchChainId(rpcUrl: string): Promise<{ ethereumChainId: n
             functionName: "getBlockchainID",
         });
 
-        console.log('blockchainID', blockchainIDHex);
         const chainIdBytes = utils.hexToBuffer(blockchainIDHex);
         const avalancheChainId = utils.base58check.encode(chainIdBytes);
 

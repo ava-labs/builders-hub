@@ -17,6 +17,8 @@ import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
+import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -208,16 +210,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       args: [0],
     });
 
-    const accessListJson = JSON.stringify(castAccessList);
-
-    return [
-      `cast send ${addr} \\`,
-      `  ${calldata} \\`,
-      `  --access-list '${accessListJson}' \\`,
-      `  --gas-limit 2000000 \\`,
-      `  --rpc-url ${rpcUrl} \\`,
-      `  --private-key $PRIVATE_KEY`,
-    ].join('\n');
+    return generateCastSendCommand({ address: addr, calldata, accessList: castAccessList, rpcUrl });
   }
 
   // Don't render if no subnet is selected

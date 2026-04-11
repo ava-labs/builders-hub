@@ -17,6 +17,14 @@ const KNOWN_ERRORS: Record<string, string> = {
   'InvalidBLSPublicKey': 'Invalid BLS public key. Ensure the BLS key and proof of possession are correct.',
   'NodeAlreadyRegistered': 'This node is already registered as a validator.',
 
+  // Validator registration / removal
+  'InvalidValidationID': 'Invalid validation ID. The validator may not have been registered on the P-Chain yet.',
+  'InvalidWarpMessage': 'Invalid warp message. Ensure the P-Chain transaction was successful and wait for confirmation.',
+  'ValidatorAlreadyRegistered': 'This validator has already been registered.',
+  'InvalidDelegationID': 'Invalid delegation ID. The delegation may not have been initiated yet.',
+  'DelegatorAlreadyRegistered': 'This delegation has already been completed.',
+  'ValidatorNotRemovable': 'This validator cannot be removed in its current state.',
+
   // Access control
   '0x118cdaa7': 'You are not the owner of this contract. Only the owner can perform this operation.',
   'OwnableUnauthorizedAccount': 'You are not the owner of this contract. Only the owner can perform this operation.',
