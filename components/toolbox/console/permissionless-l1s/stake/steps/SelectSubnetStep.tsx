@@ -3,34 +3,31 @@
 import React, { useState, useEffect } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
-import { ValidatorListInput, type ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
-import {
-  useStakeValidatorStore,
-  useStakeValidatorStoreApi,
-  deserializeStakeValidators,
-  serializeStakeValidators,
-} from '@/components/toolbox/stores/stakeValidatorStore';
+import { useStakeValidatorStore, useStakeValidatorStoreApi } from '@/components/toolbox/stores/stakeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { Alert } from '@/components/toolbox/components/Alert';
 
-export default function SelectL1NativeStep() {
+interface SelectSubnetStepProps {
+  tokenType: 'native' | 'erc20';
+}
+
+export default function SelectSubnetStep({ tokenType }: SelectSubnetStepProps) {
   const store = useStakeValidatorStore();
   const vmcCtx = useValidatorManagerContext();
-  const { pChainAddress, pChainBalance, isTestnet } = useWalletStore();
   const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
-  // Stable setter references via selector — avoids infinite loop from
-  // subscribing to the entire store object in useEffect deps.
   const storeApi = useStakeValidatorStoreApi();
   const setTokenType = storeApi((s) => s.setTokenType);
   const setSubnetIdL1 = storeApi((s) => s.setSubnetIdL1);
 
-  const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(true);
 
-  const userPChainBalanceNavax = pChainBalance ? BigInt(Math.floor(pChainBalance * 1e9)) : null;
-  const validators = deserializeStakeValidators(store.validators);
+  const isNative = tokenType === 'native';
+
+  useEffect(() => {
+    setTokenType(tokenType);
+  }, [setTokenType, tokenType]);
 
   useEffect(() => {
     if (!store.subnetIdL1 && createChainStoreSubnetId) {
@@ -38,20 +35,12 @@ export default function SelectL1NativeStep() {
     }
   }, [store.subnetIdL1, createChainStoreSubnetId, setSubnetIdL1]);
 
-  useEffect(() => {
-    setTokenType('native');
-  }, [setTokenType]);
-
-  const handleValidatorsChange = (newValidators: ConvertToL1Validator[]) => {
-    store.setValidators(serializeStakeValidators(newValidators));
-  };
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Select L1 & Validator (Native Token)</h2>
+        <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
         <p className="text-sm text-gray-500 mb-4">
-          Choose the L1 subnet and add validator details for native token staking.
+          Choose the L1 subnet where you want to stake a validator with {isNative ? 'native tokens' : 'ERC20 tokens'}.
         </p>
         <SelectSubnetId
           value={store.subnetIdL1}
@@ -62,21 +51,10 @@ export default function SelectL1NativeStep() {
 
         {vmcCtx.ownerType && vmcCtx.ownerType !== 'StakingManager' && (
           <Alert variant="error">
-            This L1 is not using a Staking Manager. This tool is only for L1s with Native Token Staking Managers.
+            This L1 is not using a Staking Manager. This tool is only for {isNative ? 'Native Token' : 'ERC20 Token'}{' '}
+            Staking.
           </Alert>
         )}
-
-        <ValidatorListInput
-          validators={validators}
-          onChange={handleValidatorsChange}
-          defaultAddress={pChainAddress ?? ''}
-          label=""
-          userPChainBalanceNavax={userPChainBalanceNavax}
-          maxValidators={1}
-          selectedSubnetId={store.subnetIdL1}
-          isTestnet={isTestnet}
-          hideConsensusWeight={true}
-        />
       </div>
       {store.subnetIdL1 && (
         <div className="lg:sticky lg:top-4 lg:self-start">
@@ -95,8 +73,9 @@ export default function SelectL1NativeStep() {
             isOwnerContract={vmcCtx.isOwnerContract}
             ownerType={vmcCtx.ownerType}
             isDetectingOwnerType={vmcCtx.isDetectingOwnerType}
-            isExpanded={isValidatorManagerDetailsExpanded}
-            onToggleExpanded={() => setIsValidatorManagerDetailsExpanded((prev) => !prev)}
+            isExpanded={isExpanded}
+            onToggleExpanded={() => setIsExpanded((prev) => !prev)}
+            staking={vmcCtx.staking}
           />
         </div>
       )}

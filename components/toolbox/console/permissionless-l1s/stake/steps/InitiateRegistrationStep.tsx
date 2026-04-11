@@ -5,63 +5,115 @@ import InitiateValidatorRegistration from '@/components/toolbox/console/permissi
 import {
   useStakeValidatorStore,
   deserializeStakeValidators,
+  serializeStakeValidators,
 } from '@/components/toolbox/stores/stakeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
-import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
+import { ValidatorListInput, type ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
+import versions from '@/scripts/versions.json';
 
-export default function InitiateRegistrationStep() {
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+
+const NATIVE_CONTRACT_SOURCES: ContractSource[] = [
+  {
+    name: 'NativeTokenStakingManager',
+    filename: 'NativeTokenStakingManager.sol',
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
+    description: 'Manages validator registration and staking with native tokens. Stake is sent as msg.value.',
+  },
+];
+
+const ERC20_CONTRACT_SOURCES: ContractSource[] = [
+  {
+    name: 'ERC20TokenStakingManager',
+    filename: 'ERC20TokenStakingManager.sol',
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`,
+    description:
+      'Manages validator registration and staking with ERC20 tokens. Requires token approval before staking.',
+  },
+];
+
+interface InitiateRegistrationStepProps {
+  tokenType: 'native' | 'erc20';
+}
+
+export default function InitiateRegistrationStep({ tokenType }: InitiateRegistrationStepProps) {
   const store = useStakeValidatorStore();
   const vmcCtx = useValidatorManagerContext();
-  const { exampleErc20Address } = useToolboxStore();
+  const { pChainAddress, pChainBalance, isTestnet } = useWalletStore();
 
+  const isNative = tokenType === 'native';
+  const contractSources = isNative ? NATIVE_CONTRACT_SOURCES : ERC20_CONTRACT_SOURCES;
+  // Use the token address resolved from the staking manager contract
+  const erc20TokenAddress = vmcCtx.staking.erc20TokenAddress;
+
+  const userPChainBalanceNavax = pChainBalance ? BigInt(Math.floor(pChainBalance * 1e9)) : null;
   const validators = deserializeStakeValidators(store.validators);
   const validator = validators[0];
-
   const nodeID = validator?.nodeID || '';
   const blsPublicKey = validator?.nodePOP?.publicKey || '';
 
-  const isNative = store.tokenType === 'native';
-  const tokenLabel = isNative ? 'Native Token' : 'ERC20 Token';
+  const handleValidatorsChange = (newValidators: ConvertToL1Validator[]) => {
+    store.setValidators(serializeStakeValidators(newValidators));
+  };
 
   return (
-    <div className="space-y-4">
-      {(!store.subnetIdL1 || store.validators.length === 0) && (
-        <Alert variant="warning">
-          No L1 subnet selected or no validator configured. Go back to{' '}
-          <strong>Select L1 & Token Type</strong> to set these up.
-        </Alert>
-      )}
-
+    <ContractDeployViewer contracts={contractSources}>
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-        <div className="p-4 space-y-3">
-          <h2 className="text-lg font-semibold">Initiate Validator Registration</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Register your validator on the staking manager contract and lock your{' '}
-            {isNative ? 'native token' : 'ERC20 token'} stake.
-            {!isNative && ' You will need to approve ERC20 tokens first.'}
-          </p>
+        <div className="p-4 space-y-4">
+          {!store.subnetIdL1 && (
+            <Alert variant="warning">
+              No L1 subnet selected. Go back to <strong>Select L1 Subnet</strong> to choose one.
+            </Alert>
+          )}
 
-          <InitiateValidatorRegistration
-            nodeID={nodeID}
-            blsPublicKey={blsPublicKey}
-            stakingManagerAddress={vmcCtx.contractOwner || ''}
-            tokenType={store.tokenType}
-            erc20TokenAddress={!isNative ? exampleErc20Address : undefined}
-            remainingBalanceOwner={validator?.remainingBalanceOwner}
-            disableOwner={validator?.deactivationOwner}
-            onSuccess={(data) => {
-              store.setEvmTxHash(data.txHash);
-              store.setValidationID(data.validationID);
-              store.setGlobalError(null);
-            }}
-            onError={(message) => store.setGlobalError(message)}
+          <ValidatorListInput
+            validators={validators}
+            onChange={handleValidatorsChange}
+            defaultAddress={pChainAddress ?? ''}
+            label=""
+            userPChainBalanceNavax={userPChainBalanceNavax}
+            maxValidators={1}
+            selectedSubnetId={store.subnetIdL1}
+            isTestnet={isTestnet}
+            hideConsensusWeight={true}
           />
+
+          {/* Contract interaction — flows below the validator form */}
+          {validators.length > 0 && (
+            <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
+              <InitiateValidatorRegistration
+                nodeID={nodeID}
+                blsPublicKey={blsPublicKey}
+                stakingManagerAddress={vmcCtx.validatorManagerAddress || ''}
+                tokenType={tokenType}
+                erc20TokenAddress={!isNative ? (erc20TokenAddress ?? undefined) : undefined}
+                remainingBalanceOwner={validator?.remainingBalanceOwner}
+                disableOwner={validator?.deactivationOwner}
+                onSuccess={(data) => {
+                  store.setEvmTxHash(data.txHash);
+                  store.setValidationID(data.validationID);
+                  store.setGlobalError(null);
+                }}
+                onError={(message) => store.setGlobalError(message)}
+              />
+            </div>
+          )}
         </div>
         <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
-          <span className="text-xs text-zinc-500">Calls initiateValidatorRegistration() ({tokenLabel})</span>
+          <span className="text-xs text-zinc-500">initiateValidatorRegistration()</span>
+          <a
+            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
+          >
+            @{ICM_COMMIT.slice(0, 7)}
+          </a>
         </div>
       </div>
-    </div>
+    </ContractDeployViewer>
   );
 }

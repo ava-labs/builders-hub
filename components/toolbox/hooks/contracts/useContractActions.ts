@@ -83,7 +83,7 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
       args,
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`,
-      gas: options.gas ?? BigInt(1_000_000),
+      ...(options.gas ? { gas: options.gas } : {}),
     };
 
     if (options.value !== undefined) txConfig.value = options.value;

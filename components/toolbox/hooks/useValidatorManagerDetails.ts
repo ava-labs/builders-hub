@@ -5,6 +5,7 @@ import { useChainPublicClient } from './useChainPublicClient';
 interface ValidatorManagerDetails {
   validatorManagerAddress: string;
   blockchainId: string;
+  l1BlockchainId: string;
   signingSubnetId: string;
   error: string | null;
   isLoading: boolean;
@@ -32,7 +33,8 @@ interface UseValidatorManagerDetailsProps {
  */
 export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDetailsProps): ValidatorManagerDetails {
   const chainPublicClient = useChainPublicClient();
-  const { validatorManagerAddress, blockchainId, signingSubnetId, isLoading, error } = useVMCAddress(subnetId);
+  const { validatorManagerAddress, blockchainId, l1BlockchainId, signingSubnetId, isLoading, error } =
+    useVMCAddress(subnetId);
   const {
     contractTotalWeight,
     l1WeightError,
@@ -50,6 +52,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
   return {
     validatorManagerAddress,
     blockchainId,
+    l1BlockchainId,
     signingSubnetId,
     error,
     isLoading,

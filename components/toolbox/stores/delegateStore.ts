@@ -41,7 +41,11 @@ const initialValues = {
   globalSuccess: null as string | null,
 };
 
-const { getStore: getDelegateStore, useStore: useDelegateStore } = createFlowStore<DelegateState>({
+const {
+  getStore: getDelegateStore,
+  useStore: useDelegateStore,
+  useStoreApi: useDelegateStoreApi,
+} = createFlowStore<DelegateState>({
   name: 'delegate-store',
   storeCreator: (set, isTestnet) => ({
     ...initialValues,
@@ -94,4 +98,4 @@ const { getStore: getDelegateStore, useStore: useDelegateStore } = createFlowSto
   },
 });
 
-export { getDelegateStore, useDelegateStore };
+export { getDelegateStore, useDelegateStore, useDelegateStoreApi };

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import SelectValidationID from '@/components/toolbox/components/SelectValidationID';
-import { useDelegateStore } from '@/components/toolbox/stores/delegateStore';
+import { useDelegateStore, useDelegateStoreApi } from '@/components/toolbox/stores/delegateStore';
 import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -14,17 +14,23 @@ export default function SelectL1ERC20Step() {
   const vmcCtx = useValidatorManagerContext();
   const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
+  // Stable setter references via selector — avoids infinite loop from
+  // subscribing to the entire store object in useEffect deps.
+  const storeApi = useDelegateStoreApi();
+  const setTokenType = storeApi((s) => s.setTokenType);
+  const setSubnetIdL1 = storeApi((s) => s.setSubnetIdL1);
+
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(true);
 
   useEffect(() => {
     if (!store.subnetIdL1 && createChainStoreSubnetId) {
-      store.setSubnetIdL1(createChainStoreSubnetId);
+      setSubnetIdL1(createChainStoreSubnetId);
     }
-  }, [store, createChainStoreSubnetId]);
+  }, [store.subnetIdL1, createChainStoreSubnetId, setSubnetIdL1]);
 
   useEffect(() => {
-    store.setTokenType('erc20');
-  }, [store]);
+    setTokenType('erc20');
+  }, [setTokenType]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

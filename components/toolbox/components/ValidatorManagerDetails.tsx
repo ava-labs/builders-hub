@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Copy, Check } from 'lucide-react';
+import { formatEther } from 'viem';
 import { getBlockchainInfo } from '../coreViem/utils/glacier';
+import { hexToCB58 } from '@/components/tools/common/utils/cb58';
+import type { StakingDetails } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
 
 interface ValidatorManagerDetailsProps {
   validatorManagerAddress: string | null;
@@ -19,6 +22,7 @@ interface ValidatorManagerDetailsProps {
   isDetectingOwnerType?: boolean;
   isExpanded?: boolean;
   onToggleExpanded?: () => void;
+  staking?: StakingDetails;
 }
 
 export function ValidatorManagerDetails({
@@ -37,9 +41,12 @@ export function ValidatorManagerDetails({
   isDetectingOwnerType,
   isExpanded = true,
   onToggleExpanded,
+  staking,
 }: ValidatorManagerDetailsProps) {
   const [blockchainName, setBlockchainName] = useState<string | null>(null);
   const [isLoadingBlockchainName, setIsLoadingBlockchainName] = useState(false);
+  const [uptimeChainName, setUptimeChainName] = useState<string | null>(null);
+  const [isLoadingUptimeChainName, setIsLoadingUptimeChainName] = useState(false);
   const [internalIsExpanded, setInternalIsExpanded] = useState(true);
 
   const currentIsExpanded = onToggleExpanded ? isExpanded : internalIsExpanded;
@@ -66,6 +73,32 @@ export function ValidatorManagerDetails({
 
     fetchBlockchainName();
   }, [blockchainId]);
+
+  // Resolve uptime blockchain name from Glacier
+  const uptimeBlockchainID = staking?.settings?.uptimeBlockchainID;
+  const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+  useEffect(() => {
+    if (!uptimeBlockchainID || uptimeBlockchainID === ZERO_BYTES32) {
+      setUptimeChainName(null);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingUptimeChainName(true);
+    (async () => {
+      try {
+        const cb58Id = hexToCB58(uptimeBlockchainID);
+        const info = await getBlockchainInfo(cb58Id);
+        if (!cancelled) setUptimeChainName(info.blockchainName);
+      } catch {
+        if (!cancelled) setUptimeChainName(null);
+      } finally {
+        if (!cancelled) setIsLoadingUptimeChainName(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [uptimeBlockchainID]);
 
   if (isLoading) {
     return <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 animate-pulse">Loading L1 details...</p>;
@@ -103,13 +136,8 @@ export function ValidatorManagerDetails({
 
           {blockchainId && (
             <Row
-              label={
-                blockchainName
-                  ? `Home Chain — ${blockchainName}`
-                  : isLoadingBlockchainName
-                    ? 'Home Chain — loading...'
-                    : 'Home Chain'
-              }
+              label="Home Chain"
+              badge={blockchainName || (isLoadingBlockchainName ? 'loading...' : null)}
               value={blockchainId}
               mono
               copyable
@@ -126,8 +154,92 @@ export function ValidatorManagerDetails({
             error={!!l1WeightError}
             loading={isLoadingL1Weight}
           />
+
+          {/* Staking details (PoS only) */}
+          {staking && !staking.isLoading && staking.stakingType && staking.settings && (
+            <>
+              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3 mt-3">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Staking — {staking.stakingType === 'native' ? 'Native Token' : 'ERC20 Token'}
+                </span>
+              </div>
+
+              {staking.erc20TokenAddress && <Row label="ERC20 Token" value={staking.erc20TokenAddress} mono copyable />}
+
+              <div className="grid grid-cols-2 gap-2">
+                <MiniStat label="Min Stake" value={formatEther(staking.settings.minimumStakeAmount)} />
+                <MiniStat label="Max Stake" value={formatEther(staking.settings.maximumStakeAmount)} />
+                <MiniStat label="Min Duration" value={formatDuration(Number(staking.settings.minimumStakeDuration))} />
+                <MiniStat
+                  label="Min Delegation Fee"
+                  value={`${Number(staking.settings.minimumDelegationFeeBips) / 100}%`}
+                />
+                <MiniStat label="Max Stake Multiplier" value={`${staking.settings.maximumStakeMultiplier}x`} />
+                <MiniStat
+                  label="Weight:Value"
+                  value={`${formatEther(staking.settings.weightToValueFactor)} tokens/weight`}
+                />
+              </div>
+
+              {staking.settings.uptimeBlockchainID &&
+                staking.settings.uptimeBlockchainID !== ZERO_BYTES32 &&
+                (() => {
+                  let uptimeCb58: string;
+                  try {
+                    uptimeCb58 = hexToCB58(staking.settings.uptimeBlockchainID);
+                  } catch {
+                    uptimeCb58 = staking.settings.uptimeBlockchainID;
+                  }
+                  const isMismatch = blockchainId && uptimeCb58 !== blockchainId;
+                  return (
+                    <>
+                      <Row
+                        label="Uptime Chain"
+                        badge={uptimeChainName || (isLoadingUptimeChainName ? 'loading...' : null)}
+                        value={uptimeCb58}
+                        mono
+                        copyable
+                        error={!!isMismatch}
+                      />
+                      {isMismatch && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 -mt-1">
+                          Uptime chain differs from home chain — this should typically be your L1&apos;s blockchain ID,
+                          not the primary network.
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
+
+              {staking.settings.rewardCalculator &&
+                staking.settings.rewardCalculator !== '0x0000000000000000000000000000000000000000' && (
+                  <Row label="Reward Calculator" value={staking.settings.rewardCalculator} mono copyable />
+                )}
+            </>
+          )}
+
+          {staking?.isLoading && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 animate-pulse">Loading staking details...</p>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function formatDuration(seconds: number): string {
+  if (seconds === 0) return 'None';
+  if (seconds < 3600) return `${seconds}s`;
+  if (seconds < 86400) return `${(seconds / 3600).toFixed(1)}h`;
+  if (seconds < 604800) return `${(seconds / 86400).toFixed(1)}d`;
+  return `${(seconds / 604800).toFixed(1)}w`;
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="px-2.5 py-1.5 rounded bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/50 dark:border-zinc-700/50">
+      <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{label}</p>
+      <p className="text-xs font-mono text-zinc-800 dark:text-zinc-200 truncate">{value}</p>
     </div>
   );
 }

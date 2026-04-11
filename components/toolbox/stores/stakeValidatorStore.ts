@@ -59,7 +59,11 @@ const initialValues = {
   globalSuccess: null as string | null,
 };
 
-const { getStore: getStakeValidatorStore, useStore: useStakeValidatorStore } = createFlowStore<StakeValidatorState>({
+const {
+  getStore: getStakeValidatorStore,
+  useStore: useStakeValidatorStore,
+  useStoreApi: useStakeValidatorStoreApi,
+} = createFlowStore<StakeValidatorState>({
   name: 'stake-validator-store',
   storeCreator: (set, isTestnet) => ({
     ...initialValues,
@@ -113,7 +117,7 @@ const { getStore: getStakeValidatorStore, useStore: useStakeValidatorStore } = c
   },
 });
 
-export { getStakeValidatorStore, useStakeValidatorStore };
+export { getStakeValidatorStore, useStakeValidatorStore, useStakeValidatorStoreApi };
 
 // ---- BigInt serialization helpers ----
 

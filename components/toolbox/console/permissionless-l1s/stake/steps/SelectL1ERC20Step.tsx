@@ -6,6 +6,7 @@ import { ValidatorManagerDetails } from '@/components/toolbox/components/Validat
 import { ValidatorListInput, type ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import {
   useStakeValidatorStore,
+  useStakeValidatorStoreApi,
   deserializeStakeValidators,
   serializeStakeValidators,
 } from '@/components/toolbox/stores/stakeValidatorStore';
@@ -20,6 +21,12 @@ export default function SelectL1ERC20Step() {
   const { pChainAddress, pChainBalance, isTestnet } = useWalletStore();
   const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
+  // Stable setter references via selector — avoids infinite loop from
+  // subscribing to the entire store object in useEffect deps.
+  const storeApi = useStakeValidatorStoreApi();
+  const setTokenType = storeApi((s) => s.setTokenType);
+  const setSubnetIdL1 = storeApi((s) => s.setSubnetIdL1);
+
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(true);
 
   const userPChainBalanceNavax = pChainBalance ? BigInt(Math.floor(pChainBalance * 1e9)) : null;
@@ -27,13 +34,13 @@ export default function SelectL1ERC20Step() {
 
   useEffect(() => {
     if (!store.subnetIdL1 && createChainStoreSubnetId) {
-      store.setSubnetIdL1(createChainStoreSubnetId);
+      setSubnetIdL1(createChainStoreSubnetId);
     }
-  }, [store, createChainStoreSubnetId]);
+  }, [store.subnetIdL1, createChainStoreSubnetId, setSubnetIdL1]);
 
   useEffect(() => {
-    store.setTokenType('erc20');
-  }, [store]);
+    setTokenType('erc20');
+  }, [setTokenType]);
 
   const handleValidatorsChange = (newValidators: ConvertToL1Validator[]) => {
     store.setValidators(serializeStakeValidators(newValidators));

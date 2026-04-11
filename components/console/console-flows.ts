@@ -195,9 +195,9 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     completionSummary: "You've successfully deployed and configured your Native Token Staking Manager!",
     nextSteps: [
       {
-        path: "/console/permissioned-l1s/add-validator",
-        title: "Add Validators",
-        description: "Register validators for your permissionless L1",
+        path: "/console/permissionless-l1s/stake/native",
+        title: "Stake a Validator",
+        description: "Register and stake a validator with native tokens",
         priority: "recommended",
       },
       {
@@ -214,15 +214,53 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     completionSummary: "You've successfully deployed and configured your ERC20 Token Staking Manager!",
     nextSteps: [
       {
-        path: "/console/permissioned-l1s/add-validator",
-        title: "Add Validators",
-        description: "Register validators for your permissionless L1",
+        path: "/console/permissionless-l1s/stake/erc20",
+        title: "Stake a Validator",
+        description: "Register and stake a validator with ERC20 tokens",
         priority: "recommended",
       },
       {
         path: "/console/icm/setup",
         title: "Setup Cross-Chain Messaging",
         description: "Enable interchain communication for your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/stake/native": {
+    title: "Stake Validator (Native Token)",
+    completionSummary: "You've successfully registered and staked a validator with native tokens!",
+    nextSteps: [
+      {
+        path: "/console/permissionless-l1s/delegate",
+        title: "Delegate Tokens",
+        description: "Delegate native tokens to an active validator",
+        priority: "recommended",
+      },
+      {
+        path: "/console/permissionless-l1s/stake/native",
+        title: "Stake Another Validator",
+        description: "Register and stake another validator on your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/stake/erc20": {
+    title: "Stake Validator (ERC20 Token)",
+    completionSummary: "You've successfully registered and staked a validator with ERC20 tokens!",
+    nextSteps: [
+      {
+        path: "/console/permissionless-l1s/delegate",
+        title: "Delegate Tokens",
+        description: "Delegate ERC20 tokens to an active validator",
+        priority: "recommended",
+      },
+      {
+        path: "/console/permissionless-l1s/stake/erc20",
+        title: "Stake Another Validator",
+        description: "Register and stake another validator on your L1",
         priority: "optional",
       },
     ],

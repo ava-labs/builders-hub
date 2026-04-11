@@ -189,9 +189,9 @@ export function AddValidatorControls({
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'managed' | 'json' | 'manual')}>
         <TabsList className={`grid w-full ${isTestnet ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          {isTestnet && <TabsTrigger value="managed">Select Managed Node</TabsTrigger>}
-          <TabsTrigger value="json">Paste info.getNodeID API Response</TabsTrigger>
-          <TabsTrigger value="manual">Enter NodeID and BLS PoP Manually</TabsTrigger>
+          {isTestnet && <TabsTrigger value="managed">Managed Node</TabsTrigger>}
+          <TabsTrigger value="json">API Response</TabsTrigger>
+          <TabsTrigger value="manual">Manual Input</TabsTrigger>
         </TabsList>
 
         {isTestnet && (

@@ -306,8 +306,13 @@ const data = {
               icon: GitMerge,
             },
             {
-              title: "Stake",
-              url: "/console/permissionless-l1s/stake",
+              title: "Stake (Native Token)",
+              url: "/console/permissionless-l1s/stake/native",
+              icon: HandCoins,
+            },
+            {
+              title: "Stake (ERC20 Token)",
+              url: "/console/permissionless-l1s/stake/erc20",
               icon: HandCoins,
             },
             {
