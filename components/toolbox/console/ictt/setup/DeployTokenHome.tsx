@@ -3,7 +3,7 @@
 import ERC20TokenHome from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import NativeTokenHome from '@/contracts/icm-contracts/compiled/NativeTokenHome.json';
 import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { useWrappedNativeToken, WellKnownERC20 } from '@/components/toolbox/stores/l1ListStore';
+import { useWrappedNativeToken } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
@@ -87,17 +87,6 @@ function DeployTokenHome() {
         title: exampleErc20Address,
         value: exampleErc20Address,
         description: 'Your deployed Example ERC20 token',
-      });
-    }
-
-    // Add well-known tokens from the current L1 (only for ERC20 type)
-    if (tokenType === 'erc20' && selectedL1?.wellKnownERC20s) {
-      selectedL1.wellKnownERC20s.forEach((token: WellKnownERC20) => {
-        suggestions.push({
-          title: `${token.symbol} - ${token.name}`,
-          value: token.address,
-          description: token.faucetInfo || `${token.symbol} on this network`,
-        });
       });
     }
 
@@ -277,23 +266,9 @@ function DeployTokenHome() {
           disabled={isDeploying}
           suggestions={tokenSuggestions}
           helperText={
-            tokenType === 'erc20' ? (
-              <>
-                Deploy an ERC20 token or use a well-known token like USDC.{' '}
-                {walletChainId === 43113 && (
-                  <a
-                    href="https://faucet.circle.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline text-blue-500"
-                  >
-                    Get USDC from Circle Faucet
-                  </a>
-                )}
-              </>
-            ) : (
-              'Enter the wrapped token address of your native token.'
-            )
+            tokenType === 'erc20'
+              ? 'Enter the address of the ERC20 token to bridge, or deploy one in the previous step.'
+              : 'Enter the wrapped token address of your native token.'
           }
         />
 

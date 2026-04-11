@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ArrowLeftRight, Copy, RefreshCw, Check } from 'lucide-react';
+import { ArrowLeftRight, Copy, RefreshCw, Check, ExternalLink } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { PChainFaucetMenuItem } from './components/PChainFaucetMenuItem';
 
@@ -18,6 +18,7 @@ export function WalletPChain() {
   const pChainBalance = useWalletStore((s) => s.balances.pChain);
   const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
 
   const [isCopied, setIsCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -102,6 +103,21 @@ export function WalletPChain() {
                 disabled={isRefreshing}
               >
                 <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const base = isTestnet
+                    ? 'https://subnets-test.avax.network/p-chain'
+                    : 'https://subnets.avax.network/p-chain';
+                  window.open(`${base}/address/${pChainAddress}`, '_blank');
+                }}
+                className="h-6 w-6 p-0 hover:bg-muted"
+                title="View on explorer"
+              >
+                <ExternalLink className="h-3 w-3" />
               </Button>
             </div>
           </div>

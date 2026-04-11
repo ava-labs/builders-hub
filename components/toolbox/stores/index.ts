@@ -2,7 +2,7 @@ export { useConsoleBadgeNotificationStore } from './consoleBadgeNotificationStor
 export type { ConsoleBadgeNotification } from './consoleBadgeNotificationStore';
 export { getCreateChainStore, useCreateChainStore } from './createChainStore';
 export { getL1ListStore, useL1List } from './l1ListStore';
-export type { FaucetThresholds, WellKnownERC20, L1ListItem } from './l1ListStore';
+export type { FaucetThresholds, L1ListItem } from './l1ListStore';
 export { resetAllStores } from './reset';
 export { getToolboxStore, useToolboxStore, useViemChainStore } from './toolboxStore';
 export { useAvalancheSDKChainkit } from './useAvalancheSDKChainkit';

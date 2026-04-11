@@ -9,16 +9,6 @@ export type FaucetThresholds = {
   dripAmount: number;
 };
 
-export type WellKnownERC20 = {
-  address: string;
-  name: string;
-  symbol: string;
-  decimals: number;
-  logoUrl: string;
-  faucetUrl?: string;
-  faucetInfo?: string;
-};
-
 export type L1ListItem = {
   id: string;
   name: string;
@@ -43,7 +33,6 @@ export type L1ListItem = {
     symbol: string;
     decimals: number;
   };
-  wellKnownERC20s?: WellKnownERC20[];
 };
 
 const l1ListInitialStateFuji = {
@@ -70,7 +59,6 @@ const l1ListInitialStateFuji = {
         dripAmount: 0.5,
       },
       features: ['EVM-compatible blockchain', 'Deploy smart contracts'],
-      wellKnownERC20s: [],
     },
     {
       id: '98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp',
@@ -163,7 +151,6 @@ const l1ListInitialStateMainnet = {
       wellKnownTeleporterRegistryAddress: '0x7C43605E14F391720e1b37E49C78C4b03A488d98',
       hasBuilderHubFaucet: false,
       explorerUrl: 'https://subnets.avax.network/c-chain',
-      wellKnownERC20s: [],
     },
   ] as L1ListItem[],
 };

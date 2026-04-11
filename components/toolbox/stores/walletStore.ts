@@ -41,9 +41,6 @@ interface WalletState {
 
   // What kind of wallet is connected
   walletType: WalletType;
-
-  // Selected ERC20 token (null means native token)
-  selectedToken: string | null; // Token address or null for native
 }
 
 interface WalletActions {
@@ -100,9 +97,6 @@ interface WalletActions {
 
   // Wallet type
   setWalletType: (walletType: WalletType) => void;
-
-  // Token selection
-  setSelectedToken: (tokenAddress: string | null) => void;
 }
 
 type WalletStore = WalletState & WalletActions;
@@ -137,7 +131,6 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     },
     bootstrapped: false,
     walletType: null,
-    selectedToken: null,
 
     // Actions
     updateWalletConnection: (data: {
@@ -270,8 +263,6 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     setBootstrapped: (bootstrapped: boolean) => set({ bootstrapped: bootstrapped }),
 
     setWalletType: (walletType: WalletType) => set({ walletType }),
-
-    setSelectedToken: (tokenAddress: string | null) => set({ selectedToken: tokenAddress }),
   };
 
   // Set up balance service callbacks

@@ -27,8 +27,7 @@ const CONTRACT_SOURCES: ContractSource[] = [
 
 const metadata: ConsoleToolMetadata = {
   title: 'Deploy Example ERC20',
-  description:
-    'Deploy an ERC20 token contract for testing. If you want to use an existing token like USDC, you can skip this step.',
+  description: 'Deploy an ERC20 token contract for testing. If you already have a token, you can skip this step.',
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
