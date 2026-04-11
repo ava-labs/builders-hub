@@ -12,7 +12,7 @@ export default function SelectSubnetStep() {
   const vmcCtx = useValidatorManagerContext();
   const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
-  const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false);
+  const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(true);
 
   useEffect(() => {
     if (!store.subnetIdL1 && createChainStoreSubnetId) {

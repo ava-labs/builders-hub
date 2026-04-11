@@ -10,7 +10,7 @@ import { useCreateChainStore } from '@/components/toolbox/stores/createChainStor
 export default function SelectSubnetStep() {
   const store = useRemoveValidatorStore();
   const vmcCtx = useValidatorManagerContext();
-  const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState(false);
+  const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState(true);
 
   const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
