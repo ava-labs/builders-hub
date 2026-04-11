@@ -3,7 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '../../useResolvedWalletClient';
 import ICMDemoAbi from '@/contracts/example-contracts/compiled/ICMDemo.json';
 
 export interface ICMDemoHook {
@@ -31,7 +31,7 @@ export function useICMDemo(
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
 
   const contractAbi = abi ?? ICMDemoAbi.abi;
   const isReady = Boolean(contractAddress && walletClient && viemChain);

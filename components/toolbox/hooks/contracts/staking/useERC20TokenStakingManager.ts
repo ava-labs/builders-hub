@@ -3,7 +3,8 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '../../useResolvedWalletClient';
+import { parseContractError } from '../parseContractError';
 import ERC20TokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { StakingManagerSettings } from './useNativeTokenStakingManager';
 
@@ -70,10 +71,14 @@ export function useERC20TokenStakingManager(
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
 
   const contractAbi = abi ?? ERC20TokenStakingManagerAbi.abi;
   const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
+
+  const write = async <T>(fn: () => Promise<T>): Promise<T> => {
+    try { return await fn(); } catch (err) { throw new Error(parseContractError(err)); }
+  };
 
   // Read functions
   const getStakingManagerSettings = async (): Promise<StakingManagerSettings> => {
@@ -174,7 +179,7 @@ export function useERC20TokenStakingManager(
       name: 'Initiate Validator Registration (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorRegistration = async (messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -203,7 +208,7 @@ export function useERC20TokenStakingManager(
       name: 'Complete Validator Registration (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateValidatorRemoval = async (validationID: string): Promise<string> => {
@@ -226,7 +231,7 @@ export function useERC20TokenStakingManager(
       name: 'Initiate Validator Removal (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorRemoval = async (messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -255,7 +260,7 @@ export function useERC20TokenStakingManager(
       name: 'Complete Validator Removal (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const forceInitiateValidatorRemoval = async (validationID: string, includeUptime: boolean, messageIndex: number): Promise<string> => {
@@ -278,7 +283,7 @@ export function useERC20TokenStakingManager(
       name: 'Force Initiate Validator Removal (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   // Write functions - Delegator operations
@@ -302,7 +307,7 @@ export function useERC20TokenStakingManager(
       name: 'Initiate Delegator Registration (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeDelegatorRegistration = async (messageIndex: number, delegationID: string, accessList?: any[]): Promise<string> => {
@@ -331,7 +336,7 @@ export function useERC20TokenStakingManager(
       name: 'Complete Delegator Registration (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateDelegatorRemoval = async (delegationID: string): Promise<string> => {
@@ -354,7 +359,7 @@ export function useERC20TokenStakingManager(
       name: 'Initiate Delegator Removal (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeDelegatorRemoval = async (delegationID: string, messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -383,7 +388,7 @@ export function useERC20TokenStakingManager(
       name: 'Complete Delegator Removal (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const forceInitiateDelegatorRemoval = async (delegationID: string, includeUptime: boolean): Promise<string> => {
@@ -406,7 +411,7 @@ export function useERC20TokenStakingManager(
       name: 'Force Initiate Delegator Removal (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const resendUpdateDelegator = async (delegationID: string): Promise<string> => {
@@ -429,7 +434,7 @@ export function useERC20TokenStakingManager(
       name: 'Resend Update Delegator (ERC20 Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   // Write functions - Reward operations
@@ -453,7 +458,7 @@ export function useERC20TokenStakingManager(
       name: 'Change Validator Reward Recipient'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const changeDelegatorRewardRecipient = async (delegationID: string, rewardRecipient: string): Promise<string> => {
@@ -476,7 +481,7 @@ export function useERC20TokenStakingManager(
       name: 'Change Delegator Reward Recipient'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const claimDelegationFees = async (validationID: string): Promise<string> => {
@@ -499,7 +504,7 @@ export function useERC20TokenStakingManager(
       name: 'Claim Delegation Fees'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const submitUptimeProof = async (validationID: string, messageIndex: number): Promise<string> => {
@@ -522,7 +527,7 @@ export function useERC20TokenStakingManager(
       name: 'Submit Uptime Proof'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   // Write functions - Setup
@@ -546,7 +551,7 @@ export function useERC20TokenStakingManager(
       name: 'Initialize ERC20 Token Staking Manager'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   // Gas estimation

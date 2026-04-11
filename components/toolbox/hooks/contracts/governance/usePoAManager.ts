@@ -2,9 +2,10 @@ import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '../../useResolvedWalletClient';
 import PoAManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { useChainPublicClient } from '../../useChainPublicClient';
+import { parseContractError } from '../parseContractError';
 import { PChainOwner, ValidatorData } from '../core/useValidatorManager';
 
 export interface PoAManagerHook {
@@ -46,12 +47,16 @@ export function usePoAManager(
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const chainPublicClient = useChainPublicClient();
 
   const contractAbi = abi ?? PoAManagerAbi.abi;
   const isReady = Boolean(contractAddress && walletClient && viemChain);
   const isReadReady = Boolean(contractAddress && chainPublicClient);
+
+  const write = async <T>(fn: () => Promise<T>): Promise<T> => {
+    try { return await fn(); } catch (err) { throw new Error(parseContractError(err)); }
+  };
 
   // Read functions
   const owner = async (): Promise<string> => {
@@ -105,7 +110,7 @@ export function usePoAManager(
       name: 'Complete Validator Registration'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorRemoval = async (messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -134,7 +139,7 @@ export function usePoAManager(
       name: 'Complete Validator Removal'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorWeightUpdate = async (messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -163,7 +168,7 @@ export function usePoAManager(
       name: 'Complete Validator Weight Update'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateValidatorRegistration = async (
@@ -192,7 +197,7 @@ export function usePoAManager(
       name: 'Initiate Validator Registration (PoA)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateValidatorRemoval = async (validationID: string): Promise<string> => {
@@ -215,7 +220,7 @@ export function usePoAManager(
       name: 'Initiate Validator Removal (PoA)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateValidatorWeightUpdate = async (validationID: string, weight: bigint): Promise<string> => {
@@ -238,7 +243,7 @@ export function usePoAManager(
       name: 'Initiate Validator Weight Update (PoA)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const transferOwnership = async (newOwner: string): Promise<string> => {
@@ -261,7 +266,7 @@ export function usePoAManager(
       name: 'Transfer PoA Manager Ownership'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const transferValidatorManagerOwnership = async (newOwner: string): Promise<string> => {
@@ -284,7 +289,7 @@ export function usePoAManager(
       name: 'Transfer Validator Manager Ownership (via PoA)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   return {

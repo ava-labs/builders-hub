@@ -3,7 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '../../useResolvedWalletClient';
 import FeeManagerAbi from '@/contracts/precompiles/FeeManager.json';
 import RewardManagerAbi from '@/contracts/precompiles/RewardManager.json';
 import NativeMinterAbi from '@/contracts/precompiles/NativeMinter.json';
@@ -63,7 +63,7 @@ export function usePrecompiles(): PrecompilesHook {
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
 
   const isReady = Boolean(walletClient && viemChain);
 

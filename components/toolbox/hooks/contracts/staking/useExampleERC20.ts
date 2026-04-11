@@ -2,7 +2,7 @@ import { useERC20Token, ERC20TokenHook } from '../../useERC20Token';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '../../useResolvedWalletClient';
 import ExampleERC20Abi from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther } from 'viem';
 
@@ -32,7 +32,7 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
 
   // Additional write functions
   const mint = async (to: string, amount: string): Promise<string> => {

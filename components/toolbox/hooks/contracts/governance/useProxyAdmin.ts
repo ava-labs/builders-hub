@@ -3,7 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '../../useResolvedWalletClient';
 import ProxyAdminAbi from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 
 export interface ProxyAdminHook {
@@ -36,7 +36,7 @@ export function useProxyAdmin(
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
 
   const contractAbi = abi ?? ProxyAdminAbi.abi;
   const isReady = Boolean(contractAddress && walletClient && viemChain);

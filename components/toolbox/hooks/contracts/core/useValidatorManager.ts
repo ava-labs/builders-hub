@@ -2,9 +2,10 @@ import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '../../useResolvedWalletClient';
 import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { useChainPublicClient } from '../../useChainPublicClient';
+import { parseContractError } from '../parseContractError';
 
 export interface PChainOwner {
   threshold: number;
@@ -96,12 +97,21 @@ export function useValidatorManager(
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const chainPublicClient = useChainPublicClient();
 
   const contractAbi = abi ?? ValidatorManagerAbi.abi;
   const isReady = Boolean(contractAddress && walletClient && viemChain);
   const isReadReady = Boolean(contractAddress && chainPublicClient);
+
+  /** Wrap an async write call so revert errors surface human-readable messages. */
+  const write = async <T>(fn: () => Promise<T>): Promise<T> => {
+    try {
+      return await fn();
+    } catch (err) {
+      throw new Error(parseContractError(err));
+    }
+  };
 
   // Read functions
   const getValidator = async (validationID: string): Promise<ValidatorData> => {
@@ -199,7 +209,7 @@ export function useValidatorManager(
       name: 'Initiate Validator Registration'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorRegistration = async (index: number, accessList?: any[]): Promise<string> => {
@@ -228,7 +238,7 @@ export function useValidatorManager(
       name: 'Complete Validator Registration'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const resendRegisterValidatorMessage = async (validationID: string): Promise<string> => {
@@ -251,7 +261,7 @@ export function useValidatorManager(
       name: 'Resend Register Validator Message'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateValidatorRemoval = async (validationID: string): Promise<string> => {
@@ -274,7 +284,7 @@ export function useValidatorManager(
       name: 'Initiate Validator Removal'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorRemoval = async (index: number, accessList?: any[]): Promise<string> => {
@@ -303,7 +313,7 @@ export function useValidatorManager(
       name: 'Complete Validator Removal'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const resendValidatorRemovalMessage = async (validationID: string): Promise<string> => {
@@ -326,7 +336,7 @@ export function useValidatorManager(
       name: 'Resend Validator Removal Message'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateValidatorWeightUpdate = async (validationID: string, weight: bigint): Promise<string> => {
@@ -349,7 +359,7 @@ export function useValidatorManager(
       name: 'Initiate Validator Weight Update'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorWeightUpdate = async (index: number, accessList?: any[]): Promise<string> => {
@@ -378,7 +388,7 @@ export function useValidatorManager(
       name: 'Complete Validator Weight Update'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initializeValidatorSet = async (params: ValidatorSetParams, messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -407,7 +417,7 @@ export function useValidatorManager(
       name: 'Initialize Validator Set'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initialize = async (params: InitParams): Promise<string> => {
@@ -430,7 +440,7 @@ export function useValidatorManager(
       name: 'Initialize Validator Manager'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const transferOwnership = async (newOwner: string): Promise<string> => {
@@ -453,7 +463,7 @@ export function useValidatorManager(
       name: 'Transfer Validator Manager Ownership'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const migrateFromV1 = async (params: MigrationParams): Promise<string> => {
@@ -476,7 +486,7 @@ export function useValidatorManager(
       name: 'Migrate From V1'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   return {

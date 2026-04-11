@@ -3,7 +3,8 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '../../useResolvedWalletClient';
+import { parseContractError } from '../parseContractError';
 import NativeTokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 
 export interface StakingManagerSettings {
@@ -77,10 +78,14 @@ export function useNativeTokenStakingManager(
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
 
   const contractAbi = abi ?? NativeTokenStakingManagerAbi.abi;
   const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
+
+  const write = async <T>(fn: () => Promise<T>): Promise<T> => {
+    try { return await fn(); } catch (err) { throw new Error(parseContractError(err)); }
+  };
 
   // Read functions
   const getStakingManagerSettings = async (): Promise<StakingManagerSettings> => {
@@ -171,7 +176,7 @@ export function useNativeTokenStakingManager(
       name: 'Initiate Validator Registration (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorRegistration = async (messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -200,7 +205,7 @@ export function useNativeTokenStakingManager(
       name: 'Complete Validator Registration (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateValidatorRemoval = async (validationID: string): Promise<string> => {
@@ -223,7 +228,7 @@ export function useNativeTokenStakingManager(
       name: 'Initiate Validator Removal (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeValidatorRemoval = async (messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -252,7 +257,7 @@ export function useNativeTokenStakingManager(
       name: 'Complete Validator Removal (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const forceInitiateValidatorRemoval = async (validationID: string, includeUptime: boolean, messageIndex: number): Promise<string> => {
@@ -275,7 +280,7 @@ export function useNativeTokenStakingManager(
       name: 'Force Initiate Validator Removal (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   // Write functions - Delegator operations
@@ -300,7 +305,7 @@ export function useNativeTokenStakingManager(
       name: 'Initiate Delegator Registration (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeDelegatorRegistration = async (messageIndex: number, delegationID: string, accessList?: any[]): Promise<string> => {
@@ -329,7 +334,7 @@ export function useNativeTokenStakingManager(
       name: 'Complete Delegator Registration (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const initiateDelegatorRemoval = async (delegationID: string): Promise<string> => {
@@ -352,7 +357,7 @@ export function useNativeTokenStakingManager(
       name: 'Initiate Delegator Removal (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const completeDelegatorRemoval = async (delegationID: string, messageIndex: number, accessList?: any[]): Promise<string> => {
@@ -381,7 +386,7 @@ export function useNativeTokenStakingManager(
       name: 'Complete Delegator Removal (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const forceInitiateDelegatorRemoval = async (delegationID: string, includeUptime: boolean, messageIndex: number): Promise<string> => {
@@ -404,7 +409,7 @@ export function useNativeTokenStakingManager(
       name: 'Force Initiate Delegator Removal (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const resendUpdateDelegator = async (delegationID: string): Promise<string> => {
@@ -427,7 +432,7 @@ export function useNativeTokenStakingManager(
       name: 'Resend Update Delegator (Native Staking)'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   // Write functions - Reward operations
@@ -451,7 +456,7 @@ export function useNativeTokenStakingManager(
       name: 'Change Validator Reward Recipient'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const changeDelegatorRewardRecipient = async (delegationID: string, rewardRecipient: string): Promise<string> => {
@@ -474,7 +479,7 @@ export function useNativeTokenStakingManager(
       name: 'Change Delegator Reward Recipient'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const claimDelegationFees = async (validationID: string): Promise<string> => {
@@ -497,7 +502,7 @@ export function useNativeTokenStakingManager(
       name: 'Claim Delegation Fees'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   const submitUptimeProof = async (validationID: string, messageIndex: number): Promise<string> => {
@@ -520,7 +525,7 @@ export function useNativeTokenStakingManager(
       name: 'Submit Uptime Proof'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   // Write functions - Setup
@@ -544,7 +549,7 @@ export function useNativeTokenStakingManager(
       name: 'Initialize Native Token Staking Manager'
     }, writePromise, viemChain);
 
-    return await writePromise;
+    return await write(() => writePromise);
   };
 
   return {
