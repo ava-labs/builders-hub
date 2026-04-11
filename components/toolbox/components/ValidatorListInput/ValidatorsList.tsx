@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ValidatorItem } from './ValidatorItem';
 import type { ConvertToL1Validator } from '../ValidatorListInput';
 
@@ -19,7 +19,14 @@ export function ValidatorsList({
   userPChainBalanceNavax = null,
   hideConsensusWeight = false,
 }: Props) {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(validators.length === 1 ? 0 : null);
+
+  // Auto-expand when a single validator is added
+  useEffect(() => {
+    if (validators.length === 1 && expandedIndex === null) {
+      setExpandedIndex(0);
+    }
+  }, [validators.length]);
 
   const toggleExpand = (index: number) => {
     setExpandedIndex(expandedIndex === index ? null : index);

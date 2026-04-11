@@ -3,7 +3,7 @@ import versions from '@/scripts/versions.json';
 
 const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
-export const PCHAIN_REGISTRATION_CODE = `// Step 5a: Aggregate signatures using Avalanche SDK
+export const PCHAIN_REGISTRATION_CODE = `// Aggregate signatures using Avalanche SDK
 import { Avalanche } from "@avalabs/avalanche-sdk";
 
 const sdk = new Avalanche({ network: "fuji" });
@@ -23,8 +23,7 @@ const { signedMessage } = await sdk.data.signatureAggregator.aggregate({
   }
 });
 
-// Step 5b: Submit RegisterL1ValidatorTx to P-Chain
-// Registers the new validator on the P-Chain
+// Submit RegisterL1ValidatorTx to P-Chain
 const txHash = await walletClient.registerL1Validator({
   signedWarpMessage: signedMessage,
   balance: validatorBalance,
@@ -32,10 +31,9 @@ const txHash = await walletClient.registerL1Validator({
 
 export const STEP_CONFIG: StepConfig[] = [
   { id: 'select-subnet', title: 'Select L1', description: 'Choose your L1 subnet' },
-  { id: 'validator-details', title: 'Validator Details', description: 'Add node credentials and configuration' },
   {
-    id: 'initiate-registration',
-    title: 'Initiate Registration',
+    id: 'validator-details',
+    title: 'Initiate Validator Registration',
     description: 'Call initiateValidatorRegistration on ValidatorManager',
     codeType: 'solidity' as const,
     sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,

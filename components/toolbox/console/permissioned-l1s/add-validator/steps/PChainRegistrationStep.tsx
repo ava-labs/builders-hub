@@ -42,7 +42,7 @@ export default function PChainRegistrationStep() {
           </div>
         </div>
       </div>
-      <StepCodeViewer activeStep={3} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
+      <StepCodeViewer activeStep={2} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
     </div>
   );
 }
