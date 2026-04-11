@@ -4,7 +4,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
-import { AbiEvent } from "viem";
+import { AbiEvent, createWalletClient, custom } from "viem";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
@@ -18,6 +18,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { utils } from "@avalabs/avalanchejs";
 import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
+import { Alert } from "@/components/toolbox/components/Alert";
 import { Check, RefreshCw, AlertCircle } from "lucide-react";
 import versions from "@/scripts/versions.json";
 
@@ -36,6 +37,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const [isChecking, setIsChecking] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [churnPeriodSeconds, setChurnPeriodSeconds] = useState("0");
   const [maximumChurnPercentage, setMaximumChurnPercentage] = useState("20");
   const [adminAddress, setAdminAddress] = useState("");
@@ -64,6 +66,14 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     }
   }, [createChainStoreSubnetId, selectedL1, subnetId]);
 
+  // Auto-check initialization status when manager address is available
+  // (e.g. carried over from a previous step in the flow)
+  useEffect(() => {
+    if (managerAddress && chainPublicClient && isInitialized === null) {
+      checkIfInitialized();
+    }
+  }, [managerAddress, chainPublicClient]);
+
   let subnetIDHex = "";
   try {
     subnetIDHex = cb58ToHex(subnetId || "");
@@ -72,7 +82,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function checkIfInitialized() {
-    if (!managerAddress || !walletClient || !chainPublicClient) return;
+    if (!managerAddress || !chainPublicClient) return;
 
     setIsChecking(true);
     try {
@@ -118,6 +128,16 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function handleInitialize() {
+    const provider = typeof window !== "undefined" ? (window.avalanche || window.ethereum) : null;
+    const effectiveClient = walletClient ?? (provider && walletEVMAddress
+      ? createWalletClient({
+          account: walletEVMAddress as `0x${string}`,
+          chain: viemChain ?? undefined,
+          transport: custom(provider),
+        })
+      : null);
+    if (!effectiveClient) throw new Error("Wallet not connected. Please reconnect via the wallet button.");
+
     setIsInitializing(true);
 
     const formattedSubnetId = subnetIDHex.startsWith("0x") ? subnetIDHex : `0x${subnetIDHex}`;
@@ -130,8 +150,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       maximumChurnPercentage: Number(maximumChurnPercentage),
     };
 
-    if (!walletClient) throw new Error("Wallet not connected");
-    const initPromise = walletClient.writeContract({
+    const initPromise = effectiveClient.writeContract({
       address: managerAddress as `0x${string}`,
       abi: ValidatorManagerABI.abi,
       functionName: "initialize",
@@ -144,9 +163,16 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
     try {
       const hash = await initPromise;
-      await chainPublicClient!.waitForTransactionReceipt({ hash });
+      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error('Transaction reverted');
+      }
+      setError(null);
       await checkIfInitialized();
       onSuccess?.();
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
     } finally {
       setIsInitializing(false);
     }
@@ -159,6 +185,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       {/* Left: Initialize Controls */}
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="p-4 space-y-3">
+          {error && <Alert variant="error">{error}</Alert>}
           {/* Step 1: Select Manager */}
           <div
             className={`p-3 rounded-xl border transition-colors ${

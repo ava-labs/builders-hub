@@ -14,7 +14,7 @@ import { packWarpIntoAccessList } from '@/components/toolbox/console/permissione
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 
 type TokenType = 'native' | 'erc20';
 
@@ -39,9 +39,9 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const { walletEVMAddress, avalancheNetworkID } = useWalletStore();
     const chainPublicClient = useChainPublicClient();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
@@ -137,6 +137,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             }
 
             // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
+            const coreWalletClient = useWalletStore.getState().coreWalletClient;
             if (!coreWalletClient) { throw new Error('This operation requires Core Wallet'); }
             const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
                 txId: pChainTxId
@@ -163,6 +164,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             // Step 3: Aggregate P-Chain signature
             const aggregateSignaturePromise = aggregateSignature({
                 message: bytesToHex(l1ValidatorWeightMessage),
+                signingSubnetId: signingSubnetId || subnetIdL1,
             });
             
             notify({

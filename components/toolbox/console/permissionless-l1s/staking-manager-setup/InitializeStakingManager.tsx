@@ -340,7 +340,10 @@ function InitializeStakingManagerInner({ onSuccess }: BaseConsoleToolProps) {
             }, writePromise, viemChain ?? undefined);
 
             const hash = await writePromise;
-            await chainPublicClient!.waitForTransactionReceipt({ hash });
+            const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
+            if (receipt.status !== 'success') {
+                throw new Error('Initialization transaction reverted');
+            }
             await checkIfInitialized();
             onSuccess?.();
         } catch (error) {

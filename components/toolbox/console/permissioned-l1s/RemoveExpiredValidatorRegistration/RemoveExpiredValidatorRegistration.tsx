@@ -9,7 +9,7 @@ import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from "@/components/toolbox/hooks/useResolvedWalletClient";
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json";
@@ -60,7 +60,7 @@ function RemoveExpiredValidatorRegistration() {
   const [subnetId, setSubnetId] = useState<string>(useCreateChainStore()((s) => s.subnetId) || "");
   const { avalancheNetworkID } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const [isLoading, setIsLoading] = useState(false);
@@ -375,6 +375,7 @@ function RemoveExpiredValidatorRegistration() {
       const signaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),
+        signingSubnetId,
       });
       notify(
         {
@@ -406,6 +407,10 @@ function RemoveExpiredValidatorRegistration() {
         viemChain ?? undefined
       );
       const hash = await writePromise;
+      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error('Transaction reverted');
+      }
       setActionState((s) => ({
         ...s,
         [validationId]: {

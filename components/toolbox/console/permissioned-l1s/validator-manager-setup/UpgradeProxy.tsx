@@ -76,9 +76,9 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
     // Read the proxy admin from storage slot
     async function readProxyAdminSlot(address: string) {
         try {
-            if (!address) return;
+            if (!address || !chainPublicClient) return;
 
-            const data = await chainPublicClient!.getStorageAt({
+            const data = await chainPublicClient.getStorageAt({
                 address: address as `0x${string}`,
                 slot: ADMIN_SLOT as `0x${string}`,
             });
@@ -115,13 +115,13 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
 
     async function checkCurrentImplementation() {
         try {
-            if (!proxyAddress || !proxyAdminAddress) {
+            if (!proxyAddress || !proxyAdminAddress || !chainPublicClient) {
                 setCurrentImplementation(null);
                 setContractError("Proxy address and admin address are required");
                 return;
             }
 
-            const implementation = await chainPublicClient!.readContract({
+            const implementation = await chainPublicClient.readContract({
                 address: proxyAdminAddress,
                 abi: ProxyAdminABI.abi,
                 functionName: 'getProxyImplementation',
@@ -151,6 +151,10 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
             throw new Error('Proxy admin address is required');
         }
 
+        if (!chainPublicClient) {
+            throw new Error('Chain public client not available');
+        }
+
         setIsUpgrading(true);
 
         try {
@@ -158,9 +162,14 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
                 proxyAddress as `0x${string}`,
                 desiredImplementation as `0x${string}`
             );
-            await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            if (receipt.status !== 'success') {
+                throw new Error('Proxy upgrade transaction reverted');
+            }
             await checkCurrentImplementation();
             onSuccess?.();
+        } catch (error) {
+            setCriticalError(error instanceof Error ? error : new Error(String(error)));
         } finally {
             setIsUpgrading(false);
         }

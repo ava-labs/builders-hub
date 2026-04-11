@@ -10,6 +10,10 @@ import { decodeAbiParameters } from 'viem';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
+import { Check } from 'lucide-react';
+import { extractWarpMessageFromReceipt, validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
+import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
+import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 
 export interface WeightUpdateEventData {
     validationID: `0x${string}`;
@@ -78,16 +82,9 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         }
     }, [initialEvmTxHash]);
 
-    const validateAndCleanTxHash = (hash: string): `0x${string}` | null => {
-        if (!hash) return null;
-        const cleanHash = hash.trim().toLowerCase();
-        if (!cleanHash.startsWith('0x')) return null;
-        if (cleanHash.length !== 66) return null;
-        return cleanHash as `0x${string}`;
-    };
-
     // Extract warp message and event data when transaction hash changes
     useEffect(() => {
+        let cancelled = false;
         const extractWarpMessage = async () => {
             const validTxHash = validateAndCleanTxHash(evmTxHash);
             if (!chainPublicClient || !validTxHash) {
@@ -99,66 +96,22 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
             try {
                 const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: validTxHash });
-                if (!receipt.logs || receipt.logs.length === 0) {
-                    throw new Error("Failed to get warp message from transaction receipt.");
+                if (cancelled) return;
+                if (receipt.status !== 'success') {
+                    throw new Error('The source transaction reverted. Check the transaction before proceeding.');
                 }
 
-                // Look for warp message from the warp precompile
-                let extractedWarpMessage: string | null = null;
-                const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
-                const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
-
-                const warpEventLog = receipt.logs.find((log) => {
-                    return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-                        log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
-                });
-
-                if (warpEventLog && warpEventLog.data) {
-                    // The warp precompile event data is ABI-encoded as bytes
-                    try {
-                        const [decodedMessage] = decodeAbiParameters(
-                            [{ type: 'bytes', name: 'message' }],
-                            warpEventLog.data as `0x${string}`
-                        );
-                        extractedWarpMessage = decodedMessage as string;
-                    } catch {
-                        extractedWarpMessage = warpEventLog.data;
-                    }
-                } else if (receipt.logs.length > 1 && receipt.logs[1].data) {
-                    try {
-                        const [decodedMessage] = decodeAbiParameters(
-                            [{ type: 'bytes', name: 'message' }],
-                            receipt.logs[1].data as `0x${string}`
-                        );
-                        extractedWarpMessage = decodedMessage as string;
-                    } catch {
-                        extractedWarpMessage = receipt.logs[1].data;
-                    }
-                } else if (receipt.logs[0].data) {
-                    try {
-                        const [decodedMessage] = decodeAbiParameters(
-                            [{ type: 'bytes', name: 'message' }],
-                            receipt.logs[0].data as `0x${string}`
-                        );
-                        extractedWarpMessage = decodedMessage as string;
-                    } catch {
-                        extractedWarpMessage = receipt.logs[0].data;
-                    }
-                }
-
-                if (!extractedWarpMessage) {
-                    throw new Error("Could not extract warp message from transaction.");
-                }
-
+                const extractedWarpMessage = extractWarpMessageFromReceipt(receipt);
+                if (cancelled) return;
                 setUnsignedWarpMessage(extractedWarpMessage);
 
                 // Try to extract event data from different event types
                 // InitiatedValidatorWeightUpdate: 0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3
                 // InitiatedDelegatorRegistration: look for events with delegation ID
                 const weightUpdateEventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3";
-                
+
                 const weightEventLog = receipt.logs.find((log) => {
-                    return log && log.topics && log.topics[0] && 
+                    return log && log.topics && log.topics[0] &&
                         log.topics[0].toLowerCase() === weightUpdateEventTopic.toLowerCase();
                 });
 
@@ -184,8 +137,8 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                     if (genericEventLog && genericEventLog.data.length >= 130) {
                         const dataWithoutPrefix = genericEventLog.data.slice(2);
                         const nonce = BigInt("0x" + dataWithoutPrefix.slice(0, 64));
-                        const weight = dataWithoutPrefix.length >= 128 
-                            ? BigInt("0x" + dataWithoutPrefix.slice(64, 128)) 
+                        const weight = dataWithoutPrefix.length >= 128
+                            ? BigInt("0x" + dataWithoutPrefix.slice(64, 128))
                             : 0n;
 
                         setEventData({
@@ -196,9 +149,10 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                         });
                     }
                 }
-                
+
                 setErrorState(null);
             } catch (err: any) {
+                if (cancelled) return;
                 const message = err instanceof Error ? err.message : String(err);
                 setErrorState(`Failed to extract warp message: ${message}`);
                 setUnsignedWarpMessage(null);
@@ -208,6 +162,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         };
 
         extractWarpMessage();
+        return () => { cancelled = true; };
     }, [evmTxHash, chainPublicClient]);
 
     const handleSubmitPChainTx = async () => {
@@ -242,17 +197,22 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
         setIsProcessing(true);
         try {
+            if (!signingSubnetId) {
+                throw new Error("Signing subnet ID not available. The validator manager details may still be loading — wait a moment and retry.");
+            }
+
             // Step 1: Sign the warp message
             const aggregateSignaturePromise = aggregateSignature({
                 message: unsignedWarpMessage,
+                signingSubnetId,
                 quorumPercentage: 67
             });
-            
+
             notify({
                 type: 'local',
                 name: 'Aggregate Signatures'
             }, aggregateSignaturePromise);
-            
+
             const { signedMessage } = await aggregateSignaturePromise;
             setSignedWarpMessage(signedMessage);
 
@@ -265,8 +225,16 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
             // Switching to an L1 chain can silently flip Core into mainnet mode.
             const previousChainId = await ensureCoreNetworkMode(isTestnet);
 
+            // After mode switch, chainChanged fires and creates a new coreWalletClient
+            // targeting the correct network. We must re-read from the store — the closure
+            // captured the OLD client which may be configured for the wrong P-Chain.
+            const freshClient = useWalletStore.getState().coreWalletClient;
+            if (!freshClient) {
+                throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
+            }
+
             // Step 2: Submit to P-Chain using setL1ValidatorWeight
-            const pChainTxIdPromise = coreWalletClient!.setL1ValidatorWeight({
+            const pChainTxIdPromise = freshClient.setL1ValidatorWeight({
                 signedWarpMessage: signedMessage,
             });
 
@@ -310,13 +278,9 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         setManualPChainTxId('');
     };
 
-    const handleContinueWithManualTxId = () => {
-        if (!manualPChainTxId.trim()) {
-            setErrorState("P-Chain transaction ID is required");
-            return;
-        }
-        setTxSuccess(manualPChainTxId);
-        onSuccess(manualPChainTxId, eventData || undefined);
+    const handleContinueWithManualTxId = (pChainTxId: string) => {
+        setTxSuccess(pChainTxId);
+        onSuccess(pChainTxId, eventData || undefined);
     };
 
     const generateCLICommand = () => {
@@ -339,18 +303,19 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         );
     }
 
+    const step1Complete = !!unsignedWarpMessage;
+    const step2Complete = !!signedWarpMessage;
+    const step3Complete = !!txSuccess;
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {error && (
                 <Alert variant="error">{error}</Alert>
             )}
 
-            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                    Submit to P-Chain
-                </h3>
-
-                <div className="space-y-3">
+            {/* Step 1: Extract Warp Message */}
+            <StepFlowCard step={1} title="Extract Warp Message" description="Enter the EVM transaction hash to extract the unsigned Warp message" isComplete={step1Complete}>
+                <div className="mt-2">
                     <Input
                         label={txHashLabel}
                         value={evmTxHash}
@@ -358,65 +323,78 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                         placeholder={txHashPlaceholder}
                         disabled={isProcessing || txSuccess !== null}
                     />
-
-                    {additionalInfo}
                 </div>
-            </div>
-
-            {unsignedWarpMessage && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
-                        Warp message extracted successfully
-                    </p>
-                    {eventData && (
-                        <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                            <p>Validation ID: {eventData.validationID?.slice(0, 18)}...</p>
-                            {eventData.weight > 0n && <p>New Weight: {eventData.weight.toString()}</p>}
-                            {eventData.delegationID && <p>Delegation ID: {eventData.delegationID?.slice(0, 18)}...</p>}
+                {additionalInfo}
+                {step1Complete && eventData && (
+                    <div className="mt-2 space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
+                            <span className="text-green-600 font-sans font-medium">Validation ID:</span>
+                            <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">{eventData.validationID}</code>
                         </div>
-                    )}
-                </div>
-            )}
-
-            {signedWarpMessage && (
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                    <p className="text-xs text-green-700 dark:text-green-300">
-                        Warp message signed successfully
-                    </p>
-                </div>
-            )}
-
-            <Button
-                onClick={handleSubmitPChainTx}
-                disabled={isProcessing || !unsignedWarpMessage || !!txSuccess || (!!signedWarpMessage && !isCoreWallet)}
-                loading={isProcessing}
-            >
-                {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
-            </Button>
-
-            {!isCoreWallet && signedWarpMessage && !txSuccess && (
-                <div className="space-y-3">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                            Signatures aggregated successfully. Run this command to submit the P-Chain transaction:
-                        </p>
+                        {eventData.weight > 0n && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                                <span className="text-green-600 dark:text-green-400 font-medium">New Weight:</span>
+                                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{eventData.weight.toString()}</code>
+                            </div>
+                        )}
+                        {eventData.delegationID && (
+                            <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
+                                <span className="text-green-600 font-sans font-medium">Delegation ID:</span>
+                                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">{eventData.delegationID}</code>
+                            </div>
+                        )}
+                        <details className="mt-1">
+                            <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                                Show unsigned Warp message ({unsignedWarpMessage ? unsignedWarpMessage.length / 2 : 0} bytes)
+                            </summary>
+                            <div className="mt-1">
+                                <DynamicCodeBlock lang="text" code={unsignedWarpMessage || ''} />
+                            </div>
+                        </details>
                     </div>
-                    <DynamicCodeBlock lang="bash" code={generateCLICommand()} />
-                    <Input
-                        label="P-Chain Transaction ID"
-                        value={manualPChainTxId}
-                        onChange={setManualPChainTxId}
-                        placeholder="Paste the P-Chain transaction ID after running the command above"
-                    />
-                    <Button
-                        onClick={handleContinueWithManualTxId}
-                        disabled={!manualPChainTxId.trim()}
-                    >
-                        Continue with P-Chain TX ID
-                    </Button>
-                </div>
+                )}
+            </StepFlowCard>
+
+            {/* Step 2: Aggregate Signatures */}
+            <StepFlowCard step={2} title="Sign & Submit to P-Chain" description="Aggregate BLS signatures from L1 validators and submit the weight update" isComplete={step2Complete} isActive={step1Complete}>
+                {step2Complete ? (
+                    <div className="mt-2 space-y-1">
+                        <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                            <Check className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium">Signatures aggregated</span>
+                        </div>
+                        <details>
+                            <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                                Show signed Warp message ({signedWarpMessage ? signedWarpMessage.length / 2 : 0} bytes)
+                            </summary>
+                            <div className="mt-1">
+                                <DynamicCodeBlock lang="text" code={signedWarpMessage || ''} />
+                            </div>
+                        </details>
+                    </div>
+                ) : step1Complete && !step3Complete ? (
+                    <div className="mt-2">
+                        <Button
+                            onClick={handleSubmitPChainTx}
+                            disabled={isProcessing || !unsignedWarpMessage}
+                            loading={isProcessing}
+                            className="w-full"
+                        >
+                            {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
+                        </Button>
+                    </div>
+                ) : null}
+            </StepFlowCard>
+
+            {/* Non-Core: CLI command */}
+            {!isCoreWallet && signedWarpMessage && !txSuccess && (
+                <PChainManualSubmit
+                    cliCommand={generateCLICommand()}
+                    onSubmit={handleContinueWithManualTxId}
+                />
             )}
 
+            {/* Step 3: Success */}
             {txSuccess && (
                 <Success
                     label="P-Chain Transaction ID"

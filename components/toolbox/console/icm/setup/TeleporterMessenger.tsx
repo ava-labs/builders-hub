@@ -117,7 +117,10 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
 
       setTxHash(hash);
 
-      await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error('Deployment transaction reverted');
+      }
       setIsDeployed(true);
       onSuccess?.();
 
