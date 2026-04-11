@@ -192,7 +192,26 @@ export const consoleFlows: Record<string, FlowMetadata> = {
 
   "permissionless-l1s/native-staking-manager-setup": {
     title: "Native Staking Manager Setup",
-    completionSummary: "You've successfully deployed your Native Staking Manager!",
+    completionSummary: "You've successfully deployed and configured your Native Token Staking Manager!",
+    nextSteps: [
+      {
+        path: "/console/permissioned-l1s/add-validator",
+        title: "Add Validators",
+        description: "Register validators for your permissionless L1",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable interchain communication for your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/erc20-staking-manager-setup": {
+    title: "ERC20 Staking Manager Setup",
+    completionSummary: "You've successfully deployed and configured your ERC20 Token Staking Manager!",
     nextSteps: [
       {
         path: "/console/permissioned-l1s/add-validator",

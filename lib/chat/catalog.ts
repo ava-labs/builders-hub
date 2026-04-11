@@ -20,9 +20,13 @@ export const consoleFlowComponents = {
     props: z.object({}),
     description: "Deploy and configure a Validator Manager contract for an L1. Use after creating an L1.",
   },
-  StakingManagerSetup: {
+  NativeStakingManagerSetup: {
     props: z.object({}),
-    description: "Deploy and initialize a Staking Manager (native or ERC20). Use for permissionless L1 staking setup.",
+    description: "Deploy and initialize a Native Token Staking Manager. Use for permissionless L1 staking with native tokens.",
+  },
+  ERC20StakingManagerSetup: {
+    props: z.object({}),
+    description: "Deploy and initialize an ERC20 Token Staking Manager. Use for permissionless L1 staking with custom ERC20 tokens.",
   },
   StakeValidator: {
     props: z.object({}),

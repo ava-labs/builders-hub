@@ -43,7 +43,7 @@ interface EnableStakingManagerMintingProps extends BaseConsoleToolProps {
   initialTokenType?: TokenType;
 }
 
-function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerMintingProps) {
+export function EnableStakingManagerMintingInner({ initialTokenType }: EnableStakingManagerMintingProps) {
   const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
   const { walletEVMAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
@@ -401,4 +401,4 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
   return isNative ? <NativeTokenContent /> : <ERC20TokenContent />;
 }
 
-export default withConsoleToolMetadata(EnableStakingManagerMinting, metadata);
+export default withConsoleToolMetadata(EnableStakingManagerMintingInner, metadata);

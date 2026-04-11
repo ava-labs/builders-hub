@@ -41,7 +41,8 @@ export const componentRegistry: Record<ComponentName, React.LazyExoticComponent<
   // Console Flows
   CreateL1Flow: lazyFlow("Create New L1", () => import("@/app/console/layer-1/create/steps")),
   ValidatorManagerSetup: lazyFlow("Validator Manager Setup", () => import("@/app/console/permissioned-l1s/validator-manager-setup/steps")),
-  StakingManagerSetup: lazyFlow("Staking Manager Setup", () => import("@/app/console/permissionless-l1s/staking-manager-setup/steps")),
+  NativeStakingManagerSetup: lazyFlow("Native Staking Manager Setup", () => import("@/app/console/permissionless-l1s/native-staking-manager-setup/steps")),
+  ERC20StakingManagerSetup: lazyFlow("ERC20 Staking Manager Setup", () => import("@/app/console/permissionless-l1s/erc20-staking-manager-setup/steps")),
   StakeValidator: lazyFlow("Stake Validator", () => import("@/app/console/permissionless-l1s/stake/steps")),
   DelegateStake: lazyFlow("Delegate Stake", () => import("@/app/console/permissionless-l1s/delegate/steps")),
   RemoveDelegation: lazyFlow("Remove Delegation", () => import("@/app/console/permissionless-l1s/remove-delegation/steps")),
