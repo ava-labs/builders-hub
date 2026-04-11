@@ -5,7 +5,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 
 type TokenType = 'native' | 'erc20';
 
@@ -25,7 +25,7 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
     onError,
 }) => {
     const chainPublicClient = useChainPublicClient();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const viemChain = useViemChainStore();
 
     const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);

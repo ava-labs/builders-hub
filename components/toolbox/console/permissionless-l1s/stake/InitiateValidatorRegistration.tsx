@@ -13,7 +13,7 @@ import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther, formatEther } from 'viem';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useERC20Token } from '@/components/toolbox/hooks/useERC20Token';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 
 interface ContractSettings {
     minimumStakeAmount: string;
@@ -49,7 +49,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 }) => {
     const { walletEVMAddress, pChainAddress } = useWalletStore();
     const chainPublicClient = useChainPublicClient();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const viemChain = useViemChainStore();
 
     // Initialize hooks

@@ -4,7 +4,7 @@
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useToolboxStore, useViemChainStore, getToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -30,7 +30,7 @@ const DEFAULT_GAS_LIMIT = 250000n;
 export default function TokenBridge() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { walletEVMAddress } = useWalletStore();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1();
 

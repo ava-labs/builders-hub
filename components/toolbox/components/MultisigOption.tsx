@@ -7,7 +7,7 @@ import { encodeFunctionData, getAddress } from 'viem';
 import { MetaTransactionData } from '@safe-global/types-kit';
 import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
 import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from '../hooks/useSafeAPI';
@@ -92,7 +92,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const [ashWalletUrl, setAshWalletUrl] = useState('');
 
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
   const { callSafeAPI } = useSafeAPI();
 
@@ -338,7 +338,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         functionName: functionName,
         args: args,
         chain: viemChain,
-        account: walletClient!.account,
+        account: walletClient!.account ?? walletEVMAddress as `0x${string}`,
       });
 
       // Wait for transaction receipt

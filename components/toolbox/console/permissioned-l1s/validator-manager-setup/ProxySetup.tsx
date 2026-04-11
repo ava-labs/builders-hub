@@ -12,7 +12,7 @@ import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useWalletClient } from "wagmi";
+import { useResolvedWalletClient } from "@/components/toolbox/hooks/useResolvedWalletClient";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
@@ -53,7 +53,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const { validatorManagerAddress } = useToolboxStore();
   const selectedL1 = useSelectedL1();
   const { walletChainId, walletEVMAddress } = useWalletStore();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
 

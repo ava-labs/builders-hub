@@ -9,7 +9,7 @@ import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorMan
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useWalletClient } from "wagmi";
+import { useResolvedWalletClient } from "@/components/toolbox/hooks/useResolvedWalletClient";
 import versions from "@/scripts/versions.json";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
@@ -52,7 +52,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     validatorManagerAddress,
   } = useToolboxStore();
   const { walletEVMAddress } = useWalletStore();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const [isDeployingMessages, setIsDeployingMessages] = useState(false);
   const [isDeployingManager, setIsDeployingManager] = useState(false);
   const viemChain = useViemChainStore();

@@ -11,7 +11,7 @@ import {
   getToolboxStore,
 } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -56,7 +56,7 @@ function DeployERC20TokenRemote() {
   const { erc20TokenRemoteAddress, setErc20TokenRemoteAddress } =
     useToolboxStore();
   const { walletEVMAddress } = useWalletStore();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
   const selectedL1 = useSelectedL1();
   const { deploy, isDeploying } = useContractDeployer();

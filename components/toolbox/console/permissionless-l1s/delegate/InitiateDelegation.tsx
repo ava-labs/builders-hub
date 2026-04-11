@@ -12,7 +12,7 @@ import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther, formatEther, decodeEventLog } from 'viem';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useERC20Token } from '@/components/toolbox/hooks/useERC20Token';
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 
 type TokenType = 'native' | 'erc20';
 
@@ -40,7 +40,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
 }) => {
     const { walletEVMAddress } = useWalletStore();
     const chainPublicClient = useChainPublicClient();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const viemChain = useViemChainStore();
 
     // Initialize hooks

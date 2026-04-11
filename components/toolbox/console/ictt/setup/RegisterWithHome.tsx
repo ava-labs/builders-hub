@@ -21,7 +21,7 @@ import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import versions from "@/scripts/versions.json";
@@ -41,7 +41,7 @@ function RegisterWithHome() {
   const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } =
     useToolboxStore();
   const [remoteAddress, setRemoteAddress] = useState("");
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const selectedL1 = useSelectedL1();

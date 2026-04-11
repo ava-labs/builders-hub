@@ -4,7 +4,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
-import { AbiEvent, createWalletClient, custom } from "viem";
+import { AbiEvent } from "viem";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
@@ -13,7 +13,7 @@ import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useWalletClient } from "wagmi";
+import { useResolvedWalletClient } from "@/components/toolbox/hooks/useResolvedWalletClient";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { utils } from "@avalabs/avalanchejs";
@@ -33,7 +33,7 @@ const metadata: ConsoleToolMetadata = {
 
 function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const { walletEVMAddress } = useWalletStore();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const [isChecking, setIsChecking] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
@@ -128,15 +128,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function handleInitialize() {
-    const provider = typeof window !== "undefined" ? (window.avalanche || window.ethereum) : null;
-    const effectiveClient = walletClient ?? (provider && walletEVMAddress
-      ? createWalletClient({
-          account: walletEVMAddress as `0x${string}`,
-          chain: viemChain ?? undefined,
-          transport: custom(provider),
-        })
-      : null);
-    if (!effectiveClient) throw new Error("Wallet not connected. Please reconnect via the wallet button.");
+    if (!walletClient) throw new Error("Wallet not connected. Please reconnect via the wallet button.");
 
     setIsInitializing(true);
 
@@ -150,7 +142,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       maximumChurnPercentage: Number(maximumChurnPercentage),
     };
 
-    const initPromise = effectiveClient.writeContract({
+    const initPromise = walletClient.writeContract({
       address: managerAddress as `0x${string}`,
       abi: ValidatorManagerABI.abi,
       functionName: "initialize",

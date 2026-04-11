@@ -6,8 +6,8 @@ import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
-import { useWalletClient } from 'wagmi';
-import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData, createWalletClient, custom } from "viem";
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from "viem";
 import { packWarpIntoAccessList } from "../validator-manager/packWarp";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { Button } from "@/components/toolbox/components/Button";
@@ -40,7 +40,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const viemChain = useViemChainStore();
   const { walletEVMAddress, isTestnet } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const walletType = useWalletStore((s) => s.walletType);
   const isCoreWallet = walletType === "core";
   const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -155,19 +155,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       setError("Conversion Tx ID is required");
       return;
     }
-    // Use wagmi wallet client, or fall back to a direct viem client from the
-    // wallet provider. After page refresh wagmi may not have reconnected yet
-    // even though the bootstrap already detected Core wallet.
-    const provider = window.avalanche || window.ethereum;
-    const effectiveClient = walletClient ?? (provider && walletEVMAddress
-      ? createWalletClient({
-          account: walletEVMAddress as `0x${string}`,
-          chain: viemChain || undefined,
-          transport: custom(provider),
-        })
-      : null);
-
-    if (!effectiveClient) {
+    if (!walletClient) {
       setError("Wallet not connected. Please connect via the wallet button in the header.");
       return;
     }
@@ -186,7 +174,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
       const accessList = packWarpIntoAccessList(signatureBytes);
 
-      const initPromise = effectiveClient.writeContract({
+      const initPromise = walletClient.writeContract({
         address: conversionResult.managerAddress as `0x${string}`,
         abi: ValidatorManagerABI.abi,
         functionName: "initializeValidatorSet",

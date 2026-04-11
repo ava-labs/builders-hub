@@ -12,7 +12,7 @@ import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import versions from '@/scripts/versions.json';
 import { getLinkedBytecode } from "@/components/toolbox/utils/contractDeployment";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
 import { LibraryRequirementStatus } from "@/components/toolbox/components/LibraryRequirementStatus";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
@@ -39,7 +39,7 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
     const { setCriticalError } = useCriticalError();
 
     const { walletEVMAddress } = useWalletStore();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const viemChain = useViemChainStore();
     const {
         nativeStakingManagerAddress,

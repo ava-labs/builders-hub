@@ -4,7 +4,7 @@ import WrappedNativeToken from "@/contracts/icm-contracts/compiled/WrappedNative
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWrappedNativeToken, useSetWrappedNativeToken } from "@/components/toolbox/stores/l1ListStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useNativeCurrencyInfo, useSetNativeCurrencyInfo } from "@/components/toolbox/stores/l1ListStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
@@ -62,7 +62,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     const [hasPredeployedToken, setHasPredeployedToken] = useState(!!cachedWrappedToken);
     const [isCheckingToken, setIsCheckingToken] = useState(!cachedWrappedToken);
     const { walletChainId, walletEVMAddress } = useWalletStore();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const setNativeCurrencyInfo = useSetNativeCurrencyInfo();
     const viemChain = useViemChainStore();
     const { deploy, isDeploying } = useContractDeployer();

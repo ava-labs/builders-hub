@@ -16,7 +16,7 @@ import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValida
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import { parseEther } from "viem";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import versions from '@/scripts/versions.json';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -195,7 +195,7 @@ function InitializeStakingManagerInner({ onSuccess }: BaseConsoleToolProps) {
 
     const { walletEVMAddress } = useWalletStore();
     const chainPublicClient = useChainPublicClient();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const viemChain = useViemChainStore();
     const {
         nativeStakingManagerAddress: storedNativeStakingManagerAddress,

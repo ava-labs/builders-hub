@@ -23,7 +23,7 @@ import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import versions from "@/scripts/versions.json";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
 
@@ -63,7 +63,7 @@ function DeployTokenHome() {
   const wrappedNativeTokenAddress = useWrappedNativeToken();
   const selectedL1 = useSelectedL1();
   const { walletEVMAddress, walletChainId } = useWalletStore();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
   const { deploy, isDeploying } = useContractDeployer();
   const [teleporterManager, setTeleporterManager] = useState("");

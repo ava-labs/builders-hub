@@ -1,7 +1,7 @@
 "use client";
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useWalletClient } from 'wagmi';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -43,7 +43,7 @@ function AddCollateral() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { nativeTokenRemoteAddress } = useToolboxStore();
     const { walletEVMAddress } = useWalletStore();
-    const { data: walletClient } = useWalletClient();
+    const walletClient = useResolvedWalletClient();
     const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1();
