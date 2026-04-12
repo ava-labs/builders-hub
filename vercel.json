@@ -1,7 +1,4 @@
 {
-  "autoCancel": {
-    "enabled": true
-  },
   "crons": [
     {
       "path": "/api/validator-alerts/check",
