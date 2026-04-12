@@ -94,7 +94,7 @@
     "@x402/fetch": "^2.5.0",
     "ai": "^6.0.33",
     "algoliasearch": "^5.39.0",
-    "axios": "^1.13.5",
+    "axios": "^1.15.0",
     "boring-name-generator": "^1.0.3",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
