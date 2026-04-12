@@ -15,7 +15,7 @@ export async function SetWinner(
   const body = {
     projectId: project_id,
     userId: "",
-    hackathonId: project.hackaton_id,
+    hackathonId: project.hackaton_id ?? undefined,
     awardedBy: awardedBy,
     category: BadgeCategory.project,
   };
