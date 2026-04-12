@@ -100,6 +100,7 @@ const navigationItems: NavigationItem[] = [
 
   // Permissionless L1s
   { title: "Native Staking Manager Setup", url: "/console/permissionless-l1s/native-staking-manager-setup", icon: GitMerge, keywords: ["staking", "manager", "native", "permissionless"], group: "Permissionless L1s" },
+  { title: "ERC20 Staking Manager Setup", url: "/console/permissionless-l1s/erc20-staking-manager-setup", icon: GitMerge, keywords: ["staking", "manager", "erc20", "token", "permissionless"], group: "Permissionless L1s" },
 
   // Interchain Messaging
   { title: "ICM Setup", url: "/console/icm/setup", icon: SquareTerminal, keywords: ["icm", "interchain", "messaging", "setup"], group: "Interchain Messaging" },

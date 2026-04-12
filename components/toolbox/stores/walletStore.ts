@@ -1,9 +1,8 @@
-import { create } from 'zustand'
-import { networkIDs } from "@avalabs/avalanchejs";
-import { createCoreWalletClient, CoreWalletClientType } from '../coreViem';
+import { create } from 'zustand';
+import { networkIDs } from '@avalabs/avalanchejs';
+import { CoreWalletClientType } from '../coreViem';
 import { createPublicClient, custom, http } from 'viem';
 import { avalancheFuji } from 'viem/chains';
-import { zeroAddress } from 'viem';
 import { balanceService } from '../services/balanceService';
 import { useMemo } from 'react';
 
@@ -18,7 +17,7 @@ interface WalletState {
 
   // Wallet connection data
   walletChainId: number;
-  walletEVMAddress: string;
+  walletEVMAddress: `0x${string}` | '';
   pChainAddress: string;
   coreEthAddress: string;
 
@@ -42,18 +41,13 @@ interface WalletState {
 
   // What kind of wallet is connected
   walletType: WalletType;
-
-  // Selected ERC20 token (null means native token)
-  selectedToken: string | null; // Token address or null for native
-
-
 }
 
 interface WalletActions {
   // Simplified setters - group related updates
   updateWalletConnection: (data: {
     coreWalletClient?: CoreWalletClientType | null;
-    walletEVMAddress?: string;
+    walletEVMAddress?: `0x${string}` | '';
     walletChainId?: number;
     pChainAddress?: string;
     coreEthAddress?: string;
@@ -72,7 +66,7 @@ interface WalletActions {
   // Legacy individual setters for backward compatibility
   setCoreWalletClient: (coreWalletClient: CoreWalletClientType | null) => void;
   setWalletChainId: (walletChainId: number) => void;
-  setWalletEVMAddress: (walletEVMAddress: string) => void;
+  setWalletEVMAddress: (walletEVMAddress: `0x${string}` | '') => void;
   setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => void;
   setPChainAddress: (pChainAddress: string) => void;
   setCoreEthAddress: (coreEthAddress: string) => void;
@@ -100,14 +94,9 @@ interface WalletActions {
 
   getBootstrapped: () => boolean;
   setBootstrapped: (bootstrapped: boolean) => void;
-  
+
   // Wallet type
   setWalletType: (walletType: WalletType) => void;
-
-  // Token selection
-  setSelectedToken: (tokenAddress: string | null) => void;
-
-
 }
 
 type WalletStore = WalletState & WalletActions;
@@ -118,17 +107,18 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     // Initial state
     coreWalletClient: null,
     publicClient: createPublicClient({
-      transport: typeof window !== 'undefined' && window.avalanche
-        ? custom(window.avalanche)
-        : http(avalancheFuji.rpcUrls.default.http[0]),
+      transport:
+        typeof window !== 'undefined' && window.avalanche
+          ? custom(window.avalanche)
+          : http(avalancheFuji.rpcUrls.default.http[0]),
     }),
     walletChainId: 0,
-    walletEVMAddress: "",
+    walletEVMAddress: '' as `0x${string}` | '',
     avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
-    pChainAddress: "",
-    coreEthAddress: "",
+    pChainAddress: '',
+    coreEthAddress: '',
     isTestnet: false,
-    evmChainName: "",
+    evmChainName: '',
     balances: {
       pChain: 0,
       cChain: 0,
@@ -141,14 +131,23 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     },
     bootstrapped: false,
     walletType: null,
-    selectedToken: null,
 
     // Actions
-    updateWalletConnection: (data: { coreWalletClient?: CoreWalletClientType | null; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
+    updateWalletConnection: (data: {
+      coreWalletClient?: CoreWalletClientType | null;
+      walletEVMAddress?: `0x${string}` | '';
+      walletChainId?: number;
+      pChainAddress?: string;
+      coreEthAddress?: string;
+    }) => {
       set((state) => ({ ...state, ...data }));
     },
 
-    updateNetworkSettings: (data: { avalancheNetworkID?: typeof networkIDs.FujiID | typeof networkIDs.MainnetID; isTestnet?: boolean; evmChainName?: string; }) => {
+    updateNetworkSettings: (data: {
+      avalancheNetworkID?: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
+      isTestnet?: boolean;
+      evmChainName?: string;
+    }) => {
       set((state) => ({
         ...state,
         ...data,
@@ -208,8 +207,9 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     // Legacy individual setters for backward compatibility
     setCoreWalletClient: (coreWalletClient: CoreWalletClientType | null) => set({ coreWalletClient }),
     setWalletChainId: (walletChainId: number) => set({ walletChainId }),
-    setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
-    setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),
+    setWalletEVMAddress: (walletEVMAddress: `0x${string}` | '') => set({ walletEVMAddress }),
+    setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) =>
+      set({ avalancheNetworkID }),
     setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
     setCoreEthAddress: (coreEthAddress: string) => set({ coreEthAddress }),
     setIsTestnet: (isTestnet: boolean) => set({ isTestnet }),
@@ -220,23 +220,32 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     updateL1Balance: async (chainId: string) => balanceService.updateL1Balance(chainId),
     updateCChainBalance: async () => balanceService.updateCChainBalance(),
     updateAllBalances: async () => balanceService.updateAllBalances(),
-    updateAllBalancesWithAllL1s: async (l1List?: Array<{ evmChainId: number }>) => balanceService.updateAllBalancesWithAllL1s(l1List),
+    updateAllBalancesWithAllL1s: async (l1List?: Array<{ evmChainId: number }>) =>
+      balanceService.updateAllBalancesWithAllL1s(l1List),
 
     // Legacy balance getters for backward compatibility
-    get pChainBalance() { return get().balances.pChain; },
+    get pChainBalance() {
+      return get().balances.pChain;
+    },
     get l1Balance() {
       const state = get();
       const chainId = state.walletChainId.toString();
       return state.balances.l1Chains[chainId] || 0;
     },
-    get cChainBalance() { return get().balances.cChain; },
-    get isPChainBalanceLoading() { return get().isLoading.pChain; },
+    get cChainBalance() {
+      return get().balances.cChain;
+    },
+    get isPChainBalanceLoading() {
+      return get().isLoading.pChain;
+    },
     get isL1BalanceLoading() {
       const state = get();
       const chainId = state.walletChainId.toString();
       return state.isLoading.l1Chains[chainId] || false;
     },
-    get isCChainBalanceLoading() { return get().isLoading.cChain; },
+    get isCChainBalanceLoading() {
+      return get().isLoading.cChain;
+    },
 
     // New getters for L1 chains
     getL1Balance: (chainId: string) => {
@@ -254,9 +263,6 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     setBootstrapped: (bootstrapped: boolean) => set({ bootstrapped: bootstrapped }),
 
     setWalletType: (walletType: WalletType) => set({ walletType }),
-
-    setSelectedToken: (tokenAddress: string | null) => set({ selectedToken: tokenAddress }),
-
   };
 
   // Set up balance service callbacks
@@ -267,7 +273,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
   });
 
   return store;
-})
+});
 
 // Performance selectors for commonly accessed data
 export const useWalletAddress = () => useWalletStore((state) => state.walletEVMAddress);
@@ -277,11 +283,14 @@ export const useBalances = () => {
   const balances = useWalletStore((state) => state.balances);
   const walletChainId = useWalletStore((state) => state.walletChainId);
 
-  return useMemo(() => ({
-    ...balances,
-    // Backward compatibility: provide l1 balance for current chain
-    l1: balances.l1Chains[walletChainId?.toString()] || 0,
-  }), [balances, walletChainId]);
+  return useMemo(
+    () => ({
+      ...balances,
+      // Backward compatibility: provide l1 balance for current chain
+      l1: balances.l1Chains[walletChainId?.toString()] || 0,
+    }),
+    [balances, walletChainId],
+  );
 };
 
 // Network info selector with memoization to avoid infinite loop
@@ -292,7 +301,7 @@ export const useNetworkInfo = () => {
   const evmChainName = useWalletStore((state) => state.evmChainName);
 
   return useMemo(() => {
-    const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
+    const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
     return {
       isTestnet,
       chainId,

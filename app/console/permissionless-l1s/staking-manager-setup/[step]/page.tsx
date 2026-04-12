@@ -1,8 +1,5 @@
-import StakingManagerSetupClientPage from "./client-page";
+import { redirect } from "next/navigation";
 
-export default async function Page({ params }: { params: Promise<{ step: string }> }) {
-    const { step } = await params;
-    return (
-        <StakingManagerSetupClientPage currentStepKey={step} />
-    );
+export default async function Page() {
+    redirect("/console/permissionless-l1s/native-staking-manager-setup");
 }

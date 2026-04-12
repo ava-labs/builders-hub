@@ -7,7 +7,6 @@ import { ConsoleSidebar } from "../../components/console/console-sidebar";
 import { SiteHeader } from "../../components/console/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SessionProvider } from "next-auth/react";
-import { Toaster } from "sonner";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
 import { useRetroactiveConsoleBadges } from "@/hooks/useRetroactiveConsoleBadges";
@@ -74,7 +73,6 @@ function ConsoleContent({ children }: { children: ReactNode }) {
           </SidebarInset>
         </SidebarProvider>
       </LayoutWrapper>
-      <Toaster position="bottom-right" richColors expand={true} visibleToasts={5}/>
       <ConsoleBadgeNotification />
       <OnboardingTour />
       <WelcomeModal />

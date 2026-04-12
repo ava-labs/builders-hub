@@ -1,7 +1,7 @@
 "use client";
 
-import PerformanceMonitor from "@/components/toolbox/console/layer-1/PerformanceMonitor/PerformanceMonitor";
-import RPCMethodsChecker from "@/components/toolbox/console/layer-1/PerformanceMonitor/RPCMethodsChecker";
+import PerformanceMonitor from "@/components/toolbox/console/layer-1/performance-monitor/PerformanceMonitor";
+import RPCMethodsChecker from "@/components/toolbox/console/layer-1/performance-monitor/RPCMethodsChecker";
 
 export default function PerformanceMonitorPage() {
     return (

@@ -1,54 +1,74 @@
-"use client";
+'use client';
 
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/toolbox/components/Button";
-import { AbiEvent } from "viem";
-import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useWalletClient } from "wagmi";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { utils } from "@avalabs/avalanchejs";
-import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
-import { Check, RefreshCw, AlertCircle } from "lucide-react";
-import versions from "@/scripts/versions.json";
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/toolbox/components/Button';
+import { AbiEvent } from 'viem';
+import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
+import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { useVMCAddress } from '@/components/toolbox/hooks/useVMCAddress';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { utils } from '@avalabs/avalanchejs';
+import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { Check, RefreshCw, AlertCircle } from 'lucide-react';
+import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Initialize Validator Manager",
-  description: "Initialize the ValidatorManager contract with admin and churn settings",
+  title: 'Initialize Validator Manager',
+  description: 'Initialize the ValidatorManager contract with admin and churn settings',
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const { walletEVMAddress } = useWalletStore();
-  const { data: walletClient } = useWalletClient();
+  const walletClient = useResolvedWalletClient();
   const [isChecking, setIsChecking] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
-  const [churnPeriodSeconds, setChurnPeriodSeconds] = useState("0");
-  const [maximumChurnPercentage, setMaximumChurnPercentage] = useState("20");
-  const [adminAddress, setAdminAddress] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [churnPeriodSeconds, setChurnPeriodSeconds] = useState('0');
+  const [maximumChurnPercentage, setMaximumChurnPercentage] = useState('20');
+  const [adminAddress, setAdminAddress] = useState('');
   const viemChain = useViemChainStore();
 
   const chainPublicClient = useChainPublicClient();
-  const selectedL1 = useSelectedL1()();
-  const [subnetId, setSubnetId] = useState("");
+  const selectedL1 = useSelectedL1();
+  const [subnetId, setSubnetId] = useState('');
   const createChainStoreSubnetId = useCreateChainStore()((state) => state.subnetId);
   const managerAddress = useCreateChainStore()((state) => state.managerAddress);
   const setManagerAddress = useCreateChainStore()((state) => state.setManagerAddress);
 
+  const { validatorManagerAddress: toolboxStoreValidatorManagerAddress } = useToolboxStore();
   const { notify } = useConsoleNotifications();
+  const vmcData = useVMCAddress(subnetId);
+
+  // Glacier is authoritative for the on-chain registered address (always the proxy).
+  // Only override if createChainStore doesn't already have a valid address from
+  // a previous step (DeployValidatorManager/ProxySetup write directly to it).
+  useEffect(() => {
+    if (vmcData.validatorManagerAddress) {
+      setManagerAddress(vmcData.validatorManagerAddress);
+    } else if (toolboxStoreValidatorManagerAddress && !managerAddress) {
+      setManagerAddress(toolboxStoreValidatorManagerAddress);
+    }
+  }, [vmcData.validatorManagerAddress, toolboxStoreValidatorManagerAddress]);
 
   useEffect(() => {
     if (walletEVMAddress && !adminAddress) {
@@ -59,41 +79,49 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   useEffect(() => {
     if (createChainStoreSubnetId && !subnetId) {
       setSubnetId(createChainStoreSubnetId);
-    } else if (selectedL1?.subnetId && !subnetId) {
+    } else if (selectedL1?.subnetId && selectedL1.subnetId !== '11111111111111111111111111111111LpoYY' && !subnetId) {
       setSubnetId(selectedL1.subnetId);
     }
   }, [createChainStoreSubnetId, selectedL1, subnetId]);
 
-  let subnetIDHex = "";
+  // Auto-check initialization status when manager address is available
+  // (e.g. carried over from a previous step in the flow)
+  useEffect(() => {
+    if (managerAddress && chainPublicClient && isInitialized === null) {
+      checkIfInitialized();
+    }
+  }, [managerAddress, chainPublicClient]);
+
+  let subnetIDHex = '';
   try {
-    subnetIDHex = cb58ToHex(subnetId || "");
+    subnetIDHex = cb58ToHex(subnetId || '');
   } catch (error) {
-    console.error("Error decoding subnetId:", error);
+    console.error('Error decoding subnetId:', error);
   }
 
   async function checkIfInitialized() {
-    if (!managerAddress || !walletClient || !chainPublicClient) return;
+    if (!managerAddress || !chainPublicClient) return;
 
     setIsChecking(true);
     try {
       const initializedEvent = ValidatorManagerABI.abi.find(
-        (item) => item.type === "event" && item.name === "Initialized"
+        (item) => item.type === 'event' && item.name === 'Initialized',
       );
 
       if (!initializedEvent) {
-        throw new Error("Initialized event not found in ABI");
+        throw new Error('Initialized event not found in ABI');
       }
 
       try {
         await chainPublicClient.readContract({
           address: managerAddress as `0x${string}`,
           abi: ValidatorManagerABI.abi,
-          functionName: "admin",
+          functionName: 'admin',
         });
         setIsInitialized(true);
         return;
       } catch (readError) {
-        if ((readError as any)?.message?.includes("not initialized")) {
+        if ((readError as any)?.message?.includes('not initialized')) {
           setIsInitialized(false);
           return;
         }
@@ -106,21 +134,23 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         address: managerAddress as `0x${string}`,
         event: initializedEvent as AbiEvent,
         fromBlock: fromBlock,
-        toBlock: "latest",
+        toBlock: 'latest',
       });
 
       setIsInitialized(logs.length > 0);
     } catch (error) {
-      console.error("Error checking initialization:", error);
+      console.error('Error checking initialization:', error);
     } finally {
       setIsChecking(false);
     }
   }
 
   async function handleInitialize() {
+    if (!walletClient) throw new Error('Wallet not connected. Please reconnect via the wallet button.');
+
     setIsInitializing(true);
 
-    const formattedSubnetId = subnetIDHex.startsWith("0x") ? subnetIDHex : `0x${subnetIDHex}`;
+    const formattedSubnetId = subnetIDHex.startsWith('0x') ? subnetIDHex : `0x${subnetIDHex}`;
     const formattedAdmin = adminAddress as `0x${string}`;
 
     const settings = {
@@ -130,23 +160,29 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       maximumChurnPercentage: Number(maximumChurnPercentage),
     };
 
-    if (!walletClient) throw new Error("Wallet not connected");
     const initPromise = walletClient.writeContract({
       address: managerAddress as `0x${string}`,
       abi: ValidatorManagerABI.abi,
-      functionName: "initialize",
+      functionName: 'initialize',
       args: [settings],
       chain: viemChain ?? undefined,
       account: walletEVMAddress as `0x${string}`,
     });
 
-    notify({ type: "call", name: "Initialize Validator Manager" }, initPromise, viemChain ?? undefined);
+    notify({ type: 'call', name: 'Initialize Validator Manager' }, initPromise, viemChain ?? undefined);
 
     try {
       const hash = await initPromise;
-      await chainPublicClient!.waitForTransactionReceipt({ hash });
+      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error('Transaction reverted');
+      }
+      setError(null);
       await checkIfInitialized();
       onSuccess?.();
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
     } finally {
       setIsInitializing(false);
     }
@@ -159,23 +195,24 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       {/* Left: Initialize Controls */}
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="p-4 space-y-3">
+          {error && <Alert variant="error">{error}</Alert>}
           {/* Step 1: Select Manager */}
           <div
             className={`p-3 rounded-xl border transition-colors ${
               managerAddress && isInitialized !== null
-                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
                   managerAddress && isInitialized !== null
-                    ? "bg-green-500 text-white"
-                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                    ? 'bg-green-500 text-white'
+                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
                 }`}
               >
-                {managerAddress && isInitialized !== null ? <Check className="w-3 h-3" /> : "1"}
+                {managerAddress && isInitialized !== null ? <Check className="w-3 h-3" /> : '1'}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">ValidatorManager Address</h3>
@@ -196,11 +233,13 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                     className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                     title="Check status"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isChecking ? "animate-spin" : ""}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isChecking ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
                 {isInitialized !== null && (
-                  <div className={`mt-2 text-xs flex items-center gap-1 ${isInitialized ? "text-amber-600" : "text-green-600"}`}>
+                  <div
+                    className={`mt-2 text-xs flex items-center gap-1 ${isInitialized ? 'text-amber-600' : 'text-green-600'}`}
+                  >
                     {isInitialized ? (
                       <>
                         <AlertCircle className="w-3 h-3" />
@@ -226,9 +265,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Select L1/Subnet</h3>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  The Subnet ID this manager will control
-                </p>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">The Subnet ID this manager will control</p>
                 <div className="mt-2">
                   <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} />
                 </div>

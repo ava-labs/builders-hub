@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { NodeRegistration, RegisterSubnetResponse } from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/types";
+import { NodeRegistration, RegisterSubnetResponse } from "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/types";
 import posthog from 'posthog-js';
 import { useConsoleBadgeNotificationStore } from '@/stores/consoleBadgeNotificationStore';
 
