@@ -502,14 +502,12 @@ function ConsoleDashboard() {
             <h3 className="text-sm font-medium text-zinc-400 dark:text-zinc-500">
               Built on Avalanche
             </h3>
-            <a
-              href="https://build.avax.network/stats/l1"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/stats/overview"
               className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
               View all →
-            </a>
+            </Link>
           </div>
           <EcosystemMarquee chains={ecosystemChains} rows={2} />
         </motion.div>
