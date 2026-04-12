@@ -5,7 +5,6 @@ import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useStakeValidatorStore, useStakeValidatorStoreApi } from '@/components/toolbox/stores/stakeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
-import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { Alert } from '@/components/toolbox/components/Alert';
 
 interface SelectSubnetStepProps {
@@ -15,11 +14,9 @@ interface SelectSubnetStepProps {
 export default function SelectSubnetStep({ tokenType }: SelectSubnetStepProps) {
   const store = useStakeValidatorStore();
   const vmcCtx = useValidatorManagerContext();
-  const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
   const storeApi = useStakeValidatorStoreApi();
   const setTokenType = storeApi((s) => s.setTokenType);
-  const setSubnetIdL1 = storeApi((s) => s.setSubnetIdL1);
 
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
 
@@ -28,12 +25,6 @@ export default function SelectSubnetStep({ tokenType }: SelectSubnetStepProps) {
   useEffect(() => {
     setTokenType(tokenType);
   }, [setTokenType, tokenType]);
-
-  useEffect(() => {
-    if (!store.subnetIdL1 && createChainStoreSubnetId) {
-      setSubnetIdL1(createChainStoreSubnetId);
-    }
-  }, [store.subnetIdL1, createChainStoreSubnetId, setSubnetIdL1]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

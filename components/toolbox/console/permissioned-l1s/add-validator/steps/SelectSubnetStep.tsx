@@ -1,24 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useAddValidatorStore } from '@/components/toolbox/stores/addValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
-import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 
 export default function SelectSubnetStep() {
   const store = useAddValidatorStore();
   const vmcCtx = useValidatorManagerContext();
-  const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(true);
-
-  useEffect(() => {
-    if (!store.subnetIdL1 && createChainStoreSubnetId) {
-      store.setSubnetIdL1(createChainStoreSubnetId);
-    }
-  }, [store, createChainStoreSubnetId]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

@@ -5,25 +5,16 @@ import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useDelegateStore, useDelegateStoreApi } from '@/components/toolbox/stores/delegateStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
-import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { Alert } from '@/components/toolbox/components/Alert';
 
 export default function SelectL1NativeStep() {
   const store = useDelegateStore();
   const vmcCtx = useValidatorManagerContext();
-  const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
   const storeApi = useDelegateStoreApi();
   const setTokenType = storeApi((s) => s.setTokenType);
-  const setSubnetIdL1 = storeApi((s) => s.setSubnetIdL1);
 
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
-
-  useEffect(() => {
-    if (!store.subnetIdL1 && createChainStoreSubnetId) {
-      setSubnetIdL1(createChainStoreSubnetId);
-    }
-  }, [store.subnetIdL1, createChainStoreSubnetId, setSubnetIdL1]);
 
   useEffect(() => {
     setTokenType('native');

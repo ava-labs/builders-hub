@@ -12,31 +12,20 @@ import {
 } from '@/components/toolbox/stores/stakeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { Alert } from '@/components/toolbox/components/Alert';
 
 export default function SelectL1NativeStep() {
   const store = useStakeValidatorStore();
   const vmcCtx = useValidatorManagerContext();
   const { pChainAddress, pChainBalance, isTestnet } = useWalletStore();
-  const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
-  // Stable setter references via selector — avoids infinite loop from
-  // subscribing to the entire store object in useEffect deps.
   const storeApi = useStakeValidatorStoreApi();
   const setTokenType = storeApi((s) => s.setTokenType);
-  const setSubnetIdL1 = storeApi((s) => s.setSubnetIdL1);
 
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(true);
 
   const userPChainBalanceNavax = pChainBalance ? BigInt(Math.floor(pChainBalance * 1e9)) : null;
   const validators = deserializeStakeValidators(store.validators);
-
-  useEffect(() => {
-    if (!store.subnetIdL1 && createChainStoreSubnetId) {
-      setSubnetIdL1(createChainStoreSubnetId);
-    }
-  }, [store.subnetIdL1, createChainStoreSubnetId, setSubnetIdL1]);
 
   useEffect(() => {
     setTokenType('native');
