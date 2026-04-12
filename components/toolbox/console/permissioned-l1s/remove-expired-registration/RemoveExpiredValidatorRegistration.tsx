@@ -12,7 +12,6 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import PoAManagerABI from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
@@ -25,6 +24,7 @@ import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../component
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
 import {
   Search,
@@ -85,8 +85,7 @@ function RemoveExpiredValidatorRegistration() {
     >
   >({});
 
-  const { listL1Validators } = useAvalancheSDKChainkit();
-  const { aggregateSignature } = useAvalancheSDKChainkit();
+  const { listL1Validators, aggregateSignature } = useAvalancheSDKChainkit();
 
   const {
     validatorManagerAddress,
@@ -104,6 +103,10 @@ function RemoveExpiredValidatorRegistration() {
     ownerType,
     isDetectingOwnerType,
   } = useValidatorManagerDetails({ subnetId });
+
+  const useMultisig = ownerType === 'PoAManager';
+  const validatorManager = useValidatorManager(!useMultisig ? validatorManagerAddress : null);
+  const poaManager = usePoAManager(useMultisig && contractOwner ? contractOwner : null);
 
   const initiatedEventAbi = useMemo(() => {
     const abi = ValidatorManagerABI.abi as unknown as Abi;
@@ -358,10 +361,6 @@ function RemoveExpiredValidatorRegistration() {
       if (!walletClient || !viemChain || !walletClient.account) throw new Error('Wallet/chain not initialized');
       if (!subnetId) throw new Error('Subnet ID required');
 
-      const useMultisig = ownerType === 'PoAManager';
-      const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
-      const targetAbi = useMultisig ? (PoAManagerABI.abi as Abi) : (ValidatorManagerABI.abi as Abi);
-
       const justification = await GetRegistrationJustification(validationId, subnetId, chainPublicClient!);
       if (!justification) throw new Error('Could not build justification for this validation ID');
 
@@ -389,25 +388,11 @@ function RemoveExpiredValidatorRegistration() {
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-      const writePromise = walletClient!.writeContract({
-        address: targetContractAddress as `0x${string}`,
-        abi: targetAbi,
-        functionName: 'completeValidatorRemoval',
-        args: [0],
-        accessList,
-        account: walletClient!.account,
-        chain: viemChain,
-      });
-      notify(
-        {
-          type: 'call',
-          name: 'Complete Validator Removal',
-        },
-        writePromise,
-        viemChain ?? undefined,
-      );
-      const hash = await writePromise;
-      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
+      // useContractActions hooks handle notify() internally
+      const hash = useMultisig
+        ? await poaManager.completeValidatorRemoval(0, accessList)
+        : await validatorManager.completeValidatorRemoval(0, accessList);
+      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
       if (receipt.status !== 'success') {
         throw new Error('Transaction reverted');
       }

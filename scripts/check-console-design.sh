@@ -109,11 +109,13 @@ check_double_notify() {
       if echo "$context" | grep -qi "approve"; then
         continue
       fi
-      # Skip raw walletClient.writeContract calls — they don't go through
-      # useContractActions so they need their own notify()
+      # Check if this is a raw walletClient.writeContract call (should use hooks instead)
       local nearby
       nearby=$(sed -n "$((linenum > 10 ? linenum - 10 : 1)),${linenum}p" "$f" 2>/dev/null || true)
       if echo "$nearby" | grep -q "walletClient.*writeContract\|walletClient!.*writeContract"; then
+        errors=$((errors + 1))
+        echo "error: $f:$linenum: raw walletClient.writeContract() — use contract hooks instead"
+        echo "       Contract hooks (useValidatorManager, usePoAManager, etc.) centralize error handling and notifications."
         continue
       fi
       errors=$((errors + 1))
