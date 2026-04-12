@@ -253,7 +253,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
       onSuccess({
         txHash: hash,
-        validationID: extractedValidationID || 'Check transaction logs',
+        validationID: extractedValidationID || '',
       });
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
