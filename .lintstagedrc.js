@@ -5,6 +5,11 @@ module.exports = {
     'eslint --max-warnings 0',
   ],
 
+  // Console design system: banned classes, color palette, anchor tags
+  'components/toolbox/console/**/*.{ts,tsx}': (files) => [
+    `./scripts/check-console-design.sh ${files.join(' ')}`,
+  ],
+
   // All TypeScript: type check (runs once, not per-file)
   '*.{ts,tsx}': () => 'tsc --noEmit',
 };

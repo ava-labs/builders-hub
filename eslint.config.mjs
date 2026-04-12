@@ -120,4 +120,52 @@ export default tseslint.config(
       ],
     },
   },
+
+  // ---------------------------------------------------------------
+  // Rule 4: Standalone validator flows must NOT import
+  //         createChainStore — it leaks stale subnet IDs from the
+  //         L1 creation wizard into unrelated flows.
+  // ---------------------------------------------------------------
+  {
+    files: [
+      "components/toolbox/console/permissioned-l1s/add-validator/**",
+      "components/toolbox/console/permissioned-l1s/remove-validator/**",
+      "components/toolbox/console/permissioned-l1s/change-weight/**",
+      "components/toolbox/console/permissionless-l1s/stake/**",
+      "components/toolbox/console/permissionless-l1s/delegate/**",
+      "components/toolbox/console/permissionless-l1s/withdraw/**",
+    ],
+    languageOptions: {
+      parser: tseslint.parser,
+    },
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/components/toolbox/stores/createChainStore",
+              message:
+                "Standalone validator flows must not read from createChainStore — it persists stale state from the L1 creation wizard. Use the flow's own store instead.",
+            },
+          ],
+          // Carry forward existing restrictions
+          patterns: [
+            {
+              group: ["wagmi"],
+              importNames: ["useWalletClient"],
+              message:
+                "Use useResolvedWalletClient instead.",
+            },
+            {
+              group: ["viem/actions"],
+              importNames: ["readContract"],
+              message:
+                "Use the contract hooks instead of direct readContract calls.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

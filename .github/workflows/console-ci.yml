@@ -89,6 +89,9 @@ jobs:
           fi
           echo "✓ All contract hooks use useContractActions"
 
+      - name: Design system (banned classes, color palette)
+        run: ./scripts/check-console-design.sh
+
       - name: MDX imports use kebab-case paths
         run: |
           violations=$(grep -rn "toolbox/console/.*[A-Z].*/" \
