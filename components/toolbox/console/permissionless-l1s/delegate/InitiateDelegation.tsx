@@ -254,7 +254,8 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
       }
 
       // Call the appropriate hook based on token type
-      const delegatePromise = isNative
+      // (useContractActions.write() already calls notify() internally)
+      const hash = await (isNative
         ? nativeStakingManager.initiateDelegatorRegistration(
             validationID as `0x${string}`,
             recipient as `0x${string}`,
@@ -264,15 +265,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
             validationID as `0x${string}`,
             amountWei,
             recipient as `0x${string}`,
-          );
-
-      notify(
-        { type: 'call', name: `Initiate ${isNative ? 'Native' : 'ERC20'} Delegation` },
-        delegatePromise,
-        viemChain ?? undefined,
-      );
-
-      const hash = await delegatePromise;
+          ));
       setTxHash(hash);
 
       // Wait for confirmation
