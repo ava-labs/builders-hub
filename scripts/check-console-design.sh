@@ -51,9 +51,9 @@ check_off_palette() {
   local pattern="(text|bg|border)-slate-"
   for f in "${files[@]}"; do
     while IFS= read -r line; do
-      warnings=$((warnings + 1))
-      echo "warn:  $line"
-      echo "       Prefer zinc-* over slate-* for consistency"
+      errors=$((errors + 1))
+      echo "error: $line"
+      echo "       Use zinc-* instead of slate-* for console components"
     done < <(grep -Hn "$pattern" "$f" 2>/dev/null || true)
   done
 }
@@ -67,8 +67,12 @@ check_raw_anchors() {
       if echo "$line" | grep -q 'target='; then
         continue
       fi
-      warnings=$((warnings + 1))
-      echo "warn:  $line"
+      # Skip in-page fragment anchors (href="#...")
+      if echo "$line" | grep -q 'href="#'; then
+        continue
+      fi
+      errors=$((errors + 1))
+      echo "error: $line"
       echo "       Use next/link <Link> for internal navigation, <a target=\"_blank\"> for external"
     done < <(grep -Hn '<a href=' "$f" 2>/dev/null || true)
   done

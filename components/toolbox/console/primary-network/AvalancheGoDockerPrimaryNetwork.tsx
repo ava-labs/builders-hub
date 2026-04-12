@@ -2,6 +2,7 @@
 
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Container } from '@/components/toolbox/components/Container';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -1166,9 +1167,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             ) : (
               <>Can use cloud block storage (EBS, Persistent Disk). </>
             )}
-            <a href="/docs/nodes/system-requirements" className="text-blue-500 hover:underline">
+            <Link href="/docs/nodes/system-requirements" className="text-blue-500 hover:underline">
               Details →
-            </a>
+            </Link>
           </p>
         </Step>
 
