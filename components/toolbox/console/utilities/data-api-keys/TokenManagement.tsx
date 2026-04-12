@@ -15,9 +15,9 @@ import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { AccountRequirementsConfigKey } from '../../../hooks/useAccountRequirements';
+import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
 
 interface GlacierJwtResponse {
   glacierJwt: string;

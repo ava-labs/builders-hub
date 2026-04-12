@@ -18,7 +18,7 @@ import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 
 // Storage slot with the admin of the proxy (following EIP1967)

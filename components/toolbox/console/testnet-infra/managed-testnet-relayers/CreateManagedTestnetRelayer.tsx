@@ -7,7 +7,7 @@ import { Relayer, RelayerConfig } from './types';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import Link from 'next/link';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { useL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';

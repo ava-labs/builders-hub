@@ -11,7 +11,7 @@ import NodesList from './NodesList';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useManagedTestnetNodes } from '@/hooks/useManagedTestnetNodes';
 import { toast } from '@/hooks/use-toast';
-import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
 

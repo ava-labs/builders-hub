@@ -20,7 +20,7 @@ import { packWarpIntoAccessList } from '@/components/toolbox/console/permissione
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
-import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';

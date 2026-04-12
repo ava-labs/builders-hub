@@ -4,7 +4,7 @@ import React from 'react';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useChangeWeightStore } from '@/components/toolbox/stores/changeWeightStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
-import SubmitPChainTxWeightUpdate from '../../../shared/SubmitPChainTxWeightUpdate';
+import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { STEP_CONFIG } from '../codeConfig';
 

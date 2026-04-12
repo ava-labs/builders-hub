@@ -18,7 +18,7 @@ import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';

@@ -12,7 +12,7 @@ import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';

@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { CheckCircle2, ArrowUpRight, Users, ShieldOff } from 'lucide-react';
-import { Button } from '../../../components/Button';
+import { Button } from '@/components/toolbox/components/Button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import SelectSubnetId from '../../../components/SelectSubnetId';
-import { WalletRequirementsConfigKey } from '../../../hooks/useWalletRequirements';
+import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { Alert } from '../../../components/Alert';
+import { Alert } from '@/components/toolbox/components/Alert';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { useDisableL1Validator } from './DisableL1ValidatorContext';
 import ValidatorSelector from './ValidatorSelector';

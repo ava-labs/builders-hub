@@ -1,4 +1,4 @@
-import { packL1ConversionMessage, PackL1ConversionMessageArgs } from '../../../coreViem/utils/convertWarp';
+import { packL1ConversionMessage, PackL1ConversionMessageArgs } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { networkIDs, utils } from '@avalabs/avalanchejs';
 
 interface Validator {

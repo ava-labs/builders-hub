@@ -11,7 +11,7 @@ import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Steps, Step } from 'fumadocs-ui/components/steps';

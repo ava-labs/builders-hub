@@ -8,7 +8,7 @@ import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionles
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
+import { BaseConsoleToolProps } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';

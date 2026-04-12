@@ -7,7 +7,7 @@ import CompletePChainRegistration from '@/components/toolbox/console/shared/Comp
 import SubmitPChainTxRegisterL1Validator from '@/components/toolbox/console/permissioned-l1s/add-validator/SubmitPChainTxRegisterL1Validator';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
+import { BaseConsoleToolProps } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';
 import { ValidatorListInput, ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';

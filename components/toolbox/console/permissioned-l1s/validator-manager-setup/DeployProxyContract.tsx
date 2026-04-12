@@ -12,7 +12,7 @@ import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { AcknowledgementCallout } from '@/components/toolbox/components/AcknowledgementCallout';
 import { LockedContent } from '@/components/toolbox/components/LockedContent';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';

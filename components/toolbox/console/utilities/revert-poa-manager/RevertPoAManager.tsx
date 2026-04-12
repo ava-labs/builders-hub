@@ -9,7 +9,7 @@ import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';

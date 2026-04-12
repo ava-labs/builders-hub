@@ -7,6 +7,10 @@ import tseslint from "typescript-eslint";
  *
  * This config does NOT enable a broad rule-set. It only enforces
  * project-specific constraints inside components/toolbox/.
+ *
+ * IMPORTANT: no-restricted-imports can only be defined ONCE per file scope
+ * in flat config (later blocks override earlier ones). All import restrictions
+ * for the same file scope must be consolidated into a single block.
  */
 
 export default tseslint.config(
@@ -26,10 +30,14 @@ export default tseslint.config(
   },
 
   // ---------------------------------------------------------------
-  // Toolbox-wide: unused imports/vars + no console.log
+  // Toolbox-wide: unused imports/vars + no console.log + wagmi guard
   // ---------------------------------------------------------------
   {
     files: ["components/toolbox/**/*.ts", "components/toolbox/**/*.tsx"],
+    ignores: [
+      "components/toolbox/hooks/**",
+      "components/toolbox/contexts/**",
+    ],
     plugins: {
       "@typescript-eslint": tseslint.plugin,
     },
@@ -37,7 +45,6 @@ export default tseslint.config(
       parser: tseslint.parser,
     },
     rules: {
-      // Block unused imports and variables. Prefix with _ to opt out.
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -48,26 +55,8 @@ export default tseslint.config(
         },
       ],
 
-      // Block console.log — use console.warn/error for legitimate logging.
       "no-console": ["error", { allow: ["warn", "error"] }],
-    },
-  },
 
-  // ---------------------------------------------------------------
-  // Wagmi guard: block direct useWalletClient in consumer code.
-  // Hooks and contexts are EXCLUDED because they are the wrapper
-  // layer that legitimately calls useWalletClient.
-  // ---------------------------------------------------------------
-  {
-    files: ["components/toolbox/**/*.ts", "components/toolbox/**/*.tsx"],
-    ignores: [
-      "components/toolbox/hooks/**",
-      "components/toolbox/contexts/**",
-    ],
-    languageOptions: {
-      parser: tseslint.parser,
-    },
-    rules: {
       "no-restricted-imports": [
         "error",
         {
@@ -76,7 +65,7 @@ export default tseslint.config(
               group: ["wagmi"],
               importNames: ["useWalletClient"],
               message:
-                "Use useResolvedWalletClient from @/components/toolbox/hooks/useResolvedWalletClient instead. wagmi's useWalletClient returns undefined on custom L1 chains.",
+                "Use useResolvedWalletClient instead. wagmi's useWalletClient returns undefined on custom L1 chains.",
             },
           ],
         },
@@ -84,9 +73,39 @@ export default tseslint.config(
     },
   },
 
+  // Hooks and contexts ARE allowed to use wagmi directly — only
+  // need unused-vars and no-console for those.
+  {
+    files: [
+      "components/toolbox/hooks/**/*.ts",
+      "components/toolbox/hooks/**/*.tsx",
+      "components/toolbox/contexts/**/*.ts",
+      "components/toolbox/contexts/**/*.tsx",
+    ],
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
+    languageOptions: {
+      parser: tseslint.parser,
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+
+      "no-console": ["error", { allow: ["warn", "error"] }],
+    },
+  },
+
   // ---------------------------------------------------------------
-  // Rule 3: Console components only — block direct readContract
-  //         from viem/actions (hooks that wrap it are exempt).
+  // Console components: all import restrictions in ONE block.
+  // (deep relative imports, readContract, wagmi — consolidated)
   // ---------------------------------------------------------------
   {
     files: [
@@ -101,19 +120,22 @@ export default tseslint.config(
         "error",
         {
           patterns: [
-            // Carry forward the wagmi restriction so it isn't
-            // silently dropped by this second config entry.
+            {
+              group: ["../../../**"],
+              message:
+                "Use @/ path aliases instead of deep relative imports (e.g. @/components/toolbox/components/...).",
+            },
             {
               group: ["wagmi"],
               importNames: ["useWalletClient"],
               message:
-                "Use useResolvedWalletClient from @/components/toolbox/hooks/useResolvedWalletClient instead. wagmi's useWalletClient returns undefined on custom L1 chains.",
+                "Use useResolvedWalletClient instead.",
             },
             {
               group: ["viem/actions"],
               importNames: ["readContract"],
               message:
-                "Use the contract hooks (useValidatorManager, etc.) instead of direct readContract calls for consistent error handling.",
+                "Use the contract hooks (useValidatorManager, etc.) instead of direct readContract calls.",
             },
           ],
         },
@@ -122,9 +144,10 @@ export default tseslint.config(
   },
 
   // ---------------------------------------------------------------
-  // Rule 4: Standalone validator flows must NOT import
-  //         createChainStore — it leaks stale subnet IDs from the
-  //         L1 creation wizard into unrelated flows.
+  // Standalone validator flows: additional restriction on
+  // createChainStore (leaks stale subnet IDs from creation wizard).
+  // Must re-include all console patterns since this overrides the
+  // block above for these specific paths.
   // ---------------------------------------------------------------
   {
     files: [
@@ -149,8 +172,12 @@ export default tseslint.config(
                 "Standalone validator flows must not read from createChainStore — it persists stale state from the L1 creation wizard. Use the flow's own store instead.",
             },
           ],
-          // Carry forward existing restrictions
           patterns: [
+            {
+              group: ["../../../**"],
+              message:
+                "Use @/ path aliases instead of deep relative imports.",
+            },
             {
               group: ["wagmi"],
               importNames: ["useWalletClient"],

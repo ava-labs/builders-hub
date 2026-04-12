@@ -6,7 +6,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
   BaseConsoleToolProps,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';

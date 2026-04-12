@@ -9,7 +9,7 @@ import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
   withConsoleToolMetadata,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';

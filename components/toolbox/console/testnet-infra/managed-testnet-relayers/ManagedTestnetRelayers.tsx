@@ -11,7 +11,7 @@ import RelayersList from './RelayersList';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useManagedTestnetRelayers } from '@/hooks/useManagedTestnetRelayers';
 import { toast } from '@/hooks/use-toast';
-import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 

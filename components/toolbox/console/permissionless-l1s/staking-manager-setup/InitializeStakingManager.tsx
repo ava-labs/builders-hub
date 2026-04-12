@@ -11,7 +11,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
   BaseConsoleToolProps,
-} from '../../../components/WithConsoleToolMetadata';
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';

@@ -7,7 +7,7 @@ import InitiateValidatorRemoval from '@/components/toolbox/console/permissionles
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import CompleteValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/CompleteValidatorRemoval';
 import ClaimDelegationFees from '@/components/toolbox/console/permissionless-l1s/withdraw/ClaimDelegationFees';
-import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
+import { BaseConsoleToolProps } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';
 

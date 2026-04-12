@@ -5,8 +5,8 @@ import { Loader2, Search, Users, Coins, Calendar, ChevronDown, Check, RefreshCw 
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { ValidatorData } from './DisableL1ValidatorContext';
 import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
-import { Button } from '../../../components/Button';
-import { Alert } from '../../../components/Alert';
+import { Button } from '@/components/toolbox/components/Button';
+import { Alert } from '@/components/toolbox/components/Alert';
 
 interface ValidatorSelectorProps {
   subnetId: string;

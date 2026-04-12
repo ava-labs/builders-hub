@@ -7,7 +7,7 @@ import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/Subm
 import CompletePChainWeightUpdate from '@/components/toolbox/console/shared/CompletePChainWeightUpdate';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
-import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
+import { BaseConsoleToolProps } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';
 
