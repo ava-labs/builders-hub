@@ -42,7 +42,7 @@ jobs:
       # ── Console conventions ──────────────────────────────
 
       - name: ESLint (toolbox)
-        run: npx eslint components/toolbox/ --max-warnings 50
+        run: npx eslint components/toolbox/ --max-warnings 0
 
       - name: Folder naming (kebab-case)
         run: |
