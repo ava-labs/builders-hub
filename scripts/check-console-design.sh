@@ -81,39 +81,45 @@ check_raw_anchors() {
 # ── Double Notification Prevention ───────────────────────────────
 # useContractActions.write() already calls notify(). Components must
 # not wrap hook results with an additional notify() call.
+# Legitimate notify() calls (not duplicates):
+#   - type: 'local' (SDK/aggregation calls, not contract hooks)
+#   - ERC20 approve (useERC20Token, not useContractActions)
 check_double_notify() {
+  local hook_pattern="useNativeTokenStakingManager\|useERC20TokenStakingManager\|useValidatorManager\|usePoAManager\|useTokenRemote\|useTokenHome"
   for f in "${files[@]}"; do
-    # Only check console component files (not hooks/stores)
+    # Only check console component files
     if [[ "$f" != *"/console/"* ]]; then
       continue
     fi
-    # Look for files that both import a staking/contract hook AND call notify()
-    # on what appears to be a hook result (the promise variable pattern)
-    local has_contract_hook=false
-    local has_notify=false
-    if grep -q "useNativeTokenStakingManager\|useERC20TokenStakingManager\|useValidatorManager\|usePoAManager\|useTokenRemote\|useTokenHome" "$f" 2>/dev/null; then
-      has_contract_hook=true
+    # File must import a contract hook AND have notify() calls
+    if ! grep -q "$hook_pattern" "$f" 2>/dev/null; then
+      continue
     fi
-    if grep -q "notify(" "$f" 2>/dev/null; then
-      has_notify=true
-    fi
-    if $has_contract_hook && $has_notify; then
-      # Check for the specific pattern: notify({...}, somePromise, ...)
-      # where somePromise is assigned from a hook method call
-      while IFS= read -r line; do
-        # Skip approve calls (erc20Token.approve uses a different path)
-        if echo "$line" | grep -qi "approve"; then
-          continue
-        fi
-        # Skip aggregate/local notifications (not from useContractActions)
-        if echo "$line" | grep -q "type: 'local'"; then
-          continue
-        fi
-        warnings=$((warnings + 1))
-        echo "warn:  $line"
-        echo "       Contract hooks already call notify() via useContractActions — this may be a duplicate"
-      done < <(grep -Hn "notify(" "$f" 2>/dev/null | grep -v "useConsoleNotifications\|import\|//" || true)
-    fi
+    # Get line numbers of all notify( calls (excluding imports/comments)
+    while IFS= read -r match; do
+      local linenum="${match%%:*}"
+      # Read the notify() call and the next 3 lines to check the type field
+      local context
+      context=$(sed -n "${linenum},$((linenum + 3))p" "$f" 2>/dev/null || true)
+      # Skip type: 'local' — these are SDK/aggregation calls, not contract hooks
+      if echo "$context" | grep -q "type:.*'local'\|type:.*\"local\""; then
+        continue
+      fi
+      # Skip approve-related notifications
+      if echo "$context" | grep -qi "approve"; then
+        continue
+      fi
+      # Skip raw walletClient.writeContract calls — they don't go through
+      # useContractActions so they need their own notify()
+      local nearby
+      nearby=$(sed -n "$((linenum > 10 ? linenum - 10 : 1)),${linenum}p" "$f" 2>/dev/null || true)
+      if echo "$nearby" | grep -q "walletClient.*writeContract\|walletClient!.*writeContract"; then
+        continue
+      fi
+      errors=$((errors + 1))
+      echo "error: $f:$linenum: notify() may duplicate useContractActions notification"
+      echo "       Contract hooks already call notify() internally. Use type: 'local' for non-hook calls."
+    done < <(grep -n "notify(" "$f" 2>/dev/null | grep -v "useConsoleNotifications\|import\|//" || true)
   done
 }
 
