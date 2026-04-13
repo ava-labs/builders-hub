@@ -1940,54 +1940,54 @@ const HackathonsEdit = () => {
 
   const renderHackathonPreviewTabs = (): React.JSX.Element => {
     return (
-        <HackathonPreviewTabs
-          tabsProps={{
-            hackathonData: {
-              id: selectedHackathon?.id,
-              title: formDataMain.title,
-              description: formDataMain.description,
-              location: formDataMain.location,
-              total_prizes: formDataMain.total_prizes,
-              tags: formDataMain.tags,
-              participants: formDataMain.participants,
-              organizers: formDataMain.organizers,
-              banner: formDataLatest.banner,
-              content: {
-                language: formDataContent.language,
-                tracks_text: formDataContent.tracks_text,
-                tracks: formDataContent.tracks,
-                schedule: formDataContent.schedule,
-                speakers: formDataContent.speakers,
-                speakers_text: formDataContent.speakers_text,
-                resources: formDataContent.resources,
-                partners: formDataContent.partners
-                  .map((p) => (typeof p === 'string' ? p : p.name))
-                  .filter(Boolean),
-                join_custom_link:
-                  formDataContent.join_custom_link || undefined,
-                join_custom_text:
-                  formDataContent.join_custom_text || undefined,
-                submission_custom_link:
-                  formDataContent.submission_custom_link || undefined,
-                judging_guidelines: formDataContent.judging_guidelines,
-                submission_deadline:
-                  formDataContent.submission_deadline,
-                registration_deadline:
-                  formDataContent.registration_deadline,
-                stages: formDataContent.stages,
-              },
-              start_date: formDataLatest.start_date,
-              end_date: formDataLatest.end_date,
-              status: 'UPCOMING',
+      <HackathonPreviewTabs
+        tabsProps={{
+          hackathonData: {
+            id: selectedHackathon?.id,
+            title: formDataMain.title,
+            description: formDataMain.description,
+            location: formDataMain.location,
+            total_prizes: formDataMain.total_prizes,
+            tags: formDataMain.tags,
+            participants: formDataMain.participants,
+            organizers: formDataMain.organizers,
+            banner: formDataLatest.banner,
+            content: {
+              language: formDataContent.language,
+              tracks_text: formDataContent.tracks_text,
+              tracks: formDataContent.tracks,
+              schedule: formDataContent.schedule,
+              speakers: formDataContent.speakers,
+              speakers_text: formDataContent.speakers_text,
+              resources: formDataContent.resources,
+              partners: formDataContent.partners
+                .map((p) => (typeof p === 'string' ? p : p.name))
+                .filter(Boolean),
+              join_custom_link:
+                formDataContent.join_custom_link || undefined,
+              join_custom_text:
+                formDataContent.join_custom_text || undefined,
+              submission_custom_link:
+                formDataContent.submission_custom_link || undefined,
+              judging_guidelines: formDataContent.judging_guidelines,
+              submission_deadline:
+                formDataContent.submission_deadline,
+              registration_deadline:
+                formDataContent.registration_deadline,
+              stages: formDataContent.stages,
             },
-            isRegistered: false,
-            scrollTarget,
-          }}
-          hackathon={selectedHackathon}
-          activeTab={activePreviewTab}
-          onActiveTabChange={setActivePreviewTab}
-          selectedStageForm={selectedStageForm}
-        />
+            start_date: formDataLatest.start_date,
+            end_date: formDataLatest.end_date,
+            status: 'UPCOMING',
+          },
+          isRegistered: false,
+          scrollTarget,
+        }}
+        hackathon={selectedHackathon}
+        activeTab={activePreviewTab}
+        onActiveTabChange={setActivePreviewTab}
+        selectedStageForm={selectedStageForm}
+      />
     )
   }
 
@@ -2277,56 +2277,74 @@ const HackathonsEdit = () => {
                         </button>
                       )}
                     </div>
-                  </div>
-                  {showForm && hasEditPermission && (
-                    <>
-                      {/* Cohosts Section - Always Visible */}
-                      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mb-6">
-                        <h2 className="text-xl font-semibold mb-2 text-blue-300">{t[language].cohostsTitle}</h2>
-                        <p className="text-sm text-blue-200 mb-4">
-                          {t[language].cohostsDescription}
-                        </p>
-                        <EmailListInput
-                          value={cohostsEmails}
-                          onChange={(emails) => {
-                            setCohostsEmails(emails);
+                    {!collapsed.main && (
+                      <>
+                        <div className="mb-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+                          <h3 className="text-lg font-semibold text-green-300 mb-2">Hackathon Details</h3>
+                          <p className="text-sm text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
+                        </div>
+
+                        <div className="mb-2 text-zinc-400 text-sm">Hackathon Title</div>
+                        <Input
+                          type="text"
+                          name="title"
+                          placeholder="e.g., Avalanche Hackathon 2025, Build on Avalanche"
+                          value={formDataMain.title}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, title: e.target.value }));
+                            scrollToSection('about');
                           }}
-                          placeholder={t[language].cohostsPlaceholder}
-                          label={t[language].cohostsLabel}
-                          description={t[language].cohostsHelp}
+                          className="w-full mb-4"
+                          required
                         />
-                      </div>
-                      {/* Event Type option */}
-                      <div className="rounded-lg p-6 mb-6">
-                        <h2 className='font-medium text-xl mb-2 block'>Event Type</h2>
-                        <Select
-                          value={formDataLatest.event}
-                          onValueChange={(value) => {
-                            setFormDataLatest(prev => ({ ...prev, event: value }));
-                            console.log(value);
+
+                        <div className="mb-2 text-zinc-400 text-sm">Description</div>
+                        <textarea
+                          name="description"
+                          placeholder="Describe your hackathon, its goals, and what participants will build..."
+                          value={formDataMain.description}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, description: e.target.value }));
+                            scrollToSection('about');
                           }}
-                        >
-                          <SelectTrigger className="w-full mb-4">
-                            <SelectValue placeholder="Select event type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="hackathon">Hackathon</SelectItem>
-                            <SelectItem value="workshop">Workshop</SelectItem>
-                            <SelectItem value="bootcamp">Bootcamp</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <div className="flex items-center gap-3 mt-4">
-                          <Switch
-                            id="new-layout"
-                            checked={formDataLatest.new_layout}
-                            onCheckedChange={(checked) => {
-                              setFormDataLatest(prev => ({ ...prev, new_layout: checked }));
-                            }}
-                            className="cursor-pointer"
-                          />
-                          <label htmlFor="new-layout" className="text-sm font-medium cursor-pointer">
-                            Use new layout (modern event page)
-                          </label>
+                          className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-24"
+                          required
+                        />
+
+                        <div className="mb-2 text-zinc-400 text-sm">Location</div>
+                        <Input
+                          type="text"
+                          name="location"
+                          placeholder="e.g., Online, New York, San Francisco"
+                          value={formDataMain.location}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, location: e.target.value }));
+                            scrollToSection('about');
+                          }}
+                          className="w-full mb-4"
+                          required
+                        />
+
+                        <div className="flex flex-col space-y-2 bg-zinc-900/60 border border-zinc-700 rounded-lg p-4 my-4">
+                          <label className="font-medium">Tags (Optional)</label>
+                          <div className="mb-2 text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {formDataMain.tags.map((tag, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <Input
+                                  type="text"
+                                  value={tag}
+                                  onChange={e => handleTagChange(idx, e.target.value)}
+                                  className="w-32 px-2 py-1 text-sm"
+                                  placeholder={`Tag ${idx + 1}`}
+                                />
+                                {formDataMain.tags.length > 1 && (
+                                  <button type="button" onClick={() => removeTag(idx)} className="text-red-500 hover:text-red-700 px-1">×</button>
+                                )}
+                              </div>
+                            ))}
+                            <button type="button" onClick={addTag} className="text-green-500 hover:text-green-700 px-2 py-1 border border-green-500 rounded">+ Add Tag</button>
+                          </div>
                         </div>
 
                         <div className="flex justify-end mt-4">
@@ -2338,12 +2356,12 @@ const HackathonsEdit = () => {
                             {t[language].done} <ChevronDown className="w-4 h-4" />
                           </button>
                         </div>
-                      </div>
-                    </>
-                  )}
-                  {collapsed.main && (
-                    <div className="text-zinc-400 italic">✓ Basic hackathon info completed</div>
-                  )}
+                      </>
+                    )}
+                    {collapsed.main && (
+                      <div className="text-zinc-400 italic">✓ Basic hackathon info completed</div>
+                    )}
+                  </div>
                   <div ref={step2Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-2xl font-bold">Step 2: Stages</h2>
@@ -3548,7 +3566,7 @@ const HackathonsEdit = () => {
             )}
           </div>
         </div>
-        <div className={`w-1/2 max-h-[calc(100vh-80px)] ${ activePreviewTab === 'stages-submit-form' ? 'overflow-y-auto' : '' } border-zinc-700 bg-white dark:bg-zinc-900`}>
+        <div className={`w-1/2 max-h-[calc(100vh-80px)] ${activePreviewTab === 'stages-submit-form' ? 'overflow-y-auto' : ''} border-zinc-700 bg-white dark:bg-zinc-900`}>
           <div className="h-full">
             {renderHackathonPreviewTabs()}
           </div>
