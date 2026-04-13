@@ -20,10 +20,7 @@ export default function InitiateValidatorRemovalUptimeStep() {
 
   const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || '';
   const tokenType = vmcCtx.staking?.stakingType || 'native';
-
-  // For uptime proof, the signing subnet is the subnet that owns the uptimeBlockchainID.
-  // In most cases this is the L1's own subnet (signingSubnetId).
-  const signingSubnetId = vmcCtx.signingSubnetId || store.subnetIdL1;
+  const uptimeBlockchainID = vmcCtx.staking?.settings?.uptimeBlockchainID || '';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -40,6 +37,7 @@ export default function InitiateValidatorRemovalUptimeStep() {
               }}
               format="hex"
               subnetId={store.subnetIdL1}
+              stakingManagerAddress={stakingManagerAddress}
             />
 
             {store.nodeId && (
@@ -54,7 +52,7 @@ export default function InitiateValidatorRemovalUptimeStep() {
                   validationID={store.validationId}
                   stakingManagerAddress={stakingManagerAddress}
                   rpcUrl={viemChain?.rpcUrls?.default?.http[0] || ''}
-                  signingSubnetId={signingSubnetId}
+                  uptimeBlockchainID={uptimeBlockchainID}
                   tokenType={tokenType}
                   onSuccess={(data) => {
                     store.setEvmTxHash(data.txHash);

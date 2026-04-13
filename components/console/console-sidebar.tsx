@@ -35,6 +35,7 @@ import {
   Rocket,
   LayoutDashboard,
   Workflow,
+  Clock,
 
   Search,
   X,
@@ -321,6 +322,18 @@ const data = {
               title: "Remove Delegation",
               url: "/console/permissionless-l1s/remove-delegation",
               icon: SquareMinus,
+            },
+          ],
+        },
+        {
+          id: "permissionless-uptime",
+          title: "Uptime",
+          icon: Clock,
+          items: [
+            {
+              title: "Submit Uptime Proof",
+              url: "/console/permissionless-l1s/submit-uptime-proof",
+              icon: Clock,
             },
           ],
         },

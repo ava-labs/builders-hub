@@ -22,7 +22,7 @@ interface InitiateValidatorRemovalUptimeProps {
   validationID: string;
   stakingManagerAddress: string;
   rpcUrl: string;
-  signingSubnetId: string;
+  uptimeBlockchainID: string;
   tokenType: TokenType;
   onSuccess: (data: { txHash: string }) => void;
   onError: (message: string) => void;
@@ -32,7 +32,7 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   validationID,
   stakingManagerAddress,
   rpcUrl,
-  signingSubnetId,
+  uptimeBlockchainID,
   tokenType,
   onSuccess,
   onError,
@@ -50,7 +50,7 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [uptimeInfo, setUptimeInfo] = useState<{ seconds: bigint; signed: boolean } | null>(null);
+  const [uptimeInfo, setUptimeInfo] = useState<{ seconds: number; signed: boolean } | null>(null);
 
   const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
@@ -176,7 +176,7 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
       // Step 1: Create and sign uptime proof
       // Fetches real-time uptime from L1 node's /validators endpoint, then
       // aggregates BLS signatures from subnet validators with progressive retry.
-      const uptimeProofPromise = createAndSignUptimeProof(validationID, rpcUrl, signingSubnetId);
+      const uptimeProofPromise = createAndSignUptimeProof(validationID, rpcUrl, uptimeBlockchainID);
 
       notify({ type: 'local', name: 'Aggregate Uptime Proof Signatures' }, uptimeProofPromise);
 

@@ -4,9 +4,10 @@ import { packValidationUptimeMessage } from '@/components/toolbox/coreViem/utils
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { cb58ToHex, hexToCB58 } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { getBlockchainInfo } from '@/components/toolbox/coreViem/utils/glacier';
 
 interface UptimeProofResult {
-  uptimeSeconds: bigint;
+  uptimeSeconds: number;
   signedWarpMessage: string;
   unsignedWarpMessage: string;
 }
@@ -104,15 +105,21 @@ export function useUptimeProof() {
   }
 
   /**
-   * Create an unsigned uptime proof warp message
+   * Create an unsigned uptime proof warp message.
+   * The sourceChainID must be the uptimeBlockchainID from the staking manager
+   * settings — NOT a subnet ID.
    */
   function createUptimeProofWarpMessage(
     validationID: Uint8Array,
     uptimeSeconds: bigint,
-    signingSubnetId: string,
+    uptimeBlockchainID: string,
   ): Uint8Array {
     try {
-      return packValidationUptimeMessage({ validationID, uptime: uptimeSeconds }, avalancheNetworkID, signingSubnetId);
+      return packValidationUptimeMessage(
+        { validationID, uptime: uptimeSeconds },
+        avalancheNetworkID,
+        uptimeBlockchainID,
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`Failed to create uptime proof warp message: ${message}`);
@@ -120,18 +127,30 @@ export function useUptimeProof() {
   }
 
   /**
-   * Complete uptime proof flow: fetch uptime, create message, and sign
-   * Tries progressively lower uptime percentages if aggregation fails
+   * Complete uptime proof flow: fetch uptime, create message, and sign.
+   *
+   * @param uptimeBlockchainID — from getStakingManagerSettings().uptimeBlockchainID (hex bytes32).
+   *   Used as sourceChainID in the warp message. The signing subnet is derived
+   *   from this blockchain ID via the Glacier API.
    */
   async function createAndSignUptimeProof(
     validationID: string,
     rpcUrl: string,
-    signingSubnetId: string,
+    uptimeBlockchainID: string,
   ): Promise<UptimeProofResult> {
     setIsLoading(true);
     setError(null);
 
     try {
+      // Convert hex bytes32 uptimeBlockchainID to CB58 for the warp message
+      const uptimeBlockchainCB58 = hexToCB58(
+        uptimeBlockchainID.startsWith('0x') ? uptimeBlockchainID.slice(2) : uptimeBlockchainID,
+      );
+
+      // Resolve the signing subnet from the uptimeBlockchainID via Glacier
+      const blockchainInfo = await getBlockchainInfo(uptimeBlockchainCB58);
+      const signingSubnetId = blockchainInfo.subnetId;
+
       const reportedUptime = await getValidatorUptime(validationID, rpcUrl);
       const validationIDBytes = hexToBytes(validationID as `0x${string}`);
 
@@ -143,7 +162,7 @@ export function useUptimeProof() {
         const adjustedUptime = (reportedUptime * BigInt(percentage)) / 100n;
 
         try {
-          const unsignedMessage = createUptimeProofWarpMessage(validationIDBytes, adjustedUptime, signingSubnetId);
+          const unsignedMessage = createUptimeProofWarpMessage(validationIDBytes, adjustedUptime, uptimeBlockchainCB58);
           const unsignedWarpMessage = bytesToHex(unsignedMessage);
 
           // Use timeout to fail faster
@@ -151,6 +170,7 @@ export function useUptimeProof() {
             setTimeout(() => reject(new Error('Signature aggregation timeout')), 10000);
           });
 
+          // Sign with the subnet that owns the uptimeBlockchainID
           const signaturePromise = aggregateSignature({
             message: unsignedWarpMessage,
             signingSubnetId,
@@ -159,7 +179,7 @@ export function useUptimeProof() {
           const result = await Promise.race([signaturePromise, timeoutPromise]);
 
           return {
-            uptimeSeconds: adjustedUptime,
+            uptimeSeconds: Number(adjustedUptime),
             signedWarpMessage: result.signedMessage,
             unsignedWarpMessage,
           };

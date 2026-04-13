@@ -4,6 +4,8 @@ import { cb58ToHex, hexToCB58 } from '../console/utilities/format-converter/Form
 import { L1ValidatorDetailsFull } from '@avalabs/avacloud-sdk/models/components';
 import { formatAvaxBalance } from '../coreViem/utils/format';
 import { useAvalancheSDKChainkit } from '../stores/useAvalancheSDKChainkit';
+import { useChainPublicClient } from '../hooks/useChainPublicClient';
+import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 
 export type ValidationSelection = {
   validationId: string;
@@ -48,18 +50,22 @@ export default function SelectValidationID({
   error,
   subnetId = '',
   format = 'cb58',
+  stakingManagerAddress,
 }: {
   value: string;
   onChange: (selection: ValidationSelection) => void;
   error?: string | null;
   subnetId?: string;
   format?: 'cb58' | 'hex';
+  /** Optional: when provided, validators are tagged as PoA/PoS */
+  stakingManagerAddress?: string;
 }) {
-  //const { listL1Validators } = useAvaCloudSDK();
   const { listL1Validators } = useAvalancheSDKChainkit();
+  const chainPublicClient = useChainPublicClient();
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [validationIdToNodeId, setValidationIdToNodeId] = useState<Record<string, string>>({});
+  const [posValidators, setPosValidators] = useState<Set<string>>(new Set());
 
   // Fetch validators from the API
   useEffect(() => {
@@ -107,6 +113,43 @@ export default function SelectValidationID({
     fetchValidators();
   }, [subnetId, listL1Validators]);
 
+  // Detect PoS status when stakingManagerAddress is provided
+  useEffect(() => {
+    if (!stakingManagerAddress || !chainPublicClient || validators.length === 0) {
+      setPosValidators(new Set());
+      return;
+    }
+
+    const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+    const detectPoS = async () => {
+      const posSet = new Set<string>();
+      await Promise.all(
+        validators.map(async (v) => {
+          if (!v.validationId) return;
+          try {
+            const hexId = '0x' + cb58ToHex(v.validationId);
+            const result = await chainPublicClient.readContract({
+              address: stakingManagerAddress as `0x${string}`,
+              abi: NativeTokenStakingManager.abi,
+              functionName: 'getStakingValidator',
+              args: [hexId as `0x${string}`],
+            });
+            // viem returns tuples as arrays with named props — access by index as fallback
+            const info = result as any;
+            const owner = String(info?.owner ?? info?.[0] ?? '');
+            if (owner && owner !== ZERO_ADDRESS) {
+              posSet.add(v.validationId);
+            }
+          } catch {
+            // getStakingValidator reverted or failed — not PoS
+          }
+        }),
+      );
+      setPosValidators(posSet);
+    };
+    detectPoS();
+  }, [stakingManagerAddress, chainPublicClient, validators]);
+
   // Get the currently selected node ID
   const selectedNodeId = useMemo(() => {
     return (
@@ -125,37 +168,36 @@ export default function SelectValidationID({
 
     for (const validator of validatorsWithWeight) {
       if (validator.validationId) {
-        // Use full node ID
         const nodeId = validator.nodeId;
         const weightDisplay = validator.weight.toLocaleString();
         const balanceDisplay = formatAvaxBalance(validator.remainingBalance);
         const isSelected = nodeId === selectedNodeId;
+        const isPoS = stakingManagerAddress ? posValidators.has(validator.validationId) : null;
+        const typePrefix = isPoS === true ? 'PoS · ' : isPoS === false ? 'PoA · ' : '';
 
-        // Add just one version based on the format prop
         if (format === 'hex') {
           try {
             const hexId = '0x' + cb58ToHex(validator.validationId);
             result.push({
               title: `${nodeId}${isSelected ? ' ✓' : ''}`,
               value: hexId,
-              description: `Weight: ${weightDisplay} | Balance: ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
+              description: `${typePrefix}Weight: ${weightDisplay} | Balance: ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
             });
           } catch {
             // Skip if conversion fails
           }
         } else {
-          // Default to CB58 format
           result.push({
             title: `${nodeId}${isSelected ? ' ✓' : ''}`,
             value: validator.validationId,
-            description: `Weight: ${weightDisplay} | ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
+            description: `${typePrefix}Weight: ${weightDisplay} | ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
           });
         }
       }
     }
 
     return result;
-  }, [validators, format, selectedNodeId]);
+  }, [validators, format, selectedNodeId, stakingManagerAddress, posValidators]);
 
   // Handle value change with format conversion
   const handleValueChange = (newValue: string) => {

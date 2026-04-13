@@ -57,7 +57,7 @@ export interface NativeTokenStakingManagerHook {
   changeValidatorRewardRecipient: (validationID: string, rewardRecipient: string) => Promise<string>;
   changeDelegatorRewardRecipient: (delegationID: string, rewardRecipient: string) => Promise<string>;
   claimDelegationFees: (validationID: string) => Promise<string>;
-  submitUptimeProof: (validationID: string, messageIndex: number) => Promise<string>;
+  submitUptimeProof: (validationID: string, messageIndex: number, accessList?: any[]) => Promise<string>;
 
   // Write functions - Setup
   initialize: (settings: StakingManagerSettings) => Promise<string>;
@@ -193,8 +193,8 @@ export function useNativeTokenStakingManager(contractAddress: string | null, abi
   const claimDelegationFees = (validationID: string) =>
     contract.write('claimDelegationFees', [validationID], 'Claim Delegation Fees');
 
-  const submitUptimeProof = (validationID: string, messageIndex: number) =>
-    contract.write('submitUptimeProof', [validationID, messageIndex], 'Submit Uptime Proof');
+  const submitUptimeProof = (validationID: string, messageIndex: number, accessList?: any[]) =>
+    contract.write('submitUptimeProof', [validationID, messageIndex], 'Submit Uptime Proof', { accessList });
 
   // Write functions - Setup
   const initialize = (settings: StakingManagerSettings) =>

@@ -36,6 +36,7 @@ export default function InitiateDelegationStep() {
               }}
               format="hex"
               subnetId={store.subnetIdL1}
+              stakingManagerAddress={stakingManagerAddress}
             />
 
             {store.nodeId && (
