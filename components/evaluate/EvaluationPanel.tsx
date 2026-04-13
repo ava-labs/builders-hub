@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { getEventConfig, DEFAULT_SCORE_CRITERIA } from "./event-configs";
 import { VERDICT_BUTTON_COLORS, VERDICT_BADGE_COLORS, VERDICT_LABELS } from "./colors";
@@ -115,18 +116,10 @@ export function EvaluationPanel({
         body.scores = scoresPayload;
       }
 
-      const res = await fetch("/api/evaluate", {
+      const data = await apiFetch<{ id: string }>("/api/evaluate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body,
       });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Failed to save");
-      }
-
-      const data = await res.json();
       onEvaluationSaved(formDataId, {
         id: data.id,
         formDataId,

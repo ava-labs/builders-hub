@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm, Controller } from 'react-hook-form';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
 import { Input } from "../ui/input";
 import { LoadingButton } from "../ui/loading-button";
@@ -50,8 +50,9 @@ export function LoginModal() {
     setEmail(values.email);
 
     try {
-      await axios.post("/api/send-otp", {
-        email: values.email.toLowerCase(),
+      await apiFetch("/api/send-otp", {
+        method: "POST",
+        body: { email: values.email.toLowerCase() },
       });
       setIsVerifying(true);
     } catch (error) {

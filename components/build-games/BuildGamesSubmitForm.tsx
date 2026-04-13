@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
@@ -247,17 +247,14 @@ export default function BuildGamesSubmitForm({
     // OTP new users have a pending_ ID and no DB record yet — skip until profile is complete
     if (session.user.id.startsWith("pending_")) return;
 
-    axios
-      .get("/api/project/check-invitation", {
-        params: { invitation: invitationId, user_id: session.user.id },
-      })
-      .then((res) => {
-        if (!res.data?.invitation?.exists) {
+    apiFetch<{ invitation: { exists: boolean; hasConfirmedProject?: boolean; isConfirming?: boolean }; project?: { id?: string; project_name?: string } }>(`/api/project/check-invitation?invitation=${encodeURIComponent(invitationId)}&user_id=${encodeURIComponent(session.user.id)}`)
+      .then((data) => {
+        if (!data?.invitation?.exists) {
           setOpenInvalidInvitation(true);
           return;
         }
-        const invitation = res.data.invitation;
-        const project = res.data.project;
+        const invitation = data.invitation;
+        const project = data.project;
         setJoinTeamName(project?.project_name || "");
         if (project?.id) setProjectId(project.id);
         if (invitation.hasConfirmedProject) {
@@ -277,10 +274,9 @@ export default function BuildGamesSubmitForm({
   }, [session?.user?.id, searchParams]);
 
   useEffect(() => {
-    axios
-      .get(`/api/hackathons/${HACKATHON_ID}`)
-      .then((res) => {
-        const tracks: Track[] = res.data?.content?.tracks ?? [];
+    apiFetch<{ content?: { tracks?: Track[] } }>(`/api/hackathons/${HACKATHON_ID}`)
+      .then((data) => {
+        const tracks: Track[] = data?.content?.tracks ?? [];
         setHackathonTracks(tracks);
         setAvailableTracks(
           tracks.map((t) => ({ value: t.name, label: t.name }))
@@ -293,13 +289,10 @@ export default function BuildGamesSubmitForm({
   useEffect(() => {
     if (!session?.user?.id) return;
 
-    axios
-      .get("/api/project", {
-        params: { hackathon_id: HACKATHON_ID, user_id: session.user.id },
-      })
-      .then(async (res) => {
-        if (!res.data.project) return;
-        const p = res.data.project;
+    apiFetch<{ project?: any }>(`/api/project?hackathon_id=${encodeURIComponent(HACKATHON_ID)}&user_id=${encodeURIComponent(session.user.id)}`)
+      .then(async (data) => {
+        if (!data.project) return;
+        const p = data.project;
         const pid = p.id ?? "";
         setProjectId(pid);
 
@@ -320,10 +313,8 @@ export default function BuildGamesSubmitForm({
 
         // Fetch and populate build_games FormData fields
         try {
-          const fdRes = await axios.get("/api/build-games/stage-data", {
-            params: { project_id: pid },
-          });
-          const bg = fdRes.data.form_data?.build_games ?? {};
+          const fdRes = await apiFetch<{ form_data?: { build_games?: Record<string, any> } }>(`/api/build-games/stage-data?project_id=${encodeURIComponent(pid)}`);
+          const bg = fdRes.form_data?.build_games ?? {};
           form.reset({
             ...projectValues,
             bg_problem_statement: bg.problem_statement ?? "",
@@ -372,7 +363,7 @@ export default function BuildGamesSubmitForm({
 
   const saveCurrentForm = useCallback(async () => {
     if (!session?.user?.id) return;
-    if (isSavingRef.current) return null; // block concurrent invocations (button + MembersComponent)
+    if (isSavingRef.current) return; // block concurrent invocations (button + MembersComponent)
     isSavingRef.current = true;
     try {
     const data = form.getValues();
@@ -400,9 +391,9 @@ export default function BuildGamesSubmitForm({
       isDraft: true,
     };
 
-    const projectRes = await axios.post("/api/project/", projectPayload);
+    const projectRes = await apiFetch<{ project?: { id: string }; id?: string }>("/api/project/", { method: "POST", body: projectPayload });
     const savedId =
-      projectRes.data.project?.id ?? projectRes.data.id ?? projectId;
+      projectRes.project?.id ?? projectRes.id ?? projectId;
     if (savedId) setProjectId(savedId);
 
     // 2. Save build_games FormData fields (only if we have a project ID)
@@ -447,10 +438,9 @@ export default function BuildGamesSubmitForm({
           },
         },
       };
-      await axios.post("/api/build-games/stage-data", buildGamesPayload);
+      await apiFetch("/api/build-games/stage-data", { method: "POST", body: buildGamesPayload });
     }
 
-    return savedId;
   } finally {
     isSavingRef.current = false;
   }
@@ -1166,14 +1156,9 @@ export default function BuildGamesSubmitForm({
               onHandleSave={saveCurrentForm}
               onProjectCreated={async () => {
                 if (!session?.user?.id) return;
-                const res = await axios.get("/api/project", {
-                  params: {
-                    hackathon_id: HACKATHON_ID,
-                    user_id: session.user.id,
-                  },
-                });
-                if (res.data.project?.id)
-                  setProjectId(res.data.project.id);
+                const res = await apiFetch<{ project?: { id: string } }>(`/api/project?hackathon_id=${encodeURIComponent(HACKATHON_ID)}&user_id=${encodeURIComponent(session.user.id)}`);
+                if (res.project?.id)
+                  setProjectId(res.project.id);
               }}
               openjoinTeamDialog={openJoinTeamDialog}
               onOpenChange={setOpenJoinTeamDialog}

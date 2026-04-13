@@ -1,62 +1,56 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getHackathon, updateHackathon } from "@/server/services/hackathons";
-import { HackathonHeader } from "@/types/hackathons";
-import { withAuthRole } from "@/lib/protectedRoute";
+import type { NextRequest } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { BadRequestError } from '@/lib/api/errors';
+import { getHackathon, updateHackathon } from '@/server/services/hackathons';
 
-export async function GET(req: NextRequest, context: any) {
+export const GET = withApi(async (_req: NextRequest, { params }) => {
+  const { id } = params;
+  if (!id) throw new BadRequestError('ID required');
 
-  try {
-    const { id } = await context.params;
+  const hackathon = await getHackathon(id);
+  return successResponse(hackathon);
+});
 
-    if (!id) {
-      return NextResponse.json({ error: "ID required" }, { status: 400 });
-    }
+// schema: not applicable — partial hackathon update with dynamic fields
+export const PUT = withApi(
+  async (req: NextRequest, { session, params }) => {
+    const { id } = params;
+    if (!id) throw new BadRequestError('ID required');
 
-    const hackathon = await getHackathon(id)
-    return NextResponse.json(hackathon);
-  } catch (error) {
-    console.error("Error in GET /api/hackathons/[id]:");
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 500 }
-    );
-  }
-}
-
-export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
-  try {
-    const { id } = await context.params;
     const updateData = await req.json();
     const userId = session.user.id;
 
-    if (updateData.hasOwnProperty('is_public') && typeof updateData.is_public === 'boolean' && Object.keys(updateData).length === 1) {
-      const updatedHackathon = await updateHackathon(id, { is_public: updateData.is_public }, userId);
-      return NextResponse.json(updatedHackathon);
-    } else {
-      const partialEditedHackathon = updateData as Partial<HackathonHeader>;
-      const updatedHackathon = await updateHackathon(partialEditedHackathon.id ?? id, partialEditedHackathon, userId);
-      return NextResponse.json(updatedHackathon);
+    // Short-circuit: if only toggling is_public, restrict the update to that field
+    if (
+      updateData.hasOwnProperty('is_public') &&
+      typeof updateData.is_public === 'boolean' &&
+      Object.keys(updateData).length === 1
+    ) {
+      const updated = await updateHackathon(id, { is_public: updateData.is_public }, userId);
+      return successResponse(updated);
     }
-  } catch (error) {
-    console.error("Error in PUT /api/hackathons/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
-  }
-});
 
-export const PATCH = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
-  try {
-    const { id } = await context.params;
+    const updated = await updateHackathon(updateData.id ?? id, updateData, userId);
+    return successResponse(updated);
+  },
+  { auth: true, roles: ['devrel'] },
+);
+
+export const PATCH = withApi(
+  async (req: NextRequest, { session, params }) => {
+    const { id } = params;
+    if (!id) throw new BadRequestError('ID required');
+
     const updateData = await req.json();
     const userId = session.user.id;
 
     if (updateData.hasOwnProperty('is_public') && typeof updateData.is_public === 'boolean') {
-      const updatedHackathon = await updateHackathon(id, { is_public: updateData.is_public }, userId);
-      return NextResponse.json(updatedHackathon);
-    } else {
-      return NextResponse.json({ error: "Only is_public field can be updated via PATCH" }, { status: 400 });
+      const updated = await updateHackathon(id, { is_public: updateData.is_public }, userId);
+      return successResponse(updated);
     }
-  } catch (error) {
-    console.error("Error in PATCH /api/hackathons/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
-  }
-});
+
+    throw new BadRequestError('Only is_public field can be updated via PATCH');
+  },
+  { auth: true, roles: ['devrel'] },
+);

@@ -1,120 +1,102 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthSession } from '@/lib/auth/authSession';
+// schema: not applicable — Zod validation done inline via safeParse for custom error handling
+import { z } from 'zod';
+import { withApi, ValidationError, BadRequestError, noContentResponse, successResponse } from '@/lib/api';
+import { EMAIL_REGEX } from '@/lib/api/constants';
+import { assertOwnership } from '@/lib/api/ownership';
 import { prisma } from '@/prisma/prisma';
 import type { UpdateAlertRequest } from '@/types/validator-alerts';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const idSchema = z.object({
+  id: z.string().uuid('Invalid alert ID'),
+});
 
-async function getOwnedAlert(alertId: string, userId: string) {
-  return prisma.validatorAlert.findFirst({
-    where: { id: alertId, user_id: userId },
-    include: {
-      alert_logs: {
-        orderBy: { sent_at: 'desc' },
-        take: 20,
-      },
-    },
-  });
-}
+const updateAlertSchema = z.object({
+  label: z.string().optional(),
+  uptime_alert: z.boolean().optional(),
+  uptime_threshold: z.number().min(0).max(100, 'Uptime threshold must be between 0 and 100.').optional(),
+  version_alert: z.boolean().optional(),
+  expiry_alert: z.boolean().optional(),
+  expiry_days: z.number().int().min(1).max(365, 'Expiry days must be between 1 and 365.').optional(),
+  balance_alert: z.boolean().optional(),
+  balance_threshold: z.number().positive('Balance threshold must be greater than 0.').finite().optional(),
+  balance_threshold_days: z
+    .number()
+    .int()
+    .min(1)
+    .max(365, 'Balance threshold days must be between 1 and 365.')
+    .optional(),
+  security_alert: z.boolean().optional(),
+  email: z.string().regex(EMAIL_REGEX, 'Invalid email address.').optional(),
+  active: z.boolean().optional(),
+});
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
-    }
-
-    const { id } = await params;
-    const alert = await getOwnedAlert(id, session.user.id);
-    if (!alert) {
-      return NextResponse.json({ error: 'Alert not found.' }, { status: 404 });
-    }
-
-    return NextResponse.json(alert);
-  } catch (error) {
-    console.error('Error fetching validator alert:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+function validateIdParam(params: Record<string, string>): string {
+  const parsed = idSchema.safeParse(params);
+  if (!parsed.success) {
+    throw new ValidationError(parsed.error.issues.map((i) => i.message).join('; '));
   }
+  return parsed.data.id;
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
-    }
+export const GET = withApi(
+  async (_req, { session, params }) => {
+    const id = validateIdParam(params);
+    const alert = await assertOwnership(prisma.validatorAlert, id, session.user.id, {
+      include: { alert_logs: { orderBy: { sent_at: 'desc' }, take: 20 } },
+    });
 
-    const { id } = await params;
-    const existing = await getOwnedAlert(id, session.user.id);
-    if (!existing) {
-      return NextResponse.json({ error: 'Alert not found.' }, { status: 404 });
-    }
+    return successResponse(alert);
+  },
+  { auth: true },
+);
 
-    const body: UpdateAlertRequest = await req.json();
+export const PUT = withApi(
+  async (req, { session, params }) => {
+    const id = validateIdParam(params);
+
+    // Validate body BEFORE ownership check so invalid input is caught early
+    const raw: unknown = await req.json();
+    const parsed = updateAlertSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues.map((i) => i.message).join('; '));
+    }
+    const body: UpdateAlertRequest = parsed.data;
+
+    const existing = await assertOwnership<{ subnet_id: string }>(prisma.validatorAlert, id, session.user.id, {
+      include: { alert_logs: { orderBy: { sent_at: 'desc' }, take: 20 } },
+    });
+
+    const isL1 = existing.subnet_id !== 'primary';
+
+    // L1 validators don't have uptime or expiry -- reject attempts to enable
+    if (isL1 && body.uptime_alert === true) {
+      throw new BadRequestError('Uptime alerts are not available for L1 validators.');
+    }
+    if (isL1 && body.expiry_alert === true) {
+      throw new BadRequestError('Stake expiry alerts are not available for L1 validators.');
+    }
+    if (!isL1 && body.balance_alert === true) {
+      throw new BadRequestError('Balance alerts are only available for L1 validators.');
+    }
+    if (!isL1 && (body.balance_threshold !== undefined || body.balance_threshold_days !== undefined)) {
+      throw new BadRequestError('Balance threshold settings are only available for L1 validators.');
+    }
+    if (isL1 && body.security_alert === true) {
+      throw new BadRequestError('Security checks are currently available for Primary Network validators only.');
+    }
 
     const updateData: Record<string, unknown> = {};
     if (body.label !== undefined) updateData.label = body.label;
     if (body.uptime_alert !== undefined) updateData.uptime_alert = body.uptime_alert;
-    if (body.uptime_threshold !== undefined) {
-      if (body.uptime_threshold < 0 || body.uptime_threshold > 100) {
-        return NextResponse.json({ error: 'Uptime threshold must be between 0 and 100.' }, { status: 400 });
-      }
-      updateData.uptime_threshold = body.uptime_threshold;
-    }
+    if (body.uptime_threshold !== undefined) updateData.uptime_threshold = body.uptime_threshold;
     if (body.version_alert !== undefined) updateData.version_alert = body.version_alert;
-
-    const isL1 = existing.subnet_id !== 'primary';
-
-    // L1 validators don't have uptime or expiry — reject attempts to enable
-    if (isL1 && body.uptime_alert === true) {
-      return NextResponse.json({ error: 'Uptime alerts are not available for L1 validators.' }, { status: 400 });
-    }
-    if (isL1 && body.expiry_alert === true) {
-      return NextResponse.json({ error: 'Stake expiry alerts are not available for L1 validators.' }, { status: 400 });
-    }
-    if (!isL1 && body.balance_alert === true) {
-      return NextResponse.json({ error: 'Balance alerts are only available for L1 validators.' }, { status: 400 });
-    }
-    if (!isL1 && (body.balance_threshold !== undefined || body.balance_threshold_days !== undefined)) {
-      return NextResponse.json({ error: 'Balance threshold settings are only available for L1 validators.' }, { status: 400 });
-    }
-    if (isL1 && body.security_alert === true) {
-      return NextResponse.json({ error: 'Security checks are currently available for Primary Network validators only.' }, { status: 400 });
-    }
-
     if (body.expiry_alert !== undefined) updateData.expiry_alert = body.expiry_alert;
-    if (body.expiry_days !== undefined) {
-      if (body.expiry_days < 1 || body.expiry_days > 365) {
-        return NextResponse.json({ error: 'Expiry days must be between 1 and 365.' }, { status: 400 });
-      }
-      updateData.expiry_days = body.expiry_days;
-    }
+    if (body.expiry_days !== undefined) updateData.expiry_days = body.expiry_days;
     if (body.balance_alert !== undefined) updateData.balance_alert = body.balance_alert;
-    if (body.balance_threshold !== undefined) {
-      if (!Number.isFinite(body.balance_threshold) || body.balance_threshold <= 0) {
-        return NextResponse.json({ error: 'Balance threshold must be greater than 0.' }, { status: 400 });
-      }
-      updateData.balance_threshold = body.balance_threshold;
-    }
-    if (body.balance_threshold_days !== undefined) {
-      if (!Number.isInteger(body.balance_threshold_days) || body.balance_threshold_days < 1 || body.balance_threshold_days > 365) {
-        return NextResponse.json({ error: 'Balance threshold days must be between 1 and 365.' }, { status: 400 });
-      }
-      updateData.balance_threshold_days = body.balance_threshold_days;
-    }
+    if (body.balance_threshold !== undefined) updateData.balance_threshold = body.balance_threshold;
+    if (body.balance_threshold_days !== undefined) updateData.balance_threshold_days = body.balance_threshold_days;
     if (body.security_alert !== undefined) updateData.security_alert = body.security_alert;
-    if (body.email !== undefined) {
-      if (!EMAIL_REGEX.test(body.email)) {
-        return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
-      }
-      updateData.email = body.email;
-    }
+    if (body.email !== undefined) updateData.email = body.email;
     if (body.active !== undefined) updateData.active = body.active;
 
     const alert = await prisma.validatorAlert.update({
@@ -128,34 +110,19 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json(alert);
-  } catch (error) {
-    console.error('Error updating validator alert:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return successResponse(alert);
+  },
+  { auth: true },
+);
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
-    }
-
-    const { id } = await params;
-    const existing = await getOwnedAlert(id, session.user.id);
-    if (!existing) {
-      return NextResponse.json({ error: 'Alert not found.' }, { status: 404 });
-    }
+export const DELETE = withApi(
+  async (_req, { session, params }) => {
+    const id = validateIdParam(params);
+    await assertOwnership(prisma.validatorAlert, id, session.user.id);
 
     await prisma.validatorAlert.delete({ where: { id } });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting validator alert:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return noContentResponse();
+  },
+  { auth: true },
+);

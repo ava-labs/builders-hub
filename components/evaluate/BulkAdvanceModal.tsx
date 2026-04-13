@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { X, ChevronRight } from "lucide-react";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -189,18 +190,10 @@ function BulkAdvanceModal({
 
     try {
       const ids = qualifying.map((q) => q.row.formDataId);
-      const res = await fetch("/api/evaluate/advance-stage", {
+      const data = await apiFetch<{ updated: number }>("/api/evaluate/advance-stage", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formDataIds: ids, stage: targetStage }),
+        body: { formDataIds: ids, stage: targetStage },
       });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Failed");
-      }
-
-      const data = await res.json();
       for (const q of qualifying) {
         onAdvanced(q.row.formDataId, targetStage);
       }

@@ -2,18 +2,23 @@ import { BadgeCategory } from "@/server/services/badge";
 import { Badge } from "@/types/badge";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { apiFetch } from "@/lib/api/client";
+
+interface AssignBadgeResult {
+  success: boolean;
+  message: string;
+  badge_id: string;
+  user_id: string;
+  badges: any[];
+}
 
 export const useBadgeAward = (courseId: string) => {
-  // Usar try-catch para manejar el error de SessionProvider
   let session = null;
   try {
     const { data } = useSession();
-
     session = data;
-  } catch (error) {
-    
-    // Si no hay SessionProvider, session será null
-    console.warn("SessionProvider not available, badge award will be disabled");
+  } catch {
+    // SessionProvider not available — badge award will be disabled
   }
 
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +26,6 @@ export const useBadgeAward = (courseId: string) => {
   const [isAwarded, setIsAwarded] = useState(false);
 
   const awardBadge = async () => {
-    // Si no hay sesión, no hacer nada
     if (!session?.user?.id) {
       setError("User not authenticated");
       return;
@@ -31,22 +35,15 @@ export const useBadgeAward = (courseId: string) => {
     setError(null);
 
     try {
-      const response = await fetch("/api/badge/assign", {
+      const data = await apiFetch<AssignBadgeResult>("/api/badge/assign", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        body: {
           courseId,
           userId: session.user.id,
           category: BadgeCategory.academy,
-        }),
+        },
       });
-      if (!response.ok) {
-        throw new Error(`Badge assignment failed: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.result?.success) {
+      if (data.success) {
         setIsAwarded(true);
       }
       return data;
@@ -59,9 +56,8 @@ export const useBadgeAward = (courseId: string) => {
   };
 
   const getBadge = async (courseId: string): Promise<Badge> => {
-    const response = await fetch(`/api/badge?course_id=${courseId}`);
-    const data = await response.json();
-    return data as Badge;
+    const data = await apiFetch<Badge>(`/api/badge?course_id=${courseId}`);
+    return data;
   };
 
   return {

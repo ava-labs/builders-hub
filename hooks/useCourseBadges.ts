@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { apiFetch } from '@/lib/api/client';
 import type { CourseCompletionEntry } from './useCourseCompletion';
+
+interface BadgeResult {
+  image_path?: string;
+}
 
 export function useCourseBadges(
   completionMap: Map<string, boolean>,
@@ -42,9 +47,9 @@ export function useCourseBadges(
       await Promise.all(
         completedEntries.map(async ({ nodeId, courseSlug }) => {
           try {
-            const response = await fetch(`/api/badge?course_id=${courseSlug}`);
-            if (!response.ok) return;
-            const data = await response.json();
+            const data = await apiFetch<BadgeResult | BadgeResult[]>(
+              `/api/badge?course_id=${courseSlug}`,
+            );
             const imagePath = Array.isArray(data)
               ? data[0]?.image_path
               : data?.image_path;

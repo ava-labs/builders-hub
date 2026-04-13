@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { apiFetch } from '@/lib/api/client';
 
 interface SafeAPIParams {
   chainId?: string;
@@ -8,12 +9,6 @@ interface SafeAPIParams {
   proposalData?: any;
   safeTxHash?: string;
   [key: string]: any;
-}
-
-interface SafeAPIResponse<T = any> {
-  success: boolean;
-  data: T;
-  error?: string;
 }
 
 /**
@@ -38,25 +33,10 @@ interface SafeAPIResponse<T = any> {
  */
 export const useSafeAPI = () => {
   const callSafeAPI = useCallback(async <T = any>(action: string, params: SafeAPIParams = {}): Promise<T> => {
-    const response = await fetch('/api/safe', {
+    return apiFetch<T>('/api/safe', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action, ...params }),
+      body: { action, ...params },
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP ${response.status}: Failed to ${action}`);
-    }
-
-    const result: SafeAPIResponse<T> = await response.json();
-    if (!result.success) {
-      throw new Error(result.error || `Failed to ${action}`);
-    }
-
-    return result.data;
   }, []);
 
   return { callSafeAPI };

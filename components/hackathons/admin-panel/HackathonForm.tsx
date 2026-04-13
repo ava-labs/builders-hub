@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form } from '@/components/ui/form';
 import type {  HackathonHeader } from '@/types/hackathons';
-import axios from 'axios';
+import { apiFetch } from '@/lib/api/client';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -333,12 +333,12 @@ export default function HackathonForm({
         ],
       };
       if (isEditing) {
-        await axios.put(`/api/hackathons/${initialData!.id}`, payload);
+        await apiFetch(`/api/hackathons/${initialData!.id}`, { method: 'PUT', body: payload });
         toast({
           title: 'Hackathon updated successfully',
         });
       } else {
-        await axios.post(`/api/hackathons/`, payload);
+        await apiFetch(`/api/hackathons/`, { method: 'POST', body: payload });
         toast({
           title: 'Hackathon created successfully',
         });

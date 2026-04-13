@@ -1,16 +1,12 @@
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { streamText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
+import { withApi } from '@/lib/api/with-api';
 import { captureAIGeneration, captureServerEvent } from '@/lib/posthog-server';
 import { searchCode, formatCodeContext } from '@/lib/code-search';
 import { embedQuery, analyzeQueryIntent } from '@/lib/embeddings';
-import { getAuthSession } from '@/lib/auth/authSession';
-import {
-  checkChatRateLimit,
-  getClientIP,
-  createRateLimitHeaders,
-  formatResetTime,
-} from '@/lib/chat/rateLimit';
 import { searchTools, formatToolsForContext } from '@/lib/chat/tools-search';
 import { docsTools, githubTools } from '@/lib/mcp/tools';
 import { componentNames, getCatalogDescription } from '@/lib/chat/catalog';
@@ -64,34 +60,32 @@ let urlsCacheTimestamp: number = 0;
 
 async function getDocumentation(): Promise<string> {
   const now = Date.now();
-  
+
   // Return cached docs if still valid
-  if (docsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+  if (docsCache && now - cacheTimestamp < CACHE_DURATION) {
     return docsCache;
   }
-  
+
   try {
     // Build the URL more reliably for both local and production
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   'http://localhost:3000';
-    
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000';
+
     const url = new URL('/llms-full.txt', baseUrl);
-    console.log(`Fetching documentation from: ${url.toString()}`);
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch documentation: ${response.status} ${response.statusText}`);
     }
-    
+
     docsCache = await response.text();
     cacheTimestamp = now;
-    
-    console.log(`Cached documentation: ${docsCache.length} characters`);
+
     return docsCache;
-  } catch (error) {
-    console.error('Error fetching documentation:', error);
+  } catch {
     // Return empty string to avoid breaking the chat
     return '';
   }
@@ -99,42 +93,42 @@ async function getDocumentation(): Promise<string> {
 
 async function getValidUrls(): Promise<string[]> {
   const now = Date.now();
-  
+
   // Return cached URLs if still valid
-  if (validUrlsCache && (now - urlsCacheTimestamp) < CACHE_DURATION) {
+  if (validUrlsCache && now - urlsCacheTimestamp < CACHE_DURATION) {
     return validUrlsCache;
   }
-  
+
   try {
     // Build the URL more reliably for both local and production
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   'http://localhost:3000';
-    
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000';
+
     const url = new URL('/static.json', baseUrl);
-    console.log(`Fetching valid URLs from: ${url.toString()}`);
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch URLs: ${response.status} ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     const urls = data.map((item: any) => item.url);
     validUrlsCache = urls;
     urlsCacheTimestamp = now;
-    
-    console.log(`Cached ${urls.length} valid URLs`);
+
     return urls;
-  } catch (error) {
-    console.error('Error fetching valid URLs:', error);
+  } catch {
     return [];
   }
 }
 
 // Use MCP server for better search quality — calls the handler directly (no HTTP round-trip)
-async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
+async function searchDocsViaMcp(
+  query: string,
+): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
   try {
     const toolResult = await docsTools.handlers.docs_search({ query, limit: 10 });
     const text = toolResult.content?.[0]?.text || '';
@@ -149,15 +143,13 @@ async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; tit
           title: match[1],
           url: match[2],
           source: match[3],
-          description: match[4]
+          description: match[4],
         });
       }
     }
 
-    console.log(`MCP search found ${results.length} results for "${query}"`);
     return results;
-  } catch (error) {
-    console.error('MCP search error:', error);
+  } catch {
     return [];
   }
 }
@@ -167,8 +159,7 @@ async function fetchPageContent(url: string): Promise<string | null> {
   try {
     const toolResult = await docsTools.handlers.docs_fetch({ url });
     return toolResult.content?.[0]?.text || null;
-  } catch (error) {
-    console.error('Page fetch error:', error);
+  } catch {
     return null;
   }
 }
@@ -177,14 +168,14 @@ function findRelevantSections(query: string, docs: string): string[] {
   if (!docs || !query) return [];
 
   // Split documentation into individual page sections
-  const sections = docs.split(/\n# /).filter(s => s.trim());
+  const sections = docs.split(/\n# /).filter((s) => s.trim());
 
   // Normalize query for better matching
   const queryLower = query.toLowerCase();
-  const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
+  const queryTerms = queryLower.split(/\s+/).filter((t) => t.length > 2);
 
   // Score each section based on relevance
-  const scoredSections = sections.map(section => {
+  const scoredSections = sections.map((section) => {
     const sectionLower = section.toLowerCase();
     let score = 0;
 
@@ -194,7 +185,7 @@ function findRelevantSections(query: string, docs: string): string[] {
     const titleLower = title.toLowerCase();
 
     // Score based on query terms appearing in title and content
-    queryTerms.forEach(term => {
+    queryTerms.forEach((term) => {
       if (titleLower.includes(term)) score += 20;
       if (sectionLower.includes(term)) score += 5;
     });
@@ -207,509 +198,550 @@ function findRelevantSections(query: string, docs: string): string[] {
 
   // Filter and sort by relevance
   const relevant = scoredSections
-    .filter(s => s.score > 0)
+    .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 8); // Top 8 most relevant sections
 
-  console.log(`Found ${relevant.length} relevant sections for query: "${query}"`);
-  if (relevant.length > 0) {
-    console.log('Top 3 sections:', relevant.slice(0, 3).map(r => ({ title: r.title, score: r.score })));
-  }
-
-  return relevant.map(r => r.section);
+  return relevant.map((r) => r.section);
 }
 
-export async function POST(req: Request) {
-  const { messages, id: visitorId, source } = await req.json();
-  const isBubble = source === 'bubble';
-  const startTime = Date.now();
-  const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+// withApi: auth intentionally omitted — public anonymous access supported
+// schema: not applicable — AI SDK streaming protocol with dynamic message format
+export const POST = withApi(
+  async (req: NextRequest) => {
+    const { messages, id: visitorId, source } = await req.json();
+    const isBubble = source === 'bubble';
+    const startTime = Date.now();
+    const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  // Check rate limit based on authentication status
-  const session = await getAuthSession();
-  const isAuthenticated = !!session?.user?.id;
-  const identifier = isAuthenticated ? session.user.id : getClientIP(req);
+    // Get the last user message to search for relevant docs
+    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
+    const lastUserMessageText = lastUserMessage ? getTextFromMessage(lastUserMessage) : '';
 
-  const rateLimitResult = checkChatRateLimit(identifier, isAuthenticated);
-
-  if (!rateLimitResult.allowed) {
-    const resetTimeFormatted = formatResetTime(rateLimitResult.resetTime);
-    return new Response(
-      JSON.stringify({
-        error: 'Rate limit exceeded',
-        message: isAuthenticated
-          ? `You've sent too many messages. Please try again ${resetTimeFormatted}.`
-          : `Message limit reached. Please sign in for higher limits or try again ${resetTimeFormatted}.`,
-        resetTime: rateLimitResult.resetTime.toISOString(),
-      }),
-      {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          ...createRateLimitHeaders(rateLimitResult),
+    // Validate message size before doing expensive context assembly
+    if (lastUserMessageText.length > MAX_MESSAGE_CHARS) {
+      return NextResponse.json(
+        {
+          error: 'Message too long',
+          message: `Your message is ${lastUserMessageText.length.toLocaleString()} characters, which exceeds the ${MAX_MESSAGE_CHARS.toLocaleString()} character limit. Please shorten it and try again.`,
         },
-      }
-    );
-  }
-
-  // Get the last user message to search for relevant docs
-  const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
-  const lastUserMessageText = lastUserMessage ? getTextFromMessage(lastUserMessage) : '';
-
-  // Validate message size before doing expensive context assembly
-  if (lastUserMessageText.length > MAX_MESSAGE_CHARS) {
-    return new Response(
-      JSON.stringify({
-        error: 'Message too long',
-        message: `Your message is ${lastUserMessageText.length.toLocaleString()} characters, which exceeds the ${MAX_MESSAGE_CHARS.toLocaleString()} character limit. Please shorten it and try again.`,
-      }),
-      { status: 413, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // Get valid URLs for link validation
-  const validUrls = await getValidUrls();
-
-  // Code search for DeepWiki-style functionality
-  let codeContext = '';
-  if (lastUserMessageText) {
-    const intent = analyzeQueryIntent(lastUserMessageText);
-    console.log(`[CodeSearch] Intent analysis: isCodeQuestion=${intent.isCodeQuestion}, keywords=${intent.keywords.join(',')}`);
-
-    if (intent.isCodeQuestion) {
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                       'http://localhost:3000';
-        console.log(`[CodeSearch] Using base URL: ${baseUrl}`);
-
-        console.log(`[CodeSearch] Generating query embedding...`);
-        const queryEmbedding = await embedQuery(lastUserMessageText);
-        console.log(`[CodeSearch] Embedding generated, length: ${queryEmbedding.length}`);
-
-        console.log(`[CodeSearch] Searching code...`);
-        const codeResults = await searchCode(queryEmbedding, baseUrl, {
-          topK: 5,
-          repos: intent.suggestedRepos,
-          minScore: 0.25, // Lowered from 0.35 - semantic search typically scores 0.2-0.6
-        });
-        console.log(`[CodeSearch] Search returned ${codeResults.length} results`);
-
-        // Track code search results for analytics
-        const avgScore = codeResults.length > 0
-          ? codeResults.reduce((sum, r) => sum + r.score, 0) / codeResults.length
-          : 0;
-        captureServerEvent('ai_chat_code_search', {
-          query: lastUserMessageText.slice(0, 200),
-          results_count: codeResults.length,
-          repos_searched: intent.suggestedRepos || ['all'],
-          top_score: codeResults[0]?.score || 0,
-          avg_score: avgScore,
-          is_code_question: true,
-          latency_ms: Date.now() - startTime,
-        }, visitorId);
-
-        if (codeResults.length > 0) {
-          codeContext = '\n\n=== RELEVANT CODE FROM AVA-LABS REPOSITORIES ===\n\n';
-          codeContext += '**IMPORTANT: When referencing this code, ALWAYS include the GitHub links provided below!**\n\n';
-          codeContext += formatCodeContext(codeResults);
-          codeContext += '\n\n=== END CODE CONTEXT ===\n';
-          console.log(`[CodeSearch] ✅ Added ${codeResults.length} code chunks to context`);
-          // Log the GitHub URLs being included
-          codeResults.forEach((r, i) => console.log(`[CodeSearch]   ${i+1}. ${r.url}`));
-        }
-      } catch (error) {
-        console.error('[CodeSearch] ❌ Failed:', error);
-      }
-    }
-  }
-
-  // Search for relevant YouTube videos from Avalanche channel
-  let youtubeContext = '';
-  if (lastUserMessageText) {
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                     'http://localhost:3000';
-
-      const youtubeResponse = await fetch(`${baseUrl}/api/youtube/search?q=${encodeURIComponent(lastUserMessageText)}&limit=3`);
-
-      if (youtubeResponse.ok) {
-        const youtubeData = await youtubeResponse.json();
-        if (youtubeData.videos && youtubeData.videos.length > 0) {
-          youtubeContext = '\n\n=== RELEVANT YOUTUBE VIDEOS ===\n\n';
-          youtubeContext += 'IMPORTANT: To show these videos, call render_component("YouTubeEmbed", { videoId: "...", title: "..." }) to embed them inline. Do NOT just paste a YouTube link.\n\n';
-          for (const video of youtubeData.videos) {
-            youtubeContext += `- **${video.title}** → render_component("YouTubeEmbed", { videoId: "${video.videoId}", title: "${video.title.replace(/"/g, '\\"')}" })\n`;
-            youtubeContext += `  Description: ${video.description.slice(0, 200)}...\n\n`;
-          }
-          youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
-          console.log(`Found ${youtubeData.videos.length} relevant YouTube videos`);
-
-          // Track YouTube search results
-          captureServerEvent('ai_chat_youtube_search', {
-            query: lastUserMessageText.slice(0, 200),
-            results_count: youtubeData.videos.length,
-          }, visitorId);
-        }
-      }
-    } catch (error) {
-      console.error('YouTube search error:', error);
-    }
-  }
-
-  // Search for relevant console tools
-  let toolsContext = '';
-  if (lastUserMessageText) {
-    const relevantTools = searchTools(lastUserMessageText, 5);
-    if (relevantTools.length > 0) {
-      toolsContext = '\n\n=== RELEVANT CONSOLE TOOLS ===\n\n';
-      toolsContext += 'IMPORTANT: For tools marked "RENDER INLINE", you MUST call the render_component tool to show the interactive UI directly in the chat. Do NOT just provide a link — render the component so the user can interact with it immediately.\n\n';
-      toolsContext += formatToolsForContext(relevantTools);
-      toolsContext += '\n\n=== END CONSOLE TOOLS ===\n';
-      console.log(`Found ${relevantTools.length} relevant console tools`);
-
-      // Track console tools search results
-      captureServerEvent('ai_chat_tools_search', {
-        query: lastUserMessageText.slice(0, 200),
-        results_count: relevantTools.length,
-        tool_names: relevantTools.map(t => t.title),
-      }, visitorId);
-    }
-  }
-
-  // Search for relevant L1 chains by name/slug
-  let l1Context = '';
-  if (lastUserMessageText) {
-    // Generic terms that appear in many chain names/slugs — skip these for matching
-    const l1Stopwords = new Set([
-      'chain', 'network', 'mainnet', 'testnet', 'the', 'how', 'what', 'where',
-      'show', 'stats', 'can', 'does', 'this', 'that', 'with', 'from', 'for',
-      'about', 'have', 'are', 'was', 'will', 'get', 'into', 'create', 'deploy',
-      'avalanche', 'there', 'between', 'tokens', 'token', 'transfer',
-    ]);
-    const queryLower = lastUserMessageText.toLowerCase();
-    const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2 && !l1Stopwords.has(t));
-
-    const matchingChains = (l1Chains as any[]).filter(chain => {
-      // Split name into words, require term to match start of a word
-      // (avoids "dex" matching "modex", "step" matching "Stephenville", etc.)
-      const nameWords = (chain.chainName || '').toLowerCase().split(/[\s()]+/);
-      // For slug, require the term to match a whole hyphen-delimited word
-      const slugWords = (chain.slug || '').toLowerCase().split('-');
-      return queryTerms.some(term =>
-        nameWords.some((w: string) => w.startsWith(term)) ||
-        slugWords.some((w: string) => w === term)
+        { status: 413 },
       );
-    }).slice(0, 10);
-
-    if (matchingChains.length > 0) {
-      l1Context = '\n\n=== MATCHING AVALANCHE L1 CHAINS ===\n';
-      l1Context += 'These are Avalanche L1 chains that match the query. Link to their stats page when relevant.\n\n';
-      for (const chain of matchingChains) {
-        l1Context += `- **${chain.chainName}** (${chain.slug})`;
-        if (chain.category) l1Context += ` [${chain.category}]`;
-        l1Context += ` → Stats: /stats/l1/${chain.slug}`;
-        if (chain.website) l1Context += ` | Website: ${chain.website}`;
-        l1Context += '\n';
-      }
-      l1Context += '\n=== END L1 CHAINS ===\n';
-      console.log(`Found ${matchingChains.length} matching L1 chains`);
-    }
-  }
-
-  let relevantContext = '';
-  let docSearchMethod: 'mcp' | 'fulltext' | 'none' = 'none';
-  if (lastUserMessage && lastUserMessageText) {
-    // Try MCP search first (better quality), fall back to full-text search
-    const mcpSearchStart = Date.now();
-    const mcpResults = await searchDocsViaMcp(lastUserMessageText);
-
-    if (mcpResults.length > 0) {
-      docSearchMethod = 'mcp';
-      // Fetch content for top 3 results
-      const contentPromises = mcpResults.slice(0, 3).map(async (result) => {
-        const content = await fetchPageContent(result.url);
-        return content ? `# ${result.title}\nURL: https://build.avax.network${result.url}\nSource: ${result.source}\n\n${content}` : null;
-      });
-
-      const contents = (await Promise.all(contentPromises)).filter(Boolean);
-
-      if (contents.length > 0) {
-        relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
-        relevantContext += 'Here are the most relevant pages from the Avalanche documentation:\n\n';
-        relevantContext += contents.join('\n\n---\n\n');
-        relevantContext += '\n\n=== END DOCUMENTATION ===\n';
-        const imgCount = (relevantContext.match(/!\[/g) || []).length;
-        console.log(`Using MCP search results: ${contents.length} pages, ${imgCount} images found`);
-      }
     }
 
-    // Fall back to full-text search if MCP didn't return results
-    if (!relevantContext) {
-      docSearchMethod = 'fulltext';
-      const docs = await getDocumentation();
-      const relevantSections = findRelevantSections(lastUserMessageText, docs);
+    // Get valid URLs for link validation
+    const validUrls = await getValidUrls();
 
-      if (relevantSections.length > 0) {
-        relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
-        relevantContext += 'Here are the most relevant sections from the Avalanche documentation:\n\n';
-        relevantContext += relevantSections.join('\n\n---\n\n');
-        relevantContext += '\n\n=== END DOCUMENTATION ===\n';
-        console.log(`Using fallback full-text search: ${relevantSections.length} sections`);
-      } else {
-        docSearchMethod = 'none';
-        relevantContext = '\n\n=== DOCUMENTATION ===\n';
-        relevantContext += 'No specific documentation sections matched this query.\n';
-        relevantContext += 'Provide general guidance and suggest relevant documentation sections if applicable.\n';
-        relevantContext += '=== END DOCUMENTATION ===\n';
-      }
-    }
+    // Code search for DeepWiki-style functionality
+    let codeContext = '';
+    if (lastUserMessageText) {
+      const intent = analyzeQueryIntent(lastUserMessageText);
 
-    // Track documentation search for analytics
-    captureServerEvent('ai_chat_docs_search', {
-      query: lastUserMessageText.slice(0, 200),
-      search_method: docSearchMethod,
-      results_count: docSearchMethod === 'mcp' ? mcpResults.length :
-                     docSearchMethod === 'fulltext' ? relevantContext.split('---').length : 0,
-      latency_ms: Date.now() - mcpSearchStart,
-    }, visitorId);
-  }
-  
-  // Add valid URLs list — only include URLs relevant to the query to avoid blowing up context
-  // Full list is 1,300+ URLs (~28K tokens) which leaves no room for large messages
-  let filteredUrls = validUrls;
-  if (lastUserMessageText && validUrls.length > 100) {
-    const queryTerms = lastUserMessageText.toLowerCase().split(/\s+/).filter(t => t.length > 2);
-    filteredUrls = validUrls.filter(url => {
-      const urlLower = url.toLowerCase();
-      return queryTerms.some(term => urlLower.includes(term));
-    });
-    // Always include top-level section URLs as anchors
-    const topLevel = validUrls.filter(url => (url.match(/\//g) || []).length <= 2);
-    filteredUrls = Array.from(new Set([...filteredUrls, ...topLevel])).slice(0, 200);
-  }
-  const validUrlsList = filteredUrls.length > 0
-    ? `\n\n=== VALID DOCUMENTATION URLS ===\nOnly use URLs from this list (filtered to relevant ones). For others, use the full path patterns you see in documentation context above.\n${filteredUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
-    : '';
+      if (intent.isCodeQuestion) {
+        try {
+          const baseUrl =
+            process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+              ? `https://${process.env.VERCEL_URL}`
+              : 'http://localhost:3000';
 
-  // Extract images from documentation context so the AI can embed them
-  const imageMatches = relevantContext.match(/!\[[^\]]*\]\([^)]+\)/g) || [];
-  // Format extracted images as render_component hints
-  const uniqueImages = Array.from(new Set(imageMatches)).slice(0, 6);
-  const imagesContext = uniqueImages.length > 0
-    ? `\n\n=== EMBEDDABLE IMAGES ===\nThese images are from the docs above. Show them with render_component("DocImage", { src, alt }):\n${uniqueImages.map(img => {
-        const match = img.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-        return match ? `- render_component("DocImage", { src: "${match[2]}", alt: "${match[1]}" })` : '';
-      }).filter(Boolean).join('\n')}\n=== END IMAGES ===\n`
-    : '';
+          const queryEmbedding = await embedQuery(lastUserMessageText);
 
-  // Build the full input for analytics
-  const userInput = lastUserMessageText;
+          const codeResults = await searchCode(queryEmbedding, baseUrl, {
+            topK: 5,
+            repos: intent.suggestedRepos,
+            minScore: 0.25,
+          });
 
-  // Budget the context: measure total size and truncate if needed
-  // Priority order: toolsContext > relevantContext > codeContext > youtubeContext > validUrlsList > imagesContext
-  const baseSystemPromptSize = 2000; // the static system prompt text
-  const conversationSize = messages.reduce((sum: number, m: any) => sum + getTextFromMessage(m).length, 0);
-  let contextBudget = MAX_SYSTEM_PROMPT_CHARS - baseSystemPromptSize;
+          // Track code search results for analytics
+          const avgScore =
+            codeResults.length > 0 ? codeResults.reduce((sum, r) => sum + r.score, 0) / codeResults.length : 0;
+          captureServerEvent(
+            'ai_chat_code_search',
+            {
+              query: lastUserMessageText.slice(0, 200),
+              results_count: codeResults.length,
+              repos_searched: intent.suggestedRepos || ['all'],
+              top_score: codeResults[0]?.score || 0,
+              avg_score: avgScore,
+              is_code_question: true,
+              latency_ms: Date.now() - startTime,
+            },
+            visitorId,
+          );
 
-  // Allocate context by priority, truncating lower-priority items if over budget
-  const contextParts: Array<{ key: string; text: string }> = [
-    { key: 'l1chains', text: l1Context },
-    { key: 'tools', text: toolsContext },
-    { key: 'docs', text: relevantContext },
-    { key: 'code', text: codeContext },
-    { key: 'youtube', text: youtubeContext },
-    { key: 'urls', text: validUrlsList },
-    { key: 'images', text: imagesContext },
-  ];
-
-  const budgetedContext: Record<string, string> = {};
-  for (const part of contextParts) {
-    if (part.text.length <= contextBudget) {
-      budgetedContext[part.key] = part.text;
-      contextBudget -= part.text.length;
-    } else if (contextBudget > 500) {
-      // Truncate this part to fit remaining budget
-      budgetedContext[part.key] = part.text.slice(0, contextBudget - 100) + '\n\n... [truncated for context limit] ...\n';
-      contextBudget = 0;
-    } else {
-      budgetedContext[part.key] = '';
-    }
-  }
-
-  console.log(`[Context Budget] conversation=${conversationSize} chars, system parts: ${contextParts.map(p => `${p.key}=${budgetedContext[p.key]?.length ?? 0}`).join(', ')}`);
-
-  // Convert UI messages to model messages format
-  // Handle both v6 (parts) and legacy (content) formats
-  const modelMessages = messages.map((m: any) => {
-    const text = getTextFromMessage(m);
-    return {
-      role: m.role,
-      content: text,
-    };
-  });
-
-  let result;
-  try {
-  result = streamText({
-    model: anthropic('claude-sonnet-4-6'),
-    messages: modelMessages,
-    onFinish: async ({ text, usage }) => {
-      // Capture LLM generation event to PostHog
-      const latencyMs = Date.now() - startTime;
-      await captureAIGeneration({
-        distinctId: visitorId,
-        model: 'claude-sonnet-4-6',
-        input: userInput,
-        output: text,
-        inputTokens: usage?.inputTokens,
-        outputTokens: usage?.outputTokens,
-        latencyMs,
-        traceId,
-      });
-    },
-    onStepFinish: async (step) => {
-      // Track tool usage for analytics
-      // In AI SDK v6, step contains toolCalls and toolResults arrays
-      const toolCalls = (step as any).toolCalls;
-      const toolResults = (step as any).toolResults;
-
-      if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
-        for (const toolCall of toolCalls) {
-          const toolResult = toolResults?.find((r: any) => r.toolCallId === toolCall.toolCallId);
-          const resultStr = toolResult?.result ? String(toolResult.result) : '';
-          const success = !resultStr.toLowerCase().includes('error');
-
-          captureServerEvent('ai_chat_tool_used', {
-            tool_name: toolCall.toolName,
-            tool_args: JSON.stringify(toolCall.args || {}).slice(0, 500),
-            success,
-            has_result: !!toolResult,
-          }, visitorId);
+          if (codeResults.length > 0) {
+            codeContext = '\n\n=== RELEVANT CODE FROM AVA-LABS REPOSITORIES ===\n\n';
+            codeContext +=
+              '**IMPORTANT: When referencing this code, ALWAYS include the GitHub links provided below!**\n\n';
+            codeContext += formatCodeContext(codeResults);
+            codeContext += '\n\n=== END CODE CONTEXT ===\n';
+          }
+        } catch {
+          // Code search failed — continue without code context
         }
       }
-    },
-    tools: {
-      github_search_code: tool({
-        description: 'Search for code in Avalanche repositories (avalanchego, icm-services, builders-hub). Use this to find functions, types, implementations, or understand how Avalanche works internally. Returns file paths and code snippets.',
-        inputSchema: z.object({
-          query: z.string().describe('Search query - keywords, function names, type names, or concepts'),
-          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub', 'all']).default('all').describe('Which repository to search'),
-          language: z.enum(['go', 'solidity', 'typescript', 'any']).default('any').describe('Filter by programming language'),
-        }),
-        execute: async (input) => {
-          const { query, repo, language } = input;
-          try {
-            const toolResult = await githubTools.handlers.github_search_code({ query, repo, language, perPage: 10 });
-            const text = toolResult.content?.[0]?.text;
-            return text ? JSON.parse(text) : { error: 'No result' };
-          } catch (error) {
-            return { error: 'Failed to search GitHub', details: String(error) };
-          }
-        },
-      }),
+    }
 
-      github_get_file: tool({
-        description: 'Read the contents of a specific file from avalanchego, icm-services, or builders-hub. Use this after searching to read the full code of a relevant file.',
-        inputSchema: z.object({
-          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub']).describe('Repository name'),
-          path: z.string().describe('File path within the repository (e.g., "vms/platformvm/block/builder.go")'),
-        }),
-        execute: async (input) => {
-          const { repo, path } = input;
-          try {
-            const toolResult = await githubTools.handlers.github_get_file({ repo, path, owner: 'ava-labs' });
-            const text = toolResult.content?.[0]?.text;
-            if (!text) return { error: 'No result' };
-            const data = JSON.parse(text);
-            if (data?.content && data.content.length > 15000) {
-              const content = data.content;
-              return {
-                ...data,
-                content: content.slice(0, 10000) + '\n\n... [truncated] ...\n\n' + content.slice(-5000),
-                truncated: true,
-              };
+    // Search for relevant YouTube videos from Avalanche channel
+    let youtubeContext = '';
+    if (lastUserMessageText) {
+      try {
+        const baseUrl =
+          process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : 'http://localhost:3000';
+
+        const youtubeResponse = await fetch(
+          `${baseUrl}/api/youtube/search?q=${encodeURIComponent(lastUserMessageText)}&limit=3`,
+        );
+
+        if (youtubeResponse.ok) {
+          const youtubeData = await youtubeResponse.json();
+          if (youtubeData.videos && youtubeData.videos.length > 0) {
+            youtubeContext = '\n\n=== RELEVANT YOUTUBE VIDEOS ===\n\n';
+            youtubeContext +=
+              'IMPORTANT: To show these videos, call render_component("YouTubeEmbed", { videoId: "...", title: "..." }) to embed them inline. Do NOT just paste a YouTube link.\n\n';
+            for (const video of youtubeData.videos) {
+              youtubeContext += `- **${video.title}** → render_component("YouTubeEmbed", { videoId: "${video.videoId}", title: "${video.title.replace(/"/g, '\\"')}" })\n`;
+              youtubeContext += `  Description: ${video.description.slice(0, 200)}...\n\n`;
             }
-            return data;
-          } catch (error) {
-            return { error: 'Failed to fetch file', details: String(error) };
-          }
-        },
-      }),
-
-      blockchain_lookup_transaction: blockchainLookupTransaction,
-      blockchain_lookup_address: blockchainLookupAddress,
-      blockchain_lookup_subnet: blockchainLookupSubnet,
-      blockchain_lookup_chain: blockchainLookupChain,
-      blockchain_lookup_validator: blockchainLookupValidator,
-
-      render_component: tool({
-        description: `Render an interactive UI component inline in the chat. Use this for console tools, metrics, and YouTube videos instead of linking. Components:\n${getCatalogDescription()}`,
-        inputSchema: z.object({
-          component: z.enum(componentNames).describe('The component to render'),
-          props: z.record(z.string(), z.any()).optional().default({}).describe('Props to pass to the component'),
-        }),
-        execute: async ({ component, props }) => {
-          return { component, props, rendered: true };
-        },
-      }),
-
-      suggest_followups: tool({
-        description: 'Suggest 2-3 natural follow-up questions the user might ask next. Call this AFTER answering every question. Questions should be specific to what was just discussed.',
-        inputSchema: z.object({
-          questions: z.array(z.string().describe('A short follow-up question (under 60 chars)')).min(2).max(3),
-        }),
-        execute: async ({ questions }) => ({ questions }),
-      }),
-
-      metrics_lookup: tool({
-        description: 'Look up real-time Avalanche network metrics: active addresses, transactions, TPS, validators, ICM messages, market cap. Call this before answering any metrics/stats question, then also render_component("OverviewStats") to show visually.',
-        inputSchema: z.object({
-          timeRange: z.enum(['day', 'week', 'month']).default('day'),
-        }),
-        execute: async ({ timeRange }) => {
-          try {
-            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-            const res = await fetch(`${baseUrl}/api/overview-stats?timeRange=${timeRange}`, {
-              headers: { 'Cache-Control': 'no-cache' },
-            });
-            if (!res.ok) return { error: `Failed to fetch metrics: ${res.status}` };
-            const data = await res.json();
-            const { aggregated, chains } = data;
-            const topChains = chains
-              .filter((c: any) => c.activeAddresses > 0)
-              .sort((a: any, b: any) => b.activeAddresses - a.activeAddresses)
-              .slice(0, 10);
-            return {
-              summary: {
-                totalActiveAddresses: aggregated.totalActiveAddresses,
-                totalTransactions: aggregated.totalTxCount,
-                averageTPS: aggregated.totalTps,
-                totalValidators: aggregated.totalValidators,
-                totalICMMessages: aggregated.totalICMMessages,
-                totalMarketCap: aggregated.totalMarketCap,
-                activeChains: aggregated.activeChains,
-                timeRange,
+            youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
+            // Track YouTube search results
+            captureServerEvent(
+              'ai_chat_youtube_search',
+              {
+                query: lastUserMessageText.slice(0, 200),
+                results_count: youtubeData.videos.length,
               },
-              topChainsByActiveAddresses: topChains.map((c: any) => ({
-                name: c.chainName,
-                chainId: c.chainId,
-                activeAddresses: c.activeAddresses,
-                transactions: c.txCount,
-                tps: c.tps,
-                validators: c.validatorCount,
-              })),
-            };
-          } catch (err) {
-            return { error: `Metrics lookup failed: ${(err as Error).message}` };
+              visitorId,
+            );
+          }
+        }
+      } catch {
+        // YouTube search failed — continue without video context
+      }
+    }
+
+    // Search for relevant console tools
+    let toolsContext = '';
+    if (lastUserMessageText) {
+      const relevantTools = searchTools(lastUserMessageText, 5);
+      if (relevantTools.length > 0) {
+        toolsContext = '\n\n=== RELEVANT CONSOLE TOOLS ===\n\n';
+        toolsContext +=
+          'IMPORTANT: For tools marked "RENDER INLINE", you MUST call the render_component tool to show the interactive UI directly in the chat. Do NOT just provide a link — render the component so the user can interact with it immediately.\n\n';
+        toolsContext += formatToolsForContext(relevantTools);
+        toolsContext += '\n\n=== END CONSOLE TOOLS ===\n';
+
+        // Track console tools search results
+        captureServerEvent(
+          'ai_chat_tools_search',
+          {
+            query: lastUserMessageText.slice(0, 200),
+            results_count: relevantTools.length,
+            tool_names: relevantTools.map((t) => t.title),
+          },
+          visitorId,
+        );
+      }
+    }
+
+    // Search for relevant L1 chains by name/slug
+    let l1Context = '';
+    if (lastUserMessageText) {
+      // Generic terms that appear in many chain names/slugs — skip these for matching
+      const l1Stopwords = new Set([
+        'chain',
+        'network',
+        'mainnet',
+        'testnet',
+        'the',
+        'how',
+        'what',
+        'where',
+        'show',
+        'stats',
+        'can',
+        'does',
+        'this',
+        'that',
+        'with',
+        'from',
+        'for',
+        'about',
+        'have',
+        'are',
+        'was',
+        'will',
+        'get',
+        'into',
+        'create',
+        'deploy',
+        'avalanche',
+        'there',
+        'between',
+        'tokens',
+        'token',
+        'transfer',
+      ]);
+      const queryLower = lastUserMessageText.toLowerCase();
+      const queryTerms = queryLower.split(/\s+/).filter((t) => t.length > 2 && !l1Stopwords.has(t));
+
+      const matchingChains = (l1Chains as any[])
+        .filter((chain) => {
+          // Split name into words, require term to match start of a word
+          // (avoids "dex" matching "modex", "step" matching "Stephenville", etc.)
+          const nameWords = (chain.chainName || '').toLowerCase().split(/[\s()]+/);
+          // For slug, require the term to match a whole hyphen-delimited word
+          const slugWords = (chain.slug || '').toLowerCase().split('-');
+          return queryTerms.some(
+            (term) => nameWords.some((w: string) => w.startsWith(term)) || slugWords.some((w: string) => w === term),
+          );
+        })
+        .slice(0, 10);
+
+      if (matchingChains.length > 0) {
+        l1Context = '\n\n=== MATCHING AVALANCHE L1 CHAINS ===\n';
+        l1Context += 'These are Avalanche L1 chains that match the query. Link to their stats page when relevant.\n\n';
+        for (const chain of matchingChains) {
+          l1Context += `- **${chain.chainName}** (${chain.slug})`;
+          if (chain.category) l1Context += ` [${chain.category}]`;
+          l1Context += ` → Stats: /stats/l1/${chain.slug}`;
+          if (chain.website) l1Context += ` | Website: ${chain.website}`;
+          l1Context += '\n';
+        }
+        l1Context += '\n=== END L1 CHAINS ===\n';
+      }
+    }
+
+    let relevantContext = '';
+    let docSearchMethod: 'mcp' | 'fulltext' | 'none' = 'none';
+    if (lastUserMessage && lastUserMessageText) {
+      // Try MCP search first (better quality), fall back to full-text search
+      const mcpSearchStart = Date.now();
+      const mcpResults = await searchDocsViaMcp(lastUserMessageText);
+
+      if (mcpResults.length > 0) {
+        docSearchMethod = 'mcp';
+        // Fetch content for top 3 results
+        const contentPromises = mcpResults.slice(0, 3).map(async (result) => {
+          const content = await fetchPageContent(result.url);
+          return content
+            ? `# ${result.title}\nURL: https://build.avax.network${result.url}\nSource: ${result.source}\n\n${content}`
+            : null;
+        });
+
+        const contents = (await Promise.all(contentPromises)).filter(Boolean);
+
+        if (contents.length > 0) {
+          relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
+          relevantContext += 'Here are the most relevant pages from the Avalanche documentation:\n\n';
+          relevantContext += contents.join('\n\n---\n\n');
+          relevantContext += '\n\n=== END DOCUMENTATION ===\n';
+        }
+      }
+
+      // Fall back to full-text search if MCP didn't return results
+      if (!relevantContext) {
+        docSearchMethod = 'fulltext';
+        const docs = await getDocumentation();
+        const relevantSections = findRelevantSections(lastUserMessageText, docs);
+
+        if (relevantSections.length > 0) {
+          relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
+          relevantContext += 'Here are the most relevant sections from the Avalanche documentation:\n\n';
+          relevantContext += relevantSections.join('\n\n---\n\n');
+          relevantContext += '\n\n=== END DOCUMENTATION ===\n';
+        } else {
+          docSearchMethod = 'none';
+          relevantContext = '\n\n=== DOCUMENTATION ===\n';
+          relevantContext += 'No specific documentation sections matched this query.\n';
+          relevantContext += 'Provide general guidance and suggest relevant documentation sections if applicable.\n';
+          relevantContext += '=== END DOCUMENTATION ===\n';
+        }
+      }
+
+      // Track documentation search for analytics
+      captureServerEvent(
+        'ai_chat_docs_search',
+        {
+          query: lastUserMessageText.slice(0, 200),
+          search_method: docSearchMethod,
+          results_count:
+            docSearchMethod === 'mcp'
+              ? mcpResults.length
+              : docSearchMethod === 'fulltext'
+                ? relevantContext.split('---').length
+                : 0,
+          latency_ms: Date.now() - mcpSearchStart,
+        },
+        visitorId,
+      );
+    }
+
+    // Add valid URLs list — only include URLs relevant to the query to avoid blowing up context
+    // Full list is 1,300+ URLs (~28K tokens) which leaves no room for large messages
+    let filteredUrls = validUrls;
+    if (lastUserMessageText && validUrls.length > 100) {
+      const queryTerms = lastUserMessageText
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length > 2);
+      filteredUrls = validUrls.filter((url) => {
+        const urlLower = url.toLowerCase();
+        return queryTerms.some((term) => urlLower.includes(term));
+      });
+      // Always include top-level section URLs as anchors
+      const topLevel = validUrls.filter((url) => (url.match(/\//g) || []).length <= 2);
+      filteredUrls = Array.from(new Set([...filteredUrls, ...topLevel])).slice(0, 200);
+    }
+    const validUrlsList =
+      filteredUrls.length > 0
+        ? `\n\n=== VALID DOCUMENTATION URLS ===\nOnly use URLs from this list (filtered to relevant ones). For others, use the full path patterns you see in documentation context above.\n${filteredUrls.map((url) => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
+        : '';
+
+    // Extract images from documentation context so the AI can embed them
+    const imageMatches = relevantContext.match(/!\[[^\]]*\]\([^)]+\)/g) || [];
+    // Format extracted images as render_component hints
+    const uniqueImages = Array.from(new Set(imageMatches)).slice(0, 6);
+    const imagesContext =
+      uniqueImages.length > 0
+        ? `\n\n=== EMBEDDABLE IMAGES ===\nThese images are from the docs above. Show them with render_component("DocImage", { src, alt }):\n${uniqueImages
+            .map((img) => {
+              const match = img.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+              return match ? `- render_component("DocImage", { src: "${match[2]}", alt: "${match[1]}" })` : '';
+            })
+            .filter(Boolean)
+            .join('\n')}\n=== END IMAGES ===\n`
+        : '';
+
+    // Build the full input for analytics
+    const userInput = lastUserMessageText;
+
+    // Budget the context: measure total size and truncate if needed
+    // Priority order: toolsContext > relevantContext > codeContext > youtubeContext > validUrlsList > imagesContext
+    const baseSystemPromptSize = 2000; // the static system prompt text
+    const _conversationSize = messages.reduce((sum: number, m: any) => sum + getTextFromMessage(m).length, 0);
+    let contextBudget = MAX_SYSTEM_PROMPT_CHARS - baseSystemPromptSize;
+
+    // Allocate context by priority, truncating lower-priority items if over budget
+    const contextParts: Array<{ key: string; text: string }> = [
+      { key: 'l1chains', text: l1Context },
+      { key: 'tools', text: toolsContext },
+      { key: 'docs', text: relevantContext },
+      { key: 'code', text: codeContext },
+      { key: 'youtube', text: youtubeContext },
+      { key: 'urls', text: validUrlsList },
+      { key: 'images', text: imagesContext },
+    ];
+
+    const budgetedContext: Record<string, string> = {};
+    for (const part of contextParts) {
+      if (part.text.length <= contextBudget) {
+        budgetedContext[part.key] = part.text;
+        contextBudget -= part.text.length;
+      } else if (contextBudget > 500) {
+        // Truncate this part to fit remaining budget
+        budgetedContext[part.key] =
+          part.text.slice(0, contextBudget - 100) + '\n\n... [truncated for context limit] ...\n';
+        contextBudget = 0;
+      } else {
+        budgetedContext[part.key] = '';
+      }
+    }
+
+    // Convert UI messages to model messages format
+    // Handle both v6 (parts) and legacy (content) formats
+    const modelMessages = messages.map((m: any) => {
+      const text = getTextFromMessage(m);
+      return {
+        role: m.role,
+        content: text,
+      };
+    });
+
+    let result;
+    try {
+      result = streamText({
+        model: anthropic('claude-sonnet-4-6'),
+        messages: modelMessages,
+        onFinish: async ({ text, usage }) => {
+          // Capture LLM generation event to PostHog
+          const latencyMs = Date.now() - startTime;
+          await captureAIGeneration({
+            distinctId: visitorId,
+            model: 'claude-sonnet-4-6',
+            input: userInput,
+            output: text,
+            inputTokens: usage?.inputTokens,
+            outputTokens: usage?.outputTokens,
+            latencyMs,
+            traceId,
+          });
+        },
+        onStepFinish: async (step) => {
+          // Track tool usage for analytics
+          // In AI SDK v6, step contains toolCalls and toolResults arrays
+          const toolCalls = (step as any).toolCalls;
+          const toolResults = (step as any).toolResults;
+
+          if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
+            for (const toolCall of toolCalls) {
+              const toolResult = toolResults?.find((r: any) => r.toolCallId === toolCall.toolCallId);
+              const resultStr = toolResult?.result ? String(toolResult.result) : '';
+              const success = !resultStr.toLowerCase().includes('error');
+
+              captureServerEvent(
+                'ai_chat_tool_used',
+                {
+                  tool_name: toolCall.toolName,
+                  tool_args: JSON.stringify(toolCall.args || {}).slice(0, 500),
+                  success,
+                  has_result: !!toolResult,
+                },
+                visitorId,
+              );
+            }
           }
         },
-      }),
-    },
-    stopWhen: stepCountIs(15),
-    system: `${isBubble ? `## Bubble Mode — STRICT
+        tools: {
+          github_search_code: tool({
+            description:
+              'Search for code in Avalanche repositories (avalanchego, icm-services, builders-hub). Use this to find functions, types, implementations, or understand how Avalanche works internally. Returns file paths and code snippets.',
+            inputSchema: z.object({
+              query: z.string().describe('Search query - keywords, function names, type names, or concepts'),
+              repo: z
+                .enum(['avalanchego', 'icm-services', 'builders-hub', 'all'])
+                .default('all')
+                .describe('Which repository to search'),
+              language: z
+                .enum(['go', 'solidity', 'typescript', 'any'])
+                .default('any')
+                .describe('Filter by programming language'),
+            }),
+            execute: async (input) => {
+              const { query, repo, language } = input;
+              try {
+                const toolResult = await githubTools.handlers.github_search_code({
+                  query,
+                  repo,
+                  language,
+                  perPage: 10,
+                });
+                const text = toolResult.content?.[0]?.text;
+                return text ? JSON.parse(text) : { error: 'No result' };
+              } catch (error) {
+                return { error: 'Failed to search GitHub', details: String(error) };
+              }
+            },
+          }),
+
+          github_get_file: tool({
+            description:
+              'Read the contents of a specific file from avalanchego, icm-services, or builders-hub. Use this after searching to read the full code of a relevant file.',
+            inputSchema: z.object({
+              repo: z.enum(['avalanchego', 'icm-services', 'builders-hub']).describe('Repository name'),
+              path: z.string().describe('File path within the repository (e.g., "vms/platformvm/block/builder.go")'),
+            }),
+            execute: async (input) => {
+              const { repo, path } = input;
+              try {
+                const toolResult = await githubTools.handlers.github_get_file({ repo, path, owner: 'ava-labs' });
+                const text = toolResult.content?.[0]?.text;
+                if (!text) return { error: 'No result' };
+                const data = JSON.parse(text);
+                if (data?.content && data.content.length > 15000) {
+                  const content = data.content;
+                  return {
+                    ...data,
+                    content: content.slice(0, 10000) + '\n\n... [truncated] ...\n\n' + content.slice(-5000),
+                    truncated: true,
+                  };
+                }
+                return data;
+              } catch (error) {
+                return { error: 'Failed to fetch file', details: String(error) };
+              }
+            },
+          }),
+
+          blockchain_lookup_transaction: blockchainLookupTransaction,
+          blockchain_lookup_address: blockchainLookupAddress,
+          blockchain_lookup_subnet: blockchainLookupSubnet,
+          blockchain_lookup_chain: blockchainLookupChain,
+          blockchain_lookup_validator: blockchainLookupValidator,
+
+          render_component: tool({
+            description: `Render an interactive UI component inline in the chat. Use this for console tools, metrics, and YouTube videos instead of linking. Components:\n${getCatalogDescription()}`,
+            inputSchema: z.object({
+              component: z.enum(componentNames).describe('The component to render'),
+              props: z.record(z.string(), z.any()).optional().default({}).describe('Props to pass to the component'),
+            }),
+            execute: async ({ component, props }) => {
+              return { component, props, rendered: true };
+            },
+          }),
+
+          suggest_followups: tool({
+            description:
+              'Suggest 2-3 natural follow-up questions the user might ask next. Call this AFTER answering every question. Questions should be specific to what was just discussed.',
+            inputSchema: z.object({
+              questions: z.array(z.string().describe('A short follow-up question (under 60 chars)')).min(2).max(3),
+            }),
+            execute: async ({ questions }) => ({ questions }),
+          }),
+
+          metrics_lookup: tool({
+            description:
+              'Look up real-time Avalanche network metrics: active addresses, transactions, TPS, validators, ICM messages, market cap. Call this before answering any metrics/stats question, then also render_component("OverviewStats") to show visually.',
+            inputSchema: z.object({
+              timeRange: z.enum(['day', 'week', 'month']).default('day'),
+            }),
+            execute: async ({ timeRange }) => {
+              try {
+                const baseUrl =
+                  process.env.NEXT_PUBLIC_SITE_URL ||
+                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                const res = await fetch(`${baseUrl}/api/overview-stats?timeRange=${timeRange}`, {
+                  headers: { 'Cache-Control': 'no-cache' },
+                });
+                if (!res.ok) return { error: `Failed to fetch metrics: ${res.status}` };
+                const data = await res.json();
+                const { aggregated, chains } = data;
+                const topChains = chains
+                  .filter((c: any) => c.activeAddresses > 0)
+                  .sort((a: any, b: any) => b.activeAddresses - a.activeAddresses)
+                  .slice(0, 10);
+                return {
+                  summary: {
+                    totalActiveAddresses: aggregated.totalActiveAddresses,
+                    totalTransactions: aggregated.totalTxCount,
+                    averageTPS: aggregated.totalTps,
+                    totalValidators: aggregated.totalValidators,
+                    totalICMMessages: aggregated.totalICMMessages,
+                    totalMarketCap: aggregated.totalMarketCap,
+                    activeChains: aggregated.activeChains,
+                    timeRange,
+                  },
+                  topChainsByActiveAddresses: topChains.map((c: any) => ({
+                    name: c.chainName,
+                    chainId: c.chainId,
+                    activeAddresses: c.activeAddresses,
+                    transactions: c.txCount,
+                    tps: c.tps,
+                    validators: c.validatorCount,
+                  })),
+                };
+              } catch (err) {
+                return { error: `Metrics lookup failed: ${(err as Error).message}` };
+              }
+            },
+          }),
+        },
+        stopWhen: stepCountIs(15),
+        system: `${
+          isBubble
+            ? `## Bubble Mode — STRICT
 You are the quick-help bubble on the Builders Hub. Your job is to help users FIND things fast.
 - MAX 2-3 sentences per answer. No walls of text.
 - Always link to the ACTUAL relevant page (e.g. [Network Stats](/stats), [Create an L1](/console/create-l1), [ICM Docs](/docs/cross-chain/icm/overview)). Never use /chat as a link destination for content — link to where the thing actually lives.
@@ -718,7 +750,9 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - End with: "Want to dig deeper? [Continue in full chat](/chat)" — this is the ONLY acceptable use of a /chat link.
 - Format links as markdown: [text](url)
 
-` : ''}You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
+`
+            : ''
+        }You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
 
 ## CRITICAL: Always produce a text response
 **You MUST write a text answer to the user's question.** Never spend all your steps on tool calls without producing text. If tools fail or return empty results, answer from your knowledge and the documentation context below. A text response is mandatory — tool calls are supplementary.
@@ -769,17 +803,23 @@ ${budgetedContext['images'] ?? ''}
 ${budgetedContext['code'] ?? ''}
 
 ${budgetedContext['urls'] ?? ''}`,
-  });
-  } catch (error) {
-    console.error('[Chat] streamText failed:', error);
-    return new Response(
-      JSON.stringify({
-        error: 'Chat failed',
-        message: 'Something went wrong processing your message. Please try a shorter message or start a new conversation.',
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+      });
+    } catch {
+      return NextResponse.json(
+        {
+          error: 'Chat failed',
+          message:
+            'Something went wrong processing your message. Please try a shorter message or start a new conversation.',
+        },
+        { status: 500 },
+      );
+    }
 
-  return result.toUIMessageStreamResponse();
-}
+    // Stream response -- cast to NextResponse since toUIMessageStreamResponse returns a
+    // standard Response which Next.js accepts but withApi types as NextResponse.
+    return result.toUIMessageStreamResponse() as unknown as NextResponse;
+  },
+  {
+    rateLimit: { windowMs: 3_600_000, maxRequests: 200, identifier: 'ip' },
+  },
+);

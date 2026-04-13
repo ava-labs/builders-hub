@@ -12,7 +12,7 @@ import HackathonCard from "./HackathonCard";
 import { HackathonHeader, HackathonsFilters } from "@/types/hackathons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { Separator } from "../ui/separator";
 import { useSession } from "next-auth/react";
 import {
@@ -158,11 +158,9 @@ export default function Events({
     async function fetchEvents() {
       try {
         const queryString = buildQueryString(filters, searchQuery, pageSize, pastEventType);
-        const { data } = await axios.get(
+        const data = await apiFetch<{ hackathons: HackathonHeader[]; total: number }>(
           `/api/hackathons?${queryString}&status=ENDED`,
-          {
-            signal,
-          }
+          { signal },
         );
 
         if (!signal.aborted) {

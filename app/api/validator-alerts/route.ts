@@ -1,7 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthSession } from '@/lib/auth/authSession';
+import { z } from 'zod';
+import {
+  withApi,
+  ValidationError,
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+  RateLimitError,
+  successResponse,
+} from '@/lib/api';
+import { EMAIL_REGEX, NODE_ID_REGEX } from '@/lib/api/constants';
 import { prisma } from '@/prisma/prisma';
-import type { CreateAlertRequest, ValidatorP2P, L1ValidatorData } from '@/types/validator-alerts';
+import type { ValidatorP2P, L1ValidatorData } from '@/types/validator-alerts';
 import {
   fetchLatestRelease,
   checkSingleAlert,
@@ -11,19 +20,38 @@ import {
 } from '@/server/services/validator-alert-check';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 
-const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
 
-export async function GET() {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
-    }
+const createAlertSchema = z.object({
+  node_id: z
+    .string()
+    .max(60)
+    .regex(NODE_ID_REGEX, 'Invalid NodeID format. Must start with "NodeID-" followed by a valid base58 string.'),
+  subnet_id: z.string().optional(),
+  label: z.string().optional(),
+  uptime_alert: z.boolean().optional(),
+  uptime_threshold: z.number().min(0).max(100, 'Uptime threshold must be between 0 and 100.').optional(),
+  version_alert: z.boolean().optional(),
+  expiry_alert: z.boolean().optional(),
+  expiry_days: z.number().int().min(1).max(365, 'Expiry days must be between 1 and 365.').optional(),
+  balance_alert: z.boolean().optional(),
+  balance_threshold: z.number().positive('Balance threshold must be greater than 0.').finite().optional(),
+  balance_threshold_days: z
+    .number()
+    .int()
+    .min(1)
+    .max(365, 'Balance threshold days must be between 1 and 365.')
+    .optional(),
+  security_alert: z.boolean().optional(),
+  email: z.string().regex(EMAIL_REGEX, 'Invalid email address.').optional(),
+});
 
+type CreateAlertBody = z.infer<typeof createAlertSchema>;
+
+export const GET = withApi(
+  async (_req, { session }) => {
     const alerts = await prisma.validatorAlert.findMany({
       where: { user_id: session.user.id },
       include: {
@@ -35,52 +63,19 @@ export async function GET() {
       orderBy: { created_at: 'desc' },
     });
 
-    return NextResponse.json(alerts);
-  } catch (error) {
-    console.error('Error fetching validator alerts:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return successResponse(alerts);
+  },
+  { auth: true },
+);
 
-export async function POST(req: NextRequest) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
-    }
-
-    const body: CreateAlertRequest = await req.json();
-
-    if (!body.node_id || !NODE_ID_REGEX.test(body.node_id)) {
-      return NextResponse.json(
-        { error: 'Invalid NodeID format. Must start with "NodeID-" followed by a valid base58 string.' },
-        { status: 400 }
-      );
-    }
-
-    // Validate optional numeric fields
-    if (body.uptime_threshold !== undefined && (body.uptime_threshold < 0 || body.uptime_threshold > 100)) {
-      return NextResponse.json({ error: 'Uptime threshold must be between 0 and 100.' }, { status: 400 });
-    }
-    if (body.expiry_days !== undefined && (body.expiry_days < 1 || body.expiry_days > 365)) {
-      return NextResponse.json({ error: 'Expiry days must be between 1 and 365.' }, { status: 400 });
-    }
-    if (body.balance_threshold !== undefined && (!Number.isFinite(body.balance_threshold) || body.balance_threshold <= 0)) {
-      return NextResponse.json({ error: 'Balance threshold must be greater than 0.' }, { status: 400 });
-    }
-    if (body.balance_threshold_days !== undefined && (!Number.isInteger(body.balance_threshold_days) || body.balance_threshold_days < 1 || body.balance_threshold_days > 365)) {
-      return NextResponse.json({ error: 'Balance threshold days must be between 1 and 365.' }, { status: 400 });
-    }
-    if (body.email !== undefined && !EMAIL_REGEX.test(body.email)) {
-      return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
-    }
-
+export const POST = withApi<CreateAlertBody>(
+  async (req, { session, body }) => {
     const email = body.email ?? session.user.email;
     if (!email || !EMAIL_REGEX.test(email)) {
-      return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
+      throw new ValidationError('A valid email address is required.');
     }
 
-    // Verify the node exists — check Primary Network and/or L1 depending on request.
+    // Verify the node exists -- check Primary Network and/or L1 depending on request.
     let detectedSubnetId = 'primary';
     let validators: ValidatorP2P[] = [];
     let primaryLookupAvailable = false;
@@ -91,9 +86,10 @@ export async function POST(req: NextRequest) {
       primaryLookupAvailable = true;
     }
 
-    const isPrimaryValidator = primaryLookupAvailable && Array.isArray(validators) && validators.some(
-      (v: { node_id: string }) => v.node_id === body.node_id
-    );
+    const isPrimaryValidator =
+      primaryLookupAvailable &&
+      Array.isArray(validators) &&
+      validators.some((v: { node_id: string }) => v.node_id === body.node_id);
     const preferredSubnetId = body.subnet_id?.trim();
     const wantsPrimaryOnly = preferredSubnetId === 'primary';
     const wantsSpecificL1 = preferredSubnetId && preferredSubnetId !== 'primary';
@@ -101,14 +97,13 @@ export async function POST(req: NextRequest) {
 
     if (wantsPrimaryOnly) {
       if (!primaryLookupAvailable) {
-        return NextResponse.json({ error: 'Primary Network validator lookup is currently unavailable. Please try again.' }, { status: 503 });
+        throw new BadRequestError('Primary Network validator lookup is currently unavailable. Please try again.');
       }
       if (!isPrimaryValidator) {
-        return NextResponse.json({ error: `Validator ${body.node_id} not found in the Primary Network active validator set.` }, { status: 404 });
+        throw new NotFoundError(`Validator ${body.node_id} not found in the Primary Network active validator set.`);
       }
       detectedSubnetId = 'primary';
     } else if (wantsSpecificL1 || !isPrimaryValidator) {
-      // Search L1(s) when caller requested an L1, or when validator was not found on Primary.
       const subnetIds = wantsSpecificL1 ? [preferredSubnetId] : getAllMainnetSubnetIds();
 
       for (const subnetId of subnetIds) {
@@ -116,9 +111,9 @@ export async function POST(req: NextRequest) {
           const l1Res = await fetch(`${req.nextUrl.origin}/api/chain-validators/${subnetId}`);
           if (!l1Res.ok) continue;
           const l1Data = await l1Res.json();
-          const match = Array.isArray(l1Data.validators) && l1Data.validators.some(
-            (v: { nodeId: string }) => v.nodeId === body.node_id
-          );
+          const match =
+            Array.isArray(l1Data.validators) &&
+            l1Data.validators.some((v: { nodeId: string }) => v.nodeId === body.node_id);
           if (match) {
             detectedSubnetId = subnetId;
             foundOnL1 = true;
@@ -131,21 +126,14 @@ export async function POST(req: NextRequest) {
 
       if (!foundOnL1) {
         if (wantsSpecificL1) {
-          return NextResponse.json(
-            { error: `Validator ${body.node_id} not found in L1 subnet ${preferredSubnetId}.` },
-            { status: 404 }
-          );
+          throw new NotFoundError(`Validator ${body.node_id} not found in L1 subnet ${preferredSubnetId}.`);
         }
         if (!primaryLookupAvailable) {
-          return NextResponse.json(
-            { error: 'Primary validator lookup is currently unavailable and the validator was not found on known L1s.' },
-            { status: 503 }
+          throw new BadRequestError(
+            'Primary validator lookup is currently unavailable and the validator was not found on known L1s.',
           );
         }
-        return NextResponse.json(
-          { error: `Validator ${body.node_id} not found in the Primary Network or any known L1.` },
-          { status: 404 }
-        );
+        throw new NotFoundError(`Validator ${body.node_id} not found in the Primary Network or any known L1.`);
       }
     } else {
       detectedSubnetId = 'primary';
@@ -155,62 +143,69 @@ export async function POST(req: NextRequest) {
     const primaryValidator = validators.find((v: ValidatorP2P) => v.node_id === body.node_id) ?? null;
 
     if (!isL1 && body.balance_alert === true) {
-      return NextResponse.json({ error: 'Balance alerts are only available for L1 validators.' }, { status: 400 });
+      throw new BadRequestError('Balance alerts are only available for L1 validators.');
     }
 
     // Rate limiting + duplicate check + create in a serializable transaction
-    // to prevent concurrent requests from bypassing limits
     const userId = session.user.id;
-    const txResult = await prisma.$transaction(async (tx) => {
-      const existingCount = await tx.validatorAlert.count({
-        where: { user_id: userId },
-      });
-      if (existingCount >= MAX_ALERTS_PER_USER) {
-        return { error: `You can have at most ${MAX_ALERTS_PER_USER} validator alerts.`, status: 429 };
-      }
+    const txResult = await prisma.$transaction(
+      async (tx) => {
+        const existingCount = await tx.validatorAlert.count({
+          where: { user_id: userId },
+        });
+        if (existingCount >= MAX_ALERTS_PER_USER) {
+          return {
+            error: `You can have at most ${MAX_ALERTS_PER_USER} validator alerts.`,
+            kind: 'rate_limit' as const,
+          };
+        }
 
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      const recentCreates = await tx.validatorAlert.count({
-        where: { user_id: userId, created_at: { gte: oneHourAgo } },
-      });
-      if (recentCreates >= MAX_CREATES_PER_HOUR) {
-        return { error: 'Too many alerts created recently. Please try again later.', status: 429 };
-      }
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const recentCreates = await tx.validatorAlert.count({
+          where: { user_id: userId, created_at: { gte: oneHourAgo } },
+        });
+        if (recentCreates >= MAX_CREATES_PER_HOUR) {
+          return { error: 'Too many alerts created recently. Please try again later.', kind: 'rate_limit' as const };
+        }
 
-      const existing = await tx.validatorAlert.findUnique({
-        where: { user_id_node_id_subnet_id: { user_id: userId, node_id: body.node_id, subnet_id: detectedSubnetId } },
-      });
-      if (existing) {
-        return { error: 'You already have an alert configured for this validator.', status: 409 };
-      }
+        const existing = await tx.validatorAlert.findUnique({
+          where: { user_id_node_id_subnet_id: { user_id: userId, node_id: body.node_id, subnet_id: detectedSubnetId } },
+        });
+        if (existing) {
+          return { error: 'You already have an alert configured for this validator.', kind: 'conflict' as const };
+        }
 
-      const alert = await tx.validatorAlert.create({
-        data: {
-          user_id: userId,
-          node_id: body.node_id,
-          subnet_id: detectedSubnetId,
-          label: body.label ?? null,
-          // L1 validators don't have uptime or fixed expiry
-          uptime_alert: isL1 ? false : (body.uptime_alert ?? true),
-          uptime_threshold: body.uptime_threshold ?? 95,
-          version_alert: body.version_alert ?? true,
-          expiry_alert: isL1 ? false : (body.expiry_alert ?? true),
-          expiry_days: body.expiry_days ?? 7,
-          balance_alert: isL1 ? (body.balance_alert ?? true) : false,
-          balance_threshold: body.balance_threshold ?? 5_000_000_000,
-          balance_threshold_days: body.balance_threshold_days ?? 30,
-          security_alert: isL1 ? false : (body.security_alert ?? false),
-          last_known_ip: !isL1 ? (primaryValidator?.public_ip ?? null) : null,
-          email,
-        },
-        include: { alert_logs: true },
-      });
+        const alert = await tx.validatorAlert.create({
+          data: {
+            user_id: userId,
+            node_id: body.node_id,
+            subnet_id: detectedSubnetId,
+            label: body.label ?? null,
+            uptime_alert: isL1 ? false : (body.uptime_alert ?? true),
+            uptime_threshold: body.uptime_threshold ?? 95,
+            version_alert: body.version_alert ?? true,
+            expiry_alert: isL1 ? false : (body.expiry_alert ?? true),
+            expiry_days: body.expiry_days ?? 7,
+            balance_alert: isL1 ? (body.balance_alert ?? true) : false,
+            balance_threshold: body.balance_threshold ?? 5_000_000_000,
+            balance_threshold_days: body.balance_threshold_days ?? 30,
+            security_alert: isL1 ? false : (body.security_alert ?? false),
+            last_known_ip: !isL1 ? (primaryValidator?.public_ip ?? null) : null,
+            email,
+          },
+          include: { alert_logs: true },
+        });
 
-      return { alert };
-    }, { isolationLevel: 'Serializable' });
+        return { alert };
+      },
+      { isolationLevel: 'Serializable' },
+    );
 
     if ('error' in txResult) {
-      return NextResponse.json({ error: txResult.error }, { status: txResult.status });
+      if (txResult.kind === 'conflict') {
+        throw new ConflictError(txResult.error);
+      }
+      throw new RateLimitError(txResult.error);
     }
 
     // Run immediate checks + welcome email after creation.
@@ -228,9 +223,8 @@ export async function POST(req: NextRequest) {
           await checkL1Alert(txResult.alert, l1ValidatorForWelcome, latestRelease);
         }
       }
-    } catch (err) {
-      // Non-fatal — the cron will catch it on the next run
-      console.error('Immediate alert check failed (non-fatal):', err);
+    } catch {
+      // Non-fatal -- the cron will catch it on the next run
     }
 
     try {
@@ -245,8 +239,8 @@ export async function POST(req: NextRequest) {
           latestRelease,
         });
       }
-    } catch (err) {
-      console.error('Welcome email send failed (non-fatal):', err);
+    } catch {
+      // Non-fatal
     }
 
     const responseAlert = await prisma.validatorAlert.findUnique({
@@ -259,9 +253,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(responseAlert ?? txResult.alert, { status: 201 });
-  } catch (error) {
-    console.error('Error creating validator alert:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return successResponse(responseAlert ?? txResult.alert, 201);
+  },
+  { auth: true, schema: createAlertSchema },
+);

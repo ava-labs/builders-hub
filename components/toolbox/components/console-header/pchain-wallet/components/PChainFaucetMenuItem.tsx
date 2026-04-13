@@ -14,6 +14,7 @@ import {
 } from '@/components/toolbox/components/AlertDialog';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useFaucetRateLimit } from '@/hooks/useFaucetRateLimit';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 export function PChainFaucetMenuItem() {
   const pChainAddress = useWalletStore((s) => s.pChainAddress);
@@ -46,34 +47,22 @@ export function PChainFaucetMenuItem() {
     setIsRequestingPTokens(true);
 
     const faucetRequest = async () => {
-      const response = await fetch(`/api/pchain-faucet?address=${pChainAddress}`);
-      const rawText = await response.text();
-      let data;
-
       try {
-        data = JSON.parse(rawText);
-      } catch {
-        throw new Error(`Invalid response: ${rawText.substring(0, 100)}...`);
-      }
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Please login first');
-        }
-        if (response.status === 429) {
-          throw new Error(data.message || 'Rate limit exceeded. Please try again later.');
-        }
-        throw new Error(data.message || `Error ${response.status}: Failed to get tokens`);
-      }
-
-      if (data.success) {
+        const data = await apiFetch<{ success: boolean; message?: string }>(
+          `/api/pchain-faucet?address=${pChainAddress}`,
+        );
         setTimeout(() => {
           updatePChainBalance();
           checkRateLimit(); // Refresh rate limit status
         }, 3000);
         return data;
-      } else {
-        throw new Error(data.message || 'Failed to get tokens');
+      } catch (error) {
+        if (error instanceof ApiClientError) {
+          if (error.status === 401) throw new Error('Please login first');
+          if (error.status === 429) throw new Error(error.message || 'Rate limit exceeded. Please try again later.');
+          throw new Error(error.message || `Error ${error.status}: Failed to get tokens`);
+        }
+        throw error;
       }
     };
 

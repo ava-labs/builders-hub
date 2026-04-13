@@ -15,7 +15,7 @@ import {
 import { useHackathonProject } from '../hooks/useHackathonProject';
 import { ProgressBar } from '../components/ProgressBar';
 import { StepNavigation } from '../components/StepNavigation';
-import axios from 'axios';
+import { apiFetch } from '@/lib/api/client';
 import { Tag, Users, Pickaxe, Image } from 'lucide-react';
 import InvalidInvitationComponent from './InvalidInvitationDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -146,20 +146,23 @@ export default function GeneralComponent({
   async function checkInvitation() {
     try {
 
-      const response = await axios.get(
+      const data = await apiFetch<{
+        invitation: { exists: boolean; isValid: boolean; isConfirming: boolean; hasConfirmedProject: boolean };
+        project: { project_id: string; project_name: string } | null;
+      }>(
         `/api/project/check-invitation?invitation=${invitationLink}&user_id=${currentUser?.id}`
       );
-      if (!response.data?.invitation.exists) {
-        setOpenInvalidInvitation(!response.data?.invitation.isValid);
+      if (!data?.invitation.exists) {
+        setOpenInvalidInvitation(!data?.invitation.isValid);
         return;
       }
 
-      setProjectId(response.data?.project?.project_id ?? '');
+      setProjectId(data?.project?.project_id ?? '');
 
-      setOpenJoinTeam(response.data?.invitation.isConfirming ?? false);
+      setOpenJoinTeam(data?.invitation.isConfirming ?? false);
 
-      setTeamName(response.data?.project?.project_name ?? '');
-      setOpenCurrentProject(response.data?.invitation.hasConfirmedProject ?? false);
+      setTeamName(data?.project?.project_name ?? '');
+      setOpenCurrentProject(data?.invitation.hasConfirmedProject ?? false);
 
     } catch (error) {
       console.error('Error checking invitation:', error);

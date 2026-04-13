@@ -13,6 +13,7 @@ import { Copy, Check, Eye, Clock, Link as LinkIcon, Loader2 } from 'lucide-react
 import { cn } from '@/lib/cn';
 import { toast } from 'sonner';
 import posthog from 'posthog-js';
+import { apiFetch } from '@/lib/api/client';
 
 interface ShareInfo {
   shareToken: string;
@@ -55,18 +56,11 @@ export function ShareModal({
   const enableSharing = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/chat-history/${conversationId}/share`, {
+      const data = await apiFetch<ShareInfo>(`/api/chat-history/${conversationId}/share`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expiresInDays: 7 }), // Default: 7 days
+        body: { expiresInDays: 7 }, // Default: 7 days
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to enable sharing');
-      }
-
-      const data: ShareInfo = await res.json();
       setShareInfo(data);
       onShareToggle();
 
@@ -122,14 +116,9 @@ export function ShareModal({
   const handleStopSharing = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/chat-history/${conversationId}/share`, {
+      await apiFetch(`/api/chat-history/${conversationId}/share`, {
         method: 'DELETE',
       });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to stop sharing');
-      }
 
       setShareInfo(null);
       setShowStopConfirmation(false);

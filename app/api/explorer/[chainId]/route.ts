@@ -1,10 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Avalanche } from "@avalanche-sdk/chainkit";
-import l1ChainsData from "@/constants/l1-chains.json";
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { Avalanche } from '@avalanche-sdk/chainkit';
+import l1ChainsData from '@/constants/l1-chains.json';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { validateParams } from '@/lib/api/validate';
+import { NotFoundError, BadRequestError } from '@/lib/api/errors';
+
+const paramsSchema = z.object({
+  chainId: z.string().regex(/^\d+$/, 'chainId must be numeric'),
+});
 
 // Initialize Avalanche SDK
 const avalanche = new Avalanche({
-  network: "mainnet",
+  network: 'mainnet',
 });
 
 interface Block {
@@ -158,10 +167,10 @@ const PRICE_CACHE_TTL = 60000; // 60 seconds
 
 async function fetchFromRPC(rpcUrl: string, method: string, params: any[] = []): Promise<any> {
   const response = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      jsonrpc: "2.0",
+      jsonrpc: '2.0',
       id: Date.now(),
       method,
       params,
@@ -174,7 +183,7 @@ async function fetchFromRPC(rpcUrl: string, method: string, params: any[] = []):
 
   const data = await response.json();
   if (data.error) {
-    throw new Error(data.error.message || "RPC error");
+    throw new Error(data.error.message || 'RPC error');
   }
 
   return data.result;
@@ -206,7 +215,7 @@ function formatGasPrice(hex: string): string {
 }
 
 function shortenAddress(address: string | null): string {
-  if (!address) return "Contract Creation";
+  if (!address) return 'Contract Creation';
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 }
 
@@ -238,16 +247,12 @@ async function fetchCumulativeTxs(evmChainId: string): Promise<number> {
   }
 
   try {
-    const response = await fetch(
-      `https://idx6.solokhin.com/api/${evmChainId}/stats/cumulative-txs`,
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 30 }
-      }
-    );
+    const response = await fetch(`https://idx6.solokhin.com/api/${evmChainId}/stats/cumulative-txs`, {
+      headers: { Accept: 'application/json' },
+      next: { revalidate: 30 },
+    });
 
     if (!response.ok) {
-      console.warn(`Cumulative txs API error for chain ${evmChainId}: ${response.status}`);
       return 0;
     }
 
@@ -257,8 +262,7 @@ async function fetchCumulativeTxs(evmChainId: string): Promise<number> {
     // Update cache
     cumulativeTxsCache.set(evmChainId, { cumulativeTxs, timestamp: Date.now() });
     return cumulativeTxs;
-  } catch (error) {
-    console.warn(`Failed to fetch cumulative txs for chain ${evmChainId}:`, error);
+  } catch {
     return 0;
   }
 }
@@ -272,16 +276,12 @@ async function fetchDailyTxsByChain(): Promise<Map<string, TransactionHistoryPoi
   const result = new Map<string, TransactionHistoryPoint[]>();
 
   try {
-    const response = await fetch(
-      'https://idx6.solokhin.com/api/global/overview/dailyTxsByChainCompact',
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 300 }
-      }
-    );
+    const response = await fetch('https://idx6.solokhin.com/api/global/overview/dailyTxsByChainCompact', {
+      headers: { Accept: 'application/json' },
+      next: { revalidate: 300 },
+    });
 
     if (!response.ok) {
-      console.warn(`Daily txs API error: ${response.status}`);
       return result;
     }
 
@@ -318,8 +318,7 @@ async function fetchDailyTxsByChain(): Promise<Map<string, TransactionHistoryPoi
     // Update cache
     dailyTxsCache = { data: result, timestamp: Date.now() };
     return result;
-  } catch (error) {
-    console.warn("Failed to fetch daily txs:", error);
+  } catch {
     return result;
   }
 }
@@ -331,13 +330,10 @@ async function fetchAvaxPrice(): Promise<number> {
   }
 
   try {
-    const response = await fetch(
-      'https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd',
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 60 }
-      }
-    );
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd', {
+      headers: { Accept: 'application/json' },
+      next: { revalidate: 60 },
+    });
 
     if (response.ok) {
       const data = await response.json();
@@ -345,8 +341,8 @@ async function fetchAvaxPrice(): Promise<number> {
       avaxPriceCache = { price, timestamp: Date.now() };
       return price;
     }
-  } catch (error) {
-    console.warn("Failed to fetch AVAX price:", error);
+  } catch {
+    // AVAX price fetch failed, use fallback
   }
   return 0;
 }
@@ -364,14 +360,13 @@ async function fetchPrice(coingeckoId: string): Promise<PriceData | undefined> {
       `https://api.coingecko.com/api/v3/coins/${coingeckoId}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false`,
       {
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
-        next: { revalidate: 60 }
-      }
+        next: { revalidate: 60 },
+      },
     );
 
     if (!response.ok) {
-      console.warn(`CoinGecko API error: ${response.status}`);
       return undefined;
     }
 
@@ -395,8 +390,8 @@ async function fetchPrice(coingeckoId: string): Promise<PriceData | undefined> {
     // Cache the price
     priceCache.set(coingeckoId, { data: priceData, timestamp: Date.now() });
     return priceData;
-  } catch (error) {
-    console.warn("Failed to fetch price:", error);
+  } catch {
+    // Price fetch failed, continue without price data
     return undefined;
   }
 }
@@ -406,19 +401,21 @@ async function fetchHistoricalIcmMessages(
   rpcUrl: string,
   latestBlockNumber: number,
   currentBlockchainId?: string,
-  blockRange: number = 512
+  blockRange: number = 512,
 ): Promise<Transaction[]> {
   try {
     const fromBlock = Math.max(0, latestBlockNumber - blockRange);
     const toBlock = latestBlockNumber;
 
     // Query for cross-chain message events
-    const logs: RpcLog[] = await fetchFromRPC(rpcUrl, "eth_getLogs", [{
-      fromBlock: `0x${fromBlock.toString(16)}`,
-      toBlock: `0x${toBlock.toString(16)}`,
-      topics: [[CROSS_CHAIN_TOPICS.SendCrossChainMessage, CROSS_CHAIN_TOPICS.ReceiveCrossChainMessage]],
-      limit: 10,
-    }]);
+    const logs: RpcLog[] = await fetchFromRPC(rpcUrl, 'eth_getLogs', [
+      {
+        fromBlock: `0x${fromBlock.toString(16)}`,
+        toBlock: `0x${toBlock.toString(16)}`,
+        topics: [[CROSS_CHAIN_TOPICS.SendCrossChainMessage, CROSS_CHAIN_TOPICS.ReceiveCrossChainMessage]],
+        limit: 10,
+      },
+    ]);
 
     if (!logs || logs.length === 0) return [];
 
@@ -446,20 +443,22 @@ async function fetchHistoricalIcmMessages(
 
     // Fetch all transactions and blocks in parallel
     const [txResults, blockResults] = await Promise.all([
-      Promise.all(txHashes.map((txHash, index) =>
-        fetchFromRPC(rpcUrl, "eth_getTransactionByHash", [txHash])
-          .catch((error) => {
-            console.error(`[Explorer API] Failed to fetch transaction ${txHash} (index ${index}):`, error);
-            return null;
-          }) as Promise<RpcTransaction | null>
-      )),
-      Promise.all(blockNumbers.map((blockNumber, index) =>
-        fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [blockNumber, false])
-          .catch((error) => {
-            console.error(`[Explorer API] Failed to fetch block ${blockNumber} (index ${index}):`, error);
-            return null;
-          }) as Promise<{ timestamp: string } | null>
-      ))
+      Promise.all(
+        txHashes.map(
+          (txHash) =>
+            fetchFromRPC(rpcUrl, 'eth_getTransactionByHash', [txHash]).catch(
+              () => null,
+            ) as Promise<RpcTransaction | null>,
+        ),
+      ),
+      Promise.all(
+        blockNumbers.map(
+          (blockNumber) =>
+            fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockNumber, false]).catch(() => null) as Promise<{
+              timestamp: string;
+            } | null>,
+        ),
+      ),
     ]);
 
     // Process results and build transactions array
@@ -478,21 +477,21 @@ async function fetchHistoricalIcmMessages(
 
       if (topic0 === CROSS_CHAIN_TOPICS.SendCrossChainMessage.toLowerCase()) {
         sourceBlockchainId = currentBlockchainId;
-            destinationBlockchainId = log.topics[2];
+        destinationBlockchainId = log.topics[2];
       } else if (topic0 === CROSS_CHAIN_TOPICS.ReceiveCrossChainMessage.toLowerCase()) {
         destinationBlockchainId = currentBlockchainId;
-            sourceBlockchainId = log.topics[2];
+        sourceBlockchainId = log.topics[2];
       }
 
       transactions.push({
         hash: tx.hash,
         from: tx.from,
         to: tx.to,
-        value: formatValue(tx.value || "0x0"),
+        value: formatValue(tx.value || '0x0'),
         blockNumber: hexToNumber(tx.blockNumber).toString(),
         timestamp: formatTimestamp(block?.timestamp || '0x0'),
-        gasPrice: formatGasPrice(tx.gasPrice || "0x0"),
-        gas: hexToNumber(tx.gas || "0x0").toLocaleString(),
+        gasPrice: formatGasPrice(tx.gasPrice || '0x0'),
+        gas: hexToNumber(tx.gas || '0x0').toLocaleString(),
         isCrossChain: true,
         sourceBlockchainId,
         destinationBlockchainId,
@@ -500,19 +499,27 @@ async function fetchHistoricalIcmMessages(
     }
 
     return transactions;
-  } catch (error) {
-    console.error('[Explorer API] Failed to fetch historical ICM messages:', error);
+  } catch {
     return [];
   }
 }
 
-async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: string, coingeckoId?: string, tokenSymbol?: string, currentBlockchainId?: string, initialLoad?: boolean, lastFetchedBlock?: number): Promise<ExplorerData> {
+async function fetchExplorerData(
+  chainId: string,
+  evmChainId: string,
+  rpcUrl: string,
+  coingeckoId?: string,
+  tokenSymbol?: string,
+  currentBlockchainId?: string,
+  initialLoad?: boolean,
+  lastFetchedBlock?: number,
+): Promise<ExplorerData> {
   const startTime = Date.now();
   const timing: Record<string, number> = {};
 
   // Get latest block number
   const blockNumberStart = Date.now();
-  const latestBlockHex = await fetchFromRPC(rpcUrl, "eth_blockNumber");
+  const latestBlockHex = await fetchFromRPC(rpcUrl, 'eth_blockNumber');
   const latestBlockNumber = hexToNumber(latestBlockHex);
   timing.blockNumber = Date.now() - blockNumberStart;
 
@@ -526,7 +533,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       stats: {
         latestBlock: latestBlockNumber,
         totalTransactions: 0,
-        gasPrice: "0",
+        gasPrice: '0',
       },
       blocks: [],
       transactions: [],
@@ -551,17 +558,13 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     const blockNum = latestBlockNumber - i;
     if (blockNum >= 0) {
       blockPromises.push(
-        fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [`0x${blockNum.toString(16)}`, true])
-          .catch((error) => {
-            console.error(`[Explorer API] Failed to fetch block ${blockNum} (0x${blockNum.toString(16)}):`, error);
-            return null;
-          })
+        fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [`0x${blockNum.toString(16)}`, true]).catch(() => null),
       );
     }
   }
 
   const blockResults = await Promise.all(blockPromises);
-  const validBlocks = blockResults.filter(block => block !== null);
+  const validBlocks = blockResults.filter((block) => block !== null);
   const totalTxsInBlocks = validBlocks.reduce((sum, b) => sum + (b?.transactions?.length || 0), 0);
   timing.blocksFetch = Date.now() - blocksFetchStart;
   timing.blocksCount = validBlocks.length;
@@ -586,12 +589,11 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     }
 
     // Fetch all transaction receipts in parallel
-    const receiptPromises = allTxHashes.map(({ txHash, blockIndex }) =>
-      fetchFromRPC(rpcUrl, "eth_getTransactionReceipt", [txHash])
-        .catch((error) => {
-          console.error(`[Explorer API] Failed to fetch receipt for tx ${txHash} (blockIndex ${blockIndex}):`, error);
-          return null;
-        }) as Promise<RpcTransactionReceipt | null>
+    const receiptPromises = allTxHashes.map(
+      ({ txHash }) =>
+        fetchFromRPC(rpcUrl, 'eth_getTransactionReceipt', [txHash]).catch(
+          () => null,
+        ) as Promise<RpcTransactionReceipt | null>,
     );
     const receipts = await Promise.all(receiptPromises);
 
@@ -607,7 +609,6 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     for (let i = 0; i < allTxHashes.length; i++) {
       const { blockIndex, txHash } = allTxHashes[i];
       const receipt = receiptMap.get(txHash);
-      const block = validBlocks[blockIndex];
 
       if (receipt && receipt.gasUsed) {
         const gasUsed = BigInt(receipt.gasUsed);
@@ -646,9 +647,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     const burnedFee = burnedFeeWei > 0 ? (Number(burnedFeeWei) / 1e18).toFixed(18) : undefined;
 
     // Parse timestampMilliseconds for Avalanche (hex string to number)
-    const timestampMilliseconds = block.timestampMilliseconds
-      ? parseInt(block.timestampMilliseconds, 16)
-      : undefined;
+    const timestampMilliseconds = block.timestampMilliseconds ? parseInt(block.timestampMilliseconds, 16) : undefined;
 
     return {
       number: hexToNumber(block.number).toString(),
@@ -680,10 +679,8 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     const receipt = receiptMap.get(txHash);
     if (!receipt?.logs) return false;
 
-    const crossChainTopics = Object.values(CROSS_CHAIN_TOPICS).map(t => t.toLowerCase());
-    return receipt.logs.some(log =>
-      log.topics?.[0] && crossChainTopics.includes(log.topics[0].toLowerCase())
-    );
+    const crossChainTopics = Object.values(CROSS_CHAIN_TOPICS).map((t) => t.toLowerCase());
+    return receipt.logs.some((log) => log.topics?.[0] && crossChainTopics.includes(log.topics[0].toLowerCase()));
   }
 
   // Helper function to extract blockchain IDs from SendCrossChainMessage or ReceiveCrossChainMessage logs
@@ -708,13 +705,13 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
         // SendCrossChainMessage: current chain is the source, destination is in topic[2]
         sourceBlockchainId = currentBlockchainId;
         if (log.topics.length > 2) {
-            destinationBlockchainId = log.topics[2];
+          destinationBlockchainId = log.topics[2];
         }
       } else if (topic0 === receiveTopic) {
         // ReceiveCrossChainMessage: current chain is the destination, source is in topic[2]
         destinationBlockchainId = currentBlockchainId;
         if (log.topics.length > 2) {
-            sourceBlockchainId = log.topics[2];
+          sourceBlockchainId = log.topics[2];
         }
       }
     }
@@ -724,17 +721,17 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
 
   // Map all transactions first to check cross-chain status
   const txProcessingStart = Date.now();
-  const allMappedTransactions: Transaction[] = allTransactions.map(tx => {
+  const allMappedTransactions: Transaction[] = allTransactions.map((tx) => {
     const isCrossChain = isCrossChainTx(tx.hash);
     const baseTx: Transaction = {
       hash: tx.hash,
       from: tx.from,
       to: tx.to,
-      value: formatValue(tx.value || "0x0"),
+      value: formatValue(tx.value || '0x0'),
       blockNumber: hexToNumber(tx.blockNumber).toString(),
       timestamp: formatTimestamp(tx.blockTimestamp),
-      gasPrice: formatGasPrice(tx.gasPrice || "0x0"),
-      gas: hexToNumber(tx.gas || "0x0").toLocaleString(),
+      gasPrice: formatGasPrice(tx.gasPrice || '0x0'),
+      gas: hexToNumber(tx.gas || '0x0').toLocaleString(),
       isCrossChain,
     };
 
@@ -748,7 +745,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   });
 
   // Separate cross-chain transactions (ICM messages) from recent blocks
-  let icmMessages = allMappedTransactions.filter(tx => tx.isCrossChain);
+  let icmMessages = allMappedTransactions.filter((tx) => tx.isCrossChain);
   timing.txProcessing = Date.now() - txProcessingStart;
   timing.processedTxs = allTransactions.length;
   timing.crossChainTxs = icmMessages.length;
@@ -761,7 +758,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     timing.historicalIcmCount = historicalIcm.length;
 
     // Merge with recent ICM messages, deduplicate by txHash
-    const seenHashes = new Set(icmMessages.map(tx => tx.hash));
+    const seenHashes = new Set(icmMessages.map((tx) => tx.hash));
     for (const tx of historicalIcm) {
       if (!seenHashes.has(tx.hash)) {
         icmMessages.push(tx);
@@ -777,14 +774,13 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   }
 
   // Get latest 10 non-cross-chain transactions
-  const transactions = allMappedTransactions
-    .slice(0, 10);
+  const transactions = allMappedTransactions.slice(0, 10);
 
   // Get current gas price
   const gasPriceStart = Date.now();
-  let gasPrice = "0";
+  let gasPrice = '0';
   try {
-    const gasPriceHex = await fetchFromRPC(rpcUrl, "eth_gasPrice");
+    const gasPriceHex = await fetchFromRPC(rpcUrl, 'eth_gasPrice');
     gasPrice = formatGasPrice(gasPriceHex);
     timing.gasPrice = Date.now() - gasPriceStart;
   } catch {
@@ -802,14 +798,17 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     // Use block (latest - 5000) or block 1 if chain has fewer than 5000 blocks
     const historicalBlockNum = latestBlockNumber > 5000 ? latestBlockNumber - 5000 : 1;
     const blockSpan = latestBlockNumber - historicalBlockNum;
-    
+
     try {
-      const historicalBlock = await fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [`0x${historicalBlockNum.toString(16)}`, false]) as RpcBlock | null;
-      
+      const historicalBlock = (await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [
+        `0x${historicalBlockNum.toString(16)}`,
+        false,
+      ])) as RpcBlock | null;
+
       if (historicalBlock) {
         const latestBlock = validBlocks[0];
         avgBlockTimeBlockSpan = blockSpan; // Store the block span used
-        
+
         // Try millisecond precision first (Avalanche)
         if (latestBlock?.timestampMilliseconds && historicalBlock.timestampMilliseconds) {
           const latestTimeMs = parseInt(latestBlock.timestampMilliseconds, 16);
@@ -825,8 +824,8 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
           avgBlockTime = timeDiffSec / blockSpan;
         }
       }
-    } catch (error) {
-      console.warn('[Explorer API] Failed to fetch historical block for avgBlockTime:', error);
+    } catch {
+      // Historical block fetch failed, skip avgBlockTime
     }
   }
 
@@ -879,7 +878,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     icmMessages,
     transactionHistory,
     price,
-    tokenSymbol: price?.symbol || tokenSymbol
+    tokenSymbol: price?.symbol || tokenSymbol,
   };
 }
 
@@ -891,21 +890,16 @@ async function checkGlacierSupport(chainId: string): Promise<boolean> {
     });
     // If we get a result with a chainId, the chain is supported
     return !!result?.chainId;
-  } catch (error) {
+  } catch {
     // Chain not supported by Glacier
     return false;
   }
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ chainId: string }> }
-) {
-  const requestStart = Date.now();
-  const requestTiming: Record<string, number> = {};
-  try {
-    const { chainId } = await params;
-    const { searchParams } = new URL(request.url);
+export const GET = withApi(
+  async (req: NextRequest, { params }) => {
+    const { chainId } = validateParams(params, paramsSchema);
+    const { searchParams } = new URL(req.url);
     const initialLoad = searchParams.get('initialLoad') === 'true';
     const priceOnly = searchParams.get('priceOnly') === 'true';
     const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
@@ -917,60 +911,51 @@ export async function GET(
     const customBlockchainId = searchParams.get('blockchainId');
 
     // Find chain config from static data
-    const chain = l1ChainsData.find(c => c.chainId === chainId) as ChainConfig | undefined;
-    
+    const chain = l1ChainsData.find((c) => c.chainId === chainId) as ChainConfig | undefined;
+
     // Determine effective RPC URL - prefer static config, fallback to query param
     const rpcUrl = chain?.rpcUrl || customRpcUrl;
     const tokenSymbol = chain?.networkToken?.symbol || customTokenSymbol || undefined;
     const blockchainId = chain?.blockchainId || customBlockchainId || undefined;
     const coingeckoId = chain?.coingeckoId;
-    
+
     // If no chain found and no custom rpcUrl provided, return 404
     if (!chain && !customRpcUrl) {
-      return NextResponse.json({ error: "Chain not found. Provide rpcUrl query parameter for custom chains." }, { status: 404 });
+      throw new NotFoundError('Chain not found. Provide rpcUrl query parameter for custom chains.');
     }
 
     // If priceOnly, just fetch price and glacier support (for ExplorerContext)
     if (priceOnly) {
-      const priceOnlyStart = Date.now();
       const [price, glacierSupported] = await Promise.all([
         coingeckoId ? fetchPrice(coingeckoId) : Promise.resolve(undefined),
         checkGlacierSupport(chainId),
       ]);
-      requestTiming.priceOnly = Date.now() - priceOnlyStart;
-      requestTiming.total = Date.now() - requestStart;
 
-      return NextResponse.json({
-        price,
-        tokenSymbol,
-        glacierSupported,
-      });
+      return successResponse({ price, tokenSymbol, glacierSupported });
     }
 
     if (!rpcUrl) {
-      return NextResponse.json({ error: "RPC URL not configured. Provide rpcUrl query parameter for custom chains." }, { status: 400 });
+      throw new BadRequestError('RPC URL not configured. Provide rpcUrl query parameter for custom chains.');
     }
 
     // Fetch fresh data and check Glacier support in parallel
-    const dataFetchStart = Date.now();
     const [data, glacierSupported] = await Promise.all([
-      fetchExplorerData(chainId, chainId, rpcUrl, coingeckoId, tokenSymbol, blockchainId, initialLoad, lastFetchedBlock),
+      fetchExplorerData(
+        chainId,
+        chainId,
+        rpcUrl,
+        coingeckoId,
+        tokenSymbol,
+        blockchainId,
+        initialLoad,
+        lastFetchedBlock,
+      ),
       checkGlacierSupport(chainId),
     ]);
-    requestTiming.dataFetch = Date.now() - dataFetchStart;
-    requestTiming.total = Date.now() - requestStart;
 
-    // Add glacierSupported to the response
-    const responseData = { ...data, glacierSupported };
-
-    return NextResponse.json(responseData);
-  } catch (error) {
-    requestTiming.total = Date.now() - requestStart;
-    requestTiming.error = 1;
-    console.error('[Explorer API] Error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch explorer data" },
-      { status: 500 }
-    );
-  }
-}
+    return successResponse({ ...data, glacierSupported });
+  },
+  {
+    rateLimit: { windowMs: 60_000, maxRequests: 60, identifier: 'ip' },
+  },
+);

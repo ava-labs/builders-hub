@@ -1,268 +1,206 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthSession } from '@/lib/auth/authSession';
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse, noContentResponse } from '@/lib/api/response';
+import { AuthError, BadRequestError, NotFoundError } from '@/lib/api/errors';
+import { assertOwnership } from '@/lib/api/ownership';
 import { prisma } from '@/prisma/prisma';
 
-// GET /api/playground - Get user's playgrounds
-export async function GET(req: NextRequest) {
-  try {
-    const session = await getAuthSession();
-    const { searchParams } = new URL(req.url);
-    const playgroundId = searchParams.get('id');
-    const includePublic = searchParams.get('includePublic') === 'true';
+// ---------------------------------------------------------------------------
+// Schemas
+// ---------------------------------------------------------------------------
 
-    if (playgroundId) {
-      // Get specific playground - allow public access even without auth
-      const playground = await prisma.statsPlayground.findFirst({
-        where: {
-          id: playgroundId,
-          OR: session?.user ? [
-            { user_id: session.user.id },
-            { is_public: true }
-          ] : [
-            { is_public: true }
-          ]
-        },
-        include: {
-          favorites: session?.user ? {
-            where: {
-              user_id: session.user.id
-            }
-          } : false,
-          _count: {
-            select: { favorites: true }
-          },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              user_name: true,
-              image: true,
-              profile_privacy: true
-            }
-          }
-        }
-      });
+const createPlaygroundSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  isPublic: z.boolean().optional().default(false),
+  charts: z.array(z.unknown()).optional().default([]),
+  globalStartTime: z.string().nullable().optional().default(null),
+  globalEndTime: z.string().nullable().optional().default(null),
+});
 
-      if (!playground) {
-        return NextResponse.json({ error: 'Playground not found' }, { status: 404 });
-      }
+const updatePlaygroundSchema = z.object({
+  id: z.string().min(1, 'Playground ID is required'),
+  name: z.string().min(1).optional(),
+  isPublic: z.boolean().optional(),
+  charts: z.array(z.unknown()).optional(),
+  globalStartTime: z.string().nullable().optional(),
+  globalEndTime: z.string().nullable().optional(),
+});
 
-      const isOwner = session?.user ? playground.user_id === session.user.id : false;
-      const isFavorited = session?.user && playground.favorites ? playground.favorites.length > 0 : false;
-      const favoriteCount = playground._count.favorites;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-      // Extract global time filters and charts array from JSON structure
-      const chartsData = playground.charts as any;
-      const chartsArray = Array.isArray(chartsData) ? chartsData : (chartsData?.charts || []);
-      const globalStartTime = Array.isArray(chartsData) ? null : (chartsData?.globalStartTime || null);
-      const globalEndTime = Array.isArray(chartsData) ? null : (chartsData?.globalEndTime || null);
+function normalizePlayground(playground: any, extras?: Record<string, unknown>) {
+  const chartsData = playground.charts as any;
+  const chartsArray = Array.isArray(chartsData) ? chartsData : chartsData?.charts || [];
+  const globalStartTime = Array.isArray(chartsData) ? null : chartsData?.globalStartTime || null;
+  const globalEndTime = Array.isArray(chartsData) ? null : chartsData?.globalEndTime || null;
 
-      return NextResponse.json({
-        ...playground,
-        charts: chartsArray,
-        globalStartTime,
-        globalEndTime,
-        is_owner: isOwner,
-        is_favorited: isFavorited,
-        favorite_count: favoriteCount,
-        view_count: playground.view_count || 0,
-        favorites: undefined, // Remove favorites array from response
-        _count: undefined, // Remove _count from response
-        creator: playground.user ? {
-          id: playground.user.id,
-          name: playground.user.name,
-          user_name: playground.user.user_name,
-          image: playground.user.image,
-          profile_privacy: playground.user.profile_privacy
-        } : undefined
-      });
-    }
-
-    // Get all user's playgrounds - requires authentication
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
-    }
-    
-    const where: any = { user_id: session.user.id };
-    
-    if (includePublic) {
-      const playgrounds = await prisma.statsPlayground.findMany({
-        where: {
-          OR: [
-            { user_id: session.user.id },
-            { is_public: true }
-          ]
-        },
-        include: {
-          _count: {
-            select: { favorites: true }
-          }
-        },
-        orderBy: { updated_at: 'desc' },
-        take: 100
-      });
-      return NextResponse.json(playgrounds.map(p => ({
-        ...p,
-        favorite_count: p._count.favorites,
-        view_count: p.view_count || 0,
-        _count: undefined
-      })));
-    }
-
-    const playgrounds = await prisma.statsPlayground.findMany({
-      where,
-      include: {
-        _count: {
-          select: { favorites: true }
-        }
-      },
-      orderBy: { updated_at: 'desc' },
-      take: 100
-    });
-
-    return NextResponse.json(playgrounds.map(p => ({
-      ...p,
-      favorite_count: p._count.favorites,
-      view_count: p.view_count || 0,
-      _count: undefined
-    })));
-  } catch (error) {
-    console.error('Error fetching playgrounds:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
+  return {
+    ...playground,
+    charts: chartsArray,
+    globalStartTime,
+    globalEndTime,
+    view_count: playground.view_count || 0,
+    favorites: undefined,
+    _count: undefined,
+    ...extras,
+  };
 }
 
-// POST /api/playground - Create new playground
-export async function POST(req: NextRequest) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
+// ---------------------------------------------------------------------------
+// GET /api/playground
+// ---------------------------------------------------------------------------
+
+export const GET = withApi(async (req: NextRequest, { session }) => {
+  const { searchParams } = req.nextUrl;
+  const playgroundId = searchParams.get('id');
+  const includePublic = searchParams.get('includePublic') === 'true';
+
+  // --- Single playground by ID (public access allowed) ---
+  if (playgroundId) {
+    const playground = await prisma.statsPlayground.findFirst({
+      where: {
+        id: playgroundId,
+        OR: session?.user ? [{ user_id: session.user.id }, { is_public: true }] : [{ is_public: true }],
+      },
+      include: {
+        favorites: session?.user ? { where: { user_id: session.user.id } } : false,
+        _count: { select: { favorites: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            user_name: true,
+            image: true,
+            profile_privacy: true,
+          },
+        },
+      },
+    });
+
+    if (!playground) {
+      throw new NotFoundError('Playground');
     }
 
-    const body = await req.json();
-    if (!body) {
-      return NextResponse.json({ error: 'No body provided.' }, { status: 400 });
-    }
+    const isOwner = session?.user ? playground.user_id === session.user.id : false;
+    const isFavorited = session?.user && playground.favorites ? (playground.favorites as any[]).length > 0 : false;
 
-    if (!body.name) {
-      return NextResponse.json({ error: 'Name is required.' }, { status: 400 });
-    }
+    return successResponse(
+      normalizePlayground(playground, {
+        is_owner: isOwner,
+        is_favorited: isFavorited,
+        favorite_count: playground._count.favorites,
+        creator: playground.user
+          ? {
+              id: playground.user.id,
+              name: playground.user.name,
+              user_name: playground.user.user_name,
+              image: playground.user.image,
+              profile_privacy: playground.user.profile_privacy,
+            }
+          : undefined,
+      }),
+    );
+  }
 
-    const { name, isPublic, charts, globalStartTime, globalEndTime } = body;
+  // --- List playgrounds (requires auth) ---
+  if (!session?.user) {
+    throw new AuthError();
+  }
 
-    // Store global time filters in charts JSON structure
+  const whereClause = includePublic
+    ? { OR: [{ user_id: session.user.id }, { is_public: true }] }
+    : { user_id: session.user.id };
+
+  const playgrounds = await prisma.statsPlayground.findMany({
+    where: whereClause,
+    include: { _count: { select: { favorites: true } } },
+    orderBy: { updated_at: 'desc' },
+    take: 100,
+  });
+
+  return successResponse(playgrounds.map((p) => normalizePlayground(p, { favorite_count: p._count.favorites })));
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/playground
+// ---------------------------------------------------------------------------
+
+export const POST = withApi<z.infer<typeof createPlaygroundSchema>>(
+  async (_req, { session, body }) => {
     const chartsData = {
-      globalStartTime: globalStartTime || null,
-      globalEndTime: globalEndTime || null,
-      charts: charts || []
+      globalStartTime: body.globalStartTime || null,
+      globalEndTime: body.globalEndTime || null,
+      charts: body.charts,
     };
 
     const playground = await prisma.statsPlayground.create({
       data: {
         user_id: session.user.id,
-        name,
-        is_public: isPublic || false,
-        charts: chartsData as any
-      }
+        name: body.name,
+        is_public: body.isPublic,
+        charts: chartsData as any,
+      },
     });
 
-    return NextResponse.json(playground);
-  } catch (error) {
-    console.error('Error creating playground:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return successResponse(playground, 201);
+  },
+  { auth: true, schema: createPlaygroundSchema },
+);
 
-// PUT /api/playground - Update existing playground
-export async function PUT(req: NextRequest) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
-    }
+// ---------------------------------------------------------------------------
+// PUT /api/playground
+// ---------------------------------------------------------------------------
 
-    const body = await req.json();
-    if (!body || !body.id) {
-      return NextResponse.json({ error: 'Playground ID is required.' }, { status: 400 });
-    }
+export const PUT = withApi<z.infer<typeof updatePlaygroundSchema>>(
+  async (_req, { session, body }) => {
+    const existing = await assertOwnership<any>(prisma.statsPlayground, body.id, session.user.id);
 
-    const { id, name, isPublic, charts, globalStartTime, globalEndTime } = body;
+    const updateData: Record<string, unknown> = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.isPublic !== undefined) updateData.is_public = body.isPublic;
 
-    // Verify ownership
-    const existing = await prisma.statsPlayground.findFirst({
-      where: {
-        id,
-        user_id: session.user.id
-      }
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: 'Playground not found or unauthorized' }, { status: 404 });
-    }
-
-    const updateData: any = {};
-    if (name !== undefined) updateData.name = name;
-    if (isPublic !== undefined) updateData.is_public = isPublic;
-    if (charts !== undefined || globalStartTime !== undefined || globalEndTime !== undefined) {
-      // Handle both old format (array) and new format (object)
+    if (body.charts !== undefined || body.globalStartTime !== undefined || body.globalEndTime !== undefined) {
       const existingCharts = existing.charts as any;
-      const chartsArray = Array.isArray(existingCharts) ? existingCharts : (existingCharts?.charts || []);
-      
+      const chartsArray = Array.isArray(existingCharts) ? existingCharts : existingCharts?.charts || [];
+
       updateData.charts = {
-        globalStartTime: globalStartTime !== undefined ? (globalStartTime || null) : (existingCharts?.globalStartTime || null),
-        globalEndTime: globalEndTime !== undefined ? (globalEndTime || null) : (existingCharts?.globalEndTime || null),
-        charts: charts !== undefined ? charts : chartsArray
+        globalStartTime:
+          body.globalStartTime !== undefined ? body.globalStartTime || null : existingCharts?.globalStartTime || null,
+        globalEndTime:
+          body.globalEndTime !== undefined ? body.globalEndTime || null : existingCharts?.globalEndTime || null,
+        charts: body.charts !== undefined ? body.charts : chartsArray,
       } as any;
     }
 
     const playground = await prisma.statsPlayground.update({
-      where: { id },
-      data: updateData
+      where: { id: body.id },
+      data: updateData,
     });
 
-    return NextResponse.json(playground);
-  } catch (error) {
-    console.error('Error updating playground:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return successResponse(playground);
+  },
+  { auth: true, schema: updatePlaygroundSchema },
+);
 
-// DELETE /api/playground - Delete playground
-export async function DELETE(req: NextRequest) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
-    }
+// ---------------------------------------------------------------------------
+// DELETE /api/playground
+// ---------------------------------------------------------------------------
 
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-
+export const DELETE = withApi(
+  async (req: NextRequest, { session }) => {
+    const id = req.nextUrl.searchParams.get('id');
     if (!id) {
-      return NextResponse.json({ error: 'Playground ID is required.' }, { status: 400 });
+      throw new BadRequestError('Playground ID is required');
     }
 
-    // Verify ownership
-    const existing = await prisma.statsPlayground.findFirst({
-      where: {
-        id,
-        user_id: session.user.id
-      }
-    });
+    await assertOwnership(prisma.statsPlayground, id, session.user.id);
 
-    if (!existing) {
-      return NextResponse.json({ error: 'Playground not found or unauthorized' }, { status: 404 });
-    }
+    await prisma.statsPlayground.delete({ where: { id } });
 
-    await prisma.statsPlayground.delete({
-      where: { id }
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting playground:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
+    return noContentResponse();
+  },
+  { auth: true },
+);

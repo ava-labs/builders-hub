@@ -1,10 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
-import type { Erc20TokenBalance } from "@avalanche-sdk/chainkit/models/components";
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { Avalanche } from '@avalanche-sdk/chainkit';
+import type { Erc20TokenBalance } from '@avalanche-sdk/chainkit/models/components';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { validateParams } from '@/lib/api/validate';
+import { EVM_ADDRESS_REGEX } from '@/lib/api/constants';
+
+const paramsSchema = z.object({
+  chainId: z.string().regex(/^\d+$/, 'chainId must be numeric'),
+  address: z.string().regex(EVM_ADDRESS_REGEX, 'Invalid EVM address format'),
+});
 
 // Initialize Avalanche SDK
 const avalanche = new Avalanche({
-  network: "mainnet",
+  network: 'mainnet',
 });
 
 interface Erc20Balance {
@@ -25,37 +35,27 @@ interface Erc20BalancesResponse {
   pageValueUsd: number;
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ chainId: string; address: string }> }
-) {
-  const startTime = performance.now();
-  
-  try {
-    const { chainId, address } = await params;
-    const { searchParams } = new URL(request.url);
+export const GET = withApi(
+  async (req: NextRequest, { params }) => {
+    const { chainId, address } = validateParams(params, paramsSchema);
+    const { searchParams } = new URL(req.url);
     const pageToken = searchParams.get('pageToken') || undefined;
-
-    // Validate address format
-    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
-    }
 
     // Fetch ERC20 balances - returns a PageIterator
     const iterator = await avalanche.data.evm.address.balances.listErc20({
-      address: address,
-      chainId: chainId,
+      address,
+      chainId,
       currency: 'usd',
       filterSpamTokens: true,
       pageSize: 200,
-      pageToken: pageToken,
+      pageToken,
     });
 
     // Get first page from the async iterator
     const { value: page, done } = await iterator[Symbol.asyncIterator]().next();
-    
+
     if (done || !page) {
-      return NextResponse.json({
+      return successResponse({
         balances: [],
         nextPageToken: undefined,
         pageValueUsd: 0,
@@ -94,18 +94,14 @@ export async function GET(
 
     // Sort by value (highest first) within this page
     balances.sort((a, b) => (b.valueUsd || 0) - (a.valueUsd || 0));
-    
-    const duration = performance.now() - startTime;
-    console.log(`[ERC20 Balances API] ${address} on chain ${chainId} - ${duration.toFixed(0)}ms, ${balances.length} tokens${nextPageToken ? ', has more pages' : ''}`);
 
-    return NextResponse.json({
+    return successResponse({
       balances,
       nextPageToken,
       pageValueUsd,
     } as Erc20BalancesResponse);
-  } catch (error) {
-    const duration = performance.now() - startTime;
-    console.error(`[ERC20 Balances API] Error after ${duration.toFixed(0)}ms:`, error);
-    return NextResponse.json({ error: 'Failed to fetch ERC20 balances' }, { status: 500 });
-  }
-}
+  },
+  {
+    rateLimit: { windowMs: 60_000, maxRequests: 60, identifier: 'ip' },
+  },
+);

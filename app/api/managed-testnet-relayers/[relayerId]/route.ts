@@ -1,3 +1,4 @@
+// withApi: not applicable — uses getUserId() for auth
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId, jsonOk, jsonError } from '../utils';
 import { RelayerServiceURLs } from '../constants';
@@ -6,7 +7,7 @@ import { RelayerServiceURLs } from '../constants';
  * DELETE /api/managed-testnet-relayers/[relayerId]
  * Deletes a relayer from the Builder Hub API.
  */
-async function handleDeleteRelayer(relayerId: string, request: NextRequest): Promise<NextResponse> {
+async function handleDeleteRelayer(relayerId: string, _request: NextRequest): Promise<NextResponse> {
   const auth = await getUserId();
   if (auth.error) return auth.error;
   if (!auth.userId) return jsonError(401, 'Authentication required');
@@ -21,8 +22,8 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
     const listResponse = await fetch(RelayerServiceURLs.list(password), {
       method: 'GET',
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     });
 
     if (!listResponse.ok) {
@@ -59,31 +60,31 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
     // URL encode the relayerId to handle special characters
     const encodedRelayerId = encodeURIComponent(relayerId);
     const deleteUrl = RelayerServiceURLs.delete(encodedRelayerId, password);
-    
-    console.log(`[Relayers] Deleting relayer ${encodedRelayerId}`);
-    
+
+    console.warn(`[Relayers] Deleting relayer ${encodedRelayerId}`);
+
     const response = await fetch(deleteUrl, {
       method: 'DELETE',
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     });
-    
-    console.log(`[Relayers] Delete response status: ${response.status}`);
+
+    console.warn(`[Relayers] Delete response status: ${response.status}`);
 
     if (response.ok || response.status === 404) {
       return jsonOk({
         success: true,
-        message: response.status === 404
-          ? 'Relayer was already deleted or expired in Builder Hub.'
-          : 'Relayer deleted successfully.'
+        message:
+          response.status === 404
+            ? 'Relayer was already deleted or expired in Builder Hub.'
+            : 'Relayer deleted successfully.',
       });
     }
 
     console.error(`[Relayers] Delete failed (status: ${response.status})`);
     return jsonError(502, 'Failed to delete relayer from Builder Hub.');
-
-  } catch (hubError) {
+  } catch {
     console.error('[Relayers] Builder Hub request failed');
     return jsonError(503, 'Builder Hub was unreachable.');
   }
@@ -91,9 +92,8 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ relayerId: string }> }
+  { params }: { params: Promise<{ relayerId: string }> },
 ): Promise<NextResponse> {
   const { relayerId } = await params;
   return handleDeleteRelayer(relayerId, request);
 }
-

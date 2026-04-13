@@ -50,6 +50,7 @@ import {
   VersionLabels,
 } from "@/components/stats/VersionBreakdown";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
+import { apiFetch } from "@/lib/api/client";
 
 type TableView = "summary" | "validators";
 
@@ -303,11 +304,8 @@ export default function AvalancheMetrics() {
   useEffect(() => {
     const fetchAvaxSupply = async () => {
       try {
-        const response = await fetch("/api/avax-supply");
-        if (response.ok) {
-          const data = await response.json();
-          setAvaxSupplyData(data);
-        }
+        const data = await apiFetch<any>("/api/avax-supply");
+        setAvaxSupplyData(data);
       } catch (err) {
         console.error("Error fetching AVAX supply data:", err);
       }
@@ -322,11 +320,7 @@ export default function AvalancheMetrics() {
     const fetchValidatorStats = async () => {
       setValidatorStatsLoading(true);
       try {
-        const response = await fetch("/api/validator-stats?network=mainnet");
-        if (!response.ok) {
-          throw new Error(`Failed to fetch validator stats: ${response.status}`);
-        }
-        const stats: SubnetStats[] = await response.json();
+        const stats = await apiFetch<SubnetStats[]>("/api/validator-stats?network=mainnet");
         setValidatorStats(stats);
 
         // Extract available versions
@@ -417,13 +411,12 @@ export default function AvalancheMetrics() {
   const fetchIcmFlows = useCallback(async () => {
     try {
       setIcmLoading(true);
-      const icmResponse = await fetch("/api/icm-flow?days=30").catch(
+      const icmData = await apiFetch<any>("/api/icm-flow?days=30").catch(
         () => null
       );
 
-      if (icmResponse && icmResponse.ok) {
+      if (icmData) {
         try {
-          const icmData = await icmResponse.json();
           if (icmData.flows && Array.isArray(icmData.flows)) {
             setIcmFlows(
               icmData.flows.map((f: any) => ({
@@ -544,12 +537,9 @@ export default function AvalancheMetrics() {
       }
       setError(null);
       try {
-        const response = await fetch(
+        const metrics = await apiFetch<any>(
           `/api/overview-stats?timeRange=${timeRange}`
         );
-        if (!response.ok)
-          throw new Error(`Failed to fetch metrics: ${response.status}`);
-        const metrics = await response.json();
         setOverviewMetrics(metrics);
       } catch (err: any) {
         console.error("Error fetching metrics data:", err);

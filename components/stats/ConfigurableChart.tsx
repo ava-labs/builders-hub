@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect, useRef } from "react";
+import { apiFetch } from "@/lib/api/client";
 import { Area, Bar, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -379,12 +380,7 @@ export default function ConfigurableChart({
         queryString += `&startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`;
       }
       
-      const response = await fetch(`/api/chain-stats/${chainId}?${queryString}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.status}`);
-      }
-
-      const chainMetrics: ChainMetrics = await response.json();
+      const chainMetrics = await apiFetch<ChainMetrics>(`/api/chain-stats/${chainId}?${queryString}`);
       const metric = chainMetrics[metricKey as keyof ChainMetrics];
 
       if (!metric) {

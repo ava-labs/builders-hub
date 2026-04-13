@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import createGlobe from "cobe";
+import { apiFetch } from "@/lib/api/client";
 import {
   Card,
   CardContent,
@@ -164,10 +165,7 @@ export function ValidatorWorldMap() {
 
   const fetchGeoData = async () => {
     try {
-      const response = await fetch("/api/validator-geolocation");
-      if (!response.ok) throw new Error("Failed to fetch geolocation data");
-
-      const data = await response.json();
+      const data = await apiFetch<CountryData[]>("/api/validator-geolocation");
       setGeoData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load map data");

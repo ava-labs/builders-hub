@@ -1,6 +1,11 @@
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useConsoleBadgeNotificationStore } from "@/components/toolbox/stores/consoleBadgeNotificationStore";
+import { apiFetch } from "@/lib/api/client";
+
+interface ConsoleBadgeCheckResult {
+  awardedBadges: any[];
+}
 
 export function useRetroactiveConsoleBadges() {
   const { data: session, status } = useSession();
@@ -17,12 +22,10 @@ export function useRetroactiveConsoleBadges() {
 
     localStorage.setItem(key, "1");
 
-    fetch("/api/badge/console-check", {
+    apiFetch<ConsoleBadgeCheckResult>("/api/badge/console-check", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+      body: { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
     })
-      .then((res) => res.json())
       .then((data) => {
         if (data.awardedBadges?.length > 0) {
           addBadges(data.awardedBadges, true);

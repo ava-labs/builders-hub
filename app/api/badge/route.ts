@@ -1,26 +1,16 @@
-import { withAuth } from "@/lib/protectedRoute";
-import { getBadgeByCourseId } from "@/server/services/badge";
+import { z } from 'zod';
+import { withApi, successResponse, validateQuery } from '@/lib/api';
+import { getBadgeByCourseId } from '@/server/services/badge';
 
-import { NextResponse } from "next/server";
-
-export const GET = withAuth(async (request) => {
-  const { searchParams } = new URL(request.url);
-  const course_id = searchParams.get("course_id");
-  if (!course_id) {
-    return NextResponse.json(
-      { error: "course_id parameter is required" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const badge = await getBadgeByCourseId(course_id);
-    return NextResponse.json(badge, { status: 200 });
-  } catch (error) {
-    console.error("Error getting badge:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
+const querySchema = z.object({
+  course_id: z.string().min(1, 'course_id is required'),
 });
+
+export const GET = withApi(
+  async (req) => {
+    const { course_id } = validateQuery(req, querySchema);
+    const badge = await getBadgeByCourseId(course_id);
+    return successResponse(badge);
+  },
+  { auth: true },
+);

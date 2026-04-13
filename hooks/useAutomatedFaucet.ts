@@ -6,6 +6,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useTestnetFaucet, type FaucetClaimResult } from './useTestnetFaucet';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api/client';
 import { balanceService } from '@/components/toolbox/services/balanceService';
 import { useChainTokenTracker } from './useChainTokenTracker';
 import { useConfetti } from './useConfetti';
@@ -60,16 +61,11 @@ export const useAutomatedFaucet = () => {
     chains: Array<{ faucetType: 'pchain' | 'evm'; chainId?: string }>
   ): Promise<ChainRateLimitStatus[]> => {
     try {
-      const response = await fetch('/api/faucet-rate-limit/batch', {
+      const data = await apiFetch<{ limits: ChainRateLimitStatus[] }>('/api/faucet-rate-limit/batch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chains })
+        body: { chains }
       });
-      
-      if (!response.ok) return [];
-      
-      const data = await response.json();
-      return data.success ? data.limits : [];
+      return data.limits ?? [];
     } catch (error) {
       console.error('Failed to fetch rate limits:', error);
       return [];

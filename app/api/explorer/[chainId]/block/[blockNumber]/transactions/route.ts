@@ -1,5 +1,15 @@
-import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
 import l1ChainsData from '@/constants/l1-chains.json';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { validateParams } from '@/lib/api/validate';
+import { NotFoundError } from '@/lib/api/errors';
+
+const paramsSchema = z.object({
+  chainId: z.string().regex(/^\d+$/, 'chainId must be numeric'),
+  blockNumber: z.string().regex(/^\d+$/, 'blockNumber must be numeric'),
+});
 
 interface RpcTransaction {
   hash: string;
@@ -54,38 +64,29 @@ async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = 
   }
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ chainId: string; blockNumber: string }> }
-) {
-  const { chainId, blockNumber } = await params;
+export const GET = withApi(
+  async (req: NextRequest, { params }) => {
+    const { chainId, blockNumber } = validateParams(params, paramsSchema);
 
-  // Get query params for custom chains
-  const { searchParams } = new URL(request.url);
-  const customRpcUrl = searchParams.get('rpcUrl');
+    // Get query params for custom chains
+    const { searchParams } = new URL(req.url);
+    const customRpcUrl = searchParams.get('rpcUrl');
 
-  const chain = l1ChainsData.find(c => c.chainId === chainId);
-  const rpcUrl = chain?.rpcUrl || customRpcUrl;
-  
-  if (!rpcUrl) {
-    return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
-  }
+    const chain = l1ChainsData.find((c) => c.chainId === chainId);
+    const rpcUrl = chain?.rpcUrl || customRpcUrl;
 
-  try {
-
-    // Determine if blockNumber is a number or hash
-    let blockParam: string;
-    if (blockNumber.startsWith('0x')) {
-      blockParam = blockNumber;
-    } else {
-      blockParam = `0x${parseInt(blockNumber).toString(16)}`;
+    if (!rpcUrl) {
+      throw new NotFoundError('Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.');
     }
 
+    // Convert blockNumber to hex
+    const blockParam = `0x${parseInt(blockNumber).toString(16)}`;
+
     // Fetch block with full transaction objects
-    const block = await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockParam, true]) as RpcBlock | null;
+    const block = (await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockParam, true])) as RpcBlock | null;
 
     if (!block) {
-      return NextResponse.json({ error: 'Block not found' }, { status: 404 });
+      throw new NotFoundError('Block');
     }
 
     // Format transactions
@@ -102,10 +103,9 @@ export async function GET(
       input: tx.input,
     }));
 
-    return NextResponse.json({ transactions });
-  } catch (error) {
-    console.error(`Error fetching transactions for block ${blockNumber} on chain ${chainId}:`, error);
-    return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 });
-  }
-}
-
+    return successResponse({ transactions });
+  },
+  {
+    rateLimit: { windowMs: 60_000, maxRequests: 60, identifier: 'ip' },
+  },
+);

@@ -1,5 +1,15 @@
-import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
 import l1ChainsData from '@/constants/l1-chains.json';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { validateParams } from '@/lib/api/validate';
+import { NotFoundError } from '@/lib/api/errors';
+
+const paramsSchema = z.object({
+  chainId: z.string().regex(/^\d+$/, 'chainId must be numeric'),
+  blockNumber: z.string().regex(/^\d+$/, 'blockNumber must be numeric'),
+});
 
 interface RpcTransaction {
   hash: string;
@@ -133,18 +143,13 @@ function parseACP176FeeState(extraData: string): ACP176FeeState | undefined {
   const gasExcess = BigInt('0x' + hex.slice(16, 32));
   const targetExcess = BigInt('0x' + hex.slice(32, 48));
 
-  const target = fakeExponential(
-    ACP176_MIN_TARGET_PER_SECOND,
-    targetExcess,
-    ACP176_TARGET_CONVERSION,
-  );
+  const target = fakeExponential(ACP176_MIN_TARGET_PER_SECOND, targetExcess, ACP176_TARGET_CONVERSION);
 
   const maxCapacity = target * ACP176_TARGET_TO_MAX_CAPACITY;
 
   const priceUpdateConversion = target * ACP176_TARGET_TO_PRICE_UPDATE_CONVERSION;
-  const gasPrice = priceUpdateConversion > 0n
-    ? fakeExponential(ACP176_MIN_GAS_PRICE, gasExcess, priceUpdateConversion)
-    : 0n;
+  const gasPrice =
+    priceUpdateConversion > 0n ? fakeExponential(ACP176_MIN_GAS_PRICE, gasExcess, priceUpdateConversion) : 0n;
 
   return {
     gasCapacity: gasCapacity.toString(),
@@ -161,38 +166,29 @@ function hexToTimestamp(hex: string): string {
   return new Date(timestamp).toISOString();
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ chainId: string; blockNumber: string }> }
-) {
-  const { chainId, blockNumber } = await params;
+export const GET = withApi(
+  async (req: NextRequest, { params }) => {
+    const { chainId, blockNumber } = validateParams(params, paramsSchema);
 
-  // Get query params for custom chains
-  const { searchParams } = new URL(request.url);
-  const customRpcUrl = searchParams.get('rpcUrl');
+    // Get query params for custom chains
+    const { searchParams } = new URL(req.url);
+    const customRpcUrl = searchParams.get('rpcUrl');
 
-  const chain = l1ChainsData.find(c => c.chainId === chainId);
-  const rpcUrl = chain?.rpcUrl || customRpcUrl;
-  
-  if (!rpcUrl) {
-    return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
-  }
+    const chain = l1ChainsData.find((c) => c.chainId === chainId);
+    const rpcUrl = chain?.rpcUrl || customRpcUrl;
 
-  try {
-
-    // Determine if blockNumber is a number or hash
-    let blockParam: string | number;
-    if (blockNumber.startsWith('0x')) {
-      blockParam = blockNumber;
-    } else {
-      blockParam = `0x${parseInt(blockNumber).toString(16)}`;
+    if (!rpcUrl) {
+      throw new NotFoundError('Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.');
     }
 
+    // Convert blockNumber to hex
+    const blockParam = `0x${parseInt(blockNumber).toString(16)}`;
+
     // Fetch block with full transaction objects (using true parameter)
-    const block = await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockParam, true]) as RpcBlock | null;
+    const block = (await fetchFromRPC(rpcUrl, 'eth_getBlockByNumber', [blockParam, true])) as RpcBlock | null;
 
     if (!block) {
-      return NextResponse.json({ error: 'Block not found' }, { status: 404 });
+      throw new NotFoundError('Block');
     }
 
     // Calculate total gas fee by fetching receipts and summing all transaction fees
@@ -201,12 +197,12 @@ export async function GET(
 
     if (block.transactions && block.transactions.length > 0) {
       // Fetch all transaction receipts in parallel
-      const receiptPromises = block.transactions.map(tx => 
-        fetchFromRPC(rpcUrl, 'eth_getTransactionReceipt', [tx.hash]) as Promise<RpcTransactionReceipt | null>
+      const receiptPromises = block.transactions.map(
+        (tx) => fetchFromRPC(rpcUrl, 'eth_getTransactionReceipt', [tx.hash]) as Promise<RpcTransactionReceipt | null>,
       );
-      
+
       const receipts = await Promise.all(receiptPromises);
-      
+
       // Sum up all transaction fees: gasUsed * effectiveGasPrice
       for (const receipt of receipts) {
         if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
@@ -215,23 +211,19 @@ export async function GET(
           totalGasFeeWei += gasUsed * effectiveGasPrice;
         }
       }
-      
+
       // Convert from wei to native token (divide by 1e18)
       gasFee = (Number(totalGasFeeWei) / 1e18).toFixed(6);
     }
 
     // Extract transaction hashes for the response
-    const transactionHashes = block.transactions.map(tx => tx.hash);
+    const transactionHashes = block.transactions.map((tx) => tx.hash);
 
     // Parse timestampMilliseconds for Avalanche (hex string to number)
-    const timestampMilliseconds = block.timestampMilliseconds 
-      ? parseInt(block.timestampMilliseconds, 16) 
-      : undefined;
+    const timestampMilliseconds = block.timestampMilliseconds ? parseInt(block.timestampMilliseconds, 16) : undefined;
 
     // Parse ACP-176 fee state from extraData (C-Chain only)
-    const feeState = chainId === '43114' && block.extraData
-      ? parseACP176FeeState(block.extraData)
-      : undefined;
+    const feeState = chainId === '43114' && block.extraData ? parseACP176FeeState(block.extraData) : undefined;
 
     // Format the response
     const formattedBlock = {
@@ -257,10 +249,9 @@ export async function GET(
       transactionsRoot: block.transactionsRoot,
     };
 
-    return NextResponse.json(formattedBlock);
-  } catch (error) {
-    console.error(`Error fetching block ${blockNumber} for chain ${chainId}:`, error);
-    return NextResponse.json({ error: 'Failed to fetch block data' }, { status: 500 });
-  }
-}
-
+    return successResponse(formattedBlock);
+  },
+  {
+    rateLimit: { windowMs: 60_000, maxRequests: 60, identifier: 'ip' },
+  },
+);

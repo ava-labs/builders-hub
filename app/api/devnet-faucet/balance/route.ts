@@ -1,10 +1,8 @@
-import { NextResponse } from 'next/server';
 import { createPublicClient, http, defineChain, formatEther } from 'viem';
-import { getAuthSession } from '@/lib/auth/authSession';
+import { withApi, successResponse, ForbiddenError, InternalError } from '@/lib/api';
 
 const DEVNET_RPC_URL = 'https://api.avax-dev.network/ext/bc/C/rpc';
 const DEVNET_CHAIN_ID = 43117;
-const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
 
 const devnetCChain = defineChain({
   id: DEVNET_CHAIN_ID,
@@ -15,29 +13,17 @@ const devnetCChain = defineChain({
   },
 });
 
-export async function GET(): Promise<NextResponse> {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+export const GET = withApi(
+  async (_req, { session }) => {
+    const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
 
-    const email = session.user.email || '';
+    const email = session.user?.email || '';
     if (!email.endsWith('@avalabs.org')) {
-      return NextResponse.json(
-        { success: false, message: 'Restricted to @avalabs.org accounts' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Restricted to @avalabs.org accounts');
     }
 
     if (!FAUCET_ADDRESS) {
-      return NextResponse.json(
-        { success: false, message: 'Faucet not configured' },
-        { status: 500 }
-      );
+      throw new InternalError('Faucet not configured');
     }
 
     const publicClient = createPublicClient({
@@ -51,16 +37,7 @@ export async function GET(): Promise<NextResponse> {
 
     const balance = formatEther(balanceWei);
 
-    return NextResponse.json({
-      success: true,
-      balance,
-      address: FAUCET_ADDRESS,
-    });
-  } catch (error) {
-    console.error('Devnet faucet balance error:', error);
-    return NextResponse.json(
-      { success: false, message: 'Failed to fetch balance' },
-      { status: 500 }
-    );
-  }
-}
+    return successResponse({ balance, address: FAUCET_ADDRESS });
+  },
+  { auth: true },
+);

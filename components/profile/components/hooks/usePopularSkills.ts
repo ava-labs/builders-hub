@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 
 interface PopularSkill {
   name: string;
@@ -19,16 +19,16 @@ export function usePopularSkills() {
     const fetchPopularSkills = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       try {
-        const response = await axios.get('/api/profile/popular-skills', {
+        const data = await apiFetch<PopularSkill[]>('/api/profile/popular-skills', {
           headers: {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
           },
         });
-        
-        setPopularSkills(response.data);
+
+        setPopularSkills(data);
       } catch (err) {
         console.error('Error loading popular skills:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');

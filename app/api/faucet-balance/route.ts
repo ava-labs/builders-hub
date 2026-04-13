@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
 import { createPublicClient, http, formatEther, defineChain } from 'viem';
 import { avalancheFuji } from 'viem/chains';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
@@ -21,17 +22,6 @@ interface ChainBalance {
   balanceFormatted: string;
   symbol: string;
   faucetAddress: string;
-}
-
-interface FaucetBalanceResponse {
-  success: boolean;
-  pChain?: {
-    balance: string;
-    balanceFormatted: string;
-    faucetAddress: string;
-  };
-  evmChains?: ChainBalance[];
-  message?: string;
 }
 
 function createViemChain(l1Data: L1ListItem) {
@@ -119,35 +109,27 @@ async function getEVMChainBalance(chain: L1ListItem): Promise<ChainBalance | nul
   }
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<FaucetBalanceResponse>> {
-  try {
-    // Get list of chains with faucet support
-    const testnetStore = getL1ListStore(true);
-    const chainsWithFaucet = testnetStore.getState().l1List.filter(
-      (chain: L1ListItem) => chain.hasBuilderHubFaucet
-    );
+export const GET = withApi(async () => {
+  // Get list of chains with faucet support
+  const testnetStore = getL1ListStore(true);
+  const chainsWithFaucet = testnetStore.getState().l1List.filter((chain: L1ListItem) => chain.hasBuilderHubFaucet);
 
-    // Fetch all balances in parallel
-    const [pChainResult, ...evmResults] = await Promise.all([
-      getPChainBalance(),
-      ...chainsWithFaucet.map((chain: L1ListItem) => getEVMChainBalance(chain)),
-    ]);
+  // Fetch all balances in parallel
+  const [pChainResult, ...evmResults] = await Promise.all([
+    getPChainBalance(),
+    ...chainsWithFaucet.map((chain: L1ListItem) => getEVMChainBalance(chain)),
+  ]);
 
-    const evmChains = evmResults.filter((result): result is ChainBalance => result !== null);
+  const evmChains = evmResults.filter((result): result is ChainBalance => result !== null);
 
-    return NextResponse.json({
-      success: true,
-      pChain: pChainResult ? {
-        ...pChainResult,
-        faucetAddress: FAUCET_P_CHAIN_ADDRESS!,
-      } : undefined,
-      evmChains,
-    });
-  } catch (error) {
-    console.error('Faucet balance error:', error);
-    return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : 'Failed to fetch balances' },
-      { status: 500 }
-    );
-  }
-}
+  return successResponse({
+    success: true,
+    pChain: pChainResult
+      ? {
+          ...pChainResult,
+          faucetAddress: FAUCET_P_CHAIN_ADDRESS!,
+        }
+      : undefined,
+    evmChains,
+  });
+});

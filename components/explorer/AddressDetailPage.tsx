@@ -12,6 +12,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import ContractReadSection from "@/components/explorer/ContractReadSection";
 import ContractWriteSection from "@/components/explorer/ContractWriteSection";
 import SourceCodeViewer from "@/components/explorer/SourceCodeViewer";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 
 interface NativeBalance {
   balance: string;
@@ -514,15 +515,10 @@ export default function AddressDetailPage({
         additionalParams.pageToken = pageToken;
       }
       const url = buildApiUrl(`/api/explorer/${chainId}/address/${address}`, additionalParams);
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch address data");
-      }
-      const result = await response.json();
+      const result = await apiFetch<any>(url);
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof ApiClientError ? err.message : err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
       setTxLoading(false);
@@ -555,11 +551,9 @@ export default function AddressDetailPage({
             additionalParams.pageToken = pageToken;
           }
           const url = buildApiUrl(`/api/explorer/${chainId}/address/${address}/erc20-balances`, additionalParams);
-          
-          const response = await fetch(url);
-          if (!response.ok || cancelled) break;
-          
-          const result: Erc20BalancesPageResponse = await response.json();
+
+          if (cancelled) break;
+          const result = await apiFetch<Erc20BalancesPageResponse>(url);
           
           // Accumulate balances
           allBalances = [...allBalances, ...result.balances];
@@ -603,13 +597,7 @@ export default function AddressDetailPage({
       if (cancelled) return;
       
       try {
-        const response = await fetch(`/api/dune/${address}`);
-        if (!response.ok || cancelled) {
-          setDuneLabelsLoading(false);
-          return;
-        }
-        
-        const result = await response.json();
+        const result = await apiFetch<any>(`/api/dune/${address}`);
         
         if (cancelled) return;
         

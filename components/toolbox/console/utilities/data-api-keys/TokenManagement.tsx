@@ -18,6 +18,7 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 interface GlacierJwtResponse {
   glacierJwt: string;
@@ -64,22 +65,16 @@ function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
       setJwtError(null);
 
       try {
-        const response = await fetch('/api/glacier-jwt');
-        if (!response.ok) {
-          if (response.status === 401) {
-            setJwtError('Please log in to manage your API keys');
-          } else {
-            setJwtError('Failed to initialize. Please try again.');
-          }
-          return;
-        }
-
-        const data: GlacierJwtResponse = await response.json();
+        const data = await apiFetch<GlacierJwtResponse>('/api/glacier-jwt');
         setJwtData(data);
         apiClientRef.current = new GlacierApiClient(data.glacierJwt, data.endpoint);
       } catch (err) {
-        console.error('Failed to fetch JWT:', err);
-        setJwtError('Failed to initialize. Please try again.');
+        if (err instanceof ApiClientError && err.status === 401) {
+          setJwtError('Please log in to manage your API keys');
+        } else {
+          console.error('Failed to fetch JWT:', err);
+          setJwtError('Failed to initialize. Please try again.');
+        }
       } finally {
         setJwtLoading(false);
       }

@@ -1,5 +1,6 @@
 "use client";
 import { ReactNode, useState, useEffect } from "react";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -309,19 +310,10 @@ export default function GrantApplicationForm({
         }
       });
 
-      const response = await fetch("/api/infrabuidl", {
+      await apiFetch("/api/infrabuidl", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(hubspotFormData),
+        body: hubspotFormData,
       });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to submit to HubSpot");
-      }
 
       setSubmissionStatus("success");
       alert("Your grant application has been successfully submitted!");

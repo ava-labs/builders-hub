@@ -1,0 +1,93 @@
+name: API CI
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'app/api/**'
+      - 'lib/api/**'
+      - 'lib/auth/**'
+      - 'lib/rateLimit.ts'
+      - 'lib/protectedRoute.ts'
+      - 'server/services/**'
+      - 'prisma/schema.prisma'
+      - 'tests/api/**'
+      - 'components/**/*.ts'
+      - 'components/**/*.tsx'
+      - 'hooks/**/*.ts'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # ── Core checks ──────────────────────────────────────
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # ── API conventions ──────────────────────────────────
+
+      - name: ESLint (API routes)
+        run: npx eslint app/api/ --max-warnings 0
+
+      - name: API standards (security + quality)
+        run: bash ./scripts/check-api-standards.sh
+
+      - name: API tests
+        run: npx vitest run tests/api/ --reporter=verbose
+
+      # ── PR-level enforcement ─────────────────────────────
+
+      - name: Require tests for changed API routes
+        run: |
+          # Get API route files changed in this PR
+          CHANGED_ROUTES=$(git diff --name-only origin/master...HEAD -- 'app/api/**/route.ts' 'app/api/**/route.tsx' | \
+            grep -v 'auth/\[\.\.\.nextauth\]\|/og/\|well-known\|/check/route' || true)
+
+          if [ -z "$CHANGED_ROUTES" ]; then
+            echo "✓ No API routes changed in this PR"
+            exit 0
+          fi
+
+          MISSING=0
+          echo "Checking test coverage for changed API routes..."
+          while IFS= read -r route; do
+            [ -z "$route" ] && continue
+            route_dir=$(echo "$route" | sed 's|app/api/||; s|/route\.tsx\?||')
+            route_name=$(basename "$route_dir")
+
+            # Check if ANY test file references this route
+            if grep -rl "$route_dir\|$route_name" tests/api/ --include="*.test.ts" > /dev/null 2>&1; then
+              echo "  ✓ $route → has tests"
+            else
+              echo "  ✗ $route → NO TESTS FOUND"
+              MISSING=$((MISSING + 1))
+            fi
+          done <<< "$CHANGED_ROUTES"
+
+          if [ $MISSING -gt 0 ]; then
+            echo ""
+            echo "✗ $MISSING changed API route(s) have no test coverage."
+            echo "  Add tests to tests/api/ before merging."
+            exit 1
+          fi
+
+          echo "✓ All changed API routes have test coverage"

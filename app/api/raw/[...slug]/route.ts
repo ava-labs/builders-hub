@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withApi, BadRequestError, NotFoundError } from '@/lib/api';
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 
 const markdownHeaders = {
   'Content-Type': 'text/markdown; charset=utf-8',
   'Cache-Control': 'public, max-age=3600, s-maxage=3600',
-  'Vary': 'Accept',
+  Vary: 'Accept',
 };
 
 type Source = typeof documentation | typeof academy | typeof integration | typeof blog;
@@ -30,7 +31,10 @@ function buildSectionIndex(source: Source, label: string): string {
 
   let content = `# ${label}\n\n`;
   for (const [section, sectionPages] of Object.entries(sections)) {
-    const heading = section.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const heading = section
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
     content += `## ${heading}\n`;
     for (const p of sectionPages.slice(0, 10)) {
       content += `- [${p.title}](${p.url})\n`;
@@ -41,38 +45,47 @@ function buildSectionIndex(source: Source, label: string): string {
   return content;
 }
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
-  const { slug } = await params;
+/** Reject path traversal patterns: "..", "//", null bytes */
+function validateSlugSegments(segments: string[]): void {
+  for (const segment of segments) {
+    if (segment === '..' || segment === '.' || segment.includes('\0') || segment === '') {
+      throw new BadRequestError('Invalid path segment');
+    }
+  }
+  const joined = segments.join('/');
+  if (joined.includes('//')) {
+    throw new BadRequestError('Invalid path: double slashes not allowed');
+  }
+}
+
+export const GET = withApi(async (_req, { params }) => {
+  const { slug } = params as unknown as { slug: string[] };
 
   if (!slug || slug.length === 0) {
-    return NextResponse.json({ error: 'Path required' }, { status: 400 });
+    throw new BadRequestError('Path required');
   }
+
+  validateSlugSegments(slug);
 
   const [contentType, ...restPath] = slug;
   const entry = sourceMap[contentType];
 
   if (!entry) {
-    return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
+    throw new BadRequestError('Invalid content type');
   }
 
-  try {
-    // Section root request (e.g., /api/raw/docs) — return a synthesized index
-    if (restPath.length === 0) {
-      const content = buildSectionIndex(entry.source, entry.label);
-      return new NextResponse(content, { status: 200, headers: markdownHeaders });
-    }
-
-    const page = entry.source.getPage(restPath);
-
-    if (!page) {
-      return NextResponse.json({ error: 'Page not found' }, { status: 404 });
-    }
-
-    const content = await getLLMText(page);
-
+  // Section root request (e.g., /api/raw/docs) -- return a synthesized index
+  if (restPath.length === 0) {
+    const content = buildSectionIndex(entry.source, entry.label);
     return new NextResponse(content, { status: 200, headers: markdownHeaders });
-  } catch (error) {
-    console.error('Error fetching page:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+
+  const page = entry.source.getPage(restPath);
+
+  if (!page) {
+    throw new NotFoundError('Page');
+  }
+
+  const content = await getLLMText(page);
+  return new NextResponse(content, { status: 200, headers: markdownHeaders });
+});

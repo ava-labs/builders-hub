@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { withApi, InternalError, successResponse } from '@/lib/api';
 
 const UPSTREAM_URL = 'https://52.203.183.9.sslip.io/api/validators';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const FETCH_TIMEOUT = 15000;
+const FETCH_TIMEOUT = 10_000;
 
 interface ValidatorP2P {
   node_id: string;
@@ -26,50 +26,41 @@ interface ValidatorP2P {
 
 let cachedData: { data: ValidatorP2P[]; timestamp: number } | null = null;
 
-export async function GET() {
+export const GET = withApi(async () => {
+  if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
+    const resp = successResponse(cachedData.data);
+    resp.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+    resp.headers.set('X-Data-Source', 'cache');
+    return resp;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
   try {
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
-      return NextResponse.json(cachedData.data, {
-        headers: {
-          'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
-          'X-Data-Source': 'cache',
-        },
-      });
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-
     const response = await fetch(UPSTREAM_URL, { signal: controller.signal });
     clearTimeout(timeout);
 
     if (!response.ok) {
-      throw new Error(`Upstream API returned ${response.status}`);
+      throw new InternalError(`Upstream API returned ${response.status}`);
     }
 
     const data: ValidatorP2P[] = await response.json();
     cachedData = { data, timestamp: Date.now() };
 
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
-        'X-Data-Source': 'fresh',
-      },
-    });
+    const resp = successResponse(data);
+    resp.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+    resp.headers.set('X-Data-Source', 'fresh');
+    return resp;
   } catch (error) {
-    console.error('[GET /api/validators] Error:', error);
+    clearTimeout(timeout);
 
     if (cachedData) {
-      return NextResponse.json(cachedData.data, {
-        headers: {
-          'X-Data-Source': 'error-fallback-cache',
-        },
-      });
+      const resp = successResponse(cachedData.data);
+      resp.headers.set('X-Data-Source', 'error-fallback-cache');
+      return resp;
     }
 
-    return NextResponse.json(
-      { error: 'Failed to fetch validators data' },
-      { status: 500 }
-    );
+    throw error;
   }
-}
+});

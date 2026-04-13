@@ -1,12 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { InternalError, ValidationError } from '@/lib/api/errors';
+import { EVM_ADDRESS_REGEX } from '@/lib/api/constants';
 import l1ChainsData from '@/constants/l1-chains.json';
-import { 
-  getCachedLabels, 
-  setCachedLabels, 
+import {
+  getCachedLabels,
+  setCachedLabels,
   getPendingExecution,
   setPendingExecution,
   clearPendingExecution,
-  DuneLabel 
+  type DuneLabel,
 } from '@/app/api/dune/cache';
 
 const DUNE_QUERY_ID = '6275927';
@@ -18,89 +22,83 @@ interface DuneResponse {
   matchedLabels?: number;
 }
 
-// Start Dune query execution
 async function startExecution(address: string, apiKey: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
   try {
-    const response = await fetch(
-      `https://api.dune.com/api/v1/query/${DUNE_QUERY_ID}/execute`,
-      {
-        method: 'POST',
-        headers: {
-          'X-Dune-API-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query_parameters: { address: address },
-          performance: 'medium',
-        }),
-      }
-    );
+    const response = await fetch(`https://api.dune.com/api/v1/query/${DUNE_QUERY_ID}/execute`, {
+      method: 'POST',
+      headers: {
+        'X-Dune-API-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query_parameters: { address },
+        performance: 'medium',
+      }),
+      signal: controller.signal,
+    });
 
-    if (!response.ok) {
-      console.warn('[Dune] Execute failed:', response.status);
-      return null;
-    }
-
+    if (!response.ok) return null;
     const data = await response.json();
     return data.execution_id || null;
-  } catch (error) {
-    console.warn('[Dune] Failed to start execution:', error);
+  } catch {
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
-// Check execution status
-async function checkStatus(executionId: string, apiKey: string): Promise<{ isFinished: boolean; state: string } | null> {
+async function checkStatus(
+  executionId: string,
+  apiKey: string,
+): Promise<{ isFinished: boolean; state: string } | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
   try {
-    const response = await fetch(
-      `https://api.dune.com/api/v1/execution/${executionId}/status`,
-      {
-        headers: { 'X-Dune-API-Key': apiKey },
-      }
-    );
+    const response = await fetch(`https://api.dune.com/api/v1/execution/${executionId}/status`, {
+      headers: { 'X-Dune-API-Key': apiKey },
+      signal: controller.signal,
+    });
 
-    if (!response.ok) {
-      return null;
-    }
-
+    if (!response.ok) return null;
     const data = await response.json();
-    return {
-      isFinished: data.is_execution_finished,
-      state: data.state,
-    };
-  } catch (error) {
+    return { isFinished: data.is_execution_finished, state: data.state };
+  } catch {
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
-// Fetch execution results
 async function fetchResults(executionId: string, apiKey: string): Promise<any[] | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
   try {
-    const response = await fetch(
-      `https://api.dune.com/api/v1/execution/${executionId}/results`,
-      {
-        headers: { 'X-Dune-API-Key': apiKey },
-      }
-    );
+    const response = await fetch(`https://api.dune.com/api/v1/execution/${executionId}/results`, {
+      headers: { 'X-Dune-API-Key': apiKey },
+      signal: controller.signal,
+    });
 
-    if (!response.ok) {
-      return null;
-    }
-
+    if (!response.ok) return null;
     const data = await response.json();
     return data.result?.rows || [];
-  } catch (error) {
+  } catch {
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
-// Map Dune rows to DuneLabel format
 function mapRowsToLabels(rows: any[]): DuneLabel[] {
   const labels: DuneLabel[] = [];
   for (const row of rows) {
-    const matchedChain = (l1ChainsData as any[]).find(c => c.duneId === row.blockchain);
+    const matchedChain = (l1ChainsData as any[]).find((c) => c.duneId === row.blockchain);
     if (!matchedChain) continue;
-    
+
     labels.push({
       blockchain: row.blockchain,
       name: row.name,
@@ -116,97 +114,77 @@ function mapRowsToLabels(rows: any[]): DuneLabel[] {
   return labels;
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ address: string }> }
-) {
+export const GET = withApi(async (_req: NextRequest, { params }) => {
   const duneApiKey = process.env.DUNE_API_KEY;
   if (!duneApiKey) {
-    return NextResponse.json({ error: 'Dune API key not configured' }, { status: 500 });
+    throw new InternalError('Dune API key not configured');
   }
 
-  try {
-    const { address } = await params;
+  const { address } = params;
 
-    // Validate address format
-    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
-    }
+  if (!address || !EVM_ADDRESS_REGEX.test(address)) {
+    throw new ValidationError('Invalid address format');
+  }
 
-    const normalizedAddress = address.toLowerCase();
+  const normalizedAddress = address.toLowerCase();
 
-    // Step 1: Check cache
-    const cachedLabels = getCachedLabels(normalizedAddress);
-    if (cachedLabels) {
-      return NextResponse.json({
-        status: 'cached',
-        labels: cachedLabels,
-        totalRows: cachedLabels.length,
-        matchedLabels: cachedLabels.length,
-      } as DuneResponse);
-    }
+  // Step 1: Check cache
+  const cachedLabels = getCachedLabels(normalizedAddress);
+  if (cachedLabels) {
+    return successResponse({
+      status: 'cached',
+      labels: cachedLabels,
+      totalRows: cachedLabels.length,
+      matchedLabels: cachedLabels.length,
+    } as DuneResponse);
+  }
 
-    // Step 2: Check if there's already a pending execution
-    const pendingExecutionId = getPendingExecution(normalizedAddress);
-    
-    if (pendingExecutionId) {
-      // Check status of pending execution
-      const status = await checkStatus(pendingExecutionId, duneApiKey);
-      
-      if (!status) {
-        // Status check failed, clear pending and start fresh
-        clearPendingExecution(normalizedAddress);
-      } else if (status.isFinished) {
-        if (status.state === 'QUERY_STATE_COMPLETED') {
-          // Execution complete, fetch results
-          const rows = await fetchResults(pendingExecutionId, duneApiKey);
-          if (rows) {
-            const labels = mapRowsToLabels(rows);
-            setCachedLabels(normalizedAddress, labels);
-            
-            console.log(`[Dune] Completed for ${normalizedAddress}: ${labels.length} labels (${rows.length} total rows)`);
-            
-            return NextResponse.json({
-              status: 'completed',
-              labels,
-              totalRows: rows.length,
-              matchedLabels: labels.length,
-            } as DuneResponse);
-          }
+  // Step 2: Check if there's already a pending execution
+  const pendingExecutionId = getPendingExecution(normalizedAddress);
+
+  if (pendingExecutionId) {
+    const status = await checkStatus(pendingExecutionId, duneApiKey);
+
+    if (!status) {
+      clearPendingExecution(normalizedAddress);
+    } else if (status.isFinished) {
+      if (status.state === 'QUERY_STATE_COMPLETED') {
+        const rows = await fetchResults(pendingExecutionId, duneApiKey);
+        if (rows) {
+          const labels = mapRowsToLabels(rows);
+          setCachedLabels(normalizedAddress, labels);
+
+          return successResponse({
+            status: 'completed',
+            labels,
+            totalRows: rows.length,
+            matchedLabels: labels.length,
+          } as DuneResponse);
         }
-        // Execution failed or results fetch failed
-        clearPendingExecution(normalizedAddress);
-      } else {
-        // Still executing, return waiting status
-        return NextResponse.json({
-          status: 'waiting',
-          labels: [],
-        } as DuneResponse);
       }
-    }
-
-    // Step 3: Start new execution
-    console.log(`[Dune] Starting execution for ${normalizedAddress}`);
-    const executionId = await startExecution(normalizedAddress, duneApiKey);
-    
-    if (!executionId) {
-      return NextResponse.json({
-        status: 'failed',
+      clearPendingExecution(normalizedAddress);
+    } else {
+      return successResponse({
+        status: 'waiting',
         labels: [],
       } as DuneResponse);
     }
+  }
 
-    // Store pending execution
-    setPendingExecution(normalizedAddress, executionId);
+  // Step 3: Start new execution
+  const executionId = await startExecution(normalizedAddress, duneApiKey);
 
-    // Return waiting status - UI will poll again
-    return NextResponse.json({
-      status: 'waiting',
+  if (!executionId) {
+    return successResponse({
+      status: 'failed',
       labels: [],
     } as DuneResponse);
-
-  } catch (error) {
-    console.error('[Dune] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+
+  setPendingExecution(normalizedAddress, executionId);
+
+  return successResponse({
+    status: 'waiting',
+    labels: [],
+  } as DuneResponse);
+});

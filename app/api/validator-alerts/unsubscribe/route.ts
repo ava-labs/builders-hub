@@ -3,9 +3,13 @@ import { prisma } from '@/prisma/prisma';
 import { verifyUnsubscribeToken } from '@/server/services/unsubscribe-token';
 
 /**
- * GET — render a confirmation page with a button.
- * This is safe for mail scanner prefetch since it performs no state change.
+ * Unsubscribe endpoint -- kept raw (no withApi) because it renders
+ * HTML pages rather than JSON envelopes.
  */
+
+// withApi: not applicable — returns HTML, not JSON
+// withApi: auth intentionally omitted — public unsubscribe link
+/** GET -- render a confirmation page with a button (safe for mail scanner prefetch). */
 export async function GET(req: NextRequest) {
   const alertId = req.nextUrl.searchParams.get('id');
   const token = req.nextUrl.searchParams.get('token');
@@ -25,11 +29,17 @@ export async function GET(req: NextRequest) {
     }
 
     if (!alert.active) {
-      return htmlResponse(200, 'Already Unsubscribed', `Alerts for validator <strong>${alert.node_id}</strong> are already paused.`);
+      return htmlResponse(
+        200,
+        'Already Unsubscribed',
+        `Alerts for validator <strong>${alert.node_id}</strong> are already paused.`,
+      );
     }
 
-    // Render confirmation page with a form that POSTs
-    return htmlResponse(200, 'Unsubscribe from Validator Alerts', `
+    return htmlResponse(
+      200,
+      'Unsubscribe from Validator Alerts',
+      `
       <p style="color:#A1A1AA;font-size:16px;line-height:1.6;margin-bottom:24px;">
         Stop receiving email alerts for validator <strong style="color:white;">${alert.node_id}</strong>?
       </p>
@@ -39,16 +49,18 @@ export async function GET(req: NextRequest) {
         </button>
       </form>
       <p style="color:#71717A;font-size:13px;margin-top:16px;">Or manage your alerts from the <a href="https://build.avax.network/validator-alerts" style="color:#3B82F6;">dashboard</a>.</p>
-    `);
-  } catch (error) {
-    console.error('Error rendering unsubscribe page:', error);
-    return htmlResponse(500, 'Error', 'Something went wrong. Please try again or manage your alerts from the dashboard.');
+    `,
+    );
+  } catch {
+    return htmlResponse(
+      500,
+      'Error',
+      'Something went wrong. Please try again or manage your alerts from the dashboard.',
+    );
   }
 }
 
-/**
- * POST — actually deactivate the alert. Requires the same signed token.
- */
+/** POST -- actually deactivate the alert. Requires the same signed token. */
 export async function POST(req: NextRequest) {
   const alertId = req.nextUrl.searchParams.get('id');
   const token = req.nextUrl.searchParams.get('token');
@@ -68,7 +80,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (!alert.active) {
-      return htmlResponse(200, 'Already Unsubscribed', `Alerts for validator <strong>${alert.node_id}</strong> are already paused.`);
+      return htmlResponse(
+        200,
+        'Already Unsubscribed',
+        `Alerts for validator <strong>${alert.node_id}</strong> are already paused.`,
+      );
     }
 
     await prisma.validatorAlert.update({
@@ -76,12 +92,17 @@ export async function POST(req: NextRequest) {
       data: { active: false },
     });
 
-    return htmlResponse(200, 'Unsubscribed',
-      `Alerts for validator <strong>${alert.node_id}</strong> have been paused. You can re-enable them from the <a href="https://build.avax.network/validator-alerts" style="color:#3B82F6;">Validator Alerts dashboard</a>.`
+    return htmlResponse(
+      200,
+      'Unsubscribed',
+      `Alerts for validator <strong>${alert.node_id}</strong> have been paused. You can re-enable them from the <a href="https://build.avax.network/validator-alerts" style="color:#3B82F6;">Validator Alerts dashboard</a>.`,
     );
-  } catch (error) {
-    console.error('Error processing unsubscribe:', error);
-    return htmlResponse(500, 'Error', 'Something went wrong. Please try again or manage your alerts from the dashboard.');
+  } catch {
+    return htmlResponse(
+      500,
+      'Error',
+      'Something went wrong. Please try again or manage your alerts from the dashboard.',
+    );
   }
 }
 

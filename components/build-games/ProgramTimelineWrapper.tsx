@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { apiFetch } from "@/lib/api/client";
 import dynamic from "next/dynamic";
 
 const ProgramTimeline = dynamic(() => import("./ProgramTimeline"), {
@@ -22,8 +23,7 @@ export default function ProgramTimelineWrapper() {
   useEffect(() => {
     if (status !== "authenticated") return;
 
-    fetch("/api/build-games/status")
-      .then((res) => res.json())
+    apiFetch<{ isParticipant: boolean; stageResults?: StageResult[] }>("/api/build-games/status")
       .then((data) => {
         setIsParticipant(!!data.isParticipant);
         setStageResults(data.stageResults ?? []);

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useReducer, useCallback, useEffect, R
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import axios from 'axios';
+import { apiFetch } from '@/lib/api/client';
 
 
 export interface ProjectState {
@@ -107,9 +107,8 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
   const loadProjectById = useCallback(async (projectId: string) => {
     try {
       dispatch({ type: 'SET_STATUS', payload: 'loading' });
-      const response = await axios.get(`/api/projects/${projectId}`);
-      const projectData = response.data;
-      
+      const projectData = await apiFetch<any>(`/api/projects/${projectId}`);
+
       if (projectData) {
         dispatch({ type: 'SET_PROJECT_ID', payload: projectData.id });
         dispatch({ type: 'SET_PROJECT_DATA', payload: projectData });
@@ -160,19 +159,19 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
       
       if (invitationId) {
         dispatch({ type: 'SET_INVITATION_ID', payload: invitationId });
-        const response = await axios.get(`/api/project/check-invitation`, {
-          params: { invitation: invitationId, user_id: session?.user?.id }
-        });
-        
-        if (response.data?.invitation?.exists) {
-          const invitation = response.data.invitation;
-          const project = response.data.project;
+        const params = new URLSearchParams({ invitation: invitationId });
+        if (session?.user?.id) params.set('user_id', session.user.id);
+        const data = await apiFetch<{ invitation?: any; project?: any }>(`/api/project/check-invitation?${params.toString()}`);
+
+        if (data?.invitation?.exists) {
+          const invitation = data.invitation;
+          const project = data.project;
           dispatch({ type: 'SET_OPEN_JOIN_TEAM', payload: invitation.isConfirming ?? false });
           dispatch({ type: "SET_TEAM_NAME", payload: project.project_name || "" });
           dispatch({ type: 'SET_OPEN_CURRENT_PROJECT', payload: invitation.hasConfirmedProject ?? false });
           dispatch({ type: 'SET_EDITING', payload: true });
         } else {
-          dispatch({ type: 'SET_OPEN_INVALID_INVITATION', payload: !response.data?.invitation?.isValid });
+          dispatch({ type: 'SET_OPEN_INVALID_INVITATION', payload: !data?.invitation?.isValid });
           dispatch({ type: 'SET_EDITING', payload: false });
         }
       } else {
@@ -204,10 +203,10 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
         id: state.id || undefined,
       };
 
-      const response = await axios.post('/api/project', projectData);
+      const result = await apiFetch<{ project?: { id: string } }>('/api/project', { method: 'POST', body: projectData });
 
-      if (response.data?.project?.id) {
-        const projectId = response.data.project.id;
+      if (result?.project?.id) {
+        const projectId = result.project.id;
         dispatch({ type: 'SET_PROJECT_ID', payload: projectId });
         dispatch({ type: 'SET_STATUS', payload: 'editing' });
 

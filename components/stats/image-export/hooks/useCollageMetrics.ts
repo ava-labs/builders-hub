@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { apiFetch } from "@/lib/api/client";
 import type { CollageMetricConfig, CollageMetricData, ChartDataPoint, Period } from "../types";
 
 // Aggregate data points by period using SUM (matching single chart behavior in ChainMetricsPage)
@@ -111,15 +112,9 @@ export function useCollageMetrics(
 
     try {
       // Fetch all metrics data at once
-      const response = await fetch(
+      const data = await apiFetch<any>(
         `/api/chain-stats/${chainId}?timeRange=all`
       );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch metrics: ${response.statusText}`);
-      }
-
-      const data = await response.json();
 
       // Process response and update metrics data
       const newMetricsData = new Map<string, CollageMetricData>();

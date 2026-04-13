@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Copy, Check } from "lucide-react";
+import { apiFetch } from "@/lib/api/client";
 import { getSession } from "next-auth/react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -20,8 +21,7 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
 
   useEffect(() => {
     if (!isOpen) return;
-    fetch("/api/build-games/status")
-      .then((res) => res.json())
+    apiFetch<{ hasApplied: boolean }>("/api/build-games/status")
       .then((data) => setHasApplication(!!data.hasApplied))
       .catch(() => setHasApplication(false));
   }, [isOpen]);

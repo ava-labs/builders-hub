@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "@/lib/api/client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -31,11 +32,8 @@ export default function MyDashboardsPage() {
     
     setDashboardsLoading(true);
     try {
-      const response = await fetch("/api/playground");
-      if (response.ok) {
-        const data = await response.json();
-        setDashboards(Array.isArray(data) ? data : []);
-      }
+      const data = await apiFetch<any>("/api/playground");
+      setDashboards(Array.isArray(data) ? data : []);
       setHasFetched(true);
     } catch (err) {
       console.error("Error fetching dashboards:", err);
@@ -54,14 +52,8 @@ export default function MyDashboardsPage() {
   const handleDeleteDashboard = async (id: string) => {
     if (!confirm("Are you sure you want to delete this dashboard?")) return;
     
-    const promise = fetch(`/api/playground?id=${id}`, {
+    const promise = apiFetch<any>(`/api/playground?id=${id}`, {
       method: "DELETE"
-    }).then(async (response) => {
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete dashboard");
-      }
-      return response.json();
     });
 
     toast.promise(promise, {
@@ -86,19 +78,12 @@ export default function MyDashboardsPage() {
     e.stopPropagation(); // Prevent row click
     
     const newVisibility = !currentVisibility;
-    const promise = fetch("/api/playground", {
+    const promise = apiFetch<any>("/api/playground", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         id,
         isPublic: newVisibility
-      })
-    }).then(async (response) => {
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update visibility");
       }
-      return response.json();
     });
 
     toast.promise(promise, {

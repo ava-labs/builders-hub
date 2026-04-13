@@ -5,6 +5,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+
+  // API routes: security headers + request ID, then return early (no auth needed)
+  if (pathname.startsWith("/api/")) {
+    const requestId = crypto.randomUUID();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-request-id", requestId);
+
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set("X-Request-Id", requestId);
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("X-Frame-Options", "DENY");
+    return response;
+  }
+
   const response = NextResponse.next();
   response.headers.set("Access-Control-Allow-Origin", "*");
   response.headers.set(
@@ -120,6 +134,8 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
+    // API routes — security headers + request ID
+    "/api/:path*",
     // Auth-protected paths
     "/hackathons/registration-form/:path*",
     "/hackathons/project-submission/:path*",

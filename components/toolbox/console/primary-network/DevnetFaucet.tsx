@@ -12,6 +12,7 @@ import {
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { AccountRequirementsConfigKey } from '../../hooks/useAccountRequirements';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { apiFetch } from '@/lib/api/client';
 
 const DEVNET_RPC_URL = 'https://api.avax-dev.network/ext/bc/C/rpc';
 const DEVNET_CHAIN_ID = 43117;
@@ -78,12 +79,9 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const fetchBalance = useCallback(async () => {
     setIsLoadingBalance(true);
     try {
-      const res = await fetch('/api/devnet-faucet/balance');
-      const data = await res.json();
-      if (data.success) {
-        setFaucetBalance(data.balance);
-        setFaucetAddress(data.address);
-      }
+      const data = await apiFetch<{ balance: string; address: string }>('/api/devnet-faucet/balance');
+      setFaucetBalance(data.balance);
+      setFaucetAddress(data.address);
     } catch {
       // silently fail
     } finally {
@@ -161,13 +159,9 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
     setResult(null);
 
     try {
-      const response = await fetch(`/api/devnet-faucet?address=${walletEVMAddress}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setResult({ success: false, message: data.message || 'Failed to drip tokens' });
-        return;
-      }
+      const data = await apiFetch<{ amount: string; txHash?: string }>(
+        `/api/devnet-faucet?address=${walletEVMAddress}`,
+      );
 
       setResult({
         success: true,
@@ -179,8 +173,11 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
         fetchBalance();
         fetchUserBalance();
       }, 2000);
-    } catch {
-      setResult({ success: false, message: 'Network error. Please try again.' });
+    } catch (error) {
+      setResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error. Please try again.',
+      });
     } finally {
       setIsDripping(false);
     }

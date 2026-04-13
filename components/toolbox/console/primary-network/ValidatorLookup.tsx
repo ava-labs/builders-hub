@@ -8,6 +8,7 @@ import {
   withConsoleToolMetadata,
 } from '../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Validator Lookup',
@@ -105,16 +106,14 @@ function ValidatorLookupInner(_props: BaseConsoleToolProps) {
     setData(null);
 
     try {
-      const res = await fetch(`/api/validators/${encodeURIComponent(id)}`);
-      if (!res.ok) {
-        if (res.status === 404) throw new Error('Validator not found');
-        throw new Error(`Failed to fetch (${res.status})`);
-      }
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
+      const json = await apiFetch<ValidatorDetail>(`/api/validators/${encodeURIComponent(id)}`);
       setData(json);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      if (err instanceof ApiClientError && err.status === 404) {
+        setError('Validator not found');
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      }
     } finally {
       setLoading(false);
     }

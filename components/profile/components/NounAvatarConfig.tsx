@@ -7,6 +7,7 @@ import Modal from "@/components/ui/Modal";
 import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api/client";
 
 interface NounAvatarConfigProps {
   isOpen: boolean;
@@ -131,11 +132,7 @@ export function NounAvatarConfig({
   const generateRandomSeed = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/user/noun-avatar/generate-seed");
-      if (!response.ok) {
-        throw new Error("Failed to generate seed");
-      }
-      const data = await response.json();
+      const data = await apiFetch<{ seed: AvatarSeed }>("/api/user/noun-avatar/generate-seed");
       setSeed(data.seed);
       toast({
         title: "New avatar generated!",
@@ -157,11 +154,7 @@ export function NounAvatarConfig({
   const generateDeterministicSeed = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/user/noun-avatar/generate-seed?deterministic=true");
-      if (!response.ok) {
-        throw new Error("Failed to generate seed");
-      }
-      const data = await response.json();
+      const data = await apiFetch<{ seed: AvatarSeed }>("/api/user/noun-avatar/generate-seed?deterministic=true");
       setSeed(data.seed);
       toast({
         title: "Deterministic avatar generated!",
@@ -197,16 +190,10 @@ export function NounAvatarConfig({
 
     setIsSaving(true);
     try {
-      const response = await fetch("/api/user/noun-avatar", {
+      await apiFetch("/api/user/noun-avatar", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seed: seedToSave, enabled: true }),
+        body: { seed: seedToSave, enabled: true },
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save avatar");
-      }
 
       await onSave(seedToSave, true);
 

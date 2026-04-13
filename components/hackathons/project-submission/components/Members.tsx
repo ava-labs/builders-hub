@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BadgeCheck, MoreHorizontal, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { projectProps } from "./SubmissionStep1";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import {
   Table,
   TableBody,
@@ -109,16 +109,19 @@ export default function MembersComponent({
         await onHandleSave();
       }
 
-      const invitationResult = await axios.post(`/api/project/invite-member`, {
-        emails: emails,
-        hackathon_id: hackaton_id,
-        project_id: project_id,
-        user_id: user_id,
-        lang,
-        ...(invite_stage !== undefined ? { stage: invite_stage } : {}),
+      const invitationData = await apiFetch<{ result: any }>(`/api/project/invite-member`, {
+        method: 'POST',
+        body: {
+          emails: emails,
+          hackathon_id: hackaton_id,
+          project_id: project_id,
+          user_id: user_id,
+          lang,
+          ...(invite_stage !== undefined ? { stage: invite_stage } : {}),
+        },
       });
-      setInvitationResult(invitationResult.data?.result);
-      if (invitationResult.data?.result?.Success) {
+      setInvitationResult(invitationData?.result);
+      if (invitationData?.result?.Success) {
         setEmailSent(true);
       }
       if ((!project_id || project_id === "") && onProjectCreated) {
@@ -127,8 +130,8 @@ export default function MembersComponent({
 
       setInvitationSent(true);
 
-      const response = await axios.get(`/api/project/${project_id}/members`);
-      setMembers(response.data);
+      const membersData = await apiFetch<any[]>(`/api/project/${project_id}/members`);
+      setMembers(membersData);
     } catch (error) {
       console.error("Error sending invitations:", error);
     } finally {
@@ -138,12 +141,15 @@ export default function MembersComponent({
 
   const handleResendInvitation = async (email: string) => {
     try {
-      await axios.post(`/api/project/invite-member`, {
-        emails: [email],
-        hackathon_id: hackaton_id,
-        project_id: project_id,
-        user_id: user_id,
-        lang,
+      await apiFetch(`/api/project/invite-member`, {
+        method: 'POST',
+        body: {
+          emails: [email],
+          hackathon_id: hackaton_id,
+          project_id: project_id,
+          user_id: user_id,
+          lang,
+        },
       });
     } catch (error) {
       console.error("Error resending invitation:", error);
@@ -152,10 +158,13 @@ export default function MembersComponent({
 
   const handleRemoveMember = async (email: string, id_user: string) => {
     try {
-      await axios.patch(`/api/project/${project_id}/members/status`, {
-        user_id: id_user,
-        status: MemberStatus.REMOVED,
-        email: email,
+      await apiFetch(`/api/project/${project_id}/members/status`, {
+        method: 'PATCH',
+        body: {
+          user_id: id_user,
+          status: MemberStatus.REMOVED,
+          email: email,
+        },
       });
       setMembers(members.filter((member) => member.email !== email));
     } catch (error) {
@@ -165,9 +174,12 @@ export default function MembersComponent({
 
   const handleRoleChange = async (member: any, newRole: string) => {
     try {
-      await axios.patch(`/api/project/${project_id}/members`, {
-        member_id: member.id,
-        role: newRole,
+      await apiFetch(`/api/project/${project_id}/members`, {
+        method: 'PATCH',
+        body: {
+          member_id: member.id,
+          role: newRole,
+        },
       });
 
       setMembers((prevMembers) =>
@@ -213,16 +225,18 @@ export default function MembersComponent({
     wasInOtherProject: boolean
   ) => {
     try {
-      axios
-        .patch(`/api/project/${project_id}/members/status`, {
+      apiFetch(`/api/project/${project_id}/members/status`, {
+        method: 'PATCH',
+        body: {
           user_id: user_id,
           status: status,
           wasInOtherProject: wasInOtherProject,
-        })
+        },
+      })
         .then(() => {
           console.log("Status updated successfully");
         })
-        .catch((error) => {
+        .catch((error: any) => {
           console.error("Error updating status:", error);
         });
     } catch (error) {
@@ -249,8 +263,8 @@ export default function MembersComponent({
 
     const fetchMembers = async () => {
       try {
-        const response = await axios.get(`/api/project/${project_id}/members`);
-        setMembers(response.data);
+        const membersData = await apiFetch<any[]>(`/api/project/${project_id}/members`);
+        setMembers(membersData);
       } catch (error) {
         console.error("Error fetching members:", error);
       }

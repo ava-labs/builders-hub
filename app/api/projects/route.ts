@@ -1,61 +1,56 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createProject, getFilteredProjects, GetProjectOptions } from '@/server/services/projects';
-import { withAuth } from '@/lib/protectedRoute';
+// schema: not applicable — project creation with dynamic fields validated by service layer
+import type { NextRequest } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { parsePagination } from '@/lib/api/pagination';
+import { successResponse, paginatedResponse } from '@/lib/api/response';
+import { createProject, getFilteredProjects } from '@/server/services/projects';
+import type { GetProjectOptions } from '@/server/services/projects';
 
-export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
-  try {
+export const GET = withApi(
+  async (req: NextRequest) => {
+    const { page, pageSize } = parsePagination(req);
     const searchParams = req.nextUrl.searchParams;
+
     const options: GetProjectOptions = {
-      page: Number(searchParams.get('page') || 1),
-      pageSize: Number(searchParams.get('pageSize') || 12),
+      page,
+      pageSize,
       search: searchParams.get('search') || undefined,
       event: searchParams.get('events') || undefined,
     };
+
     const response = await getFilteredProjects(options);
 
-    return NextResponse.json(response);
-  } catch (error: any) {
-    console.error('Error GET /api/projects:', error.message);
-    const wrappedError = error as Error;
-    return NextResponse.json(
-      { error: wrappedError.message },
-      { status: wrappedError.cause == 'BadRequest' ? 400 : 500 }
-    );
-  }
-});
+    return paginatedResponse(response.projects, {
+      page: response.page,
+      pageSize: response.pageSize,
+      total: response.total,
+    });
+  },
+  { auth: true },
+);
 
-export const POST = withAuth(async (req: NextRequest, context: any, session: any) => {
-  try {
+export const POST = withApi(
+  async (req: NextRequest, { session }) => {
     const body = await req.json();
-    
+
     // Ensure the authenticated user is added as a member
     const members = body.members || [];
     const userIsMember = members.some((m: any) => m.user_id === session.user.id);
-    
+
     if (!userIsMember) {
-      // Add the authenticated user as a confirmed member
       members.push({
         user_id: session.user.id,
-        role: "Member",
-        status: "Confirmed",
+        role: 'Member',
+        status: 'Confirmed',
       });
     }
-    
+
     const newProject = await createProject({
       ...body,
       members,
     });
 
-    return NextResponse.json(
-      { message: 'Project created', project: newProject },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    console.error('Error POST /api/projects:', error.message);
-    const wrappedError = error as Error;
-    return NextResponse.json(
-      { error: wrappedError },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
-    );
-  }
-});
+    return successResponse(newProject, 201);
+  },
+  { auth: true },
+);

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover";
 import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/api/client";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import DOMPurify from "isomorphic-dompurify";
@@ -64,18 +65,10 @@ export default function NotificationBell(): React.JSX.Element | null {
 
     const fetchNotifications = async (): Promise<void> => {
       try {
-        const response: Response = await fetch(`/api/notifications/read`, {
+        await apiFetch(`/api/notifications/read`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(readedNotifications),
+          body: readedNotifications,
         });
-
-        if (!response.ok) {
-          const text: string = await response.text();
-          throw new Error(text || "Failed to read notifications");
-        }
       } catch (err: unknown) {
         console.error(err);
       } finally {

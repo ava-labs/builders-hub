@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { apiFetch } from "@/lib/api/client";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
@@ -140,13 +141,8 @@ export default function ChainListPage() {
         await Promise.all(
           batch.map(async (chain) => {
             try {
-              const response = await fetch(`/api/explorer/${chain.chainId}?priceOnly=true`);
-              if (response.ok) {
-                const data = await response.json();
-                supportMap.set(chain.chainId, data.glacierSupported === true);
-              } else {
-                supportMap.set(chain.chainId, false);
-              }
+              const data = await apiFetch<any>(`/api/explorer/${chain.chainId}?priceOnly=true`);
+              supportMap.set(chain.chainId, data.glacierSupported === true);
             } catch (error) {
               console.warn(`Failed to check Glacier support for chain ${chain.chainId}:`, error);
               supportMap.set(chain.chainId, false);

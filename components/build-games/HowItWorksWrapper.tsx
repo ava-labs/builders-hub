@@ -2,6 +2,7 @@
 
 import { useState, useEffect, ReactNode } from "react";
 import { useSession } from "next-auth/react";
+import { apiFetch } from "@/lib/api/client";
 
 interface HowItWorksWrapperProps {
   children: ReactNode;
@@ -26,8 +27,7 @@ export default function HowItWorksWrapper({ children }: HowItWorksWrapperProps) 
     }
 
     setIsLoading(true);
-    fetch("/api/build-games/status")
-      .then((res) => res.json())
+    apiFetch<{ hasApplied: boolean; application?: unknown }>("/api/build-games/status")
       .then((data) => {
         if (data.hasApplied && data.application) {
           setHasApplied(true);

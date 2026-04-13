@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { apiFetch } from "@/lib/api/client";
 
 interface ParticipantData {
   projectName: string;
@@ -189,8 +190,7 @@ export default function ApplicationStatusTracker() {
     }
 
     setIsLoading(true);
-    fetch("/api/build-games/status")
-      .then((res) => res.json())
+    apiFetch<{ isParticipant: boolean; participant?: ParticipantData }>("/api/build-games/status")
       .then((data) => {
         if (data.isParticipant && data.participant) {
           setParticipant(data.participant);

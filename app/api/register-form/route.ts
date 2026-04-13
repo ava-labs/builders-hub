@@ -1,62 +1,34 @@
-import { createRegisterForm, getRegisterForm } from "@/server/services/registerForms";
-import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/protectedRoute";
+import type { NextRequest } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { BadRequestError, ForbiddenError } from '@/lib/api/errors';
+import { createRegisterForm, getRegisterForm } from '@/server/services/registerForms';
 
-export const POST = withAuth(async (req: NextRequest) => {
-  try {
+// schema: not applicable — dynamic registration form data validated by service layer
+export const POST = withApi(
+  async (req: NextRequest) => {
     const body = await req.json();
-    const newHackathon = await createRegisterForm(body);
+    const newForm = await createRegisterForm(body);
 
-    return NextResponse.json(
-      { message: 'registration form created', hackathon: newHackathon },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    console.error('Error POST /api/register-form:', error.message);
-    const wrappedError = error as Error;
-    return NextResponse.json(
-      {
-        error: {
-          message: wrappedError.message,
-          stack: wrappedError.stack,
-          cause: wrappedError.cause,
-          name: wrappedError.name
-        }
-      },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
-    );
-  }
-});
+    return successResponse(newForm, 201);
+  },
+  { auth: true },
+);
 
-export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
-  try {
-    const id = req.nextUrl.searchParams.get("hackathonId");
-    const email = req.nextUrl.searchParams.get("email");
+export const GET = withApi(
+  async (req: NextRequest, { session }) => {
+    const hackathonId = req.nextUrl.searchParams.get('hackathonId');
+    const email = req.nextUrl.searchParams.get('email');
 
-    if (!id) {
-      return NextResponse.json({ error: "ID required" }, { status: 400 });
-    }
+    if (!hackathonId) throw new BadRequestError('hackathonId is required');
+    if (!email) throw new BadRequestError('email is required');
 
-    if (!email) {
-      return NextResponse.json({ error: "Email required" }, { status: 400 });
-    }
-
-    // Verify that email matches the authenticated session user's email
     if (email !== session.user.email) {
-      return NextResponse.json(
-        { error: "Forbidden: You can only access your own registration forms" },
-        { status: 403 }
-      );
+      throw new ForbiddenError('You can only access your own registration forms');
     }
 
-    const registerFormLoaded = await getRegisterForm(email, id);
-
-    return NextResponse.json(registerFormLoaded);
-  } catch (error) {
-    console.error("Error in GET /api/register-form/", error);
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 500 }
-    );
-  }
-});
+    const registerForm = await getRegisterForm(email, hackathonId);
+    return successResponse(registerForm);
+  },
+  { auth: true },
+);

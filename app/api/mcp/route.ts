@@ -1,4 +1,5 @@
-import { NextResponse, NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { MCPServer } from '@/lib/mcp/server';
 import { validateOrigin, getCORSHeaders } from '@/lib/mcp/cors';
 import { checkMCPRateLimit, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
@@ -40,7 +41,7 @@ function createSSEResponse(data: unknown, eventId?: string): Response {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
     },
   });
 }
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
   if (wantsSSE(request)) {
     return NextResponse.json(
       { jsonrpc: '2.0', id: null, error: { code: -32000, message: 'Method not allowed.' } },
-      { status: 405, headers: { ...corsHeaders, Allow: 'POST, OPTIONS' } }
+      { status: 405, headers: { ...corsHeaders, Allow: 'POST, OPTIONS' } },
     );
   }
 
@@ -78,6 +79,8 @@ export async function OPTIONS(request: NextRequest) {
 
 // ---------------------------------------------------------------------------
 // POST — JSON-RPC 2.0 dispatcher
+// withApi: auth intentionally omitted — MCP uses CORS origin validation (validateOrigin)
+// and dedicated rate limiting (checkMCPRateLimit) instead of session-based auth.
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
   if (!validateOrigin(origin)) {
     return NextResponse.json(
       { jsonrpc: '2.0', id: null, error: { code: -32000, message: 'Origin not allowed' } },
-      { status: 403, headers: getCORSHeaders(origin) }
+      { status: 403, headers: getCORSHeaders(origin) },
     );
   }
 

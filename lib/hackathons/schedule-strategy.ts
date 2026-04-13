@@ -1,4 +1,5 @@
 import { ScheduleActivity } from '@/types/hackathons';
+import { apiFetch } from '@/lib/api/client';
 
 /**
  * Result from schedule data source including metadata
@@ -93,14 +94,9 @@ export class GoogleCalendarStrategy implements ScheduleDataSource {
     }
 
     try {
-      const response = await fetch(`/api/calendar/google?${params.toString()}`);
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || `Google Calendar API error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiFetch<{ schedule: ScheduleActivity[]; timeZone?: string }>(
+        `/api/calendar/google?${params.toString()}`
+      );
       return {
         schedule: data.schedule,
         timeZone: data.timeZone,

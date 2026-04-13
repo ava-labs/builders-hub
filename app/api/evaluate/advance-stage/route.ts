@@ -1,52 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth/authSession";
-import { prisma } from "@/prisma/prisma";
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { prisma } from '@/prisma/prisma';
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getAuthSession();
+// ---------------------------------------------------------------------------
+// Schema
+// ---------------------------------------------------------------------------
 
-    if (
-      !session?.user?.id ||
-      !session.user.custom_attributes?.includes("devrel")
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 401 });
-    }
+const advanceStageSchema = z
+  .object({
+    formDataIds: z.array(z.string()).optional(),
+    formDataId: z.string().optional(),
+    stage: z.number().int().min(0).max(4, 'stage must be an integer between 0 and 4'),
+  })
+  .refine((data) => (data.formDataIds && data.formDataIds.length > 0) || data.formDataId, {
+    message: 'formDataId or formDataIds required',
+  });
 
-    const body = await request.json();
-    const { formDataIds, formDataId, stage } = body as {
-      formDataIds?: string[];
-      formDataId?: string;
-      stage: number;
-    };
+type AdvanceStageBody = z.infer<typeof advanceStageSchema>;
 
-    const ids = formDataIds ?? (formDataId ? [formDataId] : []);
+// ---------------------------------------------------------------------------
+// POST /api/evaluate/advance-stage
+// ---------------------------------------------------------------------------
 
-    if (ids.length === 0) {
-      return NextResponse.json(
-        { error: "formDataId or formDataIds required" },
-        { status: 400 }
-      );
-    }
-
-    if (typeof stage !== "number" || !Number.isInteger(stage) || stage < 0 || stage > 4) {
-      return NextResponse.json(
-        { error: "stage must be an integer between 0 and 4" },
-        { status: 400 }
-      );
-    }
+export const POST = withApi<AdvanceStageBody>(
+  async (_req: NextRequest, { body }) => {
+    const ids = body.formDataIds ?? (body.formDataId ? [body.formDataId] : []);
 
     const result = await prisma.formData.updateMany({
       where: { id: { in: ids } },
-      data: { current_stage: stage },
+      data: { current_stage: body.stage },
     });
 
-    return NextResponse.json({
-      updated: result.count,
-      stage,
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
-}
+    return successResponse({ updated: result.count, stage: body.stage });
+  },
+  { auth: true, roles: ['devrel'], schema: advanceStageSchema },
+);

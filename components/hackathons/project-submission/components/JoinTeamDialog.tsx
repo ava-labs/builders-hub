@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { EventsLang, t } from "@/lib/events/i18n";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -48,17 +48,18 @@ export const JoinTeamDialog = ({
   const handleAcceptJoinTeam = async () => {
     try {
       wasActionTaken.current = true;
-      const response = await axios.patch(`/api/project/${projectId}/members/status`, {
-        user_id: currentUserId,
-        status: "Confirmed",
+      await apiFetch(`/api/project/${projectId}/members/status`, {
+        method: 'PATCH',
+        body: {
+          user_id: currentUserId,
+          status: "Confirmed",
+        },
       });
 
-      if (response.status === 200) {
-        if (setLoadData) {
-          const params = new URLSearchParams(searchParams.toString());
-          params.delete("invitation");
-          setLoadData(true);
-        }
+      if (setLoadData) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("invitation");
+        setLoadData(true);
       }
 
       onOpenChange(false);

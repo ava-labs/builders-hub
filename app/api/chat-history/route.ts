@@ -1,16 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthSession } from '@/lib/auth/authSession';
+import { z } from 'zod';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { NotFoundError } from '@/lib/api/errors';
 import { prisma } from '@/prisma/prisma';
 
+const chatMessageSchema = z.object({
+  role: z.string(),
+  content: z.string(),
+});
+
+const postSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1, 'Title is required'),
+  messages: z.array(chatMessageSchema).min(1, 'At least one message is required'),
+});
+
 // GET /api/chat-history - Get user's chat conversations
-export async function GET() {
-  try {
-    const session = await getAuthSession();
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+export const GET = withApi(
+  async (_req, { session }) => {
     const conversations = await prisma.chatConversation.findMany({
       where: { user_id: session.user.id },
       orderBy: { updated_at: 'desc' },
@@ -19,48 +26,27 @@ export async function GET() {
           orderBy: { created_at: 'asc' },
         },
       },
-      // Include sharing fields in response (they're part of the model)
-      take: 50, // Limit to last 50 conversations
+      take: 50,
     });
 
-    return NextResponse.json(conversations);
-  } catch (error) {
-    console.error('Error fetching chat history:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return successResponse(conversations);
+  },
+  { auth: true },
+);
 
 // POST /api/chat-history - Create or update a conversation
-export async function POST(req: NextRequest) {
-  try {
-    const session = await getAuthSession();
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await req.json();
+export const POST = withApi<z.infer<typeof postSchema>>(
+  async (_req, { session, body }) => {
     const { id, title, messages } = body;
-
-    if (!title || !messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'Title and messages are required' },
-        { status: 400 }
-      );
-    }
 
     // If ID provided, update existing conversation
     if (id) {
-      // Verify ownership
       const existing = await prisma.chatConversation.findFirst({
         where: { id, user_id: session.user.id },
       });
 
       if (!existing) {
-        return NextResponse.json(
-          { error: 'Conversation not found' },
-          { status: 404 }
-        );
+        throw new NotFoundError('Conversation');
       }
 
       // Delete old messages and create new ones (simpler than diffing)
@@ -73,7 +59,7 @@ export async function POST(req: NextRequest) {
         data: {
           title,
           messages: {
-            create: messages.map((msg: { role: string; content: string }) => ({
+            create: messages.map((msg) => ({
               role: msg.role,
               content: msg.content,
             })),
@@ -86,7 +72,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return NextResponse.json(conversation);
+      return successResponse(conversation);
     }
 
     // Create new conversation
@@ -95,7 +81,7 @@ export async function POST(req: NextRequest) {
         user_id: session.user.id,
         title,
         messages: {
-          create: messages.map((msg: { role: string; content: string }) => ({
+          create: messages.map((msg) => ({
             role: msg.role,
             content: msg.content,
           })),
@@ -108,9 +94,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(conversation);
-  } catch (error) {
-    console.error('Error saving chat conversation:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return successResponse(conversation, 201);
+  },
+  {
+    auth: true,
+    schema: postSchema,
+  },
+);

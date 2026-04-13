@@ -1,6 +1,7 @@
 "use client";
 import type React from "react";
 import { useState, useEffect } from "react";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -91,14 +92,7 @@ export default function ValidatorStatsPage() {
       setError(null);
 
       try {
-        const response = await fetch(`/api/validator-stats?network=${network}`);
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch validator stats: ${response.status}`
-          );
-        }
-
-        const stats: SubnetStats[] = await response.json();
+        const stats = await apiFetch<SubnetStats[]>(`/api/validator-stats?network=${network}`);
         setData(stats);
 
         // Extract available versions
@@ -116,9 +110,9 @@ export default function ValidatorStatsPage() {
         if (!minVersion && sortedVersions.length > 0) {
           setMinVersion(sortedVersions[0]);
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching validator stats:", err);
-        setError(err?.message || "Failed to load validator stats");
+        setError(err instanceof ApiClientError ? err.message : err instanceof Error ? err.message : "Failed to load validator stats");
       }
 
       setLoading(false);

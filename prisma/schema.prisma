@@ -486,3 +486,12 @@ model ValidatorAlertLog {
   @@index([validator_alert_id])
   @@index([sent_at])
 }
+
+model ApiRateLimitLog {
+  id         String   @id @default(cuid())
+  identifier String
+  endpoint   String
+  created_at DateTime @default(now())
+
+  @@index([identifier, endpoint, created_at])
+}

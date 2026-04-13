@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { CustomDateRangePicker } from "@/components/custom-date-range-picker";
@@ -67,17 +68,13 @@ export default function ContractGasXray({ initialAddress }: ContractGasXrayProps
     setError(null);
     setData(null);
     try {
-      const res = await fetch(`/api/dapps/contract-gas-flow?address=${addressInput}&days=${activeDays}`, {
+      const result = await apiFetch<ContractGasFlowResponse>(`/api/dapps/contract-gas-flow?address=${addressInput}&days=${activeDays}`, {
         signal: controller.signal,
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `HTTP ${res.status}`);
-      }
-      setData(await res.json());
+      setData(result);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof ApiClientError ? err.message : err instanceof Error ? err.message : "Unknown error");
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);

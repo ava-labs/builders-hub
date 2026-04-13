@@ -1,5 +1,5 @@
 import { Project } from "@/types/showcase";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
@@ -18,8 +18,8 @@ export const useProject = () => {
         try {
             setIsLoading(true);
             setError(null);
-            const response = await axios.get(`/api/projects/member/${session?.user?.id}`);
-            setProjects(response.data);
+            const data = await apiFetch<Project[]>(`/api/projects/member/${session?.user?.id}`);
+            setProjects(data);
         } catch (err) {
             setError(err instanceof Error ? err : new Error("Failed to fetch projects"));
             setProjects([]);

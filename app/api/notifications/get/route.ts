@@ -1,62 +1,59 @@
-import { getToken, encode } from "next-auth/jwt";
-import { NextResponse } from "next/server";
+import type { NextRequest } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { InternalError } from '@/lib/api/errors';
 
-type GetNotificationsBody = {
-  users: string[];
-};
-export const runtime: "nodejs" = "nodejs";
+export const runtime: 'nodejs' = 'nodejs';
 
-const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
-const avalancheWokersApiKey: string | undefined =
-  process.env.AVALANCHE_WORKERS_API_KEY;
+// schema: not applicable — no request body, uses POST for side-effect-free fetch from external service
+export const POST = withApi(
+  async (_req: NextRequest, { session }) => {
+    const baseUrl = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
+    const avalancheWorkersApiKey = process.env.AVALANCHE_WORKERS_API_KEY;
 
-export async function POST(req: any): Promise<Response> {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET ?? "",
-  });
-  if (!token) return new Response("Unauthorized", { status: 401 });
-  try {
-    if (!baseUrl || !avalancheWokersApiKey) {
-      return NextResponse.json({ error: "Failed" }, { status: 500 });
+    if (!baseUrl || !avalancheWorkersApiKey) {
+      throw new InternalError('Notification service not configured');
     }
 
-    const upstream: Response = await fetch(
-      `${baseUrl}/notifications/get/inbox`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": avalancheWokersApiKey,
-        },
-        body: JSON.stringify({ authUser: token.id }),
-        cache: "no-store",
-      },
-    );
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
-    if (!upstream.ok) {
-      // Gracefully handle upstream service unavailable
-      if (upstream.status >= 500) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Notifications service unavailable - returning empty notifications');
+    try {
+      const upstream = await fetch(`${baseUrl}/notifications/get/inbox`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': avalancheWorkersApiKey,
+        },
+        body: JSON.stringify({ authUser: session.user.id }),
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+
+      if (!upstream.ok) {
+        // Gracefully handle upstream service unavailable
+        if (upstream.status >= 500) {
+          return successResponse({});
         }
-        return NextResponse.json({}, { status: 200 });
+
+        const text = await upstream.text();
+        throw new InternalError(text || 'Failed to fetch notifications');
       }
 
-      const text: string = await upstream.text();
-      return NextResponse.json(
-        { error: text || "Failed to fetch notifications" },
-        { status: upstream.status },
-      );
+      const payload = await upstream.json();
+      return successResponse(payload);
+    } catch (err: unknown) {
+      // Gracefully handle network errors (workers not deployed / timeout)
+      if (err instanceof Error && err.name === 'AbortError') {
+        return successResponse({});
+      }
+      // Re-throw API errors
+      if (err instanceof Error && 'statusCode' in err) throw err;
+      // Gracefully degrade on unexpected errors
+      return successResponse({});
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const payload: unknown = await upstream.json();
-    return NextResponse.json(payload, { status: 200 });
-  } catch (err: unknown) {
-    // Gracefully handle network errors (workers not deployed)
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Notifications service error - returning empty notifications:', err instanceof Error ? err.message : 'Unknown error');
-    }
-    return NextResponse.json({}, { status: 200 });
-  }
-}
+  },
+  { auth: true },
+);

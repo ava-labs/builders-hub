@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api/client";
 
 // Zod validation schema - no required fields, only format validations
 export const profileSchema = z.object({
@@ -94,66 +95,62 @@ export function useProfileForm() {
       }
 
       try {
-        const response = await fetch(`/api/profile/extended/${session.user.id}`);
-        
-        if (response.ok) {
-          const profile = await response.json();
-          
-          // Check if there's basic profile data from the modal in localStorage
-          let basicProfileData = null;
-          if (typeof window !== "undefined") {
-            const savedBasicProfile = localStorage.getItem('basicProfileData');
-            if (savedBasicProfile) {
-              try {
-                basicProfileData = JSON.parse(savedBasicProfile);
-                // Clear it after reading
-                localStorage.removeItem('basicProfileData');
-              } catch (e) {
-                console.error('Error parsing basic profile data:', e);
-              }
+        const profile = await apiFetch<Record<string, any>>(`/api/profile/extended/${session.user.id}`);
+
+        // Check if there's basic profile data from the modal in localStorage
+        let basicProfileData = null;
+        if (typeof window !== "undefined") {
+          const savedBasicProfile = localStorage.getItem('basicProfileData');
+          if (savedBasicProfile) {
+            try {
+              basicProfileData = JSON.parse(savedBasicProfile);
+              // Clear it after reading
+              localStorage.removeItem('basicProfileData');
+            } catch (e) {
+              console.error('Error parsing basic profile data:', e);
             }
           }
-
-          // Decompose user_type from JSON to individual form fields
-          // Merge with basic profile data if available
-          const formData = {
-            name: basicProfileData?.name || profile.name || "",
-            username: profile.username || "",
-            bio: profile.bio || "",
-            email: profile.email || session.user.email || "",
-            notification_email: profile.notification_email || "",
-            image: profile.image || "",
-            country: basicProfileData?.country || profile.country || "",
-            is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
-            is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
-            is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
-            is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
-            is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
-            founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
-            employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
-            employee_role: basicProfileData?.employee_role || profile.user_type?.employee_role || "",
-            student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
-            company_name: profile.user_type?.company_name || "",
-            role: profile.user_type?.role || "",
-            github: profile.github || "",
-            wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
-            socials: profile.socials || [],
-            skills: profile.skills || [],
-            notifications: profile.notifications || false,
-            profile_privacy: profile.profile_privacy || "public",
-            telegram_user: profile.telegram_user || "",
-          };
-
-          form.reset(formData);
-          
-          // Update last saved data reference
-          lastSavedDataRef.current = JSON.stringify(formData);
-          
-          // Mark initial load as complete after a short delay
-          setTimeout(() => {
-            isInitialLoadRef.current = false;
-          }, 500);
         }
+
+        // Decompose user_type from JSON to individual form fields
+        // Merge with basic profile data if available
+        const formData = {
+          name: basicProfileData?.name || profile.name || "",
+          username: profile.username || "",
+          bio: profile.bio || "",
+          email: profile.email || session.user.email || "",
+          notification_email: profile.notification_email || "",
+          image: profile.image || "",
+          country: basicProfileData?.country || profile.country || "",
+          is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
+          is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
+          is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
+          is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
+          is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
+          founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
+          employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
+          employee_role: basicProfileData?.employee_role || profile.user_type?.employee_role || "",
+          student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
+          company_name: profile.user_type?.company_name || "",
+          role: profile.user_type?.role || "",
+          github: profile.github || "",
+          wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
+          socials: profile.socials || [],
+          skills: profile.skills || [],
+          notifications: profile.notifications || false,
+          profile_privacy: profile.profile_privacy || "public",
+          telegram_user: profile.telegram_user || "",
+        };
+
+        form.reset(formData);
+
+        // Update last saved data reference
+        lastSavedDataRef.current = JSON.stringify(formData);
+
+        // Mark initial load as complete after a short delay
+        setTimeout(() => {
+          isInitialLoadRef.current = false;
+        }, 500);
       } catch (error) {
         console.error('Error loading profile:', error);
         toast({
@@ -219,16 +216,13 @@ export function useProfileForm() {
         const hasImageChanged = formData.current.has("file");
         if (hasImageChanged) {
           try {
-            const imageResponse = await fetch("/api/file", {
+            const imageResult = await apiFetch<{ url: string }>("/api/file", {
               method: "POST",
               body: formData.current,
             });
 
-            if (imageResponse.ok) {
-              const imageData = await imageResponse.json();
-              imageUrl = imageData.url;
-              formData.current = new FormData();
-            }
+            imageUrl = imageResult.url;
+            formData.current = new FormData();
           } catch (imageError) {
             console.error("Image upload error during auto-save:", imageError);
             // Continue with existing image URL if upload fails
@@ -277,18 +271,11 @@ export function useProfileForm() {
         }
       };
 
-      const response = await fetch(`/api/profile/extended/${session.user.id}`, {
+      await apiFetch(`/api/profile/extended/${session.user.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileData),
+        body: profileData,
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to auto-save profile');
-      }
-      
-      const updatedProfile = await response.json();
-      
+
       // Update last saved data reference with the data we just sent
       // This ensures we track what was actually saved without resetting the form
       lastSavedDataRef.current = currentDataString;
@@ -379,18 +366,13 @@ export function useProfileForm() {
       // If there's a new image, upload it first
       if (hasImageChanged) {
         try {
-          const imageResponse = await fetch("/api/file", {
+          const imageResult = await apiFetch<{ url: string }>("/api/file", {
             method: "POST",
             body: formData.current,
           });
 
-          if (!imageResponse.ok) {
-            throw new Error("Error uploading image");
-          }
+          imageUrl = imageResult.url;
 
-          const imageData = await imageResponse.json();
-          imageUrl = imageData.url;
-          
           // Clear formData after upload
           formData.current = new FormData();
         } catch (imageError) {
@@ -446,19 +428,11 @@ export function useProfileForm() {
       };
 
       console.log("Saving profile data:", profileData);
-      
-      const response = await fetch(`/api/profile/extended/${session.user.id}`, {
+
+      const updatedProfile = await apiFetch<Record<string, any>>(`/api/profile/extended/${session.user.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileData),
+        body: profileData,
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update profile');
-      }
-      
-      const updatedProfile = await response.json();
       console.log('Profile updated successfully:', updatedProfile);
       
       toast({

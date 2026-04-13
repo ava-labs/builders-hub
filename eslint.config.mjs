@@ -195,4 +195,62 @@ export default tseslint.config(
       ],
     },
   },
+
+  // ── API ROUTE RULES ──────────────────────────────────────────
+  {
+    files: ["app/api/**/*.ts"],
+    plugins: { "@typescript-eslint": tseslint.plugin },
+    languageOptions: {
+      parser: tseslint.parser,
+    },
+  },
+  {
+    files: ["app/api/**/*.ts"],
+    rules: {
+      "no-console": ["error", { allow: ["error", "warn"] }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/no-explicit-any": "off", // TODO: tighten to "warn" after gradual type cleanup
+    },
+  },
+
+  // ── CLIENT-SIDE API CALL ENFORCEMENT ─────────────────────────
+  {
+    files: ["components/**/*.{ts,tsx}", "hooks/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
+    ignores: ["app/api/**"],
+    plugins: { "@typescript-eslint": tseslint.plugin },
+    languageOptions: {
+      parser: tseslint.parser,
+    },
+  },
+  {
+    files: ["components/**/*.{ts,tsx}", "hooks/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
+    ignores: ["app/api/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.name='fetch'][arguments.0.value=/^\\/api\\//]",
+          message: "Use apiFetch() from @/lib/api/client instead of raw fetch('/api/...').",
+        },
+        {
+          selector: "CallExpression[callee.name='fetch'][arguments.0.type='TemplateLiteral'][arguments.0.quasis.0.value.raw=/^\\/api\\//]",
+          message: "Use apiFetch() from @/lib/api/client instead of raw fetch(`/api/...`).",
+        },
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "axios",
+              message: "Use apiFetch() from @/lib/api/client instead of axios.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

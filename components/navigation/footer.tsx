@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import { apiFetch } from "@/lib/api/client"
 import Link from 'next/link'
 import { ArrowUpRight, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,24 +16,15 @@ export function Footer() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/newsletter', {
+      await apiFetch('/api/newsletter', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
+        body: { email },
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        setIsSuccess(true);
-        setEmail('');
-      } else {
-        console.error('Newsletter signup failed:', result);
-      }
+      setIsSuccess(true);
+      setEmail('');
     } catch (error) {
-      console.error('Error during newsletter signup:', error);
+      console.error('Newsletter signup failed:', error);
     } finally {
       setIsSubmitting(false);
     }

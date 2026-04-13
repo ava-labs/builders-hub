@@ -2,12 +2,13 @@ import { useEffect, useState, useMemo } from "react";
 import Modal from "../ui/Modal";
 import { Project } from "@/types/showcase";
 import { MultiSelect } from "../ui/multi-select";
-import axios from "axios";
 import { Badge } from "@/types/badge";
 import { BadgeCategory } from "@/server/services/badge";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingButton } from "../ui/loading-button";
 import { Toaster } from "../ui/toaster";
+import { apiFetch } from "@/lib/api/client";
+
 type showAssignBadgeProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,8 +37,8 @@ export const AssignBadge = ({
     if (!isOpen) return;
 
     const fetchBadges = async () => {
-      const response = await axios.get("/api/badge/get-all");
-      const filteredBadges = response.data.filter(
+      const data = await apiFetch<Badge[]>("/api/badge/get-all");
+      const filteredBadges = data.filter(
         (badge: Badge) => badge.category == "hackathon"
       );
 
@@ -64,18 +65,21 @@ export const AssignBadge = ({
 
   const handleAssignBadges = async () => {
     setIsLoading(true);
-    const response = await axios.post("/api/badge/assign", {
-      badgesId: selectedBadges,
-      projectId: project.id,
-      category: BadgeCategory.project,
-    });
-    if (response.status == 200) {
+    try {
+      await apiFetch("/api/badge/assign", {
+        method: "POST",
+        body: {
+          badgesId: selectedBadges,
+          projectId: project.id,
+          category: BadgeCategory.project,
+        },
+      });
       toast({
         title: "Badges assigned successfully",
         description: "The badges have been assigned to the project",
         duration: 3000,
       });
-    } else {
+    } catch {
       toast({
         title: "Failed to assign badges",
         description: "The badges have not been assigned to the project",

@@ -1,9 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthSession } from '@/lib/auth/authSession';
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { withApi, successResponse } from '@/lib/api';
 import { prisma } from '@/prisma/prisma';
 
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MAX_CLAIMS_PER_USER = 1;
+
+const bodySchema = z.object({
+  chains: z
+    .array(
+      z.object({
+        faucetType: z.enum(['pchain', 'evm']),
+        chainId: z.string().optional(),
+      }),
+    )
+    .min(1, { message: 'At least one chain entry is required' }),
+});
+
+type BatchBody = z.infer<typeof bodySchema>;
 
 interface ChainRateLimitStatus {
   chainId: string | null;
@@ -12,50 +26,24 @@ interface ChainRateLimitStatus {
   resetTime?: string;
 }
 
-interface BatchRateLimitResponse {
-  success: boolean;
-  limits: ChainRateLimitStatus[];
-}
-
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    const { chains } = body as { 
-      chains: Array<{ faucetType: 'pchain' | 'evm'; chainId?: string }> 
-    };
-
-    if (!chains || !Array.isArray(chains)) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid request body' },
-        { status: 400 }
-      );
-    }
-
+export const POST = withApi<BatchBody>(
+  async (_req: NextRequest, { session, body }) => {
+    const { chains } = body;
     const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
 
-    // Get all user claims in one query
     const userClaims = await prisma.faucetClaim.findMany({
       where: {
         user_id: session.user.id,
-        created_at: { gte: windowStart }
+        created_at: { gte: windowStart },
       },
       select: {
         faucet_type: true,
         chain_id: true,
-        created_at: true
+        created_at: true,
       },
-      orderBy: { created_at: 'asc' }
+      orderBy: { created_at: 'asc' },
     });
 
-    // Build a map of claims per faucet type/chain
     const claimMap = new Map<string, Date>();
     for (const claim of userClaims) {
       const key = `${claim.faucet_type}:${claim.chain_id || 'null'}`;
@@ -64,14 +52,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Check each requested chain
     const limits: ChainRateLimitStatus[] = chains.map(({ faucetType, chainId }) => {
       const key = `${faucetType}:${chainId || 'null'}`;
       const oldestClaim = claimMap.get(key);
-      
-      // Count claims for this faucet/chain
+
       const claimCount = userClaims.filter(
-        c => c.faucet_type === faucetType && (c.chain_id || 'null') === (chainId || 'null')
+        (c) => c.faucet_type === faucetType && (c.chain_id || 'null') === (chainId || 'null'),
       ).length;
 
       if (claimCount >= MAX_CLAIMS_PER_USER && oldestClaim) {
@@ -80,30 +66,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           chainId: chainId || null,
           faucetType,
           allowed: false,
-          resetTime: resetTime.toISOString()
+          resetTime: resetTime.toISOString(),
         };
       }
 
       return {
         chainId: chainId || null,
         faucetType,
-        allowed: true
+        allowed: true,
       };
     });
 
-    const response: BatchRateLimitResponse = {
-      success: true,
-      limits
-    };
-
-    return NextResponse.json(response);
-
-  } catch (error) {
-    console.error('Batch faucet rate limit check error:', error);
-    return NextResponse.json(
-      { success: false, message: 'Failed to check rate limits' },
-      { status: 500 }
-    );
-  }
-}
-
+    return successResponse({ limits });
+  },
+  { auth: true, schema: bodySchema },
+);

@@ -1,14 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth/authSession";
-import { evaluateAllConsoleBadges } from "@/server/services/consoleBadge/consoleBadgeService";
+import { withApi, successResponse } from '@/lib/api';
+import { evaluateAllConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
 
-export async function POST(req: NextRequest) {
-  const session = await getAuthSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ awardedBadges: [] });
-  }
-
-  try {
+// schema: not applicable — body is optional (timezone hint), parsed defensively
+export const POST = withApi(
+  async (req, { session }) => {
     let timezone: string | undefined;
     try {
       const body = await req.json();
@@ -18,9 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const awardedBadges = await evaluateAllConsoleBadges(session.user.id, { timezone });
-    return NextResponse.json({ awardedBadges });
-  } catch (error) {
-    console.error("Console badge check error:", error);
-    return NextResponse.json({ awardedBadges: [] });
-  }
-}
+    return successResponse({ awardedBadges });
+  },
+  { auth: true },
+);

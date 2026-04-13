@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { countries } from "@/constants/countries";
 import { cn } from "@/lib/utils";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { formSchema, jobRoles, projectTypes, projectVerticals, continents, fundingRanges, type Retro9000ReturningFormData } from "@/types/retro9000ReturningForm";
 
 const STEPS = [
@@ -195,14 +196,10 @@ export default function Retro9000ReturningForm() {
   async function onSubmit(values: Retro9000ReturningFormData) {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/retro9000-returning", {
+      await apiFetch("/api/retro9000-returning", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: values,
       });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) { throw new Error(result.message || "Failed to submit application") }
       setSubmissionStatus("success");
       form.reset();
       if (session?.user?.email) { form.setValue("email", session.user.email) }

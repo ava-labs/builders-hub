@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '@/lib/api/client';
 
 interface ChainBalance {
   chainId: number;
@@ -51,12 +52,7 @@ export function useFaucetBalance(): UseFaucetBalanceReturn {
     setError(null);
 
     try {
-      const response = await fetch('/api/faucet-balance');
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to fetch faucet balances');
-      }
+      const data = await apiFetch<{ pChain?: FaucetBalances['pChain']; evmChains?: ChainBalance[] }>('/api/faucet-balance');
 
       const newBalances: FaucetBalances = {
         pChain: data.pChain,

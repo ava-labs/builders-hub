@@ -11,6 +11,7 @@ import { useSession } from "next-auth/react";
 import { useProfileForm } from "./hooks/useProfileForm";
 import { AvatarSeed } from "./DiceBearAvatar";
 import { NounAvatarConfig } from "./NounAvatarConfig";
+import { apiFetch } from "@/lib/api/client";
 
 // Map hash values to tab values (case-insensitive)
 const hashToTabMap: Record<string, string> = {
@@ -40,12 +41,9 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
   useEffect(() => {
     async function loadNounAvatar() {
       try {
-        const response = await fetch("/api/user/noun-avatar");
-        if (response.ok) {
-          const data = await response.json();
-          setNounAvatarSeed(data.seed);
-          setNounAvatarEnabled(data.enabled ?? false);
-        }
+        const data = await apiFetch<{ seed: AvatarSeed; enabled?: boolean }>("/api/user/noun-avatar");
+        setNounAvatarSeed(data.seed);
+        setNounAvatarEnabled(data.enabled ?? false);
       } catch (error) {
         console.error("Error loading Noun avatar:", error);
       }

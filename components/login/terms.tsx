@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -70,11 +70,12 @@ export const Terms = ({
 
       if (isPendingUser) {
         // Create the user in the database first
-        const createResponse = await axios.post("/api/user/create-after-terms", {
-          notifications: data.notifications,
+        const createResult = await apiFetch<{ id: string }>("/api/user/create-after-terms", {
+          method: "POST",
+          body: { notifications: data.notifications },
         });
 
-        if (!createResponse.data.id) {
+        if (!createResult.id) {
           throw new Error("Failed to create user account");
         }
 
@@ -86,7 +87,7 @@ export const Terms = ({
         await new Promise(resolve => setTimeout(resolve, 200));
       } else {
         // Existing user - just save to API
-        await axios.put(`/api/profile/${userId}`, data);
+        await apiFetch(`/api/profile/${userId}`, { method: "PUT", body: data });
 
         // Update session
         await update();

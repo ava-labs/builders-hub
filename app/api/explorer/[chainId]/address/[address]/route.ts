@@ -1,10 +1,21 @@
-import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { Avalanche } from '@avalanche-sdk/chainkit';
 import l1ChainsData from '@/constants/l1-chains.json';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { validateParams } from '@/lib/api/validate';
+import { NotFoundError } from '@/lib/api/errors';
+import { EVM_ADDRESS_REGEX } from '@/lib/api/constants';
+
+const paramsSchema = z.object({
+  chainId: z.string().regex(/^\d+$/, 'chainId must be numeric'),
+  address: z.string().regex(EVM_ADDRESS_REGEX, 'Invalid EVM address format'),
+});
 
 // Initialize Avalanche SDK
 const avalanche = new Avalanche({
-  network: "mainnet",
+  network: 'mainnet',
 });
 
 interface NativeTransaction {
@@ -152,19 +163,22 @@ async function fetchFromRPC(rpcUrl: string, method: string, params: unknown[] = 
 // Check if address is a contract
 async function isContract(rpcUrl: string, address: string): Promise<boolean> {
   try {
-    const code = await fetchFromRPC(rpcUrl, 'eth_getCode', [address, 'latest']) as string;
+    const code = (await fetchFromRPC(rpcUrl, 'eth_getCode', [address, 'latest'])) as string;
     // If code is '0x' or empty, it's an EOA (Externally Owned Account)
     return code !== '0x' && code !== '' && code.length > 2;
-  } catch (error) {
-    console.warn('Failed to check if address is contract:', error);
+  } catch {
     return false;
   }
 }
 
 // Get native balance from RPC using eth_getBalance
-async function getNativeBalance(rpcUrl: string, address: string, tokenSymbol?: string): Promise<AddressInfo['nativeBalance']> {
+async function getNativeBalance(
+  rpcUrl: string,
+  address: string,
+  tokenSymbol?: string,
+): Promise<AddressInfo['nativeBalance']> {
   try {
-    const balanceHex = await fetchFromRPC(rpcUrl, 'eth_getBalance', [address, 'latest']) as string;
+    const balanceHex = (await fetchFromRPC(rpcUrl, 'eth_getBalance', [address, 'latest'])) as string;
     const balanceWei = BigInt(balanceHex);
     const decimals = 18; // Native tokens typically have 18 decimals
     const balanceFormatted = (Number(balanceWei) / Math.pow(10, decimals)).toFixed(6);
@@ -174,8 +188,7 @@ async function getNativeBalance(rpcUrl: string, address: string, tokenSymbol?: s
       balanceFormatted,
       symbol: tokenSymbol || '',
     };
-  } catch (error) {
-    console.warn('Failed to fetch native balance from RPC:', error);
+  } catch {
     return {
       balance: '0',
       balanceFormatted: '0',
@@ -210,21 +223,23 @@ async function getContractMetadata(address: string, chainId: string): Promise<Co
       logoUri: result.logoAsset?.imageUri || undefined,
       bannerUri: result.bannerAsset?.imageUri || undefined,
       color: result.color || undefined,
-      resourceLinks: result.resourceLinks?.map(link => ({
-        type: link.type || '',
-        url: link.url || '',
-      })) || undefined,
+      resourceLinks:
+        result.resourceLinks?.map((link) => ({
+          type: link.type || '',
+          url: link.url || '',
+        })) || undefined,
       tags: result.tags || undefined,
-      deploymentDetails: result.deploymentDetails ? {
-        txHash: result.deploymentDetails.txHash || undefined,
-        deployerAddress: result.deploymentDetails.deployerAddress || undefined,
-        deployerContractAddress: result.deploymentDetails.deployerContractAddress || undefined,
-      } : undefined,
+      deploymentDetails: result.deploymentDetails
+        ? {
+            txHash: result.deploymentDetails.txHash || undefined,
+            deployerAddress: result.deploymentDetails.deployerAddress || undefined,
+            deployerContractAddress: result.deploymentDetails.deployerContractAddress || undefined,
+          }
+        : undefined,
       ercType: result.ercType || undefined,
       symbol,
     };
-  } catch (error) {
-    console.warn('Failed to fetch contract metadata from Glacier:', error);
+  } catch {
     return undefined;
   }
 }
@@ -238,20 +253,20 @@ async function getAddressChains(address: string): Promise<AddressChain[]> {
 
     const chains: AddressChain[] = [];
     const chainList = result.indexedChains || [];
-    
+
     for (const chain of chainList) {
       const chainId = chain.chainId || '';
       const isTestnet = chain.isTestnet || false;
-      
+
       // Look up chain info from l1-chains.json
-      const chainInfo = l1ChainsData.find(c => c.chainId === chainId);
-      
+      const chainInfo = l1ChainsData.find((c) => c.chainId === chainId);
+
       // Build chain name with testnet suffix if needed
       let chainName = chain.chainName || chainInfo?.chainName || '';
       if (isTestnet && !chainName.endsWith(' - Testnet')) {
         chainName = `${chainName} - Testnet`;
       }
-      
+
       chains.push({
         chainId,
         chainName,
@@ -260,8 +275,7 @@ async function getAddressChains(address: string): Promise<AddressChain[]> {
     }
 
     return chains;
-  } catch (error) {
-    console.warn('Failed to fetch address chains from Glacier:', error);
+  } catch {
     return [];
   }
 }
@@ -275,11 +289,7 @@ interface TransactionResult {
   nextPageToken?: string;
 }
 
-async function getTransactions(
-  address: string, 
-  chainId: string,
-  pageToken?: string
-): Promise<TransactionResult> {
+async function getTransactions(address: string, chainId: string, pageToken?: string): Promise<TransactionResult> {
   try {
     const result = await avalanche.data.evm.address.transactions.list({
       address: address,
@@ -298,28 +308,26 @@ async function getTransactions(
     for await (const page of result) {
       const txDetailsList = page.result?.transactions || [];
       nextPageToken = page.result?.nextPageToken;
-      
+
       for (const txDetails of txDetailsList) {
         const nativeTx = txDetails.nativeTransaction;
         if (!nativeTx) continue;
-        
+
         const blockNumber = nativeTx.blockNumber?.toString() || '';
         const timestamp = nativeTx.blockTimestamp ?? 0;
         const txHash = nativeTx.txHash || '';
-        
+
         // Native transaction
         // Clean method name - remove parameters like "mint(address)" -> "mint"
         let methodName = nativeTx.method?.methodName || undefined;
         if (methodName && methodName.includes('(')) {
           methodName = methodName.split('(')[0];
         }
-        
+
         // Use methodHash as methodId (function selector) for decoding
         const methodHash = nativeTx.method?.methodHash;
-        const methodId = methodHash && methodHash.startsWith('0x') && methodHash.length === 10 
-          ? methodHash 
-          : undefined;
-        
+        const methodId = methodHash && methodHash.startsWith('0x') && methodHash.length === 10 ? methodHash : undefined;
+
         transactions.push({
           hash: txHash,
           blockNumber,
@@ -337,7 +345,7 @@ async function getTransactions(
           method: methodName,
           methodId: methodId,
         });
-        
+
         // ERC20 transfers
         if (txDetails.erc20Transfers) {
           for (const transfer of txDetails.erc20Transfers) {
@@ -357,7 +365,7 @@ async function getTransactions(
             });
           }
         }
-        
+
         // ERC721 transfers (NFT)
         if (txDetails.erc721Transfers) {
           for (const transfer of txDetails.erc721Transfers) {
@@ -376,7 +384,7 @@ async function getTransactions(
             });
           }
         }
-        
+
         // ERC1155 transfers (NFT)
         if (txDetails.erc1155Transfers) {
           for (const transfer of txDetails.erc1155Transfers) {
@@ -396,7 +404,7 @@ async function getTransactions(
             });
           }
         }
-        
+
         // Internal transactions
         if (txDetails.internalTransactions) {
           for (const internalTx of txDetails.internalTransactions) {
@@ -420,83 +428,44 @@ async function getTransactions(
     }
 
     return { transactions, erc20Transfers, nftTransfers, internalTransactions, nextPageToken };
-  } catch (error) {
-    console.warn('Failed to fetch transactions from Glacier:', error);
+  } catch {
     return { transactions: [], erc20Transfers: [], nftTransfers: [], internalTransactions: [] };
   }
 }
 
-// Helper to track timing
-async function timed<T>(name: string, fn: () => Promise<T>): Promise<{ result: T; duration: number }> {
-  const start = performance.now();
-  const result = await fn();
-  const duration = performance.now() - start;
-  return { result, duration };
-}
+export const GET = withApi(
+  async (req: NextRequest, { params }) => {
+    const { chainId, address: rawAddress } = validateParams(params, paramsSchema);
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ chainId: string; address: string }> }
-) {
-  const totalStart = performance.now();
-  const { chainId, address: rawAddress } = await params;
-  
-  // Get query params
-  const { searchParams } = new URL(request.url);
-  const pageToken = searchParams.get('pageToken') || undefined;
-  const customRpcUrl = searchParams.get('rpcUrl');
-  const customTokenSymbol = searchParams.get('tokenSymbol');
+    // Get query params
+    const { searchParams } = new URL(req.url);
+    const pageToken = searchParams.get('pageToken') || undefined;
+    const customRpcUrl = searchParams.get('rpcUrl');
+    const customTokenSymbol = searchParams.get('tokenSymbol');
 
-  // Validate and normalize address
-  const address = rawAddress.toLowerCase();
-  if (!/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
-    return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
-  }
+    // Normalize address
+    const address = rawAddress.toLowerCase();
 
-  const chain = l1ChainsData.find(c => c.chainId === chainId) as any;
-  const rpcUrl = chain?.rpcUrl || customRpcUrl;
-  const tokenSymbol = chain?.networkToken?.symbol || customTokenSymbol || undefined;
-  
-  if (!rpcUrl) {
-    return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
-  }
+    const chain = l1ChainsData.find((c) => c.chainId === chainId) as any;
+    const rpcUrl = chain?.rpcUrl || customRpcUrl;
+    const tokenSymbol = chain?.networkToken?.symbol || customTokenSymbol || undefined;
 
-  try {
-    const timings: Record<string, number> = {};
+    if (!rpcUrl) {
+      throw new NotFoundError('Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.');
+    }
 
-    // Fetch all data in parallel with timing
-    // Note: ERC20 balances are fetched separately via /erc20-balances endpoint
-    // Note: Dune labels are fetched separately via /api/dune/[address] endpoint
-    const [
-      isContractTimed,
-      nativeBalanceTimed,
-      txResultTimed,
-      addressChainsTimed,
-    ] = await Promise.all([
-      timed('isContract', () => isContract(rpcUrl, address)),
-      timed('nativeBalance', () => getNativeBalance(rpcUrl, address, tokenSymbol)),
-      timed('transactions', () => getTransactions(address, chainId, pageToken)),
-      timed('addressChains', () => getAddressChains(address)),
+    // Fetch all data in parallel
+    const [isContractResult, nativeBalance, txResult, addressChains] = await Promise.all([
+      isContract(rpcUrl, address),
+      getNativeBalance(rpcUrl, address, tokenSymbol),
+      getTransactions(address, chainId, pageToken),
+      getAddressChains(address),
     ]);
-
-    // Store timings
-    timings.isContract = isContractTimed.duration;
-    timings.nativeBalance = nativeBalanceTimed.duration;
-    timings.transactions = txResultTimed.duration;
-    timings.addressChains = addressChainsTimed.duration;
-
-    // Extract results
-    const isContractResult = isContractTimed.result;
-    const nativeBalance = nativeBalanceTimed.result;
-    const txResult = txResultTimed.result;
-    const addressChains = addressChainsTimed.result;
 
     // Fetch contract metadata if it's a contract
     let contractMetadata: ContractMetadata | undefined;
     if (isContractResult) {
-      const metadataTimed = await timed('contractMetadata', () => getContractMetadata(address, chainId));
-      contractMetadata = metadataTimed.result;
-      timings.contractMetadata = metadataTimed.duration;
+      contractMetadata = await getContractMetadata(address, chainId);
     }
 
     const addressInfo: AddressInfo = {
@@ -504,8 +473,6 @@ export async function GET(
       isContract: isContractResult,
       contractMetadata,
       nativeBalance,
-      // ERC20 balances fetched separately via /erc20-balances endpoint
-      // Dune labels fetched separately via /api/dune/[address] endpoint
       transactions: txResult.transactions,
       erc20Transfers: txResult.erc20Transfers,
       nftTransfers: txResult.nftTransfers,
@@ -514,21 +481,9 @@ export async function GET(
       addressChains: addressChains.length > 0 ? addressChains : undefined,
     };
 
-    const totalDuration = performance.now() - totalStart;
-    
-    // Log timings
-    console.log(`[Address API] ${address} on chain ${chainId} - Total: ${totalDuration.toFixed(0)}ms`);
-    console.log(`  Parallel fetch: isContract=${timings.isContract.toFixed(0)}ms, nativeBalance=${timings.nativeBalance.toFixed(0)}ms`);
-    console.log(`  Parallel fetch: transactions=${timings.transactions.toFixed(0)}ms, addressChains=${timings.addressChains.toFixed(0)}ms`);
-    if (timings.contractMetadata) {
-      console.log(`  Sequential: contractMetadata=${timings.contractMetadata.toFixed(0)}ms`);
-    }
-
-    return NextResponse.json(addressInfo);
-  } catch (error) {
-    const totalDuration = performance.now() - totalStart;
-    console.error(`[Address API] Error fetching ${address} on chain ${chainId} after ${totalDuration.toFixed(0)}ms:`, error);
-    return NextResponse.json({ error: 'Failed to fetch address data' }, { status: 500 });
-  }
-}
-
+    return successResponse(addressInfo);
+  },
+  {
+    rateLimit: { windowMs: 60_000, maxRequests: 60, identifier: 'ip' },
+  },
+);

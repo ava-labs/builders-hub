@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/input-otp";
 import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { useLoginModalState, triggerNewUserLogin, triggerLoginComplete } from "@/hooks/useLoginModal";
 const verifySchema = z.object({
@@ -165,8 +165,9 @@ export function VerifyEmail({
     setMessage(null);
 
     try {
-      await axios.post("/api/send-otp", {
-        email: email,
+      await apiFetch("/api/send-otp", {
+        method: "POST",
+        body: { email: email },
       });
 
       setResendCooldown(60);

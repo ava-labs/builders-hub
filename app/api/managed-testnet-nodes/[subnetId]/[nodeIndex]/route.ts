@@ -1,3 +1,4 @@
+// withApi: not applicable — uses getUserId() for auth
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId, validateSubnetId, jsonOk, jsonError } from '../../utils';
 import { prisma } from '@/prisma/prisma';
@@ -25,8 +26,8 @@ async function handleGetNode(subnetId: string, nodeIndex: number): Promise<NextR
         user_id: userId,
         subnet_id: subnetId,
         node_index: nodeIndex,
-        status: 'active'
-      }
+        status: 'active',
+      },
     });
 
     if (!nodeRegistration) {
@@ -34,7 +35,6 @@ async function handleGetNode(subnetId: string, nodeIndex: number): Promise<NextR
     }
 
     return jsonOk({ node: nodeRegistration });
-
   } catch (error) {
     return jsonError(500, error instanceof Error ? error.message : 'Failed to fetch node', error);
   }
@@ -61,8 +61,8 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
         user_id: userId,
         subnet_id: subnetId,
         node_index: nodeIndex,
-        status: 'active'
-      }
+        status: 'active',
+      },
     });
 
     // Attempt to delete from Builder Hub (even if no local record) then, if local exists, mark terminated
@@ -70,13 +70,13 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
     if (!password) {
       return jsonError(503, 'Builder Hub service is not configured');
     }
-    
+
     try {
       const response = await fetch(ManagedTestnetNodesServiceURLs.deleteNode(subnetId, nodeIndex, password), {
         method: 'DELETE',
         headers: {
-          'Accept': 'application/json'
-        }
+          Accept: 'application/json',
+        },
       });
 
       if (response.ok || response.status === 404) {
@@ -85,9 +85,9 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
             where: {
               user_id: userId,
               subnet_id: subnetId,
-              node_index: nodeIndex
+              node_index: nodeIndex,
             },
-            data: { status: 'terminated' }
+            data: { status: 'terminated' },
           });
         }
 
@@ -95,25 +95,26 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
         return jsonOk({
           success: true,
           deletedExternally: response.status !== 404,
-          message: response.status === 404
-            ? 'Node was already deleted / expired in Builder Hub. It is now removed from your account.'
-            : 'Node deleted in Builder Hub and removed from your account.',
-          node: nodeRegistration ? {
-            subnet_id: subnetId,
-            node_index: nodeIndex,
-            status: 'terminated'
-          } : undefined
+          message:
+            response.status === 404
+              ? 'Node was already deleted / expired in Builder Hub. It is now removed from your account.'
+              : 'Node deleted in Builder Hub and removed from your account.',
+          node: nodeRegistration
+            ? {
+                subnet_id: subnetId,
+                node_index: nodeIndex,
+                status: 'terminated',
+              }
+            : undefined,
         });
       }
 
-      const message = await extractServiceErrorMessage(response) || 'Failed to delete node from Builder Hub.';
+      const message = (await extractServiceErrorMessage(response)) || 'Failed to delete node from Builder Hub.';
       return jsonError(502, message);
-
     } catch (hubError) {
       console.error('Builder Hub request failed:', hubError);
       return jsonError(503, 'Builder Hub was unreachable.', hubError);
     }
-
   } catch (error) {
     return jsonError(500, error instanceof Error ? error.message : 'Failed to delete node', error);
   }
@@ -121,10 +122,10 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ subnetId: string; nodeIndex: string }> }
+  { params }: { params: Promise<{ subnetId: string; nodeIndex: string }> },
 ): Promise<NextResponse> {
   const { subnetId, nodeIndex } = await params;
-  
+
   const parsedIndex = parseInt(nodeIndex, 10);
   if (Number.isNaN(parsedIndex) || parsedIndex < 0) {
     return jsonError(400, 'Invalid node index format');
@@ -135,10 +136,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ subnetId: string; nodeIndex: string }> }
+  { params }: { params: Promise<{ subnetId: string; nodeIndex: string }> },
 ): Promise<NextResponse> {
   const { subnetId, nodeIndex } = await params;
-  
+
   const parsedIndex = parseInt(nodeIndex, 10);
   if (Number.isNaN(parsedIndex) || parsedIndex < 0) {
     return jsonError(400, 'Invalid node index format');

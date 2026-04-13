@@ -293,3 +293,10 @@ content/docs/rpcs/x-chain/**/meta.json
 !content/docs/rpcs/x-chain/txn-format.mdx
 !content/docs/rpcs/x-chain/api.mdx
 !content/docs/rpcs/x-chain/rpc.mdx
+
+# Component/hook READMEs (auto-generated, not for git)
+components/*/README.md
+hooks/README.md
+lib/README.md
+types/README.md
+constants/README.md

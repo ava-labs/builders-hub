@@ -26,20 +26,19 @@ export const BadgeNotification = ({
     if (isCompleted && session && !badgeAwardedRef.current) {
       badgeAwardedRef.current = true;
       awardBadge()
-        .then((badge) => {
+        .then((result) => {
           if (
-            badge?.result &&
-            Array.isArray(badge.result.badges) &&
-            badge.result.badges.length > 0
+            result &&
+            Array.isArray(result.badges) &&
+            result.badges.length > 0
           ) {
-            setBadges(badge.result.badges);
+            setBadges(result.badges);
             setShowFireworks(true);
             setIsModalOpen(true);
           }
         })
-        .catch((error) => {
+        .catch(() => {
           badgeAwardedRef.current = false; // Allow retry on error
-          console.error("Error awarding badge:", error);
         });
     }
   }, [isCompleted, session]);

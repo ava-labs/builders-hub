@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { apiFetch } from "@/lib/api/client";
 
 interface PriceData {
   price: number;
@@ -163,27 +164,24 @@ export function ExplorerProvider({
     try {
       // Only fetch price and glacier support (not full explorer data)
       const url = buildApiUrl(`/api/explorer/${chainId}`, { priceOnly: 'true' });
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        const symbol = data?.tokenSymbol || data?.price?.symbol || nativeToken || '';
-        const price = data?.price || null;
-        const isGlacierSupported = data?.glacierSupported ?? false;
-        
-        // Update state
-        setTokenSymbol(symbol);
-        setPriceData(price);
-        setTokenPrice(price?.price || null);
-        setGlacierSupported(isGlacierSupported);
-        
-        // Update cache
-        tokenDataCache.set(cacheKey, {
-          data: price,
-          symbol,
-          glacierSupported: isGlacierSupported,
-          timestamp: now,
-        });
-      }
+      const data = await apiFetch<any>(url);
+      const symbol = data?.tokenSymbol || data?.price?.symbol || nativeToken || '';
+      const price = data?.price || null;
+      const isGlacierSupported = data?.glacierSupported ?? false;
+
+      // Update state
+      setTokenSymbol(symbol);
+      setPriceData(price);
+      setTokenPrice(price?.price || null);
+      setGlacierSupported(isGlacierSupported);
+
+      // Update cache
+      tokenDataCache.set(cacheKey, {
+        data: price,
+        symbol,
+        glacierSupported: isGlacierSupported,
+        timestamp: now,
+      });
     } catch (err) {
       console.error("Error fetching token data:", err);
       // For custom chains without price data, still set the native token symbol

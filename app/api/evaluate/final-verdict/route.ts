@@ -1,52 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth/authSession";
-import { prisma } from "@/prisma/prisma";
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { prisma } from '@/prisma/prisma';
 
-const ALLOWED_VERDICTS = ["top", "strong", "maybe", "weak", "reject"];
+// ---------------------------------------------------------------------------
+// Schema
+// ---------------------------------------------------------------------------
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getAuthSession();
+const ALLOWED_VERDICTS = ['top', 'strong', 'maybe', 'weak', 'reject'] as const;
 
-    if (
-      !session?.user?.id ||
-      !session.user.custom_attributes?.includes("devrel")
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 401 });
-    }
+const finalVerdictSchema = z.object({
+  formDataId: z.string().min(1, 'formDataId is required'),
+  verdict: z.enum(ALLOWED_VERDICTS).nullable(),
+});
 
-    const body = await request.json();
-    const { formDataId, verdict } = body as {
-      formDataId: string;
-      verdict: string | null;
-    };
+type FinalVerdictBody = z.infer<typeof finalVerdictSchema>;
 
-    if (!formDataId) {
-      return NextResponse.json(
-        { error: "formDataId is required" },
-        { status: 400 }
-      );
-    }
+// ---------------------------------------------------------------------------
+// POST /api/evaluate/final-verdict
+// ---------------------------------------------------------------------------
 
-    if (verdict !== null && !ALLOWED_VERDICTS.includes(verdict)) {
-      return NextResponse.json(
-        { error: `verdict must be one of: ${ALLOWED_VERDICTS.join(", ")} or null` },
-        { status: 400 }
-      );
-    }
-
+export const POST = withApi<FinalVerdictBody>(
+  async (_req: NextRequest, { body }) => {
     const updated = await prisma.formData.update({
-      where: { id: formDataId },
-      data: { final_verdict: verdict },
+      where: { id: body.formDataId },
+      data: { final_verdict: body.verdict },
       select: { id: true, final_verdict: true },
     });
 
-    return NextResponse.json({
-      id: updated.id,
-      finalVerdict: updated.final_verdict,
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
-}
+    return successResponse({ id: updated.id, finalVerdict: updated.final_verdict });
+  },
+  { auth: true, roles: ['devrel'], schema: finalVerdictSchema },
+);

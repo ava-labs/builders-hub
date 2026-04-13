@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { apiFetch } from '@/lib/api/client';
 
 export const FormSchema = z
   .object({
@@ -184,15 +184,13 @@ export const useSubmissionForm = (hackathonId: string) => {
     formData.append('file', file);
 
     try {
-      const response = await axios.post('/api/file', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const result = await apiFetch<{ url: string }>('/api/file', {
+        method: 'POST',
+        body: formData,
       });
-      return response.data.url;
+      return result.url;
     } catch (error: any) {
-      const message =
-        error.response?.data?.error || error.message || 'Error uploading file';
+      const message = error.message || 'Error uploading file';
       toast({
         title: 'Error uploading file',
         description: message,
@@ -210,7 +208,7 @@ export const useSubmissionForm = (hackathonId: string) => {
     if (!fileName) throw new Error('Invalid old image URL');
 
     try {
-      await axios.delete('/api/file', { params: { fileName } });
+      await apiFetch(`/api/file?fileName=${encodeURIComponent(fileName)}`, { method: 'DELETE' });
       const newUrl = await uploadFile(newFile);
       toast({
         title: 'Image replaced',
@@ -218,8 +216,7 @@ export const useSubmissionForm = (hackathonId: string) => {
       });
       return newUrl;
     } catch (error: any) {
-      const message =
-        error.response?.data?.error || error.message || 'Error replacing image';
+      const message = error.message || 'Error replacing image';
       toast({
         title: 'Error replacing image',
         description: message,
@@ -234,7 +231,7 @@ export const useSubmissionForm = (hackathonId: string) => {
     if (!fileName) throw new Error('Invalid old image URL');
 
     try {
-      await fetch(`/api/file?fileName=${encodeURIComponent(fileName!)}`, {
+      await apiFetch(`/api/file?fileName=${encodeURIComponent(fileName)}`, {
         method: 'DELETE',
       });
       toast({
@@ -242,8 +239,7 @@ export const useSubmissionForm = (hackathonId: string) => {
         description: 'The image has been deleted successfully.',
       });
     } catch (error: any) {
-      const message =
-        error.response?.data?.error || error.message || 'Error deleting image';
+      const message = error.message || 'Error deleting image';
       toast({
         title: 'Error deleting image',
         description: message,
@@ -328,10 +324,10 @@ export const useSubmissionForm = (hackathonId: string) => {
         id: projectId,
       };
 
-      const response = await axios.post(`/api/project/`, finalData);
-      setProjectId(response.data.id);
+      const result = await apiFetch<{ id: string }>(`/api/project/`, { method: 'POST', body: finalData });
+      setProjectId(result.id);
 
-      return response.data;
+      return result;
     } catch (error) {
       console.error('Error in saveProject:', error);
       throw error;

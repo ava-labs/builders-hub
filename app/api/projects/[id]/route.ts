@@ -1,61 +1,74 @@
-import { NextRequest, NextResponse } from "next/server";
-import { HackathonHeader } from "@/types/hackathons";
-import { getProject, updateProject } from "@/server/services/projects";
-import { isUserProjectMember } from "@/server/services/fileValidation";
-import { withAuth } from '@/lib/protectedRoute';
-import { GetProjectByIdWithMembers } from "@/server/services/memberProject";
+// schema: not applicable — partial project update with allowlisted fields
+import type { NextRequest } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { BadRequestError, ForbiddenError, NotFoundError } from '@/lib/api/errors';
+import { updateProject } from '@/server/services/projects';
+import { isUserProjectMember } from '@/server/services/fileValidation';
+import { GetProjectByIdWithMembers } from '@/server/services/memberProject';
 
-export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
-  try {
-    const { id } = await context.params;
+/** Fields that callers are allowed to update via PUT. Prevents mass-assignment of
+ *  sensitive columns like is_winner, hackaton_id, created_at, etc. */
+const UPDATABLE_FIELDS = [
+  'project_name',
+  'short_description',
+  'full_description',
+  'tech_stack',
+  'github_repository',
+  'demo_link',
+  'demo_video_link',
+  'logo_url',
+  'cover_url',
+  'screenshots',
+  'tracks',
+  'categories',
+  'other_category',
+  'tags',
+  'open_source',
+  'origin',
+] as const;
 
-    if (!id) {
-      return NextResponse.json({ error: "ID required" }, { status: 400 });
-    }
+export const GET = withApi(
+  async (_req: NextRequest, { session, params }) => {
+    const { id } = params;
+    if (!id) throw new BadRequestError('ID required');
 
-    // Check if user is a member of the project
     const isMember = await isUserProjectMember(session.user.id, id);
     if (!isMember) {
-      return NextResponse.json(
-        { error: "Forbidden: You are not a member of this project" },
-        { status: 403 }
-      );
+      throw new ForbiddenError('You are not a member of this project');
     }
 
     const project = await GetProjectByIdWithMembers(id);
-    return NextResponse.json(project);
-  } catch (error) {
-    console.error("Error in GET /api/projects/[id]:");
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 500 }
-    );
-  }
-});
-
-export const PUT = withAuth(async (req: NextRequest, context: any, session: any) => {
-  try {
-    const { id } = await context.params;
-    
-    if (!id) {
-      return NextResponse.json({ error: "ID required" }, { status: 400 });
+    if (!project) {
+      throw new NotFoundError('Project');
     }
+    return successResponse(project);
+  },
+  { auth: true },
+);
 
-    // Check if user is a member of the project
+export const PUT = withApi(
+  async (req: NextRequest, { session, params }) => {
+    const { id } = params;
+    if (!id) throw new BadRequestError('ID required');
+
     const isMember = await isUserProjectMember(session.user.id, id);
     if (!isMember) {
-      return NextResponse.json(
-        { error: "Forbidden: You are not a member of this project" },
-        { status: 403 }
-      );
+      throw new ForbiddenError('You are not a member of this project');
     }
 
-    const partialEditedHackathon = (await req.json()) as Partial<HackathonHeader>;
-    const updatedHackathon = await updateProject(id ?? partialEditedHackathon.id, partialEditedHackathon);
+    const raw = await req.json();
 
-    return NextResponse.json(updatedHackathon);
-  } catch (error) {
-    console.error("Error in PUT /api/projects/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
-  }
-});
+    // Whitelist: only copy allowed fields to prevent mass assignment
+    const sanitized: Record<string, unknown> = {};
+    for (const key of UPDATABLE_FIELDS) {
+      if (key in raw) {
+        sanitized[key] = raw[key];
+      }
+    }
+
+    const updatedProject = await updateProject(id, sanitized);
+    return successResponse(updatedProject);
+  },
+  { auth: true },
+);

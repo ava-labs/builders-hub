@@ -1,3 +1,4 @@
+// withApi: not applicable — uses withAuth() for session-based auth
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
@@ -20,28 +21,18 @@ interface AvatarSeed {
  * PUT /api/user/noun-avatar
  * Update user's Noun avatar seed and enabled status
  */
-export const PUT = withAuth(async (
-  req: NextRequest,
-  context: any,
-  session: any
-) => {
+export const PUT = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
     const userId = session.user.id;
     if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
     const body = await req.json();
     const { seed, enabled } = body as { seed: AvatarSeed; enabled: boolean };
 
     if (!seed) {
-      return NextResponse.json(
-        { error: 'Seed is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Seed is required' }, { status: 400 });
     }
 
     // Validate seed structure
@@ -58,10 +49,7 @@ export const PUT = withAuth(async (
       typeof seed.hairAccessories !== 'string' ||
       typeof seed.freckles !== 'string'
     ) {
-      return NextResponse.json(
-        { error: 'Invalid seed structure' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid seed structure' }, { status: 400 });
     }
 
     // Update user with noun avatar data
@@ -85,11 +73,11 @@ export const PUT = withAuth(async (
   } catch (error) {
     console.error('Error updating Noun avatar:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to update avatar',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 });
@@ -98,18 +86,11 @@ export const PUT = withAuth(async (
  * GET /api/user/noun-avatar
  * Get user's current Noun avatar seed and enabled status
  */
-export const GET = withAuth(async (
-  req: NextRequest,
-  context: any,
-  session: any
-) => {
+export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
     const userId = session.user.id;
     if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
@@ -121,10 +102,7 @@ export const GET = withAuth(async (
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -134,12 +112,11 @@ export const GET = withAuth(async (
   } catch (error) {
     console.error('Error fetching Noun avatar:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch avatar',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 });
-

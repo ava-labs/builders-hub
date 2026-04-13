@@ -2,9 +2,8 @@ import Modal from "@/components/ui/Modal";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
-import { set } from "date-fns";
 
 interface UserNotRegisteredProps {
   hackathonId: string;
@@ -22,10 +21,9 @@ export const UserNotRegistered = ({
 
   const lookForRegistration = async () => {
     if (!hackathonId || !currentUser?.email) return;
-    const response = await axios.get(
+    const loadedData = await apiFetch(
       `/api/register-form?hackathonId=${hackathonId}&email=${currentUser?.email}`
     );
-    const loadedData = response.data;
     if (loadedData) {
       onToggle(true);
       return;

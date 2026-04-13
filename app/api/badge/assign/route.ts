@@ -1,69 +1,47 @@
-import { withAuth } from "@/lib/protectedRoute";
-import { badgeAssignmentService } from "@/server/services/badgeAssignmentService";
-import { getAuthSession } from "@/lib/auth/authSession";
+import { z } from 'zod';
+import { BadgeCategory } from '@/server/services/badge';
+import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
+import { withApi, successResponse, ForbiddenError } from '@/lib/api';
 
-import { NextRequest, NextResponse } from "next/server";
+const bodySchema = z.object({
+  userId: z.string().min(1, 'userId is required'),
+  courseId: z.string().optional(),
+  hackathonId: z.string().optional(),
+  projectId: z.string().optional(),
+  requirementId: z.string().optional(),
+  badgesId: z.array(z.string()).optional(),
+  consoleTrigger: z.enum(['console_log', 'faucet_claim', 'node_registration']).optional(),
+  category: z.nativeEnum(BadgeCategory).optional(),
+});
 
-export const POST = withAuth(async (req: NextRequest) => {
-  try {
-    const body = await req.json();
-    const session = await getAuthSession();
-    
-    const userRole = session?.user.role || "user";
-    const customAttributes = session?.user.custom_attributes ?? [];
-    
-    // Get the required role for this badge type
+type AssignBody = z.infer<typeof bodySchema>;
+
+export const POST = withApi<AssignBody>(
+  async (_req, { session, body }) => {
     const requiredRole = badgeAssignmentService.getRequiredRoleForAssignment(body);
+    const customAttributes: string[] = session.user?.custom_attributes ?? [];
+
     let hasAdminPermission = requiredRole ? customAttributes.includes(requiredRole) : false;
 
     // If badge_admin is required and user doesn't have it, check for devrel (super admin)
-    if (requiredRole === "badge_admin" && !hasAdminPermission) {
-      hasAdminPermission = customAttributes.includes("devrel");
+    if (requiredRole === 'badge_admin' && !hasAdminPermission) {
+      hasAdminPermission = customAttributes.includes('devrel');
     }
 
     // Security check: Users can only assign badges to themselves unless they have admin role
     // - If no admin role required (academy/requirement badges): user must assign to self
     // - If admin role required (project badges): user must have the required role (badge_admin)
     if (requiredRole === null) {
-      // No admin role required = user can only assign to themselves
-      if (body.userId !== session?.user.id) {
-        return NextResponse.json(
-          { error: { message: "You can only assign badges to yourself" } },
-          { status: 403 }
-        );
+      if (body.userId !== session.user?.id) {
+        throw new ForbiddenError('You can only assign badges to yourself');
       }
-    } else {
-      // Admin role required - check if user has the permission
-      if (!hasAdminPermission) {
-        return NextResponse.json(
-          {
-            error: {
-              message: `Insufficient permissions. Required role: ${requiredRole}, User role: ${userRole}`
-            }
-          },
-          { status: 403 }
-        );
-      }
-      // Admin can assign to any user - no userId restriction
+    } else if (!hasAdminPermission) {
+      throw new ForbiddenError(`Insufficient permissions. Required role: ${requiredRole}`);
     }
-    
-    // Use the user's name as awardedBy
-    const badge = await badgeAssignmentService.assignBadge(body, session?.user.name || undefined);
 
-    return NextResponse.json({ result: badge }, { status: 200 });
-  } catch (error: any) {
-    console.error('Error POST /api/badge/assign:', error.message);
-    const wrappedError = error as Error;
-    return NextResponse.json(
-      {
-        error: {
-          message: wrappedError.message,
-          stack: wrappedError.stack,
-          cause: wrappedError.cause,
-          name: wrappedError.name,
-        },
-      },
-      { status: wrappedError.cause == "ValidationError" ? 400 : 500 }
-    );
-  }
-});
+    const badge = await badgeAssignmentService.assignBadge(body, session.user?.name || undefined);
+
+    return successResponse(badge);
+  },
+  { auth: true, schema: bodySchema },
+);

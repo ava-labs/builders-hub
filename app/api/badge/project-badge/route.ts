@@ -1,27 +1,16 @@
-import { withAuth } from "@/lib/protectedRoute";
+import { z } from 'zod';
+import { withApi, successResponse, validateQuery } from '@/lib/api';
+import { getProjectBadges } from '@/server/services/project-badge';
 
-import { getProjectBadges } from "@/server/services/project-badge";
-
-import { NextResponse } from "next/server";
-
-export const GET = withAuth(async (request) => {
-  const { searchParams } = new URL(request.url);
-  const project_id = searchParams.get("project_id");
-  if (!project_id) {
-    return NextResponse.json(
-      { error: "project_id parameter is required" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const badge = await getProjectBadges(project_id);
-    return NextResponse.json(badge, { status: 200 });
-  } catch (error) {
-    console.error("Error getting badge:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
+const querySchema = z.object({
+  project_id: z.string().min(1, 'project_id is required'),
 });
+
+export const GET = withApi(
+  async (req) => {
+    const { project_id } = validateQuery(req, querySchema);
+    const badges = await getProjectBadges(project_id);
+    return successResponse(badges);
+  },
+  { auth: true },
+);

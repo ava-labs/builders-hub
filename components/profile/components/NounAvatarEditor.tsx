@@ -6,6 +6,7 @@ import { DiceBearAvatar, AvatarSeed, AVATAR_OPTIONS } from "./DiceBearAvatar";
 import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api/client";
 
 interface NounAvatarEditorProps {
   currentSeed?: AvatarSeed | null;
@@ -105,16 +106,10 @@ export function NounAvatarEditor({
 
     setIsSaving(true);
     try {
-      const response = await fetch("/api/user/noun-avatar", {
+      await apiFetch("/api/user/noun-avatar", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seed, enabled: true }),
+        body: { seed, enabled: true },
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save avatar");
-      }
 
       await onSave(seed, true);
 

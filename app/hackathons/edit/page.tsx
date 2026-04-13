@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
-import axios from 'axios';
+import { apiFetch } from '@/lib/api/client';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
 import HackathonPreview from '@/components/hackathons/HackathonPreview';
@@ -778,16 +778,16 @@ const HackathonsEdit = () => {
   const getMyHackathons = async () => {
     setLoadingHackathons(true);
     try {
-      const response = await axios.get(
+      const data = await apiFetch<{ hackathons: any[] }>(
         `/api/hackathons`,
         {
             headers: {
-                id: session?.user?.id,
+                id: session?.user?.id ?? '',
             }
         }
       );
-      if (response.data?.hackathons?.length > 0) {
-        const hackathons = response.data.hackathons;
+      if (data?.hackathons?.length > 0) {
+        const hackathons = data.hackathons;
         console.log({response: hackathons });
         setMyHackathons(hackathons);
       }
@@ -1294,16 +1294,11 @@ const HackathonsEdit = () => {
       const blob = await response.blob();
       const formData = new FormData();
       formData.append('file', blob, fileName);
-      const uploadResponse = await fetch('/api/file', {
+      const result = await apiFetch<{ url: string }>('/api/file', {
         method: 'POST',
         body: formData,
       });
-      
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-      }
-      
-      const result = await uploadResponse.json();
+
       return result.url;
     } catch (error) {
       console.error('Error uploading base64 to Vercel:', error);
@@ -1370,39 +1365,27 @@ const HackathonsEdit = () => {
     
     if (!isSelectedHackathon) {
       try {
-        const response = await fetch('/api/hackathons', {
-          method: 'POST', 
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(dataToSend),
+        await apiFetch('/api/hackathons', {
+          method: 'POST',
+          body: dataToSend,
         });
-        
-        if (response.ok) {
-          toast({
-            title: 'Event created',
-            description: 'Your event has been created successfully.',
-            variant: 'success',
-          });
-          // No mostrar modal de confirmación de "update" en creación.
-          // El popup solo tiene sentido cuando el usuario edita un evento existente.
-          setShowUpdateModal(false);
-          setFieldsToUpdate([]);
-          setFormDataMain(initialData.main);
-          setFormDataContent(initialData.content);
-          setFormDataLatest(initialData.latest);
-          setShowForm(false);
-          setIsSelectedHackathon(false);
-          setSelectedHackathon(null);
-          await getMyHackathons();
-        } else {
-          const data = await response.json().catch(() => ({}));
-          toast({
-            title: 'Error creating event',
-            description: data?.error ?? 'Failed to create event. Please try again.',
-            variant: 'destructive',
-          });
-        }
+
+        toast({
+          title: 'Event created',
+          description: 'Your event has been created successfully.',
+          variant: 'success',
+        });
+        // No mostrar modal de confirmación de "update" en creación.
+        // El popup solo tiene sentido cuando el usuario edita un evento existente.
+        setShowUpdateModal(false);
+        setFieldsToUpdate([]);
+        setFormDataMain(initialData.main);
+        setFormDataContent(initialData.content);
+        setFormDataLatest(initialData.latest);
+        setShowForm(false);
+        setIsSelectedHackathon(false);
+        setSelectedHackathon(null);
+        await getMyHackathons();
       } catch (error) {
         console.error('Error creating hackathon:', error);
         toast({
@@ -1416,37 +1399,24 @@ const HackathonsEdit = () => {
     } else {
       console.log({selectedHackathon, id: selectedHackathon?.id});
       try {
-
-        const response = await fetch(`/api/hackathons/${selectedHackathon?.id}`, {
-          method: 'PUT', 
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(dataToSend),
+        await apiFetch(`/api/hackathons/${selectedHackathon?.id}`, {
+          method: 'PUT',
+          body: dataToSend,
         });
-        
-       if (response.ok) {
-          toast({
-            title: 'Event updated',
-            description: 'Your event has been updated successfully.',
-            variant: 'success',
-          });
-          setShowUpdateModal(false);
-          setFormDataMain(initialData.main);
-          setFormDataContent(initialData.content);
-          setFormDataLatest(initialData.latest);
-          setShowForm(false);
-          setIsSelectedHackathon(false);
-          setSelectedHackathon(null);
-          await getMyHackathons();
-        } else {
-          const data = await response.json().catch(() => ({}));
-          toast({
-            title: 'Error updating event',
-            description: data?.error ?? 'Failed to update event. Please try again.',
-            variant: 'destructive',
-          });
-        }
+
+        toast({
+          title: 'Event updated',
+          description: 'Your event has been updated successfully.',
+          variant: 'success',
+        });
+        setShowUpdateModal(false);
+        setFormDataMain(initialData.main);
+        setFormDataContent(initialData.content);
+        setFormDataLatest(initialData.latest);
+        setShowForm(false);
+        setIsSelectedHackathon(false);
+        setSelectedHackathon(null);
+        await getMyHackathons();
       } catch (error) {
         console.error('Error updating hackathon:', error);
         toast({
@@ -1465,13 +1435,9 @@ const HackathonsEdit = () => {
   const handleDeleteClick = async () => {
     console.log('delete');
     try {
-      const response = await fetch(`/api/hackathons/${selectedHackathon?.id}`, {
-        method: 'DELETE', 
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      await apiFetch(`/api/hackathons/${selectedHackathon?.id}`, {
+        method: 'DELETE',
       });
-      console.log(response);
     } catch (error) {
       console.error('Error deleting hackathon:', error);
     }
@@ -1480,34 +1446,25 @@ const HackathonsEdit = () => {
   const handleToggleVisibility = async (hackathonId: string, isPublic: boolean) => {
     try {
       console.log({isPublic})
-      const response = await fetch(`/api/hackathons/${selectedHackathon?.id}`, {
-        method: 'PUT', 
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          is_public: isPublic
-        }),
+      await apiFetch(`/api/hackathons/${selectedHackathon?.id}`, {
+        method: 'PUT',
+        body: { is_public: isPublic },
       });
 
-      if (response.ok) {
-        setMyHackathons(prev => 
-          prev.map(hackathon => 
-            hackathon.id === hackathonId 
-              ? { ...hackathon, is_public: isPublic }
-              : hackathon
-          )
-        );
-        
-        if (selectedHackathon?.id === hackathonId) {
-          setSelectedHackathon((prev: any) => prev ? { ...prev, is_public: isPublic } : null);
-          setFormDataMain((prev: IDataMain) => ({ ...prev, is_public: isPublic }));
-        }
-        
-        console.log(`Hackathon ${hackathonId} visibility updated to ${isPublic ? 'public' : 'private'}`);
-      } else {
-        console.error('Failed to update hackathon visibility');
+      setMyHackathons(prev =>
+        prev.map(hackathon =>
+          hackathon.id === hackathonId
+            ? { ...hackathon, is_public: isPublic }
+            : hackathon
+        )
+      );
+
+      if (selectedHackathon?.id === hackathonId) {
+        setSelectedHackathon((prev: any) => prev ? { ...prev, is_public: isPublic } : null);
+        setFormDataMain((prev: IDataMain) => ({ ...prev, is_public: isPublic }));
       }
+
+      console.log(`Hackathon ${hackathonId} visibility updated to ${isPublic ? 'public' : 'private'}`);
     } catch (error) {
       console.error('Error updating hackathon visibility:', error);
     }

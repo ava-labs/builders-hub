@@ -1,56 +1,48 @@
-import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
 import { prisma } from '@/prisma/prisma';
 
-export async function POST(request: Request) {
-  try {
-    const formData = await request.json();
-    const email = formData.email as string;
-    if (!email) {
-      return NextResponse.json(
-        { success: false, message: 'Email is required' },
-        { status: 400 }
-      );
-    }
+const retro9000ReturningSchema = z.object({
+  email: z.string().email('Email is required'),
+  project_name: z.string().optional().default(''),
+  project_type: z.string().optional().default(''),
+  project_vertical: z.string().optional().default(''),
+  project_website: z.string().nullable().optional().default(null),
+  project_x_handle: z.string().nullable().optional().default(null),
+  project_github: z.string().optional().default(''),
+  project_hq: z.string().optional().default(''),
+  project_continent: z.string().optional().default(''),
+  media_kit: z.string().optional().default(''),
+  previous_retro9000_snapshot_funding: z.string().nullable().optional().default(null),
+  requested_funding_range: z.string().optional().default(''),
+  eligibility_and_metrics: z.string().optional().default(''),
+  requested_grant_size_budget: z.string().optional().default(''),
+  changes_since_last_snapshot: z.string().optional().default(''),
+  first_name: z.string().optional().default(''),
+  last_name: z.string().optional().default(''),
+  pseudonym: z.string().nullable().optional().default(null),
+  role: z.string().optional().default(''),
+  x_account: z.string().optional().default(''),
+  telegram: z.string().optional().default(''),
+  linkedin: z.string().nullable().optional().default(null),
+  github: z.string().nullable().optional().default(null),
+  country: z.string().nullable().optional().default(null),
+  other_url: z.string().nullable().optional().default(null),
+  bio: z.string().optional().default(''),
+  kyb_willing: z.string().optional().default(''),
+  gdpr: z.boolean().optional().default(false),
+  marketing_consent: z.boolean().optional().default(false),
+});
 
-    const applicationData = {
-      email: email,
-      // PROJECT OVERVIEW
-      project_name: (formData.project_name as string) || '',
-      project_type: (formData.project_type as string) || '',
-      project_vertical: (formData.project_vertical as string) || '',
-      project_website: (formData.project_website as string) || null,
-      project_x_handle: (formData.project_x_handle as string) || null,
-      project_github: (formData.project_github as string) || '',
-      project_hq: (formData.project_hq as string) || '',
-      project_continent: (formData.project_continent as string) || '',
-      media_kit: (formData.media_kit as string) || '',
-      // FINANCIAL OVERVIEW
-      previous_retro9000_snapshot_funding: (formData.previous_retro9000_snapshot_funding as string) || null,
-      requested_funding_range: (formData.requested_funding_range as string) || '',
-      // GRANT INFORMATION
-      eligibility_and_metrics: (formData.eligibility_and_metrics as string) || '',
-      requested_grant_size_budget: (formData.requested_grant_size_budget as string) || '',
-      changes_since_last_snapshot: (formData.changes_since_last_snapshot as string) || '',
-      // APPLICANT INFORMATION
-      first_name: (formData.first_name as string) || '',
-      last_name: (formData.last_name as string) || '',
-      pseudonym: (formData.pseudonym as string) || null,
-      role: (formData.role as string) || '',
-      x_account: (formData.x_account as string) || '',
-      telegram: (formData.telegram as string) || '',
-      linkedin: (formData.linkedin as string) || null,
-      github: (formData.github as string) || null,
-      country: (formData.country as string) || null,
-      other_url: (formData.other_url as string) || null,
-      bio: (formData.bio as string) || '',
-      // COMPLIANCE
-      kyb_willing: (formData.kyb_willing as string) || '',
-      gdpr: formData.gdpr === true,
-      marketing_consent: formData.marketing_consent === true,
-    };
+// withApi: auth intentionally omitted — public form submission
+export const POST = withApi<z.infer<typeof retro9000ReturningSchema>>(
+  async (_req: NextRequest, { body }) => {
+    const applicationData = body;
 
     const result = await prisma.retro9000ReturningApplication.upsert({
-      where: { email: email },
+      where: { email: applicationData.email },
       update: {
         project_name: applicationData.project_name,
         project_type: applicationData.project_type,
@@ -83,12 +75,8 @@ export async function POST(request: Request) {
       },
       create: applicationData,
     });
-    return NextResponse.json({ success: true, id: result.id });
-  } catch (error) {
-    console.error('Error processing Retro9000 Returning application:', error);
-    return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+
+    return successResponse({ id: result.id });
+  },
+  { schema: retro9000ReturningSchema },
+);

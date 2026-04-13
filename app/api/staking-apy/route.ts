@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { withApi, successResponse } from '@/lib/api';
 import { createPChainClient } from '@avalanche-sdk/client';
 import { avalanche } from '@avalanche-sdk/client/chains';
 
@@ -10,12 +11,12 @@ const CONFIG = {
     staleWhileRevalidate: 86400, // 24 hours
   },
   timeout: 15000, // 15 seconds
-  
+
   // Network Constants for Primary Network Mainnet
   network: {
     genesisSupply: 360_000_000, // 360M AVAX unlocked at genesis
     maxSupply: 720_000_000, // 720M AVAX maximum supply cap
-    minConsumptionRate: 0.10, // 10% for minimum staking duration
+    minConsumptionRate: 0.1, // 10% for minimum staking duration
     maxConsumptionRate: 0.12, // 12% for maximum staking duration
     mintingPeriodDays: 365, // 1 year
     minStakingDays: 14, // 2 weeks
@@ -24,7 +25,8 @@ const CONFIG = {
 
   endpoints: {
     dataApi: 'https://data-api.avax.network/v1/avax/supply',
-    metabase: 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/38ea69a5-e373-4258-9db6-8425fcba3a1a/dashcard/9955/card/13502?parameters=%5B%5D',
+    metabase:
+      'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/38ea69a5-e373-4258-9db6-8425fcba3a1a/dashcard/9955/card/13502?parameters=%5B%5D',
   },
 } as const;
 
@@ -53,11 +55,7 @@ interface MetabaseRow {
   cumulativeEmissions: number;
 }
 
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit = {},
-  timeoutMs = CONFIG.timeout
-): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = CONFIG.timeout): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -86,11 +84,11 @@ function getEffectiveConsumptionRate(stakingDays: number): number {
  */
 function calculateAPY(supply: number, stakingDays: number): number {
   if (supply <= 0 || supply >= CONFIG.network.maxSupply) return 0;
-  
+
   const remainingToMint = CONFIG.network.maxSupply - supply;
   const effectiveRate = getEffectiveConsumptionRate(stakingDays);
   const apy = (remainingToMint / supply) * effectiveRate * 100;
-  
+
   return Math.max(0, Number(apy.toFixed(2)));
 }
 
@@ -100,8 +98,8 @@ async function fetchPChainSupply(): Promise<number | null> {
     const result = await pChainClient.getCurrentSupply({});
     // Supply is returned as bigint in nanoAVAX, convert to AVAX
     return Number(result.supply) / 1_000_000_000;
-  } catch (error) {
-    console.error('[fetchPChainSupply] SDK error:', error);
+  } catch {
+    // P-Chain supply SDK error; return null to use fallback
     return null;
   }
 }
@@ -114,7 +112,10 @@ async function fetchDataApiDetails(): Promise<{ totalBurned: number } | null> {
 
     if (!response.ok) return null;
     const data = await response.json();
-    const totalBurned = (parseFloat(data.totalPBurned) || 0) + (parseFloat(data.totalCBurned) || 0) + (parseFloat(data.totalXBurned) || 0);
+    const totalBurned =
+      (parseFloat(data.totalPBurned) || 0) +
+      (parseFloat(data.totalCBurned) || 0) +
+      (parseFloat(data.totalXBurned) || 0);
     return { totalBurned };
   } catch {
     return null;
@@ -133,7 +134,7 @@ async function fetchHistoricalData(): Promise<MetabaseRow[]> {
     const rows: MetabaseRow[] = [];
     for (const row of data.data.rows) {
       const dateStr = row[0];
-      const emissions = row[1];    
+      const emissions = row[1];
       if (!dateStr || typeof emissions !== 'number' || emissions <= 0) continue;
 
       rows.push({
@@ -149,87 +150,76 @@ async function fetchHistoricalData(): Promise<MetabaseRow[]> {
   }
 }
 
-export async function GET() {
-  try {
-    const [pChainSupply, dataApiDetails, historicalData] = await Promise.all([
-      fetchPChainSupply(),
-      fetchDataApiDetails(),
-      fetchHistoricalData(),
-    ]);
+export const GET = withApi(async () => {
+  const [pChainSupply, dataApiDetails, historicalData] = await Promise.all([
+    fetchPChainSupply(),
+    fetchDataApiDetails(),
+    fetchHistoricalData(),
+  ]);
 
-    if (!pChainSupply && historicalData.length === 0) {
-      return NextResponse.json(
-        { error: 'Failed to fetch supply data from all sources' },
-        { status: 503 }
-      );
-    }
-
-    const currentSupply = pChainSupply ?? CONFIG.network.genesisSupply;
-    const current: CurrentData = {
-      supply: currentSupply,
-      totalBurned: dataApiDetails?.totalBurned ?? 0,
-      maxAPY: calculateAPY(currentSupply, CONFIG.network.maxStakingDays),
-      minAPY: calculateAPY(currentSupply, CONFIG.network.minStakingDays),
-    };
-
-    let apyHistory: APYDataPoint[] = [];
-
-    if (historicalData.length > 0 && pChainSupply) {
-      const latestMetabase = historicalData[historicalData.length - 1];
-      const metabaseLatestSupply = CONFIG.network.genesisSupply + latestMetabase.cumulativeEmissions;
-      const alignmentOffset = pChainSupply - metabaseLatestSupply;
-      apyHistory = historicalData.map((row) => {
-        const supply = CONFIG.network.genesisSupply + row.cumulativeEmissions + alignmentOffset;
-        return {
-          date: row.date,
-          timestamp: Math.floor(new Date(row.date).getTime() / 1000),
-          supply,
-          maxAPY: calculateAPY(supply, CONFIG.network.maxStakingDays),
-          minAPY: calculateAPY(supply, CONFIG.network.minStakingDays),
-        };
-      });
-
-      const today = new Date().toISOString().split('T')[0];
-      const lastPoint = apyHistory[apyHistory.length - 1];
-
-      if (lastPoint.date === today) {
-        lastPoint.supply = currentSupply;
-        lastPoint.maxAPY = current.maxAPY;
-        lastPoint.minAPY = current.minAPY;
-      } else {
-        apyHistory.push({
-          date: today,
-          timestamp: Math.floor(Date.now() / 1000),
-          supply: currentSupply,
-          maxAPY: current.maxAPY,
-          minAPY: current.minAPY,
-        });
-      }
-    }
-
-    const response = {
-      data: apyHistory,
-      current,
-      constants: {
-        genesisSupply: CONFIG.network.genesisSupply,
-        maxSupply: CONFIG.network.maxSupply,
-        minConsumptionRate: CONFIG.network.minConsumptionRate,
-        maxConsumptionRate: CONFIG.network.maxConsumptionRate,
-        minStakingDuration: '2 weeks',
-        maxStakingDuration: '1 year',
-      },
-    };
-
-    return NextResponse.json(response, {
-      headers: {
-        'Cache-Control': `public, max-age=${CONFIG.cache.maxAge}, s-maxage=${CONFIG.cache.maxAge}, stale-while-revalidate=${CONFIG.cache.staleWhileRevalidate}`,
-      },
-    });
-  } catch (error) {
-    console.error('[GET /api/staking-apy] Unexpected error:', error);
+  if (!pChainSupply && historicalData.length === 0) {
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      {
+        success: false,
+        error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to fetch supply data from all sources' },
+      },
+      { status: 503 },
     );
   }
-}
+
+  const currentSupply = pChainSupply ?? CONFIG.network.genesisSupply;
+  const current: CurrentData = {
+    supply: currentSupply,
+    totalBurned: dataApiDetails?.totalBurned ?? 0,
+    maxAPY: calculateAPY(currentSupply, CONFIG.network.maxStakingDays),
+    minAPY: calculateAPY(currentSupply, CONFIG.network.minStakingDays),
+  };
+
+  let apyHistory: APYDataPoint[] = [];
+
+  if (historicalData.length > 0 && pChainSupply) {
+    const latestMetabase = historicalData[historicalData.length - 1];
+    const metabaseLatestSupply = CONFIG.network.genesisSupply + latestMetabase.cumulativeEmissions;
+    const alignmentOffset = pChainSupply - metabaseLatestSupply;
+    apyHistory = historicalData.map((row) => {
+      const supply = CONFIG.network.genesisSupply + row.cumulativeEmissions + alignmentOffset;
+      return {
+        date: row.date,
+        timestamp: Math.floor(new Date(row.date).getTime() / 1000),
+        supply,
+        maxAPY: calculateAPY(supply, CONFIG.network.maxStakingDays),
+        minAPY: calculateAPY(supply, CONFIG.network.minStakingDays),
+      };
+    });
+
+    const today = new Date().toISOString().split('T')[0];
+    const lastPoint = apyHistory[apyHistory.length - 1];
+
+    if (lastPoint.date === today) {
+      lastPoint.supply = currentSupply;
+      lastPoint.maxAPY = current.maxAPY;
+      lastPoint.minAPY = current.minAPY;
+    } else {
+      apyHistory.push({
+        date: today,
+        timestamp: Math.floor(Date.now() / 1000),
+        supply: currentSupply,
+        maxAPY: current.maxAPY,
+        minAPY: current.minAPY,
+      });
+    }
+  }
+
+  return successResponse({
+    data: apyHistory,
+    current,
+    constants: {
+      genesisSupply: CONFIG.network.genesisSupply,
+      maxSupply: CONFIG.network.maxSupply,
+      minConsumptionRate: CONFIG.network.minConsumptionRate,
+      maxConsumptionRate: CONFIG.network.maxConsumptionRate,
+      minStakingDuration: '2 weeks',
+      maxStakingDuration: '1 year',
+    },
+  });
+});

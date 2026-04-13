@@ -3,7 +3,8 @@
 import { useState, useCallback } from "react";
 import { NodeRegistration, RegisterSubnetResponse } from "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/types";
 import posthog from 'posthog-js';
-import { useConsoleBadgeNotificationStore } from '@/stores/consoleBadgeNotificationStore';
+import { useConsoleBadgeNotificationStore, type ConsoleBadgeNotification } from '@/stores/consoleBadgeNotificationStore';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 export function useManagedTestnetNodes() {
     const [nodes, setNodes] = useState<NodeRegistration[]>([]);
@@ -16,18 +17,7 @@ export function useManagedTestnetNodes() {
         setNodesError(null);
 
         try {
-            const response = await fetch('/api/managed-testnet-nodes', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.message || data.error || 'Failed to fetch nodes');
-            }
+            const data = await apiFetch<{ nodes?: NodeRegistration[] }>('/api/managed-testnet-nodes');
 
             if (data.nodes) {
                 setNodes(data.nodes);
@@ -42,40 +32,24 @@ export function useManagedTestnetNodes() {
 
     const createNode = useCallback(async (subnetId: string, blockchainId: string) => {
         try {
-            const response = await fetch('/api/managed-testnet-nodes', {
+            const data = await apiFetch<{ builder_hub_response?: RegisterSubnetResponse; awardedBadges?: ConsoleBadgeNotification[] }>('/api/managed-testnet-nodes', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    subnetId,
-                    blockchainId
-                })
+                body: { subnetId, blockchainId }
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                if (response.status === 429) {
-                    throw new Error(data.message || data.error || "Rate limit exceeded. Please try again later.");
-                }
-                throw new Error(data.message || data.error || `Error ${response.status}: Failed to register subnet`);
-            }
-
-            if (data.error) {
-                throw new Error(data.message || data.error || 'Registration failed');
-            }
-
-            if (data.awardedBadges?.length > 0) {
+            if (data.awardedBadges?.length) {
                 useConsoleBadgeNotificationStore.getState().addBadges(data.awardedBadges);
             }
 
             if (data.builder_hub_response) {
-                return data.builder_hub_response as RegisterSubnetResponse;
+                return data.builder_hub_response;
             } else {
                 throw new Error('Unexpected response format');
             }
         } catch (error) {
+            if (error instanceof ApiClientError && error.status === 429) {
+                throw new Error(error.message || "Rate limit exceeded. Please try again later.");
+            }
             throw error;
         }
     }, []);
@@ -84,33 +58,11 @@ export function useManagedTestnetNodes() {
         setDeletingNodes(prev => new Set(prev).add(node.id));
 
         try {
-            let response;
-            if (node.node_index === null || node.node_index === undefined) {
-                response = await fetch(`/api/managed-testnet-nodes?id=${encodeURIComponent(node.id)}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            } else {
-                response = await fetch(`/api/managed-testnet-nodes/${node.subnet_id}/${node.node_index}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-            }
+            const url = (node.node_index === null || node.node_index === undefined)
+                ? `/api/managed-testnet-nodes?id=${encodeURIComponent(node.id)}`
+                : `/api/managed-testnet-nodes/${node.subnet_id}/${node.node_index}`;
 
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                // Track error
-                posthog.capture('managed_testnet_node_delete_error', {
-                    subnet_id: node.subnet_id,
-                    blockchain_id: node.blockchain_id,
-                    error_message: data.message || data.error || 'Failed to delete node',
-                    context: 'console'
-                });
-                throw new Error(data.message || data.error || 'Failed to delete node');
-            }
+            const data = await apiFetch<{ message?: string }>(url, { method: 'DELETE' });
 
             // Track successful deletion
             posthog.capture('managed_testnet_node_deleted', {
@@ -123,6 +75,13 @@ export function useManagedTestnetNodes() {
             await fetchNodes();
             return data.message || "The node has been successfully removed.";
         } catch (error) {
+            // Track error
+            posthog.capture('managed_testnet_node_delete_error', {
+                subnet_id: node.subnet_id,
+                blockchain_id: node.blockchain_id,
+                error_message: error instanceof Error ? error.message : 'Failed to delete node',
+                context: 'console'
+            });
             throw error;
         } finally {
             setDeletingNodes(prev => {

@@ -12,6 +12,7 @@ import { decodeEventLog, getEventByTopic, decodeFunctionInput } from "@/abi/even
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 
 interface TransactionDetail {
   hash: string;
@@ -219,14 +220,11 @@ interface TokenInfo {
 // Fetch token metadata from Glacier API
 async function fetchTokenMetadata(chainId: string, tokenAddress: string): Promise<{ logoUri?: string; symbol?: string }> {
   try {
-    const response = await fetch(`/api/explorer/${chainId}/token/${tokenAddress}/metadata`);
-    if (response.ok) {
-      const data = await response.json();
+    const data = await apiFetch<{ logoUri?: string; symbol?: string }>(`/api/explorer/${chainId}/token/${tokenAddress}/metadata`);
     return {
-        logoUri: data.logoUri,
-        symbol: data.symbol,
+      logoUri: data.logoUri,
+      symbol: data.symbol,
     };
-    }
   } catch {
     // Ignore errors
   }
@@ -558,15 +556,10 @@ export default function TransactionDetailPage({
       setLoading(true);
       setError(null);
       const url = buildApiUrl(`/api/explorer/${chainId}/tx/${txHash}`);
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch transaction");
-      }
-      const data = await response.json();
+      const data = await apiFetch<any>(url);
       setTx(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof ApiClientError ? err.message : err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }

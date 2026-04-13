@@ -10,6 +10,12 @@ module.exports = {
     `./scripts/check-console-design.sh ${files.join(' ')}`,
   ],
 
+  // API routes: ESLint + Prettier
+  'app/api/**/*.ts': [
+    'prettier --write',
+    'eslint --max-warnings 0',
+  ],
+
   // All TypeScript: type check (runs once, not per-file)
   '*.{ts,tsx}': () => 'tsc --noEmit',
 };

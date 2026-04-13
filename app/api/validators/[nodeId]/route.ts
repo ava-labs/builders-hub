@@ -1,8 +1,14 @@
-import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { withApi, ValidationError, successResponse } from '@/lib/api';
+import { NODE_ID_REGEX } from '@/lib/api/constants';
 
 const UPSTREAM_BASE = 'https://52.203.183.9.sslip.io/api/validators';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const FETCH_TIMEOUT = 15000;
+const FETCH_TIMEOUT = 10_000;
+
+const nodeIdSchema = z.object({
+  nodeId: z.string().max(60).regex(NODE_ID_REGEX, 'Invalid Node ID format. Expected format: NodeID-xxx'),
+});
 
 export interface ValidatorP2PDetail {
   node_id: string;
@@ -40,37 +46,26 @@ interface CacheEntry {
 
 const cachedData = new Map<string, CacheEntry>();
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ nodeId: string }> }
-) {
+export const GET = withApi(async (_req, { params }) => {
+  const parsed = nodeIdSchema.safeParse(params);
+  if (!parsed.success) {
+    throw new ValidationError(parsed.error.issues.map((i) => i.message).join('; '));
+  }
+  const { nodeId } = parsed.data;
+
+  const cached = cachedData.get(nodeId);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    const resp = successResponse(cached.data);
+    resp.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+    resp.headers.set('X-Data-Source', 'cache');
+    return resp;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
   try {
-    const { nodeId } = await params;
-
-    if (!nodeId || !nodeId.startsWith('NodeID-')) {
-      return NextResponse.json(
-        { error: 'Invalid Node ID format. Expected format: NodeID-xxx' },
-        { status: 400 }
-      );
-    }
-
-    const cached = cachedData.get(nodeId);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return NextResponse.json(cached.data, {
-        headers: {
-          'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
-          'X-Data-Source': 'cache',
-        },
-      });
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-
-    const response = await fetch(
-      `${UPSTREAM_BASE}/${encodeURIComponent(nodeId)}`,
-      { signal: controller.signal }
-    );
+    const response = await fetch(`${UPSTREAM_BASE}/${encodeURIComponent(nodeId)}`, { signal: controller.signal });
     clearTimeout(timeout);
 
     if (!response.ok) {
@@ -80,26 +75,20 @@ export async function GET(
     const data: ValidatorP2PDetail = await response.json();
     cachedData.set(nodeId, { data, timestamp: Date.now() });
 
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
-        'X-Data-Source': 'fresh',
-      },
-    });
+    const resp = successResponse(data);
+    resp.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+    resp.headers.set('X-Data-Source', 'fresh');
+    return resp;
   } catch (error) {
-    console.error('[GET /api/validators/[nodeId]] Error:', error);
-    const { nodeId } = await params;
-    const cached = cachedData.get(nodeId);
+    clearTimeout(timeout);
 
-    if (cached) {
-      return NextResponse.json(cached.data, {
-        headers: { 'X-Data-Source': 'error-fallback-cache' },
-      });
+    const fallback = cachedData.get(nodeId);
+    if (fallback) {
+      const resp = successResponse(fallback.data);
+      resp.headers.set('X-Data-Source', 'error-fallback-cache');
+      return resp;
     }
 
-    return NextResponse.json(
-      { error: 'Failed to fetch validator details' },
-      { status: 500 }
-    );
+    throw error;
   }
-}
+});

@@ -1,35 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Avalanche } from "@avalanche-sdk/chainkit";
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { Avalanche } from '@avalanche-sdk/chainkit';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { validateParams } from '@/lib/api/validate';
+import { EVM_ADDRESS_REGEX } from '@/lib/api/constants';
 
-const avalanche = new Avalanche({
-  network: "mainnet",
+const paramsSchema = z.object({
+  chainId: z.string().regex(/^\d+$/, 'chainId must be numeric'),
+  tokenAddress: z.string().regex(EVM_ADDRESS_REGEX, 'Invalid token address format'),
 });
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ chainId: string; tokenAddress: string }> }
-) {
-  try {
-    const { chainId, tokenAddress } = await context.params;
+const avalanche = new Avalanche({
+  network: 'mainnet',
+});
 
-    // Validate inputs
-    if (!chainId || !tokenAddress) {
-      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
-    }
-
-    // Validate address format
-    if (!/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
-      return NextResponse.json({ error: "Invalid token address format" }, { status: 400 });
-    }
+export const GET = withApi(
+  async (_req: NextRequest, { params }) => {
+    const { chainId, tokenAddress } = validateParams(params, paramsSchema);
 
     try {
       const result = await avalanche.data.evm.contracts.getMetadata({
         address: tokenAddress,
-        chainId: chainId,
+        chainId,
       });
 
       if (!result) {
-        return NextResponse.json({});
+        return successResponse({});
       }
 
       // Extract symbol based on contract type
@@ -38,19 +35,18 @@ export async function GET(
         symbol = result.symbol || undefined;
       }
 
-      return NextResponse.json({
+      return successResponse({
         name: result.name || undefined,
         symbol,
         logoUri: result.logoAsset?.imageUri || undefined,
         ercType: result.ercType || undefined,
       });
-    } catch (error) {
+    } catch {
       // Glacier API might not have data for this token
-      return NextResponse.json({});
+      return successResponse({});
     }
-  } catch (error) {
-    console.error("Error fetching token metadata:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
+  },
+  {
+    rateLimit: { windowMs: 60_000, maxRequests: 60, identifier: 'ip' },
+  },
+);

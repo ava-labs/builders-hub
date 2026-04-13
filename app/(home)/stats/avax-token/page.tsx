@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CircleDotDashed, CircleFadingPlus, Lock, BadgeDollarSign, RefreshCw, Flame, Award, MessageSquareIcon, Server, Unlock, HandCoins, Info, ArrowUpRight } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
+import { apiFetch } from "@/lib/api/client";
 import Image from "next/image";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Brush, LineChart, Line } from "recharts";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
@@ -72,18 +73,11 @@ export default function AvaxTokenPage() {
       setLoading(true);
       setError(null);
 
-      const [supplyRes, cChainRes, icmRes] = await Promise.all([
-        fetch("/api/avax-supply"),
-        fetch("/api/chain-stats/43114?timeRange=1y"),
-        fetch("/api/icm-contract-fees?timeRange=1y"),
+      const [supplyData, cChainData, icmRes] = await Promise.all([
+        apiFetch<AvaxSupplyData>("/api/avax-supply"),
+        apiFetch<CChainFeesResponse>("/api/chain-stats/43114?timeRange=1y"),
+        apiFetch<ICMFeesResponse>("/api/icm-contract-fees?timeRange=1y").catch(() => null),
       ]);
-
-      if (!supplyRes.ok || !cChainRes.ok) {
-        throw new Error("Failed to fetch required data");
-      }
-
-      const supplyData = await supplyRes.json();
-      const cChainData: CChainFeesResponse = await cChainRes.json();
 
       setData(supplyData);
 
@@ -97,18 +91,15 @@ export default function AvaxTokenPage() {
 
       setCChainFees(cChainFeesData);
 
-      if (icmRes.ok) {
-        const icmData: ICMFeesResponse = await icmRes.json();
-        if (icmData.data && Array.isArray(icmData.data)) {
-          const icmFeesData: FeeDataPoint[] = icmData.data
-            .map((item) => ({
-              date: item.date,
-              timestamp: item.timestamp,
-              value: item.feesPaid / 1e18,
-            }))
-            .reverse();
-          setICMFees(icmFeesData);
-        }
+      if (icmRes && icmRes.data && Array.isArray(icmRes.data)) {
+        const icmFeesData: FeeDataPoint[] = icmRes.data
+          .map((item) => ({
+            date: item.date,
+            timestamp: item.timestamp,
+            value: item.feesPaid / 1e18,
+          }))
+          .reverse();
+        setICMFees(icmFeesData);
       } 
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");

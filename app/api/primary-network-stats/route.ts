@@ -1,12 +1,19 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
-import { TimeSeriesDataPoint, TimeSeriesMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric } from "@/types/stats";
+import { withApi } from '@/lib/api';
+import { Avalanche } from '@avalanche-sdk/chainkit';
+import {
+  TimeSeriesDataPoint,
+  TimeSeriesMetric,
+  STATS_CONFIG,
+  getTimestampsFromTimeRange,
+  createTimeSeriesMetric,
+} from '@/types/stats';
 
 export const dynamic = 'force-dynamic';
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 10000;
 
-const avalanche = new Avalanche({ network: "mainnet" });
+const avalanche = new Avalanche({ network: 'mainnet' });
 
 interface PrimaryNetworkMetrics {
   validator_count: TimeSeriesMetric;
@@ -20,7 +27,11 @@ interface PrimaryNetworkMetrics {
 }
 
 // Timeout wrapper for fetch requests
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -38,10 +49,10 @@ const revalidatingKeys = new Set<string>();
 const pendingRequests = new Map<string, Promise<PrimaryNetworkMetrics | null>>();
 
 async function getTimeSeriesData(
-  metricType: string, 
-  timeRange: string, 
-  pageSize: number = 365, 
-  fetchAllPages: boolean = false
+  metricType: string,
+  timeRange: string,
+  pageSize: number = 365,
+  fetchAllPages: boolean = false,
 ): Promise<TimeSeriesDataPoint[]> {
   try {
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
@@ -56,7 +67,7 @@ async function getTimeSeriesData(
     };
 
     if (rlToken) params.rltoken = rlToken;
-    
+
     const result = await avalanche.metrics.networks.getStakingMetrics(params);
 
     for await (const page of result) {
@@ -72,10 +83,10 @@ async function getTimeSeriesData(
       .map((result: any) => ({
         timestamp: result.timestamp,
         value: result.value || 0,
-        date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
+        date: new Date(result.timestamp * 1000).toISOString().split('T')[0],
       }));
-  } catch (error) {
-    console.warn(`[getTimeSeriesData] Failed for ${metricType}:`, error);
+  } catch {
+    // Swallow per-metric failures; caller handles empty arrays
     return [];
   }
 }
@@ -83,9 +94,8 @@ async function getTimeSeriesData(
 async function fetchValidatorVersions() {
   try {
     const result = await avalanche.data.primaryNetwork.getNetworkDetails({});
-    
+
     if (!result?.validatorDetails?.stakingDistributionByVersion) {
-      console.warn('[fetchValidatorVersions] No stakingDistributionByVersion found');
       return {};
     }
 
@@ -94,20 +104,21 @@ async function fetchValidatorVersions() {
       if (item.version && item.validatorCount) {
         versionData[item.version] = {
           validatorCount: item.validatorCount,
-          amountStaked: item.amountStaked
+          amountStaked: item.amountStaked,
         };
       }
     });
 
     return versionData;
-  } catch (error) {
-    console.error('[fetchValidatorVersions] Error:', error);
+  } catch {
+    // Version data is best-effort; return empty on failure
     return {};
   }
 }
 
 // Metabase endpoint URL for reward distribution (returns both daily and cumulative)
-const REWARDS_URL = 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/3e895234-4c31-40f7-a3ee-4656f6caf535/dashcard/6788/card/5464?parameters=%5B%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22b87e50a4%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22address%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%2242440d5%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22Node_ID%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22ccdf28e0%22%2C%22target%22%3A%5B%22dimension%22%2C%5B%22template-tag%22%2C%22Reward_Type%22%5D%2C%7B%22stage-number%22%3A0%7D%5D%7D%5D';
+const REWARDS_URL =
+  'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/3e895234-4c31-40f7-a3ee-4656f6caf535/dashcard/6788/card/5464?parameters=%5B%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22b87e50a4%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22address%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%2242440d5%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22Node_ID%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22ccdf28e0%22%2C%22target%22%3A%5B%22dimension%22%2C%5B%22template-tag%22%2C%22Reward_Type%22%5D%2C%7B%22stage-number%22%3A0%7D%5D%7D%5D';
 
 interface RewardsData {
   daily: TimeSeriesDataPoint[];
@@ -117,18 +128,18 @@ interface RewardsData {
 async function fetchRewardsData(): Promise<RewardsData> {
   try {
     const response = await fetchWithTimeout(REWARDS_URL, {
-      headers: { 'Accept': 'application/json' }
+      headers: { Accept: 'application/json' },
     });
 
     if (!response.ok) {
-      console.warn(`[fetchRewardsData] Failed to fetch: ${response.status}`);
+      // Rewards fetch failed; return empty
       return { daily: [], cumulative: [] };
     }
 
     const data = await response.json();
-    
+
     if (!data?.data?.rows || !Array.isArray(data.data.rows)) {
-      console.warn('[fetchRewardsData] Invalid data format');
+      // Invalid Metabase format; return empty
       return { daily: [], cumulative: [] };
     }
 
@@ -156,7 +167,7 @@ async function fetchRewardsData(): Promise<RewardsData> {
     return { daily, cumulative };
   } catch (error) {
     if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn('[fetchRewardsData] Error:', error);
+      // Rewards data is best-effort
     }
     return { daily: [], cumulative: [] };
   }
@@ -164,7 +175,8 @@ async function fetchRewardsData(): Promise<RewardsData> {
 
 async function fetchFreshDataInternal(timeRange: string): Promise<PrimaryNetworkMetrics | null> {
   try {
-    const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES] || STATS_CONFIG.TIME_RANGES['30d'];
+    const config =
+      STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES] || STATS_CONFIG.TIME_RANGES['30d'];
     const { pageSize, fetchAllPages } = config;
 
     const [
@@ -173,14 +185,14 @@ async function fetchFreshDataInternal(timeRange: string): Promise<PrimaryNetwork
       delegatorCountData,
       delegatorWeightData,
       validatorVersions,
-      rewardsData
+      rewardsData,
     ] = await Promise.all([
       getTimeSeriesData('validatorCount', timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('validatorWeight', timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('delegatorCount', timeRange, pageSize, fetchAllPages),
       getTimeSeriesData('delegatorWeight', timeRange, pageSize, fetchAllPages),
       fetchValidatorVersions(),
-      fetchRewardsData()
+      fetchRewardsData(),
     ]);
 
     const metrics: PrimaryNetworkMetrics = {
@@ -191,12 +203,12 @@ async function fetchFreshDataInternal(timeRange: string): Promise<PrimaryNetwork
       validator_versions: JSON.stringify(validatorVersions),
       daily_rewards: createTimeSeriesMetric(rewardsData.daily),
       cumulative_rewards: createTimeSeriesMetric(rewardsData.cumulative),
-      last_updated: Date.now()
+      last_updated: Date.now(),
     };
 
     return metrics;
-  } catch (error) {
-    console.error('[fetchFreshData] Failed:', error);
+  } catch {
+    // Fresh data fetch failed; return null so caller uses fallback
     return null;
   }
 }
@@ -204,11 +216,11 @@ async function fetchFreshDataInternal(timeRange: string): Promise<PrimaryNetwork
 function createResponse(
   data: PrimaryNetworkMetrics | { error: string },
   meta: { source: string; timeRange?: string; cacheAge?: number; fetchTime?: number },
-  status = 200
+  status = 200,
 ) {
-  const headers: Record<string, string> = { 
-    'Cache-Control': CACHE_CONTROL_HEADER, 
-    'X-Data-Source': meta.source 
+  const headers: Record<string, string> = {
+    'Cache-Control': CACHE_CONTROL_HEADER,
+    'X-Data-Source': meta.source,
   };
   if (meta.timeRange) headers['X-Time-Range'] = meta.timeRange;
   if (meta.cacheAge !== undefined) headers['X-Cache-Age'] = `${Math.round(meta.cacheAge / 1000)}s`;
@@ -216,108 +228,83 @@ function createResponse(
   return NextResponse.json(data, { status, headers });
 }
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const timeRange = searchParams.get('timeRange') || '30d';
-    
-    if (searchParams.get('clearCache') === 'true') {
-      cachedData.clear();
-      revalidatingKeys.clear();
-    }
-    
-    const cached = cachedData.get(timeRange);
-    const cacheAge = cached ? Date.now() - cached.timestamp : Infinity;
-    const isCacheValid = cacheAge < STATS_CONFIG.CACHE.SHORT_DURATION;
-    const isCacheStale = cached && !isCacheValid;
-    
-    // Stale-while-revalidate: serve stale data immediately, refresh in background
-    if (isCacheStale && !revalidatingKeys.has(timeRange)) {
-      revalidatingKeys.add(timeRange);
-      
-      // Background refresh
-      (async () => {
-        try {
-          const freshData = await fetchFreshDataInternal(timeRange);
-          if (freshData) {
-            cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
-          }
-        } finally {
-          revalidatingKeys.delete(timeRange);
-        }
-      })();
-      
-      console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: stale-while-revalidate`);
-      return createResponse(cached.data, { 
-        source: 'stale-while-revalidate', 
-        timeRange, 
-        cacheAge 
-      });
-    }
-    
-    // Return valid cache
-    if (isCacheValid && cached) {
-      console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: cache`);
-      return createResponse(cached.data, { source: 'cache', timeRange, cacheAge });
-    }
-    
-    // Deduplicate pending requests
-    const pendingKey = `primary-${timeRange}`;
-    let pendingPromise = pendingRequests.get(pendingKey);
-    
-    if (!pendingPromise) {
-      pendingPromise = fetchFreshDataInternal(timeRange);
-      pendingRequests.set(pendingKey, pendingPromise);
-      pendingPromise.finally(() => pendingRequests.delete(pendingKey));
-    }
-    
-    const startTime = Date.now();
-    const freshData = await pendingPromise;
-    
-    if (!freshData) {
-      // Fallback to any available cached data
-      const fallbackCached = cachedData.get('30d');
-      if (fallbackCached) {
-        console.log(`[GET /api/primary-network-stats] TimeRange: 30d, Source: fallback-cache`);
-        return createResponse(fallbackCached.data, { 
-          source: 'fallback-cache', 
-          timeRange: '30d',
-          cacheAge: Date.now() - fallbackCached.timestamp
-        }, 206);
-      }
-      console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: error (no data)`);
-      return createResponse({ error: 'Failed to fetch primary network stats' }, { source: 'error' }, 500);
-    }
-    
-    // Cache fresh data
-    cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
-    
-    const fetchTime = Date.now() - startTime;
-    console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: fresh, fetchTime: ${fetchTime}ms`);
+export const GET = withApi(async (req) => {
+  const timeRange = req.nextUrl.searchParams.get('timeRange') || '30d';
 
-    return createResponse(freshData, { 
-      source: 'fresh', 
-      timeRange, 
-      fetchTime 
+  if (req.nextUrl.searchParams.get('clearCache') === 'true') {
+    cachedData.clear();
+    revalidatingKeys.clear();
+  }
+
+  const cached = cachedData.get(timeRange);
+  const cacheAge = cached ? Date.now() - cached.timestamp : Infinity;
+  const isCacheValid = cacheAge < STATS_CONFIG.CACHE.SHORT_DURATION;
+  const isCacheStale = cached && !isCacheValid;
+
+  // Stale-while-revalidate: serve stale data immediately, refresh in background
+  if (isCacheStale && !revalidatingKeys.has(timeRange)) {
+    revalidatingKeys.add(timeRange);
+
+    (async () => {
+      try {
+        const freshData = await fetchFreshDataInternal(timeRange);
+        if (freshData) {
+          cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
+        }
+      } finally {
+        revalidatingKeys.delete(timeRange);
+      }
+    })();
+
+    return createResponse(cached.data, {
+      source: 'stale-while-revalidate',
+      timeRange,
+      cacheAge,
     });
-  } catch (error) {
-    console.error('[GET /api/primary-network-stats] Unhandled error:', error);
-    
-    // Try to return cached data on error
-    const { searchParams } = new URL(request.url);
-    const timeRange = searchParams.get('timeRange') || '30d';
-    const cached = cachedData.get(timeRange);
-    
-    if (cached) {
-      console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: error-fallback-cache`);
-      return createResponse(cached.data, { 
-        source: 'error-fallback-cache', 
-        timeRange,
-        cacheAge: Date.now() - cached.timestamp
-      }, 206);
+  }
+
+  // Return valid cache
+  if (isCacheValid && cached) {
+    return createResponse(cached.data, { source: 'cache', timeRange, cacheAge });
+  }
+
+  // Deduplicate pending requests
+  const pendingKey = `primary-${timeRange}`;
+  let pendingPromise = pendingRequests.get(pendingKey);
+
+  if (!pendingPromise) {
+    pendingPromise = fetchFreshDataInternal(timeRange);
+    pendingRequests.set(pendingKey, pendingPromise);
+    pendingPromise.finally(() => pendingRequests.delete(pendingKey));
+  }
+
+  const startTime = Date.now();
+  const freshData = await pendingPromise;
+
+  if (!freshData) {
+    // Fallback to any available cached data
+    const fallbackCached = cachedData.get('30d');
+    if (fallbackCached) {
+      return createResponse(
+        fallbackCached.data,
+        {
+          source: 'fallback-cache',
+          timeRange: '30d',
+          cacheAge: Date.now() - fallbackCached.timestamp,
+        },
+        206,
+      );
     }
-    
-    console.log(`[GET /api/primary-network-stats] TimeRange: ${timeRange}, Source: error (no data)`);
     return createResponse({ error: 'Failed to fetch primary network stats' }, { source: 'error' }, 500);
   }
-}
+
+  // Cache fresh data
+  cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
+
+  const fetchTime = Date.now() - startTime;
+  return createResponse(freshData, {
+    source: 'fresh',
+    timeRange,
+    fetchTime,
+  });
+});

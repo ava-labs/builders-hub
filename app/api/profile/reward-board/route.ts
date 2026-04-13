@@ -1,25 +1,16 @@
-import { withAuth } from "@/lib/protectedRoute";
-import { getRewardBoard } from "@/server/services/rewardBoard";
-import { NextResponse } from "next/server";
+import { z } from 'zod';
+import { withApi, successResponse, validateQuery } from '@/lib/api';
+import { getRewardBoard } from '@/server/services/rewardBoard';
 
-export const GET = withAuth(async (request, context, session) => {
-  const { searchParams } = new URL(request.url);
-  const user_id = searchParams.get("user_id");
-  if (!user_id) {
-    return NextResponse.json(
-      { error: "user_id parameter is required" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const badges = await getRewardBoard(user_id);
-    return NextResponse.json(badges, { status: 200 });
-  } catch (error) {
-    console.error("Error getting reward board:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
+const querySchema = z.object({
+  user_id: z.string().min(1, 'user_id is required'),
 });
+
+export const GET = withApi(
+  async (req) => {
+    const { user_id } = validateQuery(req, querySchema);
+    const badges = await getRewardBoard(user_id);
+    return successResponse(badges);
+  },
+  { auth: true },
+);

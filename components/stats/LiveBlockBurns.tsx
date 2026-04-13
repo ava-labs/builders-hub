@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { Flame } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -68,13 +69,7 @@ export function LiveBlockBurns() {
         params.set("initialLoad", "true");
       }
 
-      const response = await fetch(`/api/explorer/${CHAIN_ID}?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
-      }
-
-      const data: ExplorerResponse = await response.json();
+      const data = await apiFetch<ExplorerResponse>(`/api/explorer/${CHAIN_ID}?${params.toString()}`);
 
       if (!isMountedRef.current) return;
 
@@ -124,7 +119,7 @@ export function LiveBlockBurns() {
       setIsLoading(false);
     } catch (err) {
       if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : "Failed to fetch data");
+        setError(err instanceof ApiClientError ? err.message : err instanceof Error ? err.message : "Failed to fetch data");
         setIsLoading(false);
       }
     } finally {

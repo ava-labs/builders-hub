@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { UploadModal } from "@/components/ui/upload-modal";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
@@ -138,10 +138,8 @@ export default function ProfileForm({
     // Save the current form data before skipping
     setIsSaving(true);
     try {
-      const formData = form.getValues();
-      await axios.put(`/api/profile/${id}`, formData).catch((error) => {
-        throw new Error(`Error while saving profile: ${error.message}`);
-      });
+      const formValues = form.getValues();
+      await apiFetch(`/api/profile/${id}`, { method: 'PUT', body: formValues });
       await update();
       
       // Check for stored redirect URL and navigate there, otherwise go to home
@@ -183,33 +181,26 @@ export default function ProfileForm({
 
       if (hasImageChanged && initialData.image) {
         const encodedUrl = encodeURIComponent(initialData.image);
-        await axios.delete(`/api/file?url=${encodedUrl}`);
+        await apiFetch(`/api/file?url=${encodedUrl}`, { method: 'DELETE' });
       }
 
       if (hasImageChanged) {
-        const fileResponse = await axios
-          .post("/api/file", formData.current, {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          })
-          .catch((error) => {
-            throw new Error(`Error uploading image: ${error.message}`);
-          });
+        const fileResult = await apiFetch<{ url: string }>("/api/file", {
+          method: "POST",
+          body: formData.current,
+        });
 
-        data.image = fileResponse.data.url;
-        console.log(fileResponse.data.url);
+        data.image = fileResult.url;
       } else {
         data.image = initialData.image;
       }
 
-      const updateProfileResponse = await axios
-        .put(`/api/profile/${id}`, { ...data })
-        .catch((error) => {
-          throw new Error(`Error while saving profile: ${error.message}`);
-        });
+      const updatedProfile = await apiFetch<ProfileFormValues>(`/api/profile/${id}`, {
+        method: 'PUT',
+        body: { ...data },
+      });
 
-      reset(updateProfileResponse.data);
+      reset(updatedProfile);
       formData.current = new FormData();
 
       toast({

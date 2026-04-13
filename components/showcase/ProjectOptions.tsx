@@ -18,7 +18,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "../ui/alert-dialog";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
 import { AssignBadge } from "./assign-badge";
@@ -43,18 +43,20 @@ export const ProjectOptions = ({
   const { toast } = useToast();
   const handleSetWinner = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const response = await axios.put(`/api/project/set-winner`, {
-      project_id: project.id,
-      isWinner: true,
-    });
-
-    if (response.data.success) {
+    try {
+      await apiFetch(`/api/project/set-winner`, {
+        method: 'PUT',
+        body: {
+          project_id: project.id,
+          isWinner: true,
+        },
+      });
       toast({
         title: "Project winner set successfully",
         description: "The project has been marked as the winner",
         duration: 3000,
       });
-    } else {
+    } catch {
       toast({
         title: "Failed to set project winner",
         description: "Unable to mark project as winner. Please try again.",

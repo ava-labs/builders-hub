@@ -1,3 +1,4 @@
+// withApi: not applicable — edge runtime OG image generator
 import type { NextRequest } from 'next/server';
 import { ImageResponse } from 'next/og';
 import { loadFonts, createOGResponse } from '@/utils/og-image';

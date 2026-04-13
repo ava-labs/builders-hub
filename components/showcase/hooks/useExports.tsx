@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import axios, { AxiosError } from 'axios';
+import { apiFetch } from '@/lib/api/client';
 
 interface ExportFilters {
   [key: string]: any;
@@ -47,48 +47,24 @@ export const useExports = (): UseExportsReturn => {
     setError(null);
 
     try {
-      const response = await axios.post(
-        '/api/projects/export',
-        filters || {},
-        {
-          responseType: 'blob',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await apiFetch<Response>('/api/projects/export', {
+        method: 'POST',
+        body: filters || {},
+        raw: true,
+      });
 
-      const contentType = response.headers['content-type'];
-      
+      const contentType = response.headers.get('content-type');
+
       if (contentType && contentType.includes('application/json')) {
-        const text = await response.data.text();
-        const errorData = JSON.parse(text);
+        const errorData = await response.json();
         throw new Error(errorData.message || 'Error exporting data');
       }
 
+      const blob = await response.blob();
       const fileName = generateFileName();
-      downloadFile(response.data, fileName);
+      downloadFile(blob, fileName);
     } catch (err) {
-      const axiosError = err as AxiosError<{ message?: string }>;
-      
-      let errorMessage = 'Error exporting data';
-      
-      if (axiosError.response?.data) {
-        if (axiosError.response.data instanceof Blob) {
-          try {
-            const text = await axiosError.response.data.text();
-            const errorData = JSON.parse(text);
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-                errorMessage = 'An error occurred while processing the server response';
-            }
-        } else if (axiosError.response.data.message) {
-          errorMessage = axiosError.response.data.message;
-        }
-      } else if (axiosError.message) {
-        errorMessage = axiosError.message;
-      }
-      
+      const errorMessage = err instanceof Error ? err.message : 'Error exporting data';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {

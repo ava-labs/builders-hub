@@ -1,55 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuthSession } from '@/lib/auth/authSession';
-import { prisma } from '@/prisma/prisma';
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
 import * as crypto from 'crypto';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse, noContentResponse } from '@/lib/api/response';
+import { assertOwnership } from '@/lib/api/ownership';
+import { validateBody } from '@/lib/api/validate';
+import { prisma } from '@/prisma/prisma';
 
-// Generate a cryptographically secure, URL-safe token
+const shareSchema = z.object({
+  expiresInDays: z.number().int().min(1).max(365).default(7),
+});
+
 function generateShareToken(): string {
-  // 18 bytes = 24 characters in base64url encoding
   return crypto.randomBytes(18).toString('base64url');
 }
 
 // POST /api/chat-history/[id]/share - Enable sharing for a conversation
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
+export const POST = withApi(
+  async (req: NextRequest, { session, params }) => {
+    const { expiresInDays } = await validateBody(req, shareSchema);
 
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const conversation = await assertOwnership<{
+      id: string;
+      is_shared: boolean;
+      share_token: string | null;
+      shared_at: Date | null;
+      share_expires_at: Date | null;
+      view_count: number;
+    }>(prisma.chatConversation, params.id, session.user.id);
 
-    const { id } = await params;
-
-    // Parse optional expiration from body
-    let expiresInDays = 7; // Default: 7 days
-    try {
-      const body = await req.json();
-      if (body.expiresInDays && typeof body.expiresInDays === 'number') {
-        expiresInDays = Math.min(Math.max(body.expiresInDays, 1), 365); // Clamp 1-365 days
-      }
-    } catch {
-      // No body or invalid JSON - use default
-    }
-
-    // Verify ownership
-    const conversation = await prisma.chatConversation.findFirst({
-      where: { id, user_id: session.user.id },
-    });
-
-    if (!conversation) {
-      return NextResponse.json(
-        { error: 'Conversation not found' },
-        { status: 404 }
-      );
-    }
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://build.avax.network';
 
     // If already shared, return existing share info
     if (conversation.is_shared && conversation.share_token) {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://build.avax.network';
-      return NextResponse.json({
+      return successResponse({
         shareToken: conversation.share_token,
         shareUrl: `${baseUrl}/chat/share/${conversation.share_token}`,
         sharedAt: conversation.shared_at,
@@ -64,7 +48,7 @@ export async function POST(
     const expiresAt = new Date(sharedAt.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
 
     const updated = await prisma.chatConversation.update({
-      where: { id },
+      where: { id: params.id },
       data: {
         is_shared: true,
         share_token: shareToken,
@@ -73,61 +57,37 @@ export async function POST(
       },
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://build.avax.network';
-    return NextResponse.json({
-      shareToken: updated.share_token,
-      shareUrl: `${baseUrl}/chat/share/${updated.share_token}`,
-      sharedAt: updated.shared_at,
-      expiresAt: updated.share_expires_at,
-      viewCount: updated.view_count,
-    });
-  } catch (error) {
-    console.error('Error enabling chat sharing:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return successResponse(
+      {
+        shareToken: updated.share_token,
+        shareUrl: `${baseUrl}/chat/share/${updated.share_token}`,
+        sharedAt: updated.shared_at,
+        expiresAt: updated.share_expires_at,
+        viewCount: updated.view_count,
+      },
+      201,
+    );
+  },
+  { auth: true },
+);
 
 // DELETE /api/chat-history/[id]/share - Revoke sharing for a conversation
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
+export const DELETE = withApi(
+  async (_req, { session, params }) => {
+    await assertOwnership(prisma.chatConversation, params.id, session.user.id);
 
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { id } = await params;
-
-    // Verify ownership
-    const conversation = await prisma.chatConversation.findFirst({
-      where: { id, user_id: session.user.id },
-    });
-
-    if (!conversation) {
-      return NextResponse.json(
-        { error: 'Conversation not found' },
-        { status: 404 }
-      );
-    }
-
-    // Revoke sharing - clear all share fields
     await prisma.chatConversation.update({
-      where: { id },
+      where: { id: params.id },
       data: {
         is_shared: false,
         share_token: null,
         shared_at: null,
         share_expires_at: null,
-        view_count: 0, // Reset view count on revoke
+        view_count: 0,
       },
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error revoking chat sharing:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return noContentResponse();
+  },
+  { auth: true },
+);

@@ -7,6 +7,7 @@ import { cn } from '../utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Input } from '../ui/input';
 import type { ConvertToL1Validator } from '../ValidatorListInput';
+import { apiFetch } from '@/lib/api/client';
 
 type ManagedTestnetNodeSuggestion = {
   id: string;
@@ -50,16 +51,9 @@ export function AddValidatorControls({
     let isMounted = true;
     const fetchManagedNodes = async () => {
       try {
-        const response = await fetch('/api/managed-testnet-nodes', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        const data = await response.json();
-        if (!response.ok || data.error) {
-          throw new Error(data.message || data.error || 'Failed to fetch hosted nodes');
-        }
+        const data = await apiFetch<{ nodes?: ManagedTestnetNodeSuggestion[] }>('/api/managed-testnet-nodes');
         if (isMounted && Array.isArray(data.nodes)) {
-          setManagedNodes(data.nodes as ManagedTestnetNodeSuggestion[]);
+          setManagedNodes(data.nodes);
         }
       } catch (e) {
         console.error('Failed to fetch hosted nodes for autofill:', e);

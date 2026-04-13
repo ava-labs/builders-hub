@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { STAGE_BADGE_COLORS, STAGE_FULL_LABELS } from "./colors";
 
 interface Props {
@@ -26,15 +27,10 @@ export function AdvanceStageControls({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/evaluate/advance-stage", {
+      await apiFetch("/api/evaluate/advance-stage", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formDataId, stage: newStage }),
+        body: { formDataId, stage: newStage },
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Failed to advance");
-      }
       onStageAdvanced(formDataId, newStage);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");

@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Relayer, RelayerConfig } from "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/types";
 import posthog from 'posthog-js';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 export function useManagedTestnetRelayers() {
     const [relayers, setRelayers] = useState<Relayer[]>([]);
@@ -16,18 +17,7 @@ export function useManagedTestnetRelayers() {
         setRelayersError(null);
 
         try {
-            const response = await fetch('/api/managed-testnet-relayers', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.message || data.error || 'Failed to fetch relayers');
-            }
+            const data = await apiFetch<{ relayers?: Relayer[] }>('/api/managed-testnet-relayers');
 
             if (data.relayers) {
                 setRelayers(data.relayers);
@@ -42,29 +32,16 @@ export function useManagedTestnetRelayers() {
 
     const createRelayer = useCallback(async (configs: RelayerConfig[]) => {
         try {
-            const response = await fetch('/api/managed-testnet-relayers', {
+            const data = await apiFetch<{ relayer: Relayer }>('/api/managed-testnet-relayers', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ configs })
+                body: { configs }
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                if (response.status === 429) {
-                    throw new Error(data.message || data.error || "Rate limit exceeded. Please try again later.");
-                }
-                throw new Error(data.message || data.error || `Error ${response.status}: Failed to create relayer`);
-            }
-
-            if (data.error) {
-                throw new Error(data.message || data.error || 'Relayer creation failed');
-            }
-
-            return data.relayer as Relayer;
+            return data.relayer;
         } catch (error) {
+            if (error instanceof ApiClientError && error.status === 429) {
+                throw new Error(error.message || "Rate limit exceeded. Please try again later.");
+            }
             throw error;
         }
     }, []);
@@ -73,25 +50,9 @@ export function useManagedTestnetRelayers() {
         setDeletingRelayers(prev => new Set(prev).add(relayer.relayerId));
 
         try {
-            const response = await fetch(`/api/managed-testnet-relayers/${relayer.relayerId}`, {
+            const data = await apiFetch<{ message?: string }>(`/api/managed-testnet-relayers/${relayer.relayerId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
             });
-
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                // Track error
-                posthog.capture('managed_testnet_relayer_delete_error', {
-                    relayer_id: relayer.relayerId,
-                    config_count: relayer.configs.length,
-                    error_message: data.message || data.error || 'Failed to delete relayer',
-                    context: 'console'
-                });
-                throw new Error(data.message || data.error || 'Failed to delete relayer');
-            }
 
             // Track successful deletion
             posthog.capture('managed_testnet_relayer_deleted', {
@@ -104,6 +65,13 @@ export function useManagedTestnetRelayers() {
             await fetchRelayers();
             return data.message || "The relayer has been successfully removed.";
         } catch (error) {
+            // Track error
+            posthog.capture('managed_testnet_relayer_delete_error', {
+                relayer_id: relayer.relayerId,
+                config_count: relayer.configs.length,
+                error_message: error instanceof Error ? error.message : 'Failed to delete relayer',
+                context: 'console'
+            });
             throw error;
         } finally {
             setDeletingRelayers(prev => {
@@ -118,29 +86,9 @@ export function useManagedTestnetRelayers() {
         setRestartingRelayers(prev => new Set(prev).add(relayer.relayerId));
 
         try {
-            const response = await fetch(`/api/managed-testnet-relayers/${relayer.relayerId}/restart`, {
+            const data = await apiFetch<{ message?: string }>(`/api/managed-testnet-relayers/${relayer.relayerId}/restart`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
             });
-
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                // Track error
-                posthog.capture('managed_testnet_relayer_restart_error', {
-                    relayer_id: relayer.relayerId,
-                    config_count: relayer.configs.length,
-                    error_message: data.message || data.error || 'Failed to restart relayer',
-                    is_rate_limited: response.status === 429,
-                    context: 'console'
-                });
-                if (response.status === 429) {
-                    throw new Error('Rate limit exceeded. Please wait before restarting again.');
-                }
-                throw new Error(data.message || data.error || 'Failed to restart relayer');
-            }
 
             // Track successful restart
             posthog.capture('managed_testnet_relayer_restarted', {
@@ -153,6 +101,18 @@ export function useManagedTestnetRelayers() {
             await fetchRelayers();
             return data.message || "The relayer has been restarted successfully.";
         } catch (error) {
+            // Track error
+            const isRateLimited = error instanceof ApiClientError && error.status === 429;
+            posthog.capture('managed_testnet_relayer_restart_error', {
+                relayer_id: relayer.relayerId,
+                config_count: relayer.configs.length,
+                error_message: error instanceof Error ? error.message : 'Failed to restart relayer',
+                is_rate_limited: isRateLimited,
+                context: 'console'
+            });
+            if (isRateLimited) {
+                throw new Error('Rate limit exceeded. Please wait before restarting again.');
+            }
             throw error;
         } finally {
             setRestartingRelayers(prev => {

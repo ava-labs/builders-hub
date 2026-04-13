@@ -1,14 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createWalletClient, http, parseEther, createPublicClient, defineChain, isAddress } from 'viem';
+import type { NextRequest } from 'next/server';
+import { createWalletClient, http, parseEther, createPublicClient, defineChain } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { getAuthSession } from '@/lib/auth/authSession';
+import { z } from 'zod';
+import {
+  withApi,
+  successResponse,
+  BadRequestError,
+  ForbiddenError,
+  InternalError,
+  EVM_ADDRESS_REGEX,
+  validateQuery,
+} from '@/lib/api';
 
 const DEVNET_RPC_URL = 'https://api.avax-dev.network/ext/bc/C/rpc';
 const DEVNET_CHAIN_ID = 43117;
 const DRIP_AMOUNT = '2';
-
-const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
-const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
 
 const devnetCChain = defineChain({
   id: DEVNET_CHAIN_ID,
@@ -19,48 +25,34 @@ const devnetCChain = defineChain({
   },
 });
 
-const account = SERVER_PRIVATE_KEY ? privateKeyToAccount(SERVER_PRIVATE_KEY as `0x${string}`) : null;
+const querySchema = z.object({
+  address: z
+    .string()
+    .min(1, 'Valid EVM address is required')
+    .regex(EVM_ADDRESS_REGEX, { message: 'Valid EVM address is required' }),
+});
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+export const GET = withApi(
+  async (req: NextRequest, { session }) => {
+    const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
+    const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
 
-    // Check @avalabs.org email
-    const email = session.user.email || '';
+    const email = session.user?.email || '';
     if (!email.endsWith('@avalabs.org')) {
-      return NextResponse.json(
-        { success: false, message: 'Devnet faucet is restricted to @avalabs.org accounts' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Devnet faucet is restricted to @avalabs.org accounts');
     }
 
-    if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS || !account) {
-      return NextResponse.json(
-        { success: false, message: 'Faucet not configured' },
-        { status: 500 }
-      );
+    if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
+      throw new InternalError('Faucet not configured');
     }
 
-    const destinationAddress = request.nextUrl.searchParams.get('address');
-    if (!destinationAddress || !isAddress(destinationAddress)) {
-      return NextResponse.json(
-        { success: false, message: 'Valid EVM address is required' },
-        { status: 400 }
-      );
-    }
+    const { address: destinationAddress } = validateQuery(req, querySchema);
 
     if (destinationAddress.toLowerCase() === FAUCET_ADDRESS.toLowerCase()) {
-      return NextResponse.json(
-        { success: false, message: 'Cannot send tokens to the faucet address' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Cannot send tokens to the faucet address');
     }
+
+    const account = privateKeyToAccount(SERVER_PRIVATE_KEY as `0x${string}`);
 
     const walletClient = createWalletClient({
       account,
@@ -73,44 +65,38 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       transport: http(DEVNET_RPC_URL),
     });
 
-    // Check faucet balance
     const balance = await publicClient.getBalance({ address: FAUCET_ADDRESS as `0x${string}` });
     const amountToSend = parseEther(DRIP_AMOUNT);
 
     if (balance < amountToSend) {
-      return NextResponse.json(
-        { success: false, message: 'Insufficient faucet balance on devnet' },
-        { status: 500 }
-      );
+      throw new InternalError('Insufficient faucet balance on devnet');
     }
 
-    // Get the current nonce to avoid stale nonce issues
     const nonce = await publicClient.getTransactionCount({
       address: FAUCET_ADDRESS as `0x${string}`,
     });
 
-    // Simple native transfer is always 21000 gas.
-    // We hardcode it to skip eth_estimateGas which fails on the devnet RPC.
-    const txHash = await walletClient.sendTransaction({
-      to: destinationAddress as `0x${string}`,
-      value: amountToSend,
-      gas: 21000n,
-      nonce,
-    });
+    let txHash: string;
+    try {
+      // Simple native transfer is always 21000 gas.
+      // Hardcoded to skip eth_estimateGas which fails on the devnet RPC.
+      txHash = await walletClient.sendTransaction({
+        to: destinationAddress as `0x${string}`,
+        value: amountToSend,
+        gas: 21000n,
+        nonce,
+      });
+    } catch {
+      throw new InternalError('Faucet transaction failed');
+    }
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       txHash,
       sourceAddress: FAUCET_ADDRESS,
       destinationAddress,
       amount: DRIP_AMOUNT,
       chainId: DEVNET_CHAIN_ID,
     });
-  } catch (error) {
-    console.error('Devnet faucet error:', error);
-    return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : 'Failed to complete transfer' },
-      { status: 500 }
-    );
-  }
-}
+  },
+  { auth: true },
+);

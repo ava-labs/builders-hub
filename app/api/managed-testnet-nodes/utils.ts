@@ -13,12 +13,12 @@ export async function getUserId(): Promise<{ userId: string | null; error?: Next
     return {
       userId: null,
       error: NextResponse.json(
-        { 
+        {
           error: 'Authentication required',
-          message: 'Please sign in to access managed testnet nodes'
+          message: 'Please sign in to access managed testnet nodes',
         },
-        { status: 401 }
-      )
+        { status: 401 },
+      ),
     };
   }
   return { userId: session.user.id };
@@ -40,15 +40,12 @@ type RateLimitConfig = {
   identifier: () => Promise<string>;
 };
 
-export function rateLimited(
-  handler: (request: NextRequest) => Promise<NextResponse>,
-  config: RateLimitConfig
-) {
+export function rateLimited(handler: (request: NextRequest) => Promise<NextResponse>, config: RateLimitConfig) {
   const isDevelopment = process.env.NODE_ENV === 'development';
   return rateLimit(handler, {
     windowMs: isDevelopment ? config.dev.windowMs : config.prod.windowMs,
     maxRequests: isDevelopment ? config.dev.max : config.prod.max,
-    identifier: config.identifier
+    identifier: config.identifier,
   });
 }
 
@@ -61,7 +58,6 @@ export function jsonOk(payload: any, status = 200) {
 export function jsonError(status: number, message: string, error?: unknown) {
   if (error) {
     try {
-      // eslint-disable-next-line no-console
       console.error(message, typeof error === 'string' ? error.slice(0, 500) : error);
     } catch {}
   }
@@ -87,6 +83,3 @@ export async function extractServiceErrorMessage(response: Response): Promise<st
   }
   return null;
 }
-
-
-

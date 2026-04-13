@@ -20,7 +20,7 @@ import { RegisterFormStep2 } from "./RegisterFormStep2";
 import RegisterFormStep1 from "./RegisterFormStep1";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { HackathonHeader } from "@/types/hackathons";
 import { RegistrationForm } from "@/types/registrationForm";
 import { useRouter } from "next/navigation";
@@ -138,8 +138,8 @@ export function RegisterForm({
   async function getHackathon() {
     if (!hackathon_id) return;
     try {
-      const response = await axios.get(`/api/events/${hackathon_id}`);
-      setHackathon(response.data);
+      const hackathonData = await apiFetch<any>(`/api/events/${hackathon_id}`);
+      setHackathon(hackathonData);
     } catch (err) {
       console.error("API Error:", err);
     }
@@ -148,10 +148,9 @@ export function RegisterForm({
   async function getRegisterFormLoaded() {
     if (!hackathon_id || !currentUser?.email) return;
     try {
-      const response = await axios.get(
+      const loadedData = await apiFetch<any>(
         `/api/register-form?hackathonId=${hackathon_id}&email=${currentUser.email}`
       );
-      const loadedData = response.data;
       if (loadedData) {
         const parsedData = {
           name: loadedData.name || currentUser.name || "",
@@ -205,7 +204,7 @@ export function RegisterForm({
 
   async function saveProject(data: RegisterFormValues) {
     try {
-      await axios.post(`/api/register-form/`, data);
+      await apiFetch(`/api/register-form/`, { method: 'POST', body: data });
       if (typeof window !== "undefined") {
         localStorage.removeItem(`formData_${hackathon_id}`);
       }

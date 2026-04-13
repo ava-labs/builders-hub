@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { apiFetch } from "@/lib/api/client";
 
 /**
  * Self-contained wrapper components for metrics visualizations.
@@ -41,7 +42,7 @@ export function ICMFlowWrapper() {
     setLoading(true);
     setError(false);
     Promise.all([
-      fetch("/api/icm-flow").then((r) => r.json()),
+      apiFetch<any>("/api/icm-flow"),
       import("@/components/stats/ICMFlowChart"),
     ])
       .then(([flowData, mod]) => {
@@ -79,7 +80,7 @@ export function ICTTDashboardWrapper() {
     setLoading(true);
     setError(false);
     Promise.all([
-      fetch("/api/ictt-stats").then((r) => r.json()),
+      apiFetch<any>("/api/ictt-stats"),
       import("@/components/stats/ICTTDashboard"),
     ])
       .then(([statsData, mod]) => {
@@ -150,8 +151,7 @@ export function OverviewStatsCard() {
   const fetchData = () => {
     setLoading(true);
     setError(false);
-    fetch("/api/overview-stats?timeRange=day")
-      .then((r) => r.json())
+    apiFetch<OverviewStats>("/api/overview-stats?timeRange=day")
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => { setError(true); setLoading(false); });
   };

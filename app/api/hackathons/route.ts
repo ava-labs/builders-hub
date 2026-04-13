@@ -1,91 +1,65 @@
-import { NextRequest, NextResponse } from 'next/server';
-import {
-  createHackathon,
-  getFilteredHackathons,
-  GetHackathonsOptions,
-} from '@/server/services/hackathons';
+import type { NextRequest } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { parsePagination } from '@/lib/api/pagination';
+import { successResponse, paginatedResponse } from '@/lib/api/response';
+import { createHackathon, getFilteredHackathons } from '@/server/services/hackathons';
+import type { GetHackathonsOptions } from '@/server/services/hackathons';
 import { HackathonStatus } from '@/types/hackathons';
 import { getUserById } from '@/server/services/getUser';
-import { withAuthRole } from '@/lib/protectedRoute';
-import { getAuthSession } from '@/lib/auth/authSession';
 
+// schema: not applicable — POST body is dynamic hackathon creation payload
+export const GET = withApi(async (req: NextRequest, { session }) => {
+  const { page, pageSize } = parsePagination(req);
+  const searchParams = req.nextUrl.searchParams;
 
+  const options: GetHackathonsOptions = {
+    page,
+    pageSize,
+    location: searchParams.get('location') || undefined,
+    date: searchParams.get('date') || undefined,
+    status: (searchParams.get('status') as HackathonStatus) || undefined,
+    search: searchParams.get('search') || undefined,
+    event: searchParams.get('event') || undefined,
+  };
 
-export async function GET(req: NextRequest) {
-  try {
-    const searchParams = req.nextUrl.searchParams;
-    
-    const session = await getAuthSession();
-    const userId = session?.user?.id;
-    
-    let options: GetHackathonsOptions = {
-      page: Number(searchParams.get('page') || 1),
-      pageSize: Number(searchParams.get('pageSize') || 10),
-      location: searchParams.get('location') || undefined,
-      date: searchParams.get('date') || undefined,
-      status: searchParams.get('status') as HackathonStatus || undefined,
-      search: searchParams.get('search') || undefined,
-      event: searchParams.get('event') || undefined,
-    };
-    
-    if (userId) {
-      // Get user from database to validate permissions
-      const user = await getUserById(userId);
-      if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
-      }
-      
-      // Check user's custom_attributes for permissions
-      const customAttributes = user.custom_attributes || [];
-      const isDevrel = customAttributes.includes("devrel");
-      const isTeam1Admin = customAttributes.includes("team1-admin");
-      const isHackathonCreator = customAttributes.includes("hackathonCreator");
-      
-      // If user is devrel, show all hackathons; otherwise filter by user ID
-      const createdByFilter = isDevrel ? undefined : userId;
+  const userId = session?.user?.id;
 
-      options.created_by = createdByFilter || undefined;
-      // Only narrow by cohost email for non-devrel users; devrel should see all
+  if (userId) {
+    const user = await getUserById(userId);
+
+    if (user) {
+      const customAttributes: string[] = user.custom_attributes || [];
+      const isDevrel = customAttributes.includes('devrel');
+      const isTeam1Admin = customAttributes.includes('team1-admin');
+      const isHackathonCreator = customAttributes.includes('hackathonCreator');
+
+      options.created_by = isDevrel ? undefined : userId;
       if (!isDevrel) {
         options.cohost_email = user.email || undefined;
       }
-      options.include_private = isDevrel || isTeam1Admin || isHackathonCreator; // These roles can see private hackathons
-      
-      console.log('API GET /hackathons:', { userId, isDevrel, isTeam1Admin, isHackathonCreator, createdByFilter, options });
+      options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
     } else {
       options.include_private = false;
-      console.log('API GET /hackathons (no userId):', { options });
     }
-    
-    const response = await getFilteredHackathons(options);
-
-    return NextResponse.json(response);
-  } catch (error: any) {
-    console.error('Error GET /api/hackathons:', error.message);
-    const wrappedError = error as Error;
-    return NextResponse.json(
-      { error: wrappedError.message },
-      { status: wrappedError.cause == 'BadRequest' ? 400 : 500 }
-    );
+  } else {
+    options.include_private = false;
   }
-}
 
-export const POST = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
-  try {
+  const response = await getFilteredHackathons(options);
+
+  return paginatedResponse(response.hackathons, {
+    page: response.page,
+    pageSize: response.pageSize,
+    total: response.total,
+  });
+});
+
+export const POST = withApi(
+  async (req: NextRequest) => {
     const body = await req.json();
     const newHackathon = await createHackathon(body);
 
-    return NextResponse.json(
-      { message: 'Hackathon created', hackathon: newHackathon },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    console.error('Error POST /api/hackathons:', error.message);
-    const wrappedError = error as Error;
-    return NextResponse.json(
-      { error: wrappedError },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
-    );
-  }
-});
-
+    return successResponse(newHackathon, 201);
+  },
+  { auth: true, roles: ['devrel'] },
+);

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
+import { apiFetch } from "@/lib/api/client";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ComposedChart, Line, LineChart } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
@@ -117,8 +118,8 @@ export default function ValidatorNodeDetailPage() {
       setError(null);
 
       const results = await Promise.allSettled([
-        fetch(`/api/validators/${encodeURIComponent(nodeId)}`).then(r => r.ok ? r.json() : null),
-        fetch(`/api/validator-details/${encodeURIComponent(nodeId)}`).then(r => r.ok ? r.json().then(d => d.validatorDetails) : null),
+        apiFetch<any>(`/api/validators/${encodeURIComponent(nodeId)}`).catch(() => null),
+        apiFetch<any>(`/api/validator-details/${encodeURIComponent(nodeId)}`).then(d => d.validatorDetails).catch(() => null),
       ]);
 
       const p2p = results[0].status === "fulfilled" ? results[0].value : null;

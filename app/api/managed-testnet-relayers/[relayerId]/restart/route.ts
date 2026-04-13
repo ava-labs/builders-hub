@@ -1,3 +1,4 @@
+// withApi: not applicable — uses getUserId() for auth
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId, jsonOk, jsonError } from '../../utils';
 import { RelayerServiceURLs } from '../../constants';
@@ -6,7 +7,7 @@ import { RelayerServiceURLs } from '../../constants';
  * POST /api/managed-testnet-relayers/[relayerId]/restart
  * Restarts a relayer. Note: The external service also has rate limiting.
  */
-async function handleRestartRelayer(relayerId: string, request: NextRequest): Promise<NextResponse> {
+async function handleRestartRelayer(relayerId: string, _request: NextRequest): Promise<NextResponse> {
   const auth = await getUserId();
   if (auth.error) return auth.error;
   if (!auth.userId) return jsonError(401, 'Authentication required');
@@ -21,8 +22,8 @@ async function handleRestartRelayer(relayerId: string, request: NextRequest): Pr
     const listResponse = await fetch(RelayerServiceURLs.list(password), {
       method: 'GET',
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     });
 
     if (!listResponse.ok) {
@@ -59,19 +60,19 @@ async function handleRestartRelayer(relayerId: string, request: NextRequest): Pr
     // URL encode the relayerId to handle special characters
     const encodedRelayerId = encodeURIComponent(relayerId);
     const restartUrl = RelayerServiceURLs.restart(encodedRelayerId, password);
-    
-    console.log(`[Relayers] Restarting relayer ${encodedRelayerId}`);
-    
+
+    console.warn(`[Relayers] Restarting relayer ${encodedRelayerId}`);
+
     const response = await fetch(restartUrl, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({})
+      body: JSON.stringify({}),
     });
 
-    console.log(`[Relayers] Restart response status: ${response.status}`);
+    console.warn(`[Relayers] Restart response status: ${response.status}`);
 
     if (response.ok) {
       let responseData = {};
@@ -84,7 +85,7 @@ async function handleRestartRelayer(relayerId: string, request: NextRequest): Pr
       return jsonOk({
         success: true,
         message: 'Relayer restarted successfully.',
-        data: responseData
+        data: responseData,
       });
     }
 
@@ -102,8 +103,7 @@ async function handleRestartRelayer(relayerId: string, request: NextRequest): Pr
     // Generic error message for any other failure
     console.error(`[Relayers] Restart failed (status: ${response.status})`);
     return jsonError(502, 'Failed to restart relayer.');
-
-  } catch (hubError) {
+  } catch {
     console.error('[Relayers] Restart request failed');
     return jsonError(503, 'Builder Hub was unreachable.');
   }
@@ -111,9 +111,8 @@ async function handleRestartRelayer(relayerId: string, request: NextRequest): Pr
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ relayerId: string }> }
+  context: { params: Promise<{ relayerId: string }> },
 ): Promise<NextResponse> {
   const { relayerId } = await context.params;
   return handleRestartRelayer(relayerId, request);
 }
-

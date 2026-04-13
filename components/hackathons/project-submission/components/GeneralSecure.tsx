@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { apiFetch } from "@/lib/api/client";
 import { Form } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import SubmitStep1 from "./SubmissionStep1";
@@ -70,15 +71,12 @@ export default function GeneralSecureComponent({
     const loadProjectById = async () => {
       if (projectIdParam && !project && isEditing && projectState.status === 'editing') {
         try {
-          const response = await fetch(`/api/projects/${projectIdParam}`);
-          if (response.ok) {
-            const projectData = await response.json();
-            if (projectData) {
-              setFormData(projectData);
-              dispatch({ type: "SET_PROJECT_ID", payload: projectData.id || "" });
-              if (projectData.hackaton_id) {
-                dispatch({ type: "SET_HACKATHON_ID", payload: projectData.hackaton_id });
-              }
+          const projectData = await apiFetch<any>(`/api/projects/${projectIdParam}`);
+          if (projectData) {
+            setFormData(projectData);
+            dispatch({ type: "SET_PROJECT_ID", payload: projectData.id || "" });
+            if (projectData.hackaton_id) {
+              dispatch({ type: "SET_HACKATHON_ID", payload: projectData.hackaton_id });
             }
           }
         } catch (error) {

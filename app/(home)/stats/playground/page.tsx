@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, useCallback, Suspense } from "react";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ConfigurableChart, { type ChartDataExport } from "@/components/stats/ConfigurableChart";
@@ -417,18 +418,7 @@ function PlaygroundContent() {
       setError(null);
       
       try {
-        const response = await fetch(`/api/playground?id=${playgroundId}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError("Playground not found");
-          } else {
-            throw new Error("Failed to load playground");
-          }
-          return;
-        }
-        
-        const playground = await response.json();
+        const playground = await apiFetch<any>(`/api/playground?id=${playgroundId}`);
         setPlaygroundName(playground.name);
         setSavedPlaygroundName(playground.name);
         setIsPublic(playground.is_public);
@@ -485,12 +475,16 @@ function PlaygroundContent() {
         setSavedLink(link);
       } catch (err) {
         console.error("Error loading playground:", err);
-        setError(err instanceof Error ? err.message : "Failed to load playground");
+        if (err instanceof ApiClientError && err.status === 404) {
+          setError("Playground not found");
+        } else {
+          setError(err instanceof ApiClientError ? err.message : err instanceof Error ? err.message : "Failed to load playground");
+        }
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     loadPlayground();
   }, [playgroundId, status]);
 
@@ -553,12 +547,11 @@ function PlaygroundContent() {
     
     if (!hasViewed) {
       // Track view asynchronously without blocking
-      fetch(`/api/playground/${currentPlaygroundId}/view`, {
+      apiFetch<{ view_count: number }>(`/api/playground/${currentPlaygroundId}/view`, {
         method: 'POST',
       })
-        .then(res => res.json())
         .then(data => {
-          if (data.success && data.view_count !== undefined) {
+          if (data.view_count !== undefined) {
             setViewCount(data.view_count);
             sessionStorage.setItem(viewKey, 'true');
           }
@@ -605,32 +598,23 @@ function PlaygroundContent() {
         }))
       };
       
-      let response;
+      let playground;
       if (currentPlaygroundId) {
         // Update existing playground
-        response = await fetch("/api/playground", {
+        playground = await apiFetch<any>("/api/playground", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             id: currentPlaygroundId,
             ...payload
-          })
+          }
         });
       } else {
         // Create new playground
-        response = await fetch("/api/playground", {
+        playground = await apiFetch<any>("/api/playground", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: payload
         });
       }
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save playground");
-      }
-      
-      const playground = await response.json();
       
       // Update saved state
       setSavedCharts(charts.map(chart => ({
@@ -749,30 +733,17 @@ function PlaygroundContent() {
     try {
       if (isFavorited) {
         // Unfavorite
-        const response = await fetch(`/api/playground/favorite?playgroundId=${currentPlaygroundId}`, {
+        const data = await apiFetch<{ favorite_count?: number }>(`/api/playground/favorite?playgroundId=${currentPlaygroundId}`, {
           method: "DELETE"
         });
-
-        if (!response.ok) {
-          throw new Error("Failed to unfavorite playground");
-        }
-
-        const data = await response.json();
         setIsFavorited(false);
         setFavoriteCount(data.favorite_count || favoriteCount - 1);
       } else {
         // Favorite
-        const response = await fetch("/api/playground/favorite", {
+        const data = await apiFetch<{ favorite_count?: number }>("/api/playground/favorite", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ playgroundId: currentPlaygroundId })
+          body: { playgroundId: currentPlaygroundId }
         });
-
-        if (!response.ok) {
-          throw new Error("Failed to favorite playground");
-        }
-
-        const data = await response.json();
         setIsFavorited(true);
         setFavoriteCount(data.favorite_count || favoriteCount + 1);
       }

@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import axios from 'axios';
+import { apiFetch } from '@/lib/api/client';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useProjectSubmission } from '../context/ProjectSubmissionContext';
@@ -381,12 +381,11 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
     formData.append('user_id', session?.user?.id || '');
 
     try {
-      const response = await axios.post('/api/file', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await apiFetch<{ url: string }>('/api/file', {
+        method: 'POST',
+        body: formData,
       });
-      return response.data.url;
+      return response.url;
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Error uploading file';
       toast({
@@ -407,13 +406,10 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
     if (!fileName) throw new Error('Invalid old image URL');
 
     try {
-      await axios.delete('/api/file', {
-        params: {
-          fileName,
-          ...(state.hackathonId && { hackaton_id: state.hackathonId }),
-          user_id: session?.user?.id
-        }
-      });
+      const deleteParams = new URLSearchParams({ fileName });
+      if (state.hackathonId) deleteParams.append('hackaton_id', state.hackathonId);
+      if (session?.user?.id) deleteParams.append('user_id', session.user.id);
+      await apiFetch(`/api/file?${deleteParams.toString()}`, { method: 'DELETE' });
       const newUrl = await uploadFile(newFile);
 
       toast({
@@ -444,7 +440,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       if (state.hackathonId) {
         params.append('hackaton_id', state.hackathonId);
       }
-      await fetch(`/api/file?${params.toString()}`, {
+      await apiFetch(`/api/file?${params.toString()}`, {
         method: 'DELETE',
       });
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { type LinkItemType } from 'fumadocs-ui/layouts/shared';
 import { BookOpen, FileText, ArrowUpRight } from 'lucide-react';
+import { apiFetch } from '@/lib/api/client';
 
 interface BlogPost {
   title: string;
@@ -37,8 +38,7 @@ export function useDynamicBlogMenu(): LinkItemType {
   const [latestBlogs, setLatestBlogs] = useState<BlogPost[] | null>(null);
 
   useEffect(() => {
-    fetch('/api/latest-blogs')
-      .then(res => res.json())
+    apiFetch<BlogPost[]>('/api/latest-blogs')
       .then(data => setLatestBlogs(data))
       .catch(err => console.error('Failed to fetch latest blogs:', err));
   }, []);

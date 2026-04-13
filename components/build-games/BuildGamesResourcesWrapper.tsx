@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ExternalLink } from 'lucide-react';
+import { apiFetch } from "@/lib/api/client";
 import { DynamicIcon } from 'lucide-react/dynamic';
 
 interface Resource {
@@ -15,8 +16,7 @@ export default function BuildGamesResourcesWrapper() {
   const [resources, setResources] = useState<Resource[]>([]);
 
   useEffect(() => {
-    fetch("/api/build-games/resources")
-      .then((res) => res.json())
+    apiFetch<{ resources: Resource[] }>("/api/build-games/resources")
       .then((data) => {
         if (data.resources) {
           setResources(data.resources);

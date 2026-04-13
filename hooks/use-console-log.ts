@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { ConsoleLog } from '@/types/console-log';
-import { useConsoleBadgeNotificationStore } from '@/stores/consoleBadgeNotificationStore';
+import type { ConsoleLog, ConsoleLogStatus } from '@/types/console-log';
+import { useConsoleBadgeNotificationStore, type ConsoleBadgeNotification } from '@/stores/consoleBadgeNotificationStore';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 /**
  * Hook for managing console log/history
@@ -20,27 +21,23 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
     setLoading(true);
     
     try {
-      const response = await fetch('/api/console-log');
-      if (response.ok) {
-        const data = await response.json();
-        const transformedLogs = data.map((item: any) => ({
-          id: item.id,
-          timestamp: new Date(item.created_at),
-          status: item.status,
-          actionPath: item.action_path,
-          data: item.data
-        }));
-        setLogs(transformedLogs);
-      } else if (response.status === 401) {
+      const data = await apiFetch<Array<{ id: string; created_at: string; status: ConsoleLogStatus; action_path: string; data: Record<string, any> }>>('/api/console-log');
+      const transformedLogs: ConsoleLog[] = data.map((item) => ({
+        id: item.id,
+        timestamp: new Date(item.created_at),
+        status: item.status,
+        actionPath: item.action_path,
+        data: item.data
+      }));
+      setLogs(transformedLogs);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 401) {
         // User not authenticated - this is expected, don't log error
         setLogs([]);
       } else {
-        console.error('Error loading console logs:', response.statusText);
+        console.error('Error loading console logs:', error);
         setLogs([]);
       }
-    } catch (error) {
-      console.error('Error loading console logs:', error);
-      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -58,40 +55,34 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
     if (typeof window === 'undefined') return;
     
     try {
-      const response = await fetch('/api/console-log', {
+      const savedItem = await apiFetch<{ id: string; created_at: string; status: ConsoleLogStatus; action_path: string; data: Record<string, any>; awardedBadges?: ConsoleBadgeNotification[] }>('/api/console-log', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        body: {
           status: item.status,
           actionPath: item.actionPath,
           data: item.data,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        })
+        }
       });
 
-      if (response.ok) {
-        const savedItem = await response.json();
-        if (savedItem.awardedBadges?.length > 0) {
-          useConsoleBadgeNotificationStore.getState().addBadges(savedItem.awardedBadges);
-        }
-        const logItem: ConsoleLog = {
-          id: savedItem.id,
-          timestamp: new Date(savedItem.created_at),
-          status: savedItem.status,
-          actionPath: savedItem.action_path,
-          data: savedItem.data
-        };
-        setLogs(prev => [logItem, ...prev]);
-      } else if (response.status === 401) {
+      if (savedItem.awardedBadges?.length) {
+        useConsoleBadgeNotificationStore.getState().addBadges(savedItem.awardedBadges);
+      }
+      const logItem: ConsoleLog = {
+        id: savedItem.id,
+        timestamp: new Date(savedItem.created_at),
+        status: savedItem.status,
+        actionPath: savedItem.action_path,
+        data: savedItem.data
+      };
+      setLogs(prev => [logItem, ...prev]);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 401) {
         // User not authenticated - silently fail
         // History is only available for logged-in users
       } else {
-        console.error('Failed to save log:', response.statusText);
+        console.error('Error saving log:', error);
       }
-    } catch (error) {
-      console.error('Error saving log:', error);
     }
   };
 

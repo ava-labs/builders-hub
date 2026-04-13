@@ -67,6 +67,7 @@ import posthog from 'posthog-js';
 import { useTheme } from 'next-themes';
 import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { apiFetch } from '@/lib/api/client';
 
 import { ShareButton } from '@/components/chat/share-button';
 import { ShareModal } from '@/components/chat/share-modal';
@@ -1036,9 +1037,8 @@ function ChatPageInner() {
   useEffect(() => {
     if (isAuthenticated) {
       setIsLoadingConversations(true);
-      fetch('/api/chat-history')
-        .then(res => res.json())
-        .then((data: DbConversation[]) => {
+      apiFetch<DbConversation[]>('/api/chat-history')
+        .then((data) => {
           if (Array.isArray(data)) {
             const convs = data.map(dbToLocalConversation);
             setConversations(convs);
@@ -1057,30 +1057,26 @@ function ChatPageInner() {
     if (!isAuthenticated) return;
 
     try {
-      const res = await fetch('/api/chat-history', {
+      const saved = await apiFetch<DbConversation>('/api/chat-history', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           id: conv.id.includes('-') ? conv.id : undefined, // Only pass ID if it's a UUID (from DB)
           title: conv.title,
           messages: conv.messages.map(m => ({ role: m.role, content: getMessageText(m) })),
-        }),
+        },
       });
 
-      if (res.ok) {
-        const saved: DbConversation = await res.json();
-        const localConv = dbToLocalConversation(saved);
+      const localConv = dbToLocalConversation(saved);
 
-        setConversations(prev => {
-          const exists = prev.some(c => c.id === localConv.id);
-          if (exists) {
-            return prev.map(c => c.id === localConv.id ? localConv : c);
-          }
-          return [localConv, ...prev];
-        });
+      setConversations(prev => {
+        const exists = prev.some(c => c.id === localConv.id);
+        if (exists) {
+          return prev.map(c => c.id === localConv.id ? localConv : c);
+        }
+        return [localConv, ...prev];
+      });
 
-        return localConv;
-      }
+      return localConv;
     } catch (err) {
       console.error('Failed to save conversation:', err);
     }
@@ -1092,12 +1088,10 @@ function ChatPageInner() {
     if (!isAuthenticated) return;
 
     try {
-      const res = await fetch(`/api/chat-history/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setConversations(prev => prev.filter(c => c.id !== id));
-        if (currentConversationId === id) {
-          setCurrentConversationId(null);
-        }
+      await apiFetch(`/api/chat-history/${id}`, { method: 'DELETE' });
+      setConversations(prev => prev.filter(c => c.id !== id));
+      if (currentConversationId === id) {
+        setCurrentConversationId(null);
       }
     } catch (err) {
       console.error('Failed to delete conversation:', err);
@@ -1109,17 +1103,14 @@ function ChatPageInner() {
     if (!isAuthenticated || !newTitle.trim()) return;
 
     try {
-      const res = await fetch(`/api/chat-history/${id}`, {
+      await apiFetch(`/api/chat-history/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle.trim() }),
+        body: { title: newTitle.trim() },
       });
-      if (res.ok) {
-        setConversations(prev =>
-          prev.map(c => c.id === id ? { ...c, title: newTitle.trim() } : c)
-        );
-        posthog.capture('ai_chat_conversation_renamed', { conversation_id: id });
-      }
+      setConversations(prev =>
+        prev.map(c => c.id === id ? { ...c, title: newTitle.trim() } : c)
+      );
+      posthog.capture('ai_chat_conversation_renamed', { conversation_id: id });
     } catch (err) {
       console.error('Failed to rename conversation:', err);
     }
@@ -1135,9 +1126,8 @@ function ChatPageInner() {
   const handleShareToggle = useCallback(() => {
     // Refresh conversations to get updated share status
     if (isAuthenticated) {
-      fetch('/api/chat-history')
-        .then(res => res.json())
-        .then((data: DbConversation[]) => {
+      apiFetch<DbConversation[]>('/api/chat-history')
+        .then((data) => {
           if (Array.isArray(data)) {
             const convs = data.map(dbToLocalConversation);
             setConversations(convs);

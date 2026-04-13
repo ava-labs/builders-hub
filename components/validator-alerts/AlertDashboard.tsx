@@ -30,6 +30,7 @@ import { AddValidatorDialog } from './AddValidatorDialog';
 import { BulkImportDialog } from './BulkImportDialog';
 import { AlertPreferences } from './AlertPreferences';
 import { AlertHistory } from './AlertHistory';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 import type {
   ValidatorAlertResponse,
   CreateAlertRequest,
@@ -64,15 +65,12 @@ export function AlertDashboard() {
 
   const fetchValidators = useCallback(async () => {
     try {
-      const res = await fetch('/api/validators');
-      if (res.ok) {
-        const data: ValidatorP2P[] = await res.json();
-        const map = new Map<string, ValidatorP2P>();
-        for (const v of data) {
-          map.set(v.node_id, v);
-        }
-        setValidatorData(map);
+      const data = await apiFetch<ValidatorP2P[]>('/api/validators');
+      const map = new Map<string, ValidatorP2P>();
+      for (const v of data) {
+        map.set(v.node_id, v);
       }
+      setValidatorData(map);
     } catch (err) {
       console.error('Failed to fetch validator data:', err);
     }
@@ -80,11 +78,8 @@ export function AlertDashboard() {
 
   const fetchAlerts = useCallback(async () => {
     try {
-      const res = await fetch('/api/validator-alerts');
-      if (res.ok) {
-        const data = await res.json();
-        setAlerts(data);
-      }
+      const data = await apiFetch<ValidatorAlertResponse[]>('/api/validator-alerts');
+      setAlerts(data);
     } catch (err) {
       console.error('Failed to fetch alerts:', err);
     } finally {
@@ -121,45 +116,42 @@ export function AlertDashboard() {
   }, [status, fetchAlerts, fetchValidators]);
 
   async function handleAdd(data: CreateAlertRequest): Promise<{ error?: string }> {
-    const res = await fetch('/api/validator-alerts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await res.json();
-    if (!res.ok) return { error: result.error };
-    setAlerts((prev) => [result, ...prev]);
-    toast.success('Validator added', 'You will receive alerts for this validator.');
-    return {};
+    try {
+      const result = await apiFetch<ValidatorAlertResponse>('/api/validator-alerts', {
+        method: 'POST',
+        body: data,
+      });
+      setAlerts((prev) => [result, ...prev]);
+      toast.success('Validator added', 'You will receive alerts for this validator.');
+      return {};
+    } catch (err) {
+      return { error: err instanceof ApiClientError ? err.message : 'Failed to add validator' };
+    }
   }
 
   async function handleUpdate(id: string, data: UpdateAlertRequest) {
-    const res = await fetch(`/api/validator-alerts/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (res.ok) {
-      const updated = await res.json();
+    try {
+      const updated = await apiFetch<ValidatorAlertResponse>(`/api/validator-alerts/${id}`, {
+        method: 'PUT',
+        body: data,
+      });
       setAlerts((prev) => prev.map((a) => (a.id === id ? updated : a)));
       toast.success('Preferences saved');
-    } else {
+    } catch {
       toast.error('Failed to save preferences');
     }
   }
 
   async function handleToggleActive(id: string, active: boolean) {
     setTogglingId(id);
-    const res = await fetch(`/api/validator-alerts/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active }),
-    });
-    if (res.ok) {
-      const updated = await res.json();
+    try {
+      const updated = await apiFetch<ValidatorAlertResponse>(`/api/validator-alerts/${id}`, {
+        method: 'PUT',
+        body: { active },
+      });
       setAlerts((prev) => prev.map((a) => (a.id === id ? updated : a)));
       toast.success(active ? 'Alerts resumed' : 'Alerts paused');
-    } else {
+    } catch {
       toast.error('Failed to update alert status');
     }
     setTogglingId(null);
@@ -167,12 +159,12 @@ export function AlertDashboard() {
 
   async function handleDelete(id: string) {
     setDeletingId(id);
-    const res = await fetch(`/api/validator-alerts/${id}`, { method: 'DELETE' });
-    if (res.ok) {
+    try {
+      await apiFetch(`/api/validator-alerts/${id}`, { method: 'DELETE' });
       setAlerts((prev) => prev.filter((a) => a.id !== id));
       if (expandedId === id) setExpandedId(null);
       toast.success('Validator alert removed');
-    } else {
+    } catch {
       toast.error('Failed to remove alert');
     }
     setDeletingId(null);

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import axios from 'axios';
+import { apiFetch } from '@/lib/api/client';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
@@ -113,7 +113,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
       };
 
       // Save to API using extended profile endpoint
-      await axios.put(`/api/profile/extended/${userId}`, profileData);
+      await apiFetch(`/api/profile/extended/${userId}`, { method: 'PUT', body: profileData });
       
       // Update session
       await update();

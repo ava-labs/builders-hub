@@ -13,6 +13,7 @@ import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { apiFetch } from "@/lib/api/client";
 import { ChainChip, ChainInfo } from "@/components/stats/ChainChip";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
@@ -382,25 +383,19 @@ export default function L1ExplorerPage({
       const timeoutPromise = new Promise<null>((resolve) => {
         setTimeout(() => resolve(null), FETCH_TIMEOUT * 2);
       });
-      
-      // Race fetch against timeout
-      const response = await Promise.race([
-        fetch(url),
+
+      // Race apiFetch against timeout
+      const result = await Promise.race([
+        apiFetch<any>(url),
         timeoutPromise
       ]);
-      
+
       // If timeout occurred, silently schedule next fetch
-      if (response === null) {
+      if (result === null) {
         shouldScheduleNext = true;
         nextIsRateLimited = true; // Use longer interval after timeout
         return;
       }
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch data");
-      }
-      const result = await response.json();
       
       // Update last fetched block from the response
       if (result.blocks && result.blocks.length > 0) {

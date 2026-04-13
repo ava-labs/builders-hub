@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { countries } from "@/constants/countries";
 import { cn } from "@/lib/utils";
+import { apiFetch, ApiClientError } from "@/lib/api/client";
 import { getReferrer } from "@/lib/referral";
 
 const EMPLOYMENT_ROLES = ["Accounting", "Administrative", "Development", "Communications", "Consulting", "Customer", "Design", "Education", "Engineering", "Entrepreneurship", "Finance", "Health", "Human Resources", "Information Technology", "Legal", "Marketing", "Operations", "Product", "Project Management", "Public Relations", "Quality Assurance", "Real Estate", "Recruiting", "Research", "Sales", "Support", "Retired", "Other"];
@@ -290,20 +291,13 @@ export default function BuildGamesApplyForm() {
     try {
       const referrer = getReferrer();
 
-      const response = await fetch("/api/build-games/apply", {
+      await apiFetch("/api/build-games/apply", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
+        body: {
           ...values,
           referrer: referrer,
-        }),
+        },
       });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to submit application");
-      }
 
       setSubmissionStatus("success");
       form.reset();

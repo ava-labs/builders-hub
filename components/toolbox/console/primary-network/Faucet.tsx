@@ -20,6 +20,7 @@ import { useWalletStore } from '../../stores/walletStore';
 import { useWallet } from '../../hooks/useWallet';
 import Link from 'next/link';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 function FaucetBalanceDisplay({
   balance,
@@ -142,28 +143,17 @@ function ManualPChainFaucetInput() {
 
     try {
       const faucetRequest = async () => {
-        const response = await fetch(`/api/pchain-faucet?address=${encodeURIComponent(normalizedAddress)}`);
-        const rawText = await response.text();
-
-        let data;
         try {
-          data = JSON.parse(rawText);
-        } catch {
+          return await apiFetch<{ success: boolean }>(
+            `/api/pchain-faucet?address=${encodeURIComponent(normalizedAddress)}`,
+          );
+        } catch (error) {
+          if (error instanceof ApiClientError) {
+            if (error.status === 429) throw new Error(error.message || 'Rate limit exceeded. Please try again later.');
+            throw new Error(error.message || `Error ${error.status}: Failed to get tokens`);
+          }
           throw new Error('Faucet temporarily unavailable. Please try again later.');
         }
-
-        if (!response.ok) {
-          if (response.status === 429) {
-            throw new Error(data.message || 'Rate limit exceeded. Please try again later.');
-          }
-          throw new Error(data.message || `Error ${response.status}: Failed to get tokens`);
-        }
-
-        if (!data.success) {
-          throw new Error(data.message || 'Failed to get tokens');
-        }
-
-        return data;
       };
 
       const faucetPromise = faucetRequest();

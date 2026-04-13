@@ -1,29 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { withApi, successResponse } from '@/lib/api';
 import { sendOTP } from '@/server/services/login';
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { email } = body;
+const SendOtpSchema = z.object({
+  email: z.string().email('Valid email is required'),
+});
 
-    if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      );
-    }
-
-    await sendOTP(email.toLowerCase());
-
-    return NextResponse.json(
-      { message: 'OTP sent correctly' },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Error sending OTP:', error);
-    return NextResponse.json(
-      { error: 'Error sending verification code' },
-      { status: 500 }
-    );
-  }
-}
+// withApi: auth intentionally omitted — pre-authentication endpoint
+export const POST = withApi<z.infer<typeof SendOtpSchema>>(
+  async (_req, { body }) => {
+    await sendOTP(body.email.toLowerCase());
+    return successResponse({ message: 'OTP sent correctly' });
+  },
+  {
+    schema: SendOtpSchema,
+    rateLimit: { windowMs: 3600000, maxRequests: 5, identifier: 'ip' },
+  },
+);

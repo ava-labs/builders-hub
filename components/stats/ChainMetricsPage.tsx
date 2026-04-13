@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback, useRef, useTransition } from "react";
+import { apiFetch } from "@/lib/api/client";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
@@ -365,13 +366,7 @@ export default function ChainMetricsPage({
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(
-          `/api/chain-stats/${chainId}?timeRange=all`
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
+        const data = await apiFetch<CChainMetrics>(`/api/chain-stats/${chainId}?timeRange=all`);
         setMetrics(data);
         setIsInitialLoad(false);
       } catch (err) {
@@ -398,11 +393,7 @@ export default function ChainMetricsPage({
       if (cachedAllData) {
         allData = cachedAllData;
       } else {
-        const allResponse = await fetch(`/api/chain-stats/all?timeRange=all`);
-        if (!allResponse.ok) {
-          throw new Error(`HTTP error! status: ${allResponse.status}`);
-        }
-        allData = await allResponse.json();
+        allData = await apiFetch<CChainMetrics>(`/api/chain-stats/all?timeRange=all`);
         setCachedAllData(allData); // Cache for future filter changes
       }
 
@@ -414,11 +405,7 @@ export default function ChainMetricsPage({
         const excludedResults = await Promise.all(
           excludedChainIds.map(async (cid) => {
             try {
-              const response = await fetch(
-                `/api/chain-stats/${cid}?timeRange=all`
-              );
-              if (!response.ok) return null;
-              return await response.json();
+              return await apiFetch<CChainMetrics>(`/api/chain-stats/${cid}?timeRange=all`);
             } catch {
               return null;
             }

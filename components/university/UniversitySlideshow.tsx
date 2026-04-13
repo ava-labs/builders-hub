@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api/client';
 
 interface SlideshowImage {
   url: string;
@@ -25,11 +26,7 @@ export default function UniversitySlideshow({ className = "" }: UniversitySlides
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const response = await fetch('/api/university/slideshow');
-        if (!response.ok) {
-          throw new Error('Failed to fetch slideshow images');
-        }
-        const data = await response.json();
+        const data = await apiFetch<{ images: SlideshowImage[] }>('/api/university/slideshow');
         setImages(data.images || []);
       } catch (err) {
         console.error('Error fetching slideshow images:', err);

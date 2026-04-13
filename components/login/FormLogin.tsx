@@ -18,7 +18,7 @@ import { Button } from "../ui/button";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { VerifyEmail } from "./verify/VerifyEmail";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 import { LoadingButton } from "../ui/loading-button";
 
 const formSchema = z.object({
@@ -40,8 +40,9 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
     setEmail(values.email);
 
     try {
-      await axios.post("/api/send-otp", {
-        email: values.email.toLowerCase(),
+      await apiFetch("/api/send-otp", {
+        method: "POST",
+        body: { email: values.email.toLowerCase() },
       });
       setIsVerifying(true);
     } catch (error) {

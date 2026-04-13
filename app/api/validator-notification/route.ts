@@ -1,49 +1,47 @@
-import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { withApi, successResponse, InternalError } from '@/lib/api';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
 const VALIDATOR_FORM_GUID = process.env.VALIDATOR_FORM_GUID;
+const HUBSPOT_TIMEOUT = 10_000;
 
-export async function POST(request: Request) {
-  try {
+const validatorNotificationSchema = z.object({
+  email: z.string().email('Valid email is required'),
+  firstname: z.string().optional(),
+  lastname: z.string().optional(),
+  company: z.string().optional(),
+  company_description_vertical: z.string().optional(),
+  subnet_type: z.string().optional(),
+  gdpr: z.boolean().optional(),
+  marketing_consent: z.boolean().optional(),
+});
+
+type ValidatorNotificationBody = z.infer<typeof validatorNotificationSchema>;
+
+export const POST = withApi<ValidatorNotificationBody>(
+  async (request, { body }) => {
     if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID) {
-      console.error('Missing environment variables: HUBSPOT_API_KEY or HUBSPOT_PORTAL_ID');
-      return NextResponse.json(
-        { success: false, message: 'Server configuration error' },
-        { status: 500 }
-      );
+      throw new InternalError('Server configuration error');
     }
 
-    const clonedRequest = request.clone();
-    let formData;
-    try {
-      formData = await clonedRequest.json();
-    } catch (error) {
-      console.error('Error parsing request body:', error);
-      return NextResponse.json(
-        { success: false, message: 'Invalid request body' },
-        { status: 400 }
-      );
-    }
-
-    const fieldMapping: { [key: string]: string[] } = {
-      "email": ["email"],
-      "firstname": ["firstname"],
-      "lastname": ["lastname"],
-      "company": ["company"],
-      "company_description_vertical": ["company_description_vertical"],
-      "subnet_type": ["subnet_type"],
-      "gdpr": ["gdpr"],
-      "marketing_consent": ["marketing_consent"]
+    const fieldMapping: Record<string, string[]> = {
+      email: ['email'],
+      firstname: ['firstname'],
+      lastname: ['lastname'],
+      company: ['company'],
+      company_description_vertical: ['company_description_vertical'],
+      subnet_type: ['subnet_type'],
+      gdpr: ['gdpr'],
+      marketing_consent: ['marketing_consent'],
     };
-    
+
     const fields: { name: string; value: string | boolean }[] = [];
-    Object.entries(formData).forEach(([name, value]) => {
-      if (value === undefined || value === null || value === '') {
-        return;
-      }
-      
-      let formattedValue: string | boolean = typeof value === 'string' || typeof value === 'boolean' ? value : String(value);
+    for (const [name, value] of Object.entries(body)) {
+      if (value === undefined || value === null || value === '') continue;
+
+      let formattedValue: string | boolean =
+        typeof value === 'string' || typeof value === 'boolean' ? value : String(value);
       if (typeof value === 'boolean') {
         if (name !== 'gdpr' && name !== 'marketing_consent') {
           formattedValue = value ? 'Yes' : 'No';
@@ -51,15 +49,11 @@ export async function POST(request: Request) {
       }
 
       const mappedFields = fieldMapping[name] || [name];
+      for (const fieldName of mappedFields) {
+        fields.push({ name: fieldName, value: formattedValue });
+      }
+    }
 
-      mappedFields.forEach(fieldName => {
-        fields.push({
-          name: fieldName,
-          value: formattedValue
-        });
-      });
-    });
-    
     const hubspotPayload: {
       fields: { name: string; value: string | boolean }[];
       context: { pageUri: string; pageName: string };
@@ -75,74 +69,62 @@ export async function POST(request: Request) {
         };
       };
     } = {
-      fields: fields,
+      fields,
       context: {
         pageUri: request.headers.get('referer') || 'https://build.avax.network',
-        pageName: 'Validator Email Collection'
-      }
+        pageName: 'Validator Email Collection',
+      },
     };
 
-    if (formData.gdpr === true) {
+    if (body.gdpr === true) {
       hubspotPayload.legalConsentOptions = {
         consent: {
           consentToProcess: true,
-          text: "I agree to allow Avalanche Foundation to store and process my personal data.",
+          text: 'I agree to allow Avalanche Foundation to store and process my personal data.',
           communications: [
             {
-              value: formData.marketing_consent === true,
+              value: body.marketing_consent === true,
               subscriptionTypeId: 999,
-              text: "I agree to receive marketing communications from Avalanche Foundation."
-            }
-          ]
-        }
+              text: 'I agree to receive marketing communications from Avalanche Foundation.',
+            },
+          ],
+        },
       };
     }
-  
-    const hubspotResponse = await fetch(
-      `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${VALIDATOR_FORM_GUID}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HUBSPOT_API_KEY}`
-        },
-        body: JSON.stringify(hubspotPayload)
-      }
-    );
 
-    const responseStatus = hubspotResponse.status;
-    let hubspotResult;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), HUBSPOT_TIMEOUT);
+
     try {
-      const clonedResponse = hubspotResponse.clone();
-      try {
-        hubspotResult = await hubspotResponse.json();
-      } catch (jsonError) {
-        const text = await clonedResponse.text();
-        console.error('Non-JSON response from HubSpot:', text);
-        hubspotResult = { status: 'error', message: text };
-      }
-    } catch (error) {
-      console.error('Error reading HubSpot response:', error);
-      hubspotResult = { status: 'error', message: 'Could not read HubSpot response' };
-    }
-    
-    console.log('HubSpot response:', hubspotResult);
-    if (!hubspotResponse.ok) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          status: responseStatus,
-          response: hubspotResult
-        }
+      const hubspotResponse = await fetch(
+        `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${VALIDATOR_FORM_GUID}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${HUBSPOT_API_KEY}`,
+          },
+          body: JSON.stringify(hubspotPayload),
+          signal: controller.signal,
+        },
       );
-    }
+      clearTimeout(timeout);
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error processing validator form submission:', error);
-    return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
-  }
-} 
+      if (!hubspotResponse.ok) {
+        let hubspotResult: any;
+        try {
+          hubspotResult = await hubspotResponse.json();
+        } catch {
+          hubspotResult = { message: await hubspotResponse.text().catch(() => 'Unknown error') };
+        }
+        throw new InternalError(hubspotResult?.message || `HubSpot returned ${hubspotResponse.status}`);
+      }
+
+      return successResponse({ success: true });
+    } catch (error) {
+      clearTimeout(timeout);
+      throw error;
+    }
+  },
+  { auth: true, schema: validatorNotificationSchema },
+);

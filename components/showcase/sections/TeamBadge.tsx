@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import { ProjectBadge } from "@/types/badge";
-import axios from "axios";
+import { apiFetch } from "@/lib/api/client";
 
 type Props = {
   projectId: string;
@@ -14,10 +14,13 @@ export const TeamBadge = ({ projectId }: Props) => {
   const [badges, setBadges] = useState<ProjectBadge[]>([]);
   useEffect(() => {
     if (!projectId) return;
-    const bad = axios.get(`/api/badge/project-badge?project_id=${projectId}`);
-    bad.then((res) => {
-      setBadges(res.data);
-    });
+    apiFetch<ProjectBadge[]>(`/api/badge/project-badge?project_id=${projectId}`)
+      .then((data) => {
+        setBadges(data);
+      })
+      .catch(() => {
+        // Silently fail — badge section stays empty
+      });
   }, [projectId]);
 
   return (

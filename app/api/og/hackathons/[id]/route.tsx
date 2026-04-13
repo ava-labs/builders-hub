@@ -1,7 +1,7 @@
+// withApi: not applicable — edge runtime OG image generator
 import type { NextRequest } from 'next/server';
 import { ImageResponse } from 'next/og';
 import { loadFonts, createOGResponse } from '@/utils/og-image';
-import axios from 'axios';
 
 export const runtime = 'edge';
 
@@ -40,20 +40,21 @@ async function tryLoadImage(
   fonts: { medium: ArrayBuffer, light: ArrayBuffer, regular: ArrayBuffer }
 ): Promise<ImageResponse | null> {
   try {
-    const imageResponse = await axios.get(imageUrl, {
-      responseType: 'arraybuffer',
-      headers: {
-        'Accept': 'image/*',
-      },
+    const imageResponse = await fetch(imageUrl, {
+      headers: { 'Accept': 'image/*' },
     });
 
-    const imageBuffer = imageResponse.data;
-    
+    if (!imageResponse.ok) {
+      return null;
+    }
+
+    const imageBuffer = await imageResponse.arrayBuffer();
+
     if (!imageBuffer || imageBuffer.byteLength === 0) {
       return null;
     }
-    
-    const contentType = imageResponse.headers['content-type'] || 'image/png';
+
+    const contentType = imageResponse.headers.get('content-type') || 'image/png';
     
     // Skip WebP images as they cause issues with ImageResponse
     if (contentType.includes('webp') || contentType === 'image/webp') {
@@ -115,16 +116,14 @@ export async function GET(
   const fonts = await loadFonts();
 
   try {
-    const res = await axios.get(
+    const res = await fetch(
       `${process.env.NEXTAUTH_URL}/api/hackathons/${id}`,
       {
-        headers: {
-          'Cache-Control': 'no-store',
-        },
+        headers: { 'Cache-Control': 'no-store' },
       }
     );
 
-    const hackathon = res.data || null;
+    const hackathon = res.ok ? await res.json() : null;
     
     if (!hackathon) {
       return createOGResponse({

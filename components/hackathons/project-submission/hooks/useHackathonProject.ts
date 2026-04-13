@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { HackathonHeader } from '@/types/hackathons';
 import { useCountdown } from './Count-down';
+import { apiFetch } from '@/lib/api/client';
 
 
 
@@ -20,10 +20,10 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
   const getHackathon = async () => {
     if (!hackathonId) return;
     try {
-      const response = await axios.get(`/api/hackathons/${hackathonId}`);
-      setHackathon(response.data);
-      if (response.data?.content?.submission_deadline) {
-        setDeadline(new Date(response.data.content.submission_deadline).getTime());
+      const data = await apiFetch<HackathonHeader>(`/api/hackathons/${hackathonId}`);
+      setHackathon(data);
+      if ((data as any)?.content?.submission_deadline) {
+        setDeadline(new Date((data as any).content.submission_deadline).getTime());
       }
     } catch (err) {
       console.error("API Error:", err);
@@ -32,15 +32,13 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
 
   const getProject = async () => {
     try {
-      const response = await axios.get(`/api/project`, {
-        params: {
-          hackathon_id: hackathonId,        
-          user_id: session?.user?.id,       
-          invitation_id: invitationid,      
-        },
-      });
-      if (response.data.project) {
-        setProject(response.data.project);  
+      const params = new URLSearchParams();
+      if (hackathonId) params.set('hackathon_id', hackathonId);
+      if (session?.user?.id) params.set('user_id', session.user.id);
+      if (invitationid) params.set('invitation_id', invitationid);
+      const data = await apiFetch<{ project?: any }>(`/api/project?${params.toString()}`);
+      if (data.project) {
+        setProject(data.project);
       }
     } catch (err) {
       console.error("Error fetching project:", err);

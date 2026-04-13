@@ -13,6 +13,7 @@ import { StickyNavBar } from "@/components/stats/StickyNavBar";
 import { PeriodSelector, type Period } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
+import { apiFetch } from "@/lib/api/client";
 import { SortIcon } from "@/components/stats/SortIcon";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
@@ -96,20 +97,14 @@ export default function CChainValidatorMetrics() {
 
       // Fetch all APIs in parallel
       // Use validator-stats API for version breakdown (same as landing page)
-      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse, p2pResponse] =
+      const [primaryNetworkData, validatorsData, allSubnets, stakingData, p2pData] =
         await Promise.all([
-          fetch(`/api/primary-network-stats?timeRange=all`),
-          fetch("/api/primary-network-validators"),
-          fetch("/api/validator-stats?network=mainnet"),
-          fetch('/api/staking-apy'),
-          fetch('/api/validators'),
+          apiFetch<any>(`/api/primary-network-stats?timeRange=all`),
+          apiFetch<any>("/api/primary-network-validators").catch(() => null),
+          apiFetch<any[]>("/api/validator-stats?network=mainnet").catch(() => null),
+          apiFetch<any>('/api/staking-apy').catch(() => null),
+          apiFetch<any[]>('/api/validators').catch(() => null),
         ]);
-
-      if (!statsResponse.ok) {
-        throw new Error(`HTTP error! status: ${statsResponse.status}`);
-      }
-
-      const primaryNetworkData = await statsResponse.json();
 
       if (!primaryNetworkData) {
         throw new Error("Primary Network data not found");
@@ -119,9 +114,8 @@ export default function CChainValidatorMetrics() {
 
       // Get version breakdown from validator-stats API (same source as landing page)
       // Primary Network has id: 11111111111111111111111111111111LpoYY
-      if (validatorStatsResponse.ok) {
+      if (allSubnets) {
         try {
-          const allSubnets = await validatorStatsResponse.json();
           const primaryNetwork = allSubnets.find(
             (s: any) => s.id === "11111111111111111111111111111111LpoYY"
           );
@@ -181,16 +175,14 @@ export default function CChainValidatorMetrics() {
       }
 
       // Process validators data
-      if (validatorsResponse.ok) {
-        const validatorsData = await validatorsResponse.json();
+      if (validatorsData) {
         const validatorsList = validatorsData.validators || [];
         setValidators(validatorsList);
       }
 
       // Process staking APY data
-      if (stakingAPYResponse.ok) {
+      if (stakingData) {
         try {
-          const stakingData = await stakingAPYResponse.json();
           setStakingAPYData(stakingData);
         } catch (err) {
           console.error('Error parsing staking APY data:', err);
@@ -198,11 +190,10 @@ export default function CChainValidatorMetrics() {
       }
 
       // Process P2P validators data
-      if (p2pResponse.ok) {
+      if (p2pData) {
         try {
-          const p2pData: P2PValidatorData[] = await p2pResponse.json();
           const p2pMap = new Map<string, P2PValidatorData>();
-          p2pData.forEach((v) => p2pMap.set(v.node_id, v));
+          (p2pData as P2PValidatorData[]).forEach((v) => p2pMap.set(v.node_id, v));
           setP2pValidators(p2pMap);
         } catch (err) {
           console.error('Error parsing P2P validators data:', err);

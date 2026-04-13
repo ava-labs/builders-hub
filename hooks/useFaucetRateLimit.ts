@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 interface RateLimitStatus {
   allowed: boolean;
@@ -147,12 +148,15 @@ export const useFaucetRateLimit = (options: UseFaucetRateLimitOptions) => {
         params.set('chainId', chainId.toString());
       }
 
-      const response = await fetch(`/api/faucet-rate-limit?${params}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to check rate limit');
-      }
+      const data = await apiFetch<{
+        allowed: boolean;
+        reason?: RateLimitStatus['reason'];
+        resetTime?: string;
+        userClaimsInWindow: number;
+        destinationClaimsInWindow: number;
+        maxClaimsPerUser: number;
+        maxClaimsPerDestination: number;
+      }>(`/api/faucet-rate-limit?${params}`);
 
       const newStatus: RateLimitStatus = {
         allowed: data.allowed,

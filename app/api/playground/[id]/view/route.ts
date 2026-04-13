@@ -1,42 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
 import { prisma } from '@/prisma/prisma';
 
-// POST /api/playground/[id]/view - Increment view count
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id: playgroundId } = await params;
+// ---------------------------------------------------------------------------
+// POST /api/playground/[id]/view  — Increment view count (rate-limited by IP)
+// ---------------------------------------------------------------------------
 
-    if (!playgroundId) {
-      return NextResponse.json({ error: 'Playground ID is required' }, { status: 400 });
-    }
-
-    // Increment view count atomically
+// withApi: auth intentionally omitted — public view tracking, rate limited
+// schema: not applicable — no request body, POST for increment side-effect
+export const POST = withApi(
+  async (_req: NextRequest, { params }) => {
     const playground = await prisma.statsPlayground.update({
-      where: { id: playgroundId },
-      data: {
-        view_count: {
-          increment: 1
-        }
-      },
-      select: {
-        view_count: true
-      }
+      where: { id: params.id },
+      data: { view_count: { increment: 1 } },
+      select: { view_count: true },
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      view_count: playground.view_count 
-    });
-  } catch (error) {
-    console.error('Error incrementing view count:', error);
-    // Don't fail the request if view tracking fails
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to track view' 
-    }, { status: 500 });
-  }
-}
-
+    return successResponse({ view_count: playground.view_count });
+  },
+  {
+    rateLimit: { windowMs: 60_000, maxRequests: 10, identifier: 'ip' },
+  },
+);

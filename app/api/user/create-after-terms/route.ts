@@ -1,26 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { AuthOptions } from '@/lib/auth/authOptions';
+import { z } from 'zod';
+import { withApi, successResponse } from '@/lib/api';
 import { prisma } from '@/prisma/prisma';
 import { syncUserDataToHubSpot } from '@/server/services/hubspotUserData';
 
+const CreateAfterTermsSchema = z.object({
+  notifications: z.boolean().optional().default(false),
+});
+
 /**
- * API endpoint to create a new user after they accept terms.
- * This is called when a user verifies their email via OTP but hasn't been
+ * Create a new user after they accept terms.
+ * Called when a user verifies their email via OTP but hasn't been
  * created in the database yet (to avoid creating accounts for users who
  * don't accept terms).
  */
-export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(AuthOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Unauthorized: No valid session' },
-        { status: 401 }
-      );
-    }
-
+export const POST = withApi<z.infer<typeof CreateAfterTermsSchema>>(
+  async (_req, { session, body }) => {
     const email = session.user.email;
 
     // Check if user already exists (shouldn't happen, but safety check)
@@ -29,17 +23,14 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingUser) {
-      // User already exists, just return their data
-      return NextResponse.json({
+      return successResponse({
         id: existingUser.id,
         email: existingUser.email,
         alreadyExists: true,
       });
     }
 
-    // Get the terms acceptance data from the request body
-    const body = await req.json();
-    const { notifications = false } = body;
+    const { notifications } = body;
 
     // Create the new user
     const newUser = await prisma.user.create({
@@ -50,7 +41,7 @@ export async function POST(req: NextRequest) {
         image: '',
         authentication_mode: 'credentials',
         last_login: new Date(),
-        notifications: notifications,
+        notifications,
       },
     });
 
@@ -63,22 +54,16 @@ export async function POST(req: NextRequest) {
           notifications: newUser.notifications ?? undefined,
           gdpr: true, // User accepted terms and conditions
         });
-      } catch (error) {
-        console.error('[HubSpot UserData] Failed to sync new user:', error);
+      } catch {
         // Don't block user creation if HubSpot sync fails
       }
     }
 
-    return NextResponse.json({
+    return successResponse({
       id: newUser.id,
       email: newUser.email,
       created: true,
     });
-  } catch (error) {
-    console.error('Error creating user after terms:', error);
-    return NextResponse.json(
-      { error: 'Failed to create user' },
-      { status: 500 }
-    );
-  }
-}
+  },
+  { auth: true, schema: CreateAfterTermsSchema },
+);

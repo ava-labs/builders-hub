@@ -5,7 +5,8 @@ import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListSt
 import useConsoleNotifications from './useConsoleNotifications';
 import { balanceService } from '@/components/toolbox/services/balanceService';
 import { useChainTokenTracker } from './useChainTokenTracker';
-import { useConsoleBadgeNotificationStore } from '@/stores/consoleBadgeNotificationStore';
+import { useConsoleBadgeNotificationStore, type ConsoleBadgeNotification } from '@/stores/consoleBadgeNotificationStore';
+import { apiFetch, ApiClientError } from '@/lib/api/client';
 
 export interface FaucetClaimResult {
   success: boolean;
@@ -41,24 +42,16 @@ export const useTestnetFaucet = () => {
 
     try {
       const faucetRequest = async () => {
-        const response = await fetch(`/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}`);
-        const rawText = await response.text();
-        
-        let data;
         try {
-          data = JSON.parse(rawText);
-        } catch (parseError) {
+          return await apiFetch<FaucetClaimResult & { awardedBadges?: ConsoleBadgeNotification[] }>(`/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}`);
+        } catch (error) {
+          if (error instanceof ApiClientError) {
+            if (error.status === 401) throw new Error("Please login first");
+            if (error.status === 429) throw new Error(error.message || "Rate limit exceeded. Please try again later.");
+            throw new Error(error.message || `Error ${error.status}: Failed to get tokens`);
+          }
           throw new Error('Faucet temporarily unavailable. Please try again later.');
         }
-
-        if (!response.ok) {
-          if (response.status === 401) { throw new Error("Please login first") }
-          if (response.status === 429) { throw new Error(data.message || "Rate limit exceeded. Please try again later.") }
-          throw new Error(data.message || `Error ${response.status}: Failed to get tokens`);
-        }
-
-        if (!data.success) { throw new Error(data.message || "Failed to get tokens") }       
-        return data;
       };
 
       const faucetPromise = faucetRequest();
@@ -74,7 +67,7 @@ export const useTestnetFaucet = () => {
       }
 
       const result = await faucetPromise;
-      if (result.awardedBadges?.length > 0) {
+      if (result.awardedBadges?.length) {
         useConsoleBadgeNotificationStore.getState().addBadges(result.awardedBadges);
       }
 
@@ -104,24 +97,16 @@ export const useTestnetFaucet = () => {
 
     try {
       const faucetRequest = async () => {
-        const response = await fetch(`/api/pchain-faucet?address=${pChainAddress}`);
-        const rawText = await response.text();
-
-        let data;
         try {
-          data = JSON.parse(rawText);
-        } catch (parseError) {
+          return await apiFetch<FaucetClaimResult & { awardedBadges?: ConsoleBadgeNotification[] }>(`/api/pchain-faucet?address=${pChainAddress}`);
+        } catch (error) {
+          if (error instanceof ApiClientError) {
+            if (error.status === 401) throw new Error("Please login first");
+            if (error.status === 429) throw new Error(error.message || "Rate limit exceeded. Please try again later.");
+            throw new Error(error.message || `Error ${error.status}: Failed to get tokens`);
+          }
           throw new Error('Faucet temporarily unavailable. Please try again later.');
         }
-
-        if (!response.ok) {
-          if (response.status === 401) {throw new Error("Please login first") }
-          if (response.status === 429) { throw new Error(data.message || "Rate limit exceeded. Please try again later.") }
-          throw new Error(data.message || `Error ${response.status}: Failed to get tokens`);
-        }
-
-        if (!data.success) { throw new Error(data.message || "Failed to get tokens") }      
-        return data;
       };
 
       const faucetPromise = faucetRequest();
@@ -137,7 +122,7 @@ export const useTestnetFaucet = () => {
       }
 
       const result = await faucetPromise;
-      if (result.awardedBadges?.length > 0) {
+      if (result.awardedBadges?.length) {
         useConsoleBadgeNotificationStore.getState().addBadges(result.awardedBadges);
       }
       if (result.success) { setTimeout(() => { balanceService.updatePChainBalance() }, 2000) }

@@ -1,205 +1,171 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { z } from 'zod';
 import SafeApiKit from '@safe-global/api-kit';
-import { getAddress, isAddress } from 'viem';
+import { getAddress } from 'viem';
+import { withApi } from '@/lib/api/with-api';
+import { successResponse } from '@/lib/api/response';
+import { BadRequestError } from '@/lib/api/errors';
+
+// ---------------------------------------------------------------------------
+// Types & helpers
+// ---------------------------------------------------------------------------
 
 interface ChainConfig {
   chainId: string;
   chainName: string;
   transactionService: string;
+  shortName: string;
   [key: string]: any;
 }
 
-const getSupportedChain = async (chainId: string): Promise<{ txServiceUrl: string; shortName: string }> => {
-  try {
-    const response = await fetch('https://wallet-client.ash.center/v1/chains', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error);
-    }
-    
-    const supportedChain = data.results.find((chain: ChainConfig) => chain.chainId === chainId);
-    if (!supportedChain) {
-      throw new Error(`Chain ${chainId} is not supported for Ash L1 Multisig operations`);
-    }
-    
-    let txServiceUrl = supportedChain.transactionService;
-    if (!txServiceUrl.endsWith('/api') && !txServiceUrl.includes('/api/')) {
-      txServiceUrl = txServiceUrl.endsWith('/') ? txServiceUrl + 'api' : txServiceUrl + '/api';
-    }
-    
-    return {
-      txServiceUrl,
-      shortName: supportedChain.shortName
-    };
-  } catch (error) {
-    throw new Error(`Failed to fetch supported chains: ${(error as Error).message}`);
-  }
-};
+async function getSupportedChain(chainId: string): Promise<{ txServiceUrl: string; shortName: string }> {
+  const response = await fetch('https://wallet-client.ash.center/v1/chains', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  if (!response.ok) {
+    throw new BadRequestError(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  if (data.error) {
+    throw new BadRequestError(data.error);
+  }
+
+  const supportedChain: ChainConfig | undefined = data.results.find((chain: ChainConfig) => chain.chainId === chainId);
+  if (!supportedChain) {
+    throw new BadRequestError(`Chain ${chainId} is not supported for Ash L1 Multisig operations`);
+  }
+
+  let txServiceUrl = supportedChain.transactionService;
+  if (!txServiceUrl.endsWith('/api') && !txServiceUrl.includes('/api/')) {
+    txServiceUrl = txServiceUrl.endsWith('/') ? `${txServiceUrl}api` : `${txServiceUrl}/api`;
+  }
+
+  return { txServiceUrl, shortName: supportedChain.shortName };
+}
+
+// ---------------------------------------------------------------------------
+// Schema — bounds address arrays to max 50 entries
+// ---------------------------------------------------------------------------
+
+const safeBodySchema = z.object({
+  action: z.string().min(1, 'Missing action parameter'),
+  chainId: z.string().min(1),
+  safeAddress: z.string().optional(),
+  proposalData: z.record(z.string(), z.unknown()).optional(),
+  safeTxHash: z.string().optional(),
+  ownerAddress: z.string().optional(),
+  safeAddresses: z.array(z.string()).max(50, 'Maximum 50 addresses per request').optional(),
+});
+
+type SafeBody = z.infer<typeof safeBodySchema>;
+
+// ---------------------------------------------------------------------------
+// POST /api/safe
+// ---------------------------------------------------------------------------
+
+// withApi: auth intentionally omitted — public anonymous access supported
+export const POST = withApi<SafeBody>(
+  async (_req: NextRequest, { body }) => {
     const { action, chainId, safeAddress, ...params } = body;
 
-    if (!action) {
-      return NextResponse.json(
-        { error: 'Missing action parameter' },
-        { status: 400 }
-      );
-    }
-
-    // Get transaction service URL and chain info
     const chainInfo = await getSupportedChain(chainId);
-
-    // Initialize Safe API Kit
-    const apiKit = new SafeApiKit({ 
+    const apiKit = new SafeApiKit({
       chainId: BigInt(chainId),
-      txServiceUrl: chainInfo.txServiceUrl
+      txServiceUrl: chainInfo.txServiceUrl,
     });
 
     switch (action) {
       case 'getSafeInfo': {
-        const safeInfo = await apiKit.getSafeInfo(safeAddress);
-        return NextResponse.json({ success: true, data: safeInfo });
+        const safeInfo = await apiKit.getSafeInfo(safeAddress!);
+        return successResponse(safeInfo);
       }
 
       case 'getNextNonce': {
-        const nonce = await apiKit.getNextNonce(safeAddress);
-        return NextResponse.json({ success: true, data: { nonce: Number(nonce) } });
+        const nonce = await apiKit.getNextNonce(safeAddress!);
+        return successResponse({ nonce: Number(nonce) });
       }
 
       case 'proposeTransaction': {
         const { proposalData } = params;
-        
         if (!proposalData) {
-          return NextResponse.json(
-            { error: 'Missing proposalData' },
-            { status: 400 }
-          );
+          throw new BadRequestError('Missing proposalData');
         }
 
-        // Ensure addresses are properly formatted
+        const pd = proposalData as Record<string, any>;
         const formattedProposalData = {
-          ...proposalData,
-          safeAddress: getAddress(proposalData.safeAddress),
-          senderAddress: getAddress(proposalData.senderAddress),
+          ...pd,
+          safeAddress: getAddress(pd.safeAddress),
+          senderAddress: getAddress(pd.senderAddress),
           safeTransactionData: {
-            ...proposalData.safeTransactionData,
-            to: getAddress(proposalData.safeTransactionData.to),
-            nonce: Number(proposalData.safeTransactionData.nonce),
-          }
+            ...pd.safeTransactionData,
+            to: getAddress(pd.safeTransactionData.to),
+            nonce: Number(pd.safeTransactionData.nonce),
+          },
         };
 
-        await apiKit.proposeTransaction(formattedProposalData);
-        return NextResponse.json({ success: true, data: { proposed: true } });
+        await apiKit.proposeTransaction(formattedProposalData as any);
+        return successResponse({ proposed: true });
       }
 
       case 'getPendingTransactions': {
-        const transactions = await apiKit.getPendingTransactions(safeAddress);
-        return NextResponse.json({ success: true, data: transactions });
+        const transactions = await apiKit.getPendingTransactions(safeAddress!);
+        return successResponse(transactions);
       }
 
       case 'getTransaction': {
-        const { safeTxHash } = params;
-        if (!safeTxHash) {
-          return NextResponse.json(
-            { error: 'Missing safeTxHash' },
-            { status: 400 }
-          );
+        if (!params.safeTxHash) {
+          throw new BadRequestError('Missing safeTxHash');
         }
-        
-        const transaction = await apiKit.getTransaction(safeTxHash);
-        return NextResponse.json({ success: true, data: transaction });
+        const transaction = await apiKit.getTransaction(params.safeTxHash);
+        return successResponse(transaction);
       }
 
       case 'getSafesByOwner': {
-        const { ownerAddress } = params;
-        if (!ownerAddress) {
-          return NextResponse.json(
-            { error: 'Missing ownerAddress' },
-            { status: 400 }
-          );
+        if (!params.ownerAddress) {
+          throw new BadRequestError('Missing ownerAddress');
         }
-
-        const safesByOwner = await apiKit.getSafesByOwner(getAddress(ownerAddress));
-        return NextResponse.json({ success: true, data: safesByOwner });
+        const safesByOwner = await apiKit.getSafesByOwner(getAddress(params.ownerAddress));
+        return successResponse(safesByOwner);
       }
 
       case 'getAllSafesInfo': {
         const { safeAddresses } = params;
         if (!safeAddresses || !Array.isArray(safeAddresses)) {
-          return NextResponse.json(
-            { error: 'Missing safeAddresses array' },
-            { status: 400 }
-          );
+          throw new BadRequestError('Missing safeAddresses array');
         }
 
-        // Fetch info for multiple safes
         const safeInfos: Record<string, any> = {};
         const errors: Record<string, string> = {};
 
-        for (const safeAddress of safeAddresses) {
+        for (const addr of safeAddresses) {
           try {
-            const safeInfo = await apiKit.getSafeInfo(getAddress(safeAddress));
-            safeInfos[safeAddress] = safeInfo;
+            safeInfos[addr] = await apiKit.getSafeInfo(getAddress(addr));
           } catch (error) {
-            errors[safeAddress] = (error as Error).message;
+            errors[addr] = (error as Error).message;
           }
         }
 
-        return NextResponse.json({ 
-          success: true, 
-          data: { 
-            safeInfos, 
-            errors: Object.keys(errors).length > 0 ? errors : undefined 
-          } 
+        return successResponse({
+          safeInfos,
+          errors: Object.keys(errors).length > 0 ? errors : undefined,
         });
       }
 
       case 'getAshWalletUrl': {
         if (!safeAddress) {
-          return NextResponse.json(
-            { error: 'Missing safeAddress' },
-            { status: 400 }
-          );
+          throw new BadRequestError('Missing safeAddress');
         }
-
-        // Get chain info to get the shortName
-        const chainInfo = await getSupportedChain(chainId);
-        const ashWalletUrl = `https://wallet.ash.center/transactions/queue?safe=${chainInfo.shortName}:${safeAddress}`;
-        
-        return NextResponse.json({ 
-          success: true, 
-          data: { 
-            url: ashWalletUrl,
-            shortName: chainInfo.shortName
-          } 
-        });
+        const walletChainInfo = await getSupportedChain(chainId);
+        const url = `https://wallet.ash.center/transactions/queue?safe=${walletChainInfo.shortName}:${safeAddress}`;
+        return successResponse({ url, shortName: walletChainInfo.shortName });
       }
 
       default:
-        return NextResponse.json(
-          { error: `Unknown action: ${action}` },
-          { status: 400 }
-        );
+        throw new BadRequestError(`Unknown action: ${action}`);
     }
-
-  } catch (error) {
-    console.error('Safe API error:', error);
-    return NextResponse.json(
-      { error: `Safe operation failed: ${(error as Error).message}` },
-      { status: 500 }
-    );
-  }
-} 
+  },
+  { schema: safeBodySchema },
+);

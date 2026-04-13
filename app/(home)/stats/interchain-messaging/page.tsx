@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { apiFetch } from "@/lib/api/client";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -106,13 +107,7 @@ export default function ICMStatsPage() {
       setError(null);
 
       // Always fetch 1 year of data
-      const response = await fetch(`/api/icm-stats?timeRange=1y`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiFetch<any>(`/api/icm-stats?timeRange=1y`);
       setMetrics(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -132,16 +127,7 @@ export default function ICMStatsPage() {
       }
 
       const limit = offset === 0 ? 20 : 25;
-      const response = await fetch(
-        `/api/ictt-stats?limit=${limit}&offset=${offset}`
-      );
-
-      if (!response.ok) {
-        console.error("Failed to fetch ICTT stats:", response.status);
-        return;
-      }
-
-      const data = await response.json();
+      const data = await apiFetch<any>(`/api/ictt-stats?limit=${limit}&offset=${offset}`);
 
       if (append && icttData) {
         setIcttData({
@@ -168,11 +154,8 @@ export default function ICMStatsPage() {
   const fetchIcmFlowData = async () => {
     try {
       setIcmFlowLoading(true);
-      const response = await fetch("/api/icm-flow?days=30");
-      if (response.ok) {
-        const data = await response.json();
-        setIcmFlowData(data);
-      }
+      const data = await apiFetch<any>("/api/icm-flow?days=30");
+      setIcmFlowData(data);
     } catch (err) {
       console.error("Error fetching ICM flow data:", err);
     } finally {

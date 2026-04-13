@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import l1ChainsData from "@/constants/l1-chains.json";
-import { STATS_CONFIG } from "@/types/stats";
-import { getChainICMCount } from "@/lib/icm-clickhouse";
+import { withApi } from '@/lib/api';
+import l1ChainsData from '@/constants/l1-chains.json';
+import { STATS_CONFIG } from '@/types/stats';
+import { getChainICMCount } from '@/lib/icm-clickhouse';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,19 +11,19 @@ const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
 const METRICS_API_URL = process.env.METRICS_API_URL;
-if (!METRICS_API_URL) {
-  console.warn('METRICS_API_URL is not set — overview-stats endpoint will fail');
-}
 
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
   week: { days: 9, secondsInRange: 7 * SECONDS_PER_DAY },
-  month: { days: 32, secondsInRange: 30 * SECONDS_PER_DAY }
+  month: { days: 32, secondsInRange: 30 * SECONDS_PER_DAY },
 } as const;
 
 type TimeRangeKey = keyof typeof TIME_RANGE_CONFIG;
 
-interface MetricResult { timestamp: number; value: number; }
+interface MetricResult {
+  timestamp: number;
+  value: number;
+}
 interface ChainOverviewMetrics {
   chainId: string;
   chainName: string;
@@ -63,7 +64,11 @@ const chainDataCache = new Map<string, { data: ChainOverviewMetrics; timestamp: 
 const revalidatingKeys = new Set<string>();
 const pendingRequests = new Map<string, Promise<OverviewMetrics | null>>();
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -73,11 +78,15 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   }
 }
 
-async function processInBatches<T, R>(items: T[], processor: (item: T) => Promise<R>, batchSize: number): Promise<PromiseSettledResult<R>[]> {
+async function processInBatches<T, R>(
+  items: T[],
+  processor: (item: T) => Promise<R>,
+  batchSize: number,
+): Promise<PromiseSettledResult<R>[]> {
   const results: PromiseSettledResult<R>[] = [];
   for (let i = 0; i < items.length; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
-    results.push(...await Promise.allSettled(batch.map(processor)));
+    results.push(...(await Promise.allSettled(batch.map(processor))));
   }
   return results;
 }
@@ -96,11 +105,11 @@ function sumValues(sorted: MetricResult[], daysToSum: number): number {
 
 function getAllChains(): ChainInfo[] {
   return l1ChainsData
-    .filter(chain =>
-      !('isTestnet' in chain && chain.isTestnet === true) &&
-      !('isActive' in chain && chain.isActive === false)
+    .filter(
+      (chain) =>
+        !('isTestnet' in chain && chain.isTestnet === true) && !('isActive' in chain && chain.isActive === false),
     )
-    .map(chain => ({
+    .map((chain) => ({
       chainId: chain.chainId,
       chainName: chain.chainName,
       logoUri: chain.chainLogoURI || '',
@@ -113,7 +122,7 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
   try {
     const config = TIME_RANGE_CONFIG[timeRange];
     const endTimestamp = Math.floor(Date.now() / 1000);
-    const startTimestamp = endTimestamp - (config.days * SECONDS_PER_DAY);
+    const startTimestamp = endTimestamp - config.days * SECONDS_PER_DAY;
 
     const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/txCount`);
     url.searchParams.set('timeInterval', 'day');
@@ -131,8 +140,8 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
     if (sorted.length === 1) return sorted[0]?.value || 0;
     if (timeRange === 'day') return sorted[1]?.value || 0;
     return sumValues(sorted, timeRange === 'week' ? 7 : 30);
-  } catch (error) {
-    console.error(`[getTxCountData] Failed for chain ${chainId}:`, error);
+  } catch {
+    // Per-chain tx count failure; return 0
     return 0;
   }
 }
@@ -140,7 +149,7 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
 async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
-    const startTimestamp = endTimestamp - (30 * SECONDS_PER_DAY);
+    const startTimestamp = endTimestamp - 30 * SECONDS_PER_DAY;
 
     const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/activeAddresses`);
     url.searchParams.set('timeInterval', timeRange);
@@ -156,8 +165,8 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
     const sorted = sortByTimestampDesc(allResults);
     const dataPoint = sorted.length > 1 ? sorted[1] : sorted[0];
     return dataPoint?.value || 0;
-  } catch (error) {
-    console.error(`[getActiveAddressesData] Failed for chain ${chainId}:`, error);
+  } catch {
+    // Per-chain active addresses failure; return 0
     return 0;
   }
 }
@@ -166,32 +175,32 @@ async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<num
   try {
     const daysToSum = timeRange === 'day' ? 1 : timeRange === 'week' ? 7 : 30;
     return await getChainICMCount(chainId, daysToSum);
-  } catch (error) {
-    console.error(`[getICMData] Failed for chain ${chainId}:`, error);
+  } catch {
+    // Per-chain ICM failure; return 0
     return 0;
   }
 }
 
 // TODO: migrate to metrics-api when it supports validatorCount (currently a stub)
 async function getValidatorCount(subnetId: string): Promise<number | string> {
-  if (!subnetId || subnetId === "N/A") return "N/A";
+  if (!subnetId || subnetId === 'N/A') return 'N/A';
 
   try {
     const url = new URL('https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount');
     url.searchParams.set('pageSize', '1');
     url.searchParams.set('subnetId', subnetId);
-    
-    const response = await fetchWithTimeout(url.toString(), { headers: { 'Accept': 'application/json' } });
-    if (!response.ok) return "N/A";
+
+    const response = await fetchWithTimeout(url.toString(), { headers: { Accept: 'application/json' } });
+    if (!response.ok) return 'N/A';
 
     const data = await response.json();
     const value = data?.results?.[0]?.value;
-    return value ? Number(value) : "N/A";
+    return value ? Number(value) : 'N/A';
   } catch (error) {
     if (error instanceof Error && error.name !== 'AbortError') {
-      console.error(`[getValidatorCount] Failed for subnet ${subnetId}:`, error);
+      // Validator count is best-effort; return N/A
     }
-    return "N/A";
+    return 'N/A';
   }
 }
 
@@ -203,9 +212,7 @@ async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, numb
     return marketCapCache.data;
   }
 
-  const coingeckoIds = chains
-    .filter(c => c.coingeckoId)
-    .map(c => c.coingeckoId!);
+  const coingeckoIds = chains.filter((c) => c.coingeckoId).map((c) => c.coingeckoId!);
 
   if (coingeckoIds.length === 0) return {};
 
@@ -213,8 +220,8 @@ async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, numb
     const ids = coingeckoIds.join(',');
     const response = await fetchWithTimeout(
       `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_market_cap=true`,
-      { headers: { 'Accept': 'application/json' } },
-      10000
+      { headers: { Accept: 'application/json' } },
+      10000,
     );
 
     if (!response.ok) return marketCapCache?.data ?? {};
@@ -231,8 +238,8 @@ async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, numb
 
     marketCapCache = { data: result, timestamp: Date.now() };
     return result;
-  } catch (error) {
-    console.error('[fetchMarketCaps] Failed:', error);
+  } catch {
+    // Market cap fetch failed; return cached or empty
     return marketCapCache?.data ?? {};
   }
 }
@@ -240,7 +247,7 @@ async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, numb
 async function fetchChainMetrics(chain: ChainInfo, timeRange: TimeRangeKey): Promise<ChainOverviewMetrics | null> {
   const cacheKey = `${chain.chainId}-${timeRange}`;
   const cached = chainDataCache.get(cacheKey);
-  
+
   if (cached && Date.now() - cached.timestamp < STATS_CONFIG.CACHE.SHORT_DURATION) {
     return cached.data;
   }
@@ -267,24 +274,24 @@ async function fetchChainMetrics(chain: ChainInfo, timeRange: TimeRangeKey): Pro
 
     chainDataCache.set(cacheKey, { data: result, timestamp: Date.now() });
     return result;
-  } catch (error) {
-    console.error(`[fetchChainMetrics] Failed for chain ${chain.chainId}:`, error);
+  } catch {
+    // Per-chain metrics failure; return null
     return null;
   }
 }
 
 async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<OverviewMetrics | null> {
   try {
-    const startTime = Date.now();
+    const _startTime = Date.now();
     const allChains = getAllChains();
-    
+
     const [chainResults, marketCaps] = await Promise.all([
       processInBatches(allChains, (chain) => fetchChainMetrics(chain, timeRange), MAX_CONCURRENT_CHAINS),
       fetchMarketCaps(allChains),
     ]);
     const chainMetrics = chainResults
       .filter((r): r is PromiseFulfilledResult<ChainOverviewMetrics> => r.status === 'fulfilled' && r.value !== null)
-      .map(r => r.value);
+      .map((r) => r.value);
 
     // Build coingeckoId -> chainId lookup and merge market caps
     const coingeckoToChainId = new Map<string, string>();
@@ -296,60 +303,72 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
     for (const [coingeckoId, mcap] of Object.entries(marketCaps)) {
       const chainId = coingeckoToChainId.get(coingeckoId);
       if (chainId) {
-        const chainMetric = chainMetrics.find(c => c.chainId === chainId);
+        const chainMetric = chainMetrics.find((c) => c.chainId === chainId);
         if (chainMetric) {
           chainMetric.marketCap = mcap;
         }
       }
     }
 
-    const aggregated = chainMetrics.reduce((acc, chain) => {
-      acc.totalTxCount += chain.txCount || 0;
-      acc.totalActiveAddresses += chain.activeAddresses || 0;
-      acc.totalICMMessages += chain.icmMessages || 0;
-      acc.totalMarketCap += chain.marketCap ?? 0;
-      if (typeof chain.validatorCount === 'number') acc.totalValidators += chain.validatorCount;
-      if (chain.txCount > 0 || chain.activeAddresses > 0) acc.activeChains++;
-      return acc;
-    }, { totalTxCount: 0, totalActiveAddresses: 0, totalICMMessages: 0, totalMarketCap: 0, totalValidators: 0, activeChains: 0 });
+    const aggregated = chainMetrics.reduce(
+      (acc, chain) => {
+        acc.totalTxCount += chain.txCount || 0;
+        acc.totalActiveAddresses += chain.activeAddresses || 0;
+        acc.totalICMMessages += chain.icmMessages || 0;
+        acc.totalMarketCap += chain.marketCap ?? 0;
+        if (typeof chain.validatorCount === 'number') acc.totalValidators += chain.validatorCount;
+        if (chain.txCount > 0 || chain.activeAddresses > 0) acc.activeChains++;
+        return acc;
+      },
+      {
+        totalTxCount: 0,
+        totalActiveAddresses: 0,
+        totalICMMessages: 0,
+        totalMarketCap: 0,
+        totalValidators: 0,
+        activeChains: 0,
+      },
+    );
 
     const metrics: OverviewMetrics = {
       chains: chainMetrics,
       aggregated: { ...aggregated, totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange },
       timeRange,
-      last_updated: Date.now()
+      last_updated: Date.now(),
     };
 
     cachedData.set(timeRange, { data: metrics, timestamp: Date.now() });
-    console.log(`[fetchFreshData] Completed in ${Date.now() - startTime}ms, ${chainMetrics.length}/${allChains.length} chains`);
+    // Completed fresh data fetch
     return metrics;
-  } catch (error) {
-    console.error('[fetchFreshData] Failed:', error);
+  } catch {
+    // Fresh data fetch failed; return null
     return null;
   }
 }
 
-async function fetchFreshData(timeRange: TimeRangeKey): Promise<{ data: OverviewMetrics; fetchTime: number; chainCount: number } | null> {
+async function fetchFreshData(
+  timeRange: TimeRangeKey,
+): Promise<{ data: OverviewMetrics; fetchTime: number; chainCount: number } | null> {
   const startTime = Date.now();
   const pendingKey = `fresh-${timeRange}`;
   let pendingPromise = pendingRequests.get(pendingKey);
-  
+
   if (!pendingPromise) {
     pendingPromise = fetchFreshDataInternal(timeRange);
     pendingRequests.set(pendingKey, pendingPromise);
     pendingPromise.finally(() => pendingRequests.delete(pendingKey));
   }
-  
+
   const data = await pendingPromise;
   if (!data) return null;
-  
+
   return { data, fetchTime: Date.now() - startTime, chainCount: data.chains.length };
 }
 
 function createResponse(
   data: OverviewMetrics | { error: string },
   meta: { source: string; timeRange?: TimeRangeKey; cacheAge?: number; fetchTime?: number; chainCount?: number },
-  status = 200
+  status = 200,
 ) {
   const headers: Record<string, string> = { 'Cache-Control': CACHE_CONTROL_HEADER, 'X-Data-Source': meta.source };
   if (meta.timeRange) headers['X-Time-Range'] = meta.timeRange;
@@ -359,41 +378,40 @@ function createResponse(
   return NextResponse.json(data, { status, headers });
 }
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const timeRangeParam = searchParams.get('timeRange') || 'day';
-    const timeRange: TimeRangeKey = timeRangeParam in TIME_RANGE_CONFIG ? (timeRangeParam as TimeRangeKey) : 'day';
-    
-    if (searchParams.get('clearCache') === 'true') {
-      cachedData.clear();
-      chainDataCache.clear();
-      revalidatingKeys.clear();
-    }
-    
-    const cached = cachedData.get(timeRange);
-    const cacheAge = cached ? Date.now() - cached.timestamp : Infinity;
-    const isCacheValid = cacheAge < STATS_CONFIG.CACHE.SHORT_DURATION;
-    const isCacheStale = cached && !isCacheValid;
-    
-    if (isCacheStale && !revalidatingKeys.has(timeRange)) {
-      revalidatingKeys.add(timeRange);
-      fetchFreshData(timeRange).finally(() => revalidatingKeys.delete(timeRange));
-      return createResponse(cached.data, { source: 'stale-while-revalidate', timeRange, cacheAge });
-    }
-    
-    if (isCacheValid && cached) {
-      return createResponse(cached.data, { source: 'cache', timeRange, cacheAge });
-    }
-    
-    const freshData = await fetchFreshData(timeRange);
-    if (!freshData) {
-      return createResponse({ error: 'Failed to fetch chain metrics' }, { source: 'error' }, 500);
-    }
-    
-    return createResponse(freshData.data, { source: 'fresh', timeRange, fetchTime: freshData.fetchTime, chainCount: freshData.chainCount });
-  } catch (error) {
-    console.error('[GET /api/overview-stats] Unhandled error:', error);
+export const GET = withApi(async (req) => {
+  const timeRangeParam = req.nextUrl.searchParams.get('timeRange') || 'day';
+  const timeRange: TimeRangeKey = timeRangeParam in TIME_RANGE_CONFIG ? (timeRangeParam as TimeRangeKey) : 'day';
+
+  if (req.nextUrl.searchParams.get('clearCache') === 'true') {
+    cachedData.clear();
+    chainDataCache.clear();
+    revalidatingKeys.clear();
+  }
+
+  const cached = cachedData.get(timeRange);
+  const cacheAge = cached ? Date.now() - cached.timestamp : Infinity;
+  const isCacheValid = cacheAge < STATS_CONFIG.CACHE.SHORT_DURATION;
+  const isCacheStale = cached && !isCacheValid;
+
+  if (isCacheStale && !revalidatingKeys.has(timeRange)) {
+    revalidatingKeys.add(timeRange);
+    fetchFreshData(timeRange).finally(() => revalidatingKeys.delete(timeRange));
+    return createResponse(cached.data, { source: 'stale-while-revalidate', timeRange, cacheAge });
+  }
+
+  if (isCacheValid && cached) {
+    return createResponse(cached.data, { source: 'cache', timeRange, cacheAge });
+  }
+
+  const freshData = await fetchFreshData(timeRange);
+  if (!freshData) {
     return createResponse({ error: 'Failed to fetch chain metrics' }, { source: 'error' }, 500);
   }
-}
+
+  return createResponse(freshData.data, {
+    source: 'fresh',
+    timeRange,
+    fetchTime: freshData.fetchTime,
+    chainCount: freshData.chainCount,
+  });
+});
