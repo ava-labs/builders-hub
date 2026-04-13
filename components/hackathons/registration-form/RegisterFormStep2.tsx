@@ -18,8 +18,9 @@ import {
 import { useFormContext } from "react-hook-form";
 import { RegisterFormValues } from "./RegistrationForm";
 import { Check } from "lucide-react";
+import { EventsLang, t } from "@/lib/events/i18n";
 
-export function RegisterFormStep2() {
+export function RegisterFormStep2({ lang = "en" }: { lang?: EventsLang }) {
   const form = useFormContext<RegisterFormValues>();
 
   const web3ProficiencyOptions = [
@@ -68,19 +69,17 @@ export function RegisterFormStep2() {
   ];
 
   const formatSelectedValues = (values: string[] | undefined) => {
-    if (!values || values.length === 0) return "Select one or more options (optional)";
-
-    return `${values.length} options selected`;
+    if (!values || values.length === 0) return t(lang, "reg.step2.multiSelect.placeholder");
+    return t(lang, "reg.step2.multiSelect.selected", { count: values.length });
   };
   return (
     <>
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-foreground">
-          Step 2: Experience & Skills
+          {t(lang, "reg.step2.title")}
         </h3>
         <p className="text-zinc-600">
-          Share your skills and expertise to tailor your experience on Builder
-          Hub. All questions in this step are optional.
+          {t(lang, "reg.step2.subtitle")}
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
@@ -95,12 +94,12 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  What is your proficiency with Web3? (Amateur, 5 = Expert) (Optional)
+                  {t(lang, "reg.step2.web3.label")}
                 </FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder="Select your Web3 knowledge level (optional)" />
+                      <SelectValue placeholder={t(lang, "reg.step2.web3.placeholder")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md">
@@ -112,7 +111,7 @@ export function RegisterFormStep2() {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-600">
-                  Rate your experience from beginner to expert.
+                  {t(lang, "reg.step2.web3.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -124,7 +123,7 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Which of the following best describes you? (Optional)
+                  {t(lang, "reg.step2.roles.label")}
                 </FormLabel>
                 <Select
                   onValueChange={(value: string) => {
@@ -166,7 +165,7 @@ export function RegisterFormStep2() {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-400">
-                  Choose roles that best represent your expertise.
+                  {t(lang, "reg.step2.roles.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -177,7 +176,7 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  What are you most interested in within Web3? (Optional)
+                  {t(lang, "reg.step2.interests.label")}
                 </FormLabel>
                 <Select
                   onValueChange={(value: string) => {
@@ -219,7 +218,7 @@ export function RegisterFormStep2() {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-400">
-                  Choose the topics you want to explore further.
+                  {t(lang, "reg.step2.interests.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -230,7 +229,7 @@ export function RegisterFormStep2() {
             name="tools"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Which tools are you familiar with? (Optional)</FormLabel>
+                <FormLabel>{t(lang, "reg.step2.tools.label")}</FormLabel>
                 <Select
                   onValueChange={(value: string) => {
                     const currentValues = Array.isArray(field.value)
@@ -271,7 +270,7 @@ export function RegisterFormStep2() {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-400">
-                  Select platforms or technologies you have experience with.
+                  {t(lang, "reg.step2.tools.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -286,7 +285,7 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Which programming languages are you familiar with? (Optional)
+                  {t(lang, "reg.step2.languages.label")}
                 </FormLabel>
                 <Select
                   onValueChange={(value: string) => {
@@ -328,7 +327,7 @@ export function RegisterFormStep2() {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-600">
-                  Choose all that apply.
+                  {t(lang, "reg.step2.languages.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -342,12 +341,12 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Have you participated in any other hackathons before? (Optional)
+                  {t(lang, "reg.step2.hackathon.label")}
                 </FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder="Select an option (optional)" />
+                      <SelectValue placeholder={t(lang, "reg.step2.hackathon.placeholder")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-black dark:text-zinc-600 rounded-md shadow-md">
@@ -359,8 +358,7 @@ export function RegisterFormStep2() {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-600">
-                  Let us know if this is your first hackathon or if you have
-                  prior experience.
+                  {t(lang, "reg.step2.hackathon.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -371,11 +369,11 @@ export function RegisterFormStep2() {
             name="github_portfolio"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>What's your GitHub or Portfolio account? (Optional)</FormLabel>
+                <FormLabel>{t(lang, "reg.step2.github.label")}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
-                      placeholder="Enter your GitHub or Portfolio link (optional)"
+                      placeholder={t(lang, "reg.step2.github.placeholder")}
                       {...field}
                       className="bg-transparent placeholder-zinc-600 pr-10"
                     />
@@ -385,7 +383,7 @@ export function RegisterFormStep2() {
                   </div>
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  Provide a link to showcase your past work (optional).
+                  {t(lang, "reg.step2.github.hint")}
                 </FormMessage>
               </FormItem>
             )}

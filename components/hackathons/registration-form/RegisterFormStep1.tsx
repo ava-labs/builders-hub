@@ -20,11 +20,13 @@ import { useFormContext } from "react-hook-form";
 import { User } from "next-auth";
 import { countries } from "@/constants/countries";
 import { hsEmploymentRoles } from "@/constants/hs_employment_role";
+import { EventsLang, t } from "@/lib/events/i18n";
 
 interface Step1Props {
-  user?: User; // Optional User prop
+  user?: User;
+  lang?: EventsLang;
 }
-export default function RegisterFormStep1({ user }: Step1Props) {
+export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
   const form = useFormContext<RegisterFormValues>();
   const [open, setOpen] = useState<boolean>(false);
 
@@ -32,10 +34,10 @@ export default function RegisterFormStep1({ user }: Step1Props) {
     <>
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-foreground">
-          Step 1: Personal Information
+          {t(lang, "reg.step1.title")}
         </h3>
         <p className="text-zinc-600">
-          Provide your personal details to create your Builder Hub profile.
+          {t(lang, "reg.step1.subtitle")}
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
@@ -49,16 +51,16 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name or Nickname *</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.name.label")}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter your full name or preferred display name"
+                    placeholder={t(lang, "reg.step1.name.placeholder")}
                     className="bg-transparent placeholder-zinc-600"
                     {...field}
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  This name will be used for your profile and communications.
+                  {t(lang, "reg.step1.name.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -70,7 +72,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address *</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.email.label")}</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
@@ -80,29 +82,28 @@ export default function RegisterFormStep1({ user }: Step1Props) {
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  This email will be used for login and communications.
+                  {t(lang, "reg.step1.email.hint")}
                 </FormMessage>
               </FormItem>
             )}
           />
 
-          {/* NameCompany (opcional) */}
+          {/* Company (opcional) */}
           <FormField
             control={form.control}
             name="company_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Company/University (if applicable)</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.company.label")}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter your company/University name"
+                    placeholder={t(lang, "reg.step1.company.placeholder")}
                     {...field}
                     className="bg-transparent placeholder-zinc-600"
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  If you are part of a company or affiliated with a university, mention it here. Otherwise,
-                  leave blank.
+                  {t(lang, "reg.step1.company.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -116,11 +117,11 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="role"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Role at Company</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.role.label")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder="Select your role" />
+                      <SelectValue placeholder={t(lang, "reg.step1.role.placeholder")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md max-h-60 overflow-y-auto">
@@ -132,7 +133,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-600">
-                  Select the option that best matches your role.
+                  {t(lang, "reg.step1.role.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -144,11 +145,11 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="city"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Country of Residence *</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.country.label")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder="Select your country" />
+                      <SelectValue placeholder={t(lang, "reg.step1.country.placeholder")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md max-h-60 overflow-y-auto">
@@ -160,7 +161,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-600">
-                  This will help us bring in-person events closer to you.
+                  {t(lang, "reg.step1.country.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -172,16 +173,15 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="telegram_user"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Telegram Username *</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.telegram.label")}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter your Telegram username (without @)"
+                    placeholder={t(lang, "reg.step1.telegram.placeholder")}
                     className="bg-transparent placeholder-zinc-600"
                     {...field}
                   />
                 </FormControl>
-                <FormMessage className="text-zinc-600">
-                </FormMessage>
+                <FormMessage className="text-zinc-600" />
               </FormItem>
             )}
           />
@@ -189,7 +189,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
       </div>
       <div className="mt-8 mb-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">
-          Additional Information
+          {t(lang, "reg.step1.additional.title")}
         </h3>
         <div className="w-full h-px bg-zinc-300 mb-6" />
       </div>
@@ -210,7 +210,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
               </FormControl>
               <div className="flex-1">
                 <FormLabel className="text-base font-medium cursor-pointer">
-                  Are you a founder or co-founder of a blockchain project?
+                  {t(lang, "reg.step1.founder.label")}
                 </FormLabel>
               </div>
             </FormItem>
@@ -232,7 +232,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
               </FormControl>
               <div className="flex-1">
                 <FormLabel className="text-base font-medium cursor-pointer">
-                  Consider yourself an Avalanche ecosystem member?
+                  {t(lang, "reg.step1.ecosystem.label")}
                 </FormLabel>
               </div>
             </FormItem>

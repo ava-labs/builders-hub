@@ -27,7 +27,7 @@ export default function JoinBannerLink({
     if (customLink) {
       return customLink;
     }
-    const baseUrl = `/hackathons/registration-form?hackathon=${hackathonId}`;
+    const baseUrl = `/events/registration-form?event=${hackathonId}`;
     return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
   };
 

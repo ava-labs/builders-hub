@@ -19,6 +19,7 @@ interface ModernEventLayoutProps {
   hackathon: HackathonHeader;
   id: string;
   isRegistered: boolean;
+  isAuthenticated: boolean;
   utm: string;
 }
 
@@ -26,6 +27,7 @@ export default function ModernEventLayout({
   hackathon,
   id,
   isRegistered,
+  isAuthenticated,
   utm,
 }: ModernEventLayoutProps) {
   const lang = normalizeEventsLang(hackathon.content?.language);
@@ -96,7 +98,7 @@ export default function ModernEventLayout({
     ...(hasSchedule
       ? [{ name: t(lang, "menu.schedule"), ref: "schedule" }]
       : []),
-    ...(isHackathon
+    ...(isHackathon && isRegistered
       ? [{ name: t(lang, "menu.submission"), ref: "submission" }]
       : []),
     ...(hasSpeakers
@@ -123,6 +125,7 @@ export default function ModernEventLayout({
         <span className="text-sm sm:text-xl font-bold">{hackathon.title}</span>{" "}
         <JoinButton
           isRegistered={isRegistered}
+          isAuthenticated={isAuthenticated}
           hackathonId={id}
           customLink={hackathon.content.join_custom_link}
           customText={hackathon.content.join_custom_text}
@@ -216,7 +219,7 @@ export default function ModernEventLayout({
                 }
               />
             )}
-            {isHackathon && <Submission hackathon={hackathon} />}
+            {isHackathon && <Submission hackathon={hackathon} isRegistered={isRegistered} isAuthenticated={isAuthenticated} utm={utm} />}
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />
             {hasPartners && <Sponsors hackathon={hackathon} />}

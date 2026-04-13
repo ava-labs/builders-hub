@@ -31,8 +31,8 @@ export function ActiveNavHighlighter() {
       activeSection = '/explorer';
     } else if (pathname.startsWith('/stats')) {
       activeSection = '/stats';
-    } else if (pathname.startsWith('/hackathons')) {
-      activeSection = '/hackathons';
+    } else if (pathname.startsWith('/hackathons') || pathname.startsWith('/events')) {
+      activeSection = '/events';
     } else if (pathname.startsWith('/grants') || pathname.startsWith('/codebase')) {
       activeSection = '/grants';
     } else if (pathname.startsWith('/university')) {
