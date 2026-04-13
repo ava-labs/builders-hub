@@ -110,7 +110,16 @@ export default function StepFlow({
 }: StepFlowProps) {
   const router = useRouter();
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
-  const [branchChoices, setBranchChoices] = useState<Record<string, string>>({});
+  const branchStorageKey = `stepflow-branch-choices-${basePath}`;
+  const [branchChoices, setBranchChoices] = useState<Record<string, string>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const stored = sessionStorage.getItem(branchStorageKey);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Get flow metadata for completion modal
   const flowMetadata = useMemo(() => {
@@ -165,13 +174,14 @@ export default function StepFlow({
 
   useEffect(() => {
     if (selectedBranchOption && currentStep?.type === "branch") {
-      setBranchChoices(prev =>
-        prev[currentStep.key] === selectedBranchOption.key
-          ? prev
-          : { ...prev, [currentStep.key]: selectedBranchOption.key }
-      );
+      setBranchChoices(prev => {
+        if (prev[currentStep.key] === selectedBranchOption.key) return prev;
+        const next = { ...prev, [currentStep.key]: selectedBranchOption.key };
+        try { sessionStorage.setItem(branchStorageKey, JSON.stringify(next)); } catch {}
+        return next;
+      });
     }
-  }, [selectedBranchOption, currentStep]);
+  }, [selectedBranchOption, currentStep, branchStorageKey]);
 
   if (currentIndex < 0 || !currentStep) {
     return <div>Step &quot;{currentStepKey}&quot; not found.</div>;
