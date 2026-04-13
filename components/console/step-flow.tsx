@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -110,6 +110,7 @@ export default function StepFlow({
 }: StepFlowProps) {
   const router = useRouter();
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+  const [branchChoices, setBranchChoices] = useState<Record<string, string>>({});
 
   // Get flow metadata for completion modal
   const flowMetadata = useMemo(() => {
@@ -162,6 +163,16 @@ export default function StepFlow({
     return { currentIndex: -1, currentStep: undefined, selectedBranchOption: undefined };
   }, [currentStepKey, steps]);
 
+  useEffect(() => {
+    if (selectedBranchOption && currentStep?.type === "branch") {
+      setBranchChoices(prev =>
+        prev[currentStep.key] === selectedBranchOption.key
+          ? prev
+          : { ...prev, [currentStep.key]: selectedBranchOption.key }
+      );
+    }
+  }, [selectedBranchOption, currentStep]);
+
   if (currentIndex < 0 || !currentStep) {
     return <div>Step &quot;{currentStepKey}&quot; not found.</div>;
   }
@@ -184,11 +195,10 @@ export default function StepFlow({
     if (prevStep.type === "single") {
       return `${basePath}/${prevStep.key}`;
     } else {
-      // For branch steps, we should go to the first option by default
-      // The user can then select a different option if they want
-      return `${basePath}/${prevStep.options[0].key}`;
+      const chosenKey = branchChoices[prevStep.key] || prevStep.options[0].key;
+      return `${basePath}/${chosenKey}`;
     }
-  }, [atFirst, currentIndex, steps, basePath]);
+  }, [atFirst, currentIndex, steps, basePath, branchChoices]);
 
   const nextLink = useMemo(() => {
     if (atLast) return null;
@@ -274,6 +284,7 @@ export default function StepFlow({
                   <div className="flex flex-col items-center gap-2">
                     {s.options.map((opt, optIdx) => {
                       const isOptionActive = isActiveStep && selectedBranchOption?.key === opt.key;
+                      const isChosenDone = isDoneStep && branchChoices[s.key] === opt.key;
                       return (
                         <React.Fragment key={opt.key}>
                           <NavEl
@@ -282,7 +293,7 @@ export default function StepFlow({
                               "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                               isOptionActive
                                 ? "border-primary text-primary"
-                                : isDoneStep
+                                : isChosenDone
                                 ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
                                 : "border-border text-muted-foreground",
                               s.optional
@@ -295,12 +306,12 @@ export default function StepFlow({
                                 "flex h-6 w-6 items-center justify-center rounded-full text-xs",
                                 isOptionActive
                                   ? "bg-primary text-primary-foreground"
-                                  : isDoneStep
+                                  : isChosenDone
                                   ? "bg-green-500 text-white"
                                   : "bg-muted text-muted-foreground",
                               )}
                             >
-                              {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
+                              {isChosenDone ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
                             </span>
                             <span>{opt.label}</span>
                           </NavEl>
@@ -335,7 +346,10 @@ export default function StepFlow({
                 type="button"
                 onClick={() => {
                   const prevStep = steps[currentIndex - 1];
-                  onNavigate(getStepNavKey(prevStep));
+                  const key = prevStep.type === "single"
+                    ? prevStep.key
+                    : (branchChoices[prevStep.key] || prevStep.options[0].key);
+                  onNavigate(key);
                 }}
                 className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
               >
