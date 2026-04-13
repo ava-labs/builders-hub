@@ -25,7 +25,12 @@ export interface ERC20TokenStakingManagerHook {
     rewardRecipient: string,
   ) => Promise<string>;
   completeValidatorRegistration: (messageIndex: number, accessList?: any[]) => Promise<string>;
-  initiateValidatorRemoval: (validationID: string) => Promise<string>;
+  initiateValidatorRemoval: (
+    validationID: string,
+    includeUptimeProof: boolean,
+    messageIndex: number,
+    accessList?: any[],
+  ) => Promise<string>;
   completeValidatorRemoval: (messageIndex: number, accessList?: any[]) => Promise<string>;
   forceInitiateValidatorRemoval: (
     validationID: string,
@@ -121,8 +126,18 @@ export function useERC20TokenStakingManager(contractAddress: string | null, abi?
       accessList,
     });
 
-  const initiateValidatorRemoval = (validationID: string) =>
-    contract.write('initiateValidatorRemoval', [validationID], 'Initiate Validator Removal (ERC20 Staking)');
+  const initiateValidatorRemoval = (
+    validationID: string,
+    includeUptimeProof: boolean,
+    messageIndex: number,
+    accessList?: any[],
+  ) =>
+    contract.write(
+      'initiateValidatorRemoval',
+      [validationID, includeUptimeProof, messageIndex],
+      'Initiate Validator Removal (ERC20 Staking)',
+      { accessList },
+    );
 
   const completeValidatorRemoval = (messageIndex: number, accessList?: any[]) =>
     contract.write('completeValidatorRemoval', [messageIndex], 'Complete Validator Removal (ERC20 Staking)', {

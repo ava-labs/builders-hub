@@ -80,6 +80,8 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
   }, [chainPublicClient, stakingManagerAddress, delegationID, contractAbi]);
 
   const handleInitiateRemoval = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
 
@@ -87,6 +89,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
       const msg = 'Wallet or chain configuration is not properly initialized.';
       setErrorState(msg);
       onError(msg);
+      setIsProcessing(false);
       return;
     }
 
@@ -94,6 +97,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
       const msg = 'Valid delegation ID is required.';
       setErrorState(msg);
       onError(msg);
+      setIsProcessing(false);
       return;
     }
 
@@ -101,6 +105,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
       const msg = 'Staking Manager address is required.';
       setErrorState(msg);
       onError(msg);
+      setIsProcessing(false);
       return;
     }
 
@@ -109,10 +114,10 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
       const msg = 'Message index must be a non-negative number.';
       setErrorState(msg);
       onError(msg);
+      setIsProcessing(false);
       return;
     }
 
-    setIsProcessing(true);
     try {
       // Pre-check delegation status
       const fullDelegationInfo = (await chainPublicClient.readContract({

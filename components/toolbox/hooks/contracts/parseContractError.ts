@@ -58,9 +58,9 @@ export function parseContractError(err: unknown): string {
     return 'Insufficient funds for transaction';
   }
 
-  // Nonce errors
+  // Nonce errors — wallet sent a stale nonce (common after rapid tx or tab switching)
   if (raw.includes('nonce')) {
-    return 'Transaction nonce error. Please try again.';
+    return 'Nonce conflict — your wallet sent a stale nonce. This usually means a previous transaction was already confirmed. Refresh the page and check your transaction history.';
   }
 
   // Check for known selectors and error names

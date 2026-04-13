@@ -151,28 +151,33 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   };
 
   const handleInitiateRegistration = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
     setValidationID(null);
 
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain not connected.');
+      setIsProcessing(false);
       return;
     }
     if (!nodeID || !blsPublicKey) {
       setErrorState('Node ID and BLS Public Key are required.');
+      setIsProcessing(false);
       return;
     }
     if (!stakeAmount || parseFloat(stakeAmount) <= 0) {
       setErrorState('Valid stake amount is required.');
+      setIsProcessing(false);
       return;
     }
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
+      setIsProcessing(false);
       return;
     }
 
-    setIsProcessing(true);
     try {
       const amountWei = parseEther(stakeAmount);
       const feeBips = parseInt(delegationFeeBips);

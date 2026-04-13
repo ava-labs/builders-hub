@@ -72,6 +72,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   }, [initialPChainTxId]);
 
   const handleCompleteRemoval = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
     setRewardInfo(null);
@@ -81,24 +83,28 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
+      setIsProcessing(false);
       return;
     }
 
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
       onError('Staking Manager address is required.');
+      setIsProcessing(false);
       return;
     }
 
     if (!pChainTxId.trim()) {
       setErrorState('P-Chain transaction ID is required.');
       onError('P-Chain transaction ID is required.');
+      setIsProcessing(false);
       return;
     }
 
     if (!subnetIdL1) {
       setErrorState('L1 Subnet ID is required.');
       onError('L1 Subnet ID is required.');
+      setIsProcessing(false);
       return;
     }
 
@@ -106,10 +112,10 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     if (isNaN(msgIndex) || msgIndex < 0) {
       setErrorState('Message index must be a non-negative number.');
       onError('Message index must be a non-negative number.');
+      setIsProcessing(false);
       return;
     }
 
-    setIsProcessing(true);
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
       const coreWalletClient = useWalletStore.getState().coreWalletClient;

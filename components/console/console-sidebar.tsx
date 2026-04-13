@@ -309,6 +309,11 @@ const data = {
           items: [
             {
               title: "Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator-uptime",
+              icon: SquareMinus,
+            },
+            {
+              title: "Force Remove Validator",
               url: "/console/permissionless-l1s/remove-validator",
               icon: SquareMinus,
             },

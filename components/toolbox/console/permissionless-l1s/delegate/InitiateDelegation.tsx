@@ -127,6 +127,8 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
   };
 
   const handleInitiateDelegation = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
     setDelegationID(null);
@@ -134,28 +136,31 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
+      setIsProcessing(false);
       return;
     }
 
     if (!validationID) {
       setErrorState('Validation ID is required.');
       onError('Validation ID is required.');
+      setIsProcessing(false);
       return;
     }
 
     if (!delegationAmount || parseFloat(delegationAmount) <= 0) {
       setErrorState('Valid delegation amount is required.');
       onError('Valid delegation amount is required.');
+      setIsProcessing(false);
       return;
     }
 
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
       onError('Staking Manager address is required.');
+      setIsProcessing(false);
       return;
     }
 
-    setIsProcessing(true);
     try {
       const amountWei = parseEther(delegationAmount);
       const recipient = rewardRecipient || walletEVMAddress || '';

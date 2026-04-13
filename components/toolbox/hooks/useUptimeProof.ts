@@ -18,9 +18,10 @@ export function useUptimeProof() {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Fetch current validators and extract uptime for a specific validation ID
+   * Fetch uptime from the L1 node's /validators endpoint.
+   * Returns null (instead of throwing) when the endpoint is unavailable.
    */
-  async function getValidatorUptime(validationID: string, rpcUrl: string): Promise<bigint> {
+  async function getValidatorUptimeFromNode(validationID: string, rpcUrl: string): Promise<bigint | null> {
     try {
       const validatorsRpcUrl = rpcUrl.replace('/rpc', '/validators');
       const response = await fetch(validatorsRpcUrl, {
@@ -34,14 +35,10 @@ export function useUptimeProof() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch validators');
-      }
+      if (!response.ok) return null;
 
       const data = await response.json();
-      if (!data?.result?.validators) {
-        throw new Error('No validators found in response');
-      }
+      if (!data?.result?.validators) return null;
 
       let hexValidationID = validationID;
       let cb58ValidationID = '';
@@ -80,15 +77,30 @@ export function useUptimeProof() {
         return false;
       });
 
-      if (!validator) {
-        throw new Error(`Validator with validationID ${validationID} not found`);
-      }
+      if (!validator) return null;
 
       return BigInt(validator.uptimeSeconds || 0);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`Failed to get validator uptime: ${message}`);
+    } catch {
+      return null;
     }
+  }
+
+  /**
+   * Fetch current validators and extract uptime for a specific validation ID.
+   *
+   * Uses the L1 node's /validators endpoint which provides real-time uptime
+   * tracked by the node. The on-chain uptimeSeconds (from getStakingValidator)
+   * is NOT a viable fallback — it's only updated when someone explicitly calls
+   * submitUptimeProof() and defaults to 0.
+   */
+  async function getValidatorUptime(validationID: string, rpcUrl: string): Promise<bigint> {
+    const uptime = await getValidatorUptimeFromNode(validationID, rpcUrl);
+    if (uptime !== null) return uptime;
+
+    throw new Error(
+      "Could not retrieve validator uptime. The L1 node's /validators endpoint is unavailable or the validator was not found. " +
+        'Ensure the node exposes the validators API.',
+    );
   }
 
   /**

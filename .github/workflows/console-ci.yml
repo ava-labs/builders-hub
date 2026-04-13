@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - 'components/toolbox/**'
+      - 'components/console/**'
       - 'app/console/**'
       - 'hooks/useConsoleNotifications.ts'
       - 'hooks/useEVMNotifications.ts'

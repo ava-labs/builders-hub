@@ -89,7 +89,15 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
     if (options.value !== undefined) txConfig.value = options.value;
     if (options.accessList) txConfig.accessList = options.accessList;
 
-    const writePromise = walletClient.writeContract(txConfig);
+    // Wrap the raw promise so both notify() and the caller see parsed errors.
+    // Without this, notify() shows the verbose viem error while the caller
+    // gets the parsed version — confusing when they differ.
+    const writePromise = walletClient.writeContract(txConfig).then(
+      (hash) => hash,
+      (err) => {
+        throw new Error(parseContractError(err));
+      },
+    );
 
     notify(
       {
@@ -100,11 +108,7 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
       viemChain,
     );
 
-    try {
-      return await writePromise;
-    } catch (err) {
-      throw new Error(parseContractError(err));
-    }
+    return await writePromise;
   };
 
   return {

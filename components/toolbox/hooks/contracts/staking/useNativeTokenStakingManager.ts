@@ -24,7 +24,12 @@ export interface NativeTokenStakingManagerHook {
     stakeAmount: bigint,
   ) => Promise<string>;
   completeValidatorRegistration: (messageIndex: number, accessList?: any[]) => Promise<string>;
-  initiateValidatorRemoval: (validationID: string) => Promise<string>;
+  initiateValidatorRemoval: (
+    validationID: string,
+    includeUptimeProof: boolean,
+    messageIndex: number,
+    accessList?: any[],
+  ) => Promise<string>;
   completeValidatorRemoval: (messageIndex: number, accessList?: any[]) => Promise<string>;
   forceInitiateValidatorRemoval: (
     validationID: string,
@@ -107,8 +112,18 @@ export function useNativeTokenStakingManager(contractAddress: string | null, abi
       { accessList },
     );
 
-  const initiateValidatorRemoval = (validationID: string) =>
-    contract.write('initiateValidatorRemoval', [validationID], 'Initiate Validator Removal (Native Staking)');
+  const initiateValidatorRemoval = (
+    validationID: string,
+    includeUptimeProof: boolean,
+    messageIndex: number,
+    accessList?: any[],
+  ) =>
+    contract.write(
+      'initiateValidatorRemoval',
+      [validationID, includeUptimeProof, messageIndex],
+      'Initiate Validator Removal (Native Staking)',
+      { accessList },
+    );
 
   const completeValidatorRemoval = (messageIndex: number, accessList?: any[]) =>
     contract.write('completeValidatorRemoval', [messageIndex], 'Complete Validator Removal (Native Staking)', {

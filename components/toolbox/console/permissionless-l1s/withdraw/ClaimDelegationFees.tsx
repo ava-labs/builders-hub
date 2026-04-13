@@ -37,28 +37,32 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
   const handleClaimFees = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
 
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
+      setIsProcessing(false);
       return;
     }
 
     if (!validationID || validationID === '0x0000000000000000000000000000000000000000000000000000000000000000') {
       setErrorState('Valid validation ID is required.');
       onError('Valid validation ID is required.');
+      setIsProcessing(false);
       return;
     }
 
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
       onError('Staking Manager address is required.');
+      setIsProcessing(false);
       return;
     }
 
-    setIsProcessing(true);
     try {
       // Use hook to claim delegation fees
       const hash =

@@ -75,6 +75,8 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
   }, [initialPChainTxId]);
 
   const handleCompleteRemoval = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
     setRewardInfo(null);
@@ -84,30 +86,35 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
+      setIsProcessing(false);
       return;
     }
 
     if (!delegationID || delegationID === '0x0000000000000000000000000000000000000000000000000000000000000000') {
       setErrorState('Valid delegation ID is required.');
       onError('Valid delegation ID is required.');
+      setIsProcessing(false);
       return;
     }
 
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
       onError('Staking Manager address is required.');
+      setIsProcessing(false);
       return;
     }
 
     if (!pChainTxId.trim()) {
       setErrorState('P-Chain transaction ID is required.');
       onError('P-Chain transaction ID is required.');
+      setIsProcessing(false);
       return;
     }
 
     if (!subnetIdL1) {
       setErrorState('L1 Subnet ID is required.');
       onError('L1 Subnet ID is required.');
+      setIsProcessing(false);
       return;
     }
 
@@ -115,10 +122,10 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     if (isNaN(msgIndex) || msgIndex < 0) {
       setErrorState('Message index must be a non-negative number.');
       onError('Message index must be a non-negative number.');
+      setIsProcessing(false);
       return;
     }
 
-    setIsProcessing(true);
     try {
       // Get delegation info before removal to show stake amount
       let delegationWeight = '0';
