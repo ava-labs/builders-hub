@@ -37,7 +37,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
   const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
-  const [messageIndex, setMessageIndex] = useState<string>('0');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -75,14 +74,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       return;
     }
 
-    const msgIndex = parseInt(messageIndex);
-    if (isNaN(msgIndex) || msgIndex < 0) {
-      const msg = 'Message index must be a non-negative number.';
-      setErrorState(msg);
-      onError(msg);
-      setIsProcessing(false);
-      return;
-    }
     try {
       // Pre-check validator state
       try {
@@ -185,12 +176,12 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         ? nativeStakingManager.forceInitiateValidatorRemoval(
             validationID as `0x${string}`,
             false, // includeUptimeProof
-            msgIndex,
+            0,
           )
         : erc20StakingManager.forceInitiateValidatorRemoval(
             validationID as `0x${string}`,
             false, // includeUptimeProof
-            msgIndex,
+            0,
           ));
       setTxHash(hash);
 
@@ -226,17 +217,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
         <div className="space-y-3">
           <Input label="Validation ID" value={validationID} onChange={() => {}} disabled={true} />
-
-          <Input
-            label="Message Index"
-            value={messageIndex}
-            onChange={setMessageIndex}
-            type="number"
-            min="0"
-            placeholder="0"
-            disabled={isProcessing}
-            helperText="Index of the warp message (usually 0)"
-          />
         </div>
       </div>
 

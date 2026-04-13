@@ -9,7 +9,9 @@ import { hexToBytes, bytesToHex } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
-import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
+import { fetchL1ValidatorWeightData } from '@/components/toolbox/console/shared/fetchL1ValidatorWeightData';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 
@@ -36,7 +38,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { avalancheNetworkID } = useWalletStore();
+  const { avalancheNetworkID, isTestnet } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -47,7 +49,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
   const [pChainTxId, setPChainTxId] = useState<string>(initialPChainTxId || '');
-  const [messageIndex, setMessageIndex] = useState<string>('0');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -108,23 +109,9 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       return;
     }
 
-    const msgIndex = parseInt(messageIndex);
-    if (isNaN(msgIndex) || msgIndex < 0) {
-      setErrorState('Message index must be a non-negative number.');
-      onError('Message index must be a non-negative number.');
-      setIsProcessing(false);
-      return;
-    }
-
     try {
-      // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const coreWalletClient = useWalletStore.getState().coreWalletClient;
-      if (!coreWalletClient) {
-        throw new Error('This operation requires Core Wallet');
-      }
-      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
-        txId: pChainTxId,
-      });
+      // Step 1: Extract weight data from P-Chain tx (standard RPC, no Core Wallet needed)
+      const weightMessageData = await fetchL1ValidatorWeightData(pChainTxId, isTestnet);
 
       setExtractedData({
         validationID: weightMessageData.validationID,
@@ -132,45 +119,48 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         weight: weightMessageData.weight,
       });
 
-      // Step 2: Create L1ValidatorWeightMessage for completion
+      // Step 2: Get justification (proves validator was legitimately registered)
+      const justification = await GetRegistrationJustification(
+        weightMessageData.validationID,
+        subnetIdL1,
+        chainPublicClient!,
+      );
+      if (!justification) {
+        throw new Error('No justification logs found for this validation ID. Cannot complete removal.');
+      }
+
+      // Step 3: Create L1ValidatorRegistrationMessage(valid=false)
+      // completeValidatorRemoval expects a registration message (deregistration),
+      // NOT a weight message.
       const validationIDBytes = hexToBytes(weightMessageData.validationID as `0x${string}`);
-      const l1ValidatorWeightMessage = packL1ValidatorWeightMessage(
-        {
-          validationID: validationIDBytes,
-          nonce: weightMessageData.nonce,
-          weight: weightMessageData.weight,
-        },
+      const removeValidatorMessage = packL1ValidatorRegistration(
+        validationIDBytes,
+        false,
         avalancheNetworkID,
         '11111111111111111111111111111111LpoYY',
       );
 
-      // Step 3: Aggregate P-Chain signature
+      // Step 4: Aggregate signatures with justification
       const aggregateSignaturePromise = aggregateSignature({
-        message: bytesToHex(l1ValidatorWeightMessage),
+        message: bytesToHex(removeValidatorMessage),
+        justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetIdL1,
       });
 
-      notify(
-        {
-          type: 'local',
-          name: 'Aggregate P-Chain Signatures',
-        },
-        aggregateSignaturePromise,
-      );
+      notify({ type: 'local', name: 'Aggregate Signatures' }, aggregateSignaturePromise);
 
       const signature = await aggregateSignaturePromise;
-
       setPChainSignature(signature.signedMessage);
 
-      // Step 4: Package warp message into access list
+      // Step 5: Package warp message into access list
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-      // Step 5: Call completeValidatorRemoval via hook with warp message
+      // Step 6: Call completeValidatorRemoval
       const hash =
         tokenType === 'native'
-          ? await nativeStakingManager.completeValidatorRemoval(msgIndex, accessList)
-          : await erc20StakingManager.completeValidatorRemoval(msgIndex, accessList);
+          ? await nativeStakingManager.completeValidatorRemoval(0, accessList)
+          : await erc20StakingManager.completeValidatorRemoval(0, accessList);
 
       setTxHash(hash);
 
@@ -246,17 +236,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             placeholder="Enter the P-Chain transaction ID from the previous step"
             disabled={isProcessing}
             helperText="The transaction ID from the P-Chain weight update step"
-          />
-
-          <Input
-            label="Message Index"
-            value={messageIndex}
-            onChange={setMessageIndex}
-            type="number"
-            min="0"
-            placeholder="0"
-            disabled={isProcessing}
-            helperText="Index of the warp message (usually 0)"
           />
 
           {subnetIdL1 && (
