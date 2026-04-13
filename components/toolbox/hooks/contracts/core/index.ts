@@ -6,12 +6,8 @@ export type {
   ValidatorSetParams,
   InitParams,
   MigrationParams,
-  PChainOwner
+  PChainOwner,
 } from './useValidatorManager';
 
 export { useContractDeployer } from './useContractDeployer';
-export type {
-  ContractDeployerHook,
-  DeployParams,
-  DeployResult
-} from './useContractDeployer';
+export type { ContractDeployerHook, DeployParams, DeployResult } from './useContractDeployer';

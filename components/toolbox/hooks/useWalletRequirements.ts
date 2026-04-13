@@ -1,426 +1,446 @@
-import { useMemo, useCallback } from "react";
-import { useWalletStore, type WalletType } from "../stores/walletStore";
-import { Wallet, Coins, Network } from "lucide-react";
-import { useWalletSwitch } from "./useWalletSwitch";
+import { useMemo, useCallback } from 'react';
+import { useWalletStore, type WalletType } from '../stores/walletStore';
+import { Wallet, Coins, Network } from 'lucide-react';
+import { useWalletSwitch } from './useWalletSwitch';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import type {
-    RequirementAction,
-    Requirement,
-    ConditionalAction,
-    RedirectAction,
-    ConnectAction,
-    NetworkAction,
-    LoginAction
-} from "../types/requirements";
+  RequirementAction,
+  Requirement,
+  ConditionalAction,
+  RedirectAction,
+  ConnectAction,
+  NetworkAction,
+  LoginAction,
+} from '../types/requirements';
 
 export enum WalletRequirementsConfigKey {
-    HasWallet = "hasWallet",
-    WalletConnected = "walletConnected",
-    TestnetRequired = "testnetRequired",
-    CChainBalance = "cChainBalance",
-    PChainBalance = "pChainBalance",
-    EVMChainBalance = "evmChainBalance"
+  HasWallet = 'hasWallet',
+  WalletConnected = 'walletConnected',
+  TestnetRequired = 'testnetRequired',
+  CChainBalance = 'cChainBalance',
+  PChainBalance = 'pChainBalance',
+  EVMChainBalance = 'evmChainBalance',
 }
 
 // Reusable action constants
 const ACTIONS = {
-    CONNECT_WALLET: {
-        type: 'connect' as const,
-        label: 'Connect',
-        title: 'Connect Wallet',
-        description: 'Connect your wallet to continue'
-    },
-    DOWNLOAD_CORE_WALLET: {
-        type: 'redirect' as const,
-        label: 'Download',
-        title: 'Download Core Wallet',
-        description: 'Get Core — the wallet built for Avalanche',
-        link: 'https://core.app/download',
-        target: '_blank'
-    },
-    SWITCH_TO_TESTNET: {
-        type: 'network' as const,
-        label: 'Switch',
-        title: 'Switch to Testnet',
-        description: 'Switch to testnet if currently on mainnet'
-    },
-    GET_TESTNET_TOKENS: {
-        type: 'redirect' as const,
-        label: 'Faucet',
-        title: 'Get Testnet Tokens',
-        description: 'Get free tokens from the testnet faucet',
-        link: '/console/primary-network/faucet'
-    },
-    BUY_AVAX: {
-        type: 'redirect' as const,
-        label: 'Buy AVAX',
-        title: 'Buy AVAX',
-        description: 'Buy AVAX from a supported on-ramp or exchange',
-        link: 'https://core.app/buy',
-        target: '_blank'
-    },
-    TRANSFER_C_TO_P: {
-        type: 'redirect' as const,
-        label: 'Bridge',
-        title: 'Bridge from C-Chain',
-        description: 'Bridge AVAX from C-Chain to P-Chain',
-        link: '/console/primary-network/c-p-bridge'
-    }
+  CONNECT_WALLET: {
+    type: 'connect' as const,
+    label: 'Connect',
+    title: 'Connect Wallet',
+    description: 'Connect your wallet to continue',
+  },
+  DOWNLOAD_CORE_WALLET: {
+    type: 'redirect' as const,
+    label: 'Download',
+    title: 'Download Core Wallet',
+    description: 'Get Core — the wallet built for Avalanche',
+    link: 'https://core.app/download',
+    target: '_blank',
+  },
+  SWITCH_TO_TESTNET: {
+    type: 'network' as const,
+    label: 'Switch',
+    title: 'Switch to Testnet',
+    description: 'Switch to testnet if currently on mainnet',
+  },
+  GET_TESTNET_TOKENS: {
+    type: 'redirect' as const,
+    label: 'Faucet',
+    title: 'Get Testnet Tokens',
+    description: 'Get free tokens from the testnet faucet',
+    link: '/console/primary-network/faucet',
+  },
+  BUY_AVAX: {
+    type: 'redirect' as const,
+    label: 'Buy AVAX',
+    title: 'Buy AVAX',
+    description: 'Buy AVAX from a supported on-ramp or exchange',
+    link: 'https://core.app/buy',
+    target: '_blank',
+  },
+  TRANSFER_C_TO_P: {
+    type: 'redirect' as const,
+    label: 'Bridge',
+    title: 'Bridge from C-Chain',
+    description: 'Bridge AVAX from C-Chain to P-Chain',
+    link: '/console/primary-network/c-p-bridge',
+  },
 } as const;
 
 interface WalletState {
-    coreWalletClient: any;
-    isTestnet?: boolean;
-    walletEVMAddress: string;
-    walletChainId: number;
-    pChainAddress: string;
-    pChainBalance: number;
-    cChainBalance: number;
-    selectedL1Balance: number;
-    bootstrapped: boolean;
-    walletType: WalletType;
-    isLoading: {
-        pChain: boolean;
-        cChain: boolean;
-        l1Chains: Record<string, boolean>;
-    };
+  coreWalletClient: any;
+  isTestnet?: boolean;
+  walletEVMAddress: string;
+  walletChainId: number;
+  pChainAddress: string;
+  pChainBalance: number;
+  cChainBalance: number;
+  selectedL1Balance: number;
+  bootstrapped: boolean;
+  walletType: WalletType;
+  isLoading: {
+    pChain: boolean;
+    cChain: boolean;
+    l1Chains: Record<string, boolean>;
+  };
 }
 
 interface WalletRequirementConfig {
-    id: string;
-    title: string;
-    description: string;
-    icon: any;
-    action: RequirementAction;
-    alternativeActions?: RequirementAction[];
-    prerequisites?: WalletRequirementsConfigKey[];
-    getStatus: (walletState: WalletState) => { met: boolean; waiting: boolean };
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  action: RequirementAction;
+  alternativeActions?: RequirementAction[];
+  prerequisites?: WalletRequirementsConfigKey[];
+  getStatus: (walletState: WalletState) => { met: boolean; waiting: boolean };
 }
 
 // Constants for each requirement type
 const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirementConfig> = {
-    [WalletRequirementsConfigKey.HasWallet]: {
-        id: 'has-wallet',
-        title: 'Wallet detected',
-        description: 'An EVM wallet is required',
-        icon: Wallet,
-        action: {
-            type: 'conditional',
-            label: 'Connect',
-            title: 'Connect Wallet',
-            description: 'Connect or install an EVM wallet',
-            conditions: [
-                {
-                    // Wallet provider detected (window.ethereum or similar) → show Connect
-                    condition: (walletState) => walletState.bootstrapped || (typeof window !== 'undefined' && !!(window as any).ethereum),
-                    action: ACTIONS.CONNECT_WALLET
-                },
-                {
-                    // No wallet detected at all → show Download Core
-                    condition: () => true,
-                    action: ACTIONS.DOWNLOAD_CORE_WALLET
-                }
-            ]
+  [WalletRequirementsConfigKey.HasWallet]: {
+    id: 'has-wallet',
+    title: 'Wallet detected',
+    description: 'An EVM wallet is required',
+    icon: Wallet,
+    action: {
+      type: 'conditional',
+      label: 'Connect',
+      title: 'Connect Wallet',
+      description: 'Connect or install an EVM wallet',
+      conditions: [
+        {
+          // Wallet provider detected (window.ethereum or similar) → show Connect
+          condition: (walletState) =>
+            walletState.bootstrapped || (typeof window !== 'undefined' && !!(window as any).ethereum),
+          action: ACTIONS.CONNECT_WALLET,
         },
-        getStatus: (walletState: WalletState) => ({
-            met: walletState.bootstrapped,
-            waiting: false
-        })
-    },
-    [WalletRequirementsConfigKey.WalletConnected]: {
-        id: 'wallet-connected',
-        title: 'Wallet connected',
-        description: 'Connect your wallet to continue',
-        icon: Wallet,
-        prerequisites: [WalletRequirementsConfigKey.HasWallet],
-        action: ACTIONS.CONNECT_WALLET,
-        getStatus: (walletState: WalletState) => ({
-            met: !!walletState.walletEVMAddress,
-            waiting: false
-        })
-    },
-    [WalletRequirementsConfigKey.TestnetRequired]: {
-        id: 'testnet-required',
-        title: 'Connect to Testnet',
-        description: 'Switch to testnet if currently on mainnet',
-        icon: Network,
-        prerequisites: [WalletRequirementsConfigKey.WalletConnected],
-        action: ACTIONS.SWITCH_TO_TESTNET,
-        getStatus: (walletState: WalletState) => ({
-            met: !!walletState.isTestnet,
-            waiting: walletState.isTestnet === undefined
-        })
-    },
-    [WalletRequirementsConfigKey.CChainBalance]: {
-        id: 'c-chain-balance',
-        title: 'C-Chain balance',
-        description: 'You need tokens to pay for transaction fees',
-        icon: Coins,
-        prerequisites: [WalletRequirementsConfigKey.WalletConnected],
-        action: {
-            type: 'conditional',
-            label: 'Get Tokens',
-            title: 'Get C-Chain Tokens',
-            description: 'Get tokens for C-Chain transactions',
-            conditions: [
-                {
-                    condition: (walletState) => walletState.isTestnet,
-                    action: ACTIONS.GET_TESTNET_TOKENS
-                },
-                {
-                    condition: (walletState) => !walletState.isTestnet,
-                    action: ACTIONS.BUY_AVAX
-                }
-            ]
+        {
+          // No wallet detected at all → show Download Core
+          condition: () => true,
+          action: ACTIONS.DOWNLOAD_CORE_WALLET,
         },
-        alternativeActions: [ACTIONS.SWITCH_TO_TESTNET],
-        getStatus: (walletState: WalletState) => ({
-            met: walletState.cChainBalance > 0,
-            waiting: walletState.isLoading.cChain
-        })
+      ],
     },
-    [WalletRequirementsConfigKey.PChainBalance]: {
-        id: 'p-chain-balance',
-        title: 'P-Chain balance',
-        description: 'You need tokens to pay for transaction fees',
-        icon: Coins,
-        prerequisites: [WalletRequirementsConfigKey.WalletConnected],
-        action: {
-            type: 'conditional',
-            label: 'Get Tokens',
-            title: 'Get P-Chain Tokens',
-            description: 'Get tokens for P-Chain transactions',
-            conditions: [
-                {
-                    condition: (walletState) => walletState.isTestnet,
-                    action: ACTIONS.GET_TESTNET_TOKENS
-                },
-                {
-                    condition: (walletState) => !walletState.isTestnet && walletState.cChainBalance > 0,
-                    action: ACTIONS.TRANSFER_C_TO_P
-                }
-            ]
+    getStatus: (walletState: WalletState) => ({
+      met: walletState.bootstrapped,
+      waiting: false,
+    }),
+  },
+  [WalletRequirementsConfigKey.WalletConnected]: {
+    id: 'wallet-connected',
+    title: 'Wallet connected',
+    description: 'Connect your wallet to continue',
+    icon: Wallet,
+    prerequisites: [WalletRequirementsConfigKey.HasWallet],
+    action: ACTIONS.CONNECT_WALLET,
+    getStatus: (walletState: WalletState) => ({
+      met: !!walletState.walletEVMAddress,
+      waiting: false,
+    }),
+  },
+  [WalletRequirementsConfigKey.TestnetRequired]: {
+    id: 'testnet-required',
+    title: 'Connect to Testnet',
+    description: 'Switch to testnet if currently on mainnet',
+    icon: Network,
+    prerequisites: [WalletRequirementsConfigKey.WalletConnected],
+    action: ACTIONS.SWITCH_TO_TESTNET,
+    getStatus: (walletState: WalletState) => ({
+      met: !!walletState.isTestnet,
+      waiting: walletState.isTestnet === undefined,
+    }),
+  },
+  [WalletRequirementsConfigKey.CChainBalance]: {
+    id: 'c-chain-balance',
+    title: 'C-Chain balance',
+    description: 'You need tokens to pay for transaction fees',
+    icon: Coins,
+    prerequisites: [WalletRequirementsConfigKey.WalletConnected],
+    action: {
+      type: 'conditional',
+      label: 'Get Tokens',
+      title: 'Get C-Chain Tokens',
+      description: 'Get tokens for C-Chain transactions',
+      conditions: [
+        {
+          condition: (walletState) => walletState.isTestnet,
+          action: ACTIONS.GET_TESTNET_TOKENS,
         },
-        alternativeActions: [ACTIONS.SWITCH_TO_TESTNET],
-        getStatus: (walletState: WalletState) => ({
-            met: walletState.pChainBalance > 0,
-            waiting: walletState.isLoading.pChain
-        })
+        {
+          condition: (walletState) => !walletState.isTestnet,
+          action: ACTIONS.BUY_AVAX,
+        },
+      ],
     },
-    [WalletRequirementsConfigKey.EVMChainBalance]: {
-        id: 'evm-chain-balance',
-        title: 'EVM Chain balance',
-        description: 'You need tokens to pay for transaction fees',
-        icon: Coins,
-        prerequisites: [WalletRequirementsConfigKey.WalletConnected],
-        action: ACTIONS.SWITCH_TO_TESTNET,
-        getStatus: (walletState: WalletState) => ({
-            met: walletState.selectedL1Balance > 0,
-            waiting: walletState.isLoading.l1Chains[walletState.walletChainId.toString()]
-        })
-    }
+    alternativeActions: [ACTIONS.SWITCH_TO_TESTNET],
+    getStatus: (walletState: WalletState) => ({
+      met: walletState.cChainBalance > 0,
+      waiting: walletState.isLoading.cChain,
+    }),
+  },
+  [WalletRequirementsConfigKey.PChainBalance]: {
+    id: 'p-chain-balance',
+    title: 'P-Chain balance',
+    description: 'You need tokens to pay for transaction fees',
+    icon: Coins,
+    prerequisites: [WalletRequirementsConfigKey.WalletConnected],
+    action: {
+      type: 'conditional',
+      label: 'Get Tokens',
+      title: 'Get P-Chain Tokens',
+      description: 'Get tokens for P-Chain transactions',
+      conditions: [
+        {
+          condition: (walletState) => walletState.isTestnet,
+          action: ACTIONS.GET_TESTNET_TOKENS,
+        },
+        {
+          condition: (walletState) => !walletState.isTestnet && walletState.cChainBalance > 0,
+          action: ACTIONS.TRANSFER_C_TO_P,
+        },
+      ],
+    },
+    alternativeActions: [ACTIONS.SWITCH_TO_TESTNET],
+    getStatus: (walletState: WalletState) => ({
+      met: walletState.pChainBalance > 0,
+      waiting: walletState.isLoading.pChain,
+    }),
+  },
+  [WalletRequirementsConfigKey.EVMChainBalance]: {
+    id: 'evm-chain-balance',
+    title: 'EVM Chain balance',
+    description: 'You need tokens to pay for transaction fees',
+    icon: Coins,
+    prerequisites: [WalletRequirementsConfigKey.WalletConnected],
+    action: ACTIONS.SWITCH_TO_TESTNET,
+    getStatus: (walletState: WalletState) => ({
+      met: walletState.selectedL1Balance > 0,
+      waiting: walletState.isLoading.l1Chains[walletState.walletChainId.toString()],
+    }),
+  },
 };
 
 export function useWalletRequirements(configKey: WalletRequirementsConfigKey | WalletRequirementsConfigKey[]): {
-    requirements: Requirement[];
-    allRequirementsMet: boolean;
-    unmetRequirements: Requirement[];
-    handleAction: (requirement: Requirement) => void;
-    connectWallet: () => Promise<void>;
-    handleSwitchToTestnet: () => Promise<void>;
+  requirements: Requirement[];
+  allRequirementsMet: boolean;
+  unmetRequirements: Requirement[];
+  handleAction: (requirement: Requirement) => void;
+  connectWallet: () => Promise<void>;
+  handleSwitchToTestnet: () => Promise<void>;
 } {
-    // Subscribe to each state individually to ensure reactivity
-    const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
-    const isLoading = useWalletStore((s) => s.isLoading);
-    const isTestnet = useWalletStore((s) => s.isTestnet);
-    const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-    const pChainAddress = useWalletStore((s) => s.pChainAddress);
-    const cChainBalance = useWalletStore((s) => s.balances.cChain);
-    const pChainBalance = useWalletStore((s) => s.balances.pChain);
-    const walletChainId = useWalletStore((s) => s.walletChainId);
-    const selectedL1Balance = useWalletStore((s) => s.balances.l1Chains[walletChainId.toString()]);
-    const bootstrapped = useWalletStore((s) => s.getBootstrapped());
-    const walletType = useWalletStore((s) => s.walletType);
+  // Subscribe to each state individually to ensure reactivity
+  const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+  const isLoading = useWalletStore((s) => s.isLoading);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
+  const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
+  const pChainAddress = useWalletStore((s) => s.pChainAddress);
+  const cChainBalance = useWalletStore((s) => s.balances.cChain);
+  const pChainBalance = useWalletStore((s) => s.balances.pChain);
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const selectedL1Balance = useWalletStore((s) => s.balances.l1Chains[walletChainId.toString()]);
+  const bootstrapped = useWalletStore((s) => s.getBootstrapped());
+  const walletType = useWalletStore((s) => s.walletType);
 
-    const { safelySwitch } = useWalletSwitch();
-    const { openConnectModal } = useConnectModal();
-    const connectWallet = async () => { openConnectModal?.() };
+  const { safelySwitch } = useWalletSwitch();
+  const { openConnectModal } = useConnectModal();
+  const connectWallet = async () => {
+    openConnectModal?.();
+  };
 
-    // Create wallet state object to pass to requirement status functions (memoized to prevent excessive re-renders)
-    const walletState: WalletState = useMemo(() => ({
-        coreWalletClient,
-        isTestnet,
-        walletEVMAddress,
-        walletChainId,
-        pChainAddress,
-        pChainBalance,
-        cChainBalance,
-        selectedL1Balance,
-        bootstrapped,
-        walletType,
-        isLoading,
-    }), [coreWalletClient, isTestnet, walletEVMAddress, walletChainId, pChainAddress, pChainBalance, cChainBalance, selectedL1Balance, bootstrapped, walletType]);
+  // Create wallet state object to pass to requirement status functions (memoized to prevent excessive re-renders)
+  const walletState: WalletState = useMemo(
+    () => ({
+      coreWalletClient,
+      isTestnet,
+      walletEVMAddress,
+      walletChainId,
+      pChainAddress,
+      pChainBalance,
+      cChainBalance,
+      selectedL1Balance,
+      bootstrapped,
+      walletType,
+      isLoading,
+    }),
+    [
+      coreWalletClient,
+      isTestnet,
+      walletEVMAddress,
+      walletChainId,
+      pChainAddress,
+      pChainBalance,
+      cChainBalance,
+      selectedL1Balance,
+      bootstrapped,
+      walletType,
+    ],
+  );
 
-    const handleSwitchToTestnet = async () => {
-        await safelySwitch(43113, true); // Fuji testnet chain ID and testnet flag
+  const handleSwitchToTestnet = async () => {
+    await safelySwitch(43113, true); // Fuji testnet chain ID and testnet flag
+  };
+
+  // Resolve conditional actions based on current wallet state
+  const resolveConditionalAction = useCallback(
+    (conditionalAction: ConditionalAction): RedirectAction | ConnectAction | NetworkAction | LoginAction | null => {
+      // Check conditions in order
+      for (const condition of conditionalAction.conditions) {
+        if (condition.condition(walletState)) {
+          return condition.action;
+        }
+      }
+
+      // Return fallback if available, otherwise null
+      return conditionalAction.fallback || null;
+    },
+    [walletState],
+  );
+
+  // Action handler dispatcher
+  const handleAction = (requirement: Requirement) => {
+    if (!requirement.action) {
+      return;
+    }
+
+    let actionToExecute = requirement.action;
+
+    // Resolve conditional actions first
+    if (requirement.action.type === 'conditional') {
+      const resolved = resolveConditionalAction(requirement.action);
+      if (!resolved) {
+        return;
+      }
+      actionToExecute = resolved;
+    }
+
+    switch (actionToExecute.type) {
+      case 'redirect':
+        if ('link' in actionToExecute) {
+          window.open(actionToExecute.link, actionToExecute.target || '_self');
+        }
+        break;
+      case 'connect':
+        connectWallet();
+        break;
+      case 'network':
+        handleSwitchToTestnet();
+        break;
+      case 'login':
+        // Login actions are handled by account requirements
+        break;
+      default:
+        // Unknown action type
+        break;
+    }
+  };
+
+  // Function to recursively collect all prerequisites in dependency order (prerequisites first)
+  const collectAllRequirements = useCallback((keys: WalletRequirementsConfigKey[]): WalletRequirementsConfigKey[] => {
+    const result: WalletRequirementsConfigKey[] = [];
+    const visited = new Set<WalletRequirementsConfigKey>();
+
+    const collectRecursive = (key: WalletRequirementsConfigKey) => {
+      if (visited.has(key)) return; // Prevent infinite loops
+      visited.add(key);
+
+      const requirement = WALLET_REQUIREMENTS[key];
+      if (!requirement) return;
+
+      // First, recursively add prerequisites (they come first)
+      if (requirement.prerequisites) {
+        for (const prereqKey of requirement.prerequisites) {
+          collectRecursive(prereqKey);
+        }
+      }
+
+      // Then add current requirement (after its prerequisites)
+      result.push(key);
     };
 
-    // Resolve conditional actions based on current wallet state
-    const resolveConditionalAction = useCallback((conditionalAction: ConditionalAction): RedirectAction | ConnectAction | NetworkAction | LoginAction | null => {
-        // Check conditions in order
-        for (const condition of conditionalAction.conditions) {
-            if (condition.condition(walletState)) {
-                return condition.action;
-            }
+    // Collect all requirements starting from the requested keys
+    for (const key of keys) {
+      collectRecursive(key);
+    }
+
+    return result;
+  }, []);
+
+  // Build requirements array programmatically based on configKey
+  const requirements = useMemo(() => {
+    const requestedKeys = Array.isArray(configKey) ? configKey : [configKey];
+    const allKeys = collectAllRequirements(requestedKeys);
+
+    return allKeys.map((key) => {
+      const requirement = WALLET_REQUIREMENTS[key];
+
+      // Check prerequisites first
+      let prerequisiteNotMet: WalletRequirementsConfigKey | undefined;
+      let met = false;
+      let waiting = false;
+      let resolvedAction: RequirementAction | null = requirement.action;
+
+      if (requirement.prerequisites) {
+        // Check if any prerequisite is not met
+        for (const prereqKey of requirement.prerequisites) {
+          const prereqRequirement = WALLET_REQUIREMENTS[prereqKey];
+          const prereqStatus = prereqRequirement.getStatus(walletState);
+
+          if (!prereqStatus.met || prereqStatus.waiting) {
+            prerequisiteNotMet = prereqKey;
+            met = false;
+            waiting = true; // Always waiting if prerequisite not met
+            break;
+          }
         }
+      }
 
-        // Return fallback if available, otherwise null
-        return conditionalAction.fallback || null;
-    }, [walletState]);
+      // If all prerequisites are met, check the actual requirement
+      if (!prerequisiteNotMet) {
+        const status = requirement.getStatus(walletState);
+        met = status.met;
+        waiting = status.waiting;
 
-    // Action handler dispatcher
-    const handleAction = (requirement: Requirement) => {
-        if (!requirement.action) {
-            return;
+        // Resolve conditional actions for display
+        if (requirement.action && requirement.action.type === 'conditional') {
+          const resolved = resolveConditionalAction(requirement.action);
+          if (!resolved) {
+            // Show requirement but with no action available
+            resolvedAction = null;
+          } else {
+            resolvedAction = resolved;
+          }
         }
+      }
 
-        let actionToExecute = requirement.action;
+      return {
+        ...requirement,
+        action: resolvedAction,
+        met,
+        waiting,
+        prerequisiteNotMet,
+      } as Requirement;
+    });
+  }, [configKey, walletState, resolveConditionalAction, collectAllRequirements]);
 
-        // Resolve conditional actions first
-        if (requirement.action.type === 'conditional') {
-            const resolved = resolveConditionalAction(requirement.action);
-            if (!resolved) {
-                return;
-            }
-            actionToExecute = resolved;
-        }
+  // Check if all requirements are met
+  const allRequirementsMet = useMemo(() => {
+    return requirements.every((req) => req.met && !req.waiting);
+  }, [requirements]);
 
-        switch (actionToExecute.type) {
-            case 'redirect':
-                if ('link' in actionToExecute) {
-                    window.open(actionToExecute.link, actionToExecute.target || '_self');
-                }
-                break;
-            case 'connect':
-                connectWallet();
-                break;
-            case 'network':
-                handleSwitchToTestnet();
-                break;
-            case 'login':
-                // Login actions are handled by account requirements
-                break;
-            default:
-                // Unknown action type
-                break;
-        }
-    };
+  // Get unmet requirements
+  const unmetRequirements = useMemo(() => {
+    return requirements.filter((req) => !req.met || req.waiting);
+  }, [requirements]);
 
-    // Function to recursively collect all prerequisites in dependency order (prerequisites first)
-    const collectAllRequirements = useCallback((keys: WalletRequirementsConfigKey[]): WalletRequirementsConfigKey[] => {
-        const result: WalletRequirementsConfigKey[] = [];
-        const visited = new Set<WalletRequirementsConfigKey>();
-
-        const collectRecursive = (key: WalletRequirementsConfigKey) => {
-            if (visited.has(key)) return; // Prevent infinite loops
-            visited.add(key);
-
-            const requirement = WALLET_REQUIREMENTS[key];
-            if (!requirement) return;
-
-            // First, recursively add prerequisites (they come first)
-            if (requirement.prerequisites) {
-                for (const prereqKey of requirement.prerequisites) {
-                    collectRecursive(prereqKey);
-                }
-            }
-
-            // Then add current requirement (after its prerequisites)
-            result.push(key);
-        };
-
-        // Collect all requirements starting from the requested keys
-        for (const key of keys) {
-            collectRecursive(key);
-        }
-
-        return result;
-    }, []);
-
-    // Build requirements array programmatically based on configKey
-    const requirements = useMemo(() => {
-        const requestedKeys = Array.isArray(configKey) ? configKey : [configKey];
-        const allKeys = collectAllRequirements(requestedKeys);
-
-        return allKeys.map(key => {
-            const requirement = WALLET_REQUIREMENTS[key];
-
-            // Check prerequisites first
-            let prerequisiteNotMet: WalletRequirementsConfigKey | undefined;
-            let met = false;
-            let waiting = false;
-            let resolvedAction: RequirementAction | null = requirement.action;
-
-            if (requirement.prerequisites) {
-                // Check if any prerequisite is not met
-                for (const prereqKey of requirement.prerequisites) {
-                    const prereqRequirement = WALLET_REQUIREMENTS[prereqKey];
-                    const prereqStatus = prereqRequirement.getStatus(walletState);
-
-                    if (!prereqStatus.met || prereqStatus.waiting) {
-                        prerequisiteNotMet = prereqKey;
-                        met = false;
-                        waiting = true; // Always waiting if prerequisite not met
-                        break;
-                    }
-                }
-            }
-
-            // If all prerequisites are met, check the actual requirement
-            if (!prerequisiteNotMet) {
-                const status = requirement.getStatus(walletState);
-                met = status.met;
-                waiting = status.waiting;
-
-                // Resolve conditional actions for display
-                if (requirement.action && requirement.action.type === 'conditional') {
-                    const resolved = resolveConditionalAction(requirement.action);
-                    if (!resolved) {
-                        // Show requirement but with no action available
-                        resolvedAction = null;
-                    } else {
-                        resolvedAction = resolved;
-                    }
-                }
-            }
-
-            return {
-                ...requirement,
-                action: resolvedAction,
-                met,
-                waiting,
-                prerequisiteNotMet
-            } as Requirement;
-        });
-    }, [configKey, walletState, resolveConditionalAction, collectAllRequirements]);
-
-    // Check if all requirements are met
-    const allRequirementsMet = useMemo(() => {
-        return requirements.every(req => req.met && !req.waiting);
-    }, [requirements]);
-
-    // Get unmet requirements
-    const unmetRequirements = useMemo(() => {
-        return requirements.filter(req => !req.met || req.waiting);
-    }, [requirements]);
-
-    return {
-        requirements,
-        allRequirementsMet,
-        unmetRequirements,
-        handleAction,
-        // Individual action handlers for direct use
-        connectWallet,
-        handleSwitchToTestnet,
-    };
+  return {
+    requirements,
+    allRequirementsMet,
+    unmetRequirements,
+    handleAction,
+    // Individual action handlers for direct use
+    connectWallet,
+    handleSwitchToTestnet,
+  };
 }

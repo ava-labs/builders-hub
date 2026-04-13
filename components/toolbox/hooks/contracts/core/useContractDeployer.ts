@@ -46,13 +46,17 @@ export function useContractDeployer(): ContractDeployerHook {
         bytecode: params.bytecode as `0x${string}`,
         args: params.args,
         account: walletEVMAddress as `0x${string}`,
-        chain: viemChain
+        chain: viemChain,
       });
 
-      notify({
-        type: 'deploy',
-        name: params.name
-      }, deployPromise, viemChain);
+      notify(
+        {
+          type: 'deploy',
+          name: params.name,
+        },
+        deployPromise,
+        viemChain,
+      );
 
       const hash = await deployPromise;
 
@@ -72,7 +76,7 @@ export function useContractDeployer(): ContractDeployerHook {
       return {
         hash,
         contractAddress: receipt.contractAddress,
-        receipt
+        receipt,
       };
     } finally {
       setIsDeploying(false);
@@ -81,6 +85,6 @@ export function useContractDeployer(): ContractDeployerHook {
 
   return {
     deploy,
-    isDeploying
+    isDeploying,
   };
 }

@@ -1,9 +1,5 @@
-"use client";
-
-import AddValidator from "@/components/toolbox/console/permissioned-l1s/AddValidator";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return (
-    <AddValidator />
-  );
+  redirect("/console/permissioned-l1s/add-validator/select-subnet");
 }
