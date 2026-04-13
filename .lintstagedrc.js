@@ -5,6 +5,11 @@ module.exports = {
     'eslint --max-warnings 0',
   ],
 
+  // Console infrastructure (step-flow, sidebar, etc.): Prettier
+  'components/console/**/*.{ts,tsx}': [
+    'prettier --write',
+  ],
+
   // Console design system: banned classes, color palette, anchor tags
   'components/toolbox/console/**/*.{ts,tsx}': (files) => [
     `./scripts/check-console-design.sh ${files.join(' ')}`,
