@@ -17,7 +17,7 @@ export default function CompleteValidatorRemovalStep() {
   const vmcCtx = useValidatorManagerContext();
   const { coreWalletClient } = useWalletStore();
 
-  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.contractOwner || '';
+  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || '';
   const tokenType = vmcCtx.staking?.stakingType || 'native';
 
   return (

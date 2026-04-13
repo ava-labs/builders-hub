@@ -60,7 +60,10 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
     let cancelled = false;
 
     const detectStaking = async () => {
-      if (!chainPublicClient || !validatorManagerAddress || ownerType !== 'StakingManager') {
+      // Skip staking detection for PoA L1s or when data isn't ready.
+      // Allow 'EOA' owners through — inheritance model (NativeTokenStakingManager
+      // IS the ValidatorManager, and its Ownable.owner() is an EOA).
+      if (!chainPublicClient || !validatorManagerAddress || !ownerType || ownerType === 'PoAManager') {
         if (!cancelled) {
           setStakingType(null);
           setResolvedStakingManagerAddress(null);
