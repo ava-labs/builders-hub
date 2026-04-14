@@ -148,12 +148,12 @@ export function RegisterForm({
       const current = form.getValues();
       const merged = {
         ...current,
-        name: (current.name ?? "").trim() || profile.name || current.name || "",
-        email: (current.email ?? "").trim() || profile.email || current.email || "",
-        city: (current.city ?? "").trim() || profile.country || current.city || "",
-        telegram_user: (current.telegram_user ?? "").trim() || profile.telegram_user || current.telegram_user || "",
-        company_name: (current.company_name ?? "").trim() || profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
-        role: (current.role ?? "").trim() || profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
+        name:  profile.name || current.name || "",
+        email:  profile.email || current.email || "",
+        city:  profile.country || current.city || "",
+        telegram_user:  profile.telegram_user || current.telegram_user || "",
+        company_name:  profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
+        role:  profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
       };
       form.reset(merged);
     } catch (err) {
