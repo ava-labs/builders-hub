@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   Layers,
@@ -27,7 +28,21 @@ import {
 import { generateCreateL1Steps, getStepLabel } from './generateSteps';
 
 // ---------------------------------------------------------------------------
-// Option card — large, tactile, with strong selected state
+// Framer variants
+// ---------------------------------------------------------------------------
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 30 } },
+};
+
+// ---------------------------------------------------------------------------
+// Option card — premium, tactile
 // ---------------------------------------------------------------------------
 
 interface OptionCardProps<T extends string> {
@@ -50,22 +65,31 @@ function OptionCard<T extends string>({
   recommended,
 }: OptionCardProps<T>) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={() => onSelect(id)}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className={cn(
-        'relative flex flex-col items-start gap-4 rounded-2xl border-2 p-5 text-left transition-all duration-200',
-        'hover:shadow-md hover:-translate-y-0.5',
+        'relative flex flex-col items-start gap-4 rounded-2xl border p-5 text-left transition-all duration-200',
         selected
-          ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/30 shadow-sm shadow-blue-200/50 dark:shadow-blue-900/20'
+          ? 'border-blue-500/60 bg-gradient-to-br from-blue-50 via-blue-50/50 to-white dark:from-blue-950/40 dark:via-blue-950/20 dark:to-zinc-900'
           : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700',
       )}
+      style={{
+        boxShadow: selected
+          ? '0 0 0 1px rgba(59,130,246,0.15), 0 4px 16px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.8)'
+          : 'inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 3px rgba(0,0,0,0.04)',
+      }}
     >
-      {/* Selection indicator */}
+      {/* Selection ring */}
       <div
         className={cn(
-          'absolute top-4 right-4 flex h-6 w-6 items-center justify-center rounded-full transition-all duration-200',
-          selected ? 'bg-blue-500 text-white scale-100' : 'bg-zinc-100 dark:bg-zinc-800 text-transparent scale-90',
+          'absolute top-4 right-4 flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300',
+          selected
+            ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30 scale-100'
+            : 'border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-transparent scale-90',
         )}
       >
         <Check className="h-3.5 w-3.5" strokeWidth={3} />
@@ -74,34 +98,36 @@ function OptionCard<T extends string>({
       {/* Icon */}
       <div
         className={cn(
-          'flex h-12 w-12 items-center justify-center rounded-xl transition-colors duration-200',
-          selected ? 'bg-blue-500 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400',
+          'flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-300',
+          selected
+            ? 'bg-blue-500 text-white shadow-sm shadow-blue-500/20'
+            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400',
         )}
       >
         {icon}
       </div>
 
       {/* Text */}
-      <div className="space-y-1">
-        <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h4>
-        <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</p>
+      <div className="space-y-1.5 pr-6">
+        <h4 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">{title}</h4>
+        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</p>
       </div>
 
-      {/* Recommended badge */}
+      {/* Recommended */}
       {recommended && (
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200',
+            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase transition-colors duration-200',
             selected
-              ? 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
-              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400',
+              ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500',
           )}
         >
           <Sparkles className="h-3 w-3" />
           Recommended
         </span>
       )}
-    </button>
+    </motion.button>
   );
 }
 
@@ -118,23 +144,23 @@ interface QuestionSectionProps {
 
 function QuestionSection({ number, title, subtitle, children }: QuestionSectionProps) {
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
+    <motion.div className="space-y-5" variants={itemVariants}>
+      <div className="space-y-1.5">
         <div className="flex items-center gap-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-900 dark:bg-white text-xs font-bold text-white dark:text-zinc-900">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 dark:bg-zinc-100 text-sm font-bold text-white dark:text-zinc-900 shadow-sm">
             {number}
           </span>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
+          <h3 className="text-[17px] font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
         </div>
-        {subtitle && <p className="ml-10 text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>}
+        {subtitle && <p className="ml-11 text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{subtitle}</p>}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{children}</div>
-    </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{children}</div>
+    </motion.div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Main component
+// Main
 // ---------------------------------------------------------------------------
 
 export default function CreateL1Questionnaire() {
@@ -164,20 +190,23 @@ export default function CreateL1Questionnaire() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      {/* ── Hero ──────────────────────────────────────────────── */}
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-4xl">
+    <motion.div className="mx-auto max-w-4xl" variants={containerVariants} initial="hidden" animate="visible">
+      {/* ── Hero ──────────────────────────────────────────── */}
+      <motion.div className="mb-12" variants={itemVariants}>
+        <p className="text-sm font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-3">
+          Builder Console
+        </p>
+        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-5xl">
           Create an Avalanche L1
         </h1>
-        <p className="mt-3 text-base text-zinc-500 dark:text-zinc-400 max-w-2xl leading-relaxed">
-          Configure your L1 in under a minute. Answer four questions and we&apos;ll generate a custom deployment flow
-          tailored to your architecture.
+        <p className="mt-4 text-lg text-zinc-500 dark:text-zinc-400 max-w-2xl leading-relaxed">
+          Configure your L1 in under a minute. We&apos;ll generate a custom deployment flow tailored to your
+          architecture.
         </p>
-      </div>
+      </motion.div>
 
-      {/* ── Questions ─────────────────────────────────────────── */}
-      <div className="space-y-10">
+      {/* ── Questions ─────────────────────────────────────── */}
+      <div className="space-y-8">
         <QuestionSection
           number={1}
           title="Starting point"
@@ -189,7 +218,7 @@ export default function CreateL1Questionnaire() {
             onSelect={setStartingPoint}
             icon={<Layers className="h-5 w-5" />}
             title="New L1 from scratch"
-            description="Create a new subnet, deploy a chain with custom genesis, and convert to an L1."
+            description="Create a subnet, deploy a chain with custom genesis, and convert to L1."
             recommended
           />
           <OptionCard
@@ -198,11 +227,9 @@ export default function CreateL1Questionnaire() {
             onSelect={setStartingPoint}
             icon={<ArrowRightLeft className="h-5 w-5" />}
             title="Convert existing subnet"
-            description="You already have a subnet. Skip creation and go straight to L1 conversion."
+            description="You already have a subnet. Skip creation and convert directly."
           />
         </QuestionSection>
-
-        <div className="h-px bg-zinc-200/80 dark:bg-zinc-800" />
 
         <QuestionSection
           number={2}
@@ -215,7 +242,7 @@ export default function CreateL1Questionnaire() {
             onSelect={setVmLocation}
             icon={<Server className="h-5 w-5" />}
             title="On the L1 itself"
-            description="Proxy predeployed in genesis. Validators validate their own chain. Lower gas costs."
+            description="Proxy predeployed in genesis. Validators validate their own chain. Lower gas."
             recommended
           />
           <OptionCard
@@ -224,20 +251,22 @@ export default function CreateL1Questionnaire() {
             onSelect={setVmLocation}
             icon={<Link2 className="h-5 w-5" />}
             title="On C-Chain"
-            description="Deploy to C-Chain first, then create the L1. Simpler bootstrap, higher gas."
+            description="Deploy to C-Chain first, then create the L1. Simpler bootstrap."
           />
         </QuestionSection>
 
-        <div className="h-px bg-zinc-200/80 dark:bg-zinc-800" />
-
-        <QuestionSection number={3} title="Validator management" subtitle="How should validators be added and removed?">
+        <QuestionSection
+          number={3}
+          title="Validator management"
+          subtitle="How should validators be added and removed from the network?"
+        >
           <OptionCard
             id="poa"
             selected={validatorType === 'poa'}
             onSelect={setValidatorType}
             icon={<Shield className="h-5 w-5" />}
             title="Proof of Authority"
-            description="A single owner (or multisig) controls who can validate. Best for private or permissioned networks."
+            description="Owner controls validators. Best for private or permissioned networks."
           />
           <OptionCard
             id="pos-native"
@@ -245,7 +274,7 @@ export default function CreateL1Questionnaire() {
             onSelect={setValidatorType}
             icon={<Coins className="h-5 w-5" />}
             title="Proof of Stake (Native)"
-            description="Validators stake the L1's native token. Open and permissionless."
+            description="Validators stake the native token. Open and permissionless."
           />
           <OptionCard
             id="pos-erc20"
@@ -256,8 +285,6 @@ export default function CreateL1Questionnaire() {
             description="Validators stake an ERC20 token. Flexible tokenomics."
           />
         </QuestionSection>
-
-        <div className="h-px bg-zinc-200/80 dark:bg-zinc-800" />
 
         <QuestionSection number={4} title="Ownership" subtitle="Who controls the validator manager contract?">
           <OptionCard
@@ -275,69 +302,85 @@ export default function CreateL1Questionnaire() {
             onSelect={() => setMultisig(true)}
             icon={<Users className="h-5 w-5" />}
             title="Gnosis Safe multisig"
-            description="Transfer ownership to a Safe after deployment. Better security for production."
+            description="Transfer ownership to a Safe. Better security for production."
           />
         </QuestionSection>
       </div>
 
-      {/* ── Generated Flow Preview ────────────────────────────── */}
-      <div className="mt-12 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 p-6">
+      {/* ── Flow Preview (dark card, matching homepage) ────── */}
+      <motion.div
+        className="mt-12 rounded-2xl border border-zinc-700 bg-zinc-800 p-6"
+        variants={itemVariants}
+        style={{
+          boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
+        }}
+      >
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Your deployment flow</h3>
-          <span className="text-sm font-medium text-zinc-400 dark:text-zinc-500 tabular-nums">
-            {previewSteps.length} steps
-          </span>
+          <h3 className="text-base font-semibold text-white">Your deployment flow</h3>
+          <span className="text-sm text-zinc-400 tabular-nums">{previewSteps.length} steps</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Timeline */}
+        <div className="space-y-0">
           {previewSteps.map((step, idx) => (
-            <div key={step.key} className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="text-zinc-400 dark:text-zinc-500">{idx + 1}.</span>
-                {getStepLabel(step.key)}
-              </span>
-              {idx < previewSteps.length - 1 && (
-                <ArrowRight className="h-3 w-3 text-zinc-300 dark:text-zinc-600 shrink-0" />
-              )}
+            <div key={step.key} className="flex items-start gap-3">
+              {/* Dot + line */}
+              <div className="flex flex-col items-center">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-bold text-zinc-300">
+                  {idx + 1}
+                </div>
+                {idx < previewSteps.length - 1 && <div className="w-px h-5 bg-zinc-700" />}
+              </div>
+              <span className="text-sm text-zinc-300 pt-0.5">{getStepLabel(step.key)}</span>
             </div>
           ))}
         </div>
 
-        {/* PoS / multisig follow-up note */}
+        {/* PoS / multisig note */}
         {(validatorType !== 'poa' || multisig) && (
-          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/80 dark:border-zinc-800 pt-4">
+          <p className="mt-5 text-xs text-zinc-500 border-t border-zinc-700 pt-4">
             {validatorType !== 'poa' && (
               <>
-                After this flow, continue to{' '}
-                <strong>{validatorType === 'pos-native' ? 'Native' : 'ERC20'} Staking Manager Setup</strong> to deploy
-                staking contracts.{' '}
+                After this flow →{' '}
+                <span className="text-zinc-400">
+                  {validatorType === 'pos-native' ? 'Native' : 'ERC20'} Staking Manager Setup
+                </span>
+                .{' '}
               </>
             )}
             {multisig && (
               <>
-                Then use <strong>Multisig Setup</strong> to transfer ownership to a Safe.
+                {' '}
+                Then → <span className="text-zinc-400">Multisig Setup</span>.
               </>
             )}
           </p>
         )}
-      </div>
+      </motion.div>
 
-      {/* ── Start button ──────────────────────────────────────── */}
-      <div className="mt-8 flex items-center gap-5">
-        <button
+      {/* ── Start ─────────────────────────────────────────── */}
+      <motion.div className="mt-8" variants={itemVariants}>
+        <motion.button
           type="button"
           onClick={handleStart}
-          className={cn(
-            'group inline-flex items-center gap-3 rounded-xl px-8 py-4 text-base font-semibold transition-all duration-200',
-            'bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100',
-            'text-white dark:text-zinc-900',
-            'shadow-lg shadow-zinc-900/10 dark:shadow-white/10 hover:shadow-xl hover:shadow-zinc-900/20 dark:hover:shadow-white/20',
-          )}
+          whileHover={{ y: -2, scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+          className="group inline-flex items-center gap-3 rounded-xl bg-zinc-900 dark:bg-white px-8 py-4 text-base font-semibold text-white dark:text-zinc-900 transition-shadow duration-200"
+          style={{
+            boxShadow: '0 4px 14px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.12)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1)';
+          }}
         >
           Start deployment
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-        </button>
-      </div>
-    </div>
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+        </motion.button>
+      </motion.div>
+    </motion.div>
   );
 }
