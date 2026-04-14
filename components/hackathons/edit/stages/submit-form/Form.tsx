@@ -9,9 +9,15 @@ import {
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import ImportGoogleFormsDialog from './ImportGoogleFormsDialog'
 import TextStagesSubmitFormField from './fields/Text'
 import LinkStagesSubmitFormField from './fields/Link'
 import ChipsStagesSubmitFormField from './fields/Chips'
+import {
+  createChipsStagesSubmitFormField,
+  createLinkStagesSubmitFormField,
+  createTextStagesSubmitFormField,
+} from '@/lib/hackathons/stage-submit-form-fields'
 import {
   ChipsStagesSubmitFormField as ChipsStagesSubmitFormFieldType,
   LinkStagesSubmitFormField as LinkStagesSubmitFormFieldType,
@@ -31,50 +37,13 @@ type StageSubmitFormProps = {
     updatedField: SubmitFormField
   ) => void
   onRemoveField: (stageIndex: number, fieldIndex: number) => void
+  onReplaceSubmitFormFields: (
+    stageIndex: number,
+    fields: SubmitFormField[]
+  ) => void
   onRemoveSubmitForm: (stageIndex: number) => void
   setSelectedStageForm: (index: string) => void
   setActivePreviewTab: (tab: string) => void
-}
-
-function createTextStagesSubmitFormField(
-  id: string
-): TextStagesSubmitFormFieldType {
-  return {
-    id,
-    type: SubmitFormFieldType.Text,
-    label: '',
-    placeholder: '',
-    description: '',
-    required: false,
-    maxCharacters: null,
-    rows: null,
-  }
-}
-
-function createLinkStagesSubmitFormField(
-  id: string
-): LinkStagesSubmitFormFieldType {
-  return {
-    id,
-    type: SubmitFormFieldType.Link,
-    label: '',
-    placeholder: '',
-    description: '',
-    required: false,
-  }
-}
-
-function createChipsStagesSubmitFormField(
-  id: string
-): ChipsStagesSubmitFormFieldType {
-  return {
-    id,
-    type: SubmitFormFieldType.Chips,
-    label: '',
-    description: '',
-    required: false,
-    chips: [],
-  }
 }
 
 function replaceSubmitFormFieldType(
@@ -84,10 +53,8 @@ function replaceSubmitFormFieldType(
   switch (nextType) {
     case SubmitFormFieldType.Text:
       return createTextStagesSubmitFormField(currentField.id)
-
     case SubmitFormFieldType.Link:
       return createLinkStagesSubmitFormField(currentField.id)
-
     case SubmitFormFieldType.Chips:
       return createChipsStagesSubmitFormField(currentField.id)
   }
@@ -99,15 +66,18 @@ export default function StageSubmitForm({
   onAddField,
   onUpdateField,
   onRemoveField,
+  onReplaceSubmitFormFields,
   onRemoveSubmitForm,
   setSelectedStageForm,
-  setActivePreviewTab
+  setActivePreviewTab,
 }: StageSubmitFormProps): React.JSX.Element {
+  const [importDialogOpen, setImportDialogOpen] = React.useState(false)
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Submit form</h2>
-        <div className='flex gap-2'>
+        <div className="flex gap-2">
           <Button
             type="button"
             onClick={() => {
@@ -130,12 +100,30 @@ export default function StageSubmitForm({
         </div>
       </div>
 
-      <Button
-        type="button"
-        onClick={() => onAddField(stageIndex, SubmitFormFieldType.Text)}
-      >
-        Add field
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          onClick={() => onAddField(stageIndex, SubmitFormFieldType.Text)}
+        >
+          Add field
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setImportDialogOpen(true)}
+        >
+          Import from Google Forms
+        </Button>
+      </div>
+
+      <ImportGoogleFormsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        existingFieldsCount={submitForm?.fields.length ?? 0}
+        onImported={(fields: SubmitFormField[]) =>
+          onReplaceSubmitFormFields(stageIndex, fields)
+        }
+      />
 
       {submitForm?.fields.map(
         (field: SubmitFormField, fieldIndex: number): React.JSX.Element => (
@@ -178,27 +166,27 @@ export default function StageSubmitForm({
                   {field.type === SubmitFormFieldType.Text && (
                     <TextStagesSubmitFormField
                       field={field as TextStagesSubmitFormFieldType}
-                      onChange={(
-                        updatedField: TextStagesSubmitFormFieldType
-                      ) => onUpdateField(stageIndex, fieldIndex, updatedField)}
+                      onChange={(updatedField: TextStagesSubmitFormFieldType) =>
+                        onUpdateField(stageIndex, fieldIndex, updatedField)
+                      }
                     />
                   )}
 
                   {field.type === SubmitFormFieldType.Link && (
                     <LinkStagesSubmitFormField
                       field={field as LinkStagesSubmitFormFieldType}
-                      onChange={(
-                        updatedField: LinkStagesSubmitFormFieldType
-                      ) => onUpdateField(stageIndex, fieldIndex, updatedField)}
+                      onChange={(updatedField: LinkStagesSubmitFormFieldType) =>
+                        onUpdateField(stageIndex, fieldIndex, updatedField)
+                      }
                     />
                   )}
 
                   {field.type === SubmitFormFieldType.Chips && (
                     <ChipsStagesSubmitFormField
                       field={field as ChipsStagesSubmitFormFieldType}
-                      onChange={(
-                        updatedField: ChipsStagesSubmitFormFieldType
-                      ) => onUpdateField(stageIndex, fieldIndex, updatedField)}
+                      onChange={(updatedField: ChipsStagesSubmitFormFieldType) =>
+                        onUpdateField(stageIndex, fieldIndex, updatedField)
+                      }
                     />
                   )}
 

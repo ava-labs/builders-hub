@@ -17,14 +17,15 @@ import StageCardsForm from './Card'
 import StageTagsForm from './Tags'
 import StageSubmitForm from './submit-form/Form'
 import {
-  ChipsStagesSubmitFormField,
+  createChipsStagesSubmitFormField,
+  createLinkStagesSubmitFormField,
+  createTextStagesSubmitFormField,
+} from '@/lib/hackathons/stage-submit-form-fields'
+import {
   HackathonStage,
-  LinkStagesSubmitFormField,
   StageComponent,
-  StageSubmitForm as StageSubmitFormType,
   SubmitFormField,
   SubmitFormFieldType,
-  TextStagesSubmitFormField,
 } from '@/types/hackathon-stage'
 
 export enum StageComponentType {
@@ -70,6 +71,10 @@ type StageFormProps = {
     stageIndex: number,
     fieldIndex: number
   ) => void
+  onReplaceSubmitFormFields: (
+    stageIndex: number,
+    fields: SubmitFormField[]
+  ) => void
   onRemove: (index: number) => void
   setSelectedStageForm: (index: string) => void
   setActivePreviewTab: (tab: string) => void
@@ -92,43 +97,6 @@ const createDefaultComponentByType = (
         description: '',
         tags: [],
       }
-  }
-}
-
-const createTextStagesSubmitFormField =
-  (): TextStagesSubmitFormField => {
-    return {
-      id: crypto.randomUUID(),
-      type: SubmitFormFieldType.Text,
-      label: '',
-      placeholder: '',
-      description: '',
-      maxCharacters: null,
-      rows: null,
-      required: false,
-    }
-  }
-
-const createLinkStagesSubmitFormField =
-  (): LinkStagesSubmitFormField => {
-    return {
-      id: crypto.randomUUID(),
-      type: SubmitFormFieldType.Link,
-      label: '',
-      placeholder: '',
-      description: '',
-      required: false,
-    }
-  }
-
-export function createChipsStagesSubmitFormField(): ChipsStagesSubmitFormField {
-  return {
-    id: crypto.randomUUID(),
-    type: SubmitFormFieldType.Chips,
-    label: '',
-    description: '',
-    required: false,
-    chips: [],
   }
 }
 
@@ -368,6 +336,28 @@ export default function HackathonsEditStages({
     syncStagesToParent(updatedStages)
   }
 
+  const replaceSubmitFormFields = (
+    stageIndex: number,
+    fields: SubmitFormField[]
+  ): void => {
+    const updatedStages: HackathonStage[] = stages.map(
+      (stage: HackathonStage, currentIndex: number) => {
+        if (currentIndex !== stageIndex) {
+          return stage
+        }
+
+        return {
+          ...stage,
+          submitForm: {
+            fields,
+          },
+        }
+      }
+    )
+
+    syncStagesToParent(updatedStages)
+  }
+
   return (
     <div className="space-y-4">
       <Button
@@ -401,6 +391,7 @@ export default function HackathonsEditStages({
                 onAddSubmitFormField={addSubmitFormField}
                 onUpdateSubmitFormField={updateSubmitFormField}
                 onRemoveSubmitFormField={removeSubmitFormField}
+                onReplaceSubmitFormFields={replaceSubmitFormFields}
                 onRemove={removeStage}
                 setSelectedStageForm={setSelectedStageForm}
                 setActivePreviewTab={setActivePreviewTab}
@@ -423,6 +414,7 @@ function StageForm({
   onAddSubmitFormField,
   onUpdateSubmitFormField,
   onRemoveSubmitFormField,
+  onReplaceSubmitFormFields,
   setSelectedStageForm,
   setActivePreviewTab,
   onRemove,
@@ -512,6 +504,7 @@ function StageForm({
         onAddField={onAddSubmitFormField}
         onUpdateField={onUpdateSubmitFormField}
         onRemoveField={onRemoveSubmitFormField}
+        onReplaceSubmitFormFields={onReplaceSubmitFormFields}
         onRemoveSubmitForm={onRemoveSubmitForm}
         setSelectedStageForm={setSelectedStageForm}
         setActivePreviewTab={setActivePreviewTab}
