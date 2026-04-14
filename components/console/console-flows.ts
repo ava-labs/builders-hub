@@ -26,30 +26,31 @@ export type FlowMetadata = {
  * Key is derived from basePath: "/console/layer-1/create" → "layer-1/create"
  */
 export const consoleFlows: Record<string, FlowMetadata> = {
-  "create-l1": {
-    title: "Create L1 (Unified)",
-    completionSummary: "You've created, converted, and configured your Avalanche L1 with a Validator Manager!",
+  "toolbox": {
+    title: "Console Toolbox",
+    completionSummary: "Browse all available console tools.",
     nextSteps: [
       {
-        path: "/console/permissioned-l1s/add-validator",
-        title: "Add Validators",
-        description: "Register additional validators for your L1 network",
+        path: "/console/layer-1/create",
+        title: "Create L1",
+        description: "Launch a new Avalanche L1 with a guided wizard",
+        priority: "recommended",
+      },
+      {
+        path: "/console/primary-network/faucet",
+        title: "Get Testnet AVAX",
+        description: "Request free testnet tokens for development",
         priority: "recommended",
       },
       {
         path: "/console/icm/setup",
         title: "Setup Cross-Chain Messaging",
         description: "Enable communication between your L1 and other chains",
-        priority: "recommended",
-      },
-      {
-        path: "/console/ictt/setup",
-        title: "Setup Token Bridge",
-        description: "Deploy a bridge to transfer tokens to/from your L1",
         priority: "optional",
       },
     ],
   },
+
   "layer-1/create": {
     title: "Create New L1",
     completionSummary: "You've successfully created and launched your Avalanche L1!",

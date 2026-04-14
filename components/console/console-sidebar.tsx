@@ -34,6 +34,7 @@ import {
   ChevronRight,
   Rocket,
   LayoutDashboard,
+  LayoutGrid,
   Workflow,
 
   Search,
@@ -127,6 +128,11 @@ const data = {
       url: "/console",
       icon: Home,
     },
+    {
+      title: "Toolbox",
+      url: "/console/toolbox",
+      icon: LayoutGrid,
+    },
   ],
   navGroups: [
     // Primary Network — the starting point for all developers
@@ -184,12 +190,7 @@ const data = {
       icon: Rocket,
       items: [
         {
-          title: "Create L1 (Unified)",
-          url: "/console/create-l1",
-          icon: Layers,
-        },
-        {
-          title: "Create L1 (Steps)",
+          title: "Create L1",
           url: "/console/layer-1/create",
           icon: Layers,
         },
@@ -625,7 +626,7 @@ function CollapsibleSubGroupItem({
 const TOUR_DATA_ATTRS: Record<string, string> = {
   "/console/primary-network/faucet": "faucet-link",
   "/console/layer-1/create": "create-l1-link",
-  "/console/create-l1": "create-l1-unified-link",
+
 };
 
 // Single Nav Menu Item
