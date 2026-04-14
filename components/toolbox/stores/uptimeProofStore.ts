@@ -33,7 +33,7 @@ const { getStore: getUptimeProofStore, useStore: useUptimeProofStore } = createF
     },
   }),
   partialize: (state) => {
-    const { globalError, ...rest } = state;
+    const { globalError, subnetIdL1: _, ...rest } = state;
     return rest;
   },
 });

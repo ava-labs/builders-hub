@@ -53,8 +53,7 @@ const { getStore: getRemoveDelegationStore, useStore: useRemoveDelegationStore }
       setDelegationId: (delegationId: string) =>
         set({ delegationId, evmTxHash: '', pChainTxId: '', globalError: null, globalSuccess: null }),
 
-      setEvmTxHash: (evmTxHash: string) =>
-        set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
+      setEvmTxHash: (evmTxHash: string) => set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
 
       setPChainTxId: (pChainTxId: string) => set({ pChainTxId, globalError: null, globalSuccess: null }),
 
@@ -69,7 +68,7 @@ const { getStore: getRemoveDelegationStore, useStore: useRemoveDelegationStore }
       },
     }),
     partialize: (state) => {
-      const { globalError, globalSuccess, ...rest } = state;
+      const { globalError, globalSuccess, subnetIdL1: _, ...rest } = state;
       return rest;
     },
   });

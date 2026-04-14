@@ -30,28 +30,31 @@ const initialValues = {
   globalSuccess: null as string | null,
 };
 
-const { getStore: getNativeStakingSetupStore, useStore: useNativeStakingSetupStore } = createFlowStore<NativeStakingSetupState>({
-  name: 'native-staking-setup-store',
-  storeCreator: (set, isTestnet) => ({
-    ...initialValues,
+const { getStore: getNativeStakingSetupStore, useStore: useNativeStakingSetupStore } =
+  createFlowStore<NativeStakingSetupState>({
+    name: 'native-staking-setup-store',
+    storeCreator: (set, isTestnet) => ({
+      ...initialValues,
 
-    setSubnetIdL1: (subnetIdL1: string) => set({ subnetIdL1 }),
-    setValidatorMessagesLibAddress: (address: string) => set({ validatorMessagesLibAddress: address }),
-    setStakingManagerAddress: (address: string) => set({ stakingManagerAddress: address }),
-    setRewardCalculatorAddress: (address: string) => set({ rewardCalculatorAddress: address }),
-    setInitializeTxHash: (hash: string) => set({ initializeTxHash: hash }),
-    setGlobalError: (error: string | null) => set({ globalError: error }),
-    setGlobalSuccess: (success: string | null) => set({ globalSuccess: success }),
+      setSubnetIdL1: (subnetIdL1: string) => set({ subnetIdL1 }),
+      setValidatorMessagesLibAddress: (address: string) => set({ validatorMessagesLibAddress: address }),
+      setStakingManagerAddress: (address: string) => set({ stakingManagerAddress: address }),
+      setRewardCalculatorAddress: (address: string) => set({ rewardCalculatorAddress: address }),
+      setInitializeTxHash: (hash: string) => set({ initializeTxHash: hash }),
+      setGlobalError: (error: string | null) => set({ globalError: error }),
+      setGlobalSuccess: (success: string | null) => set({ globalSuccess: success }),
 
-    reset: () => {
-      set({ ...initialValues });
-      window?.localStorage.removeItem(`${STORE_VERSION}-native-staking-setup-store-${isTestnet ? 'testnet' : 'mainnet'}`);
+      reset: () => {
+        set({ ...initialValues });
+        window?.localStorage.removeItem(
+          `${STORE_VERSION}-native-staking-setup-store-${isTestnet ? 'testnet' : 'mainnet'}`,
+        );
+      },
+    }),
+    partialize: (state) => {
+      const { globalError, globalSuccess, subnetIdL1: _, ...rest } = state;
+      return rest;
     },
-  }),
-  partialize: (state) => {
-    const { globalError, globalSuccess, ...rest } = state;
-    return rest;
-  },
-});
+  });
 
 export { getNativeStakingSetupStore, useNativeStakingSetupStore };
