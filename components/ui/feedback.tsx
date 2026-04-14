@@ -9,6 +9,7 @@ import {
 } from 'fumadocs-ui/components/ui/collapsible';
 import { cva } from 'class-variance-authority';
 import { usePathname } from 'next/navigation';
+import posthog from 'posthog-js';
 
 const rateButtonVariants = cva(
   'inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 disabled:cursor-not-allowed transition-colors hover:bg-fd-accent/80 hover:text-fd-accent-foreground',
@@ -41,14 +42,12 @@ function set(url: string, feedback: Feedback | null) {
 }
 
 export interface UnifiedFeedbackProps {
-  onRateAction: (url: string, feedback: Feedback) => Promise<void>;
   path: string;
   title: string;
   pagePath: string;
 }
 
 export function Feedback({
-  onRateAction,
   path,
   title,
   pagePath,
@@ -73,7 +72,7 @@ export function Feedback({
       message,
     };
 
-    void onRateAction(pathname, feedback);
+    posthog.capture('on_rate_document', feedback);
 
     set(pathname, feedback);
     setPrevious(feedback);

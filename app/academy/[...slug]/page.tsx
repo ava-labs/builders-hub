@@ -24,7 +24,6 @@ import {
 } from "fumadocs-ui/components/codeblock";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
-import posthog from "posthog-js";
 
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper";
 import CrossChainTransfer from "@/components/toolbox/console/primary-network/CrossChainTransfer";
@@ -163,10 +162,6 @@ export default async function Page(props: {
         path={path}
         title={page.data.title || "Untitled"}
         pagePath={`/academy/${page.slugs.join("/")}`}
-        onRateAction={async (url, feedback) => {
-          "use server";
-          await posthog.capture("on_rate_document", feedback);
-        }}
       />
     </DocsPage>
   );

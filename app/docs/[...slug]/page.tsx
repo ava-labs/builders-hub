@@ -21,7 +21,6 @@ import {
 import type { MDXComponents } from "mdx/types";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import posthog from "posthog-js";
 import { type ComponentProps, type FC, type ReactElement, type ReactNode } from "react";
 
 export const dynamicParams = true;
@@ -133,10 +132,6 @@ export default async function Page(props: {
         path={path}
         title={page.data.title || "Untitled"}
         pagePath={`/docs/${page.slugs.join("/")}`}
-        onRateAction={async (url, feedback) => {
-          "use server";
-          await posthog.capture("on_rate_document", feedback);
-        }}
       />
     </DocsPage>
   );

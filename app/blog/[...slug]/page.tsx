@@ -14,7 +14,6 @@ import {
 } from "fumadocs-ui/components/codeblock";
 import { BadgeCheck } from "lucide-react";
 import { Feedback } from "@/components/ui/feedback";
-import posthog from "posthog-js";
 
 export const dynamicParams = false;
 
@@ -82,10 +81,6 @@ export default async function Page(props: {
             path={path}
             title={page.data.title || "Untitled"}
             pagePath={`/blog/${page.slugs.join("/")}`}
-            onRateAction={async (url, feedback) => {
-              "use server";
-              await posthog.capture("on_rate_document", feedback);
-            }}
           />
         </div>
         <div className="flex flex-col gap-4 border-l p-4 text-sm">
