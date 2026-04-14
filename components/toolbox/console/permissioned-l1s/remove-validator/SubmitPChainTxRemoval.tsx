@@ -14,6 +14,7 @@ import { PChainManualSubmit } from '@/components/toolbox/components/PChainManual
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
+import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -291,6 +292,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         notify('setL1ValidatorWeight', pChainTxIdPromise);
         return pChainTxIdPromise;
       });
+
+      // Wait for P-Chain confirmation before declaring success
+      await waitForPChainConfirmation(pChainTxId, isTestnet);
 
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId, eventData);

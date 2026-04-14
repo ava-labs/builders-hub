@@ -22,10 +22,10 @@ import {
 import { fetchRegisterL1ValidatorData } from './fetchRegisterL1ValidatorData';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
-import { CliAlternative } from '@/components/console/cli-alternative';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -340,7 +340,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     (!isCoreWallet && !!pChainSignature);
 
   const step1Complete = !!pChainTxIdState.trim();
-  const step2Complete = !!txHash;
+  const step2Complete = !!registrationComplete;
 
   return (
     <div className="space-y-3">
@@ -452,7 +452,14 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       </StepFlowCard>
 
       {/* Non-Core: CLI command after aggregation */}
-      {!isCoreWallet && pChainSignature && !txHash && <CliAlternative command={generateCastCommand()} />}
+      {!isCoreWallet && pChainSignature && !txHash && (
+        <div className="p-3 rounded-xl border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 space-y-3">
+          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+            Signatures aggregated. Run this command to complete the validator registration:
+          </p>
+          <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
+        </div>
+      )}
 
       {registrationComplete && (
         <div className="p-3 rounded-xl border bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800">

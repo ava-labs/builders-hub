@@ -22,6 +22,7 @@ import { SDKCodeViewer, SDKCodeSource } from '@/components/console/sdk-code-view
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
+import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 
 // TypeScript code showing the P-Chain disable operation
 const DISABLE_VALIDATOR_CODE = `// Disable an L1 Validator directly on the P-Chain
@@ -154,6 +155,9 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
         notify('disableL1Validator', txPromise);
         return txPromise;
       });
+
+      // Wait for P-Chain confirmation before declaring success
+      await waitForPChainConfirmation(hash, isTestnet);
 
       setTxHash(hash);
       setOperationSuccessful(true);

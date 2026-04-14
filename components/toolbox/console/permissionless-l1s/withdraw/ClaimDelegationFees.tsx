@@ -33,36 +33,34 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
 
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
   const handleClaimFees = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
+    setConfirmed(false);
 
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
-      setIsProcessing(false);
       return;
     }
 
     if (!validationID || validationID === '0x0000000000000000000000000000000000000000000000000000000000000000') {
       setErrorState('Valid validation ID is required.');
       onError('Valid validation ID is required.');
-      setIsProcessing(false);
       return;
     }
 
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
       onError('Staking Manager address is required.');
-      setIsProcessing(false);
       return;
     }
 
+    setIsProcessing(true);
     try {
       // Use hook to claim delegation fees
       const hash =
@@ -78,6 +76,7 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
         throw new Error(`Transaction failed with status: ${receipt.status}`);
       }
 
+      setConfirmed(true);
       const successMsg = 'Delegation fees claimed successfully.';
 
       onSuccess({
@@ -131,11 +130,19 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
         </ul>
       </Alert>
 
-      <Button onClick={handleClaimFees} disabled={isProcessing || !!txHash} loading={isProcessing}>
+      <Button onClick={handleClaimFees} disabled={isProcessing || !!confirmed} loading={isProcessing}>
         {isProcessing ? 'Processing...' : 'Claim Delegation Fees'}
       </Button>
 
-      {txHash && (
+      {txHash && !confirmed && (
+        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            Transaction submitted. Waiting for confirmation...
+          </p>
+        </div>
+      )}
+
+      {confirmed && (
         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
           <p className="text-sm text-green-800 dark:text-green-200">
             <strong>Success!</strong> Delegation fees have been claimed and transferred to your address.
