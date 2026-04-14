@@ -1,3 +1,4 @@
+import { getAuthSession } from '@/lib/auth/authSession';
 import { withAuth } from '@/lib/protectedRoute'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -13,6 +14,15 @@ import { NextRequest, NextResponse } from 'next/server'
 const FORM_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
 
 export const POST = withAuth(async (request: NextRequest) => {
+
+  const session = await getAuthSession();
+  const isDevrel = session?.user.custom_attributes?.includes("devrel") ?? false;
+  const isHackathonCreator = session?.user.custom_attributes?.includes("hackathonCreator") ?? false;
+
+  if (!isDevrel || !isHackathonCreator) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 401 });
+  }
+
   try {
     const body = (await request.json()) as {
       formId?: string
