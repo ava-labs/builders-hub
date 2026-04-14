@@ -21,6 +21,7 @@ import {
   Droplets,
   Wallet,
 } from 'lucide-react';
+import Link from 'next/link';
 import {
   useCreateL1FlowStore,
   type StartingPoint,
@@ -253,7 +254,16 @@ export default function CreateL1Questionnaire() {
                 <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                   What are you building?
                 </h2>
-                <p className="mt-2 text-base text-zinc-500 dark:text-zinc-400">Choose your starting point.</p>
+                <p className="mt-2 text-base text-zinc-500 dark:text-zinc-400">
+                  Choose your starting point.{' '}
+                  <Link
+                    href="/docs/avalanche-l1s"
+                    target="_blank"
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    What is an L1? →
+                  </Link>
+                </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <OptionCard
@@ -296,7 +306,14 @@ export default function CreateL1Questionnaire() {
                   Where should the Validator Manager live?
                 </h2>
                 <p className="mt-2 text-base text-zinc-500 dark:text-zinc-400">
-                  The contract that manages who can validate your L1.
+                  The contract that manages who can validate your L1.{' '}
+                  <Link
+                    href="/docs/avalanche-l1s/validator-manager/contract"
+                    target="_blank"
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    Learn about Validator Managers →
+                  </Link>
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -340,7 +357,14 @@ export default function CreateL1Questionnaire() {
                   How should validators be managed?
                 </h2>
                 <p className="mt-2 text-base text-zinc-500 dark:text-zinc-400">
-                  This determines who can join and leave the validator set.
+                  This determines who can join and leave the validator set.{' '}
+                  <Link
+                    href="/academy/avalanche-l1/permissioned-l1s"
+                    target="_blank"
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    PoA vs PoS guide →
+                  </Link>
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -393,7 +417,14 @@ export default function CreateL1Questionnaire() {
                   Who owns the Validator Manager?
                 </h2>
                 <p className="mt-2 text-base text-zinc-500 dark:text-zinc-400">
-                  You can always transfer ownership later.
+                  You can always transfer ownership later.{' '}
+                  <Link
+                    href="/academy/avalanche-l1/permissioned-l1s"
+                    target="_blank"
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    Security best practices →
+                  </Link>
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
