@@ -19,9 +19,16 @@ const KNOWN_ERRORS: Record<string, string> = {
     'Invalid BLS public key length. Expected 48 bytes (96 hex chars). Check the validator credentials.',
   '0x06cf438f': 'Invalid BLS public key. Ensure the BLS key and proof of possession are correct.',
   InvalidBLSPublicKey: 'Invalid BLS public key. Ensure the BLS key and proof of possession are correct.',
-  NodeAlreadyRegistered: 'This node is already registered as a validator.',
+  '0xa41f772f':
+    'This node is already registered as a validator. You must complete the full removal process (Initiate Removal → P-Chain Weight Update → Complete Removal) before re-registering, or use a different Node ID.',
+  NodeAlreadyRegistered:
+    'This node is already registered as a validator. You must complete the full removal process (Initiate Removal → P-Chain Weight Update → Complete Removal) before re-registering, or use a different Node ID.',
 
   // Validator registration / removal
+  '0x5c33785a':
+    'Invalid contract nonce — the validator state has already advanced past this operation. This usually means a prior transaction for this validator was already confirmed. Refresh the page and check the validator status.',
+  InvalidNonce:
+    'Invalid contract nonce — the validator state has already advanced past this operation. This usually means a prior transaction for this validator was already confirmed. Refresh the page and check the validator status.',
   InvalidValidationID: 'Invalid validation ID. The validator may not have been registered on the P-Chain yet.',
   InvalidWarpMessage: 'Invalid warp message. Ensure the P-Chain transaction was successful and wait for confirmation.',
   ValidatorAlreadyRegistered: 'This validator has already been registered.',
@@ -58,16 +65,19 @@ export function parseContractError(err: unknown): string {
     return 'Insufficient funds for transaction';
   }
 
-  // Nonce errors — wallet sent a stale nonce (common after rapid tx or tab switching)
-  if (raw.includes('nonce')) {
-    return 'Nonce conflict — your wallet sent a stale nonce. This usually means a previous transaction was already confirmed. Refresh the page and check your transaction history.';
-  }
-
-  // Check for known selectors and error names
+  // Check for known selectors and error names FIRST — these provide specific,
+  // actionable messages. Must run before broad substring heuristics below.
   for (const [key, message] of Object.entries(KNOWN_ERRORS)) {
     if (raw.includes(key)) {
       return message;
     }
+  }
+
+  // Wallet-level nonce errors (stale nonce after rapid tx or tab switching).
+  // Checked AFTER KNOWN_ERRORS so that contract-level InvalidNonce gets its
+  // own specific message instead of this misleading wallet-nonce message.
+  if (raw.includes('nonce')) {
+    return 'Nonce conflict — your wallet sent a stale nonce. This usually means a previous transaction was already confirmed. Refresh the page and check your transaction history.';
   }
 
   // Generic revert with some context

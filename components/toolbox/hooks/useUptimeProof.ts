@@ -21,10 +21,17 @@ export function useUptimeProof() {
   /**
    * Fetch uptime from the L1 node's /validators endpoint.
    * Returns null (instead of throwing) when the endpoint is unavailable.
+   *
+   * @param customValidatorsUrl — if provided, used directly instead of
+   *   auto-deriving from rpcUrl. Useful when the node uses a non-standard path.
    */
-  async function getValidatorUptimeFromNode(validationID: string, rpcUrl: string): Promise<bigint | null> {
+  async function getValidatorUptimeFromNode(
+    validationID: string,
+    rpcUrl: string,
+    customValidatorsUrl?: string,
+  ): Promise<bigint | null> {
     try {
-      const validatorsRpcUrl = rpcUrl.replace('/rpc', '/validators');
+      const validatorsRpcUrl = customValidatorsUrl || rpcUrl.replace('/rpc', '/validators');
       const response = await fetch(validatorsRpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,13 +101,17 @@ export function useUptimeProof() {
    * is NOT a viable fallback — it's only updated when someone explicitly calls
    * submitUptimeProof() and defaults to 0.
    */
-  async function getValidatorUptime(validationID: string, rpcUrl: string): Promise<bigint> {
-    const uptime = await getValidatorUptimeFromNode(validationID, rpcUrl);
+  async function getValidatorUptime(
+    validationID: string,
+    rpcUrl: string,
+    customValidatorsUrl?: string,
+  ): Promise<bigint> {
+    const uptime = await getValidatorUptimeFromNode(validationID, rpcUrl, customValidatorsUrl);
     if (uptime !== null) return uptime;
 
     throw new Error(
       "Could not retrieve validator uptime. The L1 node's /validators endpoint is unavailable or the validator was not found. " +
-        'Ensure the node exposes the validators API.',
+        'Provide a custom Validators API URL and retry.',
     );
   }
 
@@ -137,6 +148,7 @@ export function useUptimeProof() {
     validationID: string,
     rpcUrl: string,
     uptimeBlockchainID: string,
+    customValidatorsUrl?: string,
   ): Promise<UptimeProofResult> {
     setIsLoading(true);
     setError(null);
@@ -151,7 +163,7 @@ export function useUptimeProof() {
       const blockchainInfo = await getBlockchainInfo(uptimeBlockchainCB58);
       const signingSubnetId = blockchainInfo.subnetId;
 
-      const reportedUptime = await getValidatorUptime(validationID, rpcUrl);
+      const reportedUptime = await getValidatorUptime(validationID, rpcUrl, customValidatorsUrl);
       const validationIDBytes = hexToBytes(validationID as `0x${string}`);
 
       // Try with progressively lower uptime percentages

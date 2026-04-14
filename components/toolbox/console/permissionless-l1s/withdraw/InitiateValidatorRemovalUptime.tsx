@@ -51,6 +51,8 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [uptimeInfo, setUptimeInfo] = useState<{ seconds: number; signed: boolean } | null>(null);
+  const [customValidatorsUrl, setCustomValidatorsUrl] = useState<string>('');
+  const [showCustomUrl, setShowCustomUrl] = useState(false);
 
   const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
@@ -176,7 +178,12 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
       // Step 1: Create and sign uptime proof
       // Fetches real-time uptime from L1 node's /validators endpoint, then
       // aggregates BLS signatures from subnet validators with progressive retry.
-      const uptimeProofPromise = createAndSignUptimeProof(validationID, rpcUrl, uptimeBlockchainID);
+      const uptimeProofPromise = createAndSignUptimeProof(
+        validationID,
+        rpcUrl,
+        uptimeBlockchainID,
+        customValidatorsUrl || undefined,
+      );
 
       notify({ type: 'local', name: 'Aggregate Uptime Proof Signatures' }, uptimeProofPromise);
 
@@ -220,6 +227,11 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
           'Validator is ineligible for rewards based on current uptime. Use "Force Remove Validator" to proceed without rewards.';
       }
 
+      // Auto-show the custom URL input when the validators endpoint fails
+      if (message.includes('validators') && message.includes('unavailable')) {
+        setShowCustomUrl(true);
+      }
+
       setErrorState(`Failed to initiate validator removal: ${message}`);
       onError(`Failed to initiate validator removal: ${message}`);
     } finally {
@@ -239,6 +251,27 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
         <div className="space-y-3">
           <Input label="Validation ID" value={validationID} onChange={() => {}} disabled={true} />
         </div>
+      </div>
+
+      {/* Custom validators URL — collapsed by default, auto-shown on endpoint failure */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setShowCustomUrl(!showCustomUrl)}
+          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          {showCustomUrl ? 'Hide custom endpoint' : 'Custom Validators API URL (optional)'}
+        </button>
+        {showCustomUrl && (
+          <Input
+            label="Validators API URL"
+            value={customValidatorsUrl}
+            onChange={setCustomValidatorsUrl}
+            placeholder="https://your-node/ext/bc/<blockchainID>/validators"
+            disabled={isProcessing}
+            helperText="Override the auto-detected URL if your node uses a non-standard path or the default endpoint is unavailable."
+          />
+        )}
       </div>
 
       {uptimeInfo && (
