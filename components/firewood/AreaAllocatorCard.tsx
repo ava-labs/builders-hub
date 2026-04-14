@@ -18,25 +18,28 @@ interface AnimEvent {
   targetIdx: number
 }
 
+// Representative subset of all 23 area sizes from storage/build.rs
+// Includes non-power-of-two sizes 96B and 768B (optimized for common trie node sizes)
 const AREA_BUCKETS: AreaBucket[] = [
   { label: "16B", sizeBytes: 16, width: 14, free: 7 },
-  { label: "64B", sizeBytes: 64, width: 18, free: 5 },
-  { label: "256B", sizeBytes: 256, width: 24, free: 4 },
-  { label: "1KB", sizeBytes: 1024, width: 30, free: 6 },
-  { label: "4KB", sizeBytes: 4096, width: 38, free: 3 },
-  { label: "16KB", sizeBytes: 16384, width: 46, free: 5 },
-  { label: "64KB", sizeBytes: 65536, width: 54, free: 2 },
-  { label: "256KB", sizeBytes: 262144, width: 62, free: 4 },
-  { label: "1MB", sizeBytes: 1048576, width: 70, free: 3 },
-  { label: "16MB", sizeBytes: 16777216, width: 80, free: 1 },
+  { label: "96B", sizeBytes: 96, width: 17, free: 5 },
+  { label: "256B", sizeBytes: 256, width: 22, free: 4 },
+  { label: "768B", sizeBytes: 768, width: 27, free: 6 },
+  { label: "4KB", sizeBytes: 4096, width: 34, free: 3 },
+  { label: "16KB", sizeBytes: 16384, width: 42, free: 5 },
+  { label: "64KB", sizeBytes: 65536, width: 50, free: 2 },
+  { label: "256KB", sizeBytes: 262144, width: 58, free: 4 },
+  { label: "1MB", sizeBytes: 1048576, width: 66, free: 3 },
+  { label: "16MB", sizeBytes: 16777216, width: 76, free: 1 },
 ]
 
+// Write events use real area sizes — each node is allocated to the smallest bucket that fits
 const WRITE_EVENTS: AnimEvent[] = [
-  { type: "write", nodeLabel: "96B node", nodeSize: 96, targetIdx: 2 },
-  { type: "write", nodeLabel: "3KB leaf", nodeSize: 3072, targetIdx: 4 },
-  { type: "write", nodeLabel: "40B branch", nodeSize: 40, targetIdx: 1 },
-  { type: "write", nodeLabel: "200KB val", nodeSize: 204800, targetIdx: 7 },
-  { type: "write", nodeLabel: "12B key", nodeSize: 12, targetIdx: 0 },
+  { type: "write", nodeLabel: "80B branch", nodeSize: 80, targetIdx: 1 },  // fits in 96B bucket
+  { type: "write", nodeLabel: "3KB leaf", nodeSize: 3072, targetIdx: 4 },  // fits in 4KB bucket
+  { type: "write", nodeLabel: "40B node", nodeSize: 40, targetIdx: 1 },    // fits in 96B bucket
+  { type: "write", nodeLabel: "200KB val", nodeSize: 204800, targetIdx: 7 }, // fits in 256KB bucket
+  { type: "write", nodeLabel: "12B key", nodeSize: 12, targetIdx: 0 },     // fits in 16B bucket
 ]
 
 const FREE_EVENTS: AnimEvent[] = [
@@ -163,7 +166,7 @@ export function AreaAllocatorCard({ colors }: { colors: Colors }) {
             23 area sizes from 16B to 16MB. Freed nodes return to per-size free lists — no compaction, no fragmentation.
           </p>
         </div>
-        <InfoTooltip colors={colors} text="Instead of compacting files like LevelDB, Firewood manages disk space the way malloc manages heap memory. There are 23 bucket sizes (16 bytes to 16 MB). Writing a trie node picks the smallest bucket that fits. When old nodes are freed, their space goes back to the matching bucket's free list — ready for the next write, no reorganization needed." />
+        <InfoTooltip colors={colors} text="Instead of compacting files like LevelDB, Firewood manages disk space the way malloc manages heap memory. There are 23 bucket sizes (16 bytes to 16 MB, defined in storage/build.rs) — including non-power-of-two sizes like 96B and 768B optimized for common node sizes. Writing a trie node picks the smallest bucket that fits. When old nodes are freed, their space goes back to the matching bucket's free list — ready for the next write, no reorganization needed." />
       </div>
 
       {/* Event indicator */}

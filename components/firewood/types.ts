@@ -11,23 +11,19 @@ export interface TrieNode {
   value?: string
 }
 
-export interface Revision {
-  id: number
-  root: number
-  totalNodes: number
-  sharedNodes: number
-  newNodes: number
-}
-
 export const FIREWOOD_CONFIG = {
   revisionRetention: 128,
   areaCount: 23,
   minAreaSize: 16,
   maxAreaSize: 16 * 1024 * 1024, // 16MB
-  subtreeCount: 16,
+  subtreeCount: 16, // PathComponent::LEN = 16 (hexary trie, one per nibble 0-F)
   nibbleValues: 16,
-  gasRate: 30_000_000, // R = 30M gas/sec
+  // Source: firewood/src/manager.rs — deferred_persistence_commit_count default = nonzero!(1u64)
   deferredPersistencePermits: 1,
+  // Source: firewood/src/manager.rs — node_cache_memory_limit default = nonzero!(192_000_000_usize)
+  nodeCacheMemoryMB: 192,
+  // Source: firewood/src/db.rs — UseParallel::BatchSize(8) default
+  parallelBatchThreshold: 8,
 } as const
 
 // Accent colors for different Firewood concepts

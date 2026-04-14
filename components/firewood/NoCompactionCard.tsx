@@ -19,8 +19,7 @@ export function NoCompactionCard({ colors }: { colors: Colors }) {
   const [firewoodBlocks, setFirewoodBlocks] = useState<Block[]>([])
   const [fdlMarkers, setFdlMarkers] = useState<FdlMarker[]>([])
   const [isCompacting, setIsCompacting] = useState(false)
-  const [leveldbP99, setLeveldbP99] = useState("12ms")
-  const [firewoodP99] = useState("8ms")
+  const [leveldbLatency, setLeveldbLatency] = useState<"steady" | "spiking">("steady")
 
   const leveldbIdRef = useRef(0)
   const firewoodIdRef = useRef(0)
@@ -116,13 +115,13 @@ export function NoCompactionCard({ colors }: { colors: Colors }) {
 
       isCompactingRef.current = true
       setIsCompacting(true)
-      setLeveldbP99("230ms")
+      setLeveldbLatency("spiking")
 
       compactionTimeoutRef.current = setTimeout(() => {
         if (!isMountedRef.current) return
         isCompactingRef.current = false
         setIsCompacting(false)
-        setLeveldbP99("12ms")
+        setLeveldbLatency("steady")
 
         compactionCycleRef.current = setTimeout(scheduleCompaction, 6000)
       }, 2000)
@@ -193,9 +192,9 @@ export function NoCompactionCard({ colors }: { colors: Colors }) {
               animate={{
                 color: isCompacting ? FIREWOOD_COLORS.compaction : FIREWOOD_COLORS.leveldb,
               }}
-              key={leveldbP99}
+              key={leveldbLatency}
             >
-              p99: {leveldbP99}
+              {leveldbLatency === "spiking" ? "latency spike" : "steady"}
             </motion.span>
           </div>
           <motion.div
@@ -270,7 +269,7 @@ export function NoCompactionCard({ colors }: { colors: Colors }) {
               className="text-[10px] font-mono font-bold"
               style={{ color: FIREWOOD_COLORS.disk }}
             >
-              p99: {firewoodP99}
+              always steady
             </span>
           </div>
           <motion.div

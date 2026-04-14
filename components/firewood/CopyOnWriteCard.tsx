@@ -48,7 +48,6 @@ function createRevision(revId: number, prevRevId: number | null): RevisionSnapsh
 export function CopyOnWriteCard({ colors }: { colors: Colors }) {
   const [revisions, setRevisions] = useState<RevisionSnapshot[]>([])
   const [freedRev, setFreedRev] = useState<number | null>(null)
-  const [stats, setStats] = useState({ nodes: 1247, shared: 96, newCount: 44 })
   const revIdRef = useRef(0)
   const isMountedRef = useRef(true)
   const timeoutsRef = useRef<NodeJS.Timeout[]>([])
@@ -83,7 +82,6 @@ export function CopyOnWriteCard({ colors }: { colors: Colors }) {
         revIdRef.current++
         const rev2 = createRevision(revIdRef.current, revIdRef.current - 1)
         setRevisions(prev => [...prev, rev2])
-        setStats({ nodes: 1289, shared: 97, newCount: 38 })
       }, 1200)
 
       // Step 3: Add revision N+2 (shares from N+1)
@@ -92,7 +90,6 @@ export function CopyOnWriteCard({ colors }: { colors: Colors }) {
         revIdRef.current++
         const rev3 = createRevision(revIdRef.current, revIdRef.current - 1)
         setRevisions(prev => [...prev, rev3])
-        setStats({ nodes: 1324, shared: 96, newCount: 44 })
       }, 2400)
 
       // Step 4: Fade out oldest (expired)
@@ -100,7 +97,6 @@ export function CopyOnWriteCard({ colors }: { colors: Colors }) {
         if (!isMountedRef.current) return
         setRevisions(prev => prev.slice(1))
         setFreedRev(revIdRef.current - 2)
-        setStats({ nodes: 1247, shared: 96, newCount: 44 })
       }, 3800)
 
       // Step 5: Reset cycle
@@ -192,7 +188,7 @@ export function CopyOnWriteCard({ colors }: { colors: Colors }) {
             New roots share unchanged nodes. Only modified paths are copied.
           </p>
         </div>
-        <InfoTooltip colors={colors} text="A typical block changes a few hundred accounts out of millions. Instead of copying the whole trie, Firewood creates a new root that points to mostly the same nodes — only the modified paths get new nodes. The last 128 revisions stay accessible for consensus and API queries. When a revision expires, its unique nodes are freed." />
+        <InfoTooltip colors={colors} text="Instead of copying the whole trie, Firewood creates a new root that points to mostly the same nodes — only the modified paths get new nodes. The default retention is 128 revisions (max_revisions in config), accessible for consensus and API queries. When a revision expires, its unique nodes are returned to the free lists." />
       </div>
 
       {/* Revision timeline */}
@@ -221,37 +217,24 @@ export function CopyOnWriteCard({ colors }: { colors: Colors }) {
         </div>
       </div>
 
-      {/* Stats bar */}
+      {/* Mechanism description — no fabricated numbers */}
       <motion.div
         className={`flex items-center justify-center gap-3 text-[10px] font-mono pt-3 mt-auto`}
         style={{ borderTop: `1px solid ${colors.stroke}10` }}
       >
-        <motion.span
-          key={stats.nodes}
-          initial={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          style={{ color: FIREWOOD_COLORS.cow }}
-        >
-          Nodes: {stats.nodes.toLocaleString()}
-        </motion.span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: FIREWOOD_COLORS.cow }} />
+          <span style={{ color: FIREWOOD_COLORS.cow }}>new node</span>
+        </span>
         <span className={colors.textMuted}>|</span>
-        <motion.span
-          key={stats.shared}
-          initial={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          style={{ color: FIREWOOD_COLORS.disk }}
-        >
-          Shared: {stats.shared}%
-        </motion.span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full inline-block" style={{ border: `1.5px dashed ${FIREWOOD_COLORS.cow}40` }} />
+          <span className={colors.textMuted}>shared from prior rev</span>
+        </span>
         <span className={colors.textMuted}>|</span>
-        <motion.span
-          key={stats.newCount}
-          initial={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          className={colors.textMuted}
-        >
-          New: {stats.newCount}
-        </motion.span>
+        <span className={colors.textMuted}>
+          retention: 128 revs
+        </span>
       </motion.div>
     </div>
   )

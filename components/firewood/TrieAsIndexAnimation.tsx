@@ -38,7 +38,9 @@ const PATHS = [
   { nodes: ["root", "bA", "lA1"], nibbles: [10, 1], label: "storage: 42" },
 ]
 
-const LEVELDB_STEPS = ["Hash key (SHA3)", "Search B-tree index", "Seek SSTable", "Read block", "Deserialize", "Repeat per level..."]
+// In LevelDB, each trie level requires: hash the node key, then do a full LSM lookup
+// (memtable + L0-L6 SSTables with bloom filters and block index). This repeats per level.
+const LEVELDB_STEPS = ["Hash node key", "Check memtable", "Query bloom filters", "Seek SSTable", "Read data block", "Repeat per trie level..."]
 const CIRCLED = ["\u2460", "\u2461", "\u2462", "\u2463", "\u2464", "\u2465"]
 
 // SVG sub-components rendered inside the viewBox
@@ -197,7 +199,7 @@ export function TrieAsIndexAnimation({ colors }: { colors: Colors }) {
       after(() => { if (ok()) { setStep(4); setHighlightedNodes(new Set([n0, n1, n2])) } }, 3500)
       // Caption
       const offsets = p.nodes.map((id) => NODES[id].offset)
-      after(() => { if (ok()) { setStep(5); setCaption(`3 reads: @${offsets.join(" \u2192 @")}`) } }, 4200)
+      after(() => { if (ok()) { setStep(5); setCaption(`${offsets.length} pread() calls: @${offsets.join(" \u2192 @")}`) } }, 4200)
       // Next
       after(() => { if (ok()) run((pi + 1) % PATHS.length) }, 6000)
     }
@@ -215,7 +217,7 @@ export function TrieAsIndexAnimation({ colors }: { colors: Colors }) {
             Firewood stores trie nodes at byte offsets on disk. The trie IS the index — no hash lookups needed.
           </p>
         </div>
-        <InfoTooltip colors={colors} text="Reading an account balance or storage slot means walking the trie: start at root, pick the nibble (0-F) matching the key, follow the pointer to the next node. Each pointer is a byte offset in the file — just read that offset. 3 sequential reads vs LevelDB's 8+ hash lookups and B-tree traversals." />
+        <InfoTooltip colors={colors} text="Reading an account balance or storage slot means walking the trie: start at root, pick the nibble (0-F) matching the key, follow the pointer to the next node. Each pointer is a byte offset in the file — one pread() at that offset. In LevelDB, each trie level requires a hash lookup followed by a full LSM-tree traversal (memtable, bloom filters, SSTables)." />
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
@@ -295,7 +297,7 @@ export function TrieAsIndexAnimation({ colors }: { colors: Colors }) {
               </motion.div>
             ))}
             <div className="text-[11px] font-mono font-bold mt-1.5" style={{ color: FIREWOOD_COLORS.leveldb, opacity: ldbVisible >= LEVELDB_STEPS.length ? 1 : 0.3 }}>
-              {"\u2192"} 8+ ops
+              {"\u2192"} per trie level
             </div>
           </div>
           <div>
@@ -310,7 +312,7 @@ export function TrieAsIndexAnimation({ colors }: { colors: Colors }) {
               </motion.div>
             ))}
             <div className="text-[11px] font-mono font-bold mt-1.5" style={{ color: FIREWOOD_COLORS.trie, opacity: fwVisible >= fwSteps.length ? 1 : 0.3 }}>
-              {"\u2192"} 3 reads
+              {"\u2192"} 1 pread() each
             </div>
           </div>
         </div>

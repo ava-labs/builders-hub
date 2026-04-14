@@ -91,7 +91,7 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     question: "What is the Future-Delete Log?",
-    answer: "When a new revision is committed, Firewood records which nodes from previous revisions are no longer needed. When those revisions expire (default retention: 128 revisions), the recorded nodes are freed and their space is returned to the free lists. This is O(1) per expired revision.",
+    answer: "When a new revision is committed, Firewood records which nodes from previous revisions are no longer needed in a delete list. When those revisions expire (default retention: 128 revisions, configurable via max_revisions), the recorded nodes are freed and their space is returned to the per-size free lists. Each node return is O(1) — a push onto the free list head.",
   },
   {
     question: "Does Firewood support Merkle proofs natively?",

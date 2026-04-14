@@ -31,7 +31,7 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
   useEffect(() => {
     isMountedRef.current = true
 
-    // Commit thread: fast pace, new block every ~800ms
+    // Commit thread: fast pace (animation illustrative, not measured timing)
     const scheduleCommit = () => {
       if (!isMountedRef.current) return
 
@@ -74,7 +74,7 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
         { id: latestId, status: "writing" as const, progress: 0 },
       ])
 
-      // Complete persistence after ~1.5s
+      // Complete persistence after delay (animation illustrative, not measured timing)
       setTimeout(() => {
         if (!isMountedRef.current) return
         setPersistBlocks(prev =>
@@ -128,7 +128,7 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
               Commit Thread
             </span>
             <span className={`text-[9px] ${colors.textMuted} font-mono`}>
-              ~800ms/block
+              fast (in-memory)
             </span>
           </div>
           <motion.div
@@ -205,7 +205,7 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
                 Persistence Thread
               </span>
               <span className={`text-[9px] ${colors.textMuted} font-mono`}>
-                ~1.5s/write
+                async (disk I/O)
               </span>
             </div>
             <motion.span
@@ -296,7 +296,7 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
           Queued: {persistQueue.length} revisions
         </span>
         <span>
-          Backpressure limit: 1 permit
+          Default commit count: 1
         </span>
       </div>
     </div>
