@@ -89,6 +89,20 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
     if (options.value !== undefined) txConfig.value = options.value;
     if (options.accessList) txConfig.accessList = options.accessList;
 
+    // Pre-flight simulation: catch reverts BEFORE prompting the wallet.
+    // This prevents users from signing a transaction that will revert,
+    // saving gas and providing instant feedback with parsed error messages.
+    if (publicClient) {
+      try {
+        await publicClient.simulateContract({
+          ...txConfig,
+          account: walletEVMAddress as `0x${string}`,
+        });
+      } catch (simErr) {
+        throw new Error(parseContractError(simErr));
+      }
+    }
+
     // Wrap the raw promise so both notify() and the caller see parsed errors.
     // Without this, notify() shows the verbose viem error while the caller
     // gets the parsed version — confusing when they differ.

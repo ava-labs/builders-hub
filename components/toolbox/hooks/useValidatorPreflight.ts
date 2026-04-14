@@ -132,17 +132,18 @@ function deriveChecks(
   churn: ValidatorPreflightResult['churn'],
   totalWeight: bigint,
   validatorWeight: bigint,
+  validatorData: ValidatorPreflightResult['validatorData'],
 ): ValidatorPreflightResult['checks'] {
+  // Check for pending P-Chain operations (sentNonce > receivedNonce)
+  const hasPendingPChainOp = validatorData && validatorData.sentNonce > validatorData.receivedNonce;
+
   return {
     register: deriveRegisterCheck(status, existingValidationID),
-    initiateRemoval: deriveInitiateRemovalCheck(
-      status,
-      stakingData,
-      walletAddress,
-      churn,
-      totalWeight,
-      validatorWeight,
-    ),
+    initiateRemoval: hasPendingPChainOp
+      ? notMetCheck(
+          'There is a pending P-Chain operation for this validator (nonce mismatch). Complete the current operation before starting a new one. If you recently submitted a P-Chain transaction, wait for it to be confirmed.',
+        )
+      : deriveInitiateRemovalCheck(status, stakingData, walletAddress, churn, totalWeight, validatorWeight),
     completeRemoval: deriveCompleteRemovalCheck(status),
     completeRegistration: deriveCompleteRegistrationCheck(status),
   };
@@ -619,6 +620,7 @@ export function useValidatorPreflight(input: ValidatorPreflightInput): Validator
           churnData,
           totalWeight,
           validatorWeight,
+          validatorData,
         );
 
         setResult({
