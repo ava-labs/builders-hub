@@ -16,7 +16,6 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { RegisterFormStep3 } from "./RegisterFormStep3";
-import { RegisterFormStep2 } from "./RegisterFormStep2";
 import RegisterFormStep1 from "./RegisterFormStep1";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
@@ -329,7 +328,7 @@ export function RegisterForm({
 
   const onSubmit = async (data: RegisterFormValues) => {
     
-    if (step < 3) {
+    if (step < 2) {
       setStep(step + 1);
     } else {
       const errors: any = {};
@@ -385,8 +384,6 @@ export function RegisterForm({
       case 1:
         return "left-0";
       case 2:
-        return "left-1/2 transform -translate-x-1/2";
-      case 3:
         return "right-0";
       default:
         return "left-0";
@@ -394,7 +391,7 @@ export function RegisterForm({
   };
 
   const handleStepChange = async (newStep: number) => {
-    if (newStep >= 1 && newStep <= 3) {
+    if (newStep >= 1 && newStep <= 2) {
       if (step === 1 && newStep !== 1) {
         await saveStep1ToProfile();
       }
@@ -452,26 +449,15 @@ export function RegisterForm({
       }
     } else if (step === 2) {
       fieldsToValidate = [
-        "web3_proficiency",
-        "tools",
-        "roles",
-        "languages",
-        "interests",
-        "hackathon_participation",
-        "github_portfolio",
-      ];
-    } else if (step === 3) {
-      fieldsToValidate = [
         "newsletter_subscription",
         "terms_event_conditions",
+        "hackathon_participation",
       ];
-      // Only validate prohibited_items if it's not an online hackathon
       if (!isOnlineHackathon) {
         fieldsToValidate.push("prohibited_items");
       }
-      // Custom validation for Step 3 required fields
       const formValues = form.getValues();
-      const errors: any = {};
+      const errors: Partial<Record<keyof RegisterFormValues, { type: string; message: string }>> = {};
 
       if (!formValues.terms_event_conditions) {
         errors.terms_event_conditions = {
@@ -479,7 +465,6 @@ export function RegisterForm({
           message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions."
         };
       }
-
 
       if (!isOnlineHackathon && !formValues.prohibited_items) {
         errors.prohibited_items = {
@@ -489,8 +474,8 @@ export function RegisterForm({
       }
 
       if (Object.keys(errors).length > 0) {
-        Object.keys(errors).forEach(field => {
-          form.setError(field as keyof RegisterFormValues, errors[field]);
+        (Object.keys(errors) as (keyof RegisterFormValues)[]).forEach(field => {
+          form.setError(field, errors[field]!);
         });
         return;
       }
@@ -517,12 +502,11 @@ export function RegisterForm({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {step === 1 && <RegisterFormStep1 user={session?.user} lang={lang} />}
-          {step === 2 && <RegisterFormStep2 lang={lang} />}
           {step === 3 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
-              {step === 3 && (
+              {step === 2 && (
                 <LoadingButton
                   isLoading={form.formState.isSubmitting}
                   loadingText={t(lang, "reg.form.saving")}
@@ -534,7 +518,7 @@ export function RegisterForm({
                 </LoadingButton>
               )}
 
-              {step !== 3 && (
+              {step !== 2 && (
                 <Button
                   variant="red"
                   type="button"
@@ -545,7 +529,7 @@ export function RegisterForm({
                 </Button>
               )}
 
-              {step !== 3 && (
+              {step !== 2 && (
                 <LoadingButton
                   isLoading={isSavingLater}
                   loadingText={t(lang, "reg.form.saving")}
@@ -576,7 +560,7 @@ export function RegisterForm({
                 )}
                 <Pagination>
                   <PaginationContent>
-                    {Array.from({ length: 3 }, (_, i) => i + 1).map((page) => (
+                    {Array.from({ length: 2 }, (_, i) => i + 1).map((page) => (
                       <PaginationItem key={page}>
                         <PaginationLink
                           isActive={step === page}
@@ -589,7 +573,7 @@ export function RegisterForm({
                     ))}
                   </PaginationContent>
                 </Pagination>
-                {step < 3 && (
+                {step < 2 && (
                   <PaginationNext
                     className="dark:hover:text-gray-200 cursor-pointer"
                     label={t(lang, "reg.form.next")}
@@ -598,7 +582,7 @@ export function RegisterForm({
                 )}
               </div>
               <span className="font-Aeonik text-xs sm:text-sm mt-2 md:mt-0 md:ml-2">
-                {t(lang, "reg.form.stepOf", { current: step, total: 3 })}
+                Step {step} of 2
               </span>
             </div>
           </div>
