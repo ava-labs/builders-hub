@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
-import { useSession, SessionProvider } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
@@ -3174,9 +3174,5 @@ const HackathonsEdit = () => {
 };
 
 export default function Page() {
-  return (
-    <SessionProvider>
-      <HackathonsEdit />
-    </SessionProvider>
-  );
+  return <HackathonsEdit />;
 } 
