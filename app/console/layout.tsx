@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { ConsoleSidebar } from "../../components/console/console-sidebar";
 import { SiteHeader } from "../../components/console/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
@@ -84,12 +83,12 @@ function ConsoleContent({ children }: { children: ReactNode }) {
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider>
+    <>
       <TrackNewUser />
       {/* Temporary: Figma capture script for design export — remove after capture */}
       <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="afterInteractive" />
       <ConsoleContent>{children}</ConsoleContent>
       <LoginModalWrapper />
-    </SessionProvider>
+    </>
   );
 }
