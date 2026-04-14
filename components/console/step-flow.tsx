@@ -201,6 +201,10 @@ export default function StepFlow({
     return selectedBranchOption?.component || currentStep.options[0].component;
   }, [currentStep, selectedBranchOption]);
 
+  function getStepNavKey(step: StepDefinition): string {
+    return step.type === 'single' ? step.key : branchChoices[step.key] || step.options[0].key;
+  }
+
   const prevLink = useMemo(() => {
     if (atFirst) return null;
     const prevStep = steps[currentIndex - 1];
@@ -246,11 +250,6 @@ export default function StepFlow({
       </Link>
     );
   }, [onNavigate, basePath]);
-
-  // Extract step key for navigation (handles branch steps)
-  const getStepNavKey = (step: StepDefinition): string => {
-    return step.type === 'single' ? step.key : branchChoices[step.key] || step.options[0].key;
-  };
 
   return (
     <motion.div className={className} variants={flowContainerVariants} initial="hidden" animate="visible">
