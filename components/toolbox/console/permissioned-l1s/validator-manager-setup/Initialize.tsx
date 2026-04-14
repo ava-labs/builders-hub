@@ -271,7 +271,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                 </div>
                 {subnetIDHex && (
                   <p className="mt-1 text-[10px] text-zinc-400 font-mono truncate">
-                    Hex: {subnetIDHex.slice(0, 20)}... ({utils.hexToBuffer(subnetIDHex).length} bytes)
+                    Hex: {subnetIDHex.slice(0, 20)}... ({utils.hexToBuffer(subnetIDHex)?.length ?? 0} bytes)
                   </p>
                 )}
               </div>
