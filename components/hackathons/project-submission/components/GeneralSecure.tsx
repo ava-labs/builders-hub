@@ -224,7 +224,7 @@ export default function GeneralSecureComponent({
           description:
             "Your project has been successfully submitted. Redirecting to your profile...",
         });
-        router.push('/profile#projects');
+        router.push('/profile?tab=projects');
       } else {
         console.error('❌ Save failed, result.success is false');
       }

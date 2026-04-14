@@ -700,8 +700,7 @@ export const useSubmissionFormSecure = () => {
           description: 'Your project has been saved. Redirecting to your profile...',
         });
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log('💾 handleSave executing redirect to: /profile#projects');
-        router.push('/profile#projects');
+        router.push('/profile?tab=projects');
       }
       // If not successful, error message already shown by handleSaveWithoutRoute
     } catch (error) {
