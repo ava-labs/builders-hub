@@ -523,7 +523,7 @@ function ConsoleDashboard() {
         >
           {/* Row 1: Create L1 (4) + Faucet (2) */}
           <motion.div className="md:col-span-4 p-px" variants={itemVariants}>
-            <Link href="/console/layer-1/create" className="block h-full">
+            <Link href="/console/create-l1" className="block h-full">
               <motion.div
                 whileHover={{ y: -2 }}
                 transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}

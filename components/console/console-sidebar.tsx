@@ -191,7 +191,7 @@ const data = {
       items: [
         {
           title: "Create L1",
-          url: "/console/layer-1/create",
+          url: "/console/create-l1",
           icon: Layers,
         },
         {
@@ -625,7 +625,7 @@ function CollapsibleSubGroupItem({
 // Map URLs to tour data attributes
 const TOUR_DATA_ATTRS: Record<string, string> = {
   "/console/primary-network/faucet": "faucet-link",
-  "/console/layer-1/create": "create-l1-link",
+  "/console/create-l1": "create-l1-link",
 
 };
 

@@ -31,6 +31,7 @@ import {
   Wrench,
   Calculator,
   ExternalLink,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -44,14 +45,48 @@ interface ToolCard {
   external?: boolean;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'Primary Network': 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  'Create & Deploy': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-  'Permissioned L1s': 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
-  'Permissionless L1s': 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  'Interchain Messaging': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
-  'L1 Management': 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-  Utilities: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/40 dark:text-zinc-300',
+const CATEGORY_STYLES: Record<string, { badge: string; icon: string; accent: string }> = {
+  'Primary Network': {
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    icon: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    accent: 'group-hover:border-blue-300 dark:group-hover:border-blue-800',
+  },
+  'Create & Deploy': {
+    badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    icon: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
+    accent: 'group-hover:border-emerald-300 dark:group-hover:border-emerald-800',
+  },
+  'Permissioned L1s': {
+    badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+    icon: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400',
+    accent: 'group-hover:border-violet-300 dark:group-hover:border-violet-800',
+  },
+  'Permissionless L1s': {
+    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    icon: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+    accent: 'group-hover:border-amber-300 dark:group-hover:border-amber-800',
+  },
+  'Interchain Messaging': {
+    badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
+    icon: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400',
+    accent: 'group-hover:border-cyan-300 dark:group-hover:border-cyan-800',
+  },
+  'L1 Management': {
+    badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+    icon: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400',
+    accent: 'group-hover:border-rose-300 dark:group-hover:border-rose-800',
+  },
+  Utilities: {
+    badge: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/40 dark:text-zinc-300',
+    icon: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+    accent: 'group-hover:border-zinc-300 dark:group-hover:border-zinc-600',
+  },
+};
+
+const DEFAULT_STYLE = {
+  badge: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+  icon: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+  accent: 'group-hover:border-zinc-300 dark:group-hover:border-zinc-600',
 };
 
 const TOOLS: ToolCard[] = [
@@ -118,7 +153,7 @@ const TOOLS: ToolCard[] = [
   {
     name: 'Create L1',
     description: 'Launch a new Avalanche L1 with a guided wizard.',
-    path: '/console/layer-1/create',
+    path: '/console/create-l1',
     category: 'Create & Deploy',
     icon: Layers,
   },
@@ -462,67 +497,79 @@ export default function ToolboxBoard() {
         </div>
       ) : (
         <div className="space-y-10">
-          {grouped.map(({ category, tools }) => (
-            <section key={category}>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3">
-                {category}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {tools.map((tool) => {
-                  const Icon = tool.icon;
-                  const card = (
-                    <div
-                      className={cn(
-                        'group rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900',
-                        'p-4 hover:border-zinc-300 dark:hover:border-zinc-600 hover:shadow-sm',
-                        'transition-all duration-150 cursor-pointer flex flex-col gap-3',
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800 p-2">
-                            <Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
-                          </div>
-                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                            {tool.name}
-                          </span>
-                        </div>
-                        {tool.external && (
-                          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors" />
-                        )}
-                      </div>
-                      <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400 line-clamp-2">
-                        {tool.description}
-                      </p>
-                      <span
+          {grouped.map(({ category, tools }) => {
+            const style = CATEGORY_STYLES[category] ?? DEFAULT_STYLE;
+            return (
+              <section key={category}>
+                <div className="flex items-center gap-3 mb-4">
+                  <span
+                    className={cn(
+                      'inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+                      style.badge,
+                    )}
+                  >
+                    {category}
+                  </span>
+                  <div className="flex-1 h-px bg-zinc-200/80 dark:bg-zinc-800" />
+                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
+                    {tools.length} tool{tools.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {tools.map((tool) => {
+                    const Icon = tool.icon;
+                    const style = CATEGORY_STYLES[tool.category] ?? DEFAULT_STYLE;
+                    const card = (
+                      <div
                         className={cn(
-                          'self-start rounded-full px-2 py-0.5 text-[10px] font-medium',
-                          CATEGORY_COLORS[tool.category] ??
-                            'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+                          'group relative rounded-2xl border border-zinc-200/80 dark:border-zinc-800',
+                          'bg-white dark:bg-zinc-900 p-4',
+                          'hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50',
+                          'hover:-translate-y-0.5',
+                          'transition-all duration-200 cursor-pointer',
+                          'flex flex-col gap-3 h-full',
+                          style.accent,
                         )}
                       >
-                        {tool.category}
-                      </span>
-                    </div>
-                  );
-
-                  if (tool.external) {
-                    return (
-                      <a key={tool.path} href={tool.path} target="_blank" rel="noopener noreferrer">
-                        {card}
-                      </a>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={cn('shrink-0 rounded-lg p-2', style.icon)}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                              {tool.name}
+                            </span>
+                          </div>
+                          {tool.external ? (
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
+                          )}
+                        </div>
+                        <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400 line-clamp-2 flex-1">
+                          {tool.description}
+                        </p>
+                      </div>
                     );
-                  }
 
-                  return (
-                    <Link key={tool.path} href={tool.path}>
-                      {card}
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                    if (tool.external) {
+                      return (
+                        <a key={tool.path} href={tool.path} target="_blank" rel="noopener noreferrer">
+                          {card}
+                        </a>
+                      );
+                    }
+
+                    return (
+                      <Link key={tool.path} href={tool.path}>
+                        {card}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 

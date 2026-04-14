@@ -147,10 +147,11 @@ export default function CreateL1Questionnaire() {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Create an L1</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Answer a few questions and we will generate a custom step-by-step flow tailored to your setup.
+      <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-gradient-to-r from-blue-50/50 via-white to-violet-50/50 dark:from-blue-950/20 dark:via-zinc-900 dark:to-violet-950/20 p-6">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Create an Avalanche L1</h1>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 max-w-xl">
+          Answer a few questions and we&apos;ll generate a custom step-by-step flow tailored to your setup. Each step
+          uses the same standalone tools available in the toolbox.
         </p>
       </div>
 
@@ -285,14 +286,17 @@ export default function CreateL1Questionnaire() {
       </div>
 
       {/* Start button */}
-      <button
-        type="button"
-        onClick={handleStart}
-        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-medium transition-colors"
-      >
-        Start Flow
-        <ChevronRight className="h-4 w-4" />
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={handleStart}
+          className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-8 py-3 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+        >
+          Start Flow
+          <ChevronRight className="h-4 w-4" />
+        </button>
+        <span className="text-xs text-zinc-400 dark:text-zinc-500">{previewSteps.length} steps</span>
+      </div>
     </div>
   );
 }

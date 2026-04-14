@@ -176,7 +176,7 @@ function NotConnectedState() {
         Or create a new L1 to get started.
       </p>
       <div className="flex gap-3">
-        <Link href="/console/layer-1/create">
+        <Link href="/console/create-l1">
           <Button>Create New L1</Button>
         </Link>
         <Link href="/console">
@@ -312,7 +312,7 @@ export default function MyL1DashboardPage() {
               <SetupStep
                 label="L1 Created"
                 completed={setupProgress.l1Created}
-                href="/console/layer-1/create"
+                href="/console/create-l1"
               />
               <SetupStep
                 label="Node Running"
