@@ -62,6 +62,173 @@ const config = {
   },
   async redirects() {
     return [
+      // ── Folder-index 500 fixes (no index.mdx → redirect to first child) ──
+      {
+        source: '/docs/api-reference/webhook-api/tutorials',
+        destination: '/docs/api-reference/webhook-api/tutorials/erc20transfer',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/add-utility',
+        destination: '/docs/avalanche-l1s/add-utility/deploy-smart-contract',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/deploy-a-avalanche-l1',
+        destination: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/golang-vms',
+        destination: '/docs/avalanche-l1s/golang-vms/simple-golang-vm',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/precompiles',
+        destination: '/docs/avalanche-l1s/precompiles/allowlist-interface',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/rust-vms',
+        destination: '/docs/avalanche-l1s/rust-vms/intro-avalanche-rs',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/timestamp-vm',
+        destination: '/docs/avalanche-l1s/timestamp-vm/introduction',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/upgrade',
+        destination: '/docs/avalanche-l1s/upgrade/considerations',
+        permanent: false,
+      },
+      {
+        source: '/docs/cross-chain/avalanche-warp-messaging',
+        destination: '/docs/cross-chain/avalanche-warp-messaging/overview',
+        permanent: false,
+      },
+      {
+        source: '/docs/cross-chain/icm-contracts',
+        destination: '/docs/cross-chain/icm-contracts/getting-started',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/chain-configs/avalanche-l1s',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/subnet-evm',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/maintain',
+        destination: '/docs/nodes/maintain/backup-restore',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/node-storage',
+        destination: '/docs/nodes/node-storage/chain-state-management',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/run-a-node/on-third-party-services',
+        destination: '/docs/nodes/run-a-node/on-third-party-services/amazon-web-services',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/run-a-node/using-install-script',
+        destination: '/docs/nodes/run-a-node/using-install-script/preparing-environment',
+        permanent: false,
+      },
+      {
+        source: '/docs/primary-network/validate',
+        destination: '/docs/primary-network/validate/what-is-staking',
+        permanent: false,
+      },
+      {
+        source: '/docs/primary-network/verify-contract',
+        destination: '/docs/primary-network/verify-contract/explorer',
+        permanent: false,
+      },
+      {
+        source: '/docs/rpcs/other/guides',
+        destination: '/docs/rpcs/other/guides/issuing-api-calls',
+        permanent: false,
+      },
+      {
+        source: '/docs/rpcs/other/standards',
+        destination: '/docs/rpcs/other/standards/avalanche-network-protocol',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/create-avalanche-nodes',
+        destination: '/docs/tooling/avalanche-cli/create-avalanche-nodes/deploy-custom-vm',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s',
+        destination: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain',
+        destination: '/docs/tooling/avalanche-cli/cross-chain/teleporter-devnet',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/guides',
+        destination: '/docs/tooling/avalanche-cli/guides/import-avalanche-l1',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/maintain',
+        destination: '/docs/tooling/avalanche-cli/maintain/add-validator-l1',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/transactions',
+        destination: '/docs/tooling/avalanche-cli/transactions/native-send',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/upgrade',
+        destination: '/docs/tooling/avalanche-cli/upgrade/avalanche-l1-precompile-config',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/chainkit',
+        destination: '/docs/tooling/avalanche-sdk/chainkit/getting-started',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/client',
+        destination: '/docs/tooling/avalanche-sdk/client/getting-started',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/client/methods',
+        destination: '/docs/tooling/avalanche-sdk/client/methods/public-methods/public',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/client/methods/public-methods',
+        destination: '/docs/tooling/avalanche-sdk/client/methods/public-methods/public',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/client/methods/wallet-methods',
+        destination: '/docs/tooling/avalanche-sdk/client/methods/wallet-methods/wallet',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/tmpnet/guides',
+        destination: '/docs/tooling/tmpnet/guides/getting-started',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/tmpnet/reference',
+        destination: '/docs/tooling/tmpnet/reference/configuration',
+        permanent: false,
+      },
+      // ── End folder-index 500 fixes ──
       {
         source: '/docs/dapps/smart-contract-dev/get-test-funds',
         destination: '/console/primary-network/faucet',
@@ -456,6 +623,16 @@ const config = {
         source: '/changelog/:path*',
         destination: '/docs/api-reference/changelog/:path*',
         permanent: false,
+      },
+      {
+        source: '/codebase',
+        destination: '/grants',
+        permanent: true,
+      },
+      {
+        source: '/codebase/:path*',
+        destination: '/grants',
+        permanent: true,
       },
       {
         source: '/grants/infrabuidl',
@@ -1891,11 +2068,96 @@ const config = {
         ],
         destination: "/academy/entrepreneur",
         permanent: true,
-      }
+      },
+      // Hackathons → Events migration
+      {
+        source: '/hackathons/registration-form',
+        destination: '/events/registration-form',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/project-submission',
+        destination: '/events/project-submission',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/new',
+        destination: '/events/new',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/edit',
+        destination: '/events/edit',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/:id/admin-panel',
+        destination: '/events/:id/admin-panel',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/:id',
+        destination: '/events/:id',
+        permanent: true,
+      },
+      {
+        source: '/hackathons',
+        destination: '/events',
+        permanent: true,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://app.posthog.com https://mcp.figma.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://dashboard-assets.dappradar.com",
+              "font-src 'self'",
+              "connect-src 'self' https://us.i.posthog.com https://app.posthog.com https://api.openai.com https://api.github.com https://www.googleapis.com https://api.hubapi.com https://api.dune.com https://glacier-api.avax.network https://accounts.google.com https://api.avax.network https://api.avax-test.network",
+              "frame-src 'self' https://calendar.google.com https://www.google.com https://chromewebstore.google.com",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; '),
+          },
+        ],
+      },
     ];
   },
   async rewrites() {
     return [
+      // Root section .md URLs (e.g., /docs.md -> section index)
+      { source: '/docs.md', destination: '/api/raw/docs' },
+      { source: '/academy.md', destination: '/api/raw/academy' },
+      { source: '/blog.md', destination: '/api/raw/blog' },
+      { source: '/integrations.md', destination: '/api/raw/integrations' },
       // Rewrite .md requests to serve raw markdown content
       {
         source: '/docs/:path*.md',

@@ -96,7 +96,7 @@ For GCP, authenticate with `gcloud auth application-default login`. For Azure, u
 ### Configure Terraform Variables
 
 ```bash
-cd terraform/aws    # or terraform/gcp, terraform/azure
+cd terraform/l1/aws    # or terraform/l1/gcp, terraform/l1/azure
 cp terraform.tfvars.example terraform.tfvars
 ```
 
@@ -134,7 +134,7 @@ make deploy
 make status    # Wait for "P:OK" on all nodes
 ```
 
-This runs playbook `01-deploy-nodes.yml`, which:
+This runs playbook `l1/deploy-nodes.yml`, which:
 - Installs AvalancheGo on all nodes
 - Starts syncing with the Primary Network using `partial-sync-primary-network: true` (syncs only P-Chain headers — much faster than a full sync)
 - Collects NodeIDs and saves them to `ansible/node_ids.txt`
@@ -170,7 +170,7 @@ make create-l1
 ./tools/create-l1/create-l1 \
   --network=fuji \
   --key-name=l1-deployer \
-  --validators=$(cd terraform/aws && terraform output -json validator_ips | jq -r 'join(",")') \
+  --validators=$(cd terraform/l1/aws && terraform output -json validator_ips | jq -r 'join(",")') \
   --chain-name=mychain \
   --output=l1.env
 ```
@@ -197,7 +197,7 @@ make configure-l1 SUBNET_ID=$SUBNET_ID CHAIN_ID=$CHAIN_ID
 make status
 ```
 
-This runs playbook `02-configure-l1.yml`, which:
+This runs playbook `l1/configure.yml`, which:
 - Adds `track-subnets: <SUBNET_ID>` to each node's config
 - Copies the appropriate chain config (archive, pruned, or validator)
 - Restarts AvalancheGo on all nodes

@@ -1,15 +1,16 @@
 import { type StepDefinition } from "@/components/console/step-flow";
-import RemoveValidatorNative from "@/components/toolbox/console/permissionless-l1s/Withdraw/RemoveValidatorNative";
-import RemoveValidatorERC20 from "@/components/toolbox/console/permissionless-l1s/Withdraw/RemoveValidatorERC20";
+import SelectL1ValidatorStep from "@/components/toolbox/console/permissionless-l1s/withdraw/steps/SelectL1ValidatorStep";
+import InitiateValidatorRemovalStep from "@/components/toolbox/console/permissionless-l1s/withdraw/steps/InitiateValidatorRemovalStep";
+import PChainValidatorWeightUpdateStep from "@/components/toolbox/console/permissionless-l1s/withdraw/steps/PChainValidatorWeightUpdateStep";
+import CompleteValidatorRemovalStep from "@/components/toolbox/console/permissionless-l1s/withdraw/steps/CompleteValidatorRemovalStep";
+import ClaimDelegationFeesStep from "@/components/toolbox/console/permissionless-l1s/withdraw/steps/ClaimDelegationFeesStep";
+import VerifyValidatorSetStep from "@/components/toolbox/console/permissioned-l1s/shared/VerifyValidatorSetStep";
 
 export const steps: StepDefinition[] = [
-    {
-        type: "branch",
-        key: "remove-validator",
-        title: "Remove Validator",
-        options: [
-            { key: "native", label: "Native Token", component: RemoveValidatorNative },
-            { key: "erc20", label: "ERC20 Token", component: RemoveValidatorERC20 },
-        ],
-    },
+    { type: "single", key: "select-l1", title: "Select L1 Subnet", component: SelectL1ValidatorStep },
+    { type: "single", key: "initiate-removal", title: "Initiate Removal", component: InitiateValidatorRemovalStep },
+    { type: "single", key: "pchain-weight-update", title: "P-Chain Weight Update", component: PChainValidatorWeightUpdateStep },
+    { type: "single", key: "complete-removal", title: "Complete Removal", component: CompleteValidatorRemovalStep },
+    { type: "single", key: "claim-fees", title: "Claim Delegation Fees", optional: true, component: ClaimDelegationFeesStep },
+    { type: "single", key: "verify-validator-set", title: "Verify Validator Set", optional: true, component: VerifyValidatorSetStep },
 ];

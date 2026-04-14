@@ -1216,6 +1216,20 @@ function ChatPageInner() {
     posthog.capture('ai_chat_opened', { view: 'fullscreen' });
   }, []);
 
+  // Restore conversation from chat bubble if present
+  useEffect(() => {
+    const stored = sessionStorage.getItem('chat-bubble-messages');
+    if (stored && messages.length === 0 && !currentConversationId) {
+      try {
+        const bubbleMessages = JSON.parse(stored);
+        if (Array.isArray(bubbleMessages) && bubbleMessages.length > 0) {
+          chat.setMessages(bubbleMessages);
+        }
+      } catch { /* ignore malformed data */ }
+      sessionStorage.removeItem('chat-bubble-messages');
+    }
+  }, []);
+
   // Auto-submit initial query from URL parameter
   useEffect(() => {
     if (initialQuery && !hasSubmittedInitialQuery.current && messages.length === 0 && status === 'ready') {

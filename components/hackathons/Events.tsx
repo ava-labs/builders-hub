@@ -29,6 +29,7 @@ import Link from "next/link";
 import Image from "next/image";
 import DiscoveryCard from "./DiscoveryCard";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 
 function buildQueryString(
@@ -89,6 +90,8 @@ export default function Events({
   totalPastEvents,
   totalUpcomingEvents,
 }: Props) {
+  // Listing language is global (mixed events). Default to English unless you later add a global locale.
+  const lang = normalizeEventsLang(undefined);
   const { data: session, status } = useSession();
   const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
   
@@ -241,7 +244,7 @@ export default function Events({
   };
 
   const addNewHackathon = () => {
-    router.push('/hackathons/edit');
+    router.push('/events/edit');
   };
 
   const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
@@ -284,7 +287,7 @@ export default function Events({
           onClick={addNewHackathon}
         >
           <Building2 className="h-6 w-6" />
-          My Hackathons
+          {t(lang, "events.myHackathons")}
         </button>
         <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
         </>)}
@@ -293,7 +296,7 @@ export default function Events({
           className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${topMostEvent ? "mt-12" : ""}`}
         >
           <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
-            Events
+            {t(lang, "events.listing.title")}
           </h2>
           <Tabs
             value={activeEventType}
@@ -301,10 +304,18 @@ export default function Events({
             className="w-full md:w-auto"
           >
             <TabsList>
-              <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
-              <TabsTrigger value="hackathon" className="cursor-pointer">Hackathons</TabsTrigger>
-              <TabsTrigger value="workshop" className="cursor-pointer">Workshops</TabsTrigger>
-              <TabsTrigger value="bootcamp" className="cursor-pointer">Bootcamps</TabsTrigger>
+              <TabsTrigger value="all" className="cursor-pointer">
+                {t(lang, "events.tabs.all")}
+              </TabsTrigger>
+              <TabsTrigger value="hackathon" className="cursor-pointer">
+                {t(lang, "events.tabs.hackathons")}
+              </TabsTrigger>
+              <TabsTrigger value="workshop" className="cursor-pointer">
+                {t(lang, "events.tabs.workshops")}
+              </TabsTrigger>
+              <TabsTrigger value="bootcamp" className="cursor-pointer">
+                {t(lang, "events.tabs.bootcamps")}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -319,7 +330,7 @@ export default function Events({
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="max-w-md">
               <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
-                No upcoming or ongoing events at the moment. Join our Telegram community to be the first to know about new opportunities!
+                {t(lang, "events.emptyActive")}
               </p>
               <a
                 href="https://t.me/avalancheacademy"
@@ -327,7 +338,7 @@ export default function Events({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors duration-200"
               >
-                Join Telegram Group
+                {t(lang, "events.joinTelegram")}
               </a>
             </div>
           </div>
@@ -336,25 +347,25 @@ export default function Events({
         {/* Discovery Section */}
         <div className="mt-12 mb-12">
           <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mb-4">
-            Discover More
+            {t(lang, "events.discoverMore")}
           </h2>
           <Separator className="mb-6 bg-zinc-300 dark:bg-zinc-800" />
           <div className="grid md:grid-cols-3 gap-6">
             <DiscoveryCard
-              title="Avalanche Calendar"
-              description="Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem."
+              title={t(lang, "events.discovery.avalancheCalendar.title")}
+              description={t(lang, "events.discovery.avalancheCalendar.description")}
               image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg"
               url="https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4"
             />
             <DiscoveryCard
-              title="Community Events"
-              description="Check out and join the global meetups, workshops and events organized by Avalanche Team1"
+              title={t(lang, "events.discovery.communityEvents.title")}
+              description={t(lang, "events.discovery.communityEvents.description")}
               image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"
               url="https://lu.ma/Team1?utm_source=builder_hub"
             />
             <DiscoveryCard
-              title="Campus Connect"
-              description="Discover opportunities for students and educators to explore blockchain technology and join our community of builders."
+              title={t(lang, "events.discovery.campusConnect.title")}
+              description={t(lang, "events.discovery.campusConnect.description")}
               image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/729e397093550313627a7a1717249ef2%20%282%29.jpg"
               url="/university"
             />
@@ -362,7 +373,7 @@ export default function Events({
         </div>
 
         <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
-          Past
+          {t(lang, "events.past")}
         </h2>
         <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
@@ -374,7 +385,7 @@ export default function Events({
                 type="text"
                 onChange={(e) => setSearchValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search by name, track or location"
+                placeholder={t(lang, "events.search.placeholder")}
                 className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
               />
             </div>
@@ -405,10 +416,10 @@ export default function Events({
               value={pastEventType}
             >
               <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder="Filter by Event" />
+                <SelectValue placeholder={t(lang, "events.filter.event.placeholder")} />
               </SelectTrigger>
               <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-                <SelectItem value="all">All Events</SelectItem>
+                <SelectItem value="all">{t(lang, "events.filter.event.all")}</SelectItem>
                 {eventTypes.map((t) => (
                   <SelectItem key={t} value={t}>
                     {labelForEventType(t)}
@@ -423,12 +434,12 @@ export default function Events({
               value={filters.location}
             >
               <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder="Filter by Location" />
+                <SelectValue placeholder={t(lang, "events.filter.location.placeholder")} />
               </SelectTrigger>
               <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="all">{t(lang, "events.filter.location.all")}</SelectItem>
                 <SelectItem value="Online">Online</SelectItem>
-                <SelectItem value="InPerson">In Person</SelectItem>
+                <SelectItem value="InPerson">{t(lang, "events.filter.location.inPerson")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -487,7 +498,10 @@ export default function Events({
             )}
 
             <p className="mx-2">
-              Page {currentPage} of {totalPages}
+              {t(lang, "events.pagination.pageOf", {
+                current: currentPage,
+                total: totalPages,
+              })}
             </p>
 
             <Select
@@ -497,7 +511,7 @@ export default function Events({
               value={String(pageSize) ?? 4}
             >
               <SelectTrigger className="border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder="Select track" />
+                <SelectValue placeholder={t(lang, "events.pagination.pageSize.placeholder")} />
               </SelectTrigger>
               <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
                 {[4, 8, ...Array.from({ length: 5 }, (_, i) => (i + 1) * 12)].map(

@@ -15,7 +15,7 @@ import {
   ChevronDownIcon,
   Pyramid,
   HandCoins,
-  Code,
+  Server,
   TrendingUp,
   ScanFace,
   Telescope,
@@ -171,7 +171,7 @@ export function GrantsDropdown() {
       title: "Codebase",
       description:
         "Transforming ambitious builders into extraordinary founders",
-      icon: <Code className="w-5 h-5" />,
+      icon: <SquareCode className="w-5 h-5" />,
       url: "https://codebase.avax.network/",
     },
     {

@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
-import { getFlowMetadata, type FlowMetadata } from "@/config/console-flows";
+import { getFlowMetadata, type FlowMetadata } from "@/components/console/console-flows";
 
 const flowContainerVariants = {
   hidden: {},

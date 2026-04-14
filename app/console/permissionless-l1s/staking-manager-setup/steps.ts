@@ -4,7 +4,7 @@ import DeployNativeStakingManager from "@/components/toolbox/console/permissionl
 import DeployERC20StakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployERC20StakingManager";
 import InitializeStakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/InitializeStakingManager";
 import DeployExampleRewardCalculator from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployExampleRewardCalculator";
-import DeployExampleERC20 from "@/components/toolbox/console/ictt/setup/DeployExampleERC20";
+import DeployStakingERC20 from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployStakingERC20";
 import TransferOwnershipToStakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/TransferOwnershipToStakingManager";
 import EnableStakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/EnableStakingManagerMinting";
 
@@ -22,7 +22,7 @@ export const steps: StepDefinition[] = [
         type: "single",
         key: "deploy-example-erc20",
         title: "Deploy Example ERC20 (Optional)",
-        component: DeployExampleERC20
+        component: DeployStakingERC20
     },
     {
         type: "single",

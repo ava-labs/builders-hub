@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { useWalletStore, useNetworkInfo } from "@/components/toolbox/stores/walletStore";
 import { useL1List, type L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { createPublicClient, http, formatEther } from "viem";
+const GLACIER_API = "https://glacier-api.avax.network";
 
 // C-Chain IDs
 const C_CHAIN_FUJI = 43113;
 const C_CHAIN_MAINNET = 43114;
 
-export type L1HealthStatus = "healthy" | "degraded" | "offline" | "unknown";
+export type L1HealthStatus = "healthy" | "degraded" | "stale" | "offline" | "unknown";
 
 export interface L1DashboardData {
   // Connection status
@@ -54,10 +55,11 @@ export function useL1Dashboard(): L1DashboardData {
   const [healthStatus, setHealthStatus] = useState<L1HealthStatus>("unknown");
   const [blockTime, setBlockTime] = useState<number | null>(null);
   const [gasPrice, setGasPrice] = useState<string | null>(null);
+  const [validatorCount, setValidatorCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   // Determine if connected
-  const isConnected = Boolean(walletEVMAddress && walletEVMAddress !== "");
+  const isConnected = Boolean(walletEVMAddress);
 
   // Check if connected to C-Chain
   const isConnectedToCChain = walletChainId === C_CHAIN_FUJI || walletChainId === C_CHAIN_MAINNET;
@@ -81,12 +83,55 @@ export function useL1Dashboard(): L1DashboardData {
     return 0;
   }, [isConnectedToCChain, currentL1, balances, walletChainId]);
 
-  // Calculate validator count from features (simplified for now)
-  const validatorCount = useMemo(() => {
-    if (!currentL1) return 0;
-    // In a real implementation, this would query the validator manager contract
-    // For now, return a default based on whether validatorManagerAddress exists
-    return currentL1.validatorManagerAddress ? 3 : 0;
+  // Request-id guard for validator count (separate from health check)
+  const validatorRequestIdRef = useRef(0);
+
+  // Fetch real validator count directly from Glacier API
+  useEffect(() => {
+    if (!currentL1 || currentL1.subnetId === "11111111111111111111111111111111LpoYY") {
+      setValidatorCount(0);
+      return;
+    }
+
+    const requestId = ++validatorRequestIdRef.current;
+    const network = currentL1.isTestnet ? 'testnet' : 'mainnet';
+
+    const fetchValidatorCount = async () => {
+      try {
+        // Step 1: Resolve subnetId
+        let subnetId = currentL1.subnetId;
+        if (!subnetId) {
+          const blockchainId = currentL1.id
+            || currentL1.rpcUrl?.match(/\/ext\/bc\/([^/]+)\/rpc/)?.[1]
+            || '';
+          if (!blockchainId) { setValidatorCount(0); return; }
+
+          const bcRes = await fetch(`${GLACIER_API}/v1/networks/${network}/blockchains/${blockchainId}`);
+          if (!bcRes.ok) { setValidatorCount(0); return; }
+          const bcData = await bcRes.json();
+          subnetId = bcData?.subnetId ?? '';
+        }
+        if (!subnetId) { setValidatorCount(0); return; }
+
+        // Step 2: Fetch L1 validators directly from Glacier
+        const valRes = await fetch(`${GLACIER_API}/v1/networks/${network}/l1Validators?subnetId=${subnetId}&pageSize=100`);
+        if (!valRes.ok) { if (requestId === validatorRequestIdRef.current) setValidatorCount(0); return; }
+        const valData = await valRes.json();
+        const activeValidators = (valData?.validators ?? []).filter((v: { remainingBalance?: number }) => !v.remainingBalance || v.remainingBalance > 0);
+
+        if (requestId === validatorRequestIdRef.current) {
+          setValidatorCount(activeValidators.length);
+        }
+      } catch {
+        if (requestId === validatorRequestIdRef.current) {
+          setValidatorCount(0);
+        }
+      }
+    };
+
+    fetchValidatorCount();
+    const interval = setInterval(fetchValidatorCount, 30000);
+    return () => clearInterval(interval);
   }, [currentL1]);
 
   // Calculate setup progress
@@ -117,6 +162,9 @@ export function useL1Dashboard(): L1DashboardData {
     return Math.round((completed / steps.length) * 100);
   }, [setupProgress]);
 
+  // Request-id guard to prevent stale responses from overwriting state
+  const healthRequestIdRef = useRef(0);
+
   // Fetch network health data
   useEffect(() => {
     if (!currentL1 || !currentL1.rpcUrl) {
@@ -126,6 +174,8 @@ export function useL1Dashboard(): L1DashboardData {
       return;
     }
 
+    const requestId = ++healthRequestIdRef.current;
+
     const fetchHealthData = async () => {
       setIsLoading(true);
       try {
@@ -133,37 +183,86 @@ export function useL1Dashboard(): L1DashboardData {
           transport: http(currentL1.rpcUrl),
         });
 
-        // Get latest block
-        const block = await client.getBlock();
-        const previousBlock = await client.getBlock({ blockNumber: block.number - 1n });
+        // Liveness probe: verify chain ID matches
+        const chainId = await client.getChainId();
+        if (chainId !== currentL1.evmChainId) {
+          if (requestId === healthRequestIdRef.current) {
+            setHealthStatus("offline");
+            setBlockTime(null);
+            setGasPrice(null);
+            setIsLoading(false);
+          }
+          return;
+        }
 
-        // Calculate block time
-        const timeDiff = Number(block.timestamp - previousBlock.timestamp);
-        setBlockTime(timeDiff);
+        // Fetch block and gas price independently so one failure doesn't affect the other
+        const [blockResult, gasPriceResult] = await Promise.allSettled([
+          client.getBlock(),
+          client.getGasPrice(),
+        ]);
 
-        // Get gas price
-        const gasPriceWei = await client.getGasPrice();
-        setGasPrice(formatEther(gasPriceWei));
+        if (requestId !== healthRequestIdRef.current) return;
 
-        // Set health status based on block time
-        if (timeDiff <= 5) {
+        // Handle gas price independently
+        if (gasPriceResult.status === "fulfilled") {
+          setGasPrice(formatEther(gasPriceResult.value));
+        } else {
+          setGasPrice(null);
+        }
+
+        // Block fetch is required for status determination
+        if (blockResult.status === "rejected") {
+          setHealthStatus("offline");
+          setBlockTime(null);
+          setIsLoading(false);
+          return;
+        }
+
+        const block = blockResult.value;
+
+        // Compute time since last block for status determination
+        const lastBlockAge = Math.floor(Date.now() / 1000) - Number(block.timestamp);
+
+        if (lastBlockAge <= 120) {
           setHealthStatus("healthy");
-        } else if (timeDiff <= 30) {
+        } else if (lastBlockAge <= 600) {
           setHealthStatus("degraded");
         } else {
-          setHealthStatus("offline");
+          setHealthStatus("stale");
         }
-      } catch (error) {
-        console.error("Failed to fetch L1 health data:", error);
-        setHealthStatus("offline");
+
+        // Compute inter-block gap as informational blockTime (only when not genesis-only)
+        if (block.number > 0n) {
+          try {
+            const previousBlock = await client.getBlock({ blockNumber: block.number - 1n });
+            if (requestId === healthRequestIdRef.current) {
+              const timeDiff = Number(block.timestamp - previousBlock.timestamp);
+              setBlockTime(timeDiff);
+            }
+          } catch {
+            if (requestId === healthRequestIdRef.current) {
+              setBlockTime(null);
+            }
+          }
+        } else {
+          setBlockTime(null);
+        }
+      } catch {
+        if (requestId === healthRequestIdRef.current) {
+          setHealthStatus("offline");
+          setBlockTime(null);
+          setGasPrice(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (requestId === healthRequestIdRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchHealthData();
 
-    // Refresh every 30 seconds
+    // Poll every 30 seconds, clear previous interval on chain switch
     const interval = setInterval(fetchHealthData, 30000);
     return () => clearInterval(interval);
   }, [currentL1]);

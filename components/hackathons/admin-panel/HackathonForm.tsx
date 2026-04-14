@@ -399,7 +399,7 @@ export default function HackathonForm({
           </Button>
           <Button
             variant='secondary'
-            onClick={() => router.push(`/hackathons/${initialData?.id ?? ''}`)}
+            onClick={() => router.push(`/events/${initialData?.id ?? ''}`)}
             className='w-full sm:w-auto'
           >
             View Public Page

@@ -1,70 +1,78 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import Link from "next/link";
-import { HeroBackground } from "@/components/landing/hero";
-import { ArrowRight, Shield } from "lucide-react";
+import Image from 'next/image';
+import Link from 'next/link';
+import { HeroBackground } from '@/components/landing/hero';
+import { ArrowRight, Shield } from 'lucide-react';
 
 // Program card data with images
 const programs = [
   {
-    title: "Retro9000",
-    description: "Build innovative projects on Avalanche and get rewarded for your creativity and impact.",
-    href: "https://retro9000.avax.network",
+    title: 'Retro9000',
+    description: 'Build innovative projects on Avalanche and get rewarded for your creativity and impact.',
+    href: 'https://retro9000.avax.network',
     external: true,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png",
+    image:
+      'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png',
   },
   {
-    title: "Team1 Mini Grants",
-    description: "Supporting early stage Avalanche projects with capital, mentorship, and guidance.",
-    href: "https://grants.team1.network/",
+    title: 'Team1 Mini Grants',
+    description: 'Supporting early stage Avalanche projects with capital, mentorship, and guidance.',
+    href: 'https://grants.team1.network/',
     external: true,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg",
+    image:
+      'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg',
   },
   {
-    title: "Codebase by Avalanche™",
-    description: "Empower developers to create innovative blockchain solutions and turn visions into reality.",
-    href: "/codebase",
+    title: 'Codebase by Avalanche™',
+    description: 'Empower developers to create innovative blockchain solutions and turn visions into reality.',
+    href: '/codebase',
     external: false,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png",
+    image:
+      'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png',
   },
   {
-    title: "Blizzard Fund",
-    description: "A $200M+ fund investing in promising Avalanche projects with institutional support.",
-    href: "https://www.blizzard.fund/",
+    title: 'Blizzard Fund',
+    description: 'A $200M+ fund investing in promising Avalanche projects with institutional support.',
+    href: 'https://www.blizzard.fund/',
     external: true,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg",
+    image:
+      'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg',
   },
 ];
 
 const partnerPrograms = [
   {
-    title: "Game Accelerator",
-    description: "Support and fast-track for promising gaming studios and projects building on Avalanche, in partnership with Helika.",
-    href: "https://www.helika.io/helika-avalanche-accelerator",
+    title: 'Game Accelerator',
+    description:
+      'Support and fast-track for promising gaming studios and projects building on Avalanche, in partnership with Helika.',
+    href: 'https://www.helika.io/helika-avalanche-accelerator',
     external: true,
-    image: "/images/helika.svg",
+    image: '/images/helika.svg',
   },
   {
-    title: "Developer Credits",
-    description: "Access credits to build data-suites and vibe-code new projects on the Avalanche C-Chain, in partnership with Space & Time.",
-    href: "https://spaceandtimedb.notion.site/Space-and-Time-x-Avalanche-Builder-Credit-Grant-Program-239af37755f580b4929ff9328584f347?pvs=74",
+    title: 'Developer Credits',
+    description:
+      'Access credits to build data-suites and vibe-code new projects on the Avalanche C-Chain, in partnership with Space & Time.',
+    href: 'https://spaceandtimedb.notion.site/Space-and-Time-x-Avalanche-Builder-Credit-Grant-Program-239af37755f580b4929ff9328584f347?pvs=74',
     external: true,
-    image: "/images/spacentime.jpg",
+    image: '/images/spacentime.jpg',
   },
   {
-    title: "Hexagate Security",
-    description: "Onchain security for Avalanche builders, delivering real-time threat detection for smart contracts and protocols.",
-    href: "https://hexagate.typeform.com/HexagateForAva?typeform-source=t.co",
+    title: 'Hexagate Security',
+    description:
+      'Onchain security for Avalanche builders, delivering real-time threat detection for smart contracts and protocols.',
+    href: 'https://hexagate.typeform.com/HexagateForAva?typeform-source=t.co',
     external: true,
-    image: "/images/blocksec.jpeg",
+    image: '/images/blocksec.jpeg',
   },
   {
-    title: "Security Audits",
-    description: "Explore 20+ trusted auditing providers and find the right partner to review, test, and strengthen your smart contracts.",
-    href: "https://areta.market/avalanche",
+    title: 'Security Audits',
+    description:
+      'Explore 20+ trusted auditing providers and find the right partner to review, test, and strengthen your smart contracts.',
+    href: 'https://areta.market/avalanche',
     external: true,
-    image: "/images/auditagent.png",
+    image: '/images/auditagent.png',
   },
 ];
 
@@ -78,7 +86,7 @@ interface ProgramCardProps {
 
 function ProgramCard({ title, description, href, external, image }: ProgramCardProps) {
   const CardWrapper = external ? 'a' : Link;
-  const linkProps = external ? { href, target: "_blank", rel: "noopener noreferrer" } : { href };
+  const linkProps = external ? { href, target: '_blank', rel: 'noopener noreferrer' } : { href };
   const isSvg = image.endsWith('.svg');
 
   return (
@@ -100,9 +108,7 @@ function ProgramCard({ title, description, href, external, image }: ProgramCardP
           <h3 className="text-xl font-bold text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">
             {title}
           </h3>
-          <p className="text-white/80 text-sm line-clamp-2">
-            {description}
-          </p>
+          <p className="text-white/80 text-sm line-clamp-2">{description}</p>
         </div>
 
         {/* Hover arrow */}
@@ -136,7 +142,8 @@ export default function Page() {
                 </span>
               </h2>
               <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
-                Empowering innovators to build the future of blockchain technology with scalable and sustainable solutions.
+                Empowering innovators to build the future of blockchain technology with scalable and sustainable
+                solutions.
               </p>
 
               {/* CTA Buttons */}
@@ -194,12 +201,10 @@ export default function Page() {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(239,68,68,0.15),transparent_50%)]" />
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="text-center md:text-left">
-                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                    Security Bug Bounty
-                  </h3>
+                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Security Bug Bounty</h3>
                   <p className="text-zinc-400 max-w-xl">
-                    Help secure the Avalanche network. Security researchers who identify critical vulnerabilities can earn bounties up to{" "}
-                    <span className="text-white font-semibold">$100,000 USD</span>.
+                    Help secure the Avalanche network. Security researchers who identify critical vulnerabilities can
+                    earn bounties up to <span className="text-white font-semibold">$100,000 USD</span>.
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">

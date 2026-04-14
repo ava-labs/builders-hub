@@ -123,7 +123,7 @@ ssh -i ~/.ssh/avalanche-deploy -L 9650:localhost:9650 ubuntu@<validator-ip>
 **Solution**: Wait for all chains to complete syncing before migrating:
 
 ```bash
-./scripts/check-primary-sync.sh <target-ip>
+./scripts/primary-network/check-sync.sh <target-ip>
 ```
 
 All chains (P, X, C) must report `SYNCED`.

@@ -12,6 +12,7 @@ import Community from "@/components/hackathons/hackathon/sections/Community";
 import MentorsJudges from "@/components/hackathons/hackathon/sections/MentorsJudges";
 import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewBanner";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 // Simple client-compatible Submission component for preview
 const SubmissionPreview = ({ hackathon }: { hackathon: any }) => {
@@ -93,6 +94,7 @@ interface HackathonPreviewProps {
     banner?: string;
     is_public?: boolean;
     content: {
+      language?: "en" | "es";
       tracks_text?: string;
       tracks?: any[];
       schedule?: any[];
@@ -118,6 +120,7 @@ interface HackathonPreviewProps {
 
 export default function HackathonPreview({ hackathonData, isRegistered = false, scrollTarget }: HackathonPreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null);
+  const lang = normalizeEventsLang(hackathonData.content?.language);
   // Scroll to specific section when scrollTarget changes
   useEffect(() => {
     if (scrollTarget && previewRef.current) {
@@ -153,6 +156,7 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
     cohosts: [],
     is_public: hackathonData.is_public ?? true,
     content: {
+      language: hackathonData.content?.language,
       tracks_text: hackathonData.content?.tracks_text || '',
       tracks: hackathonData.content?.tracks || [],
       schedule: hackathonData.content?.schedule || [],
@@ -181,12 +185,12 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
   };
 
   const menuItems = [
-    { name: "About", ref: "about" },
-    { name: "Prizes & Tracks", ref: "tracks" },
-    { name: "Resources", ref: "resources" },
-    { name: "Schedule", ref: "schedule" },
-    { name: "Submission", ref: "submission" },
-    { name: "Mentors & Judges", ref: "speakers" },
+    { name: t(lang, "menu.about"), ref: "about" },
+    { name: t(lang, "menu.tracks"), ref: "tracks" },
+    { name: t(lang, "menu.resources"), ref: "resources" },
+    { name: t(lang, "menu.schedule"), ref: "schedule" },
+    { name: t(lang, "menu.submission"), ref: "submission" },
+    { name: t(lang, "menu.mentorsJudges"), ref: "speakers" },
     // { name: "Partners", ref: "sponsors" }, // Hidden
   ];
 
@@ -225,7 +229,7 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
               ${transformedHackathon.total_prizes.toLocaleString()} in prizes
             </span>
             <Button className="bg-red-500 hover:bg-red-600 text-white">
-              Join now
+              {t(lang, "join.default")}
             </Button>
           </div>
         </div>

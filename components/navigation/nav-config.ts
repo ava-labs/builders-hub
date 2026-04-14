@@ -65,10 +65,10 @@ export const menuSections: NavSection[] = [
   },
   {
     title: 'Events',
-    href: '/hackathons',
+    href: '/events',
     items: [
-      { text: 'Hackathons', href: '/hackathons' },
-      { text: 'BuildGames', href: '/build-games' },
+      { text: 'Hackathons', href: '/events' },
+      { text: 'Avalanche Summit', href: 'https://www.avalanchesummit.com', external: true  },
       { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
       { text: 'Campus Connect', href: '/university' },
     ],
@@ -98,6 +98,7 @@ export const menuSections: NavSection[] = [
       { text: 'Avalanche L1s', href: '/stats/overview' },
       { text: 'C-Chain', href: '/stats/l1/c-chain' },
       { text: 'Validators', href: '/stats/validators' },
+      { text: 'Validator Alerts', href: '/validator-alerts' },
     ],
   },
   {

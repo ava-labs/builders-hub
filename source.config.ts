@@ -32,6 +32,9 @@ export const { docs, meta } = defineDocs({
 export const course = defineCollections({
   type: 'doc',
   dir: 'content/academy',
+  postprocess: {
+    includeProcessedMarkdown: true,
+  },
   schema: frontmatterSchema.extend({
     preview: z.string().optional(),
     index: z.boolean().default(false),
@@ -75,6 +78,9 @@ export const integrations = defineCollections({
 export const blog = defineCollections({
   type: 'doc',
   dir: 'content/blog',
+  postprocess: {
+    includeProcessedMarkdown: true,
+  },
   schema: frontmatterSchema.extend({
     authors: z.array(z.string()).optional(),
     topics: z.array(z.string()).optional(),

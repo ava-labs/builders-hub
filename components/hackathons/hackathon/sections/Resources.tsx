@@ -3,8 +3,10 @@ import { HackathonHeader } from '@/types/hackathons';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { DynamicIcon } from 'lucide-react/dynamic';
+import { normalizeEventsLang, t } from '@/lib/events/i18n';
 
 function Resources({ hackathon }: { hackathon: HackathonHeader }) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
   const resources = hackathon.content?.resources || [];
 
   if (!resources || resources.length === 0) {
@@ -14,12 +16,11 @@ function Resources({ hackathon }: { hackathon: HackathonHeader }) {
   return (
     <section className='text-black dark:text-white dark:bg-black py-12'>
       <h2 className='text-4xl font-bold mb-6' id='resources'>
-        Resources
+        {t(lang, 'section.resources.title')}
       </h2>
       <Separator className='my-8 h-[1px] bg-zinc-300 dark:bg-zinc-800' />
       <p className='text-lg text-gray-600 dark:text-gray-300 mb-6'>
-        Find key resources and support for your journey in{' '}
-        {hackathon.title}
+        {t(lang, 'section.resources.subtitle', { title: hackathon.title })}
       </p>
 
       <div className='grid gap-3'>

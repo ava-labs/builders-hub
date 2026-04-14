@@ -130,6 +130,10 @@ const FormSchema = z.object({
     .array(z.object({ period: z.string(), description: z.string() }))
     .optional(),
 
+  // ── Stage 4 ───────────────────────────────────────────────────────────────
+  bg_summary: z.string().optional().or(z.literal("")),
+  bg_support_needed: z.string().optional().or(z.literal("")),
+
   // ── Stage 4 — Gaming Finals ───────────────────────────────────────────────
   bg_game_metrics: z.string().optional().or(z.literal("")),
   bg_game_vision: z.string().optional().or(z.literal("")),
@@ -206,6 +210,8 @@ export default function BuildGamesSubmitForm({
       bg_game_monetization: "",
       bg_game_competitors: "",
       bg_milestones: [{ period: "", description: "" }],
+      bg_summary: "",
+      bg_support_needed: "",
       bg_game_metrics: "",
       bg_game_vision: "",
     },
@@ -349,6 +355,8 @@ export default function BuildGamesSubmitForm({
             bg_milestones: Array.isArray(bg.milestones) && bg.milestones.length > 0
               ? bg.milestones
               : [{ period: "", description: "" }],
+            bg_summary: bg.summary ?? "",
+            bg_support_needed: bg.support_needed ?? "",
             bg_game_metrics: bg.game_metrics ?? "",
             bg_game_vision: bg.game_vision ?? "",
           });
@@ -432,6 +440,8 @@ export default function BuildGamesSubmitForm({
             milestones: (data.bg_milestones ?? []).filter(
               (m) => (m.period ?? "") !== "" || (m.description ?? "") !== ""
             ),
+            summary: data.bg_summary ?? "",
+            support_needed: data.bg_support_needed ?? "",
             game_metrics: data.bg_game_metrics ?? "",
             game_vision: data.bg_game_vision ?? "",
           },
@@ -1632,28 +1642,38 @@ export default function BuildGamesSubmitForm({
     if (n === 4) {
       return (
         <div className="space-y-5">
+          <div className="rounded-xl border border-[#66acd6]/30 bg-[rgba(102,172,214,0.06)] p-5">
+            <p className="font-['Aeonik:Medium',sans-serif] text-[15px] text-white mb-1">
+              Stage 4 is a live presentation in front of judges
+            </p>
+            <p className="font-['Aeonik:Regular',sans-serif] text-[14px] text-white/60">
+              The real judging happens live — judges will watch your live pitch, ask questions, and evaluate your project in real time. The submission below serves as a dry run and will complete your project profile, but it does not replace the live presentation.
+            </p>
+          </div>
+
           <MultiLinkInput
             name="demo_link"
-            label="Pitch Deck & Demo Links"
+            label="Pitch Recording & Slides"
             placeholder="https://docs.google.com/presentation/..."
             plainLabel
+            allowAllDomains
+            description="Up to 7 minutes. Include a short demo (you can pre-record the demo part to save time) and make sure it reflects the current state of your project. Assume judges have no context from previous stages."
           />
 
           <FormField
             control={form.control}
-            name="full_description"
+            name="bg_summary"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white font-medium">
-                  Complete Project Documentation
+                  Project Summary
                 </FormLabel>
                 <p className="text-zinc-400 text-sm -mt-1">
-                  Provide complete documentation covering your project&apos;s
-                  technical implementation, business model, and traction.
+                  Keep it short. Include your project&apos;s website, X (Twitter), and any other links or information about your team or your project that you think judges should know about.
                 </p>
                 <FormControl>
                   <Textarea
-                    placeholder="Complete documentation of your project: technical implementation, business model, user traction, roadmap..."
+                    placeholder="Brief summary of your project. Website: https://... | X: https://x.com/... | Any other relevant links or context..."
                     className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[250px] resize-none"
                     {...field}
                   />
@@ -1663,59 +1683,29 @@ export default function BuildGamesSubmitForm({
             )}
           />
 
-          {/* ── Gaming Finals — only for consumer games ── */}
-          {form.watch("project_category") === "Gaming" &&
-            form.watch("bg_game_type") === "Consumer Game" && (
-            <>
-              <SectionDivider label="🎮 Gaming Finals" />
+          <FormField
+            control={form.control}
+            name="bg_support_needed"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  What type of support do you need to succeed?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Tell us what kind of support would make the biggest difference for your project — e.g. technical guidance, BD introductions, legal, marketing, funding, ecosystem partnerships.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="e.g. We need help with go-to-market strategy and introductions to potential partners in the DeFi space..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="bg_game_metrics"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      Live player metrics &amp; traction
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      Share your current numbers: daily active players, average session length, Day-1 / Day-7 / Day-30 retention, on-chain transaction volume.
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. 340 DAU, avg session 22 min, D1 retention 61% / D7 38% / D30 18%. 12,400 on-chain transactions in the last 30 days. 1,800 unique wallet addresses..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="bg_game_vision"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      12-month vision
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      Where do you want the game to be in 12 months? Set targets for player count, revenue, content expansion, and ecosystem integrations.
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. 50k MAU by Q1 2027. Launch Season 2 with PvP ranked mode. Integrate with 2 Avalanche ecosystem protocols for in-game rewards. Mobile port in Q3. $500k ARR from marketplace fees and season passes..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          )}
         </div>
       );
     }

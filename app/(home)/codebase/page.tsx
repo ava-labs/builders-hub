@@ -136,7 +136,7 @@ export default function Page() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <Link
-                  href="/hackathons"
+                  href="/events"
                   className="flex items-center gap-2 underline font-medium"
                 >
                   Learn More

@@ -1,55 +1,58 @@
-"use client";
+'use client';
 
-import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
-import type { AbiEvent } from "viem";
-import { useEffect, useState } from "react";
-import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import { Button } from "@/components/toolbox/components/Button";
-import { ChevronDown, ChevronRight, RefreshCw, Check, Database, Activity } from "lucide-react";
-import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
-import versions from "@/scripts/versions.json";
+import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import type { AbiEvent } from 'viem';
+import { useEffect, useState } from 'react';
+import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
+import { ChevronDown, ChevronRight, RefreshCw, Database, Activity } from 'lucide-react';
+import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
+import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
 type ViewData = {
   [key: string]: any;
 };
 
 const serializeValue = (value: any): any => {
-  if (typeof value === "bigint") {
+  if (typeof value === 'bigint') {
     return value.toString();
   }
   if (Array.isArray(value)) {
     return value.map(serializeValue);
   }
-  if (typeof value === "object" && value !== null) {
+  if (typeof value === 'object' && value !== null) {
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, serializeValue(v)]));
   }
   return value;
 };
 
 const metadata: ConsoleToolMetadata = {
-  title: "Read Contract",
-  description: "Read and view contract state from the ValidatorManager",
+  title: 'Read Contract',
+  description: 'Read and view contract state from the ValidatorManager',
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
-function ReadContract({ onSuccess }: BaseConsoleToolProps) {
+function ReadContract({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
-  const [proxyAddress, setProxyAddress] = useState<string>("");
+  const [proxyAddress, setProxyAddress] = useState<string>('');
   const [viewData, setViewData] = useState<ViewData>({});
   const [isReading, setIsReading] = useState(false);
   const [eventLogs, setEventLogs] = useState<Record<string, any[]>>({});
   const chainPublicClient = useChainPublicClient();
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
-  const selectedL1 = useSelectedL1()();
-  const [selectedFunction, setSelectedFunction] = useState<string>("admin");
+  const selectedL1 = useSelectedL1();
+  const [selectedFunction, setSelectedFunction] = useState<string>('admin');
 
   if (criticalError) {
     throw criticalError;
@@ -61,7 +64,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
         const subnetId = selectedL1?.subnetId;
         if (!subnetId) return;
         const info = await getSubnetInfo(subnetId);
-        const newProxyAddress = info.l1ValidatorManagerDetails?.contractAddress || "";
+        const newProxyAddress = info.l1ValidatorManagerDetails?.contractAddress || '';
         setProxyAddress(newProxyAddress);
       } catch (error) {
         setCriticalError(error instanceof Error ? error : new Error(String(error)));
@@ -78,7 +81,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
 
     try {
       const viewFunctions = ValidatorManagerABI.abi.filter(
-        (item: any) => item.type === "function" && (item.stateMutability === "view" || item.stateMutability === "pure")
+        (item: any) => item.type === 'function' && (item.stateMutability === 'view' || item.stateMutability === 'pure'),
       );
 
       const data: ViewData = {};
@@ -96,13 +99,13 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
           data[func.name] = serializeValue(result);
         } catch (error) {
           console.error(`Error reading ${func.name}:`, error);
-          data[func.name] = "Error: " + ((error as Error)?.message?.slice(0, 50) || "Unknown");
+          data[func.name] = 'Error: ' + ((error as Error)?.message?.slice(0, 50) || 'Unknown');
         }
       }
 
       setViewData(data);
 
-      const events = ValidatorManagerABI.abi.filter((item: any) => item.type === "event");
+      const events = ValidatorManagerABI.abi.filter((item: any) => item.type === 'event');
       const logs: Record<string, any[]> = {};
 
       for (const event of events) {
@@ -112,7 +115,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
             address: proxyAddress as `0x${string}`,
             event: event as AbiEvent,
             fromBlock: 0n,
-            toBlock: "latest",
+            toBlock: 'latest',
           });
           logs[event.name] = eventLogs.map((log) => serializeValue(log));
         } catch (error) {
@@ -121,7 +124,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
       }
       setEventLogs(logs);
     } catch (error) {
-      console.error("Main error:", error);
+      console.error('Main error:', error);
       setCriticalError(error instanceof Error ? error : new Error(String(error)));
     } finally {
       setIsReading(false);
@@ -166,7 +169,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
                   className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                   title="Refresh"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isReading ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isReading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
             </div>
@@ -191,16 +194,18 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
                     onClick={() => setSelectedFunction(key)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
                       selectedFunction === key
-                        ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
-                        : "bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent"
+                        ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
+                        : 'bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent'
                     }`}
                   >
-                    <span className={`text-xs font-mono ${selectedFunction === key ? "text-amber-700 dark:text-amber-300" : "text-zinc-700 dark:text-zinc-300"}`}>
+                    <span
+                      className={`text-xs font-mono ${selectedFunction === key ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    >
                       {key}()
                     </span>
                     <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 truncate ml-2 max-w-[120px]">
-                      {typeof value === "string" ? value.slice(0, 16) : JSON.stringify(value).slice(0, 16)}
-                      {(typeof value === "string" ? value.length : JSON.stringify(value).length) > 16 ? "..." : ""}
+                      {typeof value === 'string' ? value.slice(0, 16) : JSON.stringify(value).slice(0, 16)}
+                      {(typeof value === 'string' ? value.length : JSON.stringify(value).length) > 16 ? '...' : ''}
                     </span>
                   </button>
                 ))}
@@ -217,7 +222,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
                 </span>
               </div>
               <pre className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap break-all">
-                {typeof viewData[selectedFunction] === "string"
+                {typeof viewData[selectedFunction] === 'string'
                   ? viewData[selectedFunction]
                   : JSON.stringify(viewData[selectedFunction], null, 2)}
               </pre>
@@ -235,7 +240,10 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
               </div>
               <div className="space-y-1">
                 {Object.entries(eventLogs).map(([eventName, logs]) => (
-                  <div key={eventName} className="rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                  <div
+                    key={eventName}
+                    className="rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden"
+                  >
                     <button
                       className="w-full flex items-center justify-between px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                       onClick={() => toggleEventExpansion(eventName)}
