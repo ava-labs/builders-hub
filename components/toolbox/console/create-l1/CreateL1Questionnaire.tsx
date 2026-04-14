@@ -13,9 +13,9 @@ import {
   HandCoins,
   User,
   Users,
-  ChevronRight,
-  Lightbulb,
-  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Check,
 } from 'lucide-react';
 import {
   useCreateL1FlowStore,
@@ -27,7 +27,7 @@ import {
 import { generateCreateL1Steps, getStepLabel } from './generateSteps';
 
 // ---------------------------------------------------------------------------
-// Option card primitive
+// Option card — large, tactile, with strong selected state
 // ---------------------------------------------------------------------------
 
 interface OptionCardProps<T extends string> {
@@ -54,34 +54,50 @@ function OptionCard<T extends string>({
       type="button"
       onClick={() => onSelect(id)}
       className={cn(
-        'relative flex flex-col gap-2 rounded-xl border p-4 text-left transition-all duration-200',
+        'relative flex flex-col items-start gap-4 rounded-2xl border-2 p-5 text-left transition-all duration-200',
+        'hover:shadow-md hover:-translate-y-0.5',
         selected
-          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 ring-2 ring-blue-500/20'
-          : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600',
+          ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/30 shadow-sm shadow-blue-200/50 dark:shadow-blue-900/20'
+          : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700',
       )}
     >
-      {selected && (
-        <div className="absolute top-3 right-3">
-          <CheckCircle2 className="h-5 w-5 text-blue-500" />
-        </div>
-      )}
+      {/* Selection indicator */}
       <div
         className={cn(
-          'flex h-10 w-10 items-center justify-center rounded-xl',
-          selected
-            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+          'absolute top-4 right-4 flex h-6 w-6 items-center justify-center rounded-full transition-all duration-200',
+          selected ? 'bg-blue-500 text-white scale-100' : 'bg-zinc-100 dark:bg-zinc-800 text-transparent scale-90',
+        )}
+      >
+        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+      </div>
+
+      {/* Icon */}
+      <div
+        className={cn(
+          'flex h-12 w-12 items-center justify-center rounded-xl transition-colors duration-200',
+          selected ? 'bg-blue-500 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400',
         )}
       >
         {icon}
       </div>
-      <div>
-        <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h4>
-        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{description}</p>
+
+      {/* Text */}
+      <div className="space-y-1">
+        <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h4>
+        <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</p>
       </div>
+
+      {/* Recommended badge */}
       {recommended && (
-        <span className="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
-          <Lightbulb className="h-3 w-3" />
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200',
+            selected
+              ? 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
+              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400',
+          )}
+        >
+          <Sparkles className="h-3 w-3" />
           Recommended
         </span>
       )}
@@ -90,25 +106,29 @@ function OptionCard<T extends string>({
 }
 
 // ---------------------------------------------------------------------------
-// Question row
+// Question section
 // ---------------------------------------------------------------------------
 
-interface QuestionRowProps {
+interface QuestionSectionProps {
   number: number;
-  label: string;
+  title: string;
+  subtitle?: string;
   children: React.ReactNode;
 }
 
-function QuestionRow({ number, label, children }: QuestionRowProps) {
+function QuestionSection({ number, title, subtitle, children }: QuestionSectionProps) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-          {number}
-        </span>
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{label}</h3>
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <div className="flex items-center gap-3">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-900 dark:bg-white text-xs font-bold text-white dark:text-zinc-900">
+            {number}
+          </span>
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
+        </div>
+        {subtitle && <p className="ml-10 text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{children}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{children}</div>
     </div>
   );
 }
@@ -127,7 +147,6 @@ export default function CreateL1Questionnaire() {
   const [validatorType, setValidatorType] = useState<ValidatorType>('poa');
   const [multisig, setMultisig] = useState(false);
 
-  // Build preview answers
   const previewAnswers: QuestionnaireAnswers = useMemo(
     () => ({ startingPoint, vmLocation, validatorType, multisig }),
     [startingPoint, vmLocation, validatorType, multisig],
@@ -145,27 +164,32 @@ export default function CreateL1Questionnaire() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
-      {/* Header */}
-      <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-gradient-to-r from-blue-50/50 via-white to-violet-50/50 dark:from-blue-950/20 dark:via-zinc-900 dark:to-violet-950/20 p-6">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Create an Avalanche L1</h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 max-w-xl">
-          Answer a few questions and we&apos;ll generate a custom step-by-step flow tailored to your setup. Each step
-          uses the same standalone tools available in the toolbox.
+    <div className="mx-auto max-w-4xl">
+      {/* ── Hero ──────────────────────────────────────────────── */}
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-4xl">
+          Create an Avalanche L1
+        </h1>
+        <p className="mt-3 text-base text-zinc-500 dark:text-zinc-400 max-w-2xl leading-relaxed">
+          Configure your L1 in under a minute. Answer four questions and we&apos;ll generate a custom deployment flow
+          tailored to your architecture.
         </p>
       </div>
 
-      {/* Questions */}
-      <div className="space-y-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        {/* Q1: Starting point */}
-        <QuestionRow number={1} label="Starting point">
+      {/* ── Questions ─────────────────────────────────────────── */}
+      <div className="space-y-10">
+        <QuestionSection
+          number={1}
+          title="Starting point"
+          subtitle="Are you creating a brand new network or converting an existing one?"
+        >
           <OptionCard
             id="new"
             selected={startingPoint === 'new'}
             onSelect={setStartingPoint}
             icon={<Layers className="h-5 w-5" />}
             title="New L1 from scratch"
-            description="Create a new Subnet, chain, and convert to L1"
+            description="Create a new subnet, deploy a chain with custom genesis, and convert to an L1."
             recommended
           />
           <OptionCard
@@ -174,19 +198,24 @@ export default function CreateL1Questionnaire() {
             onSelect={setStartingPoint}
             icon={<ArrowRightLeft className="h-5 w-5" />}
             title="Convert existing subnet"
-            description="Skip subnet creation, convert an existing subnet to L1"
+            description="You already have a subnet. Skip creation and go straight to L1 conversion."
           />
-        </QuestionRow>
+        </QuestionSection>
 
-        {/* Q2: VM location */}
-        <QuestionRow number={2} label="Validator Manager location">
+        <div className="h-px bg-zinc-200/80 dark:bg-zinc-800" />
+
+        <QuestionSection
+          number={2}
+          title="Validator Manager location"
+          subtitle="Where should the contract that manages your validators live?"
+        >
           <OptionCard
             id="l1"
             selected={vmLocation === 'l1'}
             onSelect={setVmLocation}
             icon={<Server className="h-5 w-5" />}
             title="On the L1 itself"
-            description="Proxy is predeployed in genesis. Lower gas costs."
+            description="Proxy predeployed in genesis. Validators validate their own chain. Lower gas costs."
             recommended
           />
           <OptionCard
@@ -195,19 +224,20 @@ export default function CreateL1Questionnaire() {
             onSelect={setVmLocation}
             icon={<Link2 className="h-5 w-5" />}
             title="On C-Chain"
-            description="Deploy on C-Chain first. Simpler bootstrap."
+            description="Deploy to C-Chain first, then create the L1. Simpler bootstrap, higher gas."
           />
-        </QuestionRow>
+        </QuestionSection>
 
-        {/* Q3: Validator management type */}
-        <QuestionRow number={3} label="Validator management type">
+        <div className="h-px bg-zinc-200/80 dark:bg-zinc-800" />
+
+        <QuestionSection number={3} title="Validator management" subtitle="How should validators be added and removed?">
           <OptionCard
             id="poa"
             selected={validatorType === 'poa'}
             onSelect={setValidatorType}
             icon={<Shield className="h-5 w-5" />}
             title="Proof of Authority"
-            description="Owner controls validators directly"
+            description="A single owner (or multisig) controls who can validate. Best for private or permissioned networks."
           />
           <OptionCard
             id="pos-native"
@@ -215,7 +245,7 @@ export default function CreateL1Questionnaire() {
             onSelect={setValidatorType}
             icon={<Coins className="h-5 w-5" />}
             title="Proof of Stake (Native)"
-            description="Stake the L1's native token"
+            description="Validators stake the L1's native token. Open and permissionless."
           />
           <OptionCard
             id="pos-erc20"
@@ -223,19 +253,20 @@ export default function CreateL1Questionnaire() {
             onSelect={setValidatorType}
             icon={<HandCoins className="h-5 w-5" />}
             title="Proof of Stake (ERC20)"
-            description="Stake an ERC20 token"
+            description="Validators stake an ERC20 token. Flexible tokenomics."
           />
-        </QuestionRow>
+        </QuestionSection>
 
-        {/* Q4: Multisig */}
-        <QuestionRow number={4} label="Multisig owner?">
+        <div className="h-px bg-zinc-200/80 dark:bg-zinc-800" />
+
+        <QuestionSection number={4} title="Ownership" subtitle="Who controls the validator manager contract?">
           <OptionCard
             id="no"
             selected={!multisig}
             onSelect={() => setMultisig(false)}
             icon={<User className="h-5 w-5" />}
-            title="Single wallet owner"
-            description="Your connected wallet is the admin"
+            title="Single wallet"
+            description="Your connected wallet is the admin. Fast and simple."
             recommended
           />
           <OptionCard
@@ -244,58 +275,68 @@ export default function CreateL1Questionnaire() {
             onSelect={() => setMultisig(true)}
             icon={<Users className="h-5 w-5" />}
             title="Gnosis Safe multisig"
-            description="Transfer ownership to a Safe after setup"
+            description="Transfer ownership to a Safe after deployment. Better security for production."
           />
-        </QuestionRow>
+        </QuestionSection>
       </div>
 
-      {/* Generated Flow Preview */}
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Generated Flow</h3>
-        <ol className="space-y-2">
-          {previewSteps.map((step, idx) => (
-            <li key={step.key} className="flex items-center gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-xs font-medium text-blue-700 dark:text-blue-300">
-                {idx + 1}
-              </span>
-              <span className="text-sm text-zinc-700 dark:text-zinc-300">{getStepLabel(step.key)}</span>
-            </li>
-          ))}
-        </ol>
+      {/* ── Generated Flow Preview ────────────────────────────── */}
+      <div className="mt-12 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Your deployment flow</h3>
+          <span className="text-sm font-medium text-zinc-400 dark:text-zinc-500 tabular-nums">
+            {previewSteps.length} steps
+          </span>
+        </div>
 
-        {/* Info callout about PoS / multisig follow-up */}
+        <div className="flex flex-wrap items-center gap-2">
+          {previewSteps.map((step, idx) => (
+            <div key={step.key} className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="text-zinc-400 dark:text-zinc-500">{idx + 1}.</span>
+                {getStepLabel(step.key)}
+              </span>
+              {idx < previewSteps.length - 1 && (
+                <ArrowRight className="h-3 w-3 text-zinc-300 dark:text-zinc-600 shrink-0" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* PoS / multisig follow-up note */}
         {(validatorType !== 'poa' || multisig) && (
-          <div className="mt-4 flex items-start gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3">
-            <Lightbulb className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-blue-800 dark:text-blue-200">
-              {validatorType !== 'poa' && (
-                <>
-                  After completing this flow, proceed to the{' '}
-                  <strong>{validatorType === 'pos-native' ? 'Native' : 'ERC20'} Staking Manager Setup</strong> to deploy
-                  and configure your staking contracts.{' '}
-                </>
-              )}
-              {multisig && (
-                <>
-                  Then use <strong>Multisig Setup</strong> to transfer ownership to a Gnosis Safe.
-                </>
-              )}
-            </p>
-          </div>
+          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/80 dark:border-zinc-800 pt-4">
+            {validatorType !== 'poa' && (
+              <>
+                After this flow, continue to{' '}
+                <strong>{validatorType === 'pos-native' ? 'Native' : 'ERC20'} Staking Manager Setup</strong> to deploy
+                staking contracts.{' '}
+              </>
+            )}
+            {multisig && (
+              <>
+                Then use <strong>Multisig Setup</strong> to transfer ownership to a Safe.
+              </>
+            )}
+          </p>
         )}
       </div>
 
-      {/* Start button */}
-      <div className="flex items-center gap-4">
+      {/* ── Start button ──────────────────────────────────────── */}
+      <div className="mt-8 flex items-center gap-5">
         <button
           type="button"
           onClick={handleStart}
-          className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-8 py-3 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+          className={cn(
+            'group inline-flex items-center gap-3 rounded-xl px-8 py-4 text-base font-semibold transition-all duration-200',
+            'bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100',
+            'text-white dark:text-zinc-900',
+            'shadow-lg shadow-zinc-900/10 dark:shadow-white/10 hover:shadow-xl hover:shadow-zinc-900/20 dark:hover:shadow-white/20',
+          )}
         >
-          Start Flow
-          <ChevronRight className="h-4 w-4" />
+          Start deployment
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </button>
-        <span className="text-xs text-zinc-400 dark:text-zinc-500">{previewSteps.length} steps</span>
       </div>
     </div>
   );
