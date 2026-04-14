@@ -2,6 +2,7 @@ import { useWalletStore } from './walletStore';
 import { getRegisteredFlowStores } from './createFlowStore';
 import { getL1ListStore } from './l1ListStore';
 import { getToolboxStore } from './toolboxStore';
+import { getTxHistoryStore } from './txHistoryStore';
 import type { L1ListItem } from './l1ListStore';
 import { disconnect } from '@wagmi/core';
 import { wagmiConfig } from '../providers/wagmi-config';
@@ -35,8 +36,10 @@ export function resetAllStores() {
     getToolboxStore(chainId).getState().reset();
   });
 
-  // Clear console notification panel
+  // Clear console notification panel and tx history
   useNotificationPanelStore.getState().clearAll();
+  getTxHistoryStore(true).getState().clearHistory();
+  getTxHistoryStore(false).getState().clearHistory();
 
   // Disconnect wagmi so the page reloads with a clean wallet state
   disconnect(wagmiConfig).catch(() => {});

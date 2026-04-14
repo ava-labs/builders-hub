@@ -10,8 +10,10 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { useTxHistoryStore } from '@/components/toolbox/stores/txHistoryStore';
+import type { TxRecord, TxStatus } from '@/components/toolbox/stores/txHistoryStore';
 import { useNotificationPanelStore } from '@/components/console/notification-panel';
-import { Search, ExternalLink, Copy, Check, Download, LogIn, Clock, Database, Loader2, X } from 'lucide-react';
+import { Search, ExternalLink, Copy, Check, Download, LogIn, Clock, Database, Loader2, X, ArrowUpDown, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/cn';
 
@@ -28,6 +30,7 @@ export default function ConsoleHistoryPage() {
   const selectedL1 = useSelectedL1();
   const toolboxStore = useToolboxStore();
   const createChainStore = useCreateChainStore()();
+  const { transactions: txHistory, clearHistory: clearTxHistory } = useTxHistoryStore();
 
   // Build store-based config items (only show items the user actually deployed on this chain)
   const storeItems = useMemo(() => {
@@ -89,8 +92,50 @@ export default function ConsoleHistoryPage() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
+  const filteredTxHistory = useMemo(() => {
+    if (!searchTerm) return txHistory;
+    const s = searchTerm.toLowerCase();
+    return txHistory.filter(
+      (tx) =>
+        tx.operation.toLowerCase().includes(s) ||
+        tx.txHash.toLowerCase().includes(s) ||
+        tx.type.toLowerCase().includes(s) ||
+        tx.status.toLowerCase().includes(s),
+    );
+  }, [txHistory, searchTerm]);
+
+  const getTxExplorerUrl = (tx: TxRecord): string | null => {
+    if (!tx.txHash) return null;
+    if (tx.type === 'pchain') {
+      const base = tx.network === 'mainnet' ? 'https://subnets.avax.network' : 'https://subnets-test.avax.network';
+      return `${base}/p-chain/tx/${tx.txHash}`;
+    }
+    // EVM tx — use built-in explorer path
+    if (tx.chainId === 43114 || tx.chainId === 43113) {
+      return `/explorer/avalanche-c-chain/tx/${tx.txHash}`;
+    }
+    // For custom L1 chains, link to subnets explorer with c-chain fallback
+    const base = tx.network === 'mainnet' ? 'https://subnets.avax.network' : 'https://subnets-test.avax.network';
+    return `${base}/c-chain/tx/${tx.txHash}`;
+  };
+
+  const statusConfig: Record<TxStatus, { label: string; className: string }> = {
+    confirmed: {
+      label: 'Confirmed',
+      className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    },
+    pending: {
+      label: 'Pending',
+      className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+    },
+    failed: {
+      label: 'Failed',
+      className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    },
+  };
+
   const handleExport = () => {
-    const data = { history: filteredHistory, configuration: filteredStoreItems };
+    const data = { history: filteredHistory, configuration: filteredStoreItems, txHistory: filteredTxHistory };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -121,7 +166,7 @@ export default function ConsoleHistoryPage() {
     <div className="mx-auto max-w-3xl py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">History</h1>
-        {(fullHistory.length > 0 || storeItems.length > 0) && (
+        {(fullHistory.length > 0 || storeItems.length > 0 || txHistory.length > 0) && (
           <Button variant="ghost" size="sm" onClick={handleExport}>
             <Download className="h-3.5 w-3.5 mr-1.5" />
             Export
@@ -164,11 +209,109 @@ export default function ConsoleHistoryPage() {
         </section>
       )}
 
-      {/* Server-side transaction history (logged-in users) */}
+      {/* Local transaction history (from txHistoryStore — persisted in localStorage) */}
+      {filteredTxHistory.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
+              <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Transaction History</h2>
+              <span className="text-[10px] text-zinc-400">({filteredTxHistory.length})</span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={clearTxHistory} className="h-6 px-2 text-[10px] text-zinc-400 hover:text-zinc-600">
+              <Trash2 className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+          </div>
+          <div className="space-y-1.5">
+            {filteredTxHistory.map((tx) => {
+              const explorerUrl = getTxExplorerUrl(tx);
+              const status = statusConfig[tx.status];
+              return (
+                <div
+                  key={tx.id}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors',
+                    tx.status === 'failed'
+                      ? 'border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10'
+                      : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30',
+                    explorerUrl && 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50',
+                  )}
+                  onClick={() => explorerUrl && window.open(explorerUrl, '_blank')}
+                >
+                  {tx.status === 'confirmed' ? (
+                    <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                  ) : tx.status === 'pending' ? (
+                    <Loader2 className="h-3.5 w-3.5 text-yellow-500 animate-spin shrink-0" />
+                  ) : (
+                    <X className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{tx.operation}</span>
+                    {tx.txHash && (
+                      <code className="ml-2 text-[10px] text-zinc-400 font-mono">{shortAddr(tx.txHash)}</code>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', status.className)}>
+                      {status.label}
+                    </span>
+                    <span
+                      className={cn(
+                        'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                        tx.type === 'pchain'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                          : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                      )}
+                    >
+                      {tx.type === 'pchain' ? 'P-Chain' : 'EVM'}
+                    </span>
+                    <span
+                      className={cn(
+                        'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                        tx.network === 'mainnet'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                      )}
+                    >
+                      {tx.network === 'mainnet' ? 'Mainnet' : 'Fuji'}
+                    </span>
+                    <span className="text-[10px] text-zinc-400">{format(new Date(tx.timestamp), 'MMM d HH:mm')}</span>
+                    {tx.txHash && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopy(tx.txHash, tx.id);
+                        }}
+                        className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      >
+                        {copiedId === tx.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-zinc-400" />}
+                      </button>
+                    )}
+                    {explorerUrl && (
+                      <a
+                        href={explorerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="shrink-0"
+                      >
+                        <ExternalLink className="h-3 w-3 text-zinc-400 hover:text-zinc-600" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Server-side activity log (logged-in users) */}
       <section className="mb-8">
         <div className="flex items-center gap-2 mb-3">
           <Clock className="h-3.5 w-3.5 text-zinc-400" />
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Transaction History</h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Activity Log</h2>
           {fullHistory.length > MAX_RECENT_ITEMS && (
             <span className="text-[10px] text-zinc-400">(showing {MAX_RECENT_ITEMS} most recent)</span>
           )}
@@ -178,14 +321,14 @@ export default function ConsoleHistoryPage() {
           <div className="py-8 text-center text-sm text-zinc-400">Loading...</div>
         ) : !session?.user ? (
           <div className="py-8 text-center border rounded-lg border-dashed border-zinc-300 dark:border-zinc-700">
-            <p className="text-sm text-zinc-500 mb-3">Sign in to save transaction history across sessions</p>
+            <p className="text-sm text-zinc-500 mb-3">Sign in to save activity log across sessions</p>
             <Button variant="outline" size="sm" onClick={() => (window.location.href = '/login')} className="gap-2">
               <LogIn className="h-3.5 w-3.5" />
               Sign In
             </Button>
           </div>
         ) : filteredHistory.length === 0 ? (
-          <div className="py-8 text-center text-sm text-zinc-400">No transactions yet</div>
+          <div className="py-8 text-center text-sm text-zinc-400">No activity yet</div>
         ) : (
           <div className="space-y-1.5">
             {filteredHistory.map((log) => {

@@ -1,5 +1,6 @@
 import { useWalletStore } from '../../stores/walletStore';
 import { useViemChainStore } from '../../stores/toolboxStore';
+import { getTxHistoryStore } from '../../stores/txHistoryStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useResolvedWalletClient } from '../useResolvedWalletClient';
@@ -47,7 +48,7 @@ export interface ContractActions {
  * Phase 2 will migrate individual hooks to use this as their base.
  */
 export function useContractActions(contractAddress: string | null, abi: Abi | readonly unknown[]): ContractActions {
-  const { walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress, isTestnet } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const walletClient = useResolvedWalletClient();
@@ -90,8 +91,8 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
     if (options.accessList) txConfig.accessList = options.accessList;
 
     // Pre-flight simulation: catch reverts BEFORE prompting the wallet.
-    // This prevents users from signing a transaction that will revert,
-    // saving gas and providing instant feedback with parsed error messages.
+    // Prevents signing a transaction that will revert, saving gas and
+    // providing instant feedback with parsed error messages.
     if (publicClient) {
       try {
         await publicClient.simulateContract({
@@ -103,15 +104,7 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
       }
     }
 
-    // Wrap the raw promise so both notify() and the caller see parsed errors.
-    // Without this, notify() shows the verbose viem error while the caller
-    // gets the parsed version — confusing when they differ.
-    const writePromise = walletClient.writeContract(txConfig).then(
-      (hash) => hash,
-      (err) => {
-        throw new Error(parseContractError(err));
-      },
-    );
+    const writePromise = walletClient.writeContract(txConfig);
 
     notify(
       {
@@ -122,7 +115,26 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
       viemChain,
     );
 
-    return await writePromise;
+    try {
+      const hash = await writePromise;
+
+      // Log to tx history store (non-hook accessor safe in async context)
+      getTxHistoryStore(Boolean(isTestnet))
+        .getState()
+        .addTx({
+          type: 'evm',
+          network: isTestnet ? 'fuji' : 'mainnet',
+          operation: notificationName,
+          txHash: hash,
+          status: 'pending',
+          contractAddress: contractAddress || undefined,
+          chainId: viemChain?.id,
+        });
+
+      return hash;
+    } catch (err) {
+      throw new Error(parseContractError(err));
+    }
   };
 
   return {

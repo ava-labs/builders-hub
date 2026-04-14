@@ -35,7 +35,6 @@ import {
   Rocket,
   LayoutDashboard,
   Workflow,
-  Clock,
 
   Search,
   X,
@@ -185,7 +184,12 @@ const data = {
       icon: Rocket,
       items: [
         {
-          title: "Create L1",
+          title: "Create L1 (Unified)",
+          url: "/console/create-l1",
+          icon: Layers,
+        },
+        {
+          title: "Create L1 (Steps)",
           url: "/console/layer-1/create",
           icon: Layers,
         },
@@ -310,11 +314,6 @@ const data = {
           items: [
             {
               title: "Remove Validator",
-              url: "/console/permissionless-l1s/remove-validator-uptime",
-              icon: SquareMinus,
-            },
-            {
-              title: "Force Remove Validator",
               url: "/console/permissionless-l1s/remove-validator",
               icon: SquareMinus,
             },
@@ -322,18 +321,6 @@ const data = {
               title: "Remove Delegation",
               url: "/console/permissionless-l1s/remove-delegation",
               icon: SquareMinus,
-            },
-          ],
-        },
-        {
-          id: "permissionless-uptime",
-          title: "Uptime",
-          icon: Clock,
-          items: [
-            {
-              title: "Submit Uptime Proof",
-              url: "/console/permissionless-l1s/submit-uptime-proof",
-              icon: Clock,
             },
           ],
         },
@@ -638,7 +625,7 @@ function CollapsibleSubGroupItem({
 const TOUR_DATA_ATTRS: Record<string, string> = {
   "/console/primary-network/faucet": "faucet-link",
   "/console/layer-1/create": "create-l1-link",
-
+  "/console/create-l1": "create-l1-unified-link",
 };
 
 // Single Nav Menu Item
