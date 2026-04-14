@@ -59,14 +59,6 @@ const partnerPrograms = [
     image: '/images/spacentime.jpg',
   },
   {
-    title: 'Hexagate Security',
-    description:
-      'Onchain security for Avalanche builders, delivering real-time threat detection for smart contracts and protocols.',
-    href: 'https://hexagate.typeform.com/HexagateForAva?typeform-source=t.co',
-    external: true,
-    image: '/images/blocksec.jpeg',
-  },
-  {
     title: 'Security Audits',
     description:
       'Explore 20+ trusted auditing providers and find the right partner to review, test, and strengthen your smart contracts.',
@@ -189,7 +181,7 @@ export default function Page() {
               <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-6">
                 Partner Programs
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {partnerPrograms.map((program) => (
                   <ProgramCard key={program.title} {...program} />
                 ))}
