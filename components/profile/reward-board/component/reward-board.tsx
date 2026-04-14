@@ -131,7 +131,7 @@ export default async function RewardBoard() {
       {academyRewards.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 text-lg">
-            <Link href="/hackathons" className="text-blue-500 hover:text-blue-700">Your contributions matter. Explore our dev events here</Link>
+            <Link href="/events" className="text-blue-500 hover:text-blue-700">Your contributions matter. Explore our dev events here</Link>
           </div>
         </div>
       ) : (

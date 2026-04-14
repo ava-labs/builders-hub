@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useProjectSubmission } from '../context/ProjectSubmissionContext';
 import { useRouter } from 'next/navigation';
+import { EventsLang, t } from '@/lib/events/i18n';
 // Base schema without refinements - needed for .pick() to work
 const BaseFormSchema = z.object({
   project_name: z
@@ -275,7 +276,7 @@ export const FormSchema = BaseFormSchema
   );
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
-export const useSubmissionFormSecure = () => {
+export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
   const { data: session } = useSession();
   const { toast } = useToast();
   const { state, actions } = useProjectSubmission();
@@ -585,8 +586,8 @@ export const useSubmissionFormSecure = () => {
 
       if (result.success) {
         toast({
-          title: 'Project saved',
-          description: 'Your project has been saved successfully.',
+          title: t(lang, 'submission.save.savedTitle'),
+          description: t(lang, 'submission.save.savedDesc'),
         });
       }
 
@@ -595,7 +596,7 @@ export const useSubmissionFormSecure = () => {
       console.error('Error in handleSaveWithoutRoute:', error);
       return { success: false };
     }
-  }, [form, saveProject, toast]);
+  }, [form, saveProject, toast, lang]);
 
 
   const handleSave = useCallback(async (): Promise<void> => {
@@ -607,8 +608,8 @@ export const useSubmissionFormSecure = () => {
       if (result.success && result.projectId) {
         console.log('💾 handleSave redirecting to profile');
         toast({
-          title: 'Project saved',
-          description: 'Your project has been saved. Redirecting to your profile...',
+          title: t(lang, 'submission.save.savedTitle'),
+          description: t(lang, 'submission.save.savedRedirectDesc'),
         });
         await new Promise((resolve) => setTimeout(resolve, 2000));
         console.log('💾 handleSave executing redirect to: /profile#projects');
@@ -618,12 +619,12 @@ export const useSubmissionFormSecure = () => {
     } catch (error) {
       console.error('Error in handleSave:', error);
       toast({
-        title: 'Error',
-        description: 'An error occurred while saving the project.',
+        title: t(lang, 'submission.form.toast.error'),
+        description: t(lang, 'submission.save.errorDesc'),
         variant: 'destructive',
       });
     }
-  }, [handleSaveWithoutRoute, toast, router]);
+  }, [handleSaveWithoutRoute, toast, router, lang]);
 
 
   const setFormData = useCallback((project: any) => {

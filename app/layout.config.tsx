@@ -522,9 +522,9 @@ export const eventsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Ticket />,
-      text: 'Hackathons',
+      text: 'Hackathons, Workshops and Bootcamps',
       description:
-        'The hackathons aims to harness the potential of Avalanche´s robust technology stack to address pressing issues and create scalable, practical solutions.',
+        'Hands-on learning and real building, from intensive hackathons to expert-led workshops and structured bootcamps. All designed to harness Avalanche\'s technology stack and turn ideas into scalable, practical solutions.',
       url: '/events',
     },
     {
@@ -532,7 +532,7 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/BuildGames_2026/BuildGames_banner1"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/summitNY.jpg"}
               alt='Preview'
               width={900}
               height={400}
@@ -546,10 +546,10 @@ export const eventsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Gamepad2 />,
-      text: 'BuildGames',
+      text: 'Avalanche Summit',
       description:
-        "Avalanche's flagship online builder competition for crypto-native talent. Six fast-paced weeks to turn your next big idea into a real product on Avalanche. If you've been waiting for a reason to build, this is it.",
-      url: '/build-games',
+        "Avalanche's premier in-person gathering for builders, enterprise leaders, and ecosystem innovators. Two days of keynotes, panels, and real conversations on onchain finance and consumer applications, where the ideas built online come to life on stage. New York City, September 16–17.",
+      url: 'https://www.avalanchesummit.com',
     },
     {
       icon: <Earth />,

@@ -14,51 +14,55 @@ import {
 import { Input } from '@/components/ui/input';
 import { FormLabelWithCheck } from './FormLabelWithCheck';
 import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
+import { EventsLang, t } from '@/lib/events/i18n';
 
-export default function SubmitStep3() {
+export default function SubmitStep3({ lang = "en" }: { lang?: EventsLang }) {
   const form = useFormContext<SubmissionForm>();
 
   return (
     <div className='space-y-8'>
       <h2 className='text-xl font-semibold text-foreground'>
-        3) Visual Identity & Media
+        {t(lang, "submission.step3.media.title")}
       </h2>
       <p className='text-sm text-zinc-400'>
-        Upload images and media to visually represent your project.
+        {t(lang, "submission.step3.media.subtitle")}
       </p>
 
       <MediaUploader
         name='logoFile'
-        label='Project Logo'
+        label={t(lang, "submission.step3.logo.label")}
         maxItems={1}
         maxSizeMB={1}
         recommendedSize='512 x 512'
         width='max-w-[128px]'
         height='max-h-[128px]'
-        buttonText='Upload Logo'
+        buttonText={t(lang, "submission.step3.logo.button")}
+        lang={lang}
       />
 
       <MediaUploader
         name='coverFile'
-        label='Cover Image'
+        label={t(lang, "submission.step3.cover.label")}
         maxItems={1}
         maxSizeMB={2}
         width='max-w-[200px]'
         height='max-h-[120px]'
         recommendedSize='840 x 300'
-        buttonText='Upload Cover Image'
+        buttonText={t(lang, "submission.step3.cover.button")}
+        lang={lang}
       />
 
       <MediaUploader
         name='screenshots'
-        label='Screenshots'
+        label={t(lang, "submission.step3.screenshots.label")}
         maxItems={5}
         maxSizeMB={1}
         width='max-w-[128px]'
         height='max-h-[128px]'
         recommendedSize='No specific size required, but ensure clarity and readability'
-        extraText='Upload up to 5 screenshots that showcase your project.'
-        buttonText='Upload Screenshots'
+        extraText={t(lang, "submission.step3.screenshots.extraText")}
+        buttonText={t(lang, "submission.step3.screenshots.button")}
+        lang={lang}
       />
 
       {/* Demo Video */}
@@ -68,21 +72,21 @@ export default function SubmitStep3() {
           name='demo_video_link'
           render={({ field }) => (
             <FormItem className='space-y-2'>
-              <FormLabelWithCheck label='Demo Video' checked={!!field.value} />
+              <FormLabelWithCheck
+                label={t(lang, "submission.step3.demoVideo.label")}
+                checked={!!field.value}
+              />
               <FormControl>
                 <Input
-                  placeholder='Paste your video link (e.g., YouTube, Vimeo, or other supported platform)'
+                  placeholder={t(lang, "submission.step3.demoVideo.placeholder")}
                   className='dark:bg-zinc-950'
                   {...field}
                 />
               </FormControl>
-              <p className='text-sm text-zinc-600 dark:text-zinc-400 '>
-                Showcase your project in action with a short demo video. Ensure
-                the link is accessible and not set to private. <br />
-                Video requirements: <br />
-                - Minimum resolution: 720p <br />
-                - Ensure audio is clear, no background music <br />- Platforms
-                supported: YouTube, Vimeo, Google Drive (public link)
+              <p className='text-sm text-zinc-600 dark:text-zinc-400'>
+                {t(lang, "submission.step3.demoVideo.hint")}
+                <br />
+                {t(lang, "submission.step3.demoVideo.requirements")}
               </p>
               <FormMessage />
             </FormItem>
