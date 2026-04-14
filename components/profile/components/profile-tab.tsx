@@ -37,6 +37,8 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
     isLoading,
     isSaving,
     isAutoSaving,
+    githubConnected,
+    setGithubConnected,
     handleRemoveSkill,
     handleAddSocial,
     handleRemoveSocial,
@@ -44,6 +46,12 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
     handleRemoveWallet,
     onSubmit,
   } = useProfileForm();
+
+  const handleGithubDisconnect = async () => {
+    await fetch('/api/auth/github-link/disconnect', { method: 'DELETE' });
+    setGithubConnected(false);
+    form.setValue('github', '', { shouldDirty: false });
+  };
 
   // Load Noun avatar data and sincronizar con contexto (para que UserButton lo muestre)
   useEffect(() => {
@@ -158,6 +166,8 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
                 watchedValues={watchedValues}
                 isSaving={isSaving}
                 isAutoSaving={isAutoSaving}
+                githubConnected={githubConnected}
+                onGithubDisconnect={handleGithubDisconnect}
                 handleRemoveSkill={handleRemoveSkill}
                 handleAddSocial={handleAddSocial}
                 handleRemoveSocial={handleRemoveSocial}
