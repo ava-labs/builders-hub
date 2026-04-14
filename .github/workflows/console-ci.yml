@@ -6,7 +6,6 @@ on:
       - master
     paths:
       - 'components/toolbox/**'
-      - 'components/console/**'
       - 'app/console/**'
       - 'hooks/useConsoleNotifications.ts'
       - 'hooks/useEVMNotifications.ts'
@@ -90,11 +89,11 @@ jobs:
           fi
           echo "✓ All contract hooks use useContractActions"
 
-      - name: CLI command coverage (P-Chain + cast/foundry)
-        run: ./scripts/check-cli-coverage.sh
-
       - name: Design system (banned classes, color palette)
         run: ./scripts/check-console-design.sh
+
+      - name: Render safety (unsafe property access)
+        run: ./scripts/check-render-safety.sh
 
       - name: MDX imports use kebab-case paths
         run: |

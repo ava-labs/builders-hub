@@ -18,6 +18,7 @@ import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotif
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { baseOptions } from "@/app/layout.config";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
+import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
 import Script from "next/script";
 
 function ConsolePageTransition({ children }: { children: ReactNode }) {
@@ -68,7 +69,9 @@ function ConsoleContent({ children }: { children: ReactNode }) {
               className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto"
               style={{ height: `calc(${viewportHeight} - var(--header-height) - 1rem)` }}
             >
-              <ConsolePageTransition>{children}</ConsolePageTransition>
+              <StepErrorBoundary fallbackMessage="Something went wrong rendering this page. The console sidebar is still available — try navigating to a different tool.">
+                <ConsolePageTransition>{children}</ConsolePageTransition>
+              </StepErrorBoundary>
             </div>
           </SidebarInset>
         </SidebarProvider>

@@ -8,6 +8,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
 import { getFlowMetadata, type FlowMetadata } from "@/components/console/console-flows";
+import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
 
 const flowContainerVariants = {
   hidden: {},
@@ -325,7 +326,9 @@ export default function StepFlow({
 
       <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={flowItemVariants}>
         <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
-          <CurrentComponent />
+          <StepErrorBoundary>
+            <CurrentComponent />
+          </StepErrorBoundary>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
