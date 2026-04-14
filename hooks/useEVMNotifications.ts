@@ -104,8 +104,31 @@ const useEVMNotifications = () => {
           // Update tx history store with confirmed/failed status
           const txHistoryState = getTxHistoryStore(Boolean(isTestnet)).getState();
           if (receipt.status === 'reverted') {
-            txHistoryState.updateTxStatus(hash, 'failed', `Transaction reverted (hash: ${hash})`);
-            throw new Error(`Transaction reverted (hash: ${hash})`);
+            let revertMessage = `Transaction reverted (hash: ${hash})`;
+
+            // On Fuji, auto-trace the failed tx for richer error context
+            if (isTestnet) {
+              try {
+                const traceResp = await fetch('/api/debug-rpc', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    method: 'debug_traceTransaction',
+                    params: [hash, { tracer: 'callTracer', tracerConfig: { onlyTopCall: false } }],
+                  }),
+                });
+                if (traceResp.ok) {
+                  const traceData = await traceResp.json();
+                  const reason = traceData?.result?.revertReason || traceData?.result?.error;
+                  if (reason) revertMessage = `Transaction reverted: ${reason} (hash: ${hash})`;
+                }
+              } catch {
+                // Trace failed, use default message
+              }
+            }
+
+            txHistoryState.updateTxStatus(hash, 'failed', revertMessage);
+            throw new Error(revertMessage);
           }
           txHistoryState.updateTxStatus(hash, 'confirmed');
 

@@ -135,58 +135,10 @@ const data = {
     },
   ],
   navGroups: [
-    // Primary Network — the starting point for all developers
+    // Getting started — entry points
     {
-      id: "primary-network",
-      title: "Primary Network",
-      icon: Network,
-      items: [
-        {
-          title: "Testnet Faucet",
-          url: "/console/primary-network/faucet",
-          icon: Droplets,
-        },
-        {
-          title: "Data API Keys",
-          url: "/console/utilities/data-api-keys",
-          icon: BookKey,
-        },
-        {
-          title: "Stake AVAX",
-          url: "/console/primary-network/stake",
-          icon: HandCoins,
-        },
-        {
-          title: "Node Setup",
-          url: "/console/primary-network/node-setup",
-          icon: Server,
-        },
-        {
-          title: "C/P-Chain Bridge",
-          url: "/console/primary-network/c-p-bridge",
-          icon: ArrowLeftRight,
-        },
-        {
-          title: "Ethereum Bridge",
-          url: "https://core.app/bridge",
-          icon: ArrowUpDown,
-        },
-        {
-          title: "Validator Lookup",
-          url: "/console/primary-network/validator-lookup",
-          icon: Search,
-        },
-        {
-          title: "Validator Alerts",
-          url: "/console/primary-network/validator-alerts",
-          icon: Bell,
-        },
-      ],
-    },
-    // Create & Deploy — L1 lifecycle entry point
-    {
-      id: "create-deploy",
-      title: "Create & Deploy",
+      id: "getting-started",
+      title: "Getting Started",
       icon: Rocket,
       items: [
         {
@@ -199,249 +151,119 @@ const data = {
           url: "/console/my-l1",
           icon: LayoutDashboard,
         },
-      ],
-    },
-    // Permissioned L1s — admin-controlled validator management
-    {
-      id: "permissioned-l1s",
-      title: "Permissioned L1s",
-      icon: Shield,
-      items: [
         {
-          id: "permissioned-setup",
-          title: "Setup",
-          icon: SquareTerminal,
-          items: [
-            {
-              title: "Validator Manager Setup",
-              url: "/console/permissioned-l1s/validator-manager-setup",
-              icon: SquareTerminal,
-            },
-            {
-              title: "Multisig Setup",
-              url: "/console/permissioned-l1s/multisig-setup",
-              icon: ShieldUser,
-            },
-          ],
-        },
-        {
-          id: "permissioned-manage",
-          title: "Manage Validators",
-          icon: Hexagon,
-          items: [
-            {
-              title: "Add Validator",
-              url: "/console/permissioned-l1s/add-validator",
-              icon: SquarePlus,
-            },
-            {
-              title: "Remove Validator",
-              url: "/console/permissioned-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Change Validator Weight",
-              url: "/console/permissioned-l1s/change-validator-weight",
-              icon: SlidersVertical,
-            },
-            {
-              title: "Disable Validator",
-              url: "/console/permissioned-l1s/disable-validator",
-              icon: ShieldOff,
-            },
-            {
-              title: "Remove Expired Registration",
-              url: "/console/permissioned-l1s/remove-expired-validator-registration",
-              icon: SquareMinus,
-            },
-          ],
+          title: "Testnet Faucet",
+          url: "/console/primary-network/faucet",
+          icon: Droplets,
         },
       ],
     },
-    // Permissionless L1s — open staking and delegation
+    // Primary Network
     {
-      id: "permissionless-l1s",
-      title: "Permissionless L1s",
-      icon: HandCoins,
+      id: "primary-network",
+      title: "Primary Network",
+      icon: Network,
+      defaultOpen: true,
       items: [
         {
-          id: "permissionless-setup",
-          title: "Setup",
-          icon: GitMerge,
-          items: [
-            {
-              title: "Native Staking Manager Setup",
-              url: "/console/permissionless-l1s/native-staking-manager-setup",
-              icon: GitMerge,
-            },
-            {
-              title: "ERC20 Staking Manager Setup",
-              url: "/console/permissionless-l1s/erc20-staking-manager-setup",
-              icon: GitMerge,
-            },
-          ],
+          title: "Node Setup",
+          url: "/console/primary-network/node-setup",
+          icon: Server,
         },
         {
-          id: "permissionless-stake",
-          title: "Stake & Delegate",
+          title: "Stake AVAX",
+          url: "/console/primary-network/stake",
           icon: HandCoins,
-          items: [
-            {
-              title: "Stake (Native Token)",
-              url: "/console/permissionless-l1s/stake/native",
-              icon: HandCoins,
-            },
-            {
-              title: "Stake (ERC20 Token)",
-              url: "/console/permissionless-l1s/stake/erc20",
-              icon: HandCoins,
-            },
-            {
-              title: "Delegate (Native Token)",
-              url: "/console/permissionless-l1s/delegate/native",
-              icon: ArrowUpDown,
-            },
-            {
-              title: "Delegate (ERC20 Token)",
-              url: "/console/permissionless-l1s/delegate/erc20",
-              icon: ArrowUpDown,
-            },
-          ],
         },
         {
-          id: "permissionless-withdraw",
-          title: "Withdraw",
-          icon: SquareMinus,
-          items: [
-            {
-              title: "Remove Validator",
-              url: "/console/permissionless-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Remove Delegation",
-              url: "/console/permissionless-l1s/remove-delegation",
-              icon: SquareMinus,
-            },
-          ],
+          title: "C/P Bridge",
+          url: "/console/primary-network/c-p-bridge",
+          icon: ArrowLeftRight,
+        },
+        {
+          title: "Validator Alerts",
+          url: "/console/primary-network/validator-alerts",
+          icon: Bell,
         },
       ],
     },
-    // Interchain Messaging — cross-chain communication
+    // Validators — PoA and PoS management
+    {
+      id: "validators",
+      title: "Validators",
+      icon: Hexagon,
+      items: [
+        {
+          title: "Add Validator",
+          url: "/console/permissioned-l1s/add-validator",
+          icon: SquarePlus,
+        },
+        {
+          title: "Remove Validator",
+          url: "/console/permissioned-l1s/remove-validator",
+          icon: SquareMinus,
+        },
+        {
+          title: "Change Weight",
+          url: "/console/permissioned-l1s/change-validator-weight",
+          icon: SlidersVertical,
+        },
+        {
+          title: "Stake",
+          url: "/console/permissionless-l1s/stake/native",
+          icon: HandCoins,
+        },
+        {
+          title: "Delegate",
+          url: "/console/permissionless-l1s/delegate/native",
+          icon: ArrowUpDown,
+        },
+      ],
+    },
+    // Cross-Chain
     {
       id: "cross-chain",
-      title: "Interchain Messaging",
-      icon: ArrowLeftRight,
+      title: "Cross-Chain",
+      icon: MessagesSquare,
       items: [
         {
-          id: "icm-setup",
-          title: "Setup",
+          title: "ICM Setup",
+          url: "/console/icm/setup",
           icon: MessagesSquare,
-          items: [
-            {
-              title: "ICM Setup",
-              url: "/console/icm/setup",
-              icon: MessagesSquare,
-            },
-            {
-              title: "ICTT Setup",
-              url: "/console/ictt/setup",
-              icon: Workflow,
-            },
-          ],
         },
         {
-          title: "Token Transfer Test",
+          title: "Token Bridge",
+          url: "/console/ictt/setup",
+          icon: Workflow,
+        },
+        {
+          title: "Token Transfer",
           url: "/console/ictt/token-transfer",
           icon: ArrowLeftRight,
         },
       ],
     },
-    // L1 Management — configure and monitor your running L1
+    // Manage L1
     {
-      id: "l1-management",
-      title: "L1 Management",
+      id: "manage",
+      title: "Manage L1",
       icon: Box,
       items: [
         {
-          id: "infrastructure",
-          title: "Infrastructure",
-          icon: Server,
-          items: [
-            {
-              title: "L1 Node Setup",
-              url: "/console/layer-1/l1-node-setup",
-              icon: Server,
-            },
-            {
-              title: "Explorer Setup",
-              url: "/console/layer-1/explorer-setup",
-              icon: Telescope,
-            },
-            {
-              title: "Performance Monitor",
-              url: "/console/layer-1/performance-monitor",
-              icon: Activity,
-            },
-          ],
-        },
-        {
-          id: "tokenomics",
-          title: "Tokenomics",
-          icon: Coins,
-          items: [
-            {
-              title: "Fee Parameters",
-              url: "/console/l1-tokenomics/fee-manager",
-              icon: Coins,
-            },
-            {
-              title: "Fee Distributions",
-              url: "/console/l1-tokenomics/reward-manager",
-              icon: Coins,
-            },
-            {
-              title: "Mint Native Coins",
-              url: "/console/l1-tokenomics/native-minter",
-              icon: Coins,
-            },
-          ],
-        },
-        {
-          id: "access-control",
-          title: "Access Control",
-          icon: Shield,
-          items: [
-            {
-              title: "Deployer Allowlist",
-              url: "/console/l1-access-restrictions/deployer-allowlist",
-              icon: ShieldCheck,
-            },
-            {
-              title: "Transactor Allowlist",
-              url: "/console/l1-access-restrictions/transactor-allowlist",
-              icon: ShieldUser,
-            },
-          ],
-        },
-        {
-          title: "Query Validator Set",
+          title: "Validator Set",
           url: "/console/layer-1/validator-set",
           icon: Hexagon,
         },
         {
-          title: "L1 Validator Balance",
+          title: "Validator Balance",
           url: "/console/layer-1/l1-validator-balance",
           icon: Coins,
         },
-      ],
-    },
-    // Utilities — tools and infra helpers
-    {
-      id: "utilities",
-      title: "Utilities",
-      icon: Wrench,
-      items: [
+        {
+          title: "Fee Parameters",
+          url: "/console/l1-tokenomics/fee-manager",
+          icon: Coins,
+        },
         {
           title: "Testnet Nodes",
           url: "/console/testnet-infra/nodes",
@@ -451,31 +273,6 @@ const data = {
           title: "ICM Relayer",
           url: "/console/testnet-infra/icm-relayer",
           icon: Layers,
-        },
-        {
-          title: "Format Converter",
-          url: "/console/utilities/format-converter",
-          icon: Wrench,
-        },
-        {
-          title: "Unit Converter",
-          url: "/console/primary-network/unit-converter",
-          icon: Calculator,
-        },
-        {
-          title: "Transfer Proxy Admin",
-          url: "/console/utilities/transfer-proxy-admin",
-          icon: Wrench,
-        },
-        {
-          title: "VMC Migration (V1 → V2)",
-          url: "/console/utilities/vmcMigrateFromV1",
-          icon: Wrench,
-        },
-        {
-          title: "Revert PoA Manager",
-          url: "/console/utilities/revert-poa-manager",
-          icon: Wrench,
         },
       ],
     },

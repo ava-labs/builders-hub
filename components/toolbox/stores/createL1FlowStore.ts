@@ -5,12 +5,14 @@ import { localStorageComp, STORE_VERSION } from './utils';
 export type StartingPoint = 'new' | 'convert-existing';
 export type VMLocation = 'l1' | 'c-chain';
 export type ValidatorType = 'poa' | 'pos-native' | 'pos-erc20';
+export type HostingOption = 'managed' | 'docker';
 
 export interface QuestionnaireAnswers {
   startingPoint: StartingPoint;
-  vmLocation: VMLocation;
   validatorType: ValidatorType;
+  vmLocation: VMLocation;
   multisig: boolean;
+  hosting: HostingOption;
 }
 
 interface CreateL1FlowState {

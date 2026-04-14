@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
 import { getFlowMetadata, type FlowMetadata } from "@/components/console/console-flows";
 import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
+import { ChainGate } from "@/components/toolbox/components/ChainGate";
 
 const flowContainerVariants = {
   hidden: {},
@@ -26,12 +27,23 @@ const flowItemVariants = {
   },
 };
 
+/**
+ * Chain requirement for a step. StepFlow checks the wallet's active chain
+ * and shows an inline switch prompt if wrong.
+ * - 'any': no chain requirement (default)
+ * - 'p-chain': P-Chain tx via Core Wallet (no EVM switch needed)
+ * - 'c-chain': must be on C-Chain (43114 mainnet / 43113 fuji)
+ * - 'l1': must be on the user's L1 (chainId from createChainStore)
+ */
+export type RequiredChain = "any" | "p-chain" | "c-chain" | "l1";
+
 type SingleStep = {
   type: "single";
   key: string;
   title: string;
   optional?: boolean;
   component: React.ComponentType;
+  requiredChain?: RequiredChain;
 };
 
 type BranchOption = {
@@ -46,6 +58,7 @@ type BranchStep = {
   title: string;
   optional?: boolean;
   options: BranchOption[];
+  requiredChain?: RequiredChain;
 };
 
 export type StepDefinition = SingleStep | BranchStep;
@@ -327,7 +340,9 @@ export default function StepFlow({
       <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={flowItemVariants}>
         <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
           <StepErrorBoundary>
-            <CurrentComponent />
+            <ChainGate requiredChain={currentStep.requiredChain}>
+              <CurrentComponent />
+            </ChainGate>
           </StepErrorBoundary>
         </div>
 

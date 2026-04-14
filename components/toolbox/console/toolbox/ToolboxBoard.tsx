@@ -45,47 +45,48 @@ interface ToolCard {
   external?: boolean;
 }
 
-const CATEGORY_STYLES: Record<string, { badge: string; icon: string; accent: string }> = {
+// Avalanche theming: red for Primary/L1, functional colors for other categories
+const CATEGORY_STYLES: Record<string, { badge: string; iconColor: string; accent: string }> = {
   'Primary Network': {
-    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    icon: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-    accent: 'group-hover:border-blue-300 dark:group-hover:border-blue-800',
+    badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    iconColor: 'text-red-500 dark:text-red-400',
+    accent: 'group-hover:border-red-300 dark:group-hover:border-red-800',
   },
   'Create & Deploy': {
-    badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-    icon: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
-    accent: 'group-hover:border-emerald-300 dark:group-hover:border-emerald-800',
+    badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    iconColor: 'text-red-500 dark:text-red-400',
+    accent: 'group-hover:border-red-300 dark:group-hover:border-red-800',
   },
   'Permissioned L1s': {
     badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
-    icon: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400',
+    iconColor: 'text-violet-500 dark:text-violet-400',
     accent: 'group-hover:border-violet-300 dark:group-hover:border-violet-800',
   },
   'Permissionless L1s': {
     badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-    icon: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+    iconColor: 'text-amber-500 dark:text-amber-400',
     accent: 'group-hover:border-amber-300 dark:group-hover:border-amber-800',
   },
   'Interchain Messaging': {
     badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
-    icon: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400',
+    iconColor: 'text-cyan-500 dark:text-cyan-400',
     accent: 'group-hover:border-cyan-300 dark:group-hover:border-cyan-800',
   },
   'L1 Management': {
-    badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-    icon: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400',
-    accent: 'group-hover:border-rose-300 dark:group-hover:border-rose-800',
+    badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    iconColor: 'text-red-500 dark:text-red-400',
+    accent: 'group-hover:border-red-300 dark:group-hover:border-red-800',
   },
   Utilities: {
     badge: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/40 dark:text-zinc-300',
-    icon: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+    iconColor: 'text-zinc-500 dark:text-zinc-400',
     accent: 'group-hover:border-zinc-300 dark:group-hover:border-zinc-600',
   },
 };
 
 const DEFAULT_STYLE = {
   badge: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
-  icon: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+  iconColor: 'text-zinc-500 dark:text-zinc-400',
   accent: 'group-hover:border-zinc-300 dark:group-hover:border-zinc-600',
 };
 
@@ -532,10 +533,8 @@ export default function ToolboxBoard() {
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className={cn('shrink-0 rounded-lg p-2', style.icon)}>
-                              <Icon className="h-4 w-4" />
-                            </div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Icon className={cn('h-4 w-4 shrink-0', style.iconColor)} />
                             <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                               {tool.name}
                             </span>
