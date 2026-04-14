@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
@@ -8,6 +8,9 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { LockedContent } from '@/components/toolbox/components/LockedContent';
+import { ValidatorPreflightChecklist } from '@/components/toolbox/components/ValidatorPreflightChecklist';
+import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
@@ -55,6 +58,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   const viemChain = useViemChainStore();
   const nativeStakingManager = useNativeTokenStakingManager(stakingManagerAddress || null);
   const erc20StakingManager = useERC20TokenStakingManager(stakingManagerAddress || null);
+
+  // Preflight check: read on-chain state for the nodeID to block re-registration
+  const preflight = useValidatorPreflight({
+    nodeID: nodeID || undefined,
+    stakingManagerAddress: stakingManagerAddress || null,
+    validatorManagerAddress: stakingManagerAddress || null,
+    walletAddress: walletEVMAddress || undefined,
+    stakingManagerType: tokenType === 'erc20' ? 'erc20' : 'native',
+  });
 
   const [stakeAmount, setStakeAmount] = useState<string>('');
   const [delegationFeeBips, setDelegationFeeBips] = useState<string>('100');
@@ -150,34 +162,80 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Real-time input validation against contract constraints
+  // ---------------------------------------------------------------------------
+
+  const getStakeError = useMemo(() => {
+    return (): string | null => {
+      if (!stakeAmount || !contractSettings) return null;
+      try {
+        const amountWei = parseEther(stakeAmount);
+        const minWei = parseEther(contractSettings.minimumStakeAmount);
+        const maxWei = parseEther(contractSettings.maximumStakeAmount);
+        if (amountWei < minWei) return `Below minimum: ${contractSettings.minimumStakeAmount}`;
+        if (amountWei > maxWei) return `Above maximum: ${contractSettings.maximumStakeAmount}`;
+      } catch {
+        return 'Invalid amount';
+      }
+      return null;
+    };
+  }, [stakeAmount, contractSettings]);
+
+  const getDelegationFeeError = useMemo(() => {
+    return (): string | null => {
+      if (!delegationFeeBips || !contractSettings) return null;
+      const fee = parseInt(delegationFeeBips);
+      if (isNaN(fee)) return 'Invalid number';
+      if (fee < contractSettings.minimumDelegationFeeBips)
+        return `Below minimum: ${contractSettings.minimumDelegationFeeBips} bips`;
+      if (fee > 10000) return 'Cannot exceed 10000 bips (100%)';
+      return null;
+    };
+  }, [delegationFeeBips, contractSettings]);
+
+  const getDurationError = useMemo(() => {
+    return (): string | null => {
+      if (!minStakeDuration || !contractSettings) return null;
+      const dur = parseInt(minStakeDuration);
+      if (isNaN(dur)) return 'Invalid number';
+      if (dur < parseInt(contractSettings.minimumStakeDuration))
+        return `Below minimum: ${contractSettings.minimumStakeDuration}s`;
+      return null;
+    };
+  }, [minStakeDuration, contractSettings]);
+
+  const stakeError = getStakeError();
+  const delegationFeeError = getDelegationFeeError();
+  const durationError = getDurationError();
+  const hasValidationErrors = !!(stakeError || delegationFeeError || durationError);
+
+  // Determine if registration is blocked by preflight checks
+  const isPreflightBlocked = !!nodeID && !preflight.isLoading && preflight.checks.register.status === 'not_met';
+
   const handleInitiateRegistration = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
     setValidationID(null);
 
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain not connected.');
-      setIsProcessing(false);
       return;
     }
     if (!nodeID || !blsPublicKey) {
       setErrorState('Node ID and BLS Public Key are required.');
-      setIsProcessing(false);
       return;
     }
     if (!stakeAmount || parseFloat(stakeAmount) <= 0) {
       setErrorState('Valid stake amount is required.');
-      setIsProcessing(false);
       return;
     }
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
-      setIsProcessing(false);
       return;
     }
 
+    setIsProcessing(true);
     try {
       const amountWei = parseEther(stakeAmount);
       const feeBips = parseInt(delegationFeeBips);
@@ -273,90 +331,124 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}
 
-      {/* Contract parameters with presets */}
-      <div className="space-y-3">
-        <Input
-          label="Stake Amount"
-          value={stakeAmount}
-          onChange={setStakeAmount}
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder={contractSettings?.minimumStakeAmount || '1000'}
-          disabled={isProcessing || isApproving}
-          helperText={
-            contractSettings
-              ? `Min: ${contractSettings.minimumStakeAmount} — Max: ${contractSettings.maximumStakeAmount}`
-              : 'Amount of tokens to stake'
-          }
-        />
+      {/* Preflight checklist — shown when the nodeID is entered and registration is blocked */}
+      {nodeID && !preflight.isLoading && preflight.checks.register.status !== 'met' && (
+        <ValidatorPreflightChecklist preflight={preflight} currentFlow="register" />
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Gate the form when the node is already registered */}
+      <LockedContent
+        isUnlocked={!nodeID || (!preflight.isLoading && preflight.checks.register.status === 'met')}
+        lockedMessage="This node is already registered. See the status above for next steps."
+      >
+        {/* Contract parameters with presets */}
+        <div className="space-y-3">
           <Input
-            label="Delegation Fee (Basis Points)"
-            value={delegationFeeBips}
-            onChange={setDelegationFeeBips}
+            label="Stake Amount"
+            value={stakeAmount}
+            onChange={setStakeAmount}
             type="number"
             min="0"
-            max="10000"
+            step="0.01"
+            placeholder={contractSettings?.minimumStakeAmount || '1000'}
             disabled={isProcessing || isApproving}
+            error={stakeError}
             helperText={
-              contractSettings
-                ? `Min: ${contractSettings.minimumDelegationFeeBips} bips (${contractSettings.minimumDelegationFeeBips / 100}%)`
-                : '100 = 1%, 10000 = 100%'
+              !stakeError && contractSettings
+                ? `Min: ${contractSettings.minimumStakeAmount} — Max: ${contractSettings.maximumStakeAmount}`
+                : !stakeError
+                  ? 'Amount of tokens to stake'
+                  : undefined
             }
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Input
+              label="Delegation Fee (Basis Points)"
+              value={delegationFeeBips}
+              onChange={setDelegationFeeBips}
+              type="number"
+              min="0"
+              max="10000"
+              disabled={isProcessing || isApproving}
+              error={delegationFeeError}
+              helperText={
+                !delegationFeeError && contractSettings
+                  ? `Min: ${contractSettings.minimumDelegationFeeBips} bips (${contractSettings.minimumDelegationFeeBips / 100}%)`
+                  : !delegationFeeError
+                    ? '100 = 1%, 10000 = 100%'
+                    : undefined
+              }
+            />
+            <Input
+              label="Min Stake Duration (seconds)"
+              value={minStakeDuration}
+              onChange={setMinStakeDuration}
+              type="number"
+              min="0"
+              disabled={isProcessing || isApproving}
+              error={durationError}
+              helperText={
+                !durationError && contractSettings
+                  ? `Min: ${contractSettings.minimumStakeDuration}s`
+                  : !durationError
+                    ? '86400 = 1 day'
+                    : undefined
+              }
+            />
+          </div>
+
           <Input
-            label="Min Stake Duration (seconds)"
-            value={minStakeDuration}
-            onChange={setMinStakeDuration}
-            type="number"
-            min="0"
+            label="Reward Recipient"
+            value={rewardRecipient}
+            onChange={setRewardRecipient}
+            placeholder="0x..."
             disabled={isProcessing || isApproving}
-            helperText={contractSettings ? `Min: ${contractSettings.minimumStakeDuration}s` : '86400 = 1 day'}
+            helperText="EVM address that receives staking rewards. Defaults to connected wallet."
           />
         </div>
 
-        <Input
-          label="Reward Recipient"
-          value={rewardRecipient}
-          onChange={setRewardRecipient}
-          placeholder="0x..."
-          disabled={isProcessing || isApproving}
-          helperText="EVM address that receives staking rewards. Defaults to connected wallet."
-        />
-      </div>
-
-      {/* ERC20: approve then register in sequence */}
-      {!isNative && resolvedErc20Address ? (
-        <div className="flex gap-2">
-          <Button
-            onClick={handleApproveERC20}
-            disabled={isApproving || isProcessing || !stakeAmount}
-            loading={isApproving}
-            variant="secondary"
-          >
-            1. Approve Tokens
-          </Button>
+        {/* ERC20: approve then register in sequence */}
+        {!isNative && resolvedErc20Address ? (
+          <div className="flex gap-2">
+            <Button
+              onClick={handleApproveERC20}
+              disabled={isApproving || isProcessing || !stakeAmount || hasValidationErrors}
+              loading={isApproving}
+              variant="secondary"
+            >
+              1. Approve Tokens
+            </Button>
+            <Button
+              onClick={handleInitiateRegistration}
+              disabled={
+                isProcessing ||
+                isApproving ||
+                !stakeAmount ||
+                !!txHash ||
+                hasValidationErrors ||
+                isPreflightBlocked ||
+                preflight.isLoading
+              }
+              loading={isProcessing}
+              variant="primary"
+            >
+              2. Register Validator
+            </Button>
+          </div>
+        ) : (
           <Button
             onClick={handleInitiateRegistration}
-            disabled={isProcessing || isApproving || !stakeAmount || !!txHash}
+            disabled={
+              isProcessing || isApproving || !stakeAmount || !!txHash || hasValidationErrors || isPreflightBlocked
+            }
             loading={isProcessing}
             variant="primary"
           >
-            2. Register Validator
+            Initiate Validator Registration
           </Button>
-        </div>
-      ) : (
-        <Button
-          onClick={handleInitiateRegistration}
-          disabled={isProcessing || isApproving || !stakeAmount || !!txHash}
-          loading={isProcessing}
-          variant="primary"
-        >
-          Initiate Validator Registration
-        </Button>
-      )}
+        )}
+      </LockedContent>
 
       {txHash && validationID && <Success label="Validation ID" value={validationID} />}
     </div>

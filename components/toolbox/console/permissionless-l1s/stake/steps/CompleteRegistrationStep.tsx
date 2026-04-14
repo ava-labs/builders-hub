@@ -5,6 +5,7 @@ import CompletePChainRegistration from '@/components/toolbox/console/shared/Comp
 import { useStakeValidatorStore } from '@/components/toolbox/stores/stakeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { STEP_CONFIG } from '../codeConfig';
 import versions from '@/scripts/versions.json';
@@ -15,6 +16,12 @@ export default function CompleteRegistrationStep() {
   const store = useStakeValidatorStore();
   const vmcCtx = useValidatorManagerContext();
 
+  const preflight = useValidatorPreflight({
+    validationID: store.validationID || undefined,
+    stakingManagerAddress: vmcCtx.contractOwner || null,
+    validatorManagerAddress: vmcCtx.contractOwner || null,
+  });
+
   const managerType = store.tokenType === 'native' ? 'PoS-Native' : 'PoS-ERC20';
 
   return (
@@ -24,6 +31,13 @@ export default function CompleteRegistrationStep() {
           <Alert variant="warning">
             No P-Chain transaction ID from the previous step. You can enter it manually below, or go back to{' '}
             <strong>P-Chain Registration</strong>.
+          </Alert>
+        )}
+        {store.validationID && !preflight.isLoading && preflight.status !== 1 && preflight.status !== 0 && (
+          <Alert variant="info">
+            {preflight.status === 2
+              ? 'This validator is already active -- registration was completed.'
+              : `Unexpected validator status: ${preflight.statusLabel}.`}
           </Alert>
         )}
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">

@@ -90,6 +90,9 @@ jobs:
           fi
           echo "✓ All contract hooks use useContractActions"
 
+      - name: CLI command coverage (P-Chain + cast/foundry)
+        run: ./scripts/check-cli-coverage.sh
+
       - name: Design system (banned classes, color palette)
         run: ./scripts/check-console-design.sh
 

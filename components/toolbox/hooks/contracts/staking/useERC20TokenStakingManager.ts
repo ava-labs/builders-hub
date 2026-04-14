@@ -2,7 +2,7 @@ import { useContractActions } from '../useContractActions';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useChainPublicClient } from '../../useChainPublicClient';
 import ERC20TokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { StakingManagerSettings } from './useNativeTokenStakingManager';
+import type { StakingManagerSettings, RewardInfo } from '../types';
 
 export interface ERC20TokenStakingManagerHook {
   // Read functions
@@ -12,6 +12,9 @@ export interface ERC20TokenStakingManagerHook {
   valueToWeight: (value: bigint) => Promise<bigint>;
   weightToValue: (weight: bigint) => Promise<bigint>;
   erc20: () => Promise<string>;
+  getValidatorRewardInfo: (validationID: string) => Promise<RewardInfo>;
+  getDelegatorRewardInfo: (delegationID: string) => Promise<RewardInfo>;
+  maximumDelegationFeeBips: () => Promise<number>;
 
   // Write functions - Validator operations
   initiateValidatorRegistration: (
@@ -36,6 +39,7 @@ export interface ERC20TokenStakingManagerHook {
     validationID: string,
     includeUptime: boolean,
     messageIndex: number,
+    accessList?: any[],
   ) => Promise<string>;
 
   // Write functions - Delegator operations
@@ -95,6 +99,20 @@ export function useERC20TokenStakingManager(contractAddress: string | null, abi?
 
   const erc20 = () => contract.read('erc20') as Promise<string>;
 
+  const getValidatorRewardInfo = (validationID: string): Promise<RewardInfo> =>
+    contract.read('getValidatorRewardInfo', [validationID]).then((result) => {
+      const [rewardRecipient, rewardAmount] = result as [string, bigint];
+      return { rewardRecipient, rewardAmount };
+    });
+
+  const getDelegatorRewardInfo = (delegationID: string): Promise<RewardInfo> =>
+    contract.read('getDelegatorRewardInfo', [delegationID]).then((result) => {
+      const [rewardRecipient, rewardAmount] = result as [string, bigint];
+      return { rewardRecipient, rewardAmount };
+    });
+
+  const maximumDelegationFeeBips = () => contract.read('MAXIMUM_DELEGATION_FEE_BIPS') as Promise<number>;
+
   // Write functions - Validator operations
   const initiateValidatorRegistration = (
     nodeID: string,
@@ -144,11 +162,17 @@ export function useERC20TokenStakingManager(contractAddress: string | null, abi?
       accessList,
     });
 
-  const forceInitiateValidatorRemoval = (validationID: string, includeUptime: boolean, messageIndex: number) =>
+  const forceInitiateValidatorRemoval = (
+    validationID: string,
+    includeUptime: boolean,
+    messageIndex: number,
+    accessList?: any[],
+  ) =>
     contract.write(
       'forceInitiateValidatorRemoval',
       [validationID, includeUptime, messageIndex],
       'Force Initiate Validator Removal (ERC20 Staking)',
+      { accessList },
     );
 
   // Write functions - Delegator operations
@@ -235,6 +259,9 @@ export function useERC20TokenStakingManager(contractAddress: string | null, abi?
     valueToWeight,
     weightToValue,
     erc20,
+    getValidatorRewardInfo,
+    getDelegatorRewardInfo,
+    maximumDelegationFeeBips,
     initiateValidatorRegistration,
     completeValidatorRegistration,
     initiateValidatorRemoval,

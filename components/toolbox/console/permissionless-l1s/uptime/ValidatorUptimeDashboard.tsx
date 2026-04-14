@@ -10,6 +10,8 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import { CliAlternative } from '@/components/console/cli-alternative';
+import { CAST_COMMANDS } from '@/components/toolbox/console/shared/pchainCommands';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { type StakingType } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
@@ -457,11 +459,21 @@ export default function ValidatorUptimeDashboard({
       </div>
 
       {/* Footer */}
-      <div className="shrink-0 px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+      <div className="shrink-0 px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 space-y-2">
         <p className="text-[11px] text-zinc-500 leading-relaxed">
           Submitting uptime proofs locks in your validator&apos;s current uptime on-chain. Higher stored uptime = higher
           staking rewards when the validator exits.
         </p>
+        {stakingManagerAddress && rpcUrl && (
+          <CliAlternative
+            command={CAST_COMMANDS.submitUptimeProof({
+              managerAddress: stakingManagerAddress,
+              validationId: '<validation-id>',
+              rpcUrl,
+              signedWarpMessage: '<signed-uptime-proof-hex>',
+            })}
+          />
+        )}
       </div>
     </div>
   );

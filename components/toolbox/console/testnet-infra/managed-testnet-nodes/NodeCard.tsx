@@ -9,6 +9,8 @@ import {
 } from '@/components/toolbox/console/testnet-infra/managed-testnet-nodes/useTimeRemaining';
 import { Button } from '@/components/toolbox/components/Button';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { networkIDs } from '@avalabs/avalanchejs';
 import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
 
 interface NodeCardProps {
@@ -19,15 +21,40 @@ interface NodeCardProps {
 
 export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCardProps) {
   const { addChain } = useWallet();
+  const {
+    isTestnet: prevIsTestnet,
+    avalancheNetworkID: prevNetworkID,
+    setIsTestnet: setWalletIsTestnet,
+    setAvalancheNetworkID,
+    setWalletChainId,
+    updateL1Balance,
+  } = useWalletStore();
   const [secondsUntilWalletEnabled, setSecondsUntilWalletEnabled] = useState<number>(0);
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnectWallet = async () => {
     setIsConnecting(true);
-    await addChain({
+
+    // Pre-set testnet mode so the console context switches correctly
+    // (managed testnet nodes are always Fuji testnet)
+    setWalletIsTestnet(true);
+    setAvalancheNetworkID(networkIDs.FujiID);
+
+    const result = await addChain({
       rpcUrl: node.rpc_url,
       allowLookup: false,
     });
+
+    if (result.success && result.chainData?.evmChainId) {
+      // Explicitly switch the console's active chain context
+      setWalletChainId(result.chainData.evmChainId);
+      setTimeout(() => updateL1Balance(result.chainData!.evmChainId.toString()), 800);
+    } else if (!result.success) {
+      // Restore previous network state on rejection/failure
+      setWalletIsTestnet(prevIsTestnet ?? false);
+      setAvalancheNetworkID(prevNetworkID);
+    }
+
     setIsConnecting(false);
   };
   const timeRemaining = calculateTimeRemaining(node.expires_at);

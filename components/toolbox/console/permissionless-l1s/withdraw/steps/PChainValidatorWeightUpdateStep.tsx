@@ -1,21 +1,43 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useRemovePoSValidatorStore } from '@/components/toolbox/stores/removePoSValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { VALIDATOR_REMOVAL_STEPS } from '../codeConfig';
 
+const PCHAIN_MIN_BALANCE = 0.1; // AVAX needed for P-Chain transaction gas
+
 export default function PChainValidatorWeightUpdateStep() {
   const store = useRemovePoSValidatorStore();
   const vmcCtx = useValidatorManagerContext();
+  const pChainBalance = useWalletStore((s) => s.pChainBalance);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
+
+  const hasSufficientPChainBalance = pChainBalance >= PCHAIN_MIN_BALANCE;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
         {!store.evmTxHash && <Alert variant="warning">No transaction hash from the initiation step.</Alert>}
+        {!hasSufficientPChainBalance && (
+          <Alert variant="warning">
+            Insufficient P-Chain balance for transaction fees. You need at least {PCHAIN_MIN_BALANCE} AVAX.{' '}
+            {isTestnet ? (
+              <Link href="/console/primary-network/faucet" className="underline font-medium">
+                Get testnet tokens from the faucet
+              </Link>
+            ) : (
+              <Link href="/console/primary-network/c-p-bridge" className="underline font-medium">
+                Bridge AVAX from C-Chain to P-Chain
+              </Link>
+            )}
+          </Alert>
+        )}
 
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="p-4 space-y-3">

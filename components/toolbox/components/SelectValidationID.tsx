@@ -5,7 +5,18 @@ import { L1ValidatorDetailsFull } from '@avalabs/avacloud-sdk/models/components'
 import { formatAvaxBalance } from '../coreViem/utils/format';
 import { useAvalancheSDKChainkit } from '../stores/useAvalancheSDKChainkit';
 import { useChainPublicClient } from '../hooks/useChainPublicClient';
-import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
+import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
+import type { Abi } from 'viem';
+
+// Validator lifecycle status labels from the ValidatorManager contract
+const STATUS_LABELS: Record<number, string> = {
+  0: 'Unknown',
+  1: 'Pending',
+  2: 'Active',
+  3: 'Removing',
+  4: 'Completed',
+  5: 'Invalidated',
+};
 
 export type ValidationSelection = {
   validationId: string;
@@ -50,22 +61,24 @@ export default function SelectValidationID({
   error,
   subnetId = '',
   format = 'cb58',
-  stakingManagerAddress,
+  validatorManagerAddress,
 }: {
   value: string;
   onChange: (selection: ValidationSelection) => void;
   error?: string | null;
   subnetId?: string;
   format?: 'cb58' | 'hex';
-  /** Optional: when provided, validators are tagged as PoA/PoS */
-  stakingManagerAddress?: string;
+  /** Optional: pass to fetch on-chain lifecycle status for each validator */
+  validatorManagerAddress?: string;
 }) {
+  //const { listL1Validators } = useAvaCloudSDK();
   const { listL1Validators } = useAvalancheSDKChainkit();
   const chainPublicClient = useChainPublicClient();
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [validationIdToNodeId, setValidationIdToNodeId] = useState<Record<string, string>>({});
-  const [posValidators, setPosValidators] = useState<Set<string>>(new Set());
+  // Map validationID (hex) -> on-chain status number
+  const [validatorStatuses, setValidatorStatuses] = useState<Record<string, number>>({});
 
   // Fetch validators from the API
   useEffect(() => {
@@ -113,42 +126,61 @@ export default function SelectValidationID({
     fetchValidators();
   }, [subnetId, listL1Validators]);
 
-  // Detect PoS status when stakingManagerAddress is provided
+  // Fetch on-chain lifecycle status for each validator via multicall
   useEffect(() => {
-    if (!stakingManagerAddress || !chainPublicClient || validators.length === 0) {
-      setPosValidators(new Set());
-      return;
-    }
+    const fetchStatuses = async () => {
+      if (!chainPublicClient || !validatorManagerAddress || validators.length === 0) return;
 
-    const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-    const detectPoS = async () => {
-      const posSet = new Set<string>();
-      await Promise.all(
-        validators.map(async (v) => {
-          if (!v.validationId) return;
-          try {
-            const hexId = '0x' + cb58ToHex(v.validationId);
-            const result = await chainPublicClient.readContract({
-              address: stakingManagerAddress as `0x${string}`,
-              abi: NativeTokenStakingManager.abi,
-              functionName: 'getStakingValidator',
-              args: [hexId as `0x${string}`],
-            });
-            // viem returns tuples as arrays with named props — access by index as fallback
-            const info = result as any;
-            const owner = String(info?.owner ?? info?.[0] ?? '');
-            if (owner && owner !== ZERO_ADDRESS) {
-              posSet.add(v.validationId);
+      const vmcAddr = validatorManagerAddress as `0x${string}`;
+      const validatorsWithId = validators.filter((v) => v.validationId);
+
+      // Build multicall contracts array
+      const contracts = validatorsWithId.map((v) => {
+        const hexId = '0x' + cb58ToHex(v.validationId);
+        return {
+          address: vmcAddr,
+          abi: ValidatorManagerAbi.abi,
+          functionName: 'getValidator' as const,
+          args: [hexId],
+        };
+      });
+
+      if (contracts.length === 0) return;
+
+      try {
+        const results = await chainPublicClient.multicall({
+          contracts: contracts.map((c) => ({
+            address: c.address,
+            abi: c.abi as Abi,
+            functionName: c.functionName,
+            args: c.args,
+          })),
+          allowFailure: true,
+        });
+
+        const statusMap: Record<string, number> = {};
+        validatorsWithId.forEach((v, i) => {
+          const result = results[i];
+          if (result?.status === 'success' && result.result) {
+            const data = result.result as { status: number };
+            // Store by both cb58 and hex IDs for easy lookup
+            statusMap[v.validationId] = data.status;
+            try {
+              const hexId = '0x' + cb58ToHex(v.validationId);
+              statusMap[hexId] = data.status;
+            } catch {
+              // skip
             }
-          } catch {
-            // getStakingValidator reverted or failed — not PoS
           }
-        }),
-      );
-      setPosValidators(posSet);
+        });
+        setValidatorStatuses(statusMap);
+      } catch (err) {
+        console.error('Failed to fetch validator statuses:', err);
+      }
     };
-    detectPoS();
-  }, [stakingManagerAddress, chainPublicClient, validators]);
+
+    fetchStatuses();
+  }, [chainPublicClient, validatorManagerAddress, validators]);
 
   // Get the currently selected node ID
   const selectedNodeId = useMemo(() => {
@@ -168,36 +200,42 @@ export default function SelectValidationID({
 
     for (const validator of validatorsWithWeight) {
       if (validator.validationId) {
+        // Use full node ID
         const nodeId = validator.nodeId;
         const weightDisplay = validator.weight.toLocaleString();
         const balanceDisplay = formatAvaxBalance(validator.remainingBalance);
         const isSelected = nodeId === selectedNodeId;
-        const isPoS = stakingManagerAddress ? posValidators.has(validator.validationId) : null;
-        const typePrefix = isPoS === true ? 'PoS · ' : isPoS === false ? 'PoA · ' : '';
 
+        // Resolve on-chain lifecycle status
+        const onChainStatus = validatorStatuses[validator.validationId];
+        const statusLabel = onChainStatus !== undefined ? (STATUS_LABELS[onChainStatus] ?? 'Unknown') : null;
+        const statusPrefix = statusLabel ? `[${statusLabel}] ` : '';
+
+        // Add just one version based on the format prop
         if (format === 'hex') {
           try {
             const hexId = '0x' + cb58ToHex(validator.validationId);
             result.push({
               title: `${nodeId}${isSelected ? ' ✓' : ''}`,
               value: hexId,
-              description: `${typePrefix}Weight: ${weightDisplay} | Balance: ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
+              description: `${statusPrefix}Weight: ${weightDisplay} | Balance: ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
             });
           } catch {
             // Skip if conversion fails
           }
         } else {
+          // Default to CB58 format
           result.push({
             title: `${nodeId}${isSelected ? ' ✓' : ''}`,
             value: validator.validationId,
-            description: `${typePrefix}Weight: ${weightDisplay} | ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
+            description: `${statusPrefix}Weight: ${weightDisplay} | ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
           });
         }
       }
     }
 
     return result;
-  }, [validators, format, selectedNodeId, stakingManagerAddress, posValidators]);
+  }, [validators, format, selectedNodeId, validatorStatuses]);
 
   // Handle value change with format conversion
   const handleValueChange = (newValue: string) => {

@@ -7,13 +7,15 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { hexToBytes, bytesToHex } from 'viem';
+import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { CliAlternative } from '@/components/console/cli-alternative';
 
 type TokenType = 'native' | 'erc20';
 
@@ -63,6 +65,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     stakeReturned: string;
     rewardsDistributed: boolean;
   } | null>(null);
+  const [castAccessList, setCastAccessList] = useState<any[] | null>(null);
 
   const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
@@ -75,8 +78,6 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
   }, [initialPChainTxId]);
 
   const handleCompleteRemoval = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
     setRewardInfo(null);
@@ -86,35 +87,30 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
-      setIsProcessing(false);
       return;
     }
 
     if (!delegationID || delegationID === '0x0000000000000000000000000000000000000000000000000000000000000000') {
       setErrorState('Valid delegation ID is required.');
       onError('Valid delegation ID is required.');
-      setIsProcessing(false);
       return;
     }
 
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
       onError('Staking Manager address is required.');
-      setIsProcessing(false);
       return;
     }
 
     if (!pChainTxId.trim()) {
       setErrorState('P-Chain transaction ID is required.');
       onError('P-Chain transaction ID is required.');
-      setIsProcessing(false);
       return;
     }
 
     if (!subnetIdL1) {
       setErrorState('L1 Subnet ID is required.');
       onError('L1 Subnet ID is required.');
-      setIsProcessing(false);
       return;
     }
 
@@ -122,10 +118,10 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     if (isNaN(msgIndex) || msgIndex < 0) {
       setErrorState('Message index must be a non-negative number.');
       onError('Message index must be a non-negative number.');
-      setIsProcessing(false);
       return;
     }
 
+    setIsProcessing(true);
     try {
       // Get delegation info before removal to show stake amount
       let delegationWeight = '0';
@@ -189,6 +185,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
       // Step 4: Package warp message into access list
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
+      setCastAccessList(accessList);
 
       // Step 5: Call completeDelegatorRemoval via hook with warp message
       const hash =
@@ -250,6 +247,21 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
       setIsProcessing(false);
     }
   };
+
+  function generateCastCommand(): string {
+    if (!pChainSignature || !castAccessList) return '';
+    const rpcUrl = viemChain?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
+    const addr = stakingManagerAddress || '<STAKING_MANAGER_ADDRESS>';
+    const msgIndex = parseInt(messageIndex) || 0;
+
+    const calldata = encodeFunctionData({
+      abi: contractAbi as Abi,
+      functionName: 'completeDelegatorRemoval',
+      args: [delegationID as `0x${string}`, msgIndex],
+    });
+
+    return generateCastSendCommand({ address: addr, calldata, accessList: castAccessList, rpcUrl });
+  }
 
   const isButtonDisabled = isProcessing || !!txHash || !pChainTxId.trim();
 
@@ -331,6 +343,8 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
       <Button onClick={handleCompleteRemoval} disabled={isButtonDisabled} loading={isProcessing}>
         {isProcessing ? 'Processing...' : 'Complete Delegator Removal & Receive Rewards'}
       </Button>
+
+      {pChainSignature && !txHash && <CliAlternative command={generateCastCommand()} />}
 
       {txHash && rewardInfo && rewardInfo.rewardsDistributed && (
         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">

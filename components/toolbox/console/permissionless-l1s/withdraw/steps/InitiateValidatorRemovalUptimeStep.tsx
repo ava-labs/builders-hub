@@ -37,7 +37,7 @@ export default function InitiateValidatorRemovalUptimeStep() {
               }}
               format="hex"
               subnetId={store.subnetIdL1}
-              stakingManagerAddress={stakingManagerAddress}
+              validatorManagerAddress={stakingManagerAddress}
             />
 
             {store.nodeId && (

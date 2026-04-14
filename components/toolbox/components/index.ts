@@ -63,6 +63,7 @@ export { Tooltip } from './Tooltip';
 export { ValidatorListInput } from './ValidatorListInput';
 export type { ConvertToL1Validator } from './ValidatorListInput';
 export { ValidatorManagerDetails } from './ValidatorManagerDetails';
+export { ValidatorPreflightChecklist } from './ValidatorPreflightChecklist';
 export { withConsoleToolMetadata } from './WithConsoleToolMetadata';
 export type { ConsoleToolMetadata, BaseConsoleToolProps } from './WithConsoleToolMetadata';
 export { cn } from './utils';

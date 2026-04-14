@@ -33,10 +33,10 @@ export const Alert = ({ children, variant = 'info', className, icon = true }: Al
   const config = variantConfig[variant];
 
   return (
-    <div className={cn('p-3 rounded-md border text-sm', config.container, className)}>
+    <div className={cn('p-3 rounded-md border text-sm max-h-48 overflow-y-auto', config.container, className)}>
       <div className="flex gap-3 items-center">
         {icon && config.icon}
-        <div className="flex-1">{children}</div>
+        <div className="flex-1 break-words">{children}</div>
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ import type {
   ValidatorSetParams,
   InitParams,
   MigrationParams,
+  ValidatorChurnPeriod,
+  ChurnTrackerResult,
 } from '../types';
 
 export type {
@@ -15,6 +17,8 @@ export type {
   ValidatorSetParams,
   InitParams,
   MigrationParams,
+  ValidatorChurnPeriod,
+  ChurnTrackerResult,
 } from '../types';
 
 export interface ValidatorManagerHook {
@@ -25,6 +29,9 @@ export interface ValidatorManagerHook {
   subnetID: () => Promise<string>;
   isValidatorSetInitialized: () => Promise<boolean>;
   getNodeValidationID: (nodeID: string) => Promise<string>;
+  getChurnTracker: () => Promise<ChurnTrackerResult>;
+  getChurnPeriodSeconds: () => Promise<bigint>;
+  registrationExpiryLength: () => Promise<bigint>;
 
   // Write functions
   initiateValidatorRegistration: (params: ValidatorRegistrationParams) => Promise<string>;
@@ -62,6 +69,13 @@ export function useValidatorManager(contractAddress: string | null, abi?: any): 
     subnetID: () => read('subnetID') as Promise<string>,
     isValidatorSetInitialized: () => read('isValidatorSetInitialized') as Promise<boolean>,
     getNodeValidationID: (nodeID) => read('getNodeValidationID', [nodeID]) as Promise<string>,
+    getChurnTracker: () =>
+      read('getChurnTracker').then((result) => {
+        const [churnPeriodSeconds, maxChurnPercentage, period] = result as [bigint, number, ValidatorChurnPeriod];
+        return { churnPeriodSeconds, maxChurnPercentage, period };
+      }),
+    getChurnPeriodSeconds: () => read('getChurnPeriodSeconds') as Promise<bigint>,
+    registrationExpiryLength: () => read('REGISTRATION_EXPIRY_LENGTH') as Promise<bigint>,
 
     // Write functions
     initiateValidatorRegistration: (params) =>

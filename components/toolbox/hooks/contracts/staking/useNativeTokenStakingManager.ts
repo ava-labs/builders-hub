@@ -1,8 +1,8 @@
 import { useContractActions } from '../useContractActions';
 import NativeTokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
-import type { StakingManagerSettings } from '../types';
+import type { StakingManagerSettings, RewardInfo } from '../types';
 
-export type { StakingManagerSettings } from '../types';
+export type { StakingManagerSettings, RewardInfo } from '../types';
 
 export interface NativeTokenStakingManagerHook {
   // Read functions
@@ -11,6 +11,9 @@ export interface NativeTokenStakingManagerHook {
   getDelegatorInfo: (delegationID: string) => Promise<any>;
   valueToWeight: (value: bigint) => Promise<bigint>;
   weightToValue: (weight: bigint) => Promise<bigint>;
+  getValidatorRewardInfo: (validationID: string) => Promise<RewardInfo>;
+  getDelegatorRewardInfo: (delegationID: string) => Promise<RewardInfo>;
+  maximumDelegationFeeBips: () => Promise<number>;
 
   // Write functions - Validator operations
   initiateValidatorRegistration: (
@@ -35,6 +38,7 @@ export interface NativeTokenStakingManagerHook {
     validationID: string,
     includeUptime: boolean,
     messageIndex: number,
+    accessList?: any[],
   ) => Promise<string>;
 
   // Write functions - Delegator operations
@@ -86,6 +90,20 @@ export function useNativeTokenStakingManager(contractAddress: string | null, abi
 
   const weightToValue = (weight: bigint) => contract.read('weightToValue', [weight]) as Promise<bigint>;
 
+  const getValidatorRewardInfo = (validationID: string): Promise<RewardInfo> =>
+    contract.read('getValidatorRewardInfo', [validationID]).then((result) => {
+      const [rewardRecipient, rewardAmount] = result as [string, bigint];
+      return { rewardRecipient, rewardAmount };
+    });
+
+  const getDelegatorRewardInfo = (delegationID: string): Promise<RewardInfo> =>
+    contract.read('getDelegatorRewardInfo', [delegationID]).then((result) => {
+      const [rewardRecipient, rewardAmount] = result as [string, bigint];
+      return { rewardRecipient, rewardAmount };
+    });
+
+  const maximumDelegationFeeBips = () => contract.read('MAXIMUM_DELEGATION_FEE_BIPS') as Promise<number>;
+
   // Write functions - Validator operations
   const initiateValidatorRegistration = (
     nodeID: string,
@@ -130,11 +148,17 @@ export function useNativeTokenStakingManager(contractAddress: string | null, abi
       accessList,
     });
 
-  const forceInitiateValidatorRemoval = (validationID: string, includeUptime: boolean, messageIndex: number) =>
+  const forceInitiateValidatorRemoval = (
+    validationID: string,
+    includeUptime: boolean,
+    messageIndex: number,
+    accessList?: any[],
+  ) =>
     contract.write(
       'forceInitiateValidatorRemoval',
       [validationID, includeUptime, messageIndex],
       'Force Initiate Validator Removal (Native Staking)',
+      { accessList },
     );
 
   // Write functions - Delegator operations
@@ -206,6 +230,9 @@ export function useNativeTokenStakingManager(contractAddress: string | null, abi
     getDelegatorInfo,
     valueToWeight,
     weightToValue,
+    getValidatorRewardInfo,
+    getDelegatorRewardInfo,
+    maximumDelegationFeeBips,
     initiateValidatorRegistration,
     completeValidatorRegistration,
     initiateValidatorRemoval,

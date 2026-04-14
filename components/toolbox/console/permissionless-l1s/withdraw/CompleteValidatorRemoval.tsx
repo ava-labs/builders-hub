@@ -5,15 +5,17 @@ import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { hexToBytes, bytesToHex } from 'viem';
+import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
-import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
-import { fetchL1ValidatorWeightData } from '@/components/toolbox/console/shared/fetchL1ValidatorWeightData';
+import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
+import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { CliAlternative } from '@/components/console/cli-alternative';
 
 type TokenType = 'native' | 'erc20';
 
@@ -38,7 +40,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { avalancheNetworkID, isTestnet } = useWalletStore();
+  const { avalancheNetworkID } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -49,6 +51,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
   const [pChainTxId, setPChainTxId] = useState<string>(initialPChainTxId || '');
+  const [messageIndex, setMessageIndex] = useState<string>('0');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -62,6 +65,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     stakeReturned: string;
     rewardsDistributed: boolean;
   } | null>(null);
+  const [castAccessList, setCastAccessList] = useState<any[] | null>(null);
 
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
@@ -73,8 +77,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   }, [initialPChainTxId]);
 
   const handleCompleteRemoval = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
     setErrorState(null);
     setTxHash(null);
     setRewardInfo(null);
@@ -84,34 +86,44 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     if (!walletClient || !chainPublicClient || !viemChain) {
       setErrorState('Wallet or chain configuration is not properly initialized.');
       onError('Wallet or chain configuration is not properly initialized.');
-      setIsProcessing(false);
       return;
     }
 
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
       onError('Staking Manager address is required.');
-      setIsProcessing(false);
       return;
     }
 
     if (!pChainTxId.trim()) {
       setErrorState('P-Chain transaction ID is required.');
       onError('P-Chain transaction ID is required.');
-      setIsProcessing(false);
       return;
     }
 
     if (!subnetIdL1) {
       setErrorState('L1 Subnet ID is required.');
       onError('L1 Subnet ID is required.');
-      setIsProcessing(false);
       return;
     }
 
+    const msgIndex = parseInt(messageIndex);
+    if (isNaN(msgIndex) || msgIndex < 0) {
+      setErrorState('Message index must be a non-negative number.');
+      onError('Message index must be a non-negative number.');
+      return;
+    }
+
+    setIsProcessing(true);
     try {
-      // Step 1: Extract weight data from P-Chain tx (standard RPC, no Core Wallet needed)
-      const weightMessageData = await fetchL1ValidatorWeightData(pChainTxId, isTestnet);
+      // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
+      const coreWalletClient = useWalletStore.getState().coreWalletClient;
+      if (!coreWalletClient) {
+        throw new Error('This operation requires Core Wallet');
+      }
+      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
+        txId: pChainTxId,
+      });
 
       setExtractedData({
         validationID: weightMessageData.validationID,
@@ -119,48 +131,46 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         weight: weightMessageData.weight,
       });
 
-      // Step 2: Get justification (proves validator was legitimately registered)
-      const justification = await GetRegistrationJustification(
-        weightMessageData.validationID,
-        subnetIdL1,
-        chainPublicClient!,
-      );
-      if (!justification) {
-        throw new Error('No justification logs found for this validation ID. Cannot complete removal.');
-      }
-
-      // Step 3: Create L1ValidatorRegistrationMessage(valid=false)
-      // completeValidatorRemoval expects a registration message (deregistration),
-      // NOT a weight message.
+      // Step 2: Create L1ValidatorWeightMessage for completion
       const validationIDBytes = hexToBytes(weightMessageData.validationID as `0x${string}`);
-      const removeValidatorMessage = packL1ValidatorRegistration(
-        validationIDBytes,
-        false,
+      const l1ValidatorWeightMessage = packL1ValidatorWeightMessage(
+        {
+          validationID: validationIDBytes,
+          nonce: weightMessageData.nonce,
+          weight: weightMessageData.weight,
+        },
         avalancheNetworkID,
         '11111111111111111111111111111111LpoYY',
       );
 
-      // Step 4: Aggregate signatures with justification
+      // Step 3: Aggregate P-Chain signature
       const aggregateSignaturePromise = aggregateSignature({
-        message: bytesToHex(removeValidatorMessage),
-        justification: bytesToHex(justification),
+        message: bytesToHex(l1ValidatorWeightMessage),
         signingSubnetId: signingSubnetId || subnetIdL1,
       });
 
-      notify({ type: 'local', name: 'Aggregate Signatures' }, aggregateSignaturePromise);
+      notify(
+        {
+          type: 'local',
+          name: 'Aggregate P-Chain Signatures',
+        },
+        aggregateSignaturePromise,
+      );
 
       const signature = await aggregateSignaturePromise;
+
       setPChainSignature(signature.signedMessage);
 
-      // Step 5: Package warp message into access list
+      // Step 4: Package warp message into access list
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
+      setCastAccessList(accessList);
 
-      // Step 6: Call completeValidatorRemoval
+      // Step 5: Call completeValidatorRemoval via hook with warp message
       const hash =
         tokenType === 'native'
-          ? await nativeStakingManager.completeValidatorRemoval(0, accessList)
-          : await erc20StakingManager.completeValidatorRemoval(0, accessList);
+          ? await nativeStakingManager.completeValidatorRemoval(msgIndex, accessList)
+          : await erc20StakingManager.completeValidatorRemoval(msgIndex, accessList);
 
       setTxHash(hash);
 
@@ -211,6 +221,22 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     }
   };
 
+  function generateCastCommand(): string {
+    if (!pChainSignature || !castAccessList) return '';
+    const rpcUrl = viemChain?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
+    const addr = stakingManagerAddress || '<STAKING_MANAGER_ADDRESS>';
+    const abi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
+    const msgIndex = parseInt(messageIndex) || 0;
+
+    const calldata = encodeFunctionData({
+      abi: abi as Abi,
+      functionName: 'completeValidatorRemoval',
+      args: [msgIndex],
+    });
+
+    return generateCastSendCommand({ address: addr, calldata, accessList: castAccessList, rpcUrl });
+  }
+
   return (
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}
@@ -236,6 +262,17 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             placeholder="Enter the P-Chain transaction ID from the previous step"
             disabled={isProcessing}
             helperText="The transaction ID from the P-Chain weight update step"
+          />
+
+          <Input
+            label="Message Index"
+            value={messageIndex}
+            onChange={setMessageIndex}
+            type="number"
+            min="0"
+            placeholder="0"
+            disabled={isProcessing}
+            helperText="Index of the warp message (usually 0)"
           />
 
           {subnetIdL1 && (
@@ -285,13 +322,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         {isProcessing ? 'Processing...' : 'Complete Validator Removal & Distribute Rewards'}
       </Button>
 
-      {pChainSignature && !txHash && (
-        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            P-Chain signature aggregated. Waiting for transaction confirmation...
-          </p>
-        </div>
-      )}
+      {pChainSignature && !txHash && <CliAlternative command={generateCastCommand()} />}
 
       {txHash && rewardInfo?.rewardsDistributed && (
         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">

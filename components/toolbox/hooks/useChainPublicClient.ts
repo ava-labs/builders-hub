@@ -18,6 +18,11 @@ export function useChainPublicClient(): PublicClient | null {
     return createPublicClient({
       chain: viemChain,
       transport: http(viemChain.rpcUrls.default.http[0]),
+      batch: {
+        multicall: {
+          deployless: true,
+        },
+      },
     });
   }, [viemChain]);
 }

@@ -20,9 +20,9 @@ import {
 import { fetchL1ValidatorWeightData } from './fetchL1ValidatorWeightData';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { CliAlternative } from '@/components/console/cli-alternative';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -472,11 +472,8 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
 
             {/* Non-Core wallet: CLI command after aggregation */}
             {!isCoreWallet && pChainSignature && !txHash && (
-              <div className="mt-2 space-y-3">
-                <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                  Run this command to complete the {isDelegation ? 'delegation' : 'weight change'}:
-                </p>
-                <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
+              <div className="mt-2">
+                <CliAlternative command={generateCastCommand()} />
               </div>
             )}
           </div>

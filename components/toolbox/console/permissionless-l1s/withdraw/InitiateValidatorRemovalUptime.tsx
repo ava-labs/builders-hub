@@ -2,14 +2,17 @@
 
 import React, { useState } from 'react';
 import { hexToBytes } from 'viem';
+import { CliAlternative } from '@/components/console/cli-alternative';
+import { CAST_COMMANDS } from '@/components/toolbox/console/shared/pchainCommands';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
-import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
-import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { LockedContent } from '@/components/toolbox/components/LockedContent';
+import { ValidatorPreflightChecklist } from '@/components/toolbox/components/ValidatorPreflightChecklist';
+import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
@@ -47,6 +50,13 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
   const { createAndSignUptimeProof, isLoading: isSigningUptime } = useUptimeProof();
 
+  const preflight = useValidatorPreflight({
+    validationID: validationID || undefined,
+    stakingManagerAddress,
+    validatorManagerAddress: stakingManagerAddress,
+    walletAddress: walletEVMAddress || undefined,
+  });
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -54,7 +64,6 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   const [customValidatorsUrl, setCustomValidatorsUrl] = useState<string>('');
   const [showCustomUrl, setShowCustomUrl] = useState(false);
 
-  const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
   const handleInitiateRemoval = async () => {
@@ -88,92 +97,9 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
       return;
     }
     try {
-      // Pre-check validator state
-      try {
-        const stakingValidatorInfo = (await chainPublicClient.readContract({
-          address: stakingManagerAddress as `0x${string}`,
-          abi: contractAbi,
-          functionName: 'getStakingValidator',
-          args: [validationID as `0x${string}`],
-        })) as { owner: string; delegationFeeBips: number; minStakeDuration: bigint; uptimeSeconds: bigint };
-
-        const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-        const isGenesisValidator = stakingValidatorInfo.owner === ZERO_ADDRESS;
-
-        if (!isGenesisValidator && stakingValidatorInfo.owner.toLowerCase() !== walletEVMAddress?.toLowerCase()) {
-          throw new Error(`You are not the owner of this validator. Owner: ${stakingValidatorInfo.owner}`);
-        }
-
-        // Check validator status via ValidatorManager
-        const settings = (await chainPublicClient.readContract({
-          address: stakingManagerAddress as `0x${string}`,
-          abi: contractAbi,
-          functionName: 'getStakingManagerSettings',
-        })) as { manager: string; minimumStakeDuration: bigint };
-
-        const ValidatorManagerAbi = [
-          {
-            type: 'function',
-            name: 'getValidator',
-            inputs: [{ name: 'validationID', type: 'bytes32' }],
-            outputs: [
-              {
-                type: 'tuple',
-                components: [
-                  { name: 'status', type: 'uint8' },
-                  { name: 'nodeID', type: 'bytes' },
-                  { name: 'startingWeight', type: 'uint64' },
-                  { name: 'weight', type: 'uint64' },
-                  { name: 'startTime', type: 'uint64' },
-                  { name: 'endedAt', type: 'uint64' },
-                ],
-              },
-            ],
-            stateMutability: 'view',
-          },
-        ];
-
-        const validatorInfo = (await chainPublicClient.readContract({
-          address: settings.manager as `0x${string}`,
-          abi: ValidatorManagerAbi,
-          functionName: 'getValidator',
-          args: [validationID as `0x${string}`],
-        })) as { status: number; startTime: bigint };
-
-        const statusNames: Record<number, string> = {
-          0: 'Unknown',
-          1: 'Pending',
-          2: 'Active',
-          3: 'Removing',
-          4: 'Completed',
-        };
-
-        if (Number(validatorInfo.status) !== 2) {
-          throw new Error(
-            `Validator is not active. Current status: ${statusNames[validatorInfo.status] || validatorInfo.status}. Only active validators can be removed.`,
-          );
-        }
-
-        if (!isGenesisValidator && stakingValidatorInfo.minStakeDuration > 0n) {
-          const currentTime = BigInt(Math.floor(Date.now() / 1000));
-          const endTime = validatorInfo.startTime + stakingValidatorInfo.minStakeDuration;
-          if (currentTime < endTime) {
-            const remaining = endTime - currentTime;
-            const hours = Number(remaining) / 3600;
-            throw new Error(`Minimum stake duration has not passed. Time remaining: ${hours.toFixed(1)} hours.`);
-          }
-        }
-      } catch (preCheckErr) {
-        if (
-          preCheckErr instanceof Error &&
-          (preCheckErr.message.includes('not the owner') ||
-            preCheckErr.message.includes('stake duration') ||
-            preCheckErr.message.includes('not active') ||
-            preCheckErr.message.includes('active delegations'))
-        ) {
-          throw preCheckErr;
-        }
-      }
+      // Pre-checks are handled by useValidatorPreflight — the button is gated
+      // behind preflight.checks.initiateRemoval.status === 'met', so we only
+      // reach here when all on-chain preconditions are satisfied.
 
       // Step 1: Create and sign uptime proof
       // Fetches real-time uptime from L1 node's /validators endpoint, then
@@ -188,13 +114,13 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
       notify({ type: 'local', name: 'Aggregate Uptime Proof Signatures' }, uptimeProofPromise);
 
       const uptimeProof = await uptimeProofPromise;
-      setUptimeInfo({ seconds: uptimeProof.uptimeSeconds, signed: true });
+      setUptimeInfo({ seconds: Number(uptimeProof.uptimeSeconds), signed: true });
 
       // Step 2: Pack signed uptime message into access list
       const signedWarpBytes = hexToBytes(`0x${uptimeProof.signedWarpMessage}`);
       const accessList = packWarpIntoAccessList(signedWarpBytes);
 
-      // Step 3: Call initiateValidatorRemoval with uptime proof
+      // Step 3: Call initiateValidatorRemoval with uptime proof in access list
       const hash = await (tokenType === 'native'
         ? nativeStakingManager.initiateValidatorRemoval(
             validationID as `0x${string}`,
@@ -242,6 +168,8 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   return (
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}
+
+      {validationID && <ValidatorPreflightChecklist preflight={preflight} currentFlow="initiate-removal" />}
 
       <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
         <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
@@ -296,17 +224,33 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
         </p>
       </Alert>
 
-      <Button
-        onClick={handleInitiateRemoval}
-        disabled={isProcessing || !validationID || !!txHash}
-        loading={isProcessing || isSigningUptime}
+      <LockedContent
+        isUnlocked={!validationID || (!preflight.isLoading && preflight.checks.initiateRemoval.status === 'met')}
       >
-        {isSigningUptime
-          ? 'Aggregating Uptime Proof...'
-          : isProcessing
-            ? 'Processing...'
-            : 'Initiate Removal with Uptime Proof'}
-      </Button>
+        <Button
+          onClick={handleInitiateRemoval}
+          disabled={isProcessing || !validationID || !!txHash || preflight.isLoading}
+          loading={isProcessing || isSigningUptime || preflight.isLoading}
+        >
+          {isSigningUptime
+            ? 'Aggregating Uptime Proof...'
+            : isProcessing
+              ? 'Processing...'
+              : 'Initiate Removal with Uptime Proof'}
+        </Button>
+
+        {validationID && stakingManagerAddress && rpcUrl && (
+          <CliAlternative
+            command={CAST_COMMANDS.initiateValidatorRemoval({
+              managerAddress: stakingManagerAddress,
+              validationId: validationID,
+              includeUptimeProof: true,
+              rpcUrl,
+              signedWarpMessage: '<signed-uptime-proof-hex>',
+            })}
+          />
+        )}
+      </LockedContent>
     </div>
   );
 };
