@@ -19,7 +19,7 @@ export const POST = withAuth(async (request: NextRequest) => {
   const isDevrel = session?.user.custom_attributes?.includes("devrel") ?? false;
   const isHackathonCreator = session?.user.custom_attributes?.includes("hackathonCreator") ?? false;
 
-  if (!isDevrel || !isHackathonCreator) {
+  if (!isDevrel && !isHackathonCreator) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 401 });
   }
 
