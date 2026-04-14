@@ -153,10 +153,10 @@ export function UserButton() {
               <Link href='/profile'>Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile#achievements'>Achievements Board</Link>
+              <Link href='/profile?tab=achievements'>Achievements Board</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile#projects'>Projects</Link>
+              <Link href='/profile?tab=projects'>Projects</Link>
             </DropdownMenuItem>
             {
               (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('notify_event')) && (
@@ -180,7 +180,7 @@ export function UserButton() {
               )
             }
             {/* <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile#settings'>Settings</Link>
+              <Link href='/profile?tab=settings'>Settings</Link>
             </DropdownMenuItem> */}
 
 

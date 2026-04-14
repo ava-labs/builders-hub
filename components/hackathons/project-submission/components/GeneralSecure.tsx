@@ -225,7 +225,7 @@ export default function GeneralSecureComponent({
           title: t(lang, "submission.form.toast.submitted"),
           description: t(lang, "submission.form.toast.submittedDesc"),
         });
-        router.push('/profile#projects');
+        router.push('/profile?tab=projects');
       } else {
         console.error('❌ Save failed, result.success is false');
       }

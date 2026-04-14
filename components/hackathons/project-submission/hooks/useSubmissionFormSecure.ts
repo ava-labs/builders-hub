@@ -701,8 +701,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
           description: t(lang, 'submission.save.savedRedirectDesc'),
         });
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log('💾 handleSave executing redirect to: /profile#projects');
-        router.push('/profile#projects');
+        router.push('/profile?tab=projects');
       }
       // If not successful, error message already shown by handleSaveWithoutRoute
     } catch (error) {
