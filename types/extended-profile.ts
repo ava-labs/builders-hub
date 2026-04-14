@@ -30,6 +30,7 @@ export type ExtendedProfile = {
     country?: string | null;
     user_type: UserType;
     github?: string | null;
+    githubConnected?: boolean;
     wallet?: string[] | null;
     socials: string[];
     skills: string[];

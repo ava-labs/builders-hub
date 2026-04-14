@@ -63,6 +63,7 @@ model User {
   user_type                Json?
   wallet                   String[]                  @default([])
   notification_means       Json?                     @default("{}")
+  github_access_token      String?
   chatConversations        ChatConversation[]
   consoleLog               ConsoleLog[]
   evaluations              Evaluation[]              @relation("Evaluations")
