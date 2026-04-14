@@ -66,27 +66,8 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
       requiredChain: 'p-chain',
     });
 
-    // Node hosting — before Convert to L1 (nodes must be running)
-    if (answers.hosting === 'managed') {
-      steps.push({
-        type: 'single',
-        key: 'managed-nodes',
-        title: 'Setup Managed Nodes',
-        component: ManagedTestnetNodes,
-        requiredChain: 'any',
-      });
-    } else if (answers.hosting === 'docker') {
-      steps.push({
-        type: 'single',
-        key: 'docker-setup',
-        title: 'Docker Node Setup',
-        component: AvalancheGoDockerL1,
-        requiredChain: 'any',
-      });
-    }
-
     if (answers.vmLocation === 'l1') {
-      // VM on L1: chain (genesis has proxy) → convert → deploy on L1
+      // VM on L1: chain (genesis has proxy) → nodes → convert → deploy on L1
       steps.push({
         type: 'single',
         key: 'create-chain',
@@ -94,6 +75,26 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         component: CreateChain,
         requiredChain: 'p-chain',
       });
+
+      // Node hosting — after Create Chain (need chain ID), before Convert to L1
+      if (answers.hosting === 'managed') {
+        steps.push({
+          type: 'single',
+          key: 'managed-nodes',
+          title: 'Setup Managed Nodes',
+          component: ManagedTestnetNodes,
+          requiredChain: 'any',
+        });
+      } else if (answers.hosting === 'docker') {
+        steps.push({
+          type: 'single',
+          key: 'docker-setup',
+          title: 'Docker Node Setup',
+          component: AvalancheGoDockerL1,
+          requiredChain: 'any',
+        });
+      }
+
       steps.push({
         type: 'single',
         key: 'convert-to-l1',
@@ -159,6 +160,26 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         component: CreateChain,
         requiredChain: 'p-chain',
       });
+
+      // Node hosting — after Create Chain, before Convert to L1
+      if (answers.hosting === 'managed') {
+        steps.push({
+          type: 'single',
+          key: 'managed-nodes',
+          title: 'Setup Managed Nodes',
+          component: ManagedTestnetNodes,
+          requiredChain: 'any',
+        });
+      } else if (answers.hosting === 'docker') {
+        steps.push({
+          type: 'single',
+          key: 'docker-setup',
+          title: 'Docker Node Setup',
+          component: AvalancheGoDockerL1,
+          requiredChain: 'any',
+        });
+      }
+
       steps.push({
         type: 'single',
         key: 'convert-to-l1',
