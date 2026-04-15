@@ -59,8 +59,7 @@ const { getStore: getRemovePoSValidatorStore, useStore: useRemovePoSValidatorSto
 
       setNodeId: (nodeId: string) => set({ nodeId }),
 
-      setEvmTxHash: (evmTxHash: string) =>
-        set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
+      setEvmTxHash: (evmTxHash: string) => set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
 
       setPChainTxId: (pChainTxId: string) => set({ pChainTxId, globalError: null, globalSuccess: null }),
 

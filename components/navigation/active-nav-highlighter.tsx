@@ -16,7 +16,7 @@ export function ActiveNavHighlighter() {
 
     // Determine which section is active and find matching nav items
     let activeSection = '';
-    
+
     if (pathname.startsWith('/docs')) {
       activeSection = '/docs';
     } else if (pathname.startsWith('/academy')) {
@@ -33,7 +33,7 @@ export function ActiveNavHighlighter() {
       activeSection = '/stats';
     } else if (pathname.startsWith('/hackathons') || pathname.startsWith('/events')) {
       activeSection = '/events';
-    } else if (pathname.startsWith('/grants') || pathname.startsWith('/codebase')) {
+    } else if (pathname.startsWith('/grants')) {
       activeSection = '/grants';
     } else if (pathname.startsWith('/university')) {
       activeSection = '/university';
@@ -77,4 +77,3 @@ export function ActiveNavHighlighter() {
 
   return null; // This component doesn't render anything
 }
-

@@ -649,7 +649,7 @@ export default function BuildGamesApplyForm() {
                               Have you received a grant previously from Avalanche? <span className="text-destructive">*</span>
                             </Label>
                             <FormDescription className="text-xs text-muted-foreground">
-                              Prior support from the Avalanche Foundation — including funding via Retro9000, Infra(BOOST), Infra(BUILD/LINK), Blizzard, Codebase, Innovation House, or Ava Labs — will be considered during the evaluation process and may impact grant size.
+                              Prior support from the Avalanche Foundation — including funding via Retro9000, Infra(BOOST), Infra(BUILD/LINK) (discontinued), Blizzard, Codebase (discontinued), Innovation House, or Ava Labs — will be considered during the evaluation process and may impact grant size.
                             </FormDescription>
                             <FormControl>
                               <RadioGroup
