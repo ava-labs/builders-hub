@@ -12,7 +12,7 @@ You're removing an existing Active validator in a PoA setup where the `Validator
 
 ### Phase 1: Initiation (L1)
 
-The owner calls [`initiateValidatorRemoval(validationID)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L518) on `ValidatorManager`.
+The owner calls [`initiateValidatorRemoval(validationID)`](https://github.com/ava-labs/icm-services/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L518) on `ValidatorManager`.
 
 Under the hood, the contract:
 - Ensures the validator is currently Active
@@ -50,7 +50,7 @@ type L1ValidatorRegistrationMessage struct {
 
 ### Phase 3: Completion (L1)
 
-We finally will call the [`completeValidatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L573), where we will pass the message index of the response we received in step 2. The contract verifies the Warp message, confirms the registration status is false, updates the validator's status to Completed (if previously `PendingRemoved`), removes the node from the registered mapping, persists updates, and emits `CompletedValidatorRemoval`.
+We finally will call the [`completeValidatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-services/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L573), where we will pass the message index of the response we received in step 2. The contract verifies the Warp message, confirms the registration status is false, updates the validator's status to Completed (if previously `PendingRemoved`), removes the node from the registered mapping, persists updates, and emits `CompletedValidatorRemoval`.
 
 Anyone can call the `completeValidatorRemoval(messageIndex)` with the signed message.
 

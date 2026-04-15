@@ -36,7 +36,7 @@ Testnet or Mainnet.
 The L1 has to be a Proof of Authority L1.
 - [`configure`](#avalanche-blockchain-configure): AvalancheGo nodes support several different configuration files.
 Each network (a Subnet or an L1) has their own config which applies to all blockchains/VMs in the network (see https://build.avax.network/docs/nodes/configure/avalanche-l1-configs)
-Each blockchain within the network can have its own chain config (see https://build.avax.network/docs/nodes/chain-configs/primary-network/c-chain https://github.com/ava-labs/subnet-evm/blob/master/plugin/evm/config/config.go for subnet-evm options).
+Each blockchain within the network can have its own chain config (see https://build.avax.network/docs/nodes/chain-configs/primary-network/c-chain https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/plugin/evm/config/config.go for subnet-evm options).
 A chain can also have special requirements for the AvalancheGo node configuration itself (see https://build.avax.network/docs/nodes/configure/configs-flags).
 This command allows you to set all those files.
 - [`create`](#avalanche-blockchain-create): The blockchain create command builds a new genesis file to configure your Blockchain.
@@ -252,7 +252,7 @@ avalanche blockchain changeWeight [subcommand] [flags]
 
 AvalancheGo nodes support several different configuration files.
 Each network (a Subnet or an L1) has their own config which applies to all blockchains/VMs in the network (see https://build.avax.network/docs/nodes/configure/avalanche-l1-configs)
-Each blockchain within the network can have its own chain config (see https://build.avax.network/docs/nodes/chain-configs/primary-network/c-chain https://github.com/ava-labs/subnet-evm/blob/master/plugin/evm/config/config.go for subnet-evm options).
+Each blockchain within the network can have its own chain config (see https://build.avax.network/docs/nodes/chain-configs/primary-network/c-chain https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/plugin/evm/config/config.go for subnet-evm options).
 A chain can also have special requirements for the AvalancheGo node configuration itself (see https://build.avax.network/docs/nodes/configure/configs-flags).
 This command allows you to set all those files.
 
@@ -1164,7 +1164,7 @@ avalanche contract [subcommand] [flags]
 
 - [`deploy`](#avalanche-contract-deploy): The contract command suite provides a collection of tools for deploying
 smart contracts.
-- [`initValidatorManager`](#avalanche-contract-initvalidatormanager): Initializes Proof of Authority(PoA) or Proof of Stake(PoS)Validator Manager contract on a Blockchain and sets up initial validator set on the Blockchain. For more info on Validator Manager, please head to https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager
+- [`initValidatorManager`](#avalanche-contract-initvalidatormanager): Initializes Proof of Authority(PoA) or Proof of Stake(PoS)Validator Manager contract on a Blockchain and sets up initial validator set on the Blockchain. For more info on Validator Manager, please head to https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/validator-manager
 
 **Flags:**
 
@@ -1238,7 +1238,7 @@ avalanche contract deploy erc20 [subcommand] [flags]
 <a id="avalanche-contract-initvalidatormanager"></a>
 ### initValidatorManager
 
-Initializes Proof of Authority(PoA) or Proof of Stake(PoS)Validator Manager contract on a Blockchain and sets up initial validator set on the Blockchain. For more info on Validator Manager, please head to https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager
+Initializes Proof of Authority(PoA) or Proof of Stake(PoS)Validator Manager contract on a Blockchain and sets up initial validator set on the Blockchain. For more info on Validator Manager, please head to https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/validator-manager
 
 **Usage:**
 ```bash

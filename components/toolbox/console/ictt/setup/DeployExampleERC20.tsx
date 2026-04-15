@@ -14,13 +14,13 @@ import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'ExampleERC20',
     filename: 'ExampleERC20.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/mocks/ExampleERC20.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/mocks/ExampleERC20.sol`,
     description: 'Mock ERC20 token with 1M supply minted to deployer, for testing ICTT transfers.',
   },
 ];

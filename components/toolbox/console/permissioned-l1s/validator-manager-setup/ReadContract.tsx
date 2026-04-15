@@ -17,7 +17,7 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 type ViewData = {
   [key: string]: any;
@@ -292,7 +292,7 @@ function ReadContract({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
         <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
           <span className="text-xs text-zinc-500">Click a function to view in code</span>
           <a
-            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
@@ -306,8 +306,8 @@ function ReadContract({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
       <ContractFunctionViewer
         contractName="ValidatorManager"
         filename="ValidatorManager.sol"
-        sourceUrl={`https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`}
-        githubUrl={`https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`}
+        sourceUrl={`https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`}
+        githubUrl={`https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`}
         highlightFunction={selectedFunction}
         description={`Viewing ${selectedFunction}() function`}
         showFunctionOnly={true}

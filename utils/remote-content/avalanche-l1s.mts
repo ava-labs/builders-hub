@@ -21,11 +21,11 @@ export function getAvalancheL1sConfigs(): FileConfig[] {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/plugin/evm/config/",
     },
     {
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/icm-contracts/refs/heads/main/contracts/validator-manager/README.md",
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/icm-services/refs/heads/main/icm-contracts/avalanche/validator-manager/README.md",
       outputPath: "content/docs/avalanche-l1s/validator-manager/contract.mdx",
       title: "Validator Manager Contracts",
       description: "This page lists all available contracts for the Validator Manager.",
-      contentUrl: "https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/",
+      contentUrl: "https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/",
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/graft/subnet-evm/precompile/contracts/warp/README.md",

@@ -1,7 +1,7 @@
 import type { StepConfig } from '@/components/console/step-code-viewer';
 import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 export const PCHAIN_WEIGHT_UPDATE_CODE = `// Aggregate signatures using Avalanche SDK
 import { Avalanche } from "@avalabs/avalanche-sdk";
@@ -34,8 +34,8 @@ export const NATIVE_STEP_CONFIG: StepConfig[] = [
     title: 'Initiate Delegation',
     description: 'Call initiateDelegatorRegistration on the Staking Manager',
     codeType: 'solidity' as const,
-    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
-    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
     highlightFunction: 'initiateDelegatorRegistration',
     filename: 'NativeTokenStakingManager.sol',
   },
@@ -53,8 +53,8 @@ export const NATIVE_STEP_CONFIG: StepConfig[] = [
     title: 'Complete Delegation',
     description: 'Call completeDelegatorRegistration on the Staking Manager',
     codeType: 'solidity' as const,
-    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/StakingManager.sol`,
-    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/StakingManager.sol`,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/StakingManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/StakingManager.sol`,
     highlightFunction: 'completeDelegatorRegistration',
     filename: 'StakingManager.sol',
   },
@@ -63,8 +63,8 @@ export const NATIVE_STEP_CONFIG: StepConfig[] = [
 export const ERC20_STEP_CONFIG: StepConfig[] = [
   {
     ...NATIVE_STEP_CONFIG[0],
-    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`,
-    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`,
     filename: 'ERC20TokenStakingManager.sol',
   },
   NATIVE_STEP_CONFIG[1],

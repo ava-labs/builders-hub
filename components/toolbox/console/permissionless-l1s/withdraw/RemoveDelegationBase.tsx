@@ -270,7 +270,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
           <p className="text-sm text-zinc-500 mb-4">
             Call the{' '}
             <a
-              href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/IStakingManager.sol#L281"
+              href="https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/interfaces/IStakingManager.sol#L281"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 underline"
@@ -330,7 +330,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
           <p className="text-sm text-zinc-500 mb-4">
             Finalize the delegation removal by calling{' '}
             <a
-              href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol"
+              href="https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 underline"

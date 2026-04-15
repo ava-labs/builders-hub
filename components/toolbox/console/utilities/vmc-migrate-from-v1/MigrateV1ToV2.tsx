@@ -158,7 +158,7 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
             For full details about the migration process, see the{' '}
             <a
-              href="https://github.com/ava-labs/icm-contracts/blob/validator-manager-v2.1.0/contracts/validator-manager/MigratingFromV1.md"
+              href="https://github.com/ava-labs/icm-services/blob/validator-manager-v2.1.0/contracts/validator-manager/MigratingFromV1.md"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-500 hover:underline inline-flex items-center gap-1"

@@ -23,20 +23,20 @@ import { Check, BookOpen, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import { ManualAddressInput } from '@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ManualAddressInput';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 // GitHub raw URLs for source code
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'NativeTokenStakingManager',
     filename: 'NativeTokenStakingManager.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
     description: 'Enables permissionless staking using native tokens. Extends StakingManager for native token staking.',
   },
   {
     name: 'ValidatorMessages',
     filename: 'ValidatorMessages.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorMessages.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorMessages.sol`,
     description: 'Library for encoding/decoding validator management messages sent via ICM.',
   },
 ];
@@ -307,7 +307,7 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
               </Link>
             </div>
             <a
-              href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+              href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
