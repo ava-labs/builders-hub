@@ -138,8 +138,8 @@ We then switch to WAGMI in the networks dropdown. We are ready to move on to Rem
 
 Good, we're talking to WAGMI Avalanche L1. Next we need to load the contracts into Remix. Using 'load from GitHub' option from the Remix home screen we load two contracts:
 
-- [IAllowList.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/contracts/contracts/interfaces/IAllowList.sol)
-- and [IFeeManager.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/contracts/contracts/interfaces/IFeeManager.sol).
+- [IAllowList.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IAllowList.sol)
+- and [IFeeManager.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IFeeManager.sol).
 
 IFeeManager is our precompile, but it references the IAllowList, so we need that one as well. We compile IFeeManager.sol and use deployed contract at the precompile address `0x0200000000000000000000000000000000000003` used on the [Avalanche L1](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/contracts/feemanager/module.go#L21).
 
@@ -165,8 +165,8 @@ That's it, fees changed! No network upgrades, no complex and risky deployments, 
 
 For the NativeMinter, we can use the same process to connect to the Avalanche L1 and interact with the precompile. We can load INativeMinter interface using 'load from GitHub' option from the Remix home screen with following contracts:
 
-- [IAllowList.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/contracts/contracts/interfaces/IAllowList.sol)
-- and [INativeMinter.sol](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/contracts/contracts/interfaces/INativeMinter.sol).
+- [IAllowList.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IAllowList.sol)
+- and [INativeMinter.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/INativeMinter.sol).
 
 We can compile them and interact with the deployed contract at the precompile address `0x0200000000000000000000000000000000000001` used on the [Avalanche L1](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/contracts/nativeminter/module.go#L22).
 
