@@ -4,7 +4,6 @@ import { getFilteredProjects } from "@/server/services/projects";
 import { ProjectFilters } from "@/types/project";
 import { Project } from "@/types/showcase";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { redirect } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
@@ -22,9 +21,17 @@ export default async function ShowCasePage({
 }) {
   const session = await getAuthSession();
 
-  // Require authentication
+  // When unauthenticated, return a minimal page.
+  // AutoLoginModalTrigger (in layout) will open the LoginModal automatically.
+  // After login, LoginModalWrapper redirects back here triggering a full reload.
   if (!session?.user?.id) {
-    redirect("/login?callbackUrl=%2Fshowcase");
+    return (
+      <main className="container relative max-w-[1400px] pt-4 pb-16">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-zinc-50" />
+        </div>
+      </main>
+    );
   }
 
   // Check if user has required role (showcase, devrel, or admin)
