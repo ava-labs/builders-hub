@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronDown, CircleUserRound, Moon, Sun } from 'lucide-react';
 import { menuSections, singleItems } from './nav-config';
+import { useSession } from 'next-auth/react';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
@@ -17,6 +19,9 @@ export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
+  const isAuthenticated = status === 'authenticated';
 
   // Close on navigation
   useEffect(() => {
@@ -81,14 +86,30 @@ export function NavbarDropdown() {
                   <Sun fill="currentColor" className="size-6.5 rounded-full p-1.5 text-muted-foreground" />
                   <Moon fill="currentColor" className="size-6.5 rounded-full p-1.5 text-muted-foreground" />
                 </button>
-                <Link
-                  href="/login"
-                  aria-label="Login"
-                  title="Login"
-                  className="inline-flex items-center justify-center rounded-md p-1.5 hover:bg-accent"
-                >
-                  <CircleUserRound className="size-5" />
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    href="/profile"
+                    aria-label="Profile"
+                    title="Profile"
+                    className="inline-flex items-center justify-center rounded-md p-1.5 hover:bg-accent"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <CircleUserRound className="size-5" />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="Login"
+                    title="Login"
+                    className="inline-flex items-center justify-center rounded-md p-1.5 hover:bg-accent"
+                    onClick={() => {
+                      setIsOpen(false);
+                      openLoginModal(window.location.href);
+                    }}
+                  >
+                    <CircleUserRound className="size-5" />
+                  </button>
+                )}
               </div>
               {/* Menu sections */}
               {menuSections.map((section) => (

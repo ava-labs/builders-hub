@@ -18,6 +18,7 @@ import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
+import { useRouter } from 'next/navigation';
 
 const AVATAR_SIZE = 32;
 
@@ -29,6 +30,7 @@ export function UserButton() {
   const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
+  const router = useRouter();
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
@@ -78,7 +80,9 @@ export function UserButton() {
       });
     }
 
-    signOut();
+    signOut({ redirect: false }).then(() => {
+      router.push('/');
+    });
   };
   useEffect(() => {
     if (!session?.user) {

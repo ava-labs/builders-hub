@@ -6,6 +6,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { AlertDialog,AlertDialogAction,AlertDialogContent,AlertDialogDescription,AlertDialogFooter,AlertDialogHeader,AlertDialogTitle } from "@/components/toolbox/components/AlertDialog";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
 export function PChainFaucetMenuItem() {
   const pChainAddress = useWalletStore((s) => s.pChainAddress);
@@ -21,6 +22,7 @@ export function PChainFaucetMenuItem() {
     checkRateLimit,
     isLoading: isCheckingRateLimit 
   } = useFaucetRateLimit({ faucetType: 'pchain' });
+  const { openLoginModal } = useLoginModalTrigger();
 
   // Faucet state
   const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
@@ -30,7 +32,8 @@ export function PChainFaucetMenuItem() {
   const [isLoginError, setIsLoginError] = useState(false);
 
   const handleLogin = () => {
-    window.location.href = "/login";
+    setIsAlertDialogOpen(false);
+    openLoginModal(window.location.href);
   };
 
   const handlePChainTokenRequest = async () => {

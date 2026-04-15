@@ -14,6 +14,7 @@ import SocialLogin from "./social-login/SocialLogin";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import { useLoginModalState } from '@/hooks/useLoginModal';
 import { EmbeddedBrowserWarning } from './EmbeddedBrowserWarning';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,17 +24,17 @@ export function LoginModal() {
   const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
+  const router = useRouter();
 
   const { control, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: "" },
   });
 
-  // Handle modal close - just close the modal, stay on current page
-  // User can click Apply again to restart the login flow
   const handleClose = (open: boolean) => {
     if (!open) {
       closeLoginModal();
+      router.push('/');
     }
   };
 
