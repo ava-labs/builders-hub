@@ -24,19 +24,19 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import versions from '@/scripts/versions.json';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'ERC20TokenHome',
     filename: 'ERC20TokenHome.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
     description: 'Home chain endpoint for ERC20 cross-chain transfers via ICTT.',
   },
   {
     name: 'NativeTokenHome',
     filename: 'NativeTokenHome.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
     description: 'Home chain endpoint for native token cross-chain transfers via ICTT.',
   },
 ];

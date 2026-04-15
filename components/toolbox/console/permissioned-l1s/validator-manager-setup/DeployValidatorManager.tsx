@@ -24,20 +24,20 @@ import { Check, BookOpen, GraduationCap } from 'lucide-react';
 import { ManualAddressInput } from './ManualAddressInput';
 import Link from 'next/link';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 // GitHub raw URLs for source code
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'ValidatorManager',
     filename: 'ValidatorManager.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
     description: 'Core contract for managing L1 validators. Emits ICM messages to update the validator set on P-Chain.',
   },
   {
     name: 'ValidatorMessages',
     filename: 'ValidatorMessages.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorMessages.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorMessages.sol`,
     description: 'Library for encoding/decoding validator management messages sent via ICM.',
   },
 ];
@@ -335,7 +335,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
               </Link>
             </div>
             <a
-              href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+              href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"

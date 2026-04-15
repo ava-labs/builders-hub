@@ -17,9 +17,9 @@ if [ ! -f "$VERSIONS_PATH" ]; then
     exit 1
 fi
 
-ICM_COMMIT=$(jq -r '."ava-labs/icm-contracts" // empty' "$VERSIONS_PATH")
+ICM_COMMIT=$(jq -r '."ava-labs/icm-services" // empty' "$VERSIONS_PATH")
 if [ -z "$ICM_COMMIT" ] || [ "$ICM_COMMIT" = "null" ]; then
-    echo "ERROR: Missing 'ava-labs/icm-contracts' commit in versions.json" >&2
+    echo "ERROR: Missing 'ava-labs/icm-services' commit in versions.json" >&2
     exit 1
 fi
 
