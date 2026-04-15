@@ -29,7 +29,7 @@ import {
   type QuestionnaireAnswers,
 } from '@/components/toolbox/stores/createL1FlowStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { getCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { generateCreateL1Steps, getStepLabel } from './generateSteps';
 
@@ -190,7 +190,6 @@ export default function CreateL1Questionnaire() {
   const setCurrentStepIndex = useCreateL1FlowStore((s) => s.setCurrentStepIndex);
 
   const { isTestnet, pChainBalance, walletEVMAddress } = useWalletStore();
-  const createChainStore = useCreateChainStore()();
   const toolboxStore = useToolboxStore();
 
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -253,7 +252,7 @@ export default function CreateL1Questionnaire() {
 
   function handleStart() {
     // Clear stale data from previous sessions so steps start fresh
-    createChainStore.reset();
+    getCreateChainStore(Boolean(isTestnet)).getState().reset();
     toolboxStore.reset();
 
     setAnswers(previewAnswers);
@@ -267,8 +266,44 @@ export default function CreateL1Questionnaire() {
   // Review page is index === totalQuestions
   const isReview = questionIndex === totalQuestions;
 
+  // Wallet gate + questionnaire — no early returns (hooks must be called unconditionally)
+  if (!isConnected) {
+    return (
+      <div className="mx-auto max-w-xl min-h-[50vh] flex items-center justify-center">
+        <div
+          className="rounded-2xl border border-zinc-700 bg-zinc-800 p-8 text-center w-full"
+          style={{
+            boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
+          }}
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.08] mx-auto mb-4">
+            <Wallet className="h-7 w-7 text-zinc-300" />
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">Connect your wallet</h2>
+          <p className="text-sm text-zinc-400 mb-1">
+            Connect a wallet to get started. We recommend starting on{' '}
+            <span className="text-zinc-200 font-medium">Fuji testnet</span>.
+          </p>
+          <p className="text-xs text-zinc-500">
+            Use Core Wallet for full P-Chain support, or MetaMask for EVM-only operations.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl min-h-[60vh] flex flex-col">
+      {/* Testnet suggestion for new users on mainnet */}
+      {!isTestnet && questionIndex === 0 && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
+          <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+            We recommend starting on <span className="font-semibold">Fuji testnet</span> for development. Switch
+            networks in the top-right corner.
+          </p>
+        </div>
+      )}
+
       {/* ── Progress ──────────────────────────────────────── */}
       <div className="mb-8">
         <ProgressBar current={questionIndex} total={totalQuestions + 1} />

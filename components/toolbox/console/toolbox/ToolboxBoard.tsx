@@ -468,7 +468,13 @@ export default function ToolboxBoard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Console Toolbox</h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            All tools in one place. Click any card to jump straight in.
+            All tools in one place.{' '}
+            <Link
+              href="/console/toolbox/composer"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 underline underline-offset-2 decoration-zinc-300 dark:decoration-zinc-600 transition-colors"
+            >
+              Flow Composer →
+            </Link>
           </p>
         </div>
         <div className="relative w-full sm:w-72">
@@ -518,36 +524,26 @@ export default function ToolboxBoard() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {tools.map((tool) => {
-                    const Icon = tool.icon;
-                    const style = CATEGORY_STYLES[tool.category] ?? DEFAULT_STYLE;
                     const card = (
                       <div
                         className={cn(
-                          'group relative rounded-2xl border border-zinc-200/80 dark:border-zinc-800',
-                          'bg-white dark:bg-zinc-900 p-4',
-                          'hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50',
-                          'hover:-translate-y-0.5',
-                          'transition-all duration-200 cursor-pointer',
-                          'flex flex-col gap-3 h-full',
-                          style.accent,
+                          'group relative rounded-xl border border-zinc-200/80 dark:border-zinc-800',
+                          'bg-white dark:bg-zinc-900 px-4 py-3',
+                          'hover:border-zinc-300 dark:hover:border-zinc-700',
+                          'hover:bg-zinc-50 dark:hover:bg-zinc-800/80',
+                          'transition-all duration-150 cursor-pointer',
+                          'flex items-center justify-between gap-3',
                         )}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Icon className={cn('h-4 w-4 shrink-0', style.iconColor)} />
-                            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                              {tool.name}
-                            </span>
-                          </div>
-                          {tool.external ? (
-                            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
-                          )}
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{tool.name}</span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">{tool.description}</p>
                         </div>
-                        <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400 line-clamp-2 flex-1">
-                          {tool.description}
-                        </p>
+                        {tool.external ? (
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
+                        )}
                       </div>
                     );
 
