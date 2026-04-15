@@ -2,70 +2,537 @@
   "title": "Advanced Technical Team1 Member",
   "quizzes": {
     "4021": {
-      "question": "What is the relationship between Interchain Messaging (ICM) and Interchain Token Transfer (ICTT) on Avalanche?",
+      "question": "What is the relationship between Avalanche Warp Messaging (AWM), ICM (Teleporter), and ICTT?",
       "options": [
-        "ICM is a generic messaging standard, while ICTT is a token-transfer standard built on top of the messaging layer",
-        "ICTT is a replacement for ICM; only one can be active on a given L1",
-        "ICM handles only token movements, while ICTT handles arbitrary messages",
-        "They are unrelated: ICM is for Layer 2s and ICTT is only for the Primary Network"
+        "AWM is the cryptographic attestation layer, ICM adds reliable smart contract messaging on top, and ICTT is a token transfer application built on ICM",
+        "ICTT is the base layer, ICM is the cryptographic primitive, and AWM is the token transfer application",
+        "They are three independent and unrelated protocols that happen to share the same precompile address",
+        "AWM and ICM are the same thing; ICTT is a separate Layer 2 solution"
       ],
       "correctAnswers": [0],
-      "hint": "Think of ICTT as a specialized use case built on a more general primitive.",
-      "explanation": "The course explains that ICM provides the generic cross‑chain messaging capability between Avalanche L1s, and ICTT builds on that foundation to define a standard way to transfer tokens between chains.",
-      "chapter": "Section 7: Interoperability (ICM & ICTT)"
+      "hint": "Think about which layer provides raw cryptographic attestation, which adds application-level messaging, and which handles tokens specifically.",
+      "explanation": "AWM provides the underlying validator-signed cryptographic proofs. ICM (Teleporter) adds message IDs, replay protection, retries, and fees on top. ICTT is a token bridging application that uses ICM for all cross-chain communication.",
+      "chapter": "Section 7: Interoperability"
     },
     "4022": {
-      "question": "Why can ICM/ICTT messages only be sent between Avalanche L1s rather than arbitrary external chains?",
+      "question": "Why can ICM messages only be sent between Avalanche L1s and not to arbitrary external chains?",
       "options": [
-        "Because Avalanche governance forbids communication with any external networks",
-        "Because the protocol and precompiles rely on the shared security and messaging guarantees of Avalanche’s P‑Chain and L1 architecture",
+        "Because Avalanche governance forbids communication with non-Avalanche networks",
+        "Because ICM relies on the WarpMessenger precompile, which uses the P-Chain to look up validator sets, and external chains do not have this precompile or P-Chain registration",
         "Because only Avalanche uses EVM-compatible bytecode",
-        "Because ICTT requires Bitcoin-style UTXO semantics"
+        "Because ICTT requires a special bridge operator to be registered on Ethereum"
       ],
       "correctAnswers": [1],
-      "hint": "Recall what underlying chain and architecture the course says make these guarantees possible.",
-      "explanation": "ICM and ICTT depend on Avalanche’s own consensus, validator set, and P‑Chain/L1 architecture to verify and relay messages and token transfers. Those guarantees are not automatically available on arbitrary external chains, so the standard is defined for Avalanche L1s.",
-      "chapter": "Section 7: Interoperability (ICM & ICTT)"
+      "hint": "Focus on what the WarpMessenger precompile needs in order to verify incoming messages.",
+      "explanation": "The WarpMessenger precompile is embedded in subnet-evm and verifies messages by looking up validator sets on the P-Chain. External chains do not run subnet-evm and are not registered on the Avalanche P-Chain, so they cannot participate in Warp verification natively.",
+      "chapter": "Section 7: Interoperability"
     },
     "4023": {
-      "question": "At a high level, what makes an eERC token different from a standard ERC‑20 on Avalanche?",
+      "question": "What makes an eERC token different from a standard ERC-20 at the data storage level?",
       "options": [
-        "eERC tokens remove the need for smart contracts entirely",
-        "eERC tokens use cryptography (including ZK proofs and specialized curves) so that balances and transfers can be private while remaining verifiable",
-        "eERC tokens are only compatible with non‑EVM chains",
-        "eERC tokens require users to share their private keys with the contract"
+        "eERC tokens store balances as plaintext uint256 values in a private mapping",
+        "eERC tokens store balances as ElGamal ciphertexts encrypted to each user's BabyJubJub public key, so the contract never holds plaintext amounts",
+        "eERC tokens do not store balances at all; amounts are computed off-chain on demand",
+        "eERC tokens use a shared symmetric key known to all validators to encrypt balances"
       ],
       "correctAnswers": [1],
-      "hint": "Think about how the course describes balances and transfers being both private and provably correct.",
-      "explanation": "The eERC course explains that encrypted tokens use primitives like BabyJubJub, ZK proofs, and partially homomorphic encryption so amounts and balances are confidential but the system can still verify conservation of value and valid transfers.",
+      "hint": "Think about what the contract actually stores and whether it can read those values directly.",
+      "explanation": "eERC balances are stored as ElGamal ciphertexts (PCTs) encrypted to each user's BabyJubJub public key. The contract can update these ciphertexts using homomorphic addition without ever decrypting them. Only the user with the corresponding private key can read their balance.",
       "chapter": "Section 8: Encrypted ERC (eERC)"
     },
     "4024": {
-      "question": "In the eERC model, why is it important to distinguish between Mint/Deposit and Burn/Withdraw?",
+      "question": "In eERC Converter mode, what is the difference between Deposit and Withdraw?",
       "options": [
-        "Because the terminology is purely cosmetic and has no effect on how value moves",
-        "Because Mint/Deposit and Burn/Withdraw describe how value enters and exits the encrypted domain, which is critical for reasoning about privacy and total supply",
-        "Because only Mint operations are allowed on Avalanche L1s",
-        "Because eERC contracts do not maintain any notion of total supply"
+        "Deposit and Withdraw are purely cosmetic terms with identical on-chain effects",
+        "Deposit moves public ERC-20 tokens into the encrypted domain by locking them; Withdraw moves encrypted tokens back to the public ERC-20 domain by unlocking them",
+        "Deposit creates brand new tokens from nothing; Withdraw destroys tokens permanently",
+        "Deposit is only available to admins; Withdraw is available to any user"
       ],
       "correctAnswers": [1],
-      "hint": "Think about how value crosses the boundary between plain ERC balances and encrypted balances.",
-      "explanation": "The course emphasizes that Mint/Deposit and Burn/Withdraw mark the points where assets move between regular ERC representations and encrypted balances. Understanding these flows is essential for reasoning about supply, privacy guarantees, and integrations with other protocols.",
+      "hint": "Consider how tokens cross the boundary between the public ERC-20 world and the private encrypted world.",
+      "explanation": "In Converter mode, Deposit locks existing public ERC-20 tokens in a TokenTracker and adds the equivalent amount as an encrypted balance. Withdraw reduces the encrypted balance and releases the locked ERC-20 tokens back to the user. These are the two entry/exit points of the private domain.",
       "chapter": "Section 8: Encrypted ERC (eERC)"
     },
     "4025": {
-      "question": "Why is Avalanche highlighted as a strong fit for x402 payment infrastructure use cases?",
+      "question": "Why is Avalanche a particularly good fit for x402 micropayments?",
       "options": [
-        "Because Avalanche charges very high protocol fees, which maximizes facilitator revenue",
-        "Because Avalanche offers low fees, fast finality, and no protocol‑level x402 fee, which are all important for HTTP‑native micropayments and AI-agent payments",
-        "Because x402 requires Proof of Work, which Avalanche uses by default",
-        "Because Avalanche is the only blockchain that can return HTTP status codes"
+        "Because Avalanche charges very high protocol fees that maximize facilitator revenue",
+        "Because Avalanche offers approximately $0.001 transaction cost and approximately one second deterministic finality, making per-request pricing economically viable",
+        "Because x402 requires a Proof-of-Work chain for security",
+        "Because Avalanche is the only EVM-compatible chain that supports the HTTP protocol"
       ],
       "correctAnswers": [1],
-      "hint": "Look at the reasons the course gives for matching protocol properties to high‑frequency payment patterns.",
-      "explanation": "The x402 course calls out that Avalanche’s low transaction costs, sub‑second/second‑level finality, and absence of protocol‑level x402 fees make it well‑suited for use cases like AI agents, per‑request API monetization, and other micropayment scenarios.",
+      "hint": "Think about what properties matter most when a payment needs to be cheap and fast enough to happen once per API call.",
+      "explanation": "Avalanche's approximately $0.001 gas cost per transaction means a $0.01 API endpoint has about 10% overhead from gas, which is economically viable. The approximately one second deterministic finality keeps the total payment flow under two seconds. High fees or slow finality would make per-request payments impractical.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4071": {
+      "question": "What is the address of the WarpMessenger precompile on Avalanche L1s?",
+      "options": [
+        "0x0000000000000000000000000000000000000001",
+        "0x0200000000000000000000000000000000000005",
+        "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf",
+        "0x0300000000000000000000000000000000000001"
+      ],
+      "correctAnswers": [1],
+      "hint": "Precompiles on Avalanche L1s use the 0x02... address prefix.",
+      "explanation": "The WarpMessenger precompile is deployed at 0x0200000000000000000000000000000000000005 on every Avalanche L1 running subnet-evm. This address is fixed and the same on all compatible chains.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4072": {
+      "question": "Which WarpMessenger precompile function does a Solidity contract call to emit a cross-chain message?",
+      "options": [
+        "getVerifiedWarpMessage(uint32 index)",
+        "getBlockchainID()",
+        "sendWarpMessage(bytes calldata payload)",
+        "verifyWarpSignature(bytes calldata message)"
+      ],
+      "correctAnswers": [2],
+      "hint": "The function name starts with 'send' and takes the raw payload bytes as input.",
+      "explanation": "sendWarpMessage(bytes calldata payload) is called to initiate a cross-chain message. It emits a SendWarpMessage event and returns the message ID. The other precompile functions are used for reading verified messages (getVerifiedWarpMessage) and reading the chain's own blockchain ID (getBlockchainID).",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4073": {
+      "question": "What must be included in the destination transaction's access list before the block is processed, in order for getVerifiedWarpMessage to return a valid result?",
+      "options": [
+        "The sender's private key",
+        "The signed Warp message encoded as a predicate",
+        "A list of all validator addresses who signed",
+        "The source chain's EVM chain ID"
+      ],
+      "correctAnswers": [1],
+      "hint": "This design choice is what makes message verification deterministic across all nodes.",
+      "explanation": "The signed Warp message must be encoded as a predicate in the receiving transaction's access list before block execution. The EVM verifies BLS signatures during block processing, so the result is the same for every node replaying the block.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4074": {
+      "question": "What is the main benefit of BLS signature aggregation for cross-chain message verification?",
+      "options": [
+        "It allows the relayer to modify message contents before delivery",
+        "It compresses many validator signatures into one 96-byte proof, keeping on-chain verification cost roughly constant regardless of how many validators signed",
+        "It eliminates the need for validators to register public keys on the P-Chain",
+        "It allows the receiving chain to skip signature verification entirely"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what would happen to gas costs if you had to verify 100 individual signatures instead of one aggregated one.",
+      "explanation": "BLS multi-signatures allow dozens of individual validator signatures to be combined into a single 96-byte aggregated signature. The on-chain verification cost for this one signature is similar to verifying a single signature, regardless of how many validators contributed. This keeps cross-chain transactions affordable.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4075": {
+      "question": "In the AWM trust model, who can forge a valid cross-chain message?",
+      "options": [
+        "Any relayer with enough stake",
+        "The TeleporterRegistry owner",
+        "Nobody. Valid messages require a BLS multi-signature from a supermajority of the source chain's validators",
+        "Any party with access to the destination chain's TeleporterMessenger contract"
+      ],
+      "correctAnswers": [2],
+      "hint": "Relayers are mechanical delivery agents; think about where the actual security comes from.",
+      "explanation": "No single party can forge a valid Warp message. Validity requires a BLS multi-signature from enough validators to meet the destination chain's quorum (typically two-thirds of stake). A malicious relayer can delay or withhold delivery but cannot fabricate a valid message.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4076": {
+      "question": "Which two contracts are required to send and manage ICM messages on an Avalanche L1?",
+      "options": [
+        "WarpMessenger and ERC20TokenHome",
+        "TeleporterMessenger and TeleporterRegistry",
+        "NativeTokenRemote and TokenTracker",
+        "EncryptedERC and Registrar"
+      ],
+      "correctAnswers": [1],
+      "hint": "One contract handles the actual send/receive logic; the other manages version upgrades.",
+      "explanation": "TeleporterMessenger is the contract that sends and receives cross-chain messages, handles replay protection, and manages relayer fees. TeleporterRegistry maps version numbers to messenger addresses so applications can always use the latest version without hardcoding an address.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4077": {
+      "question": "What is the correct type for the destinationBlockchainID field in a TeleporterMessageInput?",
+      "options": [
+        "uint256 (same as the EVM chain ID)",
+        "address (the TeleporterMessenger address on the destination chain)",
+        "bytes32 (the P-Chain transaction ID that created the blockchain)",
+        "string (the human-readable chain name)"
+      ],
+      "correctAnswers": [2],
+      "hint": "This ID comes from the P-Chain, not from Ethereum's chain ID system.",
+      "explanation": "destinationBlockchainID is a bytes32 value representing the P-Chain transaction ID that was used to register the blockchain. It is completely different from the uint256 EVM chain ID used in wallets and on Chainlist. You can retrieve it on any chain by calling getBlockchainID() on the WarpMessenger precompile.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4078": {
+      "question": "How does a relayer claim its earned fees in ICM?",
+      "options": [
+        "The fee is automatically transferred to the relayer in the same transaction that delivers the message",
+        "The relayer collects a receipt from the destination chain, waits for it to travel back to the source chain, then calls redeemRelayerRewards on the source chain",
+        "The relayer burns the fee tokens on the destination chain to unlock an equivalent amount on the source chain",
+        "Fees are not supported in ICM; relayers operate for free"
+      ],
+      "correctAnswers": [1],
+      "hint": "The fee mechanism involves receipts traveling in the reverse direction.",
+      "explanation": "The sender locks ERC-20 fees on the source chain when sending the message. After delivery, the destination TeleporterMessenger creates a receipt with the relayer's reward address. This receipt travels back to the source chain (piggybacking on the next reverse-direction message). The relayer then calls redeemRelayerRewards to claim accumulated fees.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4079": {
+      "question": "The Avalanche C-Chain has EVM chain ID 43114. How does its Avalanche blockchain ID (used in ICM) relate to this number?",
+      "options": [
+        "The blockchain ID is 43114 encoded as a bytes32 value, padded with zeros",
+        "The blockchain ID is the keccak256 hash of 43114",
+        "The two have no mathematical relationship. The blockchain ID is the P-Chain transaction ID used to create the chain",
+        "The blockchain ID is always the same as the EVM chain ID, just expressed in hexadecimal"
+      ],
+      "correctAnswers": [2],
+      "hint": "These two identifiers come from completely different systems.",
+      "explanation": "The EVM chain ID (43114 for C-Chain) is used in Ethereum transaction signing and is registered on Chainlist. The Avalanche blockchain ID is the P-Chain txID from when the chain was registered on the P-Chain. The two have no mathematical relationship. When building ICM applications you need the bytes32 blockchain ID; when configuring wallets you need the uint256 EVM chain ID.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4080": {
+      "question": "What is the correct way to encode a Solidity string and address for an ICM cross-chain message payload?",
+      "options": [
+        "bytes memory payload = abi.encodePacked(myString, myAddress)",
+        "bytes memory payload = abi.encode(myString, myAddress)",
+        "bytes memory payload = keccak256(abi.encode(myString, myAddress))",
+        "string memory payload = string(abi.encode(myString, myAddress))"
+      ],
+      "correctAnswers": [1],
+      "hint": "The encoding must be reversible for decoding on the other side.",
+      "explanation": "abi.encode is the correct function. It produces a padded, decodable bytes blob that can be decoded with abi.decode(payload, (string, address)) on the receiving contract. abi.encodePacked is compact but not safely decodable for dynamic types. keccak256 is a one-way hash, not encoding.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4081": {
+      "question": "In ICTT's lock-and-mint model, what does the TokenHome contract do when it receives a transfer request?",
+      "options": [
+        "It mints new tokens on the source chain and sends a burn message to the destination",
+        "It locks the user's tokens as collateral and sends an ICM message to the TokenRemote on the destination chain to mint a representation",
+        "It burns the tokens permanently and issues a proof of destruction to the user",
+        "It transfers tokens directly to the destination chain's native storage without any smart contracts"
+      ],
+      "correctAnswers": [1],
+      "hint": "The 'home' is where original assets live; think about what happens to those assets when they cross chains.",
+      "explanation": "In ICTT's hub-and-spoke model, the TokenHome on the source chain locks the user's tokens as collateral. It then sends an ICM message to the corresponding TokenRemote on the destination chain. The TokenRemote mints a representation of the token for the recipient. The original tokens remain locked in the TokenHome as collateral backing the remote representations.",
+      "chapter": "Section 7: Interoperability"
+    },
+    "4082": {
+      "question": "Why does eERC use the BabyJubJub curve instead of more common curves like secp256k1?",
+      "options": [
+        "BabyJubJub is faster for ECDSA signature verification in standard Ethereum transactions",
+        "BabyJubJub's field arithmetic is aligned with the BN128 curve used by Groth16 zk-SNARKs, making it dramatically cheaper to use inside zero-knowledge proof circuits",
+        "BabyJubJub is required by EIP-3009 for gasless payment authorizations",
+        "secp256k1 is deprecated and no longer supported on Avalanche"
+      ],
+      "correctAnswers": [1],
+      "hint": "The reason is about efficiency inside a specific type of cryptographic proof system.",
+      "explanation": "BabyJubJub is a twisted Edwards elliptic curve specifically designed so its arithmetic operations are cheap inside Groth16 zk-SNARK circuits, which use the BN128 pairing curve. Using secp256k1 or BLS12-381 inside ZK circuits would be much more expensive. This design choice is what makes eERC's proofs practical to generate and verify.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4083": {
+      "question": "Why does eERC use asymmetric rather than symmetric cryptography for encrypting token balances?",
+      "options": [
+        "Because symmetric encryption is not supported on Avalanche",
+        "Because asymmetric encryption allows anyone to encrypt a balance to a recipient's public key without needing a shared secret, which is necessary in a trustless blockchain context",
+        "Because symmetric keys are more expensive to store on-chain",
+        "Because asymmetric encryption is required by the ERC-20 standard"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider how a sender would need to share a key in symmetric cryptography, and why that's impractical on a blockchain.",
+      "explanation": "Symmetric encryption requires both parties to agree on and securely share a key beforehand. In a trustless blockchain environment, the sender has no way to securely share a key with the recipient. Asymmetric encryption solves this: anyone can encrypt to a recipient by using their publicly registered BabyJubJub public key. Only the recipient's private key can decrypt it.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4084": {
+      "question": "What does a zero-knowledge proof allow a user to demonstrate in an eERC transfer?",
+      "options": [
+        "That their wallet address is on a KYC whitelist",
+        "That the transfer amount is non-zero",
+        "That the transfer is valid (they have sufficient balance, the new ciphertexts are correctly computed) without revealing the actual amounts",
+        "That the recipient is registered on the Registrar contract"
+      ],
+      "correctAnswers": [2],
+      "hint": "The word 'zero-knowledge' refers to what is NOT revealed to the verifier.",
+      "explanation": "A ZK proof lets the sender prove to the contract that: they know their private key, their new balance after the transfer is non-negative (they're not overspending), and the new ciphertexts for both sender and recipient are correctly computed. None of this requires revealing the actual balance or transfer amount to anyone.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4085": {
+      "question": "What specific operation does the Partial Homomorphic Encryption used in eERC support on ciphertexts?",
+      "options": [
+        "Multiplication of two encrypted values",
+        "Addition of two encrypted values, resulting in an encryption of the sum",
+        "Division of an encrypted value by a known scalar",
+        "Comparison of two encrypted values to determine which is larger"
+      ],
+      "correctAnswers": [1],
+      "hint": "This operation maps directly to what token transfers need.",
+      "explanation": "ElGamal encryption over BabyJubJub is additively homomorphic: adding two ciphertexts point-wise produces a ciphertext that decrypts to the sum of the underlying values. This is exactly what token transfers need (new_balance = old_balance + received), and it allows the contract to update balances without ever decrypting them.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4086": {
+      "question": "What is the relationship between an EGCT and a PCT in the eERC standard?",
+      "options": [
+        "An EGCT is the off-chain representation; a PCT is the fully on-chain version with extra metadata",
+        "An EGCT (ElGamal CipherText) is the encrypted pair of curve points representing a token amount; a PCT (Packed CipherText) is the compact on-chain encoding of that EGCT",
+        "EGCT is used for minting; PCT is used for transfers",
+        "PCT is the proof accompanying the EGCT; they are always submitted together in a single transaction"
+      ],
+      "correctAnswers": [1],
+      "hint": "One is the cryptographic object; the other is how it's stored efficiently on-chain.",
+      "explanation": "An EGCT is the mathematical ElGamal ciphertext: two BabyJubJub curve points (C1, C2) that together encrypt a token amount. A PCT is the compact, packed byte encoding of that EGCT used for efficient on-chain storage in the EncryptedUserBalances contract. The two terms refer to the same data in different representations.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4087": {
+      "question": "A company wants to add confidentiality to their existing USDC-pegged stablecoin already deployed on Avalanche. Which eERC mode should they use?",
+      "options": [
+        "Standalone, because it provides stronger privacy since no public ERC-20 exists",
+        "Converter, because it wraps an existing ERC-20 and allows users to move between the public and private representations",
+        "Both modes simultaneously, running in parallel",
+        "Neither; eERC only works with native tokens, not ERC-20s"
+      ],
+      "correctAnswers": [1],
+      "hint": "One mode starts from scratch; the other connects to an existing token.",
+      "explanation": "Converter mode is designed for this scenario. It uses a TokenTracker to link the existing ERC-20 to its encrypted wrapper. Users deposit public tokens to receive an encrypted balance, and withdraw to convert back. Standalone mode would create a completely new token with no connection to the existing one.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4088": {
+      "question": "What is the correct order for deploying an eERC Converter system?",
+      "options": [
+        "Deploy EncryptedERC first, then TokenTracker, then Registrar",
+        "Deploy Registrar, ProofVerifier, EncryptedUserBalances, EncryptedERC, and then TokenTracker pointing to the existing ERC-20",
+        "Deploy TokenTracker first, then Registrar, then EncryptedERC",
+        "All contracts can be deployed in any order since they are independent"
+      ],
+      "correctAnswers": [1],
+      "hint": "Supporting contracts need to exist before the main contract references them.",
+      "explanation": "The deployment order matters because EncryptedERC needs references to Registrar, ProofVerifier, and EncryptedUserBalances at construction time. TokenTracker links the existing ERC-20 to the encrypted system and is registered last. The Standalone flow follows the same order minus the TokenTracker step.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4089": {
+      "question": "What must a user do before they can receive encrypted tokens in an eERC contract?",
+      "options": [
+        "Send a small AVAX deposit to the EncryptedERC contract to cover storage costs",
+        "Generate a BabyJubJub key pair, create a registration ZK proof demonstrating knowledge of the private key, and submit both to the Registrar contract",
+        "Request approval from the contract owner to be added to a whitelist",
+        "Deploy a personal TokenTracker contract linked to their Ethereum address"
+      ],
+      "correctAnswers": [1],
+      "hint": "The registration step establishes what public key others will use to encrypt tokens for this user.",
+      "explanation": "Users must register their BabyJubJub public key with the Registrar contract before anyone can encrypt tokens for them. This requires generating a key pair, creating a registration ZK proof (proving they know the private key without revealing it), and submitting the public key and proof to the Registrar.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4090": {
+      "question": "In eERC Standalone mode, how does new supply enter the system?",
+      "options": [
+        "Through Deposit, which locks existing ERC-20 tokens",
+        "Through Mint, which creates new encrypted tokens without a corresponding ERC-20",
+        "Through Withdraw, which converts public tokens to private ones",
+        "Through the ProofVerifier contract issuing new tokens when proofs are submitted"
+      ],
+      "correctAnswers": [1],
+      "hint": "Standalone has no external ERC-20, so value cannot come from outside the encrypted system.",
+      "explanation": "In Standalone mode, Mint is the only source of new supply. A privileged address calls mint, which creates new encrypted tokens and adds them to a recipient's encrypted balance via a ZK proof. There is no underlying ERC-20 to lock or unlock. Deposit and Withdraw are Converter-mode concepts.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4091": {
+      "question": "When the eERC contract adds received tokens to a user's existing balance, what mathematical operation does it perform on-chain?",
+      "options": [
+        "It decrypts both ciphertexts, adds the plaintext values, then re-encrypts the sum",
+        "It calls a trusted oracle to compute the sum and re-encrypt it",
+        "It performs point-wise addition of the two ElGamal ciphertexts, which by homomorphic properties results in a ciphertext of the sum",
+        "It stores both ciphertexts separately and sums them only when the user requests their balance"
+      ],
+      "correctAnswers": [2],
+      "hint": "The answer is related to the additive homomorphic property of ElGamal encryption.",
+      "explanation": "The EncryptedUserBalances contract performs point-wise elliptic curve point addition on the two ECGTs. Because ElGamal encryption over BabyJubJub is additively homomorphic, this produces a new ciphertext that decrypts to the sum of the two original values. No decryption happens at any point.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4092": {
+      "question": "What ZK proof system does eERC use for all its circuits, and what are its main advantages?",
+      "options": [
+        "STARK proofs, chosen for transparency and no trusted setup",
+        "PLONK proofs, chosen for universal trusted setup",
+        "Groth16 zk-SNARKs, chosen for fast on-chain verification, small proof size, and low gas cost",
+        "Bulletproofs, chosen for not requiring a trusted setup"
+      ],
+      "correctAnswers": [2],
+      "hint": "This is the same proof system used widely in zkEVM projects.",
+      "explanation": "eERC uses Groth16 zk-SNARKs implemented with Circom circuits. Groth16 was chosen because it produces small proofs, verifies quickly on-chain, and has low gas costs for the on-chain verifier. The tradeoff is that it requires a trusted setup per circuit, which eERC inherits from established zkEVM project setups.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4093": {
+      "question": "In eERC Standalone mode, what is the effect of calling Burn?",
+      "options": [
+        "It converts the encrypted tokens to ERC-20 tokens and returns them to the user",
+        "It destroys the encrypted tokens permanently, reducing the user's encrypted balance with a ZK proof, with no tokens released to any external system",
+        "It transfers the tokens to a reserve contract for future redistribution",
+        "It temporarily freezes the user's balance until an admin approves the burn"
+      ],
+      "correctAnswers": [1],
+      "hint": "In Standalone mode there is no external ERC-20, so there is nothing to return.",
+      "explanation": "In Standalone mode, Burn permanently destroys encrypted tokens. The user submits a ZK burn proof, and the EncryptedERC contract reduces their encrypted balance accordingly. Since there is no underlying public ERC-20, no tokens are released anywhere. Burn is the terminal operation for Standalone tokens. Withdraw (the Converter-mode equivalent) would release public ERC-20 tokens.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4094": {
+      "question": "Which of the following is NOT a realistic use case for encrypted tokens?",
+      "options": [
+        "Enterprise payroll where salary amounts should remain confidential on-chain",
+        "Institutional trading of tokenized real-world assets where counterparties need to hide trade sizes",
+        "Public on-chain voting where all votes must be auditable by everyone in real time",
+        "Private DeFi positions where collateral amounts should not be visible to competitors"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about whether the use case benefits from hiding amounts or benefits from full public transparency.",
+      "explanation": "Public on-chain voting that requires real-time public auditability is the opposite of what encrypted tokens provide. Encrypted tokens are designed for confidentiality. The other options (payroll, institutional trading, DeFi positions) all benefit from hiding amounts from general public observation while still being verifiably correct.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4095": {
+      "question": "What fundamental problem with internet payments does x402 aim to solve?",
+      "options": [
+        "The lack of a standard for encoding payment amounts in JSON",
+        "The fact that the internet has no native payment layer, requiring accounts, billing systems, and processors that charge high fees, making sub-cent payments impossible",
+        "The incompatibility between different EVM chains",
+        "The difficulty of verifying that a blockchain transaction was included in a block"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what a developer needs to do today just to charge $0.001 per API call.",
+      "explanation": "The internet was built without a payment layer. Adding payments today requires creating accounts, managing subscriptions, integrating processors that charge ~2.9% + $0.30 per transaction, and handling complex authentication. For sub-cent micropayments or autonomous AI agents, this infrastructure is either economically impossible or requires human-in-the-loop authorization. x402 embeds payments directly into HTTP, removing all of this overhead.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4096": {
+      "question": "In the x402 protocol, what triggers the server to return an HTTP 402 response?",
+      "options": [
+        "The client exceeds a rate limit",
+        "The client makes a request to a protected resource without providing a valid X-PAYMENT header",
+        "The server's blockchain node is offline",
+        "The client's IP address is not in a geographic allowlist"
+      ],
+      "correctAnswers": [1],
+      "hint": "402 is the standard HTTP status code for 'Payment Required'.",
+      "explanation": "A 402 response is returned when a client requests a protected resource without providing a valid payment. The response body (or header) contains the payment requirements: price, token, recipient address, network, and validity window. The client then constructs a signed payment and retries the request with the X-PAYMENT header.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4097": {
+      "question": "Which of the following is the BEST example of an x402 use case?",
+      "options": [
+        "A user logging into a website with a username and password",
+        "An AI agent autonomously paying per API call to access real-time data feeds without human-in-the-loop authorization",
+        "A developer compiling a Solidity smart contract",
+        "A validator earning block rewards on the Primary Network"
+      ],
+      "correctAnswers": [1],
+      "hint": "x402 is designed for programmatic, per-request payments that need to work without any human present.",
+      "explanation": "An AI agent that needs to autonomously pay for services is the ideal x402 use case. The agent reads the 402 response, signs the payment, and retries the request all within its execution loop, with no human authorization required. x402 also works for human-facing micropayments and API monetization, but AI agent payments are its most differentiated use case.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4098": {
+      "question": "In the x402 payment flow, which step comes immediately after the server receives and verifies the X-PAYMENT header?",
+      "options": [
+        "The server returns the resource immediately without waiting for on-chain confirmation",
+        "The server calls the facilitator's /settle endpoint to submit the payment on-chain",
+        "The server sends a confirmation email to the client",
+        "The server mints a new token representing the payment receipt"
+      ],
+      "correctAnswers": [1],
+      "hint": "Verification confirms the signature is valid; settlement actually moves the tokens on-chain.",
+      "explanation": "After the server confirms via the facilitator's /verify endpoint that the payment signature is valid, it calls the /settle endpoint. The facilitator then submits the EIP-3009 transferWithAuthorization to the USDC contract on-chain. After on-chain confirmation, the facilitator returns the transaction hash, and the server delivers the resource with an X-PAYMENT-RESPONSE header.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4099": {
+      "question": "What are the two main responsibilities of an x402 facilitator?",
+      "options": [
+        "Storing user private keys and managing subscription billing",
+        "Verifying the signed payment payload (checking signature, amount, nonce, timestamp) and settling the payment on-chain by calling transferWithAuthorization on the USDC contract",
+        "Mining blocks and processing validator rewards",
+        "Issuing payment tokens and managing token supply"
+      ],
+      "correctAnswers": [1],
+      "hint": "The facilitator stands between the server and the blockchain.",
+      "explanation": "The facilitator has two jobs: first, it verifies the X-PAYMENT payload (checking EIP-712 signature validity, amount compliance, timestamp window, and nonce uniqueness). Second, it settles the payment on-chain by calling transferWithAuthorization on the USDC contract, paying gas from its own wallet. The end user never needs to interact with the blockchain directly.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4100": {
+      "question": "What EIP standard does the X-PAYMENT header use for the payment authorization, and why is it important?",
+      "options": [
+        "EIP-1559 (fee market), because it allows dynamic gas pricing",
+        "EIP-3009 (transferWithAuthorization), because it allows the user to sign a USDC transfer off-chain and a third party (the facilitator) to submit it on-chain",
+        "EIP-721 (NFT standard), because payments are represented as NFT receipts",
+        "EIP-4337 (account abstraction), because it enables smart contract wallets"
+      ],
+      "correctAnswers": [1],
+      "hint": "This EIP is natively supported by USDC and allows gasless transfers.",
+      "explanation": "EIP-3009 (transferWithAuthorization) is a gasless payment standard built into USDC. The user signs an EIP-712 typed data authorization off-chain. The facilitator submits this authorization to the USDC contract on-chain, and the USDC contract atomically transfers tokens from user to merchant. The user pays no gas, only the facilitator does.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4101": {
+      "question": "Why do end users need zero AVAX when making x402 payments on Avalanche?",
+      "options": [
+        "Because Avalanche has no gas fees on the C-Chain",
+        "Because the facilitator submits the on-chain transaction and pays gas from its own wallet; the user only signs an off-chain EIP-712 message",
+        "Because x402 payments are processed off-chain and never touch the Avalanche blockchain",
+        "Because USDC covers gas fees automatically when transferred"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about who actually submits the blockchain transaction.",
+      "explanation": "The user only creates and signs an EIP-712 typed data authorization. They never submit a blockchain transaction. The facilitator takes this signed message and submits the transferWithAuthorization call to the USDC contract, paying gas from its own AVAX wallet. This is what makes x402 gasless for end users.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4102": {
+      "question": "Which mechanism prevents an x402 payment signature from being used twice (replay attack)?",
+      "options": [
+        "The server logs all payment signatures in a database and rejects duplicates",
+        "A 32-byte random nonce included in the authorization that the USDC contract records and rejects if reused, combined with a short validity window defined by validAfter and validBefore timestamps",
+        "Payment signatures expire after 24 hours based on block number",
+        "The facilitator assigns a sequential ID to each payment and rejects non-sequential IDs"
+      ],
+      "correctAnswers": [1],
+      "hint": "The replay protection is built into the USDC contract itself, not the server.",
+      "explanation": "Each EIP-3009 authorization includes a 32-byte random nonce that the USDC contract records after use. The same nonce cannot be used again. The validAfter and validBefore timestamps create a short validity window (typically 30-60 seconds). Together these prevent replay attacks: expired signatures are useless, and valid-time signatures can only be used once.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4103": {
+      "question": "What is the main difference between Thirdweb and Ultravioleta DAO as x402 facilitator options on Avalanche?",
+      "options": [
+        "Thirdweb supports only AVAX payments; Ultravioleta DAO supports only USDC",
+        "Thirdweb is a commercial enterprise hosted service with dashboard analytics; Ultravioleta DAO is a community-governed DAO facilitator with focus on the Latin American Avalanche ecosystem",
+        "Thirdweb operates on the Fuji testnet; Ultravioleta DAO operates only on mainnet",
+        "Thirdweb charges users a 1% fee per transaction; Ultravioleta DAO is completely free"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about who runs each and who they are primarily built for.",
+      "explanation": "Thirdweb is a commercial product with enterprise features including transaction analytics and EIP-7702 support. Ultravioleta DAO is a community-governed DAO that is particularly active in Latin American builder communities and covers 100% of gas costs. Both work on Avalanche C-Chain and both sponsor gas for end users.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4104": {
+      "question": "What is the correct Avalanche network string to use in x402 middleware configuration for the Fuji testnet?",
+      "options": [
+        "\"ethereum-fuji\"",
+        "\"avalanche-fuji\"",
+        "\"avax-testnet\"",
+        "\"fuji-43113\""
+      ],
+      "correctAnswers": [1],
+      "hint": "x402 network strings use the blockchain name followed by the network name.",
+      "explanation": "The x402 network string for Avalanche Fuji testnet is \"avalanche-fuji\". For Avalanche mainnet, the strings are \"avalanche\" or \"avalanche-c-chain\". These strings are used in the middleware configuration, the PAYMENT-REQUIRED header, and the X-PAYMENT payload to identify which network and USDC contract to use.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4105": {
+      "question": "In an x402 middleware configuration, what does the requiredGasLimit field in TeleporterMessageInput correspond to in the x402 context?",
+      "options": [
+        "The gas limit field is the same; x402 and ICM share the same configuration format",
+        "x402 middleware configuration uses price (e.g. \"$0.01\"), network, and recipient wallet, not gas limit fields",
+        "The requiredGasLimit maps directly to the validBefore timestamp in the X-PAYMENT header",
+        "Both protocols use requiredGasLimit to prevent overpayment"
+      ],
+      "correctAnswers": [1],
+      "hint": "x402 middleware is for HTTP-layer payment configuration, not blockchain transaction parameters.",
+      "explanation": "x402 middleware configuration is entirely different from ICM contract parameters. In x402 middleware you specify the price (as a dollar amount string), the network, the recipient wallet address, and optionally a description. The facilitator handles all gas-related concerns internally. TeleporterMessageInput.requiredGasLimit is an ICM concept with no direct equivalent in x402.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    },
+    "4106": {
+      "question": "What does a high 'abandoned payment rate' KPI indicate about an x402 integration?",
+      "options": [
+        "The facilitator is settling payments too quickly",
+        "Many clients receive a 402 response but never retry with a valid payment, suggesting the price is too high, the client has insufficient funds, or the UX is unclear",
+        "On-chain transactions are failing at an unusually high rate",
+        "The server is returning 200 responses without requiring payment"
+      ],
+      "correctAnswers": [1],
+      "hint": "Abandonment means the client saw the price and chose not to pay.",
+      "explanation": "A high abandoned payment rate means clients receive the 402 with payment requirements but never retry with a valid X-PAYMENT header. Common causes are pricing that is too high for the perceived value of the resource, clients that run out of USDC, or a client-side integration that does not handle the 402 response correctly. Investigating this metric helps tune pricing and identify integration issues.",
       "chapter": "Section 9: x402 Payment Infrastructure"
     }
   }
 }
-
