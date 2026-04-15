@@ -240,8 +240,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
           />
         )}
 
-        {/* Website (Only for projects without hackathon) - key-value like Deployed Addresses */}
-        {!hasHackathon && (
           <FormField
             control={form.control}
             name='website'
@@ -314,10 +312,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
               </FormItem>
             )}
           />
-        )}
-
-        {/* Socials (Only for projects without hackathon) - key-value like Deployed Addresses */}
-        {!hasHackathon && (
+        
           <FormField
             control={form.control}
             name='socials'
@@ -390,7 +385,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
               </FormItem>
             )}
           />
-        )}
 
         {/* Deployed Addresses (Only for projects without hackathon) */}
         {!hasHackathon && (
