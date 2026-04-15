@@ -1,46 +1,234 @@
 ---
-title: "Section 7 – Interoperability (ICM & ICTT)"
-description: "Interchain messaging and token transfer between Avalanche L1s."
-updated: 2026-03-05
+title: Interoperability, ICM, and ICTT
+description: Understand how Avalanche L1s communicate with each other through Avalanche Warp Messaging, the Teleporter messaging layer, and Interchain Token Transfer.
+updated: 2026-04-15
 authors: [team1]
-icon: Zap
+icon: BookOpen
 ---
 
-## Section 7 – Interoperability (ICM & ICTT)
+Before reading this page, work through the Avalanche Academy tracks on **[Interchain Messaging](https://build.avax.network/academy/avalanche-l1/interchain-messaging)**, **[ERC20 Bridge](https://build.avax.network/academy/avalanche-l1/erc20-bridge)**, and **[Native Token Bridge](https://build.avax.network/academy/avalanche-l1/native-token-bridge)**. This page connects those courses into a single coherent picture and fills in the details you need to reason about cross-chain applications.
 
-Avalanche supports rich interoperability between L1s via Interchain Messaging (ICM) and Interchain Token Transfer (ICTT). These capabilities are covered in detail in the Avalanche Academy tracks for **Interchain Messaging**, **ERC20 Bridge**, and **Native Token Bridge**.[`https://build.avax.network/academy/avalanche-l1/interchain-messaging`](https://build.avax.network/academy/avalanche-l1/interchain-messaging) [`https://build.avax.network/academy/avalanche-l1/erc20-bridge`](https://build.avax.network/academy/avalanche-l1/erc20-bridge) [`https://build.avax.network/academy/avalanche-l1/native-token-bridge`](https://build.avax.network/academy/avalanche-l1/native-token-bridge)
+## How Interoperability Works on Avalanche
 
-### 7.1 Learning Objectives
+Avalanche’s approach to interoperability is built in three layers that sit on top of each other.
 
-By the end of this section, you should be able to:
+**Avalanche Warp Messaging (AWM)** is the lowest layer. It is a cryptographic primitive baked into the Avalanche node software. Validators on the sending chain sign outgoing messages with their BLS keys, and the receiving chain verifies those signatures against the validator set registered on the P-Chain. No bridge operator, no multisig, no oracle is involved. The trust comes from the same validators that produce blocks.
 
-- Explain **how interoperability is achieved on Avalanche**, including the role of Avalanche Warp Messaging (AWM) and ICM‑compatible precompiles.[`https://build.avax.network/academy/avalanche-l1/interchain-messaging`](https://build.avax.network/academy/avalanche-l1/interchain-messaging)
-- Describe **how the ICM standard works** at a high level: how messages are constructed, routed, and delivered between L1s.
-- Identify **which precompiles are used by ICM** to ensure message transfer and verification on Avalanche L1s.
-- Explain **what signature aggregation is**, why it is used in cross‑chain messaging, and how it contributes to security and efficiency.
-- Discuss **who is responsible for trust in the message relay** (e.g., relayers, validators, or protocol‑level guarantees).
-- Identify **which contracts are required to send messages between L1s** using ICM and how they are deployed.
-- Explain **why messages can only be sent between Avalanche L1s**, and which blockchain (Avalanche’s P‑Chain and L1 architecture) enables this behavior.
-- Define **ICTT (Interchain Token Transfer)** and its relationship to ICM and token bridging.
-- Describe **which attributes must be used and sent in ICM and ICTT contracts** (e.g., destination chain identifiers, payload encoding, fee parameters).
-- Explain **relayer incentives** in ICM and ICTT: how relayers get paid and why the system remains economically secure.
-- Distinguish between **destinationChainID** in ICM/ICTT and **chainId** values in Chainlist, and why both are needed.
-- Encode data into bytes before sending cross‑chain messages, using standard encoding utilities in Solidity or client libraries.
-- Define **what a bridge is** and how it works at a conceptual level (lock‑and‑mint, burn‑and‑release, messaging‑based transfers).
+**ICM (Interchain Messaging)**, also called Teleporter, is the smart contract layer on top of AWM. It adds message IDs, delivery guarantees, replay protection, retry mechanisms, and a fee system for relayers. It is how developers actually write cross-chain applications.
 
-### 7.2 Study Path & Practice
+**ICTT (Interchain Token Transfer)** is an application built on top of ICM. It provides a standardized way to move ERC-20 and native tokens between chains using a hub-and-spoke architecture.
 
-**Recommended Builder Hub courses:**
+The relationship is: AWM provides raw attestation, ICM provides reliable messaging, ICTT provides token transfer.
 
-- **Interchain Messaging** – protocol overview, AWM, and ICM contracts.[`https://build.avax.network/academy/avalanche-l1/interchain-messaging`](https://build.avax.network/academy/avalanche-l1/interchain-messaging)
-- **ERC20 Bridge** – using ICTT to move ERC‑20 tokens between Avalanche L1s.[`https://build.avax.network/academy/avalanche-l1/erc20-bridge`](https://build.avax.network/academy/avalanche-l1/erc20-bridge)
-- **Native Token Bridge** – bridging native tokens using ICTT and related tooling.[`https://build.avax.network/academy/avalanche-l1/native-token-bridge`](https://build.avax.network/academy/avalanche-l1/native-token-bridge)
+## The WarpMessenger Precompile
 
-**Suggested practice:**
+A **precompile** is a contract whose logic is implemented in the node software rather than in EVM bytecode. It has a fixed address and is called from Solidity like any other contract, but it executes natively in Go, which lets it access things the EVM cannot normally reach, like the chain’s validator set.
 
-- Implement a simple demo where:
-  - One Avalanche L1 sends a message to another using ICM.
-  - The destination chain decodes the payload and emits an event or updates state.
-- Extend the demo to use **ICTT** for a minimal ERC‑20 transfer between two L1s.
-- Document your setup and use it in a Team1 workshop or blog post, helping builders understand how to use ICM/ICTT in their own projects.
+The `WarpMessenger` precompile lives at:
+
+```
+0x0200000000000000000000000000000000000005
+```
+
+It exposes three functions through the `IWarpMessenger` interface:
+
+```solidity
+// Emit a cross-chain message. Returns the message ID (sha256 hash).
+function sendWarpMessage(bytes calldata payload) external returns (bytes32 messageID);
+
+// Read a verified incoming message. Index refers to position in the block predicate list.
+function getVerifiedWarpMessage(uint32 index)
+    external view returns (WarpMessage memory message, bool valid);
+
+// Returns this chain’s Avalanche blockchain ID (a P-Chain txID, not the EVM chainId).
+function getBlockchainID() external view returns (bytes32 blockchainID);
+```
+
+When a contract calls `sendWarpMessage`, the precompile emits a `SendWarpMessage` event with the unsigned message. Validators then individually sign this message with their BLS keys. A relayer collects enough signatures and submits the signed message to the destination chain.
+
+On the destination side, the signed message must be included as a **predicate** in the receiving transaction’s access list before block processing. The EVM verifies the BLS signature at block execution time. After that, any contract can call `getVerifiedWarpMessage` to read the verified contents. Because the predicate is part of the block itself, every node reaches the same conclusion and block re-execution remains deterministic.
+
+## Why Messages Can Only Be Sent Between Avalanche L1s
+
+The WarpMessenger precompile is embedded in `subnet-evm`, the EVM implementation used by all Avalanche L1s including the C-Chain. It works by looking up source chain validator sets from the **P-Chain**, which tracks all registered L1s and their validators.
+
+This means cross-chain messages work natively between any two Avalanche L1s because they all share the P-Chain as the source of validator set truth. External blockchains like Ethereum mainnet do not run `subnet-evm`, do not have the WarpMessenger precompile, and are not registered on the Avalanche P-Chain, so they cannot participate in AWM natively.
+
+The C-Chain is itself an Avalanche L1 in this model. It can both send and receive Warp messages exactly like any custom L1.
+
+## BLS Signature Aggregation
+
+Each Avalanche validator registers a BLS public key on the P-Chain when it joins. BLS (Boneh-Lynn-Shacham) has a useful property: many individual signatures over the same message can be combined into a single 96-byte aggregated signature that verifies as a batch in one on-chain operation. This keeps cross-chain verification costs low regardless of how many validators signed.
+
+Here is how the process works for a cross-chain message:
+
+1. A contract calls `sendWarpMessage`. Validators observe this and each independently sign the unsigned message with their BLS private key.
+2. A relayer collects signatures from enough validators to meet the destination chain’s quorum (default: two-thirds of stake).
+3. The relayer aggregates all collected signatures into one 96-byte BLS multi-signature.
+4. The relayer builds a bitset indicating which validator (by position in the P-Chain’s canonical sorted list) contributed a signature.
+5. The relayer encodes this signed message into the destination transaction’s access list and broadcasts the transaction.
+6. The destination chain reads the source chain’s validator set from the P-Chain at the relevant block height, reconstructs the aggregate public key from the bitset, and verifies the 96-byte signature.
+
+The result is that a message signed by dozens of validators costs roughly the same to verify on-chain as a message signed by one.
+
+## Who Is Responsible for Trust
+
+The trust model in AWM-based messaging is clear: **the validators of the source chain are the trust anchors.** There is no external party involved. If a supermajority of the source chain’s validators attest to a message, the destination chain accepts it.
+
+The relayer’s role is purely mechanical: collect signatures and deliver the signed message. Relayers cannot forge signatures, alter message contents, or inject messages that validators never attested to. A malicious relayer can delay or censor delivery, but cannot fabricate valid messages.
+
+This is fundamentally different from wrapped-bridge approaches, where security depends on a multisig or a small set of permissioned operators. With AWM, a message is as trustworthy as the consensus of the source chain itself.
+
+## ICM: The Teleporter Contracts
+
+ICM is implemented as two smart contracts: `TeleporterMessenger` and `TeleporterRegistry`.
+
+### TeleporterMessenger
+
+`TeleporterMessenger` is the contract you interact with to send and receive cross-chain messages. It is deployed using Nick’s Method (a deterministic deployment technique) so it has the **same address on every chain** for a given version. Once deployed, it is never upgraded. New versions get new addresses.
+
+To send a message:
+
+```solidity
+struct TeleporterMessageInput {
+    bytes32 destinationBlockchainID; // P-Chain txID of the destination chain
+    address destinationAddress;       // Contract to receive the message on the other side
+    TeleporterFeeInfo feeInfo;        // ERC-20 fee offered to the relayer
+    uint256 requiredGasLimit;         // Gas budget for execution on the destination
+    address[] allowedRelayerAddresses; // Leave empty to allow any relayer
+    bytes message;                    // ABI-encoded payload
+}
+
+struct TeleporterFeeInfo {
+    address feeTokenAddress; // ERC-20 token used to pay the relayer
+    uint256 amount;          // Fee amount in token units
+}
+```
+
+To receive a message, your contract must implement `ITeleporterReceiver`:
+
+```solidity
+function receiveTeleporterMessage(
+    bytes32 sourceBlockchainID,
+    address originSenderAddress,
+    bytes calldata message
+) external;
+```
+
+`TeleporterMessenger` handles replay protection using unique message IDs. It also stores failed message executions so they can be retried later without resending from the source chain. The `retryMessageExecution` function handles this scenario.
+
+### TeleporterRegistry
+
+Because `TeleporterMessenger` is non-upgradeable, there is a `TeleporterRegistry` contract that maps version numbers to messenger addresses. Your application looks up the latest registered messenger via `getLatestTeleporter()` instead of hardcoding an address. When Teleporter is upgraded, only the registry needs updating, and all applications using it automatically route through the new version.
+
+Registry updates are gated behind an ICM message from address zero (validators only), so the update process uses the same trust model as cross-chain messaging.
+
+## destinationBlockchainID vs chainId
+
+This distinction catches almost everyone the first time.
+
+| Identifier | Format | What it is |
+|---|---|---|
+| `destinationBlockchainID` | `bytes32` | The P-Chain transaction ID that created the blockchain. Returned by `getBlockchainID()`. Used in all ICM and ICTT calls. |
+| EVM `chainId` | `uint256` | The integer chain ID used in Ethereum transaction signing, registered on Chainlist. |
+
+The C-Chain’s EVM chain ID is 43114. Its Avalanche blockchain ID is a completely different 32-byte value. The two have no mathematical relationship. When building an ICM application, you need the `bytes32` blockchain ID. When configuring wallets or RPC endpoints, you need the integer chain ID.
+
+You can retrieve a chain’s blockchain ID by calling `getBlockchainID()` on the WarpMessenger precompile on that chain, or by looking it up in the Avalanche documentation.
+
+## Encoding Data for Cross-Chain Messages
+
+Messages travel as raw bytes. Encode your data with `abi.encode` on the sender side and decode it with `abi.decode` on the receiver.
+
+```solidity
+// Sender: encode a string and a number into a bytes payload
+bytes memory payload = abi.encode("hello", uint256(42));
+
+teleporterMessenger.sendCrossChainMessage(
+    TeleporterMessageInput({
+        destinationBlockchainID: destinationChainID,
+        destinationAddress: destinationContract,
+        feeInfo: TeleporterFeeInfo({ feeTokenAddress: feeToken, amount: feeAmount }),
+        requiredGasLimit: 100_000,
+        allowedRelayerAddresses: new address[](0),
+        message: payload
+    })
+);
+```
+
+```solidity
+// Receiver: decode the payload back into typed variables
+function receiveTeleporterMessage(
+    bytes32 sourceBlockchainID,
+    address originSenderAddress,
+    bytes calldata message
+) external {
+    (string memory text, uint256 number) = abi.decode(message, (string, uint256));
+    // use text and number
+}
+```
+
+You can encode structs, multiple values, or a function selector plus arguments using `abi.encodeWithSelector`. The rule is that sender and receiver must agree on the exact types and order.
+
+## Relayer Incentives
+
+Relayers spend gas on the destination chain to deliver messages. ICM uses an ERC-20 fee mechanism to compensate them.
+
+1. The sender locks an ERC-20 fee in `TeleporterMessenger` when calling `sendCrossChainMessage`.
+2. The relayer delivers the message on the destination chain and provides a reward address.
+3. The destination `TeleporterMessenger` creates a **receipt** containing the message ID and the relayer’s reward address.
+4. This receipt travels back to the source chain, piggybacking on the next reverse-direction message or sent explicitly via `sendSpecifiedReceipts`.
+5. Once the receipt arrives at the source chain, the relayer calls `redeemRelayerRewards` to claim fees.
+
+The relayer earns the fee regardless of whether message execution on the destination chain succeeds. If the destination contract reverts, the message is stored for retry, but the relayer still gets paid for the delivery work. Anyone can add extra fee to a pending message via `addFeeAmount`, which lets senders incentivize faster delivery.
+
+## ICTT: Interchain Token Transfer
+
+ICTT provides a standard way to bridge tokens between Avalanche L1s. It uses ICM for all cross-chain communication and follows a hub-and-spoke model.
+
+**TokenHome** lives on the chain where the asset originates. When tokens leave, the home contract locks them as collateral. It tracks how much has been sent to each remote chain.
+
+**TokenRemote** lives on destination chains. When it receives a transfer message, it mints a representation of the token for the recipient. When a user sends tokens back, the remote burns the representation and sends a message to the home chain, which releases the original collateral.
+
+The concrete contracts are:
+
+| Home contract | Remote contract | Use case |
+|---|---|---|
+| `ERC20TokenHome` | `ERC20TokenRemote` | ERC-20 on one chain, ERC-20 representation on another |
+| `ERC20TokenHome` | `NativeTokenRemote` | ERC-20 becomes the native gas token on the destination |
+| `NativeTokenHome` | `ERC20TokenRemote` | Native gas token bridged to an ERC-20 on another chain |
+| `NativeTokenHome` | `NativeTokenRemote` | Native gas token to native gas token |
+
+ICTT also supports **SendAndCall**, which combines a token transfer with a contract call on the destination in one ICM message. If the contract call fails, tokens go to a fallback recipient rather than being lost.
+
+For multi-hop transfers (Remote A to Home to Remote B), the second leg’s fees are paid in-kind from the transfer amount, since that intermediate transaction is not signed by the user’s wallet.
+
+## What Is a Bridge
+
+A bridge is any mechanism that moves value or information from one blockchain to another. Since blockchains are isolated systems, they cannot natively read each other’s state. Bridges establish a verification mechanism so one chain can trust that something happened on another.
+
+There are several common designs:
+
+**Lock-and-mint**: the asset is locked on the source chain and a synthetic representation is minted on the destination. ICTT follows this pattern when sending tokens to a remote. The original asset stays on the home chain; the remote chain holds a claim on the locked collateral.
+
+**Burn-and-release**: the user burns the representation on the destination and the original is released on the source chain. This is what happens when you bridge tokens back home in ICTT.
+
+**Message-based transfer**: arbitrary data is sent from one chain to another without moving tokens. Raw ICM messages work this way, enabling cross-chain governance, oracle data feeds, or any other information transfer.
+
+The security of a bridge depends entirely on how it verifies that events actually happened on the source chain. AWM-based bridges like ICTT rely on the source chain’s own validator set for this verification, so their security is equivalent to the security of that source chain.
+
+---
+
+## Key Takeaways
+
+- Avalanche interoperability has three layers: AWM (cryptographic attestation via BLS), ICM/Teleporter (smart contract messaging layer), and ICTT (token transfer application).
+- The WarpMessenger precompile at `0x0200000000000000000000000000000000000005` handles sending and receiving raw Warp messages. It is available on all Avalanche L1s running `subnet-evm`, including the C-Chain.
+- Messages can only be sent between Avalanche L1s because the precompile relies on the P-Chain to track validator sets. The P-Chain is what makes this possible.
+- BLS signature aggregation compresses many validator signatures into one 96-byte proof, making cross-chain message verification affordable on-chain.
+- Trust in ICM comes from the source chain’s validators, not from relayers. Relayers are mechanical delivery agents; validators are the security backbone.
+- `destinationBlockchainID` is a `bytes32` P-Chain transaction ID, completely different from the EVM integer `chainId` used in wallets and Chainlist.
+- Encode cross-chain payloads with `abi.encode` and decode them with `abi.decode`. Sender and receiver must agree on types and order.
+- Relayers earn ERC-20 fees locked at send time, claimed after receipt confirmation on the source chain.
+- ICTT uses a TokenHome/TokenRemote hub-and-spoke model. Home locks collateral; Remote mints and burns representations.
+- A bridge verifies cross-chain events. ICTT uses lock-and-mint and burn-and-release patterns, secured by AWM validator attestations.
 

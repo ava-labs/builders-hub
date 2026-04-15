@@ -1,27 +1,32 @@
 ---
-title: "Advanced Technical Team1 Member Summary & Next Steps"
-description: "Recap the advanced technical pillars and plan how to deepen your contributions."
-updated: 2026-03-05
+title: Summary and Next Steps
+description: Recap the advanced technical pillars and plan how to deepen your contributions as an Advanced Technical Team1 member.
+updated: 2026-04-15
 authors: [team1]
 icon: Zap
 ---
 
-## Summary & Next Steps
+## Summary and Next Steps
 
-To become an **Advanced Technical Team1 member**, you should:
+You have covered the three pillars that define the Advanced Technical Team1 profile.
 
-- Already be comfortable with:
-  - Blockchain & Avalanche fundamentals.
-  - Solidity, ERC standards, frontend integration, and custom L1s (from the Technical Team1 course).[`https://build.avax.network/academy`](https://build.avax.network/academy)
-- Build additional depth in:
-  - **Interoperability**: ICM, ICTT, and bridging patterns on Avalanche.
-  - **Encrypted ERC**: privacy‑preserving tokens and cryptographic underpinnings.
-  - **x402**: HTTP‑native payments for web and AI experiences on Avalanche.
+**Interoperability, ICM, and ICTT**: Avalanche builds cross-chain communication in three layers: AWM provides validator-attested cryptographic proofs, ICM (Teleporter) adds reliable smart contract messaging on top, and ICTT provides standardized token transfer using a hub-and-spoke model. The WarpMessenger precompile, BLS signature aggregation, `TeleporterMessenger`, `TeleporterRegistry`, and the `bytes32` blockchain ID (distinct from the EVM chain ID) are the key technical concepts. Go deeper with the [Interchain Messaging](https://build.avax.network/academy/avalanche-l1/interchain-messaging), [ERC20 Bridge](https://build.avax.network/academy/avalanche-l1/erc20-bridge), and [Native Token Bridge](https://build.avax.network/academy/avalanche-l1/native-token-bridge) Academy courses.
 
-Use this course as a **skills map** and pair it with:
+**Encrypted ERC (eERC)**: Privacy-preserving tokens store balances as ElGamal ciphertexts (ECGTs/PCTs) encrypted to users’ BabyJubJub public keys. Partial homomorphic encryption allows the contract to update balances without decrypting them. Groth16 zero-knowledge proofs enforce validity without revealing amounts. Standalone tokens use Mint and Burn; Converter tokens use Deposit and Withdraw to move between public ERC-20 and private encrypted domains. Go deeper with the [Encrypted ERC](https://build.avax.network/academy/encrypted-erc) Academy course.
 
-- Builder Hub Academy courses on Interchain Messaging, bridges, Encrypted ERC, and x402.[`https://build.avax.network/academy`](https://build.avax.network/academy)
-- Team1 bootcamps and workshops (like the Latam Bootcamp) that turn these concepts into real projects and hackathon‑ready prototypes.[`https://team1-latam-bootcamp.gitbook.io/team1-docs`](https://team1-latam-bootcamp.gitbook.io/team1-docs)
+**x402 Payment Infrastructure**: x402 activates HTTP 402 to enable programmable blockchain payments inside standard HTTP flows. Clients sign EIP-3009 authorizations that facilitators verify and settle on-chain, paying gas so end users only need USDC. Avalanche’s approximately $0.001 transaction cost and approximately one second finality make it viable for per-request micropayments. Thirdweb and Ultravioleta DAO are the main facilitator implementations available on Avalanche. Go deeper with the [x402 Payment Infrastructure](https://build.avax.network/academy/blockchain/x402-payment-infrastructure) Academy course.
 
-As you master these topics, you’ll be able to design and support advanced Avalanche applications, mentor other Team1 members, and lead deep‑dive technical workshops in your region.
+---
+
+## Applying These Skills
+
+The most effective way to reinforce this knowledge is to build with it.
+
+- Run an ICM demo at a Team1 workshop: deploy two local Avalanche L1s, send a message from one to the other, and decode it on the receiving side.
+- Walk a builder through the eERC user flow: registration, deposit, confidential transfer, and withdrawal. Discuss where this fits their use case.
+- Add x402 middleware to a sample API and measure real payment latency on Fuji testnet. Share the implementation as a reference for other builders.
+
+Team1 bootcamps and hackathons (like the Latam Bootcamp) are also good places to test these concepts under time pressure and get feedback from real builders. See [team1-latam-bootcamp.gitbook.io/team1-docs](https://team1-latam-bootcamp.gitbook.io/team1-docs) for upcoming events.
+
+As you build fluency with these topics, you can design advanced cross-chain applications, guide builders through privacy-preserving token architectures, and lead technical workshops that go well beyond the introductory level.
 
