@@ -15,7 +15,6 @@ import {
   ChevronDownIcon,
   Pyramid,
   HandCoins,
-  Server,
   TrendingUp,
   ScanFace,
   Telescope,
@@ -24,8 +23,8 @@ import {
   BookOpen,
   Podcast,
   Wallet,
-} from 'lucide-react';
-import { RootToggle } from './root-toggle';
+} from "lucide-react";
+import { RootToggle } from "./root-toggle";
 
 interface Option {
   title: string;
@@ -35,74 +34,76 @@ interface Option {
 }
 
 interface DocsDropdownProps {
-  buttonStyle?: 'Docs' | 'currentElement';
+  buttonStyle?: "Docs" | "currentElement";
 }
 
-export function DocsDropdown({ buttonStyle = 'Docs' }: DocsDropdownProps): React.ReactElement {
+export function DocsDropdown({
+  buttonStyle = "Docs",
+}: DocsDropdownProps): React.ReactElement {
   const options: Option[] = [
-    ...(buttonStyle === 'Docs'
+    ...(buttonStyle === "Docs"
       ? [
           {
-            title: 'Docs',
-            description: '',
+            title: "Docs",
+            description: "",
             icon: <></>,
-            url: '',
+            url: "",
           },
         ]
       : []),
     {
-      title: 'Avalanche Protocol',
-      description: 'Learn about Avalanche',
+      title: "Avalanche Protocol",
+      description: "Learn about Avalanche",
       icon: <SproutIcon />,
-      url: '/learn',
+      url: "/learn",
     },
     {
-      title: 'Smart Contracts',
-      description: 'Build Apps on Avalanche',
+      title: "Smart Contracts",
+      description: "Build Apps on Avalanche",
       icon: <SquareGanttChart />,
-      url: '/dapps',
+      url: "/dapps",
     },
     {
-      title: 'Avalanche L1s',
-      description: 'Build Your L1 Blockchain',
+      title: "Avalanche L1s",
+      description: "Build Your L1 Blockchain",
       icon: <Layers />,
-      url: '/avalanche-l1s',
+      url: "/avalanche-l1s",
     },
     {
-      title: 'EVM Customization',
-      description: 'Customize the Ethereum VM',
+      title: "EVM Customization",
+      description: "Customize the Ethereum VM",
       icon: <Pyramid />,
-      url: '/evm-l1s',
+      url: "/evm-l1s",
     },
     {
-      title: 'Custom Virtual Machines',
-      description: 'Customize Your Execution Layer',
+      title: "Custom Virtual Machines",
+      description: "Customize Your Execution Layer",
       icon: <IndentDecrease />,
-      url: '/virtual-machines',
+      url: "/virtual-machines",
     },
     {
-      title: 'Nodes & Validators',
-      description: 'Participate in the Network',
+      title: "Nodes & Validators",
+      description: "Participate in the Network",
       icon: <MonitorCheck />,
-      url: '/nodes',
+      url: "/nodes",
     },
     {
-      title: 'Interoperability',
-      description: 'ICM and ICM Contracts',
+      title: "Interoperability",
+      description: "ICM and ICM Contracts",
       icon: <MailIcon />,
-      url: '/cross-chain',
+      url: "/cross-chain",
     },
     {
-      title: 'Tooling',
-      description: 'CLI, Scripts, and More',
+      title: "Tooling",
+      description: "CLI, Scripts, and More",
       icon: <Settings />,
-      url: '/tooling',
+      url: "/tooling",
     },
     {
-      title: 'API Docs',
-      description: 'Avalanche API References',
+      title: "API Docs",
+      description: "Avalanche API References",
       icon: <Webhook />,
-      url: '/api-reference',
+      url: "/api-reference",
     },
   ];
 
@@ -112,40 +113,40 @@ export function DocsDropdown({ buttonStyle = 'Docs' }: DocsDropdownProps): React
 export function AcademyDropdown() {
   const options: Option[] = [
     {
-      title: 'Courses',
-      description: '',
+      title: "Courses",
+      description: "",
       icon: <></>,
-      url: '',
+      url: "",
     },
     {
-      title: 'Blockchain Fundamentals',
-      description: 'Understand fundamental blockchain concepts.',
+      title: "Blockchain Fundamentals",
+      description: "Understand fundamental blockchain concepts.",
       icon: <SquareIcon className="w-5 h-5" />,
-      url: 'https://academy.avax.network/course/blockchain-fundamentals',
+      url: "https://academy.avax.network/course/blockchain-fundamentals",
     },
     {
-      title: 'Avalanche Fundamentals',
-      description: 'Overview of Avalanche Consensus, L1s, and VMs.',
+      title: "Avalanche Fundamentals",
+      description: "Overview of Avalanche Consensus, L1s, and VMs.",
       icon: <Triangle className="w-5 h-5" />,
-      url: 'https://academy.avax.network/course/avalanche-fundamentals',
+      url: "https://academy.avax.network/course/avalanche-fundamentals",
     },
     {
-      title: 'Interchain Messaging',
-      description: 'Build cross-chain dApps on Avalanche.',
+      title: "Interchain Messaging",
+      description: "Build cross-chain dApps on Avalanche.",
       icon: <MailIcon className="w-5 h-5" />,
-      url: 'https://academy.avax.network/course/interchain-messaging',
+      url: "https://academy.avax.network/course/interchain-messaging",
     },
     {
-      title: 'Customizing the EVM',
-      description: 'Add custom precompiles to the EVM.',
+      title: "Customizing the EVM",
+      description: "Add custom precompiles to the EVM.",
       icon: <SquareCode className="w-5 h-5" />,
-      url: 'https://academy.avax.network/course/customizing-evm',
+      url: "https://academy.avax.network/course/customizing-evm",
     },
     {
-      title: 'Layer 1 Tokenomics',
-      description: 'Design tokenomics for your Avalanche L1.',
+      title: "Layer 1 Tokenomics",
+      description: "Design tokenomics for your Avalanche L1.",
       icon: <Coins className="w-5 h-5" />,
-      url: 'https://academy.avax.network/course/l1-tokenomics',
+      url: "https://academy.avax.network/course/l1-tokenomics",
     },
   ];
   return <RootToggle options={options} />;
@@ -154,22 +155,23 @@ export function AcademyDropdown() {
 export function GrantsDropdown() {
   const options: Option[] = [
     {
-      title: 'Grants & Programs',
-      description: '',
+      title: "Grants & Programs",
+      description: "",
       icon: <></>,
-      url: '/grants',
+      url: "/grants",
     },
     {
-      title: 'Retro9000',
-      description: 'Build publicly and get rewarded.',
+      title: "Retro9000",
+      description: "Build publicly and get rewarded.",
       icon: <HandCoins className="w-5 h-5" />,
-      url: 'https://www.avax.network/retro9000',
+      url: "https://www.avax.network/retro9000",
     },
-    {
-      title: 'Blizzard Fund',
-      description: 'VC fund investing in innovative entrepreneurs driving growth on Avalanche',
+{
+      title: "Blizzard Fund",
+      description:
+        "VC fund investing in innovative entrepreneurs driving growth on Avalanche",
       icon: <TrendingUp className="w-5 h-5" />,
-      url: 'https://www.blizzard.fund/',
+      url: "https://www.blizzard.fund/",
     },
   ];
   return <RootToggle options={options} />;
@@ -178,52 +180,52 @@ export function GrantsDropdown() {
 export function IntegrationsDropdown() {
   const options: Option[] = [
     {
-      title: 'Integrations',
-      description: '',
+      title: "Integrations",
+      description: "",
       icon: <></>,
-      url: '/integrations',
+      url: "/integrations",
     },
     {
-      title: 'Account Abstraction',
-      description: '',
+      title: "Account Abstraction",
+      description: "",
       icon: <ScanFace className="w-5 h-5" />,
-      url: '/integrations#Account%20Abstraction',
+      url: "/integrations#Account%20Abstraction",
     },
     {
-      title: 'Block Explorers',
-      description: '',
+      title: "Block Explorers",
+      description: "",
       icon: <Telescope className="w-5 h-5" />,
-      url: '/integrations#Block%20Explorers',
+      url: "/integrations#Block%20Explorers",
     },
     {
-      title: 'Blockchain as a Service',
-      description: '',
+      title: "Blockchain as a Service",
+      description: "",
       icon: <LayoutTemplate className="w-5 h-5" />,
-      url: '/integrations#Blockchain%20as%20a%20Service',
+      url: "/integrations#Blockchain%20as%20a%20Service",
     },
     {
-      title: 'Enterprise Solutions',
-      description: '',
+      title: "Enterprise Solutions",
+      description: "",
       icon: <Building2 className="w-5 h-5" />,
-      url: '/integrations#Enterprise%20Solutions',
+      url: "/integrations#Enterprise%20Solutions",
     },
     {
-      title: 'Indexers',
-      description: '',
+      title: "Indexers",
+      description: "",
       icon: <BookOpen className="w-5 h-5" />,
-      url: '/integrations#Indexers',
+      url: "/integrations#Indexers",
     },
     {
-      title: 'Oracles',
-      description: '',
+      title: "Oracles",
+      description: "",
       icon: <Podcast className="w-5 h-5" />,
-      url: '/integrations#Oracles',
+      url: "/integrations#Oracles",
     },
     {
-      title: 'Wallets',
-      description: '',
+      title: "Wallets",
+      description: "",
       icon: <Wallet className="w-5 h-5" />,
-      url: '/integrations#Wallet%20SDKs',
+      url: "/integrations#Wallet%20SDKs",
     },
   ];
   return <RootToggle options={options} />;

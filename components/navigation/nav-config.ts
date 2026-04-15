@@ -49,7 +49,9 @@ export const menuSections: NavSection[] = [
   {
     title: 'Chat',
     href: '/chat',
-    items: [{ text: 'Ask AI', href: '/chat' }],
+    items: [
+      { text: 'Ask AI', href: '/chat' },
+    ],
   },
   {
     title: 'Console',
@@ -66,7 +68,7 @@ export const menuSections: NavSection[] = [
     href: '/events',
     items: [
       { text: 'Hackathons', href: '/events' },
-      { text: 'Avalanche Summit', href: 'https://www.avalanchesummit.com', external: true },
+      { text: 'Avalanche Summit', href: 'https://www.avalanchesummit.com', external: true  },
       { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
       { text: 'Campus Connect', href: '/university' },
     ],
@@ -75,7 +77,7 @@ export const menuSections: NavSection[] = [
     title: 'Grants',
     href: '/grants',
     items: [
-      { text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
+{ text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
       { text: 'Blizzard Fund', href: 'https://www.blizzard.fund/', external: true },
     ],
   },
@@ -116,4 +118,6 @@ export const menuSections: NavSection[] = [
  * Single navigation items (no dropdown)
  * These appear as simple links in both mobile and desktop navigation
  */
-export const singleItems: NavItem[] = [{ text: 'Explorer', href: '/explorer' }];
+export const singleItems: NavItem[] = [
+  { text: 'Explorer', href: '/explorer' },
+];

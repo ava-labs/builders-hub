@@ -1,134 +1,82 @@
-'use client';
+"use client";
 
-import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
-import { useState, useEffect, useRef } from 'react';
-import { useSession, getSession } from 'next-auth/react';
-import { useLoginModalTrigger, useLoginCompleteListener } from '@/hooks/useLoginModal';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch } from 'react-hook-form';
-import { z } from 'zod';
-import {
-  Loader2,
-  User,
-  Building2,
-  MapPin,
-  Briefcase,
-  Trophy,
-  MessageCircle,
-  AlertCircle,
-  CheckCircle2,
-  ChevronRight,
-  ChevronLeft,
-  BadgeCheck,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Form, FormField, FormItem, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { countries } from '@/constants/countries';
-import { cn } from '@/lib/utils';
-import { getReferrer } from '@/lib/referral';
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { useState, useEffect, useRef } from "react";
+import { useSession, getSession } from "next-auth/react";
+import { useLoginModalTrigger, useLoginCompleteListener } from "@/hooks/useLoginModal";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
+import { Loader2, User, Building2, MapPin, Briefcase, Trophy, MessageCircle, AlertCircle, CheckCircle2, ChevronRight, ChevronLeft, BadgeCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Form, FormField, FormItem, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { countries } from "@/constants/countries";
+import { cn } from "@/lib/utils";
+import { getReferrer } from "@/lib/referral";
 
-const EMPLOYMENT_ROLES = [
-  'Accounting',
-  'Administrative',
-  'Development',
-  'Communications',
-  'Consulting',
-  'Customer',
-  'Design',
-  'Education',
-  'Engineering',
-  'Entrepreneurship',
-  'Finance',
-  'Health',
-  'Human Resources',
-  'Information Technology',
-  'Legal',
-  'Marketing',
-  'Operations',
-  'Product',
-  'Project Management',
-  'Public Relations',
-  'Quality Assurance',
-  'Real Estate',
-  'Recruiting',
-  'Research',
-  'Sales',
-  'Support',
-  'Retired',
-  'Other',
-];
+const EMPLOYMENT_ROLES = ["Accounting", "Administrative", "Development", "Communications", "Consulting", "Customer", "Design", "Education", "Engineering", "Entrepreneurship", "Finance", "Health", "Human Resources", "Information Technology", "Legal", "Marketing", "Operations", "Product", "Project Management", "Public Relations", "Quality Assurance", "Real Estate", "Recruiting", "Research", "Sales", "Support", "Retired", "Other"];
 
-const EMPLOYMENT_STATUS = ['Full time', 'Part time', 'Self-employed', 'Unemployed', 'Student'];
+const EMPLOYMENT_STATUS = ["Full time", "Part time", "Self-employed", "Unemployed", "Student"];
 
 const AREA_OF_FOCUS = [
-  { value: 'consumer', label: 'Consumer' },
-  { value: 'defi', label: 'DeFi' },
-  { value: 'enterprise', label: 'Enterprise' },
-  { value: 'developer_tool', label: 'Developer Tool' },
-  { value: 'rwa', label: 'RWA' },
-  { value: 'gaming', label: 'Gaming' },
+  { value: "consumer", label: "Consumer" },
+  { value: "defi", label: "DeFi" },
+  { value: "enterprise", label: "Enterprise" },
+  { value: "developer_tool", label: "Developer Tool" },
+  { value: "rwa", label: "RWA" },
+  { value: "gaming", label: "Gaming" },
 ];
 
-const HOW_DID_YOU_HEAR = [
-  'Referred by a friend',
-  'Twitter/X',
-  'Ava Labs staff member',
-  'Discord',
-  'Telegram',
-  'AVAX partner or investor',
-  'Team1',
-  'Avalanche Marketing',
-  'Other',
-];
+const HOW_DID_YOU_HEAR = ["Referred by a friend", "Twitter/X", "Ava Labs staff member", "Discord", "Telegram", "AVAX partner or investor", "Team1", "Avalanche Marketing", "Other"];
 
 const STEPS = [
-  { id: 1, name: 'Personal Info', description: 'Your contact details', icon: User },
-  { id: 2, name: 'Location', description: 'Where are you based', icon: MapPin },
-  { id: 3, name: 'Before We Move Forward', description: 'Mandatory vibe check', icon: Briefcase },
-  { id: 4, name: 'Project Details', description: "What you're building", icon: Building2 },
-  { id: 5, name: 'Why You?', description: 'Make your case', icon: Trophy },
-  { id: 6, name: 'Additional Info', description: 'A few more questions', icon: MessageCircle },
-  { id: 7, name: 'Consent & Privacy', description: 'Final step', icon: AlertCircle },
+  { id: 1, name: "Personal Info", description: "Your contact details", icon: User },
+  { id: 2, name: "Location", description: "Where are you based", icon: MapPin },
+  { id: 3, name: "Before We Move Forward", description: "Mandatory vibe check", icon: Briefcase },
+  { id: 4, name: "Project Details", description: "What you're building", icon: Building2 },
+  { id: 5, name: "Why You?", description: "Make your case", icon: Trophy },
+  { id: 6, name: "Additional Info", description: "A few more questions", icon: MessageCircle },
+  { id: 7, name: "Consent & Privacy", description: "Final step", icon: AlertCircle },
 ];
 
 const formSchema = z.object({
-  hackathonName: z.string().default('Build Games 2026'),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Please enter a valid email'),
+  hackathonName: z.string().default("Build Games 2026"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email"),
   telegram: z.string().optional(),
   github: z.string().optional(),
 
-  country: z.string().min(1, 'Country is required'),
+  country: z.string().min(1, "Country is required"),
 
-  readyToWin: z.enum(['yes', 'no'], { message: 'Please select an option' }),
-  previousAvalancheGrant: z.enum(['yes', 'no'], { message: 'Please select an option' }),
-  hackathonExperience: z.enum(['yes', 'no']).optional(),
+  readyToWin: z.enum(["yes", "no"], { message: "Please select an option" }),
+  previousAvalancheGrant: z.enum(["yes", "no"], { message: "Please select an option" }),
+  hackathonExperience: z.enum(["yes", "no"]).optional(),
   hackathonDetails: z.string().optional(),
   employmentRole: z.string().optional(),
   currentRole: z.string().optional(),
   employmentStatus: z.string().optional(),
 
-  projectName: z.string().min(1, 'Project name is required'),
-  projectDescription: z.string().min(1, 'Project description is required'),
-  areaOfFocus: z.string().min(1, 'Area of focus is required'),
+  projectName: z.string().min(1, "Project name is required"),
+  projectDescription: z.string().min(1, "Project description is required"),
+  areaOfFocus: z.string().min(1, "Area of focus is required"),
 
-  whyYou: z.string().min(1, 'This field is required'),
+  whyYou: z.string().min(1, "This field is required"),
 
-  howDidYouHear: z.string().min(1, 'Please select an option'),
-  howDidYouHearSpecify: z.string().min(1, 'Please specify how you heard about us'),
+  howDidYouHear: z.string().min(1, "Please select an option"),
+  howDidYouHearSpecify: z.string().min(1, "Please specify how you heard about us"),
   referrerName: z.string().optional(),
-  universityAffiliation: z.enum(['yes', 'no'], { message: 'Please select an option' }),
-  avalancheEcosystemMember: z.enum(['yes', 'no'], { message: 'Please select an option' }),
+  universityAffiliation: z.enum(["yes", "no"], { message: "Please select an option" }),
+  avalancheEcosystemMember: z.enum(["yes", "no"], { message: "Please select an option" }),
 
   privacyPolicyRead: z.boolean().refine((val) => val === true, {
-    message: 'You must agree to the privacy policy to submit the form',
+    message: "You must agree to the privacy policy to submit the form",
   }),
   marketingConsent: z.boolean().optional(),
 });
@@ -140,7 +88,7 @@ export default function BuildGamesApplyForm() {
   const { openLoginModal } = useLoginModalTrigger();
   const hasTriggeredModalRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<"success" | "error" | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSessionVerified, setIsSessionVerified] = useState(false);
 
@@ -154,33 +102,33 @@ export default function BuildGamesApplyForm() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      hackathonName: 'Build Games 2026',
-      firstName: '',
-      lastName: '',
-      email: '',
-      telegram: '',
-      github: '',
-      country: '',
+      hackathonName: "Build Games 2026",
+      firstName: "",
+      lastName: "",
+      email: "",
+      telegram: "",
+      github: "",
+      country: "",
       readyToWin: undefined,
       previousAvalancheGrant: undefined,
       hackathonExperience: undefined,
-      hackathonDetails: '',
-      employmentRole: '',
-      currentRole: '',
-      employmentStatus: '',
-      projectName: '',
-      projectDescription: '',
-      areaOfFocus: '',
-      whyYou: '',
-      howDidYouHear: '',
-      howDidYouHearSpecify: '',
-      referrerName: '',
+      hackathonDetails: "",
+      employmentRole: "",
+      currentRole: "",
+      employmentStatus: "",
+      projectName: "",
+      projectDescription: "",
+      areaOfFocus: "",
+      whyYou: "",
+      howDidYouHear: "",
+      howDidYouHearSpecify: "",
+      referrerName: "",
       universityAffiliation: undefined,
       avalancheEcosystemMember: undefined,
       privacyPolicyRead: false,
       marketingConsent: false,
     },
-    mode: 'onChange',
+    mode: "onChange",
   });
 
   const watchedValues = useWatch({ control: form.control });
@@ -188,15 +136,15 @@ export default function BuildGamesApplyForm() {
   // Prefill email from session
   useEffect(() => {
     if (session?.user?.email) {
-      form.setValue('email', session.user.email);
+      form.setValue("email", session.user.email);
     }
   }, [session?.user?.email, form]);
 
   // Show login modal for unauthenticated users
   // Uses getSession() to double-check auth state and handle stale useSession data
   useEffect(() => {
-    if (status === 'loading') return;
-    if (status === 'authenticated' && session?.user) {
+    if (status === "loading") return;
+    if (status === "authenticated" && session?.user) {
       setIsSessionVerified(true);
       return;
     }
@@ -248,12 +196,12 @@ export default function BuildGamesApplyForm() {
     watchedValues.howDidYouHearSpecify &&
     watchedValues.universityAffiliation &&
     watchedValues.avalancheEcosystemMember &&
-    watchedValues.privacyPolicyRead,
+    watchedValues.privacyPolicyRead
   );
 
   // Show loading skeleton while session is loading or user is unauthenticated
   // But if we've verified the session via getSession() or login complete event, show form
-  if (status === 'loading' || (status === 'unauthenticated' && !isSessionVerified)) {
+  if (status === "loading" || (status === "unauthenticated" && !isSessionVerified)) {
     return (
       <div className="min-h-screen bg-black">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -342,9 +290,9 @@ export default function BuildGamesApplyForm() {
     try {
       const referrer = getReferrer();
 
-      const response = await fetch('/api/build-games/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/build-games/apply", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           ...values,
           referrer: referrer,
@@ -354,20 +302,20 @@ export default function BuildGamesApplyForm() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Failed to submit application');
+        throw new Error(result.message || "Failed to submit application");
       }
 
-      setSubmissionStatus('success');
+      setSubmissionStatus("success");
       form.reset();
     } catch (error) {
-      setSubmissionStatus('error');
-      alert(`Error submitting form: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setSubmissionStatus("error");
+      alert(`Error submitting form: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  if (submissionStatus === 'success') {
+  if (submissionStatus === "success") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black p-4">
         <div className="text-center">
@@ -402,9 +350,7 @@ export default function BuildGamesApplyForm() {
             <div className="sticky top-8">
               <div className="mb-4 flex items-center gap-3 pb-4 border-b border-border">
                 <AvalancheLogo className="w-10 h-10" />
-                <span className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                  Build Games 2026
-                </span>
+                <span className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">Build Games 2026</span>
               </div>
               <nav className="space-y-2">
                 {STEPS.map((step) => {
@@ -414,25 +360,29 @@ export default function BuildGamesApplyForm() {
                       key={step.id}
                       onClick={() => setCurrentStep(step.id)}
                       className={cn(
-                        'flex w-full items-center gap-4 rounded-lg !p-[6px] text-left transition-all',
+                        "flex w-full items-center gap-4 rounded-lg !p-[6px] text-left transition-all",
                         currentStep === step.id
-                          ? 'bg-secondary text-foreground'
+                          ? "bg-secondary text-foreground"
                           : step.id < currentStep
-                            ? 'text-muted-foreground hover:bg-secondary/50'
-                            : 'text-muted-foreground/60',
+                            ? "text-muted-foreground hover:bg-secondary/50"
+                            : "text-muted-foreground/60"
                       )}
                     >
                       <span
                         className={cn(
-                          'flex h-10 w-10 shrink-0 items-center justify-center rounded border text-sm font-medium',
+                          "flex h-10 w-10 shrink-0 items-center justify-center rounded border text-sm font-medium",
                           currentStep === step.id
-                            ? 'border-foreground bg-foreground text-background'
+                            ? "border-foreground bg-foreground text-background"
                             : step.id < currentStep
-                              ? 'border-[#EB4C50] bg-[#EB4C50] text-white'
-                              : 'border-border',
+                              ? "border-[#EB4C50] bg-[#EB4C50] text-white"
+                              : "border-border"
                         )}
                       >
-                        {step.id < currentStep ? <BadgeCheck className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                        {step.id < currentStep ? (
+                          <BadgeCheck className="h-5 w-5" />
+                        ) : (
+                          <Icon className="h-5 w-5" />
+                        )}
                       </span>
                       <div>
                         <p className="text-base font-medium">{step.name}</p>
@@ -453,7 +403,9 @@ export default function BuildGamesApplyForm() {
                 <span className="font-medium text-foreground">
                   Step {currentStep} of {STEPS.length}
                 </span>
-                <span className="text-muted-foreground">{STEPS[currentStep - 1].name}</span>
+                <span className="text-muted-foreground">
+                  {STEPS[currentStep - 1].name}
+                </span>
               </div>
               <div className="mt-2 h-1 w-full rounded-full bg-secondary">
                 <div
@@ -468,15 +420,21 @@ export default function BuildGamesApplyForm() {
                 {/* Form Card */}
                 <div className="rounded-xl border border-zinc-800 bg-[#030303] p-6 sm:p-8">
                   <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-foreground sm:text-3xl">{STEPS[currentStep - 1].name}</h1>
-                    <p className="mt-2 text-muted-foreground">{STEPS[currentStep - 1].description}</p>
+                    <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+                      {STEPS[currentStep - 1].name}
+                    </h1>
+                    <p className="mt-2 text-muted-foreground">
+                      {STEPS[currentStep - 1].description}
+                    </p>
                   </div>
 
                   {/* Step 1: Personal Info */}
                   {currentStep === 1 && (
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-foreground">Competition Name</Label>
+                        <Label className="text-sm font-medium text-foreground">
+                          Competition Name
+                        </Label>
                         <Input
                           className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground cursor-not-allowed"
                           value="Build Games 2026"
@@ -552,7 +510,9 @@ export default function BuildGamesApplyForm() {
                         name="telegram"
                         render={({ field }) => (
                           <FormItem className="space-y-2">
-                            <Label className="text-sm font-medium text-foreground">Telegram Handle</Label>
+                            <Label className="text-sm font-medium text-foreground">
+                              Telegram Handle
+                            </Label>
                             <FormDescription className="text-xs text-muted-foreground">
                               Share your Telegram handle.
                             </FormDescription>
@@ -630,11 +590,10 @@ export default function BuildGamesApplyForm() {
                     <div className="space-y-6">
                       <div className="rounded-lg border border-border bg-secondary/50 p-4 text-xs text-muted-foreground space-y-3">
                         <p>
-                          Our goal is to find and support the next cohort of{' '}
-                          <strong className="text-foreground">Avalanche founders</strong>. This is not a bounty event.
-                          The prize pool is meaningful, but the real upside is for builders who want to
-                          <strong className="text-foreground"> stick around and build their vision on Avalanche</strong>
-                          . If you are selected as a winner, a portion of your rewards will be tied to:
+                          Our goal is to find and support the next cohort of <strong className="text-foreground">Avalanche founders</strong>.
+                          This is not a bounty event. The prize pool is meaningful, but the real upside is for builders who want to
+                          <strong className="text-foreground"> stick around and build their vision on Avalanche</strong>.
+                          If you are selected as a winner, a portion of your rewards will be tied to:
                         </p>
                         <ul className="list-disc list-inside space-y-1 ml-2">
                           <li>Continuing to build on Avalanche</li>
@@ -642,10 +601,9 @@ export default function BuildGamesApplyForm() {
                           <li>Showing real progress through on-chain or product KPIs</li>
                         </ul>
                         <p>
-                          We are not asking for a legal lock in, but we are very intentional about where we put this
-                          capital and support. If your plan is to ship something quick, collect a prize, and move on to
-                          another chain, this program is probably not the right fit. If you want to become a 10x founder
-                          on Avalanche and are willing to commit to that path, we would love to see your application.
+                          We are not asking for a legal lock in, but we are very intentional about where we put this capital and support.
+                          If your plan is to ship something quick, collect a prize, and move on to another chain, this program is probably not the right fit.
+                          If you want to become a 10x founder on Avalanche and are willing to commit to that path, we would love to see your application.
                           <strong className="text-foreground"> So, are you ready to win?</strong>
                         </p>
                         <p className="text-xs text-muted-foreground/60 italic">
@@ -669,15 +627,11 @@ export default function BuildGamesApplyForm() {
                               >
                                 <div className="flex items-center space-x-3">
                                   <RadioGroupItem value="yes" id="ready-yes" />
-                                  <Label htmlFor="ready-yes" className="cursor-pointer text-foreground">
-                                    Yes
-                                  </Label>
+                                  <Label htmlFor="ready-yes" className="cursor-pointer text-foreground">Yes</Label>
                                 </div>
                                 <div className="flex items-center space-x-3">
                                   <RadioGroupItem value="no" id="ready-no" />
-                                  <Label htmlFor="ready-no" className="cursor-pointer text-foreground">
-                                    No
-                                  </Label>
+                                  <Label htmlFor="ready-no" className="cursor-pointer text-foreground">No</Label>
                                 </div>
                               </RadioGroup>
                             </FormControl>
@@ -692,14 +646,10 @@ export default function BuildGamesApplyForm() {
                         render={({ field }) => (
                           <FormItem className="space-y-2">
                             <Label className="text-sm font-medium text-foreground">
-                              Have you received a grant previously from Avalanche?{' '}
-                              <span className="text-destructive">*</span>
+                              Have you received a grant previously from Avalanche? <span className="text-destructive">*</span>
                             </Label>
                             <FormDescription className="text-xs text-muted-foreground">
-                              Prior support from the Avalanche Foundation — including funding via Retro9000,
-                              Infra(BOOST), Infra(BUILD/LINK) (discontinued), Blizzard, Codebase (discontinued),
-                              Innovation House, or Ava Labs — will be considered during the evaluation process and may
-                              impact grant size.
+                              Prior support from the Avalanche Foundation — including funding via Retro9000, Infra(BOOST), Infra(BUILD/LINK) (discontinued), Blizzard, Codebase (discontinued), Innovation House, or Ava Labs — will be considered during the evaluation process and may impact grant size.
                             </FormDescription>
                             <FormControl>
                               <RadioGroup
@@ -709,15 +659,11 @@ export default function BuildGamesApplyForm() {
                               >
                                 <div className="flex items-center space-x-3">
                                   <RadioGroupItem value="yes" id="grant-yes" />
-                                  <Label htmlFor="grant-yes" className="cursor-pointer text-foreground">
-                                    Yes
-                                  </Label>
+                                  <Label htmlFor="grant-yes" className="cursor-pointer text-foreground">Yes</Label>
                                 </div>
                                 <div className="flex items-center space-x-3">
                                   <RadioGroupItem value="no" id="grant-no" />
-                                  <Label htmlFor="grant-no" className="cursor-pointer text-foreground">
-                                    No
-                                  </Label>
+                                  <Label htmlFor="grant-no" className="cursor-pointer text-foreground">No</Label>
                                 </div>
                               </RadioGroup>
                             </FormControl>
@@ -742,15 +688,11 @@ export default function BuildGamesApplyForm() {
                               >
                                 <div className="flex items-center space-x-3">
                                   <RadioGroupItem value="yes" id="hackathon-yes" />
-                                  <Label htmlFor="hackathon-yes" className="cursor-pointer text-foreground">
-                                    Yes
-                                  </Label>
+                                  <Label htmlFor="hackathon-yes" className="cursor-pointer text-foreground">Yes</Label>
                                 </div>
                                 <div className="flex items-center space-x-3">
                                   <RadioGroupItem value="no" id="hackathon-no" />
-                                  <Label htmlFor="hackathon-no" className="cursor-pointer text-foreground">
-                                    No
-                                  </Label>
+                                  <Label htmlFor="hackathon-no" className="cursor-pointer text-foreground">No</Label>
                                 </div>
                               </RadioGroup>
                             </FormControl>
@@ -759,13 +701,15 @@ export default function BuildGamesApplyForm() {
                         )}
                       />
 
-                      {watchedValues.hackathonExperience === 'yes' && (
+                      {watchedValues.hackathonExperience === "yes" && (
                         <FormField
                           control={form.control}
                           name="hackathonDetails"
                           render={({ field }) => (
                             <FormItem className="space-y-2">
-                              <Label className="text-sm font-medium text-foreground">How many, and have you won?</Label>
+                              <Label className="text-sm font-medium text-foreground">
+                                How many, and have you won?
+                              </Label>
                               <FormControl>
                                 <Textarea
                                   className="min-h-[100px] resize-none border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
@@ -784,7 +728,9 @@ export default function BuildGamesApplyForm() {
                         name="employmentRole"
                         render={({ field }) => (
                           <FormItem className="space-y-2">
-                            <Label className="text-sm font-medium text-foreground">Employment Role</Label>
+                            <Label className="text-sm font-medium text-foreground">
+                              Employment Role
+                            </Label>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground">
@@ -809,7 +755,9 @@ export default function BuildGamesApplyForm() {
                         name="currentRole"
                         render={({ field }) => (
                           <FormItem className="space-y-2">
-                            <Label className="text-sm font-medium text-foreground">What is your current role?</Label>
+                            <Label className="text-sm font-medium text-foreground">
+                              What is your current role?
+                            </Label>
                             <FormControl>
                               <Input
                                 className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
@@ -924,29 +872,12 @@ export default function BuildGamesApplyForm() {
                       <div className="rounded-lg border border-border bg-secondary/50 p-4 text-xs text-muted-foreground">
                         <p className="font-semibold text-foreground mb-2">Note on Definitions</p>
                         <ul className="space-y-1">
-                          <li>
-                            <strong className="text-foreground">Consumer:</strong> anything B2C non-financial related.
-                          </li>
-                          <li>
-                            <strong className="text-foreground">DeFi:</strong> anything finance, stablecoin, or FinTech
-                            related.
-                          </li>
-                          <li>
-                            <strong className="text-foreground">Enterprise:</strong> Anything that would be sold to and
-                            used by another business (B2B)
-                          </li>
-                          <li>
-                            <strong className="text-foreground">Developer Tool:</strong> anything that would be
-                            purchased and used by a developer/tech organization.
-                          </li>
-                          <li>
-                            <strong className="text-foreground">RWA:</strong> anything that is a real-world asset this
-                            is being tokenized (eg. think commodities).
-                          </li>
-                          <li>
-                            <strong className="text-foreground">Gaming:</strong> anything that pertains to a game of
-                            chance or skill.
-                          </li>
+                          <li><strong className="text-foreground">Consumer:</strong> anything B2C non-financial related.</li>
+                          <li><strong className="text-foreground">DeFi:</strong> anything finance, stablecoin, or FinTech related.</li>
+                          <li><strong className="text-foreground">Enterprise:</strong> Anything that would be sold to and used by another business (B2B)</li>
+                          <li><strong className="text-foreground">Developer Tool:</strong> anything that would be purchased and used by a developer/tech organization.</li>
+                          <li><strong className="text-foreground">RWA:</strong> anything that is a real-world asset this is being tokenized (eg. think commodities).</li>
+                          <li><strong className="text-foreground">Gaming:</strong> anything that pertains to a game of chance or skill.</li>
                         </ul>
                       </div>
                     </div>
@@ -961,12 +892,10 @@ export default function BuildGamesApplyForm() {
                         render={({ field }) => (
                           <FormItem className="space-y-2">
                             <Label className="text-sm font-medium text-foreground">
-                              Do you believe you and your team could be Avalanche's next top founder(s)? Why?{' '}
-                              <span className="text-destructive">*</span>
+                              Do you believe you and your team could be Avalanche's next top founder(s)? Why? <span className="text-destructive">*</span>
                             </Label>
                             <FormDescription className="text-xs text-muted-foreground">
-                              Describe the qualities that you and your team possess and why you believe you will win
-                              Build Games.
+                              Describe the qualities that you and your team possess and why you believe you will win Build Games.
                             </FormDescription>
                             <FormControl>
                               <Textarea
@@ -1037,7 +966,9 @@ export default function BuildGamesApplyForm() {
                         name="referrerName"
                         render={({ field }) => (
                           <FormItem className="space-y-2">
-                            <Label className="text-sm font-medium text-foreground">Please list their name:</Label>
+                            <Label className="text-sm font-medium text-foreground">
+                              Please list their name:
+                            </Label>
                             <FormControl>
                               <Input
                                 className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
@@ -1083,8 +1014,7 @@ export default function BuildGamesApplyForm() {
                         render={({ field }) => (
                           <FormItem className="space-y-2">
                             <Label className="text-sm font-medium text-foreground">
-                              Would you consider yourself an existing member of the Avalanche ecosystem, however you may
-                              define that? <span className="text-destructive">*</span>
+                              Would you consider yourself an existing member of the Avalanche ecosystem, however you may define that? <span className="text-destructive">*</span>
                             </Label>
                             <FormControl>
                               <RadioGroup
@@ -1094,15 +1024,11 @@ export default function BuildGamesApplyForm() {
                               >
                                 <div className="flex items-center space-x-3">
                                   <RadioGroupItem value="yes" id="ecosystem-yes" />
-                                  <Label htmlFor="ecosystem-yes" className="cursor-pointer text-foreground">
-                                    Yes
-                                  </Label>
+                                  <Label htmlFor="ecosystem-yes" className="cursor-pointer text-foreground">Yes</Label>
                                 </div>
                                 <div className="flex items-center space-x-3">
                                   <RadioGroupItem value="no" id="ecosystem-no" />
-                                  <Label htmlFor="ecosystem-no" className="cursor-pointer text-foreground">
-                                    No
-                                  </Label>
+                                  <Label htmlFor="ecosystem-no" className="cursor-pointer text-foreground">No</Label>
                                 </div>
                               </RadioGroup>
                             </FormControl>
@@ -1118,19 +1044,12 @@ export default function BuildGamesApplyForm() {
                     <div className="space-y-6">
                       <div className="rounded-lg border border-accent bg-accent/10 p-4">
                         <p className="text-sm text-foreground">
-                          The Avalanche Foundation needs the contact information you provide to us to contact you about
-                          our products and services. You may unsubscribe from these communications at any time. For
-                          information on how to unsubscribe, as well as our privacy practices and commitment to
-                          protecting your privacy, please review our{' '}
-                          <a
-                            href="https://www.avax.network/privacy-policy"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#66acd6] hover:text-[#7bbde3] hover:underline font-medium"
-                          >
+                          The Avalanche Foundation needs the contact information you provide to us to contact you about our products and services.
+                          You may unsubscribe from these communications at any time. For information on how to unsubscribe, as well as our privacy
+                          practices and commitment to protecting your privacy, please review our{" "}
+                          <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#66acd6] hover:text-[#7bbde3] hover:underline font-medium">
                             Privacy Policy
-                          </a>
-                          .
+                          </a>.
                         </p>
                       </div>
 
@@ -1140,12 +1059,14 @@ export default function BuildGamesApplyForm() {
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-4 space-y-0 rounded-lg border border-border bg-secondary/50 p-4">
                             <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
                             </FormControl>
                             <div className="space-y-1 leading-none flex-1">
                               <Label className="font-medium text-foreground cursor-pointer">
-                                I have read and agree to the privacy policy linked above.{' '}
-                                <span className="text-destructive">*</span>
+                                I have read and agree to the privacy policy linked above. <span className="text-destructive">*</span>
                               </Label>
                             </div>
                           </FormItem>
@@ -1158,13 +1079,15 @@ export default function BuildGamesApplyForm() {
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-4 space-y-0 rounded-lg border border-border bg-secondary/50 p-4">
                             <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
                             </FormControl>
                             <div className="space-y-1 leading-none flex-1">
                               <Label className="font-medium text-foreground cursor-pointer">
-                                I want to receive emails regarding valuable resources, funding opportunities, events,
-                                and notifications, including information on upcoming Build Games seasons from the
-                                Avalanche Foundation.
+                                I want to receive emails regarding valuable resources, funding opportunities, events, and notifications,
+                                including information on upcoming Build Games seasons from the Avalanche Foundation.
                               </Label>
                             </div>
                           </FormItem>
