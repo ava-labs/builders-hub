@@ -77,9 +77,7 @@ export const menuSections: NavSection[] = [
     title: 'Grants',
     href: '/grants',
     items: [
-      { text: 'InfraBUIDL', href: '/grants/infrabuidl' },
-      { text: 'InfraBUIDL (AI)', href: '/grants/infrabuidlai' },
-      { text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
+{ text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
       { text: 'Blizzard Fund', href: 'https://www.blizzard.fund/', external: true },
     ],
   },

@@ -5,9 +5,7 @@ import {
   Logs,
   ArrowUpRight,
   SendHorizontal,
-  Bot,
   Computer,
-  Cpu,
   Snowflake,
   BriefcaseBusiness,
   MessageSquareQuote,
@@ -460,23 +458,13 @@ export const grantsMenu: LinkItemType = {
       url: 'https://retro9000.avax.network',
     },
     {
-      icon: <Cpu />,
-      text: 'InfraBUIDL',
+      icon: <MessageSquareQuote />,
+      text: 'Retro9000',
       description:
-        "Strengthening Avalanche's infrastructure. Build the foundation for next-gen blockchain applications.",
-      url: '/grants/infrabuidl',
+        'Build innovative projects on Avalanche. Get rewarded for your creativity.',
+      url: 'https://retro9000.avax.network',
       menu: {
-        className: 'lg:col-start-2',
-      },
-    },
-    {
-      icon: <Bot />,
-      text: 'InfraBUIDL (AI)',
-      description:
-        'Supports projects that fuse artificial intelligence (AI) with decentralized infrastructure.',
-      url: '/grants/infrabuidlai',
-      menu: {
-        className: 'lg:col-start-2',
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
