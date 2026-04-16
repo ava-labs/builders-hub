@@ -1303,9 +1303,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
             If you're running in a cloud provider, open the instance ports in the cloud provider's network settings.
             Make sure to enable SSH inbound traffic (port 22) for remote access to the instance.
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
-              Alternatively, you can use a firewall tool like UFW to open the ports:{' '}
-            </p>
+          </p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+            Alternatively, you can use a firewall tool like UFW to open the ports:{' '}
           </p>
 
           <DynamicCodeBlock
