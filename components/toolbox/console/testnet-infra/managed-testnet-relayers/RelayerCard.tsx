@@ -158,9 +158,24 @@ export default function RelayerCard({
       // Get chain info for the transaction
       const chainInfo = getChainInfo(config);
       const l1 = l1List.find((item: L1ListItem) => item.id === config.blockchainId);
-      const evmChainId =
-        l1?.evmChainId ||
-        (config.rpcUrl.includes('avax-test.network') ? 43113 : parseInt(config.blockchainId.slice(0, 8), 16));
+      // Resolve the EVM chain ID — prefer the L1 list; for anything else
+      // query the RPC directly. The previous fallback, parseInt(cb58.slice(0,8), 16),
+      // silently returned NaN for non-hex base58 characters and left
+      // walletClient.switchChain with an invalid id.
+      let evmChainId: number | undefined = l1?.evmChainId;
+      if (!evmChainId) {
+        try {
+          const probe = createPublicClient({ transport: http(config.rpcUrl) });
+          evmChainId = await probe.getChainId();
+        } catch {
+          throw new Error(
+            `Could not reach ${config.blockchainId.slice(0, 8)}… to determine its EVM chain ID. Check that the relayer's RPC URL is online.`,
+          );
+        }
+      }
+      if (!evmChainId || !Number.isFinite(evmChainId)) {
+        throw new Error('Could not determine the EVM chain ID for this relayer config.');
+      }
 
       const viemChain: Chain = {
         id: evmChainId,
