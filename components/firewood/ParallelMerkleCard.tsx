@@ -21,7 +21,7 @@ function createIdleCells(): SubtrieCell[] {
 }
 
 function pickActiveNibbles(): number[] {
-  const count = 4 + Math.floor(Math.random() * 3) // 4-6 active
+  const count = 4 + Math.floor(Math.random() * 3) // 4-6 active subtries per block
   const indices: number[] = []
   while (indices.length < count) {
     const idx = Math.floor(Math.random() * 16)
@@ -119,7 +119,7 @@ export function ParallelMerkleCard({ colors }: { colors: Colors }) {
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
           <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
-            16 parallel threads.
+            N parallel threads.
           </h3>
           <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
             State changes split by first nibble. Each subtrie hashes independently.
@@ -138,7 +138,7 @@ export function ParallelMerkleCard({ colors }: { colors: Colors }) {
               exit={{ opacity: 0 }}
               className="flex items-center gap-1"
             >
-              {activeIndices.slice(0, 6).map((_, i) => (
+              {activeIndices.map((_, i) => (
                 <div
                   key={`dot-${batchKey}-${i}`}
                   className="w-2 h-2 rounded-full"
