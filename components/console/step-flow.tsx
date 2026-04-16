@@ -131,20 +131,34 @@ export default function StepFlow({
     return getFlowMetadata(basePath, steps);
   }, [basePath, steps, completionMetadata]);
 
-  // Handle finish button click
+  // Defer `onFinish` until AFTER the completion modal has been shown.
+  // Calling it here would unmount parent components (e.g. a parent that
+  // reads a flow store reset by `onFinish`) before the modal can render.
   const handleFinish = useCallback(() => {
-    if (onFinish) {
-      onFinish();
-    }
     // When onNavigate is provided (inline chat mode), skip URL navigation
-    if (onNavigate) return;
+    // and fire onFinish immediately — there is no modal to wait for.
+    if (onNavigate) {
+      if (onFinish) onFinish();
+      return;
+    }
     if (showCompletionModal && flowMetadata) {
       setIsCompletionModalOpen(true);
     } else {
-      // Fallback: navigate to console home if no modal configured
+      // Fallback: navigate to console home if no modal configured.
+      if (onFinish) onFinish();
       router.push("/console");
     }
   }, [onFinish, onNavigate, showCompletionModal, flowMetadata, router]);
+
+  const handleCompletionModalChange = useCallback(
+    (open: boolean) => {
+      setIsCompletionModalOpen(open);
+      // Fire onFinish only when the modal transitions from open → closed.
+      // Guards against running onFinish on programmatic re-open.
+      if (!open && onFinish) onFinish();
+    },
+    [onFinish],
+  );
 
   // Find which step we're on - could be a single step or a branch option
   const { currentIndex, currentStep, selectedBranchOption } = useMemo(() => {
@@ -438,7 +452,7 @@ export default function StepFlow({
       {showCompletionModal && flowMetadata && (
         <FlowCompletionModal
           open={isCompletionModalOpen}
-          onOpenChange={setIsCompletionModalOpen}
+          onOpenChange={handleCompletionModalChange}
           metadata={flowMetadata}
           transactionHash={transactionHash}
           explorerUrl={explorerUrl}
