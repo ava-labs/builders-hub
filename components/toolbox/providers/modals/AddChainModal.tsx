@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { Button } from '../../components/Button';
 import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { networkIDs } from '@avalabs/avalanchejs';
 import { Input } from '../../components/Input';
 import { Select } from '../../components/Select';
 import { getBlockchainInfo, getSubnetInfo, getChainDetails } from '../../coreViem/utils/glacier';
@@ -224,6 +226,19 @@ export function AddChainModal() {
       await walletClient.switchChain({
         id: chainData.evmChainId,
       });
+
+      // Sync wallet store so downstream gates (ChainGate) observe the switch.
+      // wagmi's useChainId ignores chains not registered in wagmiConfig, so
+      // custom L1s would otherwise leave walletChainId stale. Network
+      // selection (isTestnet + avalancheNetworkID) must stay consistent —
+      // P-Chain clients read avalancheNetworkID, wallet UI reads isTestnet,
+      // and they both flow from the same source of truth.
+      const { setWalletChainId, setIsTestnet, setAvalancheNetworkID } = useWalletStore.getState();
+      setWalletChainId(chainData.evmChainId);
+      if (typeof chainData.isTestnet === 'boolean') {
+        setIsTestnet(chainData.isTestnet);
+        setAvalancheNetworkID(chainData.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+      }
 
       addL1(chainData);
 

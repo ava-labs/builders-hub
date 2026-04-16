@@ -208,5 +208,35 @@ export function WalletSync() {
     }
   }, [chainId, isConnected, isCoreConnector]);
 
+  // Bridge raw EIP-1193 `chainChanged` events into the store.
+  //
+  // wagmi's `useChainId` only surfaces chains registered in wagmiConfig
+  // (avalanche + avalancheFuji). For any custom L1 the connector marks the
+  // chain "unsupported" and never propagates the change — which leaves
+  // `walletChainId` stale in the store and breaks ChainGate for L1 steps.
+  // A native listener catches every switch regardless of registration.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handler = (chainIdHex: string | number) => {
+      const next = typeof chainIdHex === 'string' ? Number.parseInt(chainIdHex, 16) : Number(chainIdHex);
+      if (!Number.isFinite(next) || next <= 0) return;
+      if (next === useWalletStore.getState().walletChainId) return;
+      setWalletChainId(next);
+    };
+
+    const providers: Array<{
+      on?: (event: string, listener: (...args: any[]) => void) => void;
+      removeListener?: (event: string, listener: (...args: any[]) => void) => void;
+    }> = [];
+    if (window.avalanche) providers.push(window.avalanche as any);
+    if (window.ethereum && window.ethereum !== window.avalanche) providers.push(window.ethereum as any);
+
+    providers.forEach((p) => p.on?.('chainChanged', handler));
+    return () => {
+      providers.forEach((p) => p.removeListener?.('chainChanged', handler));
+    };
+  }, [setWalletChainId]);
+
   return null;
 }
