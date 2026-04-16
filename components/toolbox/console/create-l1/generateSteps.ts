@@ -353,6 +353,21 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
 }
 
 /**
+ * Resolves the step key at `index` in the flow that would be generated
+ * from the given answers. Returns `null` when there is no flow to resume
+ * (no answers yet, or the generated flow is empty). Out-of-range indices
+ * are clamped into the valid range so the resume link always lands on a
+ * real step.
+ */
+export function getResumeStepKey(answers: QuestionnaireAnswers | null, index: number): string | null {
+  if (!answers) return null;
+  const steps = generateCreateL1Steps(answers);
+  if (steps.length === 0) return null;
+  const clamped = Math.max(0, Math.min(index, steps.length - 1));
+  return steps[clamped]?.key ?? null;
+}
+
+/**
  * Human-readable labels for the flow preview.
  */
 export function getStepLabel(key: string): string {

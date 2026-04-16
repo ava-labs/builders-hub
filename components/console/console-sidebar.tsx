@@ -36,6 +36,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Workflow,
+  PlayCircle,
 
   Search,
   X,
@@ -64,6 +65,8 @@ import {
 } from "@/components/ui/collapsible";
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useCreateL1FlowStore } from "@/components/toolbox/stores/createL1FlowStore";
+import { getResumeStepKey } from "@/components/toolbox/console/create-l1/generateSteps";
 import { cn } from "@/lib/utils";
 
 // C-Chain chain IDs (Fuji testnet and Mainnet)
@@ -488,13 +491,49 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const isConnectedToL1 =
     walletChainId !== 0 && !C_CHAIN_IDS.includes(walletChainId);
 
+  // Read in-progress Create L1 flow so we can surface a "Resume" entry.
+  // Answers and currentStepIndex are persisted in localStorage — the
+  // sidebar item appears automatically whenever the user has an
+  // unfinished flow, and the link deep-links to the exact step they
+  // left off on.
+  const flowAnswers = useCreateL1FlowStore((s) => s.answers);
+  const flowStepIndex = useCreateL1FlowStore((s) => s.currentStepIndex);
+  const resumeStepKey = React.useMemo(
+    () => getResumeStepKey(flowAnswers, flowStepIndex),
+    [flowAnswers, flowStepIndex],
+  );
+
+  // Inject the conditional "Resume Create L1" item right after "Create L1"
+  // in the Getting Started group, without mutating the static data.
+  const navGroups = React.useMemo<NavGroup[]>(() => {
+    if (!resumeStepKey) return data.navGroups;
+    return data.navGroups.map((group) => {
+      if (group.id !== "getting-started") return group;
+      const resumeItem: NavItem = {
+        title: "Resume Create L1",
+        url: `/console/create-l1/${resumeStepKey}`,
+        icon: PlayCircle,
+      };
+      const createL1Index = group.items.findIndex(
+        (item) => !isCollapsibleSubGroup(item) && item.url === "/console/create-l1",
+      );
+      const nextItems = [...group.items];
+      if (createL1Index >= 0) {
+        nextItems.splice(createL1Index + 1, 0, resumeItem);
+      } else {
+        nextItems.unshift(resumeItem);
+      }
+      return { ...group, items: nextItems };
+    });
+  }, [resumeStepKey]);
+
   // Flatten all nav items for search, tracking their category path
   const allNavItems = React.useMemo(() => {
     const items: SearchableNavItem[] = [];
     data.navMain.forEach((item) =>
       items.push({ ...item, category: "" })
     );
-    data.navGroups.forEach((group) => {
+    navGroups.forEach((group) => {
       group.items.forEach((item) => {
         if (isCollapsibleSubGroup(item)) {
           const category = `${group.title} › ${item.title}`;
@@ -507,7 +546,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
       });
     });
     return items;
-  }, []);
+  }, [navGroups]);
 
   // Filter items based on search query
   const filteredItems = React.useMemo(() => {
@@ -629,7 +668,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
               </SidebarGroup>
 
               {/* Navigation Groups with Collapsible Sections */}
-              {data.navGroups.map((group) => {
+              {navGroups.map((group) => {
                 // Skip L1-only sections when not connected to L1
                 if (group.requiresL1 && !isConnectedToL1) {
                   return null;
