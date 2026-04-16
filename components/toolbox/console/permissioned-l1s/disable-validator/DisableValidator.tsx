@@ -97,6 +97,13 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
   const [operationSuccessful, setOperationSuccessful] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [authIndex, setAuthIndex] = useState<number>(-1);
+  const [confirmedEmergency, setConfirmedEmergency] = useState(false);
+
+  // Reset the confirmation checkbox whenever the target validator changes,
+  // so the user re-consents for each specific node.
+  useEffect(() => {
+    setConfirmedEmergency(false);
+  }, [selectedValidator?.validationId]);
 
   // Normalize P-Chain address by removing the "P-" prefix for comparison
   // SDK returns addresses like "fuji1abc..." while wallet returns "P-fuji1abc..."
@@ -175,6 +182,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
     setOperationSuccessful(false);
     setIsAuthorized(null);
     setAuthIndex(-1);
+    setConfirmedEmergency(false);
   };
 
   if (operationSuccessful && txHash) {
@@ -360,12 +368,31 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
 
         {error && <Alert variant="error">{error}</Alert>}
 
+        {/* Explicit emergency confirmation — this operation is irreversible
+            and bypasses the Validator Manager, so require the user to opt in
+            once the target validator is known and they are authorized. */}
+        {selectedValidator && isAuthorized && (
+          <label className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={confirmedEmergency}
+              onChange={(e) => setConfirmedEmergency(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-red-600"
+              disabled={isProcessing}
+            />
+            <span className="text-sm text-red-700 dark:text-red-400">
+              I understand this disables <span className="font-mono">{selectedValidator.nodeId.slice(0, 16)}…</span>{' '}
+              directly on the P-Chain, is <strong>irreversible</strong>, and bypasses the Validator Manager.
+            </span>
+          </label>
+        )}
+
         {/* Submit Button */}
         <CoreWalletTransactionButton
           onClick={handleDisableValidator}
           loading={isProcessing}
           loadingText="Disabling Validator..."
-          disabled={isProcessing || !selectedValidator || !isAuthorized || !coreWalletClient}
+          disabled={isProcessing || !selectedValidator || !isAuthorized || !coreWalletClient || !confirmedEmergency}
           className="w-full"
           cliCommand={`avalanche validator disable --validation-id ${selectedValidator?.validationId || '<validation-id>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`}
         >
