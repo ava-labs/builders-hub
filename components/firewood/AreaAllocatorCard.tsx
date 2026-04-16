@@ -1,309 +1,407 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Colors, FIREWOOD_COLORS } from "./types"
+import { Colors, FIREWOOD_COLORS, lt } from "./types"
 import { InfoTooltip } from "./shared"
 
-interface AreaBucket {
+interface TrieNodeState {
+  id: string
   label: string
-  sizeBytes: number
-  width: number
-  free: number
+  status: "active" | "deleting" | "gone"
 }
 
-interface AnimEvent {
-  type: "write" | "free"
-  nodeLabel: string
-  nodeSize: number
-  targetIdx: number
+interface DeleteLogEntry {
+  id: string
+  label: string
+  status: "logged" | "recycling" | "done"
 }
 
-// Representative subset of all 23 area sizes from storage/build.rs
-// Includes non-power-of-two sizes 96B and 768B (optimized for common trie node sizes)
-const AREA_BUCKETS: AreaBucket[] = [
-  { label: "16B", sizeBytes: 16, width: 14, free: 7 },
-  { label: "96B", sizeBytes: 96, width: 17, free: 5 },
-  { label: "256B", sizeBytes: 256, width: 22, free: 4 },
-  { label: "768B", sizeBytes: 768, width: 27, free: 6 },
-  { label: "4KB", sizeBytes: 4096, width: 34, free: 3 },
-  { label: "16KB", sizeBytes: 16384, width: 42, free: 5 },
-  { label: "64KB", sizeBytes: 65536, width: 50, free: 2 },
-  { label: "256KB", sizeBytes: 262144, width: 58, free: 4 },
-  { label: "1MB", sizeBytes: 1048576, width: 66, free: 3 },
-  { label: "16MB", sizeBytes: 16777216, width: 76, free: 1 },
+const INITIAL_TRIE_NODES: TrieNodeState[] = [
+  { id: "n1", label: "N1", status: "active" },
+  { id: "n2", label: "N2", status: "active" },
+  { id: "n3", label: "N3", status: "active" },
+  { id: "n4", label: "N4", status: "active" },
+  { id: "n5", label: "N5", status: "active" },
 ]
 
-// Write events use real area sizes — each node is allocated to the smallest bucket that fits
-const WRITE_EVENTS: AnimEvent[] = [
-  { type: "write", nodeLabel: "80B branch", nodeSize: 80, targetIdx: 1 },  // fits in 96B bucket
-  { type: "write", nodeLabel: "3KB leaf", nodeSize: 3072, targetIdx: 4 },  // fits in 4KB bucket
-  { type: "write", nodeLabel: "40B node", nodeSize: 40, targetIdx: 1 },    // fits in 96B bucket
-  { type: "write", nodeLabel: "200KB val", nodeSize: 204800, targetIdx: 7 }, // fits in 256KB bucket
-  { type: "write", nodeLabel: "12B key", nodeSize: 12, targetIdx: 0 },     // fits in 16B bucket
-]
+const NODE_COUNT = 5
 
-const FREE_EVENTS: AnimEvent[] = [
-  { type: "free", nodeLabel: "freed", nodeSize: 0, targetIdx: 3 },
-  { type: "free", nodeLabel: "freed", nodeSize: 0, targetIdx: 5 },
-  { type: "free", nodeLabel: "freed", nodeSize: 0, targetIdx: 1 },
-  { type: "free", nodeLabel: "freed", nodeSize: 0, targetIdx: 6 },
-  { type: "free", nodeLabel: "freed", nodeSize: 0, targetIdx: 8 },
-]
-
-function findSmallestFitLabel(sizeBytes: number): string {
-  const bucket = AREA_BUCKETS.find(b => b.sizeBytes >= sizeBytes)
-  return bucket ? bucket.label : "16MB"
+function ArrowIndicator({ colors, label }: { colors: Colors; label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-1 gap-0.5">
+      <svg width="24" height="16" viewBox="0 0 24 16" fill="none">
+        <path
+          d="M2 8H20M20 8L14 3M20 8L14 13"
+          stroke={`${colors.stroke}30`}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span
+        className="text-[7px] font-mono leading-none"
+        style={{ color: `${colors.stroke}35` }}
+      >
+        {label}
+      </span>
+    </div>
+  )
 }
 
 export function AreaAllocatorCard({ colors }: { colors: Colors }) {
-  const [buckets, setBuckets] = useState<AreaBucket[]>(AREA_BUCKETS)
-  const [highlightIdx, setHighlightIdx] = useState<number | null>(null)
-  const [flashType, setFlashType] = useState<"write" | "free" | null>(null)
-  const [activeEvent, setActiveEvent] = useState<AnimEvent | null>(null)
-  const [showFitLabel, setShowFitLabel] = useState(false)
+  const [trieNodes, setTrieNodes] = useState<TrieNodeState[]>(INITIAL_TRIE_NODES)
+  const [deleteLog, setDeleteLog] = useState<DeleteLogEntry[]>([])
+  const [reusedNodes, setReusedNodes] = useState<string[]>([])
 
   const isMountedRef = useRef(true)
-  const cycleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const writeIdxRef = useRef(0)
-  const freeIdxRef = useRef(0)
+  const cycleIndexRef = useRef(0)
+  const nextIdRef = useRef(6)
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([])
+  // Track node labels by position so we never need to read from state
+  const nodeLabelsRef = useRef(["N1", "N2", "N3", "N4", "N5"])
+  // Track delete log length and labels synchronously to gate recycle phases
+  const deleteLogCountRef = useRef(0)
+  const deleteLogLabelsRef = useRef<string[]>([])
+
+  const scheduleTimeout = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(() => {
+      if (isMountedRef.current) fn()
+    }, delay)
+    timeoutsRef.current = [...timeoutsRef.current, id]
+    return id
+  }, [])
 
   const clearAllTimeouts = useCallback(() => {
-    if (cycleTimeoutRef.current) clearTimeout(cycleTimeoutRef.current)
+    timeoutsRef.current.forEach(id => clearTimeout(id))
+    timeoutsRef.current = []
   }, [])
 
   const runCycle = useCallback(() => {
     if (!isMountedRef.current) return
 
-    // Phase 1: Write event arrives
-    const writeEvent = WRITE_EVENTS[writeIdxRef.current % WRITE_EVENTS.length]
-    writeIdxRef.current++
+    const targetPosition = cycleIndexRef.current % NODE_COUNT
+    cycleIndexRef.current = cycleIndexRef.current + 1
+    const deletedLabel = nodeLabelsRef.current[targetPosition]
 
-    setActiveEvent(writeEvent)
-    setHighlightIdx(null)
-    setFlashType(null)
-    setShowFitLabel(false)
+    // Phase 1: Mark the node at target position as "deleting" (blue -> orange)
+    setTrieNodes(prev =>
+      prev.map((n, i) =>
+        i === targetPosition && n.status === "active"
+          ? { ...n, status: "deleting" as const }
+          : n
+      )
+    )
 
-    // Phase 2: Highlight target bucket after short delay
-    cycleTimeoutRef.current = setTimeout(() => {
-      if (!isMountedRef.current) return
-      setHighlightIdx(writeEvent.targetIdx)
-      setFlashType("write")
-      setShowFitLabel(true)
+    // Phase 2: Move to delete log, replace node in trie
+    scheduleTimeout(() => {
+      const newLabel = `N${nextIdRef.current}`
+      nextIdRef.current = nextIdRef.current + 1
+      if (nextIdRef.current > 99) nextIdRef.current = 6
 
-      // Phase 3: Decrement free count
-      cycleTimeoutRef.current = setTimeout(() => {
-        if (!isMountedRef.current) return
-        setBuckets(prev =>
-          prev.map((b, i) =>
-            i === writeEvent.targetIdx
-              ? { ...b, free: Math.max(0, b.free - 1) }
-              : b
-          )
+      // Update the labels ref
+      nodeLabelsRef.current = nodeLabelsRef.current.map((l, i) =>
+        i === targetPosition ? newLabel : l
+      )
+
+      // Add deleted node to the log
+      deleteLogCountRef.current = deleteLogCountRef.current + 1
+      deleteLogLabelsRef.current = [...deleteLogLabelsRef.current, deletedLabel]
+      const logEntryId = `log-${deletedLabel}-${Date.now()}`
+      setDeleteLog(prev => [
+        ...prev,
+        { id: logEntryId, label: deletedLabel, status: "logged" as const },
+      ])
+
+      // Replace deleted node with a new active node
+      setTrieNodes(prev =>
+        prev.map((n, i) =>
+          i === targetPosition
+            ? { id: `n-${newLabel}-${Date.now()}`, label: newLabel, status: "active" as const }
+            : n
         )
+      )
 
-        // Phase 4: Clear write, pause
-        cycleTimeoutRef.current = setTimeout(() => {
-          if (!isMountedRef.current) return
-          setHighlightIdx(null)
-          setFlashType(null)
-          setActiveEvent(null)
-          setShowFitLabel(false)
+      // Only run recycle phases if the log has enough entries
+      const canRecycle = deleteLogCountRef.current >= 2
 
-          // Phase 5: Free event
-          cycleTimeoutRef.current = setTimeout(() => {
-            if (!isMountedRef.current) return
-            const freeEvent = FREE_EVENTS[freeIdxRef.current % FREE_EVENTS.length]
-            freeIdxRef.current++
+      if (canRecycle) {
+        // Phase 3: Mark oldest as recycling
+        scheduleTimeout(() => {
+          setDeleteLog(prev => {
+            if (prev.length < 2) return prev
+            const oldest = prev[0]
+            if (oldest.status !== "logged") return prev
+            return [
+              { ...oldest, status: "recycling" as const },
+              ...prev.slice(1),
+            ]
+          })
 
-            setHighlightIdx(freeEvent.targetIdx)
-            setFlashType("free")
-            setActiveEvent(freeEvent)
+          // Phase 4: Mark as done
+          scheduleTimeout(() => {
+            setDeleteLog(prev => {
+              if (prev.length === 0 || prev[0].status !== "recycling") return prev
+              return [
+                { ...prev[0], status: "done" as const },
+                ...prev.slice(1),
+              ]
+            })
 
-            // Phase 6: Increment free count
-            cycleTimeoutRef.current = setTimeout(() => {
-              if (!isMountedRef.current) return
-              setBuckets(prev =>
-                prev.map((b, i) =>
-                  i === freeEvent.targetIdx
-                    ? { ...b, free: b.free + 1 }
-                    : b
-                )
-              )
+            // Phase 5: Remove from log and show reused indicator
+            scheduleTimeout(() => {
+              deleteLogCountRef.current = deleteLogCountRef.current - 1
+              // Pop the oldest label — this is the node actually being recycled
+              const recycledLabel = deleteLogLabelsRef.current[0] ?? deletedLabel
+              deleteLogLabelsRef.current = deleteLogLabelsRef.current.slice(1)
+              setDeleteLog(prev => {
+                if (prev.length === 0 || prev[0].status !== "done") return prev
+                return prev.slice(1)
+              })
+              setReusedNodes(r => [...r, recycledLabel])
 
-              // Phase 7: Clear and restart
-              cycleTimeoutRef.current = setTimeout(() => {
-                if (!isMountedRef.current) return
-                setHighlightIdx(null)
-                setFlashType(null)
-                setActiveEvent(null)
+              scheduleTimeout(() => {
+                setReusedNodes(r => r.slice(1))
+              }, 800)
+
+              // Restart cycle
+              scheduleTimeout(() => {
                 runCycle()
-              }, 600)
+              }, 1000)
             }, 400)
-          }, 400)
-        }, 500)
-      }, 500)
-    }, 600)
-  }, [])
+          }, 600)
+        }, 700)
+      } else {
+        // No recycling yet — just restart cycle after a pause
+        scheduleTimeout(() => {
+          runCycle()
+        }, 1700)
+      }
+    }, 700)
+  }, [scheduleTimeout])
 
   useEffect(() => {
     isMountedRef.current = true
-    cycleTimeoutRef.current = setTimeout(runCycle, 800)
+    const startId = setTimeout(() => {
+      if (isMountedRef.current) runCycle()
+    }, 1200)
 
     return () => {
       isMountedRef.current = false
+      clearTimeout(startId)
       clearAllTimeouts()
     }
   }, [runCycle, clearAllTimeouts])
+
+  const trieBoxColor = (status: TrieNodeState["status"]) => {
+    if (status === "deleting") return FIREWOOD_COLORS.fdl
+    return FIREWOOD_COLORS.trie
+  }
+
+  const trieBoxBg = (status: TrieNodeState["status"]) => {
+    if (status === "deleting") return lt(colors.stroke, FIREWOOD_COLORS.fdl, "bg", "18")
+    return lt(colors.stroke, FIREWOOD_COLORS.trie, "bg", "18")
+  }
+
+  const trieBoxBorder = (status: TrieNodeState["status"]) => {
+    if (status === "deleting") return lt(colors.stroke, FIREWOOD_COLORS.fdl, "border", "40")
+    return lt(colors.stroke, FIREWOOD_COLORS.trie, "border", "40")
+  }
 
   return (
     <div className={`p-6 h-full flex flex-col ${colors.blockBg}`}>
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
           <h3 className={`text-lg font-bold ${colors.text} mb-2`}>
-            Malloc-like allocation.
+            Delete-log recycling.
           </h3>
           <p className={`text-sm ${colors.textMuted} leading-relaxed`}>
-            23 area sizes from 16B to 16MB. Freed nodes return to per-size free lists — no compaction, no fragmentation.
+            Deleted nodes are added to a delete-log and their space is eventually reused. No compaction needed.
           </p>
         </div>
-        <InfoTooltip colors={colors} text="Instead of compacting files like LevelDB, Firewood manages disk space the way malloc manages heap memory. There are 23 bucket sizes (16 bytes to 16 MB, defined in storage/build.rs) — including non-power-of-two sizes like 96B and 768B optimized for common node sizes. Writing a trie node picks the smallest bucket that fits. When old nodes are freed, their space goes back to the matching bucket's free list — ready for the next write, no reorganization needed." />
+        <InfoTooltip
+          colors={colors}
+          text="Space for nodes may be allocated from the end of the file, or from space freed from expired revisions. When revisions expire, their deleted nodes are returned to per-size free lists — algorithmically resembling traditional heap memory management. Each node return is O(1)."
+        />
       </div>
 
-      {/* Event indicator */}
-      <div className="mb-3 h-6 flex items-center gap-2">
-        <AnimatePresence mode="wait">
-          {activeEvent && (
-            <motion.div
-              key={`${activeEvent.type}-${activeEvent.nodeLabel}-${activeEvent.targetIdx}`}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-2"
+      {/* Three-zone flow visualization */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-stretch gap-0 w-full">
+
+          {/* Trie zone */}
+          <div className="flex flex-col items-center flex-1 min-w-0">
+            <span
+              className="text-[9px] font-mono font-bold uppercase tracking-wider mb-2"
+              style={{ color: FIREWOOD_COLORS.trie }}
             >
-              <span
-                className="text-[9px] font-mono font-bold px-1.5 py-0.5 uppercase"
-                style={{
-                  backgroundColor: activeEvent.type === "write"
-                    ? `${FIREWOOD_COLORS.trie}20`
-                    : `${FIREWOOD_COLORS.disk}20`,
-                  color: activeEvent.type === "write"
-                    ? FIREWOOD_COLORS.trie
-                    : FIREWOOD_COLORS.disk,
-                  border: `1px solid ${
-                    activeEvent.type === "write"
-                      ? FIREWOOD_COLORS.trie
-                      : FIREWOOD_COLORS.disk
-                  }40`,
-                }}
-              >
-                {activeEvent.type === "write" ? "ALLOC" : "FREE"}
-              </span>
-              {activeEvent.type === "write" && (
-                <span
-                  className="text-[10px] font-mono"
-                  style={{ color: FIREWOOD_COLORS.trie }}
-                >
-                  {activeEvent.nodeLabel}
-                </span>
-              )}
-              {showFitLabel && activeEvent.type === "write" && (
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-[9px] font-mono"
-                  style={{ color: `${colors.stroke}60` }}
-                >
-                  {"-> "}
-                  {findSmallestFitLabel(activeEvent.nodeSize)} bucket
-                </motion.span>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Area buckets visualization */}
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="flex items-end gap-1">
-          {buckets.map((bucket, idx) => {
-            const isHighlighted = highlightIdx === idx
-            const isWrite = isHighlighted && flashType === "write"
-            const isFree = isHighlighted && flashType === "free"
-
-            const accentColor = isWrite
-              ? FIREWOOD_COLORS.trie
-              : isFree
-                ? FIREWOOD_COLORS.disk
-                : FIREWOOD_COLORS.rust
-
-            return (
-              <div
-                key={bucket.label}
-                className="flex flex-col items-center gap-1 flex-1"
-              >
-                {/* Free count */}
-                <motion.span
-                  className="text-[8px] font-mono font-bold"
-                  animate={{
-                    color: isHighlighted ? accentColor : `${colors.stroke}50`,
-                    scale: isHighlighted ? 1.15 : 1,
-                  }}
-                  transition={{ duration: 0.15 }}
-                >
-                  {bucket.free}
-                </motion.span>
-
-                {/* Bar */}
-                <motion.div
-                  className="w-full relative"
-                  style={{
-                    height: bucket.width,
-                    minWidth: 20,
-                  }}
-                  animate={{
-                    backgroundColor: isHighlighted
-                      ? `${accentColor}30`
-                      : `${FIREWOOD_COLORS.rust}12`,
-                    borderColor: isHighlighted
-                      ? accentColor
-                      : `${FIREWOOD_COLORS.rust}25`,
-                  }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      border: `1px solid ${
-                        isHighlighted ? accentColor : `${FIREWOOD_COLORS.rust}25`
-                      }`,
+              Trie
+            </span>
+            <div className="flex flex-col gap-1.5 items-center">
+              <AnimatePresence mode="popLayout">
+                {trieNodes.map(node => (
+                  <motion.div
+                    key={node.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{
+                      opacity: node.status === "gone" ? 0 : 1,
+                      scale: node.status === "gone" ? 0.5 : 1,
+                      backgroundColor: trieBoxBg(node.status),
+                      borderColor: trieBoxBorder(node.status),
                     }}
-                  />
-                  {isHighlighted && (
-                    <motion.div
-                      className="absolute inset-0"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: [0, 0.4, 0] }}
-                      transition={{ duration: 0.6 }}
-                      style={{
-                        backgroundColor: accentColor,
-                      }}
-                    />
-                  )}
-                </motion.div>
+                    exit={{ opacity: 0, scale: 0.5, x: 20 }}
+                    transition={{ duration: 0.4 }}
+                    className="w-9 h-7 flex items-center justify-center"
+                    style={{
+                      border: `1.5px solid ${trieBoxBorder(node.status)}`,
+                      backgroundColor: trieBoxBg(node.status),
+                    }}
+                  >
+                    <span
+                      className="text-[9px] font-mono font-bold"
+                      style={{ color: trieBoxColor(node.status) }}
+                    >
+                      {node.label}
+                    </span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
 
-                {/* Size label */}
+          {/* Arrow: Trie -> Delete Log */}
+          <ArrowIndicator colors={colors} label="expire" />
+
+          {/* Delete Log zone */}
+          <div className="flex flex-col items-center flex-1 min-w-0">
+            <span
+              className="text-[9px] font-mono font-bold uppercase tracking-wider mb-2"
+              style={{ color: FIREWOOD_COLORS.fdl }}
+            >
+              Delete Log
+            </span>
+            <div
+              className="flex flex-col gap-1.5 items-center w-full min-h-[120px] py-2 px-1"
+              style={{
+                border: `1px dashed ${lt(colors.stroke, FIREWOOD_COLORS.fdl, "border", "30")}`,
+                backgroundColor: lt(colors.stroke, FIREWOOD_COLORS.fdl, "bg", "08"),
+              }}
+            >
+              <AnimatePresence mode="popLayout">
+                {deleteLog.map(entry => {
+                  const isRecycling = entry.status === "recycling" || entry.status === "done"
+                  const entryColor = isRecycling ? FIREWOOD_COLORS.disk : FIREWOOD_COLORS.fdl
+                  return (
+                    <motion.div
+                      key={entry.id}
+                      layout
+                      initial={{ opacity: 0, x: -15, scale: 0.7 }}
+                      animate={{
+                        opacity: entry.status === "done" ? 0.5 : 1,
+                        x: entry.status === "done" ? 15 : 0,
+                        scale: 1,
+                        backgroundColor: isRecycling
+                          ? lt(colors.stroke, FIREWOOD_COLORS.disk, "bg", "20")
+                          : lt(colors.stroke, FIREWOOD_COLORS.fdl, "bg", "18"),
+                        borderColor: isRecycling
+                          ? lt(colors.stroke, FIREWOOD_COLORS.disk, "border", "40")
+                          : lt(colors.stroke, FIREWOOD_COLORS.fdl, "border", "40"),
+                      }}
+                      exit={{ opacity: 0, x: 20, scale: 0.5 }}
+                      transition={{ duration: 0.4 }}
+                      className="w-9 h-7 flex items-center justify-center"
+                      style={{
+                        border: `1.5px solid ${
+                          isRecycling
+                            ? lt(colors.stroke, FIREWOOD_COLORS.disk, "border", "40")
+                            : lt(colors.stroke, FIREWOOD_COLORS.fdl, "border", "40")
+                        }`,
+                        backgroundColor: isRecycling
+                          ? lt(colors.stroke, FIREWOOD_COLORS.disk, "bg", "20")
+                          : lt(colors.stroke, FIREWOOD_COLORS.fdl, "bg", "18"),
+                      }}
+                    >
+                      <span
+                        className="text-[9px] font-mono font-bold"
+                        style={{ color: entryColor }}
+                      >
+                        {entry.label}
+                      </span>
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
+              {deleteLog.length === 0 && (
                 <span
-                  className="text-[7px] font-mono leading-none"
-                  style={{
-                    color: isHighlighted ? accentColor : `${colors.stroke}40`,
-                  }}
+                  className="text-[8px] font-mono italic mt-auto mb-auto"
+                  style={{ color: `${colors.stroke}25` }}
                 >
-                  {bucket.label}
+                  empty
                 </span>
-              </div>
-            )
-          })}
+              )}
+            </div>
+          </div>
+
+          {/* Arrow: Delete Log -> Reused */}
+          <ArrowIndicator colors={colors} label="reclaim" />
+
+          {/* Reused zone */}
+          <div className="flex flex-col items-center flex-1 min-w-0">
+            <span
+              className="text-[9px] font-mono font-bold uppercase tracking-wider mb-0.5"
+              style={{ color: FIREWOOD_COLORS.disk }}
+            >
+              Reused
+            </span>
+            <span
+              className={`text-[8px] ${colors.textMuted} font-mono mb-1`}
+            >
+              O(1) per node
+            </span>
+            <div className="flex flex-col gap-1.5 items-center min-h-[120px] justify-center">
+              <AnimatePresence>
+                {reusedNodes.map((label, idx) => (
+                  <motion.div
+                    key={`reused-${label}-${idx}`}
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.3 }}
+                    transition={{ duration: 0.5 }}
+                    className="w-9 h-7 flex items-center justify-center"
+                    style={{
+                      border: `1.5px solid ${lt(colors.stroke, FIREWOOD_COLORS.disk, "border", "50")}`,
+                      backgroundColor: lt(colors.stroke, FIREWOOD_COLORS.disk, "bg", "20"),
+                    }}
+                  >
+                    <span
+                      className="text-[9px] font-mono font-bold"
+                      style={{ color: FIREWOOD_COLORS.disk }}
+                    >
+                      {label}
+                    </span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {reusedNodes.length === 0 && (
+                <div className="flex flex-col items-center gap-1">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path
+                      d="M10 3V5M10 15V17M3 10H5M15 10H17M5.05 5.05L6.46 6.46M13.54 13.54L14.95 14.95M14.95 5.05L13.54 6.46M6.46 13.54L5.05 14.95"
+                      stroke={`${colors.stroke}20`}
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span
+                    className="text-[8px] font-mono italic"
+                    style={{ color: `${colors.stroke}25` }}
+                  >
+                    waiting
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -317,21 +415,21 @@ export function AreaAllocatorCard({ colors }: { colors: Colors }) {
             className="w-2 h-2 inline-block"
             style={{ backgroundColor: FIREWOOD_COLORS.trie }}
           />
-          allocate
+          active
+        </span>
+        <span className="flex items-center gap-1">
+          <span
+            className="w-2 h-2 inline-block"
+            style={{ backgroundColor: FIREWOOD_COLORS.fdl }}
+          />
+          in delete-log
         </span>
         <span className="flex items-center gap-1">
           <span
             className="w-2 h-2 inline-block"
             style={{ backgroundColor: FIREWOOD_COLORS.disk }}
           />
-          reclaim
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="w-2 h-2 inline-block"
-            style={{ backgroundColor: `${FIREWOOD_COLORS.rust}40` }}
-          />
-          free slots
+          reused
         </span>
       </div>
     </div>
