@@ -39,13 +39,15 @@ export function WalletSync() {
 
   /**
    * Determine if the connected wallet is Core.
-   * EIP-6963 connectors expose `connector.id` matching the wallet's rdns.
-   * Core Wallet uses "app.core". We also check for window.avalanche as fallback
-   * for the injected connector case (no EIP-6963).
+   * EIP-6963 connectors expose `connector.id` matching the wallet's rdns;
+   * Core Wallet uses "app.core". We intentionally do NOT fall back to
+   * `connector.type === 'injected' && !!window.avalanche` — a user with
+   * both Core and MetaMask installed would have `window.avalanche` defined
+   * even when MetaMask is the actually-connected wallet, and we'd run the
+   * Core bootstrap against the wrong injected provider. Modern wallet
+   * dialogs route through EIP-6963, so `connector.id` is authoritative.
    */
-  const isCoreConnector =
-    connector?.id === 'app.core' ||
-    (connector?.type === 'injected' && typeof window !== 'undefined' && !!window.avalanche);
+  const isCoreConnector = connector?.id === 'app.core';
 
   // Sync connection state → Zustand store
   useEffect(() => {
