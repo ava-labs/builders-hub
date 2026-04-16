@@ -173,7 +173,7 @@ export default function HackathonPage() {
       ],
       resources: [
         { name: 'Avalanche Validator Guide', url: 'https://build.avax.network/docs/nodes' },
-        { name: 'Governance Models', url: 'https://github.com/ava-labs/icm-contracts/tree/main/contracts/governance' }
+        { name: 'Governance Models', url: 'https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/governance' }
       ]
     },
     {

@@ -36,6 +36,8 @@ export function useUTMPreservation() {
       const utmImportantPaths = [
         '/hackathons/registration-form',
         '/hackathons/project-submission',
+        '/events/registration-form',
+        '/events/project-submission',
         '/profile'
       ];
 

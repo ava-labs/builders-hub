@@ -7,15 +7,24 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import React from 'react';
 import SubmitButton from '../SubmitButton';
+import JoinButton from '../JoinButton';
+import { EventReferralButton } from '../EventReferralModal';
 import { normalizeEventsLang, t } from '@/lib/events/i18n';
 
 export default async function Submission({
   hackathon,
+  isRegistered = false,
+  isAuthenticated = false,
+  utm = '',
 }: {
   hackathon: HackathonHeader;
+  isRegistered?: boolean;
+  isAuthenticated?: boolean;
+  utm?: string;
 }) {
   const lang = normalizeEventsLang(hackathon.content?.language);
   const locale = lang === 'es' ? 'es-ES' : 'en-US';
+
   return (
     <section className='py-16 text-black dark:text-white'>
       <h2 className='text-4xl font-bold' id='submission'>
@@ -99,7 +108,12 @@ export default async function Submission({
         </div>
       </div>
 
-      <div className='flex justify-center mt-8 gap-4'>
+      <div className='flex flex-wrap justify-center mt-8 gap-4'>
+        <EventReferralButton
+          hackathonId={hackathon.id}
+          hackathonTitle={hackathon.title}
+          lang={lang}
+        />
         <Dialog>
           <DialogTrigger asChild>
             <Button  variant='red' className='w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer'>
@@ -128,6 +142,8 @@ export default async function Submission({
         <SubmitButton
           hackathonId={hackathon.id}
           customSubmissionLink={hackathon.content.submission_custom_link}
+          label={t(lang, "section.submission.submitProject")}
+          isAuthenticated={isAuthenticated}
         />
       </div>
     </section>

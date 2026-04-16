@@ -7,10 +7,10 @@ Dive deeper into ICM contracts and kickstart your journey in building cross-chai
 </Callout>
 
 <Callout title="Note">
- Note: All example applications in the [examples](https://github.com/ava-labs/teleporter/tree/example-sequential-message-app/contracts/sequential-delivery-example) directory are meant for education purposes only and are not audited. The example contracts are not intended for use in production environments.
+ Note: All example applications in the [examples](https://github.com/ava-labs/icm-services/tree/example-sequential-message-app/contracts/sequential-delivery-example) directory are meant for education purposes only and are not audited. The example contracts are not intended for use in production environments.
 </Callout>
 
-This section walks through how to build an example cross-chain application on top of ICM contracts, recreating the `ExampleCrossChainMessenger` [contract](https://github.com/ava-labs/teleporter/tree/example-sequential-message-app/contracts/sequential-delivery-example) that sends arbitrary string data from one chain to another. Note that this tutorial is meant for education purposes only. The resulting code is not intended for use in production environments.
+This section walks through how to build an example cross-chain application on top of ICM contracts, recreating the `ExampleCrossChainMessenger` [contract](https://github.com/ava-labs/icm-services/tree/example-sequential-message-app/contracts/sequential-delivery-example) that sends arbitrary string data from one chain to another. Note that this tutorial is meant for education purposes only. The resulting code is not intended for use in production environments.
 
 Step 1: Create Initial Contract[​](#step-1-create-initial-contract "Direct link to heading")
 --------------------------------------------------------------------------------------------
@@ -258,7 +258,7 @@ Next, add a function to the contract called `getCurrentMessage` that allows user
 Step 5: Upgrade Support[​](#step-5-upgrade-support "Direct link to heading")
 ----------------------------------------------------------------------------
 
-At this point, the contract is now fully usable, and can be used to send arbitrary string data between chains. However, there are a few more modifications that need to be made to support upgrades to ICM contracts. For a more in-depth explanation of how to support upgrades, see the Upgrades README [here](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/registry/UPGRADING.md).
+At this point, the contract is now fully usable, and can be used to send arbitrary string data between chains. However, there are a few more modifications that need to be made to support upgrades to ICM contracts. For a more in-depth explanation of how to support upgrades, see the Upgrades README [here](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/registry/UPGRADING.md).
 
 The first change to make is to inherit from `TeleporterOwnerUpgradeable` instead of `ITeleporterReceiver`. `TeleporterOwnerUpgradeable` integrates with the `TeleporterRegistry` via `TeleporterUpgradeable` to easily utilize the latest `TeleporterMessenger` implementation. `TeleporterOwnerUpgradeable` also ensures that only an admin address for managing Teleporter versions, specified by the constructor argument `teleporterManager`, is able to upgrade the `TeleporterMessenger` implementation used by the contract.
 
@@ -318,14 +318,14 @@ And finally, change `receiveTeleporterMessage` to `_receiveTeleporterMessage`, m
 -          require(msg.sender == address(teleporterMessenger), "Unauthorized.");
 ```
 
-`MyExampleCrossChainMessenger` is now a working cross-chain dApp built on top of ICM contracts! Full example [here](https://github.com/ava-labs/teleporter/tree/example-sequential-message-app/contracts/sequential-delivery-example).
+`MyExampleCrossChainMessenger` is now a working cross-chain dApp built on top of ICM contracts! Full example [here](https://github.com/ava-labs/icm-services/tree/example-sequential-message-app/contracts/sequential-delivery-example).
 
 Step 6: Testing[​](#step-6-testing "Direct link to heading")
 ------------------------------------------------------------
 
 For testing, `scripts/local/e2e_test.sh` sets up a local test environment consisting of three avalanche-l1s deployed with ICM contracts, and a lightweight inline relayer implementation to facilitate cross chain message delivery. An end-to-end test for `ExampleCrossChainMessenger` is included in `tests/flows/example_messenger.go`, which performs the following:
 
-1.  Deploys the [ExampleERC20](https://github.com/ava-labs/teleporter/blob/main/contracts/mocks/ExampleERC20.sol) token to avalanche-l1 A.
+1.  Deploys the [ExampleERC20](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/mocks/ExampleERC20.sol) token to avalanche-l1 A.
 2.  Deploys `ExampleCrossChainMessenger` to both avalanche-l1s A and B.
 3.  Approves the cross-chain messenger on avalanche-l1 A to spend ERC20 tokens from the default address.
 4.  Sends `"Hello, world!"` from avalanche-l1 A to avalanche-l1 B's cross-chain messenger to receive.

@@ -45,8 +45,8 @@ An example for a contract being able to receive Interchain Messaging messages an
 ```solidity
 pragma solidity 0.8.18;
 
-import "https://github.com/ava-labs/teleporter/blob/main/contracts/src/Teleporter/ITeleporterMessenger.sol";
-import "https://github.com/ava-labs/teleporter/blob/main/contracts/src/Teleporter/ITeleporterReceiver.sol";
+import "https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/ITeleporterMessenger.sol";
+import "https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/ITeleporterReceiver.sol";
 
 contract MessageReceiver is ITeleporterReceiver {
     // Messages sent to this contract.

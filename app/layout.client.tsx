@@ -10,7 +10,7 @@ export function Body({
   return (
     <>
       {children}
-      <Toaster position="bottom-right" richColors expand={true} visibleToasts={5} />
+      <Toaster position="bottom-right" richColors expand visibleToasts={3} />
     </>
   );
 }

@@ -1,5 +1,5 @@
-import { packL1ConversionMessage, PackL1ConversionMessageArgs } from "../../../coreViem/utils/convertWarp";
-import { networkIDs, utils } from "@avalabs/avalanchejs";
+import { packL1ConversionMessage, PackL1ConversionMessageArgs } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { networkIDs, utils } from '@avalabs/avalanchejs';
 
 interface Validator {
   nodeID: string;
@@ -27,19 +27,17 @@ export interface ConversionData {
  */
 export async function fetchConversionData(txId: string, isTestnet: boolean): Promise<ConversionData> {
   const networkId = isTestnet ? networkIDs.FujiID : networkIDs.MainnetID;
-  const network = isTestnet ? "fuji" : "mainnet";
-  const rpcUrl = isTestnet
-    ? "https://api.avax-test.network/ext/bc/P"
-    : "https://api.avax.network/ext/bc/P";
+  const network = isTestnet ? 'fuji' : 'mainnet';
+  const rpcUrl = isTestnet ? 'https://api.avax-test.network/ext/bc/P' : 'https://api.avax.network/ext/bc/P';
 
   // Fetch the P-Chain transaction
   const response = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      jsonrpc: "2.0",
-      method: "platform.getTx",
-      params: { txID: txId, encoding: "json" },
+      jsonrpc: '2.0',
+      method: 'platform.getTx',
+      params: { txID: txId, encoding: 'json' },
       id: 1,
     }),
   });
@@ -47,8 +45,13 @@ export async function fetchConversionData(txId: string, isTestnet: boolean): Pro
   const data = await response.json();
   const tx = data?.result?.tx;
 
-  if (!tx?.unsignedTx?.subnetID || !tx?.unsignedTx?.chainID || !tx?.unsignedTx?.address || !tx?.unsignedTx?.validators) {
-    throw new Error("Invalid transaction data — is this a ConvertSubnetToL1Tx?");
+  if (
+    !tx?.unsignedTx?.subnetID ||
+    !tx?.unsignedTx?.chainID ||
+    !tx?.unsignedTx?.address ||
+    !tx?.unsignedTx?.validators
+  ) {
+    throw new Error('Invalid transaction data — is this a ConvertSubnetToL1Tx?');
   }
 
   const { subnetID, chainID, address, validators, blockchainID } = tx.unsignedTx;
@@ -67,13 +70,12 @@ export async function fetchConversionData(txId: string, isTestnet: boolean): Pro
   const [message, justification] = packL1ConversionMessage(conversionArgs, networkId, blockchainID);
 
   // Get signingSubnetId from Glacier
-  const glacierRes = await fetch(
-    `https://glacier-api.avax.network/v1/networks/${network}/blockchains/${chainID}`,
-    { headers: { accept: "application/json" } }
-  );
+  const glacierRes = await fetch(`https://glacier-api.avax.network/v1/networks/${network}/blockchains/${chainID}`, {
+    headers: { accept: 'application/json' },
+  });
   if (!glacierRes.ok) throw new Error(`Glacier returned ${glacierRes.status}`);
   const glacierData = await glacierRes.json();
-  if (!glacierData.subnetId) throw new Error("No subnetId from Glacier");
+  if (!glacierData.subnetId) throw new Error('No subnetId from Glacier');
 
   return {
     message: utils.bufferToHex(message),

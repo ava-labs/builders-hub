@@ -1,45 +1,47 @@
-"use client";
+'use client';
 
-import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState } from "react";
+import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useState } from 'react';
 import TeleporterRegistryBytecode from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '@/contracts/icm-contracts/compiled/TeleporterRegistry.json';
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import versions from '@/scripts/versions.json';
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { ContractDeployViewer, ContractSource } from "@/components/console/contract-deploy-viewer";
-import { Check, Rocket, ExternalLink, Copy, Info, FileCode } from "lucide-react";
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { ContractDeployViewer, ContractSource } from '@/components/console/contract-deploy-viewer';
+import { Check, Rocket, ExternalLink, Copy, Info, FileCode } from 'lucide-react';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const CONTRACT_SOURCES: ContractSource[] = [
   {
-    name: "TeleporterRegistry",
-    filename: "TeleporterRegistry.sol",
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistry.sol`,
-    description: "Registry contract for versioned Teleporter protocol management",
+    name: 'TeleporterRegistry',
+    filename: 'TeleporterRegistry.sol',
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistry.sol`,
+    description: 'Registry contract for versioned Teleporter protocol management',
   },
   {
-    name: "TeleporterRegistryApp",
-    filename: "TeleporterRegistryApp.sol",
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistryApp.sol`,
-    description: "Base contract for apps that use the Teleporter Registry",
+    name: 'TeleporterRegistryApp',
+    filename: 'TeleporterRegistryApp.sol',
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistryApp.sol`,
+    description: 'Base contract for apps that use the Teleporter Registry',
   },
 ];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Deploy ICM Registry",
-  description: "Deploy the ICM Registry contract to your L1",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Deploy ICM Registry',
+  description: 'Deploy the ICM Registry contract to your L1',
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
@@ -49,7 +51,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const { walletClient } = useConnectedWallet();
   const [isDeploying, setIsDeploying] = useState(false);
   const viemChain = useViemChainStore();
-  const selectedL1 = useSelectedL1()();
+  const selectedL1 = useSelectedL1();
   const { notify } = useConsoleNotifications();
   const [copied, setCopied] = useState(false);
 
@@ -61,21 +63,23 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
 
   async function handleDeploy() {
     setIsDeploying(true);
-    setTeleporterRegistryAddress("");
+    setTeleporterRegistryAddress('');
     try {
       const deployPromise = walletClient.deployContract({
         bytecode: TeleporterRegistryBytecode.content.trim() as `0x${string}`,
         abi: TeleporterRegistryManualyCompiled.abi as any,
-        args: [
-          [{ version: 1n, protocolAddress: messengerAddress }]
-        ],
+        args: [[{ version: 1n, protocolAddress: messengerAddress }]],
         account: walletEVMAddress as `0x${string}`,
         chain: viemChain,
       });
-      notify({
-        type: 'deploy',
-        name: 'TeleporterRegistry'
-      }, deployPromise, viemChain ?? undefined);
+      notify(
+        {
+          type: 'deploy',
+          name: 'TeleporterRegistry',
+        },
+        deployPromise,
+        viemChain ?? undefined,
+      );
 
       const hash = await deployPromise;
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -103,9 +107,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          Deploy TeleporterRegistry
-        </h3>
+        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Deploy TeleporterRegistry</h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
           Registry for versioned Teleporter protocol upgrades
         </p>
@@ -118,8 +120,8 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
           <div className="flex items-start gap-2">
             <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
             <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-              TeleporterRegistry manages protocol versions. It allows applications to upgrade
-              to new Teleporter versions seamlessly while maintaining backwards compatibility.
+              TeleporterRegistry manages protocol versions. It allows applications to upgrade to new Teleporter versions
+              seamlessly while maintaining backwards compatibility.
             </p>
           </div>
         </div>
@@ -143,9 +145,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <FileCode className="w-4 h-4 text-zinc-400" />
-            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              Constructor Arguments
-            </span>
+            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Constructor Arguments</span>
           </div>
 
           <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
@@ -160,9 +160,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
                 {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-zinc-400" />}
               </button>
             </div>
-            <code className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-all">
-              {messengerAddress}
-            </code>
+            <code className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-all">{messengerAddress}</code>
             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2">
               Initial protocol entry: version <code className="text-amber-600 dark:text-amber-400">1</code>
             </p>
@@ -213,7 +211,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
       {/* Footer */}
       <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
         <a
-          href="https://github.com/ava-labs/icm-contracts/tree/main/contracts/teleporter/registry"
+          href="https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/teleporter/registry"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors"
@@ -221,20 +219,12 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
           <ExternalLink className="w-3 h-3" />
           Registry Docs
         </a>
-        <span className="text-[11px] text-zinc-400 font-mono">
-          @{ICM_COMMIT.slice(0, 7)}
-        </span>
+        <span className="text-[11px] text-zinc-400 font-mono">@{ICM_COMMIT.slice(0, 7)}</span>
       </div>
     </div>
   );
 
-  return (
-    <ContractDeployViewer
-      contracts={CONTRACT_SOURCES}
-    >
-      {deployForm}
-    </ContractDeployViewer>
-  );
+  return <ContractDeployViewer contracts={CONTRACT_SOURCES}>{deployForm}</ContractDeployViewer>;
 }
 
 export default withConsoleToolMetadata(TeleporterRegistry, metadata);

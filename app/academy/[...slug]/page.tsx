@@ -43,8 +43,8 @@ import TestSend from "@/components/toolbox/console/ictt/token-transfer/TestSend"
 import TeleporterRegistry from "@/components/toolbox/console/icm/setup/TeleporterRegistry";
 import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
 import Faucet from "@/components/toolbox/console/primary-network/Faucet";
-import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
-import CreateManagedTestnetRelayer from "@/components/toolbox/console/testnet-infra/ManagedTestnetRelayers/CreateManagedTestnetRelayer";
+import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode";
+import CreateManagedTestnetRelayer from "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer";
 import DeployerAllowlist from "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist";
 import TransactionAllowlist from "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist";
 import DeployICMDemo from "@/components/toolbox/console/icm/test-connection/DeployICMDemo";
