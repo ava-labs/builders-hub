@@ -28,7 +28,7 @@ const metadata: ConsoleToolMetadata = {
   description: (
     <>
       A{' '}
-      <Link href="/docs/avalanche-l1s/building-your-first-avalanche-l1" className="text-primary hover:underline">
+      <Link href="/docs/avalanche-l1s" className="text-primary hover:underline">
         chain
       </Link>{' '}
       is your L1 configuration running on a{' '}
@@ -36,7 +36,10 @@ const metadata: ConsoleToolMetadata = {
         Subnet
       </Link>
       . A Subnet can have one or more chains, each with its own name,{' '}
-      <Link href="/docs/avalanche-l1s/evm-customization/customize-your-l1-evm" className="text-primary hover:underline">
+      <Link
+        href="/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1"
+        className="text-primary hover:underline"
+      >
         virtual machine
       </Link>
       , and{' '}
