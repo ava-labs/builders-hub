@@ -15,7 +15,7 @@ const TRADITIONAL_LAYERS: Layer[] = [
   { label: "EVM", sublabel: "SSTORE(key, value)" },
   { label: "Merkle Patricia Trie", sublabel: "Serialize to KV pairs", color: FIREWOOD_COLORS.trie },
   { label: "LevelDB", sublabel: "Re-index in LSM-tree", color: FIREWOOD_COLORS.leveldb },
-  { label: "LSM-Tree Levels", sublabel: "L0 \u2192 L1 \u2192 L2", color: FIREWOOD_COLORS.pebble },
+  { label: "LSM-Tree Levels", sublabel: "L0 \u2192 L1 \u2192 L2", color: FIREWOOD_COLORS.lsm },
   { label: "Disk", sublabel: "Final write", color: FIREWOOD_COLORS.disk },
 ]
 

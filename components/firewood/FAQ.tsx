@@ -71,7 +71,7 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     question: "Why not just use a faster KV store?",
-    answer: "Even the fastest generic KV store (RocksDB, PebbleDB) introduces double indexing. The Merkle trie gets serialized into key-value pairs, then the KV store builds its own index (LSM-tree) on top. Firewood eliminates this by storing the trie structure directly \u2014 the trie IS the index.",
+    answer: "Even the fastest generic KV stores introduce double indexing. The Merkle trie gets serialized into key-value pairs, then the KV store builds its own index (LSM-tree) on top. Firewood eliminates this by storing the trie structure directly \u2014 the trie IS the index.",
   },
   {
     question: "How does Firewood handle state growth?",
@@ -79,7 +79,7 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     question: "What about crash recovery?",
-    answer: "Firewood uses deferred persistence with a background worker thread. Commits update in-memory state immediately, and the persistence thread writes complete revisions atomically. On crash, Firewood recovers from the last persisted revision.",
+    answer: "Firewood guarantees recoverability by not referencing new nodes in a new revision before they are flushed to disk, and by carefully managing the free list during creation and expiration of revisions. On crash, Firewood recovers from the last fully persisted revision — no WAL replay or log reconstruction needed.",
   },
   {
     question: "Can I switch an existing node from LevelDB to Firewood?",
@@ -96,10 +96,6 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     question: "Does Firewood support Merkle proofs natively?",
     answer: "Yes. Since the trie structure exists directly on disk, proof generation doesn't require rebuilding the trie from flattened KV pairs. Branch paths and inclusion proofs can be read directly, making proof generation faster and more efficient.",
-  },
-  {
-    question: "How does Firewood compare to PebbleDB?",
-    answer: "PebbleDB is a production-quality LSM-tree KV store from CockroachDB that improves on LevelDB's compaction and write performance. However, it still suffers from double indexing and requires compaction. Firewood takes a fundamentally different approach by eliminating the generic KV store entirely.",
   },
   {
     question: "Will Firewood benefit L1s or just the C-Chain?",

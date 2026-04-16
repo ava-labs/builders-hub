@@ -36,7 +36,7 @@ export const FIREWOOD_COLORS = {
   cow: "#06b6d4",
   fdl: "#f97316",
   leveldb: "#94a3b8",
-  pebble: "#64748b",
+  lsm: "#64748b",
   firewood: "#DEA584",
 } as const
 
@@ -53,6 +53,7 @@ export const LIGHT_TINTS: Record<string, { bg: string; bgStrong: string; border:
   [FIREWOOD_COLORS.compaction]: { bg: "#fee2e2", bgStrong: "#fecaca", border: "#f08080", borderStrong: "#e05050" },
   [FIREWOOD_COLORS.parallel]:   { bg: "#ede9fe", bgStrong: "#ddd6fe", border: "#a78bfa", borderStrong: "#8b5cf6" },
   [FIREWOOD_COLORS.cow]:        { bg: "#cffafe", bgStrong: "#a5f3fc", border: "#22d3ee", borderStrong: "#06b6d4" },
+  [FIREWOOD_COLORS.fdl]:        { bg: "#fff3e8", bgStrong: "#ffe0c0", border: "#f9a050", borderStrong: "#f97316" },
 }
 
 // Theme-aware color picker. Returns hex-alpha in dark mode, solid tint in light mode.

@@ -5,7 +5,6 @@ import { Colors, FIREWOOD_COLORS } from "./types"
 interface ComparisonRow {
   metric: string
   leveldb: string
-  pebble: string
   firewood: string
   advantage: boolean
 }
@@ -14,55 +13,48 @@ const ROWS: ComparisonRow[] = [
   {
     metric: "Type",
     leveldb: "Generic KV (LSM)",
-    pebble: "Generic KV (LSM)",
     firewood: "Purpose-built trie",
     advantage: true,
   },
   {
     metric: "Status",
     leveldb: "Default",
-    pebble: "Stable alt",
     firewood: "Experimental",
     advantage: false,
   },
   {
     metric: "Trie Storage",
     leveldb: "Flattened to KV",
-    pebble: "Flattened to KV",
     firewood: "Native on disk",
     advantage: true,
   },
   {
     metric: "Compaction",
     leveldb: "Required",
-    pebble: "Required (better)",
     firewood: "None (FDL)",
     advantage: true,
   },
   {
     metric: "Write Amplification",
     leveldb: "High",
-    pebble: "Medium",
     firewood: "Low",
     advantage: true,
   },
   {
     metric: "Parallel Merkle",
     leveldb: "No",
-    pebble: "No",
-    firewood: "Yes (16 threads)",
+    firewood: "Yes (16 subtries)",
     advantage: true,
   },
   {
     metric: "Proof Generation",
     leveldb: "Rebuild from KV",
-    pebble: "Rebuild from KV",
     firewood: "Native",
     advantage: true,
   },
 ]
 
-const HEADERS = ["Metric", "LevelDB", "PebbleDB", "Firewood"]
+const HEADERS = ["Metric", "LevelDB", "Firewood"]
 
 function HeaderCell({
   label,
@@ -73,7 +65,7 @@ function HeaderCell({
   index: number
   colors: Colors
 }) {
-  const isFirewood = index === 3
+  const isFirewood = index === 2
 
   return (
     <div
@@ -154,7 +146,7 @@ export function DatabaseComparison({ colors }: { colors: Colors }) {
         Choose your database.
       </h3>
       <p className={`text-xs ${colors.textMuted} font-mono mb-5`}>
-        AvalancheGo currently supports LevelDB and PebbleDB. Firewood is an experimental backend under active development.
+        LevelDB is the default AvalancheGo database. Firewood is an experimental backend under active development.
       </p>
 
       <div
@@ -162,7 +154,7 @@ export function DatabaseComparison({ colors }: { colors: Colors }) {
         style={{ borderColor: `${colors.stroke}15` }}
       >
         {/* Header row */}
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-3">
           {HEADERS.map((header, i) => (
             <HeaderCell key={header} label={header} index={i} colors={colors} />
           ))}
@@ -172,7 +164,7 @@ export function DatabaseComparison({ colors }: { colors: Colors }) {
         {ROWS.map((row, rowIndex) => (
           <motion.div
             key={row.metric}
-            className="grid grid-cols-4"
+            className="grid grid-cols-3"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: rowIndex * 0.1, duration: 0.3 }}
@@ -193,12 +185,6 @@ export function DatabaseComparison({ colors }: { colors: Colors }) {
             </div>
             <DataCell
               value={row.leveldb}
-              isFirewood={false}
-              advantage={false}
-              colors={colors}
-            />
-            <DataCell
-              value={row.pebble}
               isFirewood={false}
               advantage={false}
               colors={colors}
