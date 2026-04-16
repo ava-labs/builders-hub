@@ -21,6 +21,3 @@ export { useResolvedWalletClient } from './useResolvedWalletClient';
 export { useSubmitPChainTx } from './useSubmitPChainTx';
 export { useValidatorPreflight, ValidatorStatus } from './useValidatorPreflight';
 export type { ValidatorPreflightResult, PreflightCheck, ValidatorPreflightInput } from './useValidatorPreflight';
-export { useChurnBudget } from './useChurnBudget';
-export type { ChurnBudgetResult } from './useChurnBudget';
-export { useDebugTrace } from './useDebugTrace';
