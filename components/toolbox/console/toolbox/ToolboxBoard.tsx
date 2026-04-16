@@ -462,7 +462,7 @@ export default function ToolboxBoard() {
   }, [filtered]);
 
   return (
-    <div className="max-w-7xl">
+    <div className="max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
@@ -522,7 +522,7 @@ export default function ToolboxBoard() {
                     {tools.length} tool{tools.length !== 1 ? 's' : ''}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
                   {tools.map((tool) => {
                     const card = (
                       <div
