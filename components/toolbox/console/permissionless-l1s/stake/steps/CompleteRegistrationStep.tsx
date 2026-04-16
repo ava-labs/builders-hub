@@ -16,10 +16,17 @@ export default function CompleteRegistrationStep() {
   const store = useStakeValidatorStore();
   const vmcCtx = useValidatorManagerContext();
 
+  // Resolve the staking manager from the VMC context — for
+  // inheritance-model L1s (NativeStakingManager IS the ValidatorManager),
+  // `vmcCtx.contractOwner` is an EOA (the deployer), so falling back to
+  // `validatorManagerAddress` is the only correct address for the
+  // completeValidatorRegistration call.
+  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || null;
+
   const preflight = useValidatorPreflight({
     validationID: store.validationID || undefined,
-    stakingManagerAddress: vmcCtx.contractOwner || null,
-    validatorManagerAddress: vmcCtx.contractOwner || null,
+    stakingManagerAddress,
+    validatorManagerAddress: vmcCtx.validatorManagerAddress || null,
   });
 
   const managerType = store.tokenType === 'native' ? 'PoS-Native' : 'PoS-ERC20';
@@ -48,7 +55,7 @@ export default function CompleteRegistrationStep() {
               validationID={store.validationID}
               signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
               managerType={managerType}
-              managerAddress={vmcCtx.contractOwner || ''}
+              managerAddress={stakingManagerAddress || ''}
               onSuccess={(data) => {
                 store.setGlobalSuccess(data.message);
                 store.setGlobalError(null);

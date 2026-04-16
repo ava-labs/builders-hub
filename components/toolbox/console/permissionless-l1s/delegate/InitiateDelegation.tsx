@@ -110,9 +110,9 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     setErrorState(null);
 
     try {
-      const amountWei = parseEther(delegationAmount);
-
-      const approvePromise = erc20Token.approve(stakingManagerAddress as `0x${string}`, amountWei.toString());
+      // useERC20Token.approve() parses the amount internally with parseEther —
+      // pass the raw user input, NOT a pre-parsed wei string.
+      const approvePromise = erc20Token.approve(stakingManagerAddress as `0x${string}`, delegationAmount);
       notify({ type: 'call', name: 'Approve ERC20 for Delegation' }, approvePromise, viemChain ?? undefined);
       const hash = await approvePromise;
       await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });

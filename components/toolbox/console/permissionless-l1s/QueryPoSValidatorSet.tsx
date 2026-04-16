@@ -121,7 +121,11 @@ export default function QueryPoSValidatorSet() {
 
   // Determine if this is a PoS L1 (StakingManager)
   const isPoSL1 = validatorManagerDetails.ownerType === 'StakingManager';
-  const stakingManagerAddress = validatorManagerDetails.contractOwner;
+  // For inheritance-model L1s (owner is the validator manager itself), fall
+  // back to the validator manager address — `contractOwner` is the EOA
+  // deployer in that case and would break reads/writes against the contract.
+  const stakingManagerAddress =
+    (isPoSL1 && validatorManagerDetails.contractOwner) || validatorManagerDetails.validatorManagerAddress || '';
 
   // Determine token type based on stored addresses
   const tokenType = useMemo(() => {

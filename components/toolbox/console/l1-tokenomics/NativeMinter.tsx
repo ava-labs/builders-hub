@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { parseEther } from 'viem';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
@@ -44,8 +45,8 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
     setIsMinting(true);
 
     try {
-      // Convert amount to Wei
-      const amountInWei = BigInt(amount) * BigInt(10 ** 18);
+      // parseEther handles decimal amounts safely — BigInt(amount) throws on "1.5".
+      const amountInWei = parseEther(amount);
 
       // Call the mintNativeCoin function using the contract ABI
       const hash = await walletClient.writeContract({
