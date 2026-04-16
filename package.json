@@ -42,8 +42,8 @@
     "@mdx-js/react": "^3.1.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@next-auth/prisma-adapter": "^1.0.7",
-    "@next/mdx": "^16.1.7",
-    "@next/third-parties": "^16.1.7",
+    "@next/mdx": "^16.2.3",
+    "@next/third-parties": "^16.2.3",
     "@noble/bls12-381": "^1.4.0",
     "@noble/curves": "^2.0.0",
     "@noble/hashes": "1.8.0",
@@ -94,6 +94,7 @@
     "@x402/fetch": "^2.5.0",
     "ai": "^6.0.33",
     "algoliasearch": "^5.39.0",
+    "autocannon": "^8.0.0",
     "axios": "^1.15.0",
     "boring-name-generator": "^1.0.3",
     "canvas-confetti": "^1.9.4",
@@ -198,7 +199,9 @@
   },
   "resolutions": {
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "fast-xml-parser": "^5.5.6"
+    "axios": "^1.15.0",
+    "fast-xml-parser": "^5.5.6",
+    "next": "^16.2.3"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
