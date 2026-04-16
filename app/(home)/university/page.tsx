@@ -220,7 +220,7 @@ export default function Page() {
               title="Attend Hackathons & Events"
               description="Join hackathons, Team1 meetups, and Avalanche global events near you."
               icon={<Calendar className="w-6 h-6 text-foreground" />}
-              href="/hackathons"
+              href="/events"
             />
 
             {/* Join communities */}
@@ -317,7 +317,7 @@ export default function Page() {
                   Start Learning <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/hackathons">
+              <Link href="/events">
                 <Button variant="outline" className="rounded-lg px-6 py-3">
                   Explore Events
                 </Button>

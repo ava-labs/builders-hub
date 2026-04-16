@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, memo, useCallback } from 'react';
+import React, { useState, useEffect, memo, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,6 +36,8 @@ function toIso8601(datetimeLocal: string) {
   const date = new Date(datetimeLocal);
   return date.toISOString();
 }
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevrel, loading }: { 
   myHackathons: any[], 
@@ -100,7 +102,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
                     className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-white text-white border-gray-300 hover:bg-gray-50"
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(`/hackathons/${hackathon.id}`, '_blank');
+                      window.open(`/events/${hackathon.id}`, '_blank');
                     }}
                   >
                     <ExternalLink size={12} />
@@ -561,9 +563,10 @@ type SpeakerItemProps = {
   removing: { [key: string]: number | null };
   speakersLength: number;
   onPictureChange: (index: number, url: string) => void;
+  onImageFileTooLarge: (fileSize: number) => void;
 };
 
-const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, speakersLength, onPictureChange }: SpeakerItemProps) {
+const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, speakersLength, onPictureChange, onImageFileTooLarge }: SpeakerItemProps) {
   return (
     <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       {speakersLength > 1 && (
@@ -624,6 +627,10 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
+                  if (file.size > MAX_FILE_SIZE) {
+                    onImageFileTooLarge(file.size);
+                    return;
+                  }
                   const reader = new FileReader();
                   reader.onload = (event) => {
                     onPictureChange(index, event.target?.result as string);
@@ -812,6 +819,7 @@ const HackathonsEdit = () => {
     console.log({hackathon});
     setFormDataContent({
       ...(hackathon.content ?? {}),
+      language: hackathon.content?.language === "es" ? "es" : "en",
       tracks: hackathon.content?.tracks ?? [{ icon: '', logo: '', name: '', partner: '', description: '', short_description: '' }],
       address: hackathon.content?.address ?? '',
       partners: hackathon.content?.partners ?? [''],
@@ -821,7 +829,7 @@ const HackathonsEdit = () => {
       tracks_text: hackathon.content?.tracks_text ?? '',
       speakers_text: hackathon.content?.speakers_text ?? '',
       join_custom_link: hackathon.content?.join_custom_link ?? '',
-      join_custom_text: "Join now",
+      join_custom_text: hackathon.content?.join_custom_text ?? null,
       become_sponsor_link: hackathon.content?.become_sponsor_link ?? '',
       submission_custom_link: hackathon.content?.submission_custom_link ?? null,
       judging_guidelines: hackathon.content?.judging_guidelines ?? '',
@@ -887,6 +895,17 @@ const HackathonsEdit = () => {
   const [rawTrackDescriptions, setRawTrackDescriptions] = useState<{ [key: number]: string }>({});
   const [hasEditPermission, setHasEditPermission] = useState<boolean>(false);
   const [dateRangeError, setDateRangeError] = useState<string | null>(null);
+
+  const leftPanelRef = useRef<HTMLDivElement | null>(null);
+  const step1Ref = useRef<HTMLDivElement | null>(null);
+  const step2Ref = useRef<HTMLDivElement | null>(null);
+  const step3Ref = useRef<HTMLDivElement | null>(null);
+  const step4Ref = useRef<HTMLDivElement | null>(null);
+  const step5Ref = useRef<HTMLDivElement | null>(null);
+  const step6Ref = useRef<HTMLDivElement | null>(null);
+
+  const [activeStep, setActiveStep] = useState<'step1' | 'step2' | 'step3' | 'step4' | 'step5' | 'step6'>('step1');
+  const [contentTab, setContentTab] = useState<'tracks' | 'meta' | 'schedule' | 'resources' | 'speakers' | 'submission'>('tracks');
 
   const getDateRangeError = (start: string, end: string): string | null => {
     if (!start?.trim() || !end?.trim()) return null;
@@ -1009,6 +1028,58 @@ const HackathonsEdit = () => {
       return prev;
     });
   }, [formDataContent.resources.length]);
+
+  useEffect(() => {
+    if (formDataLatest.event !== 'hackathon') {
+      if (contentTab === 'tracks' || contentTab === 'submission') {
+        setContentTab('meta');
+      }
+    }
+  }, [formDataLatest.event, contentTab]);
+
+  useEffect(() => {
+    if (!leftPanelRef.current) return;
+    const sections: { id: typeof activeStep; ref: React.RefObject<HTMLDivElement | null> }[] = [
+      { id: 'step1', ref: step1Ref },
+      { id: 'step2', ref: step2Ref },
+      { id: 'step3', ref: step3Ref },
+      { id: 'step4', ref: step4Ref },
+      { id: 'step5', ref: step5Ref },
+      { id: 'step6', ref: step6Ref },
+    ];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let bestEntry: IntersectionObserverEntry | null = null;
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
+            bestEntry = entry;
+          }
+        });
+        if (bestEntry) {
+          const found = sections.find((s) => s.ref.current === bestEntry!.target);
+          if (found) {
+            setActiveStep(found.id);
+          }
+        }
+      },
+      {
+        root: leftPanelRef.current,
+        threshold: 0.3,
+      }
+    );
+
+    sections.forEach(({ ref }) => {
+      if (ref.current) {
+        observer.observe(ref.current);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [leftPanelRef.current]);
 
  
   const handleScheduleDone = (idx: number) => {
@@ -1167,10 +1238,11 @@ const HackathonsEdit = () => {
     latest.start_date = toIso8601(latest.start_date);
     latest.end_date = toIso8601(latest.end_date);
     latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
+    const { icon, ...latestWithoutIcon } = latest;
     return {
       ...formDataMain,
       content,
-      ...latest,
+      ...latestWithoutIcon,
       cohosts: cohostsEmails,
       custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
@@ -1241,7 +1313,7 @@ const HackathonsEdit = () => {
 
   const processBase64Images = async (data: any): Promise<any> => {
     const processedData = { ...data };
-    const imageFields = ['banner', 'icon', 'small_banner'];
+    const imageFields = ['banner', 'small_banner'];
     for (const field of imageFields) {
       if (processedData[field] && processedData[field].startsWith('data:image/')) {
         const fileName = `builders-hub/hackathon-images/${processedData.title.toLowerCase().replace(/ /g, '-')}/${processedData.title}-${field}-${Date.now()}.${processedData[field].split(';')[0].split('/')[1]}`;
@@ -1306,18 +1378,16 @@ const HackathonsEdit = () => {
           body: JSON.stringify(dataToSend),
         });
         
-        if (response.status === 200) {
+        if (response.ok) {
           toast({
             title: 'Event created',
             description: 'Your event has been created successfully.',
             variant: 'success',
           });
-          setShowUpdateModal(true);
-          setFieldsToUpdate([{
-            key: 'success',
-            oldValue: '',
-            newValue: 'Hackathon created successfully!'
-          }]);
+          // No mostrar modal de confirmación de "update" en creación.
+          // El popup solo tiene sentido cuando el usuario edita un evento existente.
+          setShowUpdateModal(false);
+          setFieldsToUpdate([]);
           setFormDataMain(initialData.main);
           setFormDataContent(initialData.content);
           setFormDataLatest(initialData.latest);
@@ -1355,7 +1425,7 @@ const HackathonsEdit = () => {
           body: JSON.stringify(dataToSend),
         });
         
-       if (response.status === 200) {
+       if (response.ok) {
           toast({
             title: 'Event updated',
             description: 'Your event has been updated successfully.',
@@ -1473,6 +1543,9 @@ const HackathonsEdit = () => {
 
   const handleConfirmUpdate = () => {
     setShowUpdateModal(false);
+    // En caso de que el modal se abra por algún motivo en modo creación,
+    // evitamos re-ejecutar el submit.
+    if (!isSelectedHackathon) return;
     doSubmit();
   };
 
@@ -1753,7 +1826,10 @@ const HackathonsEdit = () => {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Edit Form */}
-        <div className="w-1/2 overflow-y-auto bg-zinc-950">
+        <div
+          ref={leftPanelRef}
+          className="w-1/2 overflow-y-auto bg-zinc-950 max-h-[calc(100vh-80px)]"
+        >
     <div className="container mx-auto px-4 py-8">
       <UpdateModal
         open={showUpdateModal}
@@ -1772,36 +1848,143 @@ const HackathonsEdit = () => {
         isDevrel={session?.user?.custom_attributes?.includes("devrel") || false}
         loading={loadingHackathons}
       />
-      {isSelectedHackathon && (
-        <div className="flex gap-2 mb-4 sticky top-0 z-10 bg-zinc-950 py-2">
-          <Button onClick={handleCancelEdit} variant="outline">
-            {t[language].cancel}
-          </Button>
-          <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleUpdateClick}>
-            {t[language].update}
-          </Button>  
-          {session?.user?.custom_attributes?.includes("devrel") && (
-            <Button 
-              type="button" 
-              className={`${
-                formDataMain.is_public 
-                  ? 'bg-orange-600 hover:bg-orange-700' 
-                  : 'bg-green-600 hover:bg-green-700'
-              } text-white`}
-              onClick={() => handleToggleVisibility(selectedHackathon.id, !formDataMain.is_public)}
-            >
-              {formDataMain.is_public ? 'Hide' : 'Activate'}
-            </Button>
-          )}  
-          {/* <Button
-            type="button"
-            className="bg-red-600 hover:bg-red-700 text-white"
-            onClick={() => setShowDeleteModal(true)}
-          >
-            Delete
-          </Button> */}
+      {/* Sticky bar: action buttons + step navigation (always visible when editing) */}
+      {(isSelectedHackathon || (showForm && hasEditPermission)) && (
+        <div className="sticky top-0 z-20 bg-zinc-950/98 backdrop-blur border-b border-zinc-800 mb-4">
+          {isSelectedHackathon && (
+            <div className="flex gap-2 py-2 flex-wrap items-center">
+              <Button onClick={handleCancelEdit} variant="outline">
+                {t[language].cancel}
+              </Button>
+              <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleUpdateClick}>
+                {t[language].update}
+              </Button>  
+              {session?.user?.custom_attributes?.includes("devrel") && (
+                <Button 
+                  type="button" 
+                  className={`${
+                    formDataMain.is_public 
+                      ? 'bg-orange-600 hover:bg-orange-700' 
+                      : 'bg-green-600 hover:bg-green-700'
+                  } text-white`}
+                  onClick={() => handleToggleVisibility(selectedHackathon.id, !formDataMain.is_public)}
+                >
+                  {formDataMain.is_public ? 'Hide' : 'Activate'}
+                </Button>
+              )}  
+            </div>
+          )}
+          {showForm && hasEditPermission && (
+            <div className={`flex flex-wrap gap-2 py-3 ${isSelectedHackathon ? 'border-t border-zinc-800/80' : ''}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.main) {
+                    setCollapsed((prev) => ({ ...prev, main: false }));
+                  }
+                  step1Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step1');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step1'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                Basic Info
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.images) {
+                    setCollapsed((prev) => ({ ...prev, images: false }));
+                  }
+                  step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step2');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step2'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                Images & Branding
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.about) {
+                    setCollapsed((prev) => ({ ...prev, about: false }));
+                  }
+                  step3Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step3');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step3'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                {formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}
+              </button>
+              {formDataLatest.event === 'hackathon' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (collapsed.trackText) {
+                      setCollapsed((prev) => ({ ...prev, trackText: false }));
+                    }
+                    step4Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    setActiveStep('step4');
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                    activeStep === 'step4'
+                      ? 'bg-red-600 text-white border-red-500'
+                      : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                  }`}
+                >
+                  Track Text
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.content) {
+                    setCollapsed((prev) => ({ ...prev, content: false }));
+                  }
+                  step5Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step5');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step5'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                Content
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.last) {
+                    setCollapsed((prev) => ({ ...prev, last: false }));
+                  }
+                  step6Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step6');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step6'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                Last Details
+              </button>
+            </div>
+          )}
         </div>
       )}
+
       {showForm && hasEditPermission && (
         <>
           {/* Cohosts Section - Always Visible */}
@@ -1839,6 +2022,24 @@ const HackathonsEdit = () => {
                 <SelectItem value="bootcamp">Bootcamp</SelectItem>
               </SelectContent>
             </Select>
+
+            <h2 className='font-medium text-xl mb-2 block'>Event Language</h2>
+            <Select
+              value={(formDataContent.language ?? "en") as "en" | "es"}
+              onValueChange={(value) => {
+                const lang = value === "es" ? "es" : "en";
+                setFormDataContent((prev) => ({ ...prev, language: lang }));
+              }}
+            >
+              <SelectTrigger className="w-full mb-4">
+                <SelectValue placeholder="Select event language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="es">Español</SelectItem>
+              </SelectContent>
+            </Select>
+
             <div className="flex items-center gap-3 mt-4">
               <Switch
                 id="new-layout"
@@ -1856,8 +2057,9 @@ const HackathonsEdit = () => {
               Toggle on for the modern layout (workshop-style), off for the legacy hackathon layout.
             </p>
           </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step1Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
                 {collapsed.main && (
@@ -1953,7 +2155,7 @@ const HackathonsEdit = () => {
             </div>
             
             {/* Step 2: Images & Branding */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step2Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 2: Images & Branding</h2>
                 {collapsed.images && (
@@ -1966,7 +2168,7 @@ const HackathonsEdit = () => {
                 <>
                   <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                     <h3 className="text-lg font-semibold text-blue-300 mb-2">Hackathon Images & Branding</h3>
-                    <p className="text-sm text-blue-200">Upload your hackathon banner, icon, and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
+                    <p className="text-sm text-blue-200">Upload your hackathon banner and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
                   </div>
                   
                   {/* Banner Image */}
@@ -1984,6 +2186,14 @@ const HackathonsEdit = () => {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                if (file.size > MAX_FILE_SIZE) {
+                                  toast({
+                                    title: 'The file is too large (Max: 2MB).',
+                                    description: 'Try compressing it.',
+                                    variant: 'destructive',
+                                  });
+                                  return;
+                                }
                                 const reader = new FileReader();
                                 reader.onload = (event) => {
                                   const dataUrl = event.target?.result as string;
@@ -2032,65 +2242,6 @@ const HackathonsEdit = () => {
                   </div>
                   
                   
-                  {/* Icon Image */}
-                  <div className="mb-6">
-                    <label className="font-medium text-xl mb-2 block">Icon:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">The small icon displayed next to your hackathon title</div>
-                    
-                    <div className="mb-4">
-                      <div className="flex gap-4 items-start">
-                        <div className="flex-1">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  const dataUrl = event.target?.result as string;
-                                  setFormDataLatest({ ...formDataLatest, icon: dataUrl });
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
-                          />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <Input
-                            type="text"
-                            placeholder="Or enter icon URL"
-                            value={formDataLatest.icon}
-                            onChange={e => setFormDataLatest({ ...formDataLatest, icon: e.target.value })}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                      
-                      {formDataLatest.icon && (
-                        <div className="mt-4">
-                          <div className="text-zinc-400 text-sm mb-2">Preview:</div>
-                          <div className="relative w-16 h-16 bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden">
-                            <img
-                              src={formDataLatest.icon}
-                              alt="Icon preview"
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 items-center justify-center text-zinc-500 text-xs">
-                              Invalid
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Small Banner:</label>
                     <div className="mb-2 text-zinc-400 text-sm">A smaller banner image for additional branding</div>
@@ -2104,6 +2255,14 @@ const HackathonsEdit = () => {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                if (file.size > MAX_FILE_SIZE) {
+                                  toast({
+                                    title: 'The file is too large (Max: 2MB).',
+                                    description: 'Try compressing it.',
+                                    variant: 'destructive',
+                                  });
+                                  return;
+                                }
                                 const reader = new FileReader();
                                 reader.onload = (event) => {
                                   const dataUrl = event.target?.result as string;
@@ -2166,7 +2325,7 @@ const HackathonsEdit = () => {
             </div>
             
             {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step3Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">
                   {formDataLatest.event === 'hackathon' ? 'Step 3: Participants & Prizes' : 'Step 3: Organizer'}
@@ -2250,7 +2409,7 @@ const HackathonsEdit = () => {
             
             {/* Step 4: Track Text - Only for Hackathons */}
             {formDataLatest.event === 'hackathon' && (
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step4Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
                 {collapsed.trackText && (
@@ -2489,7 +2648,7 @@ const HackathonsEdit = () => {
             )}
             
             {/* Step 5: Content - Tracks, Schedule, etc. */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step5Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 5: Content</h2>
                 {collapsed.content && (
@@ -2500,153 +2659,255 @@ const HackathonsEdit = () => {
               </div>
               {!collapsed.content && (
                 <>
+                  {/* Inner tabs for content sections */}
+                  <div className="mb-6">
+                    <div className="flex flex-wrap gap-2">
+                      {formDataLatest.event === 'hackathon' && (
+                        <button
+                          type="button"
+                          onClick={() => setContentTab('tracks')}
+                          className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                            contentTab === 'tracks'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {t[language].tracks}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('meta')}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          contentTab === 'meta'
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        Meta
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('schedule')}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          contentTab === 'schedule'
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {t[language].schedule}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('resources')}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          contentTab === 'resources'
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {t[language].resources}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('speakers')}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          contentTab === 'speakers'
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {t[language].speakers}
+                      </button>
+                      {formDataLatest.event === 'hackathon' && (
+                        <button
+                          type="button"
+                          onClick={() => setContentTab('submission')}
+                          className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                            contentTab === 'submission'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {t[language].submissionDeadline}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Tracks Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && (
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl">{t[language].tracks}:</label>
-                    {formDataContent.tracks.map((track, index) => (
-                      <TrackItem
-                        key={index}
-                        track={track}
-                        index={index}
-                        collapsed={collapsedTracks[index]}
-                        onChange={handleTrackFieldChange}
-                        onDone={handleTrackDone}
-                        onExpand={handleTrackExpand}
-                        onRemove={animateRemove.bind(null, 'track', index, removeTrack)}
-                        onScrollToPreview={scrollToSection}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        tracksLength={formDataContent.tracks.length}
-                        rawTrackDescriptions={rawTrackDescriptions}
-                        setRawTrackDescriptions={setRawTrackDescriptions}
-                        convertToHTML={convertToHTML}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addTrack} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addTrack}
-                      </Button>
+                  {formDataLatest.event === 'hackathon' && contentTab === 'tracks' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl">{t[language].tracks}:</label>
+                      {formDataContent.tracks.map((track, index) => (
+                        <TrackItem
+                          key={index}
+                          track={track}
+                          index={index}
+                          collapsed={collapsedTracks[index]}
+                          onChange={handleTrackFieldChange}
+                          onDone={handleTrackDone}
+                          onExpand={handleTrackExpand}
+                          onRemove={animateRemove.bind(null, 'track', index, removeTrack)}
+                          onScrollToPreview={scrollToSection}
+                          t={t}
+                          language={language}
+                          removing={removing}
+                          tracksLength={formDataContent.tracks.length}
+                          rawTrackDescriptions={rawTrackDescriptions}
+                          setRawTrackDescriptions={setRawTrackDescriptions}
+                          convertToHTML={convertToHTML}
+                        />
+                      ))}
+                      <div className="flex justify-end">
+                        <Button type="button" onClick={addTrack} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> {t[language].addTrack}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
                   )}
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
-                    <Input
-                      type="text"
-                      placeholder="Address"
-                      value={formDataContent.address}
-                      onChange={(e) => setFormDataContent({ ...formDataContent, address: e.target.value })}
-                      className="w-full mb-4"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
-                    <Input
-                      type="text"
-                      placeholder="e.g. primary or abc123@group.calendar.google.com"
-                      value={formDataLatest.google_calendar_id ?? ''}
-                      onChange={(e) => setFormDataLatest({ ...formDataLatest, google_calendar_id: e.target.value || null })}
-                      className="w-full mb-4"
-                    />
-                  </div>
-                  <div className="space-y-4">
-                  <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
-                  <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
-                  {formDataContent.schedule.map((event, index) => (
-                    <ScheduleItem
-                      key={index}
-                      event={event}
-                      index={index}
-                      collapsed={collapsedSchedules[index]}
-                      onChange={handleScheduleFieldChange}
-                      onDone={handleScheduleDone}
-                      onExpand={handleScheduleExpand}
-                      onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
-                      t={t}
-                      language={language}
-                      removing={removing}
-                      scheduleLength={formDataContent.schedule.length}
-                      toLocalDatetimeString={toLocalDatetimeString}
-                    />
-                  ))}
-                  <div className="flex justify-end">
-                    <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                      <Plus className="w-4 h-4" /> {t[language].addSchedule}
-                    </Button>
-                  </div>
-                </div>
+
+                  {/* Meta: Address + Google Calendar */}
+                  {contentTab === 'meta' && (
+                    <>
+                      <div className="space-y-4">
+                        <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
+                        <Input
+                          type="text"
+                          placeholder="Address"
+                          value={formDataContent.address}
+                          onChange={(e) => setFormDataContent({ ...formDataContent, address: e.target.value })}
+                          className="w-full mb-4"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
+                        <Input
+                          type="text"
+                          placeholder="e.g. primary or abc123@group.calendar.google.com"
+                          value={formDataLatest.google_calendar_id ?? ''}
+                          onChange={(e) => setFormDataLatest({ ...formDataLatest, google_calendar_id: e.target.value || null })}
+                          className="w-full mb-4"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Schedule */}
+                  {contentTab === 'schedule' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
+                      <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
+                      {formDataContent.schedule.map((event, index) => (
+                        <ScheduleItem
+                          key={index}
+                          event={event}
+                          index={index}
+                          collapsed={collapsedSchedules[index]}
+                          onChange={handleScheduleFieldChange}
+                          onDone={handleScheduleDone}
+                          onExpand={handleScheduleExpand}
+                          onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
+                          t={t}
+                          language={language}
+                          removing={removing}
+                          scheduleLength={formDataContent.schedule.length}
+                          toLocalDatetimeString={toLocalDatetimeString}
+                        />
+                      ))}
+                      <div className="flex justify-end">
+                        <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> {t[language].addSchedule}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Resources Section - For all event types */}
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].resources}:</label>
-                    {formDataContent.resources.map((resource, index) => (
-                      <ResourceItem
-                        key={index}
-                        resource={resource}
-                        index={index}
-                        collapsed={collapsedResources[index]}
-                        onChange={handleResourceFieldChange}
-                        onDone={handleResourceDone}
-                        onExpand={handleResourceExpand}
-                        onRemove={animateRemove.bind(null, 'resource', index, removeResource)}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        resourcesLength={formDataContent.resources.length}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addResource} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addResource}
-                      </Button>
+                  {contentTab === 'resources' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl mb-2 block">{t[language].resources}:</label>
+                      {formDataContent.resources.map((resource, index) => (
+                        <ResourceItem
+                          key={index}
+                          resource={resource}
+                          index={index}
+                          collapsed={collapsedResources[index]}
+                          onChange={handleResourceFieldChange}
+                          onDone={handleResourceDone}
+                          onExpand={handleResourceExpand}
+                          onRemove={animateRemove.bind(null, 'resource', index, removeResource)}
+                          t={t}
+                          language={language}
+                          removing={removing}
+                          resourcesLength={formDataContent.resources.length}
+                        />
+                      ))}
+                      <div className="flex justify-end">
+                        <Button type="button" onClick={addResource} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> {t[language].addResource}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
-                    {formDataContent.speakers.map((speaker, index) => (
-                      <SpeakerItem
-                        key={index}
-                        speaker={speaker}
-                        index={index}
-                        collapsed={collapsedSpeakers[index]}
-                        onChange={handleSpeakerFieldChange}
-                        onDone={handleSpeakerDone}
-                        onExpand={handleSpeakerExpand}
-                        onRemove={animateRemove.bind(null, 'speaker', index, removeSpeaker)}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        speakersLength={formDataContent.speakers.length}
-                        onPictureChange={handleSpeakerPictureChange}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addSpeaker} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addSpeaker}
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Submission Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
-                      <Input
-                        type="datetime-local"
-                        placeholder="Submission Deadline"
-                        value={formDataContent.submission_deadline}
-                        onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
-                        className="w-full mb-4"
-                        required
-                      />
-                    </div>
-                  </div>
                   )}
+
+                  {/* Speakers */}
+                  {contentTab === 'speakers' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
+                      {formDataContent.speakers.map((speaker, index) => (
+                        <SpeakerItem
+                          key={index}
+                          speaker={speaker}
+                          index={index}
+                          collapsed={collapsedSpeakers[index]}
+                          onChange={handleSpeakerFieldChange}
+                          onDone={handleSpeakerDone}
+                          onExpand={handleSpeakerExpand}
+                          onRemove={animateRemove.bind(null, 'speaker', index, removeSpeaker)}
+                          t={t}
+                          language={language}
+                          removing={removing}
+                          speakersLength={formDataContent.speakers.length}
+                          onPictureChange={handleSpeakerPictureChange}
+                          onImageFileTooLarge={() =>
+                            toast({
+                              title: 'The file is too large (Max: 2MB).',
+                              description: 'Try compressing it.',
+                              variant: 'destructive',
+                            })
+                          }
+                        />
+                      ))}
+                      <div className="flex justify-end">
+                        <Button type="button" onClick={addSpeaker} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> {t[language].addSpeaker}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Submission Section - Only for Hackathons */}
+                  {formDataLatest.event === 'hackathon' && contentTab === 'submission' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
+                        <Input
+                          type="datetime-local"
+                          placeholder="Submission Deadline"
+                          value={formDataContent.submission_deadline}
+                          onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
+                          className="w-full mb-4"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex justify-end mt-4">
                     <button 
                       type="button"
@@ -2662,7 +2923,7 @@ const HackathonsEdit = () => {
                 <div className="text-zinc-400 italic">{t[language].contentCompleted}</div>
               )}
             </div>
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
+            <div ref={step6Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 6: Last Details</h2>
                 {collapsed.last && (
@@ -2880,6 +3141,7 @@ const HackathonsEdit = () => {
                 organizers: formDataMain.organizers,
                 banner: formDataLatest.banner,
                 content: {
+                  language: formDataContent.language,
                   tracks_text: formDataContent.tracks_text,
                   tracks: formDataContent.tracks,
                   schedule: formDataContent.schedule,

@@ -18,9 +18,7 @@ type L1ChainEntry = {
   blockchainId?: string;
 };
 
-// Prefer the raw ClickHouse URL when present, otherwise fall back to the configured proxy URL.
-const CLICKHOUSE_PROXY_URL = process.env.CLICKHOUSE_PROXY_URL || "";
-const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || process.env.CLICKHOUSE_PROXY_URL || "";
+const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || "";
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || "";
 const QUERY_TIMEOUT_MS = 10_000;
 const CONTRACT_FEES_QUERY_TIMEOUT_MS = 60_000;
@@ -45,7 +43,7 @@ async function fetchWithTimeout(
 }
 
 function createX402Fetch() {
-  if (!CLICKHOUSE_PROXY_URL || !X402_PAYER_PRIVATE_KEY) return null;
+  if (!CLICKHOUSE_URL || !X402_PAYER_PRIVATE_KEY) return null;
 
   try {
     const account = privateKeyToAccount(X402_PAYER_PRIVATE_KEY as `0x${string}`);
@@ -63,7 +61,7 @@ function createX402Fetch() {
 const x402Fetch = createX402Fetch();
 
 async function queryClickHouseX402<T = Record<string, unknown>>(sql: string): Promise<T[]> {
-  const proxyUrl = CLICKHOUSE_PROXY_URL.endsWith("/query") ? CLICKHOUSE_PROXY_URL : CLICKHOUSE_PROXY_URL.replace(/\/$/, "") + "/query";
+  const proxyUrl = CLICKHOUSE_URL.endsWith("/query") ? CLICKHOUSE_URL : CLICKHOUSE_URL.replace(/\/$/, "") + "/query";
 
   const response = await fetchWithTimeout(x402Fetch!, proxyUrl, {
     method: "POST",
@@ -87,7 +85,7 @@ async function queryClickHouseDirect<T = Record<string, unknown>>(
   timeoutMs = QUERY_TIMEOUT_MS
 ): Promise<T[]> {
   if (!CLICKHOUSE_URL) {
-    console.warn("[icm-clickhouse] CLICKHOUSE_URL/CLICKHOUSE_PROXY_URL not set – returning empty results");
+    console.warn("[icm-clickhouse] CLICKHOUSE_URL not set – returning empty results");
     return [];
   }
 
@@ -117,7 +115,7 @@ async function queryClickHouseDirect<T = Record<string, unknown>>(
 
 async function queryClickHouse<T = Record<string, unknown>>(sql: string): Promise<T[]> {
   // Temporarily bypass the x402 proxy and read directly from ClickHouse.
-  // if (CLICKHOUSE_PROXY_URL && x402Fetch) {
+  // if (CLICKHOUSE_URL && x402Fetch) {
   //   try {
   //     return await queryClickHouseX402<T>(sql);
   //   } catch (err) {
@@ -554,6 +552,8 @@ export async function getICMStatsData(days: number): Promise<{
       totalOutgoing += counts.outgoing;
     }
 
+    if (totalMessageCount === 0) continue;
+
     aggregatedData.push({ timestamp, date: day, totalMessageCount, chainBreakdown });
     icmDataPoints.push({
       timestamp,
@@ -672,6 +672,8 @@ export async function getChainICMData(
 
   const result: ICMDataPoint[] = [];
   for (const [day, counts] of dayMap.entries()) {
+    if (counts.incoming === 0) continue;
+
     result.push({
       timestamp: dayToTimestamp(day),
       date: day,
@@ -686,15 +688,32 @@ export async function getChainICMData(
   return result;
 }
 
+/**
+ * Sum ICM message counts for the most recent N complete days.
+ * Skips today's partial data if present; when data is stale
+ * (latest entry is a past day) it treats that as the first complete day.
+ */
+function sumLatestCompleteDays(
+  dataPoints: ICMDataPoint[],
+  daysToSum: number
+): number {
+  const sorted = [...dataPoints].sort((a, b) => b.timestamp - a.timestamp);
+  if (sorted.length === 0) return 0;
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const startIndex = sorted[0]?.date === todayStr ? 1 : 0;
+
+  let sum = 0;
+  for (let i = startIndex; i < Math.min(startIndex + daysToSum, sorted.length); i++) {
+    sum += sorted[i]?.messageCount || 0;
+  }
+  return sum;
+}
+
 export async function getChainICMCount(
   chainId: string,
   daysToSum: number
 ): Promise<number> {
   const dataPoints = await getChainICMData(chainId, daysToSum + 2);
-  const sorted = dataPoints.sort((a, b) => b.timestamp - a.timestamp);
-  let sum = 0;
-  for (let i = 1; i <= Math.min(daysToSum, sorted.length - 1); i++) {
-    sum += sorted[i]?.messageCount || 0;
-  }
-  return sum;
+  return sumLatestCompleteDays(dataPoints, daysToSum);
 }

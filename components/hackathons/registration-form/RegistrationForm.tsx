@@ -28,6 +28,8 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
 import { useUTMPreservation } from "@/hooks/use-utm-preservation";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { captureEventReferrerFromUrl, getEventReferrer, clearEventReferrer } from "@/lib/referral";
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
@@ -65,7 +67,7 @@ export function RegisterForm({
   const currentUser: User | undefined = session?.user;
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
-  let hackathon_id = searchParams?.hackathon ?? "";
+  let hackathon_id = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
   const utm = searchParams?.utm ?? "";
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
@@ -78,8 +80,14 @@ export function RegisterForm({
   // Use UTM preservation hook
   const { getPreservedUTMs } = useUTMPreservation();
 
+  // Capture referrer from URL on mount
+  useEffect(() => {
+    captureEventReferrerFromUrl();
+  }, []);
+
   // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
+  const lang = normalizeEventsLang(hackathon?.content?.language);
   
   const getDefaultValues = () => ({
     name: currentUser?.name || "",
@@ -130,7 +138,7 @@ export function RegisterForm({
   async function getHackathon() {
     if (!hackathon_id) return;
     try {
-      const response = await axios.get(`/api/hackathons/${hackathon_id}`);
+      const response = await axios.get(`/api/events/${hackathon_id}`);
       setHackathon(response.data);
     } catch (err) {
       console.error("API Error:", err);
@@ -253,7 +261,7 @@ export function RegisterForm({
         JSON.stringify(formValues)
       );
     }
-    router.push(`/hackathons/${hackathon_id}`);
+    router.push(`/events/${hackathon_id}`);
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -288,6 +296,8 @@ export function RegisterForm({
       const preservedUTMs = getPreservedUTMs();
       const effectiveUTM = utm || preservedUTMs.utm || "";
       
+      const referrerHandle = getEventReferrer();
+
       const finalData = {
         ...data,
         hackathon_id: hackathon_id,
@@ -298,9 +308,11 @@ export function RegisterForm({
         tools: data.tools,
         // Only include prohibited_items if it's not an online hackathon
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
+        ...(referrerHandle ? { referrer_handle: referrerHandle } : {}),
       };
 
       await saveProject(finalData);
+      clearEventReferrer();
       setIsDialogOpen(true);
     }
   };
@@ -426,10 +438,7 @@ export function RegisterForm({
   return (
     <div className="w-full items-center justify-center">
       <h2 className="text-2xl font-bold mb-6 text-foreground">
-        Registration form for{" "}
-        {hackathon
-          ? `${hackathon.title} (Step ${step}/3)`
-          : `... (Step ${step}/3)`}
+        {t(lang, "reg.form.title", { title: hackathon?.title ?? "...", step })}
       </h2>
       <div className="relative w-full h-1 bg-zinc-300 dark:bg-zinc-900 mb-4">
         <div
@@ -438,21 +447,21 @@ export function RegisterForm({
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {step === 1 && <RegisterFormStep1 user={session?.user} />}
-          {step === 2 && <RegisterFormStep2 />}
-          {step === 3 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} />}
+          {step === 1 && <RegisterFormStep1 user={session?.user} lang={lang} />}
+          {step === 2 && <RegisterFormStep2 lang={lang} />}
+          {step === 3 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
               {step === 3 && (
                 <LoadingButton
                   isLoading={form.formState.isSubmitting}
-                  loadingText="Saving..."
+                  loadingText={t(lang, "reg.form.saving")}
                   variant="red"
                   type="submit"
                   className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
-                  Save & Exit
+                  {t(lang, "reg.form.saveExit")}
                 </LoadingButton>
               )}
 
@@ -463,29 +472,26 @@ export function RegisterForm({
                   onClick={onNextStep}
                   className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
-                  Continue
+                  {t(lang, "reg.form.continue")}
                 </Button>
               )}
 
               {step !== 3 && (
                 <LoadingButton
                   isLoading={isSavingLater}
-                  loadingText="Saving..."
+                  loadingText={t(lang, "reg.form.saving")}
                   type="button"
                   onClick={() => {
-                    console.log("seteo en true");
-
                     try {
                       setIsSavingLater(true);
                       onSaveLater();
                     } finally {
-                      console.log("seteo en false");
                       setIsSavingLater(false);
                     }
                   }}
                   className="bg-white text-black border cursor-pointer border-gray-300 hover:text-black hover:bg-gray-100"
                 >
-                  Save & Continue Later
+                  {t(lang, "reg.form.saveLater")}
                 </LoadingButton>
               )}
             </div>
@@ -495,6 +501,7 @@ export function RegisterForm({
                 {step > 1 && (
                   <PaginationPrevious
                     className="dark:hover:text-gray-200 cursor-pointer"
+                    label={t(lang, "reg.form.previous")}
                     onClick={() => setStep(step - 1)}
                   />
                 )}
@@ -516,12 +523,13 @@ export function RegisterForm({
                 {step < 3 && (
                   <PaginationNext
                     className="dark:hover:text-gray-200 cursor-pointer"
+                    label={t(lang, "reg.form.next")}
                     onClick={onNextStep}
                   />
                 )}
               </div>
               <span className="font-Aeonik text-xs sm:text-sm mt-2 md:mt-0 md:ml-2">
-                Step {step} of 3
+                {t(lang, "reg.form.stepOf", { current: step, total: 3 })}
               </span>
             </div>
           </div>
@@ -532,6 +540,7 @@ export function RegisterForm({
         hackathon_id={hackathon_id as string}
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
+        lang={lang}
       />
     </div>
   );

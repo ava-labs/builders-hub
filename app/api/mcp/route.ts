@@ -46,12 +46,20 @@ function createSSEResponse(data: unknown, eventId?: string): Response {
 }
 
 // ---------------------------------------------------------------------------
-// GET — server info + capabilities
+// GET — server info + capabilities, or 405 for Streamable HTTP polling
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
   const origin = request.headers.get('origin');
   const corsHeaders = getCORSHeaders(origin);
+
+  if (wantsSSE(request)) {
+    return NextResponse.json(
+      { jsonrpc: '2.0', id: null, error: { code: -32000, message: 'Method not allowed.' } },
+      { status: 405, headers: { ...corsHeaders, Allow: 'POST, OPTIONS' } }
+    );
+  }
+
   return NextResponse.json(server.getServerInfo(), { headers: corsHeaders });
 }
 
@@ -100,6 +108,10 @@ export async function POST(request: NextRequest) {
     const allHeaders = { ...corsHeaders, ...rateLimitHeaders };
 
     const result = await server.handlePost(body);
+
+    if (result === null) {
+      return new Response(null, { status: 202, headers: allHeaders });
+    }
 
     if (useSSE) {
       const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

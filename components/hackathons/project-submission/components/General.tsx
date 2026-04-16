@@ -35,7 +35,7 @@ export default function GeneralComponent({
   const [teamName, setTeamName] = useState<string>('');
   const { data: session } = useSession();
   const currentUser = session?.user;
-  const hackathonId = searchParams?.hackathon ?? '';
+  const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? '') as string;
   const invitationLink = searchParams?.invitation;
   const { toast } = useToast();
   const router = useRouter();

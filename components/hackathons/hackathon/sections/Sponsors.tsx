@@ -11,8 +11,10 @@ import AutoScroll from "embla-carousel-auto-scroll";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
   const plugin = AutoScroll({
     speed: 1,
     stopOnInteraction: false,
@@ -23,11 +25,11 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
   return (
     <section>
       <h2 className="text-4xl font-bold mb-8" id="sponsors">
-        Partners
+        {t(lang, "section.partners.title")}
       </h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
       <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-        Our partners drive the future of blockchain innovation.
+        {t(lang, "section.partners.subtitle")}
       </p>
       <div>
         <Carousel
@@ -63,7 +65,7 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
             className="w-3/4 sm:w-1/2 lg:w-1/3 bg-red-500 rounded-md text-zinc-100"
           >
             <Link href={hackathon.content.become_sponsor_link}>
-              BECOME A SPONSOR
+              {t(lang, "section.partners.becomeSponsor")}
             </Link>
           </Button>
         )}

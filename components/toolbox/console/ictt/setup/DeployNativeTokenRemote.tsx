@@ -1,399 +1,424 @@
-"use client";
+'use client';
 
-import NativeTokenRemote from "@/contracts/icm-contracts/compiled/NativeTokenRemote.json";
-import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useToolboxStore, useViemChainStore, getToolboxStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useWalletClient } from 'wagmi';
-import { useState, useEffect, useMemo } from "react";
-import { Button } from "@/components/toolbox/components/Button";
-import { Success } from "@/components/toolbox/components/Success";
-import { Input, Suggestion } from "@/components/toolbox/components/Input";
-import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { createPublicClient, http } from "viem";
-import { Note } from "@/components/toolbox/components/Note";
-import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
+import NativeTokenRemote from '@/contracts/icm-contracts/compiled/NativeTokenRemote.json';
+import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useToolboxStore, useViemChainStore, getToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { useState, useEffect, useMemo } from 'react';
+import { Button } from '@/components/toolbox/components/Button';
+import { Success } from '@/components/toolbox/components/Success';
+import { Input, Suggestion } from '@/components/toolbox/components/Input';
+import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
+import { createPublicClient, http } from 'viem';
+import { Note } from '@/components/toolbox/components/Note';
+import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import { cb58ToHex } from '@/components/tools/common/utils/cb58';
-import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
-import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
-import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
-import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
-import { LockedContent } from "@/components/toolbox/components/LockedContent";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
-import versions from "@/scripts/versions.json";
-import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
+import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
+import SelectBlockchainId from '@/components/toolbox/components/SelectBlockchainId';
+import { CheckPrecompile } from '@/components/toolbox/components/CheckPrecompile';
+import TeleporterRegistryAddressInput from '@/components/toolbox/components/TeleporterRegistryAddressInput';
+import { AcknowledgementCallout } from '@/components/toolbox/components/AcknowledgementCallout';
+import { LockedContent } from '@/components/toolbox/components/LockedContent';
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
+import versions from '@/scripts/versions.json';
+import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const CONTRACT_SOURCES: ContractSource[] = [
   {
-    name: "NativeTokenRemote",
-    filename: "NativeTokenRemote.sol",
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/NativeTokenRemote.sol`,
-    description: "Remote chain endpoint that mints native tokens for incoming bridged transfers via ICTT.",
+    name: 'NativeTokenRemote',
+    filename: 'NativeTokenRemote.sol',
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/TokenRemote/NativeTokenRemote.sol`,
+    description: 'Remote chain endpoint that mints native tokens for incoming bridged transfers via ICTT.',
   },
 ];
 
 const metadata: ConsoleToolMetadata = {
-    title: "Deploy Native Token Remote Contract",
-    description: "Deploy the NativeTokenRemote contract for your native token.",
-    toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Deploy Native Token Remote Contract',
+  description: 'Deploy the NativeTokenRemote contract for your native token.',
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 function DeployNativeTokenRemote() {
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const {
-        nativeTokenRemoteAddress,
-        setNativeTokenRemoteAddress,
-    } = useToolboxStore();
-    const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
-    const { walletEVMAddress } = useWalletStore();
-    const { data: walletClient } = useWalletClient();
-    const viemChain = useViemChainStore();
-    const selectedL1 = useSelectedL1()();
-    const { deploy, isDeploying } = useContractDeployer();
-    const [sourceChainId, setSourceChainId] = useState<string>("");
-    const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
-    const [localError, setLocalError] = useState("");
-    const [tokenName, setTokenName] = useState("");
-    const [tokenSymbol, setTokenSymbol] = useState("");
-    const [tokenDecimals, setTokenDecimals] = useState("0");
-    const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
-    const [initialReserveImbalance, setInitialReserveImbalance] = useState("1");
-    const [burnedFeesReportingRewardPercentage, setBurnedFeesReportingRewardPercentage] = useState("0");
-    const [tokenHomeAddress, setTokenHomeAddress] = useState("");
-    const [acknowledged, setAcknowledged] = useState(false);
-    const [workflowDismissed, setWorkflowDismissed] = useState(false);
+  const [criticalError, setCriticalError] = useState<Error | null>(null);
+  const { nativeTokenRemoteAddress, setNativeTokenRemoteAddress } = useToolboxStore();
+  const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState('');
+  const { walletEVMAddress } = useWalletStore();
+  const walletClient = useResolvedWalletClient();
+  const viemChain = useViemChainStore();
+  const selectedL1 = useSelectedL1();
+  const { deploy, isDeploying } = useContractDeployer();
+  const [sourceChainId, setSourceChainId] = useState<string>('');
+  const [teleporterManager, setTeleporterManager] = useState<string>(walletEVMAddress);
+  const [localError, setLocalError] = useState('');
+  const [tokenName, setTokenName] = useState('');
+  const [tokenSymbol, setTokenSymbol] = useState('');
+  const [tokenDecimals, setTokenDecimals] = useState('0');
+  const [minTeleporterVersion, setMinTeleporterVersion] = useState('1');
+  const [initialReserveImbalance, setInitialReserveImbalance] = useState('1');
+  const [burnedFeesReportingRewardPercentage, setBurnedFeesReportingRewardPercentage] = useState('0');
+  const [tokenHomeAddress, setTokenHomeAddress] = useState('');
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [workflowDismissed, setWorkflowDismissed] = useState(false);
 
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
+  // Throw critical errors during render
+  if (criticalError) {
+    throw criticalError;
+  }
+
+  const sourceL1 = useL1ByChainId(sourceChainId);
+  const sourceToolboxStore = getToolboxStore(sourceChainId)();
+
+  const tokenHomeBlockchainIDHex = useMemo(() => {
+    if (!sourceL1?.id) return undefined;
+    try {
+      return cb58ToHex(sourceL1.id);
+    } catch (e) {
+      console.error('Error decoding source chain ID:', e);
+      return undefined;
+    }
+  }, [sourceL1?.id]);
+
+  let sourceChainError: string | undefined = undefined;
+  if (!sourceChainId) {
+    sourceChainError = 'Please select a source chain';
+  } else if (selectedL1?.id === sourceChainId) {
+    sourceChainError = 'Source and destination chains must be different';
+  }
+
+  // Build suggestions for token home addresses
+  const tokenHomeSuggestions = useMemo(() => {
+    const suggestions: Suggestion[] = [];
+
+    if (sourceToolboxStore.erc20TokenHomeAddress) {
+      suggestions.push({
+        value: sourceToolboxStore.erc20TokenHomeAddress,
+        title: 'ERC20 Token Home',
+        description: 'Previously deployed ERC20 Token Home contract',
+      });
     }
 
-    const sourceL1 = useL1ByChainId(sourceChainId)();
-    const sourceToolboxStore = getToolboxStore(sourceChainId)();
-
-    const tokenHomeBlockchainIDHex = useMemo(() => {
-        if (!sourceL1?.id) return undefined;
-        try {
-            return cb58ToHex(sourceL1.id);
-        } catch (e) {
-            console.error("Error decoding source chain ID:", e);
-            return undefined;
-        }
-    }, [sourceL1?.id]);
-
-    let sourceChainError: string | undefined = undefined;
-    if (!sourceChainId) {
-        sourceChainError = "Please select a source chain";
-    } else if (selectedL1?.id === sourceChainId) {
-        sourceChainError = "Source and destination chains must be different";
+    if (sourceToolboxStore.nativeTokenHomeAddress) {
+      suggestions.push({
+        value: sourceToolboxStore.nativeTokenHomeAddress,
+        title: 'Native Token Home',
+        description: 'Previously deployed Native Token Home contract',
+      });
     }
 
-    // Build suggestions for token home addresses
-    const tokenHomeSuggestions = useMemo(() => {
-        const suggestions: Suggestion[] = [];
-        
-        if (sourceToolboxStore.erc20TokenHomeAddress) {
-            suggestions.push({
-                value: sourceToolboxStore.erc20TokenHomeAddress,
-                title: "ERC20 Token Home",
-                description: "Previously deployed ERC20 Token Home contract"
-            });
-        }
-        
-        if (sourceToolboxStore.nativeTokenHomeAddress) {
-            suggestions.push({
-                value: sourceToolboxStore.nativeTokenHomeAddress,
-                title: "Native Token Home",
-                description: "Previously deployed Native Token Home contract"
-            });
-        }
-        
-        return suggestions;
-    }, [sourceToolboxStore.erc20TokenHomeAddress, sourceToolboxStore.nativeTokenHomeAddress]);
+    return suggestions;
+  }, [sourceToolboxStore.erc20TokenHomeAddress, sourceToolboxStore.nativeTokenHomeAddress]);
 
-    // Updates token details
-    useEffect(() => {
-        const fetchTokenDetails = async () => {
-            try {
-                setLocalError("");
-                setTokenDecimals("0");
-                setTokenName("loading...");
-                setTokenSymbol("loading...");
+  // Auto-fill tokenHomeAddress from source chain store when exactly one home exists
+  useEffect(() => {
+    if (tokenHomeAddress || !sourceChainId) return;
+    const hasErc20 = !!sourceToolboxStore.erc20TokenHomeAddress;
+    const hasNative = !!sourceToolboxStore.nativeTokenHomeAddress;
+    if (hasErc20 && !hasNative) {
+      setTokenHomeAddress(sourceToolboxStore.erc20TokenHomeAddress);
+    } else if (hasNative && !hasErc20) {
+      setTokenHomeAddress(sourceToolboxStore.nativeTokenHomeAddress);
+    }
+  }, [sourceChainId, sourceToolboxStore.erc20TokenHomeAddress, sourceToolboxStore.nativeTokenHomeAddress]);
 
-                if (!sourceL1?.rpcUrl || !tokenHomeAddress) return;
+  // Updates token details
+  useEffect(() => {
+    const fetchTokenDetails = async () => {
+      try {
+        setLocalError('');
+        setTokenDecimals('0');
+        setTokenName('loading...');
+        setTokenSymbol('loading...');
 
-                const publicClient = createPublicClient({
-                    transport: http(sourceL1.rpcUrl)
-                });
+        if (!sourceL1?.rpcUrl || !tokenHomeAddress) return;
 
-                // Both ERC20TokenHome and NativeTokenHome have the same getTokenAddress function
-                const tokenAddress = await publicClient.readContract({
-                    address: tokenHomeAddress as `0x${string}`,
-                    abi: ERC20TokenHomeABI.abi,
-                    functionName: "getTokenAddress"
-                });
-                
-                const decimals = await publicClient.readContract({
-                    address: tokenAddress as `0x${string}`,
-                    abi: ExampleERC20.abi,
-                    functionName: "decimals"
-                });
-                const name = await publicClient.readContract({
-                    address: tokenAddress as `0x${string}`,
-                    abi: ExampleERC20.abi,
-                    functionName: "name"
-                });
-                const symbol = await publicClient.readContract({
-                    address: tokenAddress as `0x${string}`,
-                    abi: ExampleERC20.abi,
-                    functionName: "symbol"
-                });
+        const publicClient = createPublicClient({
+          transport: http(sourceL1.rpcUrl),
+        });
 
-                setTokenDecimals(String(decimals));
-                setTokenName(name as string);
-                setTokenSymbol(symbol as string);
-            } catch (error: any) {
-                console.error(error);
-                setLocalError("Fetching token details failed: " + error.message);
-            }
-        };
+        // Both ERC20TokenHome and NativeTokenHome have the same getTokenAddress function
+        const tokenAddress = await publicClient.readContract({
+          address: tokenHomeAddress as `0x${string}`,
+          abi: ERC20TokenHomeABI.abi,
+          functionName: 'getTokenAddress',
+        });
 
-        fetchTokenDetails();
-    }, [sourceChainId, sourceL1?.rpcUrl, tokenHomeAddress]);
+        const decimals = await publicClient.readContract({
+          address: tokenAddress as `0x${string}`,
+          abi: ExampleERC20.abi,
+          functionName: 'decimals',
+        });
+        const name = await publicClient.readContract({
+          address: tokenAddress as `0x${string}`,
+          abi: ExampleERC20.abi,
+          functionName: 'name',
+        });
+        const symbol = await publicClient.readContract({
+          address: tokenAddress as `0x${string}`,
+          abi: ExampleERC20.abi,
+          functionName: 'symbol',
+        });
 
-    async function handleDeploy() {
-        if (!walletClient) {
-            setCriticalError(new Error('Core wallet not found'));
-            return;
-        }
+        setTokenDecimals(String(decimals));
+        setTokenName(name as string);
+        setTokenSymbol(symbol as string);
+      } catch (error: any) {
+        console.error(error);
+        setLocalError('Fetching token details failed: ' + error.message);
+      }
+    };
 
-        setLocalError("");
+    fetchTokenDetails();
+  }, [sourceChainId, sourceL1?.rpcUrl, tokenHomeAddress]);
 
-        try {
-            if (!viemChain || !selectedL1) {
-                throw new Error("Destination chain configuration is missing.");
-            }
-
-            if (!tokenHomeAddress || !teleporterRegistryAddress || !tokenHomeBlockchainIDHex ||
-                tokenDecimals === "0" || !tokenSymbol) {
-                throw new Error("Critical deployment parameters missing or invalid.");
-            }
-
-            if (initialReserveImbalance === "0") {
-                throw new Error("Initial Reserve Imbalance must be greater than 0.");
-            }
-
-            const burnedFeesPercent = parseInt(burnedFeesReportingRewardPercentage);
-            if (burnedFeesPercent < 0 || burnedFeesPercent > 100) {
-                throw new Error("Burned Fees Reporting Reward Percentage must be between 0 and 100.");
-            }
-
-            const constructorArgs = [
-                {
-                    teleporterRegistryAddress: teleporterRegistryAddress as `0x${string}`,
-                    teleporterManager: teleporterManager || walletEVMAddress,
-                    minTeleporterVersion: BigInt(minTeleporterVersion),
-                    tokenHomeBlockchainID: tokenHomeBlockchainIDHex as `0x${string}`,
-                    tokenHomeAddress: tokenHomeAddress as `0x${string}`,
-                    tokenHomeDecimals: parseInt(tokenDecimals)
-                },
-                tokenSymbol,
-                BigInt(initialReserveImbalance),
-                BigInt(burnedFeesReportingRewardPercentage)
-            ];
-
-            console.log("Deploying NativeTokenRemote with args:", constructorArgs);
-
-            const result = await deploy({
-                abi: NativeTokenRemote.abi as any,
-                bytecode: NativeTokenRemote.bytecode.object,
-                args: constructorArgs,
-                name: 'NativeTokenRemote'
-            });
-
-            setNativeTokenRemoteAddress(result.contractAddress);
-        } catch (error: any) {
-            console.error("Deployment failed:", error);
-            setLocalError(`Deployment failed: ${error.shortMessage || error.message}`);
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        }
+  async function handleDeploy() {
+    if (!walletClient) {
+      setCriticalError(new Error('Core wallet not found'));
+      return;
     }
 
-    return (
-        <CheckPrecompile
-            configKey="contractNativeMinterConfig"
-            precompileName="Native Minter"
-            errorMessage="The Native Minter precompile is not activated on this chain. The NativeTokenRemote contract requires the Native Minter precompile to be active in order to mint incoming bridged tokens."
-            docsLink="https://build.avax.network/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles"
-            docsLinkText="Learn how to activate the Native Minter precompile"
-        >
-            <ContractDeployViewer contracts={CONTRACT_SOURCES}>
-            <div className="space-y-4">
-                <div>
-                    <p className="mt-2">
-                        This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}).
-                        This contract acts as the bridge endpoint for your native token from the source chain.
-                        To mint native tokens, please use the <a href="#precompiles/nativeMinter" className="text-blue-500 hover:text-blue-600 underline">Native Minter Precompile</a>.
-                    </p>
-                </div>
+    setLocalError('');
 
-                <AcknowledgementCallout
-                    title="Have You Switched to the Destination Chain?"
-                    type="info"
-                    checkboxLabel="I have switched to the destination chain and am ready to deploy"
-                    checked={acknowledged}
-                    onCheckedChange={(checked: boolean) => {
-                        setAcknowledged(checked);
-                        if (checked) {
-                            setWorkflowDismissed(true);
-                        }
-                    }}
-                    visible={!workflowDismissed}
-                >
-                    <p>
-                        <strong>Important:</strong> The Token Remote contract must be deployed on the <strong>destination chain</strong> (where you want to receive bridged tokens as native currency).
-                    </p>
-                    <p>
-                        Before proceeding, make sure you have:
-                    </p>
-                    <ul className="list-disc list-inside ml-2 space-y-1">
-                        <li>Already deployed the <strong>Token Home</strong> contract on the source chain</li>
-                        <li>Switched to the <strong>destination chain</strong> using the chain selector in Builder Console</li>
-                        <li>Verified that <code className="bg-blue-100 dark:bg-blue-900/30 px-1 py-0.5 rounded">{selectedL1?.name}</code> is your intended destination chain</li>
-                        <li>Confirmed the <strong>Native Minter precompile</strong> is enabled on this chain</li>
-                    </ul>
-                </AcknowledgementCallout>
+    try {
+      if (!viemChain || !selectedL1) {
+        throw new Error('Destination chain configuration is missing.');
+      }
 
-                <LockedContent
-                    isUnlocked={workflowDismissed}
-                    lockedMessage="Please acknowledge the chain switching workflow above to continue."
-                >
-                    <TeleporterRegistryAddressInput
-                    value={teleporterRegistryAddress}
-                    onChange={setTeleporterRegistryAddress}
-                    disabled={isDeploying}
-                />
+      if (
+        !tokenHomeAddress ||
+        !teleporterRegistryAddress ||
+        !tokenHomeBlockchainIDHex ||
+        tokenDecimals === '0' ||
+        !tokenSymbol
+      ) {
+        throw new Error('Critical deployment parameters missing or invalid.');
+      }
 
-                {!teleporterRegistryAddress && <Note variant="warning">
-                    <p>
-                        Please <a href="#teleporterRegistry" className="text-blue-500">deploy the Teleporter Registry contract first</a>.
-                    </p>
-                </Note>}
+      if (initialReserveImbalance === '0') {
+        throw new Error('Initial Reserve Imbalance must be greater than 0.');
+      }
 
-                <SelectBlockchainId
-                    label="Source Chain (where token home is deployed)"
-                    value={sourceChainId}
-                    onChange={(value) => setSourceChainId(value)}
-                    error={sourceChainError}
-                />
+      const burnedFeesPercent = parseInt(burnedFeesReportingRewardPercentage);
+      if (burnedFeesPercent < 0 || burnedFeesPercent > 100) {
+        throw new Error('Burned Fees Reporting Reward Percentage must be between 0 and 100.');
+      }
 
-                {sourceChainId && <EVMAddressInput
-                    label={`Token Home Address on ${sourceL1?.name}`}
-                    value={tokenHomeAddress}
-                    onChange={setTokenHomeAddress}
-                    disabled={isDeploying}
-                    suggestions={tokenHomeSuggestions}
-                    helperText={tokenHomeSuggestions.length === 0 ? `Please deploy a Token Home contract on ${sourceL1?.name} first` : undefined}
-                />}
+      const constructorArgs = [
+        {
+          teleporterRegistryAddress: teleporterRegistryAddress as `0x${string}`,
+          teleporterManager: teleporterManager || walletEVMAddress,
+          minTeleporterVersion: BigInt(minTeleporterVersion),
+          tokenHomeBlockchainID: tokenHomeBlockchainIDHex as `0x${string}`,
+          tokenHomeAddress: tokenHomeAddress as `0x${string}`,
+          tokenHomeDecimals: parseInt(tokenDecimals),
+        },
+        tokenSymbol,
+        BigInt(initialReserveImbalance),
+        BigInt(burnedFeesReportingRewardPercentage),
+      ];
 
-                {tokenHomeBlockchainIDHex && <Input
-                    label="Token Home Blockchain ID (hex)"
-                    value={tokenHomeBlockchainIDHex}
-                    disabled
-                />}
+      const result = await deploy({
+        abi: NativeTokenRemote.abi as any,
+        bytecode: NativeTokenRemote.bytecode.object,
+        args: constructorArgs,
+        name: 'NativeTokenRemote',
+      });
 
-                {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
+      setNativeTokenRemoteAddress(result.contractAddress);
+    } catch (error: any) {
+      console.error('Deployment failed:', error);
+      setLocalError(`Deployment failed: ${error.shortMessage || error.message}`);
+      setCriticalError(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
 
-                {tokenHomeAddress && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Input
-                            label="Token Name (from source)"
-                            value={tokenName}
-                            disabled
-                        />
+  return (
+    <CheckPrecompile
+      configKey="contractNativeMinterConfig"
+      precompileName="Native Minter"
+      errorMessage="The Native Minter precompile is not activated on this chain. The NativeTokenRemote contract requires the Native Minter precompile to be active in order to mint incoming bridged tokens."
+      docsLink="https://build.avax.network/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles"
+      docsLinkText="Learn how to activate the Native Minter precompile"
+    >
+      <ContractDeployViewer contracts={CONTRACT_SOURCES}>
+        <div className="space-y-4">
+          <div>
+            <p className="mt-2">
+              This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}). This contract
+              acts as the bridge endpoint for your native token from the source chain. To mint native tokens, please use
+              the{' '}
+              <a href="#precompiles/nativeMinter" className="text-blue-500 hover:text-blue-600 underline">
+                Native Minter Precompile
+              </a>
+              .
+            </p>
+          </div>
 
-                        <Input
-                            label="Token Symbol (from source)"
-                            value={tokenSymbol}
-                            disabled
-                        />
+          <AcknowledgementCallout
+            title="Have You Switched to the Destination Chain?"
+            type="info"
+            checkboxLabel="I have switched to the destination chain and am ready to deploy"
+            checked={acknowledged}
+            onCheckedChange={(checked: boolean) => {
+              setAcknowledged(checked);
+              if (checked) {
+                setWorkflowDismissed(true);
+              }
+            }}
+            visible={!workflowDismissed}
+          >
+            <p>
+              <strong>Important:</strong> The Token Remote contract must be deployed on the{' '}
+              <strong>destination chain</strong> (where you want to receive bridged tokens as native currency).
+            </p>
+            <p>Before proceeding, make sure you have:</p>
+            <ul className="list-disc list-inside ml-2 space-y-1">
+              <li>
+                Already deployed the <strong>Token Home</strong> contract on the source chain
+              </li>
+              <li>
+                Switched to the <strong>destination chain</strong> using the chain selector in Builder Console
+              </li>
+              <li>
+                Verified that{' '}
+                <code className="bg-blue-100 dark:bg-blue-900/30 px-1 py-0.5 rounded">{selectedL1?.name}</code> is your
+                intended destination chain
+              </li>
+              <li>
+                Confirmed the <strong>Native Minter precompile</strong> is enabled on this chain
+              </li>
+            </ul>
+          </AcknowledgementCallout>
 
-                        <Input
-                            label="Token Decimals (from source)"
-                            value={tokenDecimals}
-                            disabled
-                        />
-                    </div>
-                )}
+          <LockedContent
+            isUnlocked={workflowDismissed}
+            lockedMessage="Please acknowledge the chain switching workflow above to continue."
+          >
+            <TeleporterRegistryAddressInput
+              value={teleporterRegistryAddress}
+              onChange={setTeleporterRegistryAddress}
+              disabled={isDeploying}
+            />
 
-                <Input
-                    label="Initial Reserve Imbalance"
-                    value={initialReserveImbalance}
-                    onChange={setInitialReserveImbalance}
-                    type="number"
-                    helperText="The initial reserve imbalance that must be collateralized before minting (must be > 0, default: 1)"
-                    required
-                />
+            {!teleporterRegistryAddress && (
+              <Note variant="warning">
+                <p>
+                  Please{' '}
+                  <a href="#teleporterRegistry" className="text-blue-500">
+                    deploy the Teleporter Registry contract first
+                  </a>
+                  .
+                </p>
+              </Note>
+            )}
 
-                <Input
-                    label="Burned Fees Reporting Reward Percentage"
-                    value={burnedFeesReportingRewardPercentage}
-                    onChange={setBurnedFeesReportingRewardPercentage}
-                    type="number"
-                    helperText="The percentage of burned transaction fees that will be rewarded to sender of the report (0-100)"
-                    required
-                />
+            <SelectBlockchainId
+              label="Source Chain (where token home is deployed)"
+              value={sourceChainId}
+              onChange={(value) => setSourceChainId(value)}
+              error={sourceChainError}
+            />
 
-                <EVMAddressInput
-                    label="Teleporter Manager Address"
-                    value={teleporterManager}
-                    onChange={setTeleporterManager}
-                    disabled={isDeploying}
-                    helperText="default: your address"
-                />
+            {sourceChainId && (
+              <EVMAddressInput
+                label={`Token Home Address on ${sourceL1?.name}`}
+                value={tokenHomeAddress}
+                onChange={setTokenHomeAddress}
+                disabled={isDeploying}
+                suggestions={tokenHomeSuggestions}
+                helperText={
+                  tokenHomeSuggestions.length === 0
+                    ? `Please deploy a Token Home contract on ${sourceL1?.name} first`
+                    : undefined
+                }
+              />
+            )}
 
-                <Input
-                    label="Min Teleporter Version"
-                    value={minTeleporterVersion}
-                    onChange={setMinTeleporterVersion}
-                    type="number"
-                    required
-                />
+            {tokenHomeBlockchainIDHex && (
+              <Input label="Token Home Blockchain ID (hex)" value={tokenHomeBlockchainIDHex} disabled />
+            )}
 
-                <div className="mb-6">
-                    <Success
-                        label={`Native Token Remote Address (on ${selectedL1?.name})`}
-                        value={nativeTokenRemoteAddress || ""}
-                    />
-                </div>
+            {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
 
-                <Button
-                    variant={nativeTokenRemoteAddress ? "secondary" : "primary"}
-                    onClick={handleDeploy}
-                    loading={isDeploying}
-                    disabled={isDeploying ||
-                        !tokenHomeAddress ||
-                        !tokenHomeBlockchainIDHex ||
-                        tokenDecimals === "0" ||
-                        !tokenSymbol ||
-                        !teleporterRegistryAddress ||
-                        initialReserveImbalance === "0" ||
-                        parseInt(burnedFeesReportingRewardPercentage) > 100 ||
-                        !!sourceChainError}
-                >
-                    {nativeTokenRemoteAddress ? "Re-Deploy Native Token Remote" : "Deploy Native Token Remote"}
-                </Button>
-                </LockedContent>
+            {tokenHomeAddress && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input label="Token Name (from source)" value={tokenName} disabled />
+
+                <Input label="Token Symbol (from source)" value={tokenSymbol} disabled />
+
+                <Input label="Token Decimals (from source)" value={tokenDecimals} disabled />
+              </div>
+            )}
+
+            <Input
+              label="Initial Reserve Imbalance"
+              value={initialReserveImbalance}
+              onChange={setInitialReserveImbalance}
+              type="number"
+              helperText="The initial reserve imbalance that must be collateralized before minting (must be > 0, default: 1)"
+              required
+            />
+
+            <Input
+              label="Burned Fees Reporting Reward Percentage"
+              value={burnedFeesReportingRewardPercentage}
+              onChange={setBurnedFeesReportingRewardPercentage}
+              type="number"
+              helperText="The percentage of burned transaction fees that will be rewarded to sender of the report (0-100)"
+              required
+            />
+
+            <EVMAddressInput
+              label="Teleporter Manager Address"
+              value={teleporterManager}
+              onChange={setTeleporterManager}
+              disabled={isDeploying}
+              helperText="default: your address"
+            />
+
+            <Input
+              label="Min Teleporter Version"
+              value={minTeleporterVersion}
+              onChange={setMinTeleporterVersion}
+              type="number"
+              required
+            />
+
+            <div className="mb-6">
+              <Success
+                label={`Native Token Remote Address (on ${selectedL1?.name})`}
+                value={nativeTokenRemoteAddress || ''}
+              />
             </div>
-            </ContractDeployViewer>
-        </CheckPrecompile>
-    );
-} 
+
+            <Button
+              variant={nativeTokenRemoteAddress ? 'secondary' : 'primary'}
+              onClick={handleDeploy}
+              loading={isDeploying}
+              disabled={
+                isDeploying ||
+                !tokenHomeAddress ||
+                !tokenHomeBlockchainIDHex ||
+                tokenDecimals === '0' ||
+                !tokenSymbol ||
+                !teleporterRegistryAddress ||
+                initialReserveImbalance === '0' ||
+                parseInt(burnedFeesReportingRewardPercentage) > 100 ||
+                !!sourceChainError
+              }
+            >
+              {nativeTokenRemoteAddress ? 'Re-Deploy Native Token Remote' : 'Deploy Native Token Remote'}
+            </Button>
+          </LockedContent>
+        </div>
+      </ContractDeployViewer>
+    </CheckPrecompile>
+  );
+}
 
 export default withConsoleToolMetadata(DeployNativeTokenRemote, metadata);

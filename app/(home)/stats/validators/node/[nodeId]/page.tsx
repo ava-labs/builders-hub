@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ComposedChart, Line, LineChart } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { ArrowLeft, ArrowUpRight, Copy, Check, Activity, Shield, Clock, AlertTriangle, Blocks, TrendingUp, Info } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Copy, Check, Activity, Shield, Clock, AlertTriangle, Bell, Blocks, TrendingUp, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
@@ -236,7 +236,7 @@ export default function ValidatorNodeDetailPage() {
   const missRate = p2pData?.miss_rate_14d ?? 0;
   const missRateColor = missRate === 0 ? "text-emerald-600 dark:text-emerald-400" : missRate < 5 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400";
   const uptimeValue = p2pData?.current_p50_uptime ?? sdkData?.uptimePerformance ?? 0;
-  const uptimeColor = uptimeValue >= 99 ? "text-emerald-600 dark:text-emerald-400" : uptimeValue >= 80 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400";
+  const uptimeColor = uptimeValue >= 99 ? "text-emerald-600 dark:text-emerald-400" : uptimeValue >= 90 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400";
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 py-8 space-y-6">
@@ -271,6 +271,12 @@ export default function ValidatorNodeDetailPage() {
               <Copy className="h-4 w-4 text-zinc-400" />
             )}
           </button>
+          <Link
+            href="/validator-alerts"
+            className="text-sm text-blue-500 hover:underline flex items-center gap-1"
+          >
+            <Bell className="h-3.5 w-3.5" /> Enable Alerts
+          </Link>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap text-sm">
@@ -404,7 +410,7 @@ export default function ValidatorNodeDetailPage() {
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{stat.label}</p>
                   <p className={`text-lg font-semibold ${
                     stat.value >= 99 ? "text-emerald-600 dark:text-emerald-400" :
-                    stat.value >= 80 ? "text-yellow-600 dark:text-yellow-400" :
+                    stat.value >= 90 ? "text-yellow-600 dark:text-yellow-400" :
                     "text-red-600 dark:text-red-400"
                   }`}>
                     {stat.value.toFixed(4)}%

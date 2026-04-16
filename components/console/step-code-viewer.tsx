@@ -329,7 +329,7 @@ export function StepCodeViewer({
       </div>
 
       {/* Code Content */}
-      <div className="overflow-auto max-h-[500px]">
+      <div className="overflow-auto max-h-[70vh]">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">

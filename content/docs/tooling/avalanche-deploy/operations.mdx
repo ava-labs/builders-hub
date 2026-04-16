@@ -3,12 +3,14 @@ title: Operations and Maintenance
 description: Day-2 operations for Avalanche infrastructure — AvalancheGo upgrades, monitoring, health checks, staking key backup, database snapshots, and rolling restarts.
 ---
 
-This guide covers ongoing operations for infrastructure deployed with `avalanche-deploy`. All commands use `make` targets that wrap Ansible playbooks.
+This guide covers ongoing operations for infrastructure deployed with `avalanche-deploy`. Commands are available for both **Terraform + Ansible** and **Kubernetes** deployment paths.
 
 ## Health Checks
 
 Run comprehensive health checks across all nodes:
 
+<Tabs items={["Terraform + Ansible", "Kubernetes"]}>
+<Tab value="Terraform + Ansible">
 ```bash
 # Basic health checks
 make health-checks
@@ -16,10 +18,21 @@ make health-checks
 # Include L1 chain status
 make health-checks CHAIN_ID=$CHAIN_ID
 ```
+</Tab>
+<Tab value="Kubernetes">
+```bash
+# Basic health checks
+make k8s-health-checks
+
+# Include L1 chain status
+make k8s-health-checks CHAIN_ID=$CHAIN_ID
+```
+</Tab>
+</Tabs>
 
 Health checks verify:
-- AvalancheGo service status (systemd)
-- NodeID and version
+- AvalancheGo service/pod status
+- NodeID and version consistency
 - P-Chain, X-Chain, and C-Chain bootstrap status
 - L1 block number (if `CHAIN_ID` is provided)
 
@@ -90,12 +103,24 @@ The upgrade playbook follows the same rolling pattern as restarts: one node at a
 
 ### Backup
 
+<Tabs items={["Terraform + Ansible", "Kubernetes"]}>
+<Tab value="Terraform + Ansible">
 ```bash
 # Backup all validator keys to S3 (KMS encrypted)
 make backup-keys CLOUD=aws
 ```
 
 Keys are encrypted with AWS KMS. Validator instances access the S3 bucket via IAM role — no credentials stored on disk.
+</Tab>
+<Tab value="Kubernetes">
+```bash
+# Deploy a daily backup CronJob
+make k8s-backup-keys BACKUP_BUCKET=my-bucket BACKUP_PROVIDER=s3
+```
+
+Supports S3 and GCS. Use IRSA (AWS) or Workload Identity (GCP) for credential-free access on managed Kubernetes.
+</Tab>
+</Tabs>
 
 ### Restore
 
@@ -107,7 +132,7 @@ make restore-keys CLOUD=aws SOURCE=primary-validator-1 TARGET_IP=10.0.1.50
 ### List Backups
 
 ```bash
-aws s3 ls s3://$(terraform -chdir=terraform/aws-primary-network output -raw staking_keys_bucket)/
+aws s3 ls s3://$(terraform -chdir=terraform/primary-network/aws output -raw staking_keys_bucket)/
 ```
 
 ## Database Snapshots
@@ -131,7 +156,7 @@ make restore-snapshot CLOUD=aws TARGET=migration-target
 Snapshots include SHA256 checksums for integrity verification. Enable integrity checking with:
 
 ```bash
-cd ansible && ansible-playbook -i inventory/aws_hosts playbooks/15-restore-snapshot.yml \
+cd ansible && ansible-playbook -i inventory/aws_hosts playbooks/primary-network/restore-snapshot.yml \
   --limit migration-target \
   -e verify_integrity=true
 ```
@@ -144,9 +169,20 @@ Verified restore mode requires approximately 3x the snapshot size in free disk s
 
 Wipe L1 chain data on all nodes for redeployment. This preserves staking keys and Primary Network data:
 
+<Tabs items={["Terraform + Ansible", "Kubernetes"]}>
+<Tab value="Terraform + Ansible">
 ```bash
 make reset-l1
 ```
+</Tab>
+<Tab value="Kubernetes">
+```bash
+make k8s-reset-l1
+```
+
+Scales down pods, cleans chain data from PVCs (preserves staking keys), removes L1 tracking config, and scales back up.
+</Tab>
+</Tabs>
 
 ## Tear Down Infrastructure
 
@@ -192,3 +228,20 @@ This permanently deletes all VMs, disks, and networking. Staking keys previously
 | `make prepare-migration CLOUD=aws NODE=...` | Prepare node for migration |
 | `make migrate-validator CLOUD=aws SOURCE=... TARGET=...` | Execute validator migration |
 | `make primary-destroy CLOUD=aws` | Tear down Primary Network infra |
+
+### Kubernetes Operations
+
+| Command | Description |
+|---------|-------------|
+| `make k8s-health-checks` | Run comprehensive health checks |
+| `make k8s-backup-keys BACKUP_BUCKET=...` | Deploy staking key backup CronJob |
+| `make k8s-reset-l1` | Wipe L1 chain data (keeps keys) |
+| `make k8s-init-validator-manager` | Initialize ValidatorManager contract |
+| `make k8s-erpc` | Deploy eRPC load balancer |
+| `make k8s-faucet` | Deploy token faucet |
+| `make k8s-blockscout` | Deploy Blockscout block explorer |
+| `make k8s-graph-node` | Deploy The Graph Node |
+| `make k8s-safe` | Deploy Safe multisig infrastructure |
+| `make k8s-monitoring` | Deploy Prometheus + Grafana |
+| `make k8s-icm-relayer` | Deploy ICM Relayer |
+| `make k8s-cleanup` | Remove all Helm releases |

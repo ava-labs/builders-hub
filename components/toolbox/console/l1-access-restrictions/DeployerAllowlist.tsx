@@ -1,43 +1,38 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { AllowlistRoleManager } from "@/components/toolbox/components/AllowListComponents";
-import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { PrecompileCodeViewer } from "@/components/console/precompile-code-viewer";
-import { FileCode } from "lucide-react";
+import { useState } from 'react';
+import { AllowlistRoleManager } from '@/components/toolbox/components/AllowListComponents';
+import { CheckPrecompile } from '@/components/toolbox/components/CheckPrecompile';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { PrecompileCodeViewer } from '@/components/console/precompile-code-viewer';
+import { FileCode } from 'lucide-react';
 
 // Default Deployer AllowList address
-const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS =
-  "0x0200000000000000000000000000000000000000";
+const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS = '0x0200000000000000000000000000000000000000';
 
 const metadata: ConsoleToolMetadata = {
-  title: "Deployer Allowlist",
-  description: "Control which addresses can deploy smart contracts on your L1",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Deployer Allowlist',
+  description: 'Control which addresses can deploy smart contracts on your L1',
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function DeployerAllowlist({ onSuccess }: BaseConsoleToolProps) {
-  const [highlightFunction, setHighlightFunction] = useState<string>("setEnabled");
+  const [highlightFunction, setHighlightFunction] = useState<string>('setEnabled');
 
   const handleFunctionChange = (fn: string) => {
     setHighlightFunction(fn);
   };
 
   return (
-    <CheckPrecompile
-      configKey="contractDeployerAllowListConfig"
-      precompileName="Deployer Allowlist"
-    >
-      <PrecompileCodeViewer
-        precompileName="ContractDeployerAllowList"
-        highlightFunction={highlightFunction}
-      >
+    <CheckPrecompile configKey="contractDeployerAllowListConfig" precompileName="Deployer Allowlist">
+      <PrecompileCodeViewer precompileName="ContractDeployerAllowList" highlightFunction={highlightFunction}>
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center gap-2 mb-4">

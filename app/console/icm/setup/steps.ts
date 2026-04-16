@@ -2,7 +2,7 @@ import { type StepDefinition } from "@/components/console/step-flow";
 import TeleporterMessenger from "@/components/toolbox/console/icm/setup/TeleporterMessenger";
 import TeleporterRegistry from "@/components/toolbox/console/icm/setup/TeleporterRegistry";
 import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
-import CreateManagedTestnetRelayer from "@/components/toolbox/console/testnet-infra/ManagedTestnetRelayers/CreateManagedTestnetRelayer";
+import CreateManagedTestnetRelayer from "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer";
 import DeployICMDemo from "@/components/toolbox/console/icm/test-connection/DeployICMDemo";
 import SendICMMessage from "@/components/toolbox/console/icm/test-connection/SendICMMessage";
 

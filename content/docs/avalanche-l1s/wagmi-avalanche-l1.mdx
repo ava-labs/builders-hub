@@ -141,7 +141,7 @@ Good, we're talking to WAGMI Avalanche L1. Next we need to load the contracts in
 - [IAllowList.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IAllowList.sol)
 - and [IFeeManager.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IFeeManager.sol).
 
-IFeeManager is our precompile, but it references the IAllowList, so we need that one as well. We compile IFeeManager.sol and use deployed contract at the precompile address `0x0200000000000000000000000000000000000003` used on the [Avalanche L1](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/feemanager/module.go#L21).
+IFeeManager is our precompile, but it references the IAllowList, so we need that one as well. We compile IFeeManager.sol and use deployed contract at the precompile address `0x0200000000000000000000000000000000000003` used on the [Avalanche L1](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/contracts/feemanager/module.go#L21).
 
 ![Deployed contract](/images/wagmi4.png)
 
@@ -168,7 +168,7 @@ For the NativeMinter, we can use the same process to connect to the Avalanche L1
 - [IAllowList.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/IAllowList.sol)
 - and [INativeMinter.sol](https://github.com/ava-labs/subnet-evm/blob/master/contracts/contracts/interfaces/INativeMinter.sol).
 
-We can compile them and interact with the deployed contract at the precompile address `0x0200000000000000000000000000000000000001` used on the [Avalanche L1](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/nativeminter/module.go#L22).
+We can compile them and interact with the deployed contract at the precompile address `0x0200000000000000000000000000000000000001` used on the [Avalanche L1](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/contracts/nativeminter/module.go#L22).
 
 ![Deployed contract](/images/wagmi8.png)
 

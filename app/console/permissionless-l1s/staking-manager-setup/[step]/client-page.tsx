@@ -1,15 +1,14 @@
 "use client";
 
-import StepFlow from "@/components/console/step-flow";
-import { steps } from "../steps";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function StakingManagerSetupClientPage({ currentStepKey }: { currentStepKey: string }) {
-    const basePath = "/console/permissionless-l1s/staking-manager-setup";
-    return (
-        <StepFlow
-            steps={steps}
-            basePath={basePath}
-            currentStepKey={currentStepKey}
-        />
-    );
+    const router = useRouter();
+
+    useEffect(() => {
+        router.replace("/console/permissionless-l1s/native-staking-manager-setup");
+    }, [router]);
+
+    return null;
 }

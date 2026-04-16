@@ -12,7 +12,7 @@ You're changing an existing validator's weight in a PoA setup where the `Validat
 
 ### Phase 1: Initiation (L1)
 
-The owner calls [`initiateValidatorWeightUpdate(validationID, newWeight)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L658) on `ValidatorManager`.
+The owner calls [`initiateValidatorWeightUpdate(validationID, newWeight)`](https://github.com/ava-labs/icm-services/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L658) on `ValidatorManager`.
 
 Under the hood, the contract:
 - Ensures the validator is currently Active
@@ -39,7 +39,7 @@ type L1ValidatorWeight struct {
 
 ### Phase 3: Completion (L1)
 
-We finally will call the [`completeValidatorWeightUpdate(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L690), where we will pass the message index of the response we received in step 2. The contract verifies the Warp message and nonce correspondence, updates the received nonce, and emits `CompletedValidatorWeightUpdate`.
+We finally will call the [`completeValidatorWeightUpdate(messageIndex)`](https://github.com/ava-labs/icm-services/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L690), where we will pass the message index of the response we received in step 2. The contract verifies the Warp message and nonce correspondence, updates the received nonce, and emits `CompletedValidatorWeightUpdate`.
 
 Anyone can call the `completeValidatorWeightUpdate(messageIndex)` with the signed message.
 

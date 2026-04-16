@@ -3,6 +3,9 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import { EventsLang, normalizeEventsLang, t } from "@/lib/events/i18n";
 
 interface JoinButtonProps {
   isRegistered: boolean;
@@ -11,9 +14,12 @@ interface JoinButtonProps {
   customText?: string;
   className?: string;
   variant?: "red" | "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
-  showChatWhenRegistered?: boolean; // New prop to control behavior
-  allowNavigationWhenRegistered?: boolean; // New prop to allow navigation when registered
-  utm?: string; // UTM parameter to track campaign source
+  showChatWhenRegistered?: boolean;
+  allowNavigationWhenRegistered?: boolean;
+  utm?: string;
+  isAuthenticated?: boolean;
+  /** UI language for predefined labels (defaults to 'en'). */
+  lang?: EventsLang;
 }
 
 export default function JoinButton({
@@ -25,17 +31,28 @@ export default function JoinButton({
   variant = "red",
   showChatWhenRegistered = false,
   allowNavigationWhenRegistered = false,
-  utm = ""
+  utm = "",
+  isAuthenticated = false,
+  lang: langProp,
 }: JoinButtonProps) {
+  const lang = langProp ?? normalizeEventsLang(undefined);
+  const { status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
   
   const getButtonText = () => {
     if (isRegistered) {
       if (showChatWhenRegistered) {
-        return "Join the Hackathon Chat";
+        return t(lang, "join.chat");
       }
-      return "You're In";
+      return t(lang, "join.registered");
     }
-    return customText ?? "Join now";
+    // Back-compat: many events stored the old default "Join now" in content.
+    // Treat it as "no custom text" so translation applies.
+    const normalizedCustomText =
+      customText && customText.trim() !== "" && customText !== "Join now"
+        ? customText
+        : undefined;
+    return normalizedCustomText ?? t(lang, "join.default");
   };
 
   const getButtonHref = () => {
@@ -47,7 +64,7 @@ export default function JoinButton({
         if (customLink) {
           return customLink;
         }
-        const baseUrl = `/hackathons/registration-form?hackathon=${hackathonId}`;
+        const baseUrl = `/events/registration-form?event=${hackathonId}`;
         return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
       }
       return "#";
@@ -55,7 +72,7 @@ export default function JoinButton({
     if (customLink) {
       return customLink;
     }
-    const baseUrl = `/hackathons/registration-form?hackathon=${hackathonId}`;
+    const baseUrl = `/events/registration-form?event=${hackathonId}`;
     return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
   };
 
@@ -73,6 +90,11 @@ export default function JoinButton({
   };
 
   const handleClick = (e: React.MouseEvent) => {
+    if (!isAuthenticated && status !== "authenticated" && !isRegistered) {
+      e.preventDefault();
+      openLoginModal(getButtonHref());
+      return;
+    }
     if (isRegistered && !showChatWhenRegistered && !allowNavigationWhenRegistered) {
       e.preventDefault();
     }
