@@ -423,26 +423,22 @@ export default function FlowComposer() {
             </div>
           )}
 
-          {/* Run button */}
+          {/* Run button — disabled until Composer → StepFlow integration lands.
+              Leaves the CTA visible so users can see the feature roadmap
+              without shipping a broken alert() placeholder. */}
           {pipeline.length > 0 && (
-            <div className="mt-6">
+            <div className="mt-6 flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  // TODO: wire to step flow — save pipeline to store, navigate to first step
-                  alert(
-                    `Flow ready: ${pipeline.map((t) => t.name).join(' → ')}\n\nComposer → StepFlow integration coming soon.`,
-                  );
-                }}
-                className="group inline-flex items-center gap-3 rounded-xl bg-zinc-900 dark:bg-white px-6 py-3 text-sm font-semibold text-white dark:text-zinc-900 transition-shadow"
-                style={{
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1)',
-                }}
+                disabled
+                title="Running a composed flow is not available yet."
+                className="inline-flex items-center gap-3 rounded-xl bg-zinc-200 dark:bg-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-500 dark:text-zinc-400 cursor-not-allowed"
               >
                 <Play className="h-4 w-4" />
                 Run Flow
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight className="h-4 w-4" />
               </button>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">Coming soon</span>
             </div>
           )}
         </div>
