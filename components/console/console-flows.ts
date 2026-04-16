@@ -76,6 +76,31 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     ],
   },
 
+  "create-l1": {
+    title: "Create L1 Flow",
+    completionSummary: "Your Avalanche L1 is fully deployed and configured.",
+    nextSteps: [
+      {
+        path: "/console/my-l1",
+        title: "View My L1 Dashboard",
+        description: "Inspect validators, balances, and configuration for your new L1",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable interchain communication with other Avalanche chains",
+        priority: "recommended",
+      },
+      {
+        path: "/console/ictt/setup",
+        title: "Setup Token Bridge",
+        description: "Deploy a bridge to transfer tokens to and from your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
   "permissioned-l1s/validator-manager-setup": {
     title: "Validator Manager Setup",
     completionSummary: "You've successfully deployed and configured your Validator Manager!",
