@@ -79,6 +79,7 @@ interface DockerComposeConfig {
   domain: string;
   subnetId: string;
   blockchainId: string;
+  evmChainId: number;
   networkName: string;
   networkShortName: string;
   tokenName: string;
@@ -176,7 +177,7 @@ services:
       FAVICON_MASTER_URL: https://ash.center/img/ash-logo.svg # TODO: change to dynamic ?
       NEXT_PUBLIC_NETWORK_NAME: ${config.networkName}
       NEXT_PUBLIC_NETWORK_SHORT_NAME: ${config.networkShortName}
-      NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_ID: ${config.evmChainId}
       NEXT_PUBLIC_NETWORK_RPC_URL: ${config.includeAvago ? `https://${domain}/ext/bc/${config.blockchainId}/rpc` : config.rpcUrl}
       NEXT_PUBLIC_NETWORK_CURRENCY_NAME: ${config.tokenName}
       NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ${config.tokenSymbol}
@@ -248,6 +249,7 @@ export default function BlockScout() {
   const dockerComposePsOutput = getDockerComposePsOutput(versions);
 
   const [chainId, setChainId] = useState('');
+  const [evmChainId, setEvmChainId] = useState<number>(0);
   const [subnetId, setSubnetId] = useState('');
   const [subnet, setSubnet] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -270,6 +272,7 @@ export default function BlockScout() {
     setSubnetIdError(null);
     setSubnetId('');
     setSubnet(null);
+    setEvmChainId(0);
     if (!chainId) return;
 
     // Set defaults from L1 store if available
@@ -278,12 +281,14 @@ export default function BlockScout() {
       setNetworkShortName(l1Info.name.split(' ')[0]); // First word as short name
       setTokenName(l1Info.coinName);
       setTokenSymbol(l1Info.coinName);
+      if (l1Info.evmChainId) setEvmChainId(l1Info.evmChainId);
     }
 
     setIsLoading(true);
     getBlockchainInfo(chainId)
       .then(async (chainInfo) => {
         setSubnetId(chainInfo.subnetId);
+        if (chainInfo.evmChainId) setEvmChainId(chainInfo.evmChainId);
         try {
           const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
           setSubnet(subnetInfo);
@@ -301,7 +306,14 @@ export default function BlockScout() {
 
   useEffect(() => {
     let ready =
-      !!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol && !subnetIdError;
+      !!domain &&
+      !!subnetId &&
+      !!networkName &&
+      !!networkShortName &&
+      !!tokenName &&
+      !!tokenSymbol &&
+      evmChainId > 0 &&
+      !subnetIdError;
 
     // Additional validation for existing RPC option
     if (rpcOption === 'existing') {
@@ -317,6 +329,7 @@ export default function BlockScout() {
           domain,
           subnetId,
           blockchainId: chainId,
+          evmChainId,
           networkName,
           networkShortName,
           tokenName,
@@ -335,6 +348,7 @@ export default function BlockScout() {
     domain,
     subnetId,
     chainId,
+    evmChainId,
     networkName,
     networkShortName,
     tokenName,
