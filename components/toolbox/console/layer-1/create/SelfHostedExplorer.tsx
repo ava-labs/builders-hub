@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Container } from '@/components/toolbox/components/Container';
 import { Input } from '@/components/toolbox/components/Input';
 import { getBlockchainInfo, getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
@@ -88,6 +88,25 @@ interface DockerComposeConfig {
   includeAvago: boolean;
   isTestnet: boolean;
   versions: any;
+  dbPassword: string;
+  secretKeyBase: string;
+}
+
+/**
+ * Generates a cryptographically-random base64url string suitable for
+ * Postgres passwords and Phoenix SECRET_KEY_BASE values. Runs on the
+ * client via Web Crypto — no server round-trip.
+ */
+function generateRandomSecret(byteLength = 48): string {
+  const buf = new Uint8Array(byteLength);
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(buf);
+  } else {
+    // Fallback for non-browser test environments only.
+    for (let i = 0; i < byteLength; i++) buf[i] = Math.floor(Math.random() * 256);
+  }
+  const b64 = btoa(String.fromCharCode(...buf));
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 const genDockerCompose = (config: DockerComposeConfig) => {
@@ -117,9 +136,8 @@ services:
     container_name: 'db'
     command: postgres -c 'max_connections=200' -c 'client_connection_check_interval=60000'
     environment:
-        POSTGRES_PASSWORD: ""
+        POSTGRES_PASSWORD: "${config.dbPassword}"
         POSTGRES_USER: "postgres"
-        POSTGRES_HOST_AUTH_METHOD: "trust"
     ports:
       - target: 5432
         published: 7432
@@ -137,10 +155,10 @@ services:
     command: sh -c 'bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start'
     environment:
       ETHEREUM_JSONRPC_VARIANT: geth
-      ETHEREUM_JSONRPC_HTTP_URL: ${config.rpcUrl} 
-      ETHEREUM_JSONRPC_TRACE_URL: ${config.rpcUrl} 
-      DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout # TODO: default, please change
-      SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN # TODO: default, please change
+      ETHEREUM_JSONRPC_HTTP_URL: ${config.rpcUrl}
+      ETHEREUM_JSONRPC_TRACE_URL: ${config.rpcUrl}
+      DATABASE_URL: postgresql://postgres:${config.dbPassword}@db:5432/blockscout
+      SECRET_KEY_BASE: ${config.secretKeyBase}
       NETWORK: EVM 
       SUBNETWORK: MySubnet # TODO: what is this ?
       PORT: 4000 
@@ -250,6 +268,12 @@ export default function BlockScout() {
 
   const [chainId, setChainId] = useState('');
   const [evmChainId, setEvmChainId] = useState<number>(0);
+  // Generate explorer secrets once per component mount. Every session
+  // producing a compose file gets unique Phoenix SECRET_KEY_BASE and
+  // Postgres password values instead of the global defaults we used to
+  // ship in clear text.
+  const dbPassword = useMemo(() => generateRandomSecret(24), []);
+  const secretKeyBase = useMemo(() => generateRandomSecret(48), []);
   const [subnetId, setSubnetId] = useState('');
   const [subnet, setSubnet] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -338,6 +362,8 @@ export default function BlockScout() {
           includeAvago: rpcOption === 'local',
           isTestnet: isTestnet ?? false,
           versions,
+          dbPassword,
+          secretKeyBase,
         }),
       );
     } else {
@@ -357,6 +383,8 @@ export default function BlockScout() {
     rpcOption,
     existingRpcUrl,
     versions,
+    dbPassword,
+    secretKeyBase,
   ]);
 
   return (
