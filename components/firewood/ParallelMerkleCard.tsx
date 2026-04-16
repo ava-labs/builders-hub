@@ -20,10 +20,10 @@ function createIdleCells(): SubtrieCell[] {
   }))
 }
 
-function pickActiveNibbles(): number[] {
-  const count = 4 + Math.floor(Math.random() * 3) // 4-6 active subtries per block
+function pickActiveNibbles(count: number): number[] {
+  const clamped = Math.max(1, Math.min(16, count))
   const indices: number[] = []
-  while (indices.length < count) {
+  while (indices.length < clamped) {
     const idx = Math.floor(Math.random() * 16)
     if (!indices.includes(idx)) {
       indices.push(idx)
@@ -37,6 +37,8 @@ export function ParallelMerkleCard({ colors }: { colors: Colors }) {
   const [phase, setPhase] = useState<"idle" | "distribute" | "hash" | "done">("idle")
   const [activeIndices, setActiveIndices] = useState<number[]>([])
   const [batchKey, setBatchKey] = useState(0)
+  const [threadCount, setThreadCount] = useState(6)
+  const threadCountRef = useRef(6)
   const isMountedRef = useRef(true)
   const timeoutsRef = useRef<NodeJS.Timeout[]>([])
 
@@ -57,7 +59,7 @@ export function ParallelMerkleCard({ colors }: { colors: Colors }) {
     const runCycle = () => {
       if (!isMountedRef.current) return
 
-      const chosen = pickActiveNibbles()
+      const chosen = pickActiveNibbles(threadCountRef.current)
       setActiveIndices(chosen)
       setBatchKey(k => k + 1)
 
@@ -221,12 +223,44 @@ export function ParallelMerkleCard({ colors }: { colors: Colors }) {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer with thread slider */}
       <div
-        className={`text-[10px] ${colors.textMuted} font-mono text-center pt-3 mt-auto`}
+        className={`flex flex-col gap-2 pt-3 mt-auto`}
         style={{ borderTop: `1px solid ${colors.stroke}10` }}
       >
-        All active subtries hash simultaneously
+        <div className="flex items-center justify-center gap-3">
+          <span className={`text-[10px] ${colors.textMuted} font-mono`}>1</span>
+          <input
+            type="range"
+            min={1}
+            max={16}
+            value={threadCount}
+            onChange={e => {
+              const val = parseInt(e.target.value, 10)
+              threadCountRef.current = val
+              setThreadCount(val)
+            }}
+            className="flex-1 max-w-[140px] h-1 appearance-none rounded-full cursor-pointer"
+            style={{
+              background: `${FIREWOOD_COLORS.parallel}40`,
+              accentColor: FIREWOOD_COLORS.parallel,
+            }}
+          />
+          <span className={`text-[10px] ${colors.textMuted} font-mono`}>16</span>
+          <span
+            className="text-[10px] font-mono font-bold px-1.5 py-0.5 min-w-[50px] text-center"
+            style={{
+              backgroundColor: `${FIREWOOD_COLORS.parallel}15`,
+              color: FIREWOOD_COLORS.parallel,
+              border: `1px solid ${FIREWOOD_COLORS.parallel}25`,
+            }}
+          >
+            N = {threadCount}
+          </span>
+        </div>
+        <div className={`text-[10px] ${colors.textMuted} font-mono text-center`}>
+          All active subtries hash simultaneously
+        </div>
       </div>
     </div>
   )

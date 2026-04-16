@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Colors, FIREWOOD_COLORS, lt } from "./types"
 import { InfoTooltip } from "./shared"
 
-// Source: firewood/src/manager.rs — deferred_persistence_commit_count default = nonzero!(1u64)
-const DEFAULT_PERMITS = 1
+const DEFAULT_PERMITS = 4
 const MIN_PERMITS = 1
 const MAX_PERMITS = 5
 
