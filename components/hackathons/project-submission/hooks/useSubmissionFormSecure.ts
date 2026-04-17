@@ -1,7 +1,7 @@
 'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver } from '@/lib/zodResolver';
 import { z } from 'zod';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
@@ -9,6 +9,92 @@ import { useToast } from '@/hooks/use-toast';
 import { useProjectSubmission } from '../context/ProjectSubmissionContext';
 import { useRouter } from 'next/navigation';
 import { EventsLang, t } from '@/lib/events/i18n';
+import { isValidHttpUrl, normalizeUrl } from '@/lib/url-validation';
+
+type KeyValueItem = { key: string; value: string };
+
+/** Converts any raw input into a normalized KeyValueItem[], dropping entries with empty value. */
+const toKeyValueItems = (val: unknown): KeyValueItem[] => {
+  const build = (key: unknown, value: unknown): KeyValueItem => ({
+    key: String(key ?? ''),
+    value: String(value ?? ''),
+  });
+
+  let items: KeyValueItem[] = [];
+
+  if (!val) {
+    items = [];
+  } else if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        items = Object.entries(parsed as Record<string, unknown>).map(([k, v]) => build(k, v));
+      }
+    } catch {
+      const trimmed = val.trim();
+      if (trimmed) items = [build('url', trimmed)];
+    }
+  } else if (Array.isArray(val)) {
+    items = val.map((item: unknown) =>
+      typeof item === 'object' && item !== null && 'key' in item && 'value' in item
+        ? build((item as KeyValueItem).key, (item as KeyValueItem).value)
+        : build('', '')
+    );
+  } else if (typeof val === 'object' && val !== null) {
+    items = Object.entries(val as Record<string, unknown>).map(([k, v]) => build(k, v));
+  }
+
+  return items
+    .filter((item) => item.value && item.value.trim().length > 0)
+    .map((item) => ({ key: item.key.trim(), value: normalizeUrl(item.value) }));
+};
+
+/** Shared schema for website/socials: { key, value }[] where value must be a valid URL. */
+const urlKeyValueArraySchema = z
+  .array(z.object({ key: z.string(), value: z.string() }))
+  .default([])
+  .superRefine((arr, ctx) => {
+    arr.forEach((item, idx) => {
+      if (!isValidHttpUrl(item.value)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Entry ${idx + 1}: please enter a valid URL (e.g. https://example.com)`,
+          path: [],
+        });
+      }
+    });
+  });
+
+/** Normalizes a raw array of link strings: trims, drops empties, prepends https:// when missing. */
+const normalizeLinkArray = (val: unknown): string[] => {
+  if (!val) return [];
+  if (!Array.isArray(val)) return [];
+  return val
+    .filter((link): link is string => typeof link === 'string')
+    .map((link) => normalizeUrl(link))
+    .filter((link) => link.length > 0);
+};
+
+/** Builds a schema for an array of URL strings with duplicate and validity checks. */
+const buildUrlArraySchema = (options: { duplicateMessage: string; invalidMessage: string }) =>
+  z
+    .array(z.string())
+    .optional()
+    .default([])
+    .refine((links) => new Set(links).size === links.length, {
+      message: options.duplicateMessage,
+    })
+    .superRefine((links, ctx) => {
+      const hasInvalid = links.some((link) => !isValidHttpUrl(link));
+      if (hasInvalid) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: options.invalidMessage,
+          path: [],
+        });
+      }
+    });
+
 // Base schema without refinements - needed for .pick() to work
 const BaseFormSchema = z.object({
   project_name: z
@@ -29,100 +115,19 @@ const BaseFormSchema = z.object({
     .optional()
     .or(z.literal('')),
   github_repository: z.preprocess(
-    (val) => {
-      if (!val) return [];
-      if (typeof val === 'string') return [];
-      if (!Array.isArray(val)) return val;
-
-      // Auto-format links by prepending https:// if needed
-      return val.map((link: any) => {
-        if (typeof link !== 'string') return link;
-        const trimmedLink = link.trim();
-        if (!trimmedLink) return trimmedLink;
-
-        // If it doesn't start with http:// or https://, prepend https://
-        if (!trimmedLink.startsWith('http://') && !trimmedLink.startsWith('https://')) {
-          return `https://${trimmedLink}`;
-        }
-        return trimmedLink;
-      });
-    },
-    z.array(z.string().min(1, { message: 'Repository link is required' }))
-      .optional()
-      .default([])
-      .refine((links) => new Set(links).size === links.length, {
-        message: 'Duplicate repository links are not allowed',
-      })
-      .superRefine((links, ctx) => {
-        // After preprocessing, all links should have http/https
-        const invalidLinks = links.filter((link) => {
-          if (!link || link.trim().length === 0) return true;
-
-          try {
-            new URL(link);
-            return false; // Valid URL
-          } catch {
-            return true; // Invalid URL
-          }
-        });
-
-        if (invalidLinks.length > 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Please enter valid repository links',
-            path: [],
-          });
-        }
-      })
+    normalizeLinkArray,
+    buildUrlArraySchema({
+      duplicateMessage: 'Duplicate repository links are not allowed',
+      invalidMessage: 'Please enter valid repository links (e.g. https://github.com/user/repo)',
+    })
   ),
   explanation: z.string().optional(),
   demo_link: z.preprocess(
-    (val) => {
-      if (!val) return [];
-      if (typeof val === 'string') return [];
-      if (!Array.isArray(val)) return val;
-
-      // Auto-format links by prepending https:// if needed
-      return val.map((link: any) => {
-        if (typeof link !== 'string') return link;
-        const trimmedLink = link.trim();
-        if (!trimmedLink) return trimmedLink;
-
-        // If it doesn't start with http:// or https://, prepend https://
-        if (!trimmedLink.startsWith('http://') && !trimmedLink.startsWith('https://')) {
-          return `https://${trimmedLink}`;
-        }
-        return trimmedLink;
-      });
-    },
-    z.array(
-      z.string()
-        .min(1, { message: 'Demo link cannot be empty' })
-    )
-      .optional()
-      .default([])
-      .refine(
-        (links) => {
-          const uniqueLinks = new Set(links);
-          return uniqueLinks.size === links.length;
-        },
-        { message: 'Duplicate demo links are not allowed' }
-      )
-      .refine(
-        (links) => {
-          return links.every(url => {
-            if (!url || url.trim().length === 0) return true;
-
-            try {
-              new URL(url);
-              return true;
-            } catch {
-              return false;
-            }
-          });
-        },
-        { message: 'Please enter a valid URL' }
-      )
+    normalizeLinkArray,
+    buildUrlArraySchema({
+      duplicateMessage: 'Duplicate demo links are not allowed',
+      invalidMessage: 'Please enter a valid URL (e.g. https://example.com)',
+    })
   ),
   is_preexisting_idea: z.boolean(),
   logoFile: z.any().optional(),
@@ -173,80 +178,8 @@ const BaseFormSchema = z.object({
       // Retornar array vacío si todas las entradas fueron filtradas (campo opcional)
       return filtered;
     }),
-  website: z.preprocess(
-    (val) => {
-      if (!val) return [];
-      if (typeof val === 'string') {
-        try {
-          const parsed = JSON.parse(val);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            return Object.entries(parsed).map(([key, value]) => ({
-              key: String(key),
-              value: String(value ?? ''),
-            }));
-          }
-        } catch {
-          // single URL as string: treat as key "url"
-          const trimmed = val.trim();
-          if (trimmed) return [{ key: 'url', value: trimmed }];
-        }
-        return [];
-      }
-      if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-        return Object.entries(val).map(([k, v]) => ({
-          key: String(k),
-          value: String(v ?? ''),
-        }));
-      }
-      if (Array.isArray(val)) {
-        return val.map((item) =>
-          typeof item === 'object' && item !== null && 'key' in item && 'value' in item
-            ? { key: String(item.key), value: String(item.value ?? '') }
-            : { key: '', value: '' }
-        );
-      }
-      return [];
-    },
-    z
-      .array(z.object({ key: z.string(), value: z.string() }))
-      .default([])
-  ),
-  socials: z.preprocess(
-    (val) => {
-      if (!val) return [];
-      if (typeof val === 'string') {
-        try {
-          const parsed = JSON.parse(val);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            return Object.entries(parsed).map(([key, value]) => ({
-              key: String(key),
-              value: String(value ?? ''),
-            }));
-          }
-        } catch {
-          return [];
-        }
-        return [];
-      }
-      if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-        return Object.entries(val).map(([k, v]) => ({
-          key: String(k),
-          value: String(v ?? ''),
-        }));
-      }
-      if (Array.isArray(val)) {
-        return val.map((item) =>
-          typeof item === 'object' && item !== null && 'key' in item && 'value' in item
-            ? { key: String(item.key), value: String(item.value ?? '') }
-            : { key: '', value: '' }
-        );
-      }
-      return [];
-    },
-    z
-      .array(z.object({ key: z.string(), value: z.string() }))
-      .default([])
-  ),
+  website: z.preprocess(toKeyValueItems, urlKeyValueArraySchema),
+  socials: z.preprocess(toKeyValueItems, urlKeyValueArraySchema),
   logo_url: z.string().optional(),
   cover_url: z.string().optional(),
   hackaton_id: z.string().optional(),
@@ -264,6 +197,8 @@ export const Step1Schema = BaseFormSchema.pick({
   categories: true,
   other_category: true,
   deployed_addresses: true,
+  website: true,
+  socials: true,
   hackaton_id: true,
 }).superRefine((data, ctx) => {
   // Validación condicional para tracks cuando hay hackathon_id
@@ -365,7 +300,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
   const form = useForm<SubmissionForm>({
     resolver: zodResolver(FormSchema),
     reValidateMode: 'onChange',
-    mode: 'onSubmit',
+    mode: 'onTouched',
     defaultValues: {
       project_name: '',
       short_description: '',

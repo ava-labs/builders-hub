@@ -11,7 +11,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/lib/zodResolver";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -89,6 +89,7 @@ export function RegisterForm({
   const lang = normalizeEventsLang(hackathon?.content?.language);
   
   const getDefaultValues = () => ({
+    
     name: currentUser?.name || "",
     email: currentUser?.email || "",
     company_name: "",
