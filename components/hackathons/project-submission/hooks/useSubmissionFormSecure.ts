@@ -550,14 +550,44 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
           (!item.tag || item.tag.trim().length > 0)
       );
 
-      // Convertir website y socials (array clave-valor) a objeto JSONB
-      const keyValueToObject = (arr: Array<{ key: string; value: string }> | undefined) => {
+      // Convertir website/socials (array clave-valor) a objeto JSONB.
+      // - Items sin value se filtran en silencio.
+      // - Items con value pero sin tag reciben una key autogenerada (link_N),
+      //   evitando colisiones con tags escritos por el usuario.
+      // - Tags duplicados: se conserva la primera ocurrencia.
+      const keyValueToObject = (
+        arr: Array<{ key: string; value: string }> | undefined
+      ): Record<string, string> | null => {
         if (!arr || !Array.isArray(arr)) return null;
+
         const obj: Record<string, string> = {};
-        arr.forEach(({ key, value }) => {
-          const k = key?.trim();
-          if (k && value != null) obj[k] = String(value).trim();
-        });
+        const reservedKeys = new Set<string>();
+
+        for (const { key } of arr) {
+          const trimmedKey = key?.trim();
+          if (trimmedKey) reservedKeys.add(trimmedKey);
+        }
+
+        let autoIndex = 1;
+        for (const { key, value } of arr) {
+          const trimmedValue = value?.trim();
+          if (!trimmedValue) continue;
+
+          const trimmedKey = key?.trim() ?? '';
+          let finalKey = trimmedKey;
+
+          if (!finalKey) {
+            while (reservedKeys.has(`link_${autoIndex}`)) autoIndex++;
+            finalKey = `link_${autoIndex}`;
+            reservedKeys.add(finalKey);
+            autoIndex++;
+          } else if (obj[finalKey] !== undefined) {
+            continue;
+          }
+
+          obj[finalKey] = trimmedValue;
+        }
+
         return Object.keys(obj).length > 0 ? obj : null;
       };
 
