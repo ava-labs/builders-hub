@@ -4,6 +4,7 @@ import { getFilteredProjects } from "@/server/services/projects";
 import { ProjectFilters } from "@/types/project";
 import { Project } from "@/types/showcase";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { hasShowcaseRole } from "@/lib/auth/roles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
@@ -34,11 +35,7 @@ export default async function ShowCasePage({
     );
   }
 
-  // Check if user has required role (showcase, devrel, or admin)
-  const userRoles = session.user.custom_attributes || [];
-  const hasShowcaseRole = userRoles.includes('showcase') || userRoles.includes('devrel') || userRoles.includes('admin');
-
-  if (!hasShowcaseRole) {
+  if (!hasShowcaseRole(session.user.custom_attributes)) {
     // Render unauthorized message directly
     return (
       <main className="container relative max-w-[1400px] pt-4 pb-16">

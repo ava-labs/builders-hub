@@ -5,40 +5,42 @@ import {
   updateExtendedProfile,
   ProfileValidationError
 } from '@/server/services/profile/profile.service';
-import { UpdateExtendedProfileSchema } from '@/lib/schemas/extended-profile';
+import {
+  UpdateExtendedProfileSchema,
+  type UpdateExtendedProfileInput,
+} from '@/lib/schemas/extended-profile';
 import { withAuth, RouteParams } from '@/lib/protectedRoute';
 
 /**
  * Parses and validates the request body against the extended profile update
- * schema. Returns either the validated payload or a ready-to-send 400 response.
+ * schema. Returns the validated payload, or a ready-to-send 400 NextResponse
+ * when the body is malformed or fails validation.
  */
-async function parseProfileUpdateBody(req: NextRequest) {
+async function parseProfileUpdateBody(
+  req: NextRequest,
+): Promise<UpdateExtendedProfileInput | NextResponse> {
   let rawBody: unknown;
   try {
     rawBody = await req.json();
   } catch {
-    return {
-      error: NextResponse.json(
-        { error: 'Invalid JSON body.' },
-        { status: 400 },
-      ),
-    };
+    return NextResponse.json(
+      { error: 'Invalid JSON body.' },
+      { status: 400 },
+    );
   }
 
   const parsed = UpdateExtendedProfileSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return {
-      error: NextResponse.json(
-        {
-          error: 'Invalid request body.',
-          details: parsed.error.flatten(),
-        },
-        { status: 400 },
-      ),
-    };
+    return NextResponse.json(
+      {
+        error: 'Invalid request body.',
+        details: parsed.error.flatten(),
+      },
+      { status: 400 },
+    );
   }
 
-  return { data: parsed.data };
+  return parsed.data;
 }
 
 /**
@@ -119,9 +121,9 @@ export const PUT = withAuth<RouteParams<{ id: string }>>(async (
     }
 
     const parsedBody = await parseProfileUpdateBody(req);
-    if ('error' in parsedBody) return parsedBody.error;
+    if (parsedBody instanceof NextResponse) return parsedBody;
 
-    const updatedProfile = await updateExtendedProfile(id, parsedBody.data);
+    const updatedProfile = await updateExtendedProfile(id, parsedBody);
 
     return NextResponse.json(updatedProfile);
   } catch (error) {
@@ -171,9 +173,9 @@ export const PATCH = withAuth<RouteParams<{ id: string }>>(async (
     }
 
     const parsedBody = await parseProfileUpdateBody(req);
-    if ('error' in parsedBody) return parsedBody.error;
+    if (parsedBody instanceof NextResponse) return parsedBody;
 
-    const updatedProfile = await updateExtendedProfile(id, parsedBody.data);
+    const updatedProfile = await updateExtendedProfile(id, parsedBody);
 
     return NextResponse.json(updatedProfile);
   } catch (error) {
@@ -186,10 +188,11 @@ export const PATCH = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
+    console.error('Error in PATCH /api/profile/extended/[id]:', (error as Error).message);
     return NextResponse.json(
       {
         error: 'Internal Server Error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: (error as Error).message
       },
       { status: 500 }
     );
