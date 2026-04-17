@@ -44,7 +44,7 @@ export function withAuthRole<TContext = unknown>(
     if (!hasRole) {
       return NextResponse.json({ 
         error: 'Forbidden', 
-        message: `Access denied. This action requires the '${role}' role.`,
+        message: `Access denied.`,
         requiredRole: role
       }, { status: 403 });
     }

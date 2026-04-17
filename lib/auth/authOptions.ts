@@ -5,6 +5,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import TwitterProvider from 'next-auth/providers/twitter';
 import { prisma } from '../../prisma/prisma';
 import { encode, JWT } from 'next-auth/jwt';
+import { randomInt } from 'crypto';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
 import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
@@ -66,8 +67,14 @@ async function verifyOTP(
   return { isValid: true };
 }
 
-export function generate6DigitCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+/**
+ * Generates a cryptographically secure 6-digit code (100000-999999).
+ *
+ * Uses `crypto.randomInt` instead of `Math.random`, which is not suitable for
+ * security-sensitive values such as OTPs / verification codes.
+ */
+export function generate6DigitCode(): string {
+  return randomInt(100000, 1000000).toString();
 }
 
 export const AuthOptions: NextAuthOptions = {

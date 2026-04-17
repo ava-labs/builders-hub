@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import { hasShowcaseRole } from "@/lib/auth/roles";
 import ProjectOverview from "./ProjectOverview";
 import { Project } from "@/types/showcase";
 import { UserBadge } from "@/types/badge";
@@ -33,14 +34,7 @@ export function ShowcaseProjectAuthWrapper({
       return;
     }
 
-    // Check user roles
-    const userRoles = session.user.custom_attributes || [];
-    const hasShowcase = userRoles.includes("showcase");
-    const hasDevrel = userRoles.includes("devrel");
-    const hasAdmin = userRoles.includes("admin");
-    const hasShowcaseRole = hasShowcase || hasDevrel || hasAdmin;
-
-    if (!hasShowcaseRole) {
+    if (!hasShowcaseRole(session.user.custom_attributes)) {
       router.push("/showcase?error=unauthorized");
       return;
     }
@@ -64,16 +58,8 @@ export function ShowcaseProjectAuthWrapper({
     );
   }
 
-  // Check user roles
-  const userRoles = session.user.custom_attributes || [];
-  const hasShowcase = userRoles.includes("showcase");
-  const hasDevrel = userRoles.includes("devrel");
-  const hasAdmin = userRoles.includes("admin");
-  const hasShowcaseRole = hasShowcase || hasDevrel || hasAdmin;
-
-  // Don't render if user doesn't have required permissions
-  if (!hasShowcaseRole) {
-    return null; // Will redirect via useEffect
+  if (!hasShowcaseRole(session.user.custom_attributes)) {
+    return null;
   }
 
   // Render the project overview if authenticated and authorized

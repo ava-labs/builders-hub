@@ -3,6 +3,7 @@ import { getProject } from "@/server/services/projects";
 import { getUserBadgesByProjectId } from "@/server/services/project-badge";
 import { ShowcaseProjectAuthWrapper } from "@/components/showcase/ShowcaseProjectAuthWrapper";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { hasShowcaseRole } from "@/lib/auth/roles";
 
 export default async function ProjectPage({
   params,
@@ -24,11 +25,7 @@ export default async function ProjectPage({
     );
   }
 
-  // Showcase individual project pages are admin-only
-  const userRoles = session.user.custom_attributes || [];
-  const hasShowcaseRole = userRoles.includes('showcase') || userRoles.includes('devrel') || userRoles.includes('admin');
-
-  if (!hasShowcaseRole) {
+  if (!hasShowcaseRole(session.user.custom_attributes)) {
     // Render unauthorized message directly
     const { Alert, AlertDescription } = await import("@/components/ui/alert");
     const { AlertCircle } = await import("lucide-react");
