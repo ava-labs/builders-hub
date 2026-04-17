@@ -41,20 +41,8 @@ export type ExtendedProfile = {
 }
 
 /**
- * Type for data that can be updated in the profile
- * All fields are optional to allow partial updates
- * Allows both nested structure (user_type) and flat fields for ease of use
+ * Type for data that can be updated in the profile.
+ * Inferred from the Zod schema so validation and types stay in sync.
  */
-export type UpdateExtendedProfileData = Partial<Omit<ExtendedProfile, 'id'>> & {
-    // Allow UserType fields at the top level for easier validations
-    is_student?: boolean;
-    is_founder?: boolean;
-    is_employee?: boolean;
-    is_developer?: boolean;
-    is_enthusiast?: boolean;
-    student_institution?: string;
-    founder_company_name?: string;
-    employee_company_name?: string;
-    employee_role?: string;
-};
+export type { UpdateExtendedProfileInput as UpdateExtendedProfileData } from '@/lib/schemas/extended-profile';
 

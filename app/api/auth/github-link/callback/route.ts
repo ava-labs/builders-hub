@@ -59,10 +59,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${base}/profile?gh=error`);
   }
 
+  const githubUrl = `https://github.com/${githubUser.login}`;
+
+  const alreadyLinkedUser = await prisma.user.findFirst({
+    where: {
+      github: githubUrl,
+      NOT: { id: session.user.id },
+    },
+    select: { id: true },
+  });
+
+  if (alreadyLinkedUser) {
+    return NextResponse.redirect(`${base}/profile?gh=already_linked`);
+  }
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      github: `https://github.com/${githubUser.login}`,
+      github: githubUrl,
       github_access_token: encryptToken(tokenData.access_token),
     },
   });

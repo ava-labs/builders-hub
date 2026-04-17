@@ -5,8 +5,41 @@ import {
   updateExtendedProfile,
   ProfileValidationError
 } from '@/server/services/profile/profile.service';
-import { UpdateExtendedProfileData } from '@/types/extended-profile';
+import { UpdateExtendedProfileSchema } from '@/lib/schemas/extended-profile';
 import { withAuth, RouteParams } from '@/lib/protectedRoute';
+
+/**
+ * Parses and validates the request body against the extended profile update
+ * schema. Returns either the validated payload or a ready-to-send 400 response.
+ */
+async function parseProfileUpdateBody(req: NextRequest) {
+  let rawBody: unknown;
+  try {
+    rawBody = await req.json();
+  } catch {
+    return {
+      error: NextResponse.json(
+        { error: 'Invalid JSON body.' },
+        { status: 400 },
+      ),
+    };
+  }
+
+  const parsed = UpdateExtendedProfileSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return {
+      error: NextResponse.json(
+        {
+          error: 'Invalid request body.',
+          details: parsed.error.flatten(),
+        },
+        { status: 400 },
+      ),
+    };
+  }
+
+  return { data: parsed.data };
+}
 
 /**
  * GET /api/profile/extended/[id]
@@ -78,7 +111,6 @@ export const PUT = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
-    // verify that the user can only update their own profile
     if (session.user.id !== id) {
       return NextResponse.json(
         { error: 'Forbidden: You can only update your own profile.' },
@@ -86,16 +118,15 @@ export const PUT = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
-    const newProfileData = (await req.json()) as UpdateExtendedProfileData;
+    const parsedBody = await parseProfileUpdateBody(req);
+    if ('error' in parsedBody) return parsedBody.error;
 
-    // The service now handles all business validations
-    const updatedProfile = await updateExtendedProfile(id, newProfileData);
+    const updatedProfile = await updateExtendedProfile(id, parsedBody.data);
 
     return NextResponse.json(updatedProfile);
   } catch (error) {
     console.error('Error in PUT /api/profile/extended/[id]:', error);
-    
-    // Handle validation errors with the appropriate status code
+
     if (error instanceof ProfileValidationError) {
       return NextResponse.json(
         { error: error.message },
@@ -103,9 +134,8 @@ export const PUT = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
-    // Handle other errors
     return NextResponse.json(
-      { 
+      {
         error: 'Internal Server Error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -125,7 +155,7 @@ export const PATCH = withAuth<RouteParams<{ id: string }>>(async (
 ) => {
   try {
     const id = (await params).id;
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'User ID is required.' },
@@ -133,7 +163,6 @@ export const PATCH = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
-    // verify that the user can only update their own profile
     if (session.user.id !== id) {
       return NextResponse.json(
         { error: 'Forbidden: You can only update your own profile.' },
@@ -141,16 +170,15 @@ export const PATCH = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
-    const newProfileData = (await req.json()) as UpdateExtendedProfileData;
+    const parsedBody = await parseProfileUpdateBody(req);
+    if ('error' in parsedBody) return parsedBody.error;
 
-    // The service now handles all business validations
-    const updatedProfile = await updateExtendedProfile(id, newProfileData);
+    const updatedProfile = await updateExtendedProfile(id, parsedBody.data);
 
     return NextResponse.json(updatedProfile);
   } catch (error) {
     console.error('Error in PATCH /api/profile/extended/[id]:', error);
-    
-    // Handle validation errors with the appropriate status code
+
     if (error instanceof ProfileValidationError) {
       return NextResponse.json(
         { error: error.message },
@@ -158,9 +186,8 @@ export const PATCH = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
-    // Handle other errors
     return NextResponse.json(
-      { 
+      {
         error: 'Internal Server Error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
