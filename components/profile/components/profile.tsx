@@ -32,6 +32,7 @@ import type { ProfileFormValues } from "./hooks/useProfileForm";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Toaster } from "@/components/ui/toaster";
 import { ProfileChecklist } from "./ProfileChecklist";
+import { z } from "zod";
 
 export interface ProfileProps {
   form: UseFormReturn<ProfileFormValues>;
@@ -529,13 +530,24 @@ export default function Profile({
                   name="socials"
                   render={({ field }) => {
                     const handleAddNewSocial = () => {
-                      if (newSocial.trim()) {
-                        const currentSocials = field.value || [];
-                        if (!currentSocials.includes(newSocial.trim())) {
-                          field.onChange([...currentSocials, newSocial.trim()]);
-                          setNewSocial("");
-                        }
+                      const socialLink = newSocial.trim();
+                      if (!socialLink) return;
+
+                      const isValidUrl = z.url("Must be a valid URL").safeParse(socialLink);
+                      if (!isValidUrl.success) {
+                        form.setError("socials", {
+                          type: "manual",
+                          message: "Must be a valid URL",
+                        });
+                        return;
                       }
+
+                      const currentSocials = field.value || [];
+                      if (!currentSocials.includes(socialLink)) {
+                        field.onChange([...currentSocials, socialLink]);
+                      }
+                      form.clearErrors("socials");
+                      setNewSocial("");
                     };
 
                     return (
@@ -568,7 +580,12 @@ export default function Profile({
                               {/* Input for adding new social */}
                               <Input
                                 value={newSocial}
-                                onChange={(e) => setNewSocial(e.target.value)}
+                                onChange={(e) => {
+                                  setNewSocial(e.target.value);
+                                  if (form.formState.errors.socials) {
+                                    form.clearErrors("socials");
+                                  }
+                                }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === "Tab") {
                                     e.preventDefault();

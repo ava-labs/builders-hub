@@ -30,9 +30,9 @@ export const profileSchema = z.object({
   // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
-  github: z.string().optional(),
+  github: z.union([z.literal(""), z.url("Must be a valid URL")]).optional(),
   wallet: z.array(z.string()).optional().default([]),
-  socials: z.array(z.string()).default([]),
+  socials: z.array(z.url("Must be a valid URL")).optional().default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
