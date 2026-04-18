@@ -210,25 +210,27 @@ function SetupModeCard({
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className="group relative flex flex-col items-start gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-left transition-all duration-200 w-full hover:border-zinc-600"
+      className="group relative flex flex-col items-start gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 text-left transition-all duration-200 w-full hover:border-zinc-300 dark:hover:border-zinc-700"
       style={{
-        boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 3px rgba(0,0,0,0.04)',
       }}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.06] text-zinc-300">{icon}</div>
-      <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
-        <p className="text-sm text-zinc-400">{subtitle}</p>
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+        {icon}
       </div>
-      <ul className="space-y-1.5 text-sm text-zinc-400 mt-2">
+      <div className="space-y-1">
+        <h3 className="text-[15px] font-semibold leading-tight text-zinc-900 dark:text-zinc-100">{title}</h3>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
+      </div>
+      <ul className="space-y-1.5 text-sm text-zinc-600 dark:text-zinc-300 mt-1">
         {bullets.map((b, i) => (
           <li key={i} className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-zinc-500" strokeWidth={2.5} />
+            <Check className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2.5} />
             {b}
           </li>
         ))}
       </ul>
-      <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-400 transition-transform group-hover:translate-x-0.5">
+      <div className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-transform group-hover:translate-x-0.5">
         Continue
         <ArrowRight className="h-3.5 w-3.5" />
       </div>
@@ -354,13 +356,13 @@ export default function CreateL1Questionnaire() {
   // starts Q1.
   if (isConnected && setupMode === null) {
     return (
-      <div className="mx-auto max-w-3xl min-h-[60vh] flex flex-col justify-center">
-        <div className="mb-10 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+      <div className="mx-auto max-w-3xl min-h-[60vh] flex flex-col">
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Choose a setup to start
           </h2>
-          <p className="mt-3 text-[15px] text-zinc-500 dark:text-zinc-400">
-            Basic is a one-click deploy with sensible defaults. Advanced exposes every knob.
+          <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
+            Basic is a one-click deploy with sensible defaults. Advanced exposes every configuration option.
           </p>
         </div>
 
