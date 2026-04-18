@@ -187,58 +187,6 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// Setup-mode card (Basic vs Advanced chooser — shown before Q1)
-// ---------------------------------------------------------------------------
-
-function SetupModeCard({
-  onSelect,
-  icon,
-  title,
-  subtitle,
-  bullets,
-}: {
-  onSelect: () => void;
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  bullets: string[];
-}) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className="group relative flex flex-col items-start gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 text-left transition-all duration-200 w-full hover:border-zinc-300 dark:hover:border-zinc-700"
-      style={{
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 3px rgba(0,0,0,0.04)',
-      }}
-    >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-        {icon}
-      </div>
-      <div className="space-y-1">
-        <h3 className="text-[15px] font-semibold leading-tight text-zinc-900 dark:text-zinc-100">{title}</h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
-      </div>
-      <ul className="space-y-1.5 text-sm text-zinc-600 dark:text-zinc-300 mt-1">
-        {bullets.map((b, i) => (
-          <li key={i} className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2.5} />
-            {b}
-          </li>
-        ))}
-      </ul>
-      <div className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-transform group-hover:translate-x-0.5">
-        Continue
-        <ArrowRight className="h-3.5 w-3.5" />
-      </div>
-    </motion.button>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -264,9 +212,11 @@ export default function CreateL1Questionnaire() {
   // Setup-mode gate: before any questionnaire question, ask whether the
   // user wants a one-click Basic deploy or the full Advanced flow. `null`
   // means the user hasn't chosen yet; 'advanced' continues into the
-  // existing Q1+ questions. 'basic' hands off to the dedicated basic
-  // route — we don't need to track it in state beyond that.
+  // existing Q1+ questions. `pendingSetupMode` is the transient card
+  // selection — committed to `setupMode` (or routed away) only when the
+  // user hits Continue, matching the typeform flow on every other Q.
   const [setupMode, setSetupMode] = useState<'basic' | 'advanced' | null>(null);
+  const [pendingSetupMode, setPendingSetupMode] = useState<'basic' | 'advanced' | null>(null);
 
   const [questionIndex, setQuestionIndex] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -351,46 +301,112 @@ export default function CreateL1Questionnaire() {
   // Review page is index === totalQuestions
   const isReview = questionIndex === totalQuestions;
 
-  // Setup-mode chooser — shown before any questionnaire question. Basic
-  // hands off to the one-click route; Advanced keeps the user here and
-  // starts Q1.
+  // Setup-mode chooser — rendered as the first question in the typeform
+  // flow, with the same progress bar / Back / Continue chrome as every
+  // other question. Card selection is pending until the user hits
+  // Continue; at that point we either route to /basic or flip into the
+  // Advanced questionnaire.
   if (isConnected && setupMode === null) {
+    const totalSteps = totalQuestions + 1; // +1 for this chooser
+    const handleContinue = () => {
+      if (pendingSetupMode === 'basic') {
+        router.push('/console/create-l1/basic');
+      } else if (pendingSetupMode === 'advanced') {
+        setSetupMode('advanced');
+      }
+    };
+
     return (
       <div className="mx-auto max-w-3xl min-h-[60vh] flex flex-col">
+        {/* Testnet suggestion — mirror the Q1 behavior so the preflight
+            hint surfaces on the very first screen. */}
+        {!isTestnet && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
+            <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+              We recommend starting on <span className="font-semibold">Fuji testnet</span> for development. Switch
+              networks in the top-right corner.
+            </p>
+          </div>
+        )}
+
+        {/* Progress bar — chooser is step 1 of totalSteps */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Choose a setup to start
-          </h2>
-          <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-            Basic is a one-click deploy with sensible defaults. Advanced exposes every configuration option.
-          </p>
+          <ProgressBar current={0} total={totalSteps + 1} />
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+              Question 1 of {totalSteps}
+            </p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500">Create L1</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SetupModeCard
-            onSelect={() => router.push('/console/create-l1/basic')}
-            icon={<Zap className="h-5 w-5" />}
-            title="Basic setup"
-            subtitle="One-step setup to deploy L1"
-            bullets={[
-              'Subnet-EVM with Warp + Teleporter preinstalled',
-              '1M initial token supply to your address',
-              'Managed Fuji validator node (3-day TTL)',
-              'PoA Validator Manager deployed on the L1',
-            ]}
-          />
-          <SetupModeCard
-            onSelect={() => setSetupMode('advanced')}
-            icon={<Settings2 className="h-5 w-5" />}
-            title="Advanced setup"
-            subtitle="Fully customized L1"
-            bullets={[
-              'Configure each precompile setting',
-              'Choose PoA, PoS Native, or PoS ERC20',
-              'Manage multisig control keys',
-              'Pick Docker or managed infra',
-            ]}
-          />
+        {/* Question area — animated like the rest of the flow */}
+        <div className="flex-1 relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="q-setup-mode"
+              custom={1}
+              variants={pageVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6"
+            >
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  Choose a setup
+                </h2>
+                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
+                  Basic is a one-click deploy with sensible defaults. Advanced opens up every configuration option.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <OptionCard
+                  id="basic"
+                  selected={pendingSetupMode === 'basic'}
+                  onSelect={setPendingSetupMode}
+                  icon={<Zap className="h-5 w-5" />}
+                  title="Basic setup"
+                  description="One-click deploy with sensible defaults. Subnet, genesis, a managed validator node, and the Validator Manager — handled."
+                  recommended
+                />
+                <OptionCard
+                  id="advanced"
+                  selected={pendingSetupMode === 'advanced'}
+                  onSelect={setPendingSetupMode}
+                  icon={<Settings2 className="h-5 w-5" />}
+                  title="Advanced setup"
+                  description="Configure each precompile, pick PoA / PoS Native / PoS ERC20, manage multisig keys, choose Docker or managed infra."
+                />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Navigation — same shape as Q2+ */}
+        <div className="mt-10 flex items-center justify-between">
+          <button
+            type="button"
+            disabled
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={!pendingSetupMode}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-colors shadow-sm',
+              pendingSetupMode
+                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100'
+                : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed',
+            )}
+          >
+            Continue
+            <ArrowRight className="h-4 w-4" />
+          </button>
         </div>
       </div>
     );
@@ -468,11 +484,14 @@ export default function CreateL1Questionnaire() {
       )}
 
       {/* ── Progress ──────────────────────────────────────── */}
+      {/* The Basic vs Advanced chooser counts as Q1, so the Advanced
+          questionnaire picks up from Q2 onward. `+1` shifts both the
+          displayed index and the total. */}
       <div className="mb-8">
-        <ProgressBar current={questionIndex} total={totalQuestions + 1} />
+        <ProgressBar current={questionIndex + 1} total={totalQuestions + 2} />
         <div className="flex items-center justify-between mt-3">
           <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-            {isReview ? 'Review' : `Question ${questionIndex + 1} of ${totalQuestions}`}
+            {isReview ? 'Review' : `Question ${questionIndex + 2} of ${totalQuestions + 1}`}
           </p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">Create L1</p>
         </div>
