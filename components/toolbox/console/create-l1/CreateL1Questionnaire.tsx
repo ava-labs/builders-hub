@@ -21,6 +21,8 @@ import {
   Link2Off,
   PlayCircle,
   X,
+  Zap,
+  Settings2,
 } from 'lucide-react';
 import { AvaxLogo, LayersIcon, DockerLogo, CloudDeployIcon } from './icons';
 import Link from 'next/link';
@@ -185,6 +187,56 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 }
 
 // ---------------------------------------------------------------------------
+// Setup-mode card (Basic vs Advanced chooser — shown before Q1)
+// ---------------------------------------------------------------------------
+
+function SetupModeCard({
+  onSelect,
+  icon,
+  title,
+  subtitle,
+  bullets,
+}: {
+  onSelect: () => void;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  bullets: string[];
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onSelect}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      className="group relative flex flex-col items-start gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-left transition-all duration-200 w-full hover:border-zinc-600"
+      style={{
+        boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
+      }}
+    >
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.06] text-zinc-300">{icon}</div>
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <p className="text-sm text-zinc-400">{subtitle}</p>
+      </div>
+      <ul className="space-y-1.5 text-sm text-zinc-400 mt-2">
+        {bullets.map((b, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <Check className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-zinc-500" strokeWidth={2.5} />
+            {b}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-400 transition-transform group-hover:translate-x-0.5">
+        Continue
+        <ArrowRight className="h-3.5 w-3.5" />
+      </div>
+    </motion.button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -206,6 +258,13 @@ export default function CreateL1Questionnaire() {
 
   const { isTestnet, pChainBalance, walletEVMAddress } = useWalletStore();
   const toolboxStore = useToolboxStore();
+
+  // Setup-mode gate: before any questionnaire question, ask whether the
+  // user wants a one-click Basic deploy or the full Advanced flow. `null`
+  // means the user hasn't chosen yet; 'advanced' continues into the
+  // existing Q1+ questions. 'basic' hands off to the dedicated basic
+  // route — we don't need to track it in state beyond that.
+  const [setupMode, setSetupMode] = useState<'basic' | 'advanced' | null>(null);
 
   const [questionIndex, setQuestionIndex] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -268,6 +327,9 @@ export default function CreateL1Questionnaire() {
     if (questionIndex > 0) {
       setDirection(-1);
       setQuestionIndex((i) => i - 1);
+    } else {
+      // At Q1, Back returns to the Basic vs Advanced chooser.
+      setSetupMode(null);
     }
   }, [questionIndex]);
 
@@ -286,6 +348,51 @@ export default function CreateL1Questionnaire() {
 
   // Review page is index === totalQuestions
   const isReview = questionIndex === totalQuestions;
+
+  // Setup-mode chooser — shown before any questionnaire question. Basic
+  // hands off to the one-click route; Advanced keeps the user here and
+  // starts Q1.
+  if (isConnected && setupMode === null) {
+    return (
+      <div className="mx-auto max-w-3xl min-h-[60vh] flex flex-col justify-center">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            Choose a setup to start
+          </h2>
+          <p className="mt-3 text-[15px] text-zinc-500 dark:text-zinc-400">
+            Basic is a one-click deploy with sensible defaults. Advanced exposes every knob.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SetupModeCard
+            onSelect={() => router.push('/console/create-l1/basic')}
+            icon={<Zap className="h-5 w-5" />}
+            title="Basic setup"
+            subtitle="One-step setup to deploy L1"
+            bullets={[
+              'Subnet-EVM with Warp + Teleporter preinstalled',
+              '1M initial token supply to your address',
+              'Managed Fuji validator node (3-day TTL)',
+              'PoA Validator Manager deployed on the L1',
+            ]}
+          />
+          <SetupModeCard
+            onSelect={() => setSetupMode('advanced')}
+            icon={<Settings2 className="h-5 w-5" />}
+            title="Advanced setup"
+            subtitle="Fully customized L1"
+            bullets={[
+              'Configure each precompile setting',
+              'Choose PoA, PoS Native, or PoS ERC20',
+              'Manage multisig control keys',
+              'Pick Docker or managed infra',
+            ]}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // Wallet gate + questionnaire — no early returns (hooks must be called unconditionally)
   if (!isConnected) {
@@ -768,13 +875,7 @@ export default function CreateL1Questionnaire() {
         <button
           type="button"
           onClick={goBack}
-          disabled={questionIndex === 0}
-          className={cn(
-            'inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all duration-200',
-            questionIndex === 0
-              ? 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed'
-              : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800',
-          )}
+          className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
