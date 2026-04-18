@@ -552,14 +552,12 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
               )}
 
               {forceNodeType && (
-                <div className="rounded-lg p-3 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="text-xs font-medium text-blue-900 dark:text-blue-100">Running a validator node</div>
-                    <div className="text-[11px] text-blue-700 dark:text-blue-300 mt-0.5">
-                      Your L1 needs validators to reach consensus. After bootstrap, grab the node&apos;s ID + BLS key
-                      below and return to the Convert to L1 step.
-                    </div>
+                <div className="rounded-lg p-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-zinc-500 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                    <span className="font-medium text-zinc-900 dark:text-zinc-100">Running a validator node. </span>
+                    Your L1 needs validators to reach consensus. After bootstrap, grab the node&apos;s ID + BLS key from
+                    the Verify step and return to Convert to L1.
                   </div>
                 </div>
               )}
