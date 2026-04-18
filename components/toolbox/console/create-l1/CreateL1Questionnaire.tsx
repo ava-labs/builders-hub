@@ -17,6 +17,10 @@ import {
   Check,
   Droplets,
   Wallet,
+  Link2,
+  Link2Off,
+  PlayCircle,
+  X,
 } from 'lucide-react';
 import { AvaxLogo, LayersIcon, DockerLogo, CloudDeployIcon } from './icons';
 import Link from 'next/link';
@@ -31,7 +35,7 @@ import {
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { getCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
-import { generateCreateL1Steps, getStepLabel } from './generateSteps';
+import { generateCreateL1Steps, getResumeStepKey, getStepLabel } from './generateSteps';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -188,6 +192,17 @@ export default function CreateL1Questionnaire() {
   const router = useRouter();
   const setAnswers = useCreateL1FlowStore((s) => s.setAnswers);
   const setCurrentStepIndex = useCreateL1FlowStore((s) => s.setCurrentStepIndex);
+  const savedAnswers = useCreateL1FlowStore((s) => s.answers);
+  const savedStepIndex = useCreateL1FlowStore((s) => s.currentStepIndex);
+
+  // Resume hint — surfaced as an opt-in banner on Q1 when an in-progress
+  // flow exists. We intentionally *don't* auto-redirect: network/store
+  // resets can leave stale `answers` in localStorage, and bouncing the user
+  // past the questionnaire against their will makes those resets confusing.
+  // One click to resume is a fair price for keeping the reset affordance
+  // working the way users expect.
+  const resumeStepKey = useMemo(() => getResumeStepKey(savedAnswers, savedStepIndex), [savedAnswers, savedStepIndex]);
+  const resetFlow = useCreateL1FlowStore((s) => s.reset);
 
   const { isTestnet, pChainBalance, walletEVMAddress } = useWalletStore();
   const toolboxStore = useToolboxStore();
@@ -207,13 +222,16 @@ export default function CreateL1Questionnaire() {
   }, []);
   const [multisig, setMultisig] = useState(false);
   const [hosting, setHosting] = useState<HostingOption>('managed');
+  const [interoperability, setInteroperability] = useState(true);
 
   // Q4 (multisig) only for PoA + C-Chain. Q5 (hosting) only for new L1.
+  // Q-interop only for new L1 (convert-existing reuses existing genesis).
   const showMultisigQ = validatorType === 'poa' && vmLocation === 'c-chain';
   const showHostingQ = startingPoint === 'new';
+  const showInteropQ = startingPoint === 'new';
 
-  // Dynamic question count: Q1 + Q2 + Q3 + [Q4 multisig if PoA+C-Chain] + [Q5 hosting if new]
-  const totalQuestions = 3 + (showMultisigQ ? 1 : 0) + (showHostingQ ? 1 : 0);
+  // Dynamic question count
+  const totalQuestions = 3 + (showMultisigQ ? 1 : 0) + (showInteropQ ? 1 : 0) + (showHostingQ ? 1 : 0);
 
   const previewAnswers: QuestionnaireAnswers = useMemo(
     () => ({
@@ -222,8 +240,11 @@ export default function CreateL1Questionnaire() {
       vmLocation,
       multisig: showMultisigQ ? multisig : false,
       hosting,
+      // Convert-existing flows don't touch genesis, so the answer is irrelevant
+      // there — default to true so generated defaults stay backwards-compatible.
+      interoperability: showInteropQ ? interoperability : true,
     }),
-    [startingPoint, validatorType, vmLocation, multisig, showMultisigQ, hosting],
+    [startingPoint, validatorType, vmLocation, multisig, showMultisigQ, hosting, interoperability, showInteropQ],
   );
 
   const previewSteps = useMemo(() => generateCreateL1Steps(previewAnswers), [previewAnswers]);
@@ -301,6 +322,39 @@ export default function CreateL1Questionnaire() {
             We recommend starting on <span className="font-semibold">Fuji testnet</span> for development. Switch
             networks in the top-right corner.
           </p>
+        </div>
+      )}
+
+      {/* Resume banner — only on Q1, when an in-progress flow is detected.
+          Clicking "Resume" jumps the user to the step they left off on;
+          dismissing clears the flow store so the banner disappears and
+          normal questionnaire flow resumes. */}
+      {questionIndex === 0 && resumeStepKey && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3">
+          <PlayCircle className="h-5 w-5 text-zinc-600 dark:text-zinc-300 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Resume your previous flow</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+              Pick up at{' '}
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">{getStepLabel(resumeStepKey)}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push(`/console/create-l1/${resumeStepKey}`)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 dark:bg-white px-3 py-1.5 text-xs font-semibold text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
+          >
+            Resume
+            <ArrowRight className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={resetFlow}
+            title="Dismiss — start a new flow"
+            className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 
@@ -469,8 +523,57 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q4: Ownership (only for PoA + C-Chain) */}
-          {questionIndex === 3 && showMultisigQ && (
+          {/* Q4: Interoperability (only for new L1 — convert-existing reuses existing genesis) */}
+          {showInteropQ && questionIndex === 3 && !isReview && (
+            <motion.div
+              key="q-interop"
+              custom={direction}
+              variants={pageVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6"
+            >
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  Interoperability
+                </h2>
+                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
+                  Bake the Warp precompile and Teleporter (ICM) messenger into your L1&apos;s genesis so it can send and
+                  receive cross-chain messages.{' '}
+                  <Link
+                    href="/docs/cross-chain"
+                    target="_blank"
+                    className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 underline underline-offset-2 decoration-zinc-300 dark:decoration-zinc-600 transition-colors"
+                  >
+                    What is ICM? →
+                  </Link>
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <OptionCard
+                  id="yes"
+                  selected={interoperability}
+                  onSelect={() => setInteroperability(true)}
+                  icon={<Link2 className="h-5 w-5" />}
+                  title="Enable cross-chain messaging"
+                  description="Includes the Warp precompile and pre-deploys the Teleporter messenger. Required for ICM, bridges, and ICTT."
+                  recommended
+                />
+                <OptionCard
+                  id="no"
+                  selected={!interoperability}
+                  onSelect={() => setInteroperability(false)}
+                  icon={<Link2Off className="h-5 w-5" />}
+                  title="Isolated L1"
+                  description="Skips Warp and Teleporter. Smaller genesis, but your chain can't message other Avalanche L1s."
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* Q5: Ownership (only for PoA + C-Chain) */}
+          {questionIndex === (showInteropQ ? 4 : 3) && showMultisigQ && (
             <motion.div
               key="q3"
               custom={direction}
@@ -521,8 +624,8 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q5 (or Q4 if no multisig): Hosting */}
-          {showHostingQ && questionIndex === (showMultisigQ ? 4 : 3) && !isReview && (
+          {/* Q6 (index depends on which earlier questions are shown): Hosting */}
+          {showHostingQ && questionIndex === 3 + (showInteropQ ? 1 : 0) + (showMultisigQ ? 1 : 0) && !isReview && (
             <motion.div
               key="q-hosting"
               custom={direction}

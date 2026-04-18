@@ -22,6 +22,7 @@ import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx'
 // Import Genesis Wizard components
 import { GenesisWizard } from '@/components/toolbox/components/genesis/GenesisWizard';
 import { ChainConfigStep, generateRandomChainName } from '@/components/toolbox/components/genesis/ChainConfigStep';
+import type { PreinstallConfig } from '@/components/toolbox/components/genesis/types';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Create Chain',
@@ -55,9 +56,21 @@ const metadata: ConsoleToolMetadata = {
 
 interface CreateChainProps extends BaseConsoleToolProps {
   embedded?: boolean;
+  /**
+   * Pre-deploy defaults forwarded to the underlying GenesisBuilder. The
+   * user can still flip any toggle from the UI; this only seeds the
+   * initial state. Used by the Create L1 flow to pre-fill based on the
+   * questionnaire's interoperability answer.
+   */
+  preinstallDefaults?: Partial<PreinstallConfig>;
+  /**
+   * When `false`, strips the Warp precompile from the generated genesis.
+   * Defaults to `true` for backwards compatibility.
+   */
+  warpEnabled?: boolean;
 }
 
-function CreateChain({ onSuccess: _onSuccess, embedded = false }: CreateChainProps) {
+function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaults, warpEnabled }: CreateChainProps) {
   const store = useCreateChainStore();
   const subnetId = store((state) => state.subnetId);
   const setChainID = store((state) => state.setChainID);
@@ -177,6 +190,8 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false }: CreateChainPro
                 genesisData={genesisData}
                 setGenesisData={setGenesisData}
                 initiallyExpandedSections={['chainParams']}
+                preinstallDefaults={preinstallDefaults}
+                warpEnabled={warpEnabled}
               />
             </GenesisWizard>
           ) : (

@@ -185,8 +185,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                 {step1Complete ? (
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                        {validatorMessagesLibAddress.slice(0, 10)}...{validatorMessagesLibAddress.slice(-6)}
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs break-all">
+                        {validatorMessagesLibAddress}
                       </code>
                       <button
                         type="button"
@@ -276,8 +276,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                 {step2Complete ? (
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                        {validatorManagerAddress.slice(0, 10)}...{validatorManagerAddress.slice(-6)}
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs break-all">
+                        {validatorManagerAddress}
                       </code>
                       <button
                         type="button"

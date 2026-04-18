@@ -36,7 +36,6 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Workflow,
-  PlayCircle,
 
   Search,
   X,
@@ -65,8 +64,6 @@ import {
 } from "@/components/ui/collapsible";
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useCreateL1FlowStore } from "@/components/toolbox/stores/createL1FlowStore";
-import { getResumeStepKey } from "@/components/toolbox/console/create-l1/generateSteps";
 import { cn } from "@/lib/utils";
 
 // C-Chain chain IDs (Fuji testnet and Mainnet)
@@ -190,36 +187,123 @@ const data = {
         },
       ],
     },
-    // Validators — PoA and PoS management
+    // Validators — grouped by consensus model. PoA (permissioned) and the
+    // two PoS variants (Native AVAX staking vs ERC20 staking) each have
+    // independent flows, so they live in their own subgroups.
+    //
+    // Disable Validator sits at the top as a flat item because it's a
+    // direct P-Chain transaction that works for any validator regardless
+    // of consensus model — PoA or PoS, Native or ERC20. Slotting it under
+    // one subgroup would hide it from the other users.
+    //
+    // On the PoS side there are two distinct removal routes:
+    //   • /remove-validator-uptime — normal removal with uptime proof
+    //     (`initiateValidatorRemoval(id, true)`); validator keeps rewards.
+    //   • /remove-validator — force removal without uptime proof
+    //     (`forceInitiateValidatorRemoval`); power-user escape hatch when
+    //     the validator can't produce a valid uptime proof.
+    // Both are surfaced separately so users don't silently forfeit rewards
+    // by picking the wrong one.
     {
       id: "validators",
       title: "Validators",
       icon: Hexagon,
       items: [
         {
-          title: "Add Validator",
-          url: "/console/permissioned-l1s/add-validator",
-          icon: SquarePlus,
+          title: "Disable Validator",
+          url: "/console/permissioned-l1s/disable-validator",
+          icon: ShieldOff,
         },
         {
-          title: "Remove Validator",
-          url: "/console/permissioned-l1s/remove-validator",
-          icon: SquareMinus,
+          id: "validators-poa",
+          title: "Proof of Authority",
+          icon: Shield,
+          items: [
+            {
+              title: "Add Validator",
+              url: "/console/permissioned-l1s/add-validator",
+              icon: SquarePlus,
+            },
+            {
+              title: "Remove Validator",
+              url: "/console/permissioned-l1s/remove-validator",
+              icon: SquareMinus,
+            },
+            {
+              title: "Change Weight",
+              url: "/console/permissioned-l1s/change-validator-weight",
+              icon: SlidersVertical,
+            },
+            {
+              title: "Remove Expired Registration",
+              url: "/console/permissioned-l1s/remove-expired-validator-registration",
+              icon: SquareMinus,
+            },
+          ],
         },
         {
-          title: "Change Weight",
-          url: "/console/permissioned-l1s/change-validator-weight",
-          icon: SlidersVertical,
-        },
-        {
-          title: "Stake",
-          url: "/console/permissionless-l1s/stake/native",
+          id: "validators-pos-native",
+          title: "Proof of Stake (Native)",
           icon: HandCoins,
+          items: [
+            {
+              title: "Stake",
+              url: "/console/permissionless-l1s/stake/native",
+              icon: HandCoins,
+            },
+            {
+              title: "Delegate",
+              url: "/console/permissionless-l1s/delegate/native",
+              icon: ArrowUpDown,
+            },
+            {
+              title: "Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator-uptime",
+              icon: SquareMinus,
+            },
+            {
+              title: "Force Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator",
+              icon: SquareMinus,
+            },
+            {
+              title: "Remove Delegation",
+              url: "/console/permissionless-l1s/remove-delegation",
+              icon: SquareMinus,
+            },
+          ],
         },
         {
-          title: "Delegate",
-          url: "/console/permissionless-l1s/delegate/native",
-          icon: ArrowUpDown,
+          id: "validators-pos-erc20",
+          title: "Proof of Stake (ERC20)",
+          icon: Coins,
+          items: [
+            {
+              title: "Stake",
+              url: "/console/permissionless-l1s/stake/erc20",
+              icon: HandCoins,
+            },
+            {
+              title: "Delegate",
+              url: "/console/permissionless-l1s/delegate/erc20",
+              icon: ArrowUpDown,
+            },
+            {
+              title: "Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator-uptime",
+              icon: SquareMinus,
+            },
+            {
+              title: "Force Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator",
+              icon: SquareMinus,
+            },
+            {
+              title: "Remove Delegation",
+              url: "/console/permissionless-l1s/remove-delegation",
+              icon: SquareMinus,
+            },
+          ],
         },
       ],
     },
@@ -491,41 +575,10 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const isConnectedToL1 =
     walletChainId !== 0 && !C_CHAIN_IDS.includes(walletChainId);
 
-  // Read in-progress Create L1 flow so we can surface a "Resume" entry.
-  // Answers and currentStepIndex are persisted in localStorage — the
-  // sidebar item appears automatically whenever the user has an
-  // unfinished flow, and the link deep-links to the exact step they
-  // left off on.
-  const flowAnswers = useCreateL1FlowStore((s) => s.answers);
-  const flowStepIndex = useCreateL1FlowStore((s) => s.currentStepIndex);
-  const resumeStepKey = React.useMemo(
-    () => getResumeStepKey(flowAnswers, flowStepIndex),
-    [flowAnswers, flowStepIndex],
-  );
-
-  // Inject the conditional "Resume Create L1" item right after "Create L1"
-  // in the Getting Started group, without mutating the static data.
-  const navGroups = React.useMemo<NavGroup[]>(() => {
-    if (!resumeStepKey) return data.navGroups;
-    return data.navGroups.map((group) => {
-      if (group.id !== "getting-started") return group;
-      const resumeItem: NavItem = {
-        title: "Resume Create L1",
-        url: `/console/create-l1/${resumeStepKey}`,
-        icon: PlayCircle,
-      };
-      const createL1Index = group.items.findIndex(
-        (item) => !isCollapsibleSubGroup(item) && item.url === "/console/create-l1",
-      );
-      const nextItems = [...group.items];
-      if (createL1Index >= 0) {
-        nextItems.splice(createL1Index + 1, 0, resumeItem);
-      } else {
-        nextItems.unshift(resumeItem);
-      }
-      return { ...group, items: nextItems };
-    });
-  }, [resumeStepKey]);
+  // "Create L1" is a single sidebar entry. When an in-progress flow exists,
+  // the `/console/create-l1` page itself auto-redirects to the resume step,
+  // so we no longer inject a separate "Resume" item here.
+  const navGroups = data.navGroups;
 
   // Flatten all nav items for search, tracking their category path
   const allNavItems = React.useMemo(() => {

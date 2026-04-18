@@ -5,7 +5,7 @@ import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 import TransparentUpgradeableProxyABI from '@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json';
@@ -74,8 +74,26 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const [isLoadingProxyInfo, setIsLoadingProxyInfo] = useState(false);
   const [proxyError, setProxyError] = useState<string>('');
 
-  // Deploy state (optional advanced flow)
-  const [showDeploySection, setShowDeploySection] = useState(false);
+  // Deploy state. Default the section OPEN when we're on C-Chain (43113
+  // Fuji / 43114 Mainnet) — there's no `0xfacade…` genesis proxy to
+  // upgrade, so "Deploy New Proxy" is the only path forward. On L1s
+  // created through the Builder Console the genesis proxy exists and
+  // Upgrade is the default.
+  const isCChain = walletChainId === 43113 || walletChainId === 43114;
+  const [showDeploySection, setShowDeploySection] = useState<boolean>(isCChain);
+
+  // `walletChainId` is often 0 on first render (WalletSync hasn't synced
+  // wagmi state yet), so the `useState` initializer above can see the
+  // wrong value and default to Upgrade. This one-shot effect re-syncs the
+  // default once the chain id first becomes non-zero, and then steps out
+  // of the way — any later manual toggle or chain switch is respected.
+  const autoDefaultAppliedRef = useRef(false);
+  useEffect(() => {
+    if (autoDefaultAppliedRef.current) return;
+    if (walletChainId === 0) return;
+    autoDefaultAppliedRef.current = true;
+    setShowDeploySection(isCChain);
+  }, [walletChainId, isCChain]);
   const [isDeployingProxyAdmin, setIsDeployingProxyAdmin] = useState(false);
   const [isDeployingProxy, setIsDeployingProxy] = useState(false);
   const [newProxyAdminAddress, setNewProxyAdminAddress] = useState<string>('');
@@ -106,6 +124,17 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       setDesiredImplementation(validatorManagerAddress);
     }
   }, [validatorManagerAddress, desiredImplementation]);
+
+  // Pre-fill the Deploy New Proxy "implementation" field too. This is the
+  // same ValidatorManager address the user just deployed in the previous
+  // step — the Deploy path needs it to initialize the TransparentUpgradeable-
+  // Proxy. Guarding on empty string so a user who manually cleared or
+  // overrode the field doesn't get clobbered.
+  useEffect(() => {
+    if (validatorManagerAddress && !deployImplementationAddress) {
+      setDeployImplementationAddress(validatorManagerAddress);
+    }
+  }, [validatorManagerAddress, deployImplementationAddress]);
 
   // Read proxy info when address changes
   useEffect(() => {

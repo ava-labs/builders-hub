@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { createCoreWalletClient } from '@/components/toolbox/coreViem';
@@ -12,9 +12,10 @@ import posthog from 'posthog-js';
  * existing Zustand walletStore. All 145+ downstream consumers read
  * from the store and remain completely unchanged.
  *
- * Core detection: if the connected wagmi connector is Core Wallet
- * (EIP-6963 rdns = "app.core"), we instantiate the full
- * CoreWalletClient for P-Chain operations. Otherwise we set
+ * Core detection: we look for EIP-6963 rdns `app.core` first, then fall
+ * back to inspecting the injected provider identity (see the
+ * `isCoreConnector` effect below). When detected, we instantiate the
+ * full CoreWalletClient for P-Chain operations. Otherwise we set
  * walletType = 'generic-evm' and null out the Core client.
  */
 export function WalletSync() {
@@ -39,18 +40,81 @@ export function WalletSync() {
 
   /**
    * Determine if the connected wallet is Core.
-   * EIP-6963 connectors expose `connector.id` matching the wallet's rdns;
-   * Core Wallet uses "app.core". We intentionally do NOT fall back to
-   * `connector.type === 'injected' && !!window.avalanche` — a user with
-   * both Core and MetaMask installed would have `window.avalanche` defined
-   * even when MetaMask is the actually-connected wallet, and we'd run the
-   * Core bootstrap against the wrong injected provider. Modern wallet
-   * dialogs route through EIP-6963, so `connector.id` is authoritative.
+   *
+   * Preferred signal: EIP-6963 rdns — `connector.id === 'app.core'`
+   * (resolved synchronously during render).
+   *
+   * Fallback: when wagmi attaches via the plain `injected()` connector
+   * (id `'injected'`), resolve the underlying EIP-1193 provider and check
+   * whether it *is* Core's provider. We compare against `window.avalanche`
+   * and `provider.isAvalanche`. This is stricter than the legacy
+   * `connector.type === 'injected' && !!window.avalanche` check — that
+   * version false-positived when both Core and MetaMask were installed
+   * but MetaMask was active, because `window.avalanche` is defined
+   * regardless of which wallet is the active injected provider. Provider
+   * identity disambiguates: if MetaMask is connected, `getProvider()`
+   * returns MetaMask's provider, which is neither `window.avalanche` nor
+   * carries `isAvalanche = true`.
+   *
+   * `isCoreConnector` is `null` until detection completes for the current
+   * connector. Downstream effects bail on `null` so we don't commit to a
+   * wallet path (and wipe `pChainAddress`) before we know the answer. We
+   * track `resolvedForConnectorRef` to invalidate a stale async result
+   * when the connector swaps out — otherwise, on reconnect with Core the
+   * previously-resolved `false` would leak through and gate the bootstrap.
    */
-  const isCoreConnector = connector?.id === 'app.core';
+  const [injectedIsCore, setInjectedIsCore] = useState<boolean | null>(null);
+  const resolvedForConnectorRef = useRef<unknown>(undefined);
+
+  const isCoreConnector: boolean | null = !connector
+    ? false
+    : connector.id === 'app.core'
+      ? true
+      : connector.type === 'injected'
+        ? resolvedForConnectorRef.current === connector
+          ? injectedIsCore
+          : null
+        : false;
+
+  useEffect(() => {
+    if (!connector || connector.type !== 'injected' || typeof window === 'undefined') {
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const provider = (await connector.getProvider?.()) as
+          | (Record<string, unknown> & { isAvalanche?: boolean })
+          | undefined;
+        const coreProvider = (window as any).avalanche;
+        const isCore = !!provider && (provider === coreProvider || provider.isAvalanche === true);
+        if (!cancelled) {
+          resolvedForConnectorRef.current = connector;
+          setInjectedIsCore(isCore);
+        }
+      } catch {
+        if (!cancelled) {
+          resolvedForConnectorRef.current = connector;
+          setInjectedIsCore(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connector]);
 
   // Sync connection state → Zustand store
   useEffect(() => {
+    // Wait for async Core detection before committing to a wallet path.
+    // Without this guard the effect runs with isCoreConnector=false on the
+    // first render, immediately firing the generic-evm branch and wiping
+    // pChainAddress before detection resolves.
+    if (isCoreConnector === null) return;
+
     if (!isConnected || !address) {
       // Disconnected — clear all wallet state
       if (prevAddressRef.current) {
@@ -95,7 +159,17 @@ export function WalletSync() {
       // --- Core Wallet path ---
       setWalletType('core');
 
-      if (addressChanged) {
+      // Bootstrap when address changes OR when the store is missing Core
+      // state. The second condition is what makes reload work: the
+      // walletStore isn't persisted, so on page reload `pChainAddress` and
+      // `coreWalletClient` come back empty even though wagmi rehydrates the
+      // address — `addressChanged` alone would miss that case whenever the
+      // async Core detection resolves after the connection effect has
+      // already set `prevAddressRef`.
+      const storeSnapshot = useWalletStore.getState();
+      const needsCoreBootstrap = !storeSnapshot.coreWalletClient || !storeSnapshot.pChainAddress;
+
+      if (addressChanged || needsCoreBootstrap) {
         // Full Core bootstrap: create client, fetch P-Chain address, chain info
         (async () => {
           try {
@@ -154,6 +228,7 @@ export function WalletSync() {
   // mainnet/testnet flag because Core Wallet's `wallet_getEthereumChain`
   // unreliably reports `isTestnet: false` for custom L1 testnets.
   useEffect(() => {
+    if (isCoreConnector === null) return; // wait for async Core detection
     if (!isConnected || !chainId) return;
     if (chainId === prevChainIdRef.current) return;
     prevChainIdRef.current = chainId;

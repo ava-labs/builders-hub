@@ -13,6 +13,11 @@ export interface QuestionnaireAnswers {
   vmLocation: VMLocation;
   multisig: boolean;
   hosting: HostingOption;
+  // Controls whether the new L1's genesis bakes in the Warp precompile
+  // and the Teleporter (ICM) messenger. Only meaningful for `startingPoint: 'new'`
+  // (convert-existing flows don't rewrite genesis). Defaults to true — most
+  // users want cross-chain messaging.
+  interoperability: boolean;
 }
 
 interface CreateL1FlowState {

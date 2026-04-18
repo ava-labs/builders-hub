@@ -20,21 +20,14 @@ export interface BaseConsoleToolProps {
   onSuccess?: () => void;
 }
 
-// Base console tool component type (before wrapping with metadata)
-type BaseConsoleToolComponent = React.ComponentType<BaseConsoleToolProps>;
-
-// Console Tool with Metadata
-type ConsoleToolComponent = BaseConsoleToolComponent & {
-  /** Required metadata for all console tools */
-  metadata: ConsoleToolMetadata;
-};
-
 /**
  * Higher-Order Component that wraps console tools with metadata and requirements.
  *
- * @param BaseComponent - The base console tool component
- * @param metadata - Console tool metadata including tool requirements
- * @returns Console tool component with metadata and requirements wrapper
+ * Generic over the tool's prop type so tools with extra props (e.g. a
+ * `preinstallDefaults` override forwarded from a parent flow) preserve
+ * those props through the wrapper instead of being narrowed to just
+ * `BaseConsoleToolProps`. The tool must still accept at least
+ * `BaseConsoleToolProps`.
  *
  * @example
  * const CrossChainTransfer = withConsoleToolMetadata(
@@ -46,11 +39,11 @@ type ConsoleToolComponent = BaseConsoleToolComponent & {
  *     }
  * );
  */
-export function withConsoleToolMetadata(
-  BaseComponent: BaseConsoleToolComponent,
+export function withConsoleToolMetadata<P extends BaseConsoleToolProps = BaseConsoleToolProps>(
+  BaseComponent: React.ComponentType<P>,
   metadata: ConsoleToolMetadata,
-): ConsoleToolComponent {
-  const WrappedComponent = (props: BaseConsoleToolProps) => {
+): React.ComponentType<P> & { metadata: ConsoleToolMetadata } {
+  const WrappedComponent = (props: P) => {
     const ContainerContent = () => (
       <Container title={metadata.title} description={metadata.description} githubUrl={metadata.githubUrl}>
         <BaseComponent {...props} />
@@ -70,8 +63,5 @@ export function withConsoleToolMetadata(
     );
   };
 
-  // Attach metadata to the component
-  const ComponentWithMetadata = Object.assign(WrappedComponent, { metadata });
-
-  return ComponentWithMetadata;
+  return Object.assign(WrappedComponent, { metadata });
 }

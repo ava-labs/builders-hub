@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   Search,
   X,
@@ -43,52 +44,8 @@ interface ToolCard {
   category: string;
   icon: LucideIcon;
   external?: boolean;
+  featured?: boolean;
 }
-
-// Avalanche theming: red for Primary/L1, functional colors for other categories
-const CATEGORY_STYLES: Record<string, { badge: string; iconColor: string; accent: string }> = {
-  'Primary Network': {
-    badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-    iconColor: 'text-red-500 dark:text-red-400',
-    accent: 'group-hover:border-red-300 dark:group-hover:border-red-800',
-  },
-  'Create & Deploy': {
-    badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-    iconColor: 'text-red-500 dark:text-red-400',
-    accent: 'group-hover:border-red-300 dark:group-hover:border-red-800',
-  },
-  'Permissioned L1s': {
-    badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
-    iconColor: 'text-violet-500 dark:text-violet-400',
-    accent: 'group-hover:border-violet-300 dark:group-hover:border-violet-800',
-  },
-  'Permissionless L1s': {
-    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-    iconColor: 'text-amber-500 dark:text-amber-400',
-    accent: 'group-hover:border-amber-300 dark:group-hover:border-amber-800',
-  },
-  'Interchain Messaging': {
-    badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
-    iconColor: 'text-cyan-500 dark:text-cyan-400',
-    accent: 'group-hover:border-cyan-300 dark:group-hover:border-cyan-800',
-  },
-  'L1 Management': {
-    badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-    iconColor: 'text-red-500 dark:text-red-400',
-    accent: 'group-hover:border-red-300 dark:group-hover:border-red-800',
-  },
-  Utilities: {
-    badge: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/40 dark:text-zinc-300',
-    iconColor: 'text-zinc-500 dark:text-zinc-400',
-    accent: 'group-hover:border-zinc-300 dark:group-hover:border-zinc-600',
-  },
-};
-
-const DEFAULT_STYLE = {
-  badge: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
-  iconColor: 'text-zinc-500 dark:text-zinc-400',
-  accent: 'group-hover:border-zinc-300 dark:group-hover:border-zinc-600',
-};
 
 const TOOLS: ToolCard[] = [
   // ── Primary Network ──────────────────────────────────────
@@ -98,6 +55,7 @@ const TOOLS: ToolCard[] = [
     path: '/console/primary-network/faucet',
     category: 'Primary Network',
     icon: Droplets,
+    featured: true,
   },
   {
     name: 'Data API Keys',
@@ -157,6 +115,7 @@ const TOOLS: ToolCard[] = [
     path: '/console/create-l1',
     category: 'Create & Deploy',
     icon: Layers,
+    featured: true,
   },
   {
     name: 'My L1 Dashboard',
@@ -263,6 +222,13 @@ const TOOLS: ToolCard[] = [
   {
     name: 'Remove Validator',
     description: 'End validation and withdraw staked tokens.',
+    path: '/console/permissionless-l1s/remove-validator-uptime',
+    category: 'Permissionless L1s',
+    icon: SquareMinus,
+  },
+  {
+    name: 'Force Remove Validator',
+    description: 'Remove a validator without uptime proof (forfeits rewards).',
     path: '/console/permissionless-l1s/remove-validator',
     category: 'Permissionless L1s',
     icon: SquareMinus,
@@ -282,6 +248,7 @@ const TOOLS: ToolCard[] = [
     path: '/console/icm/setup',
     category: 'Interchain Messaging',
     icon: MessagesSquare,
+    featured: true,
   },
   {
     name: 'ICTT Setup',
@@ -433,6 +400,133 @@ const CATEGORY_ORDER = [
   'Utilities',
 ];
 
+// Framer variants — staggered children entrance matching console homepage.
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.04, delayChildren: 0.08 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring' as const, stiffness: 240, damping: 22 },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// ToolTile — matches homepage BentoCard geometry: rounded-2xl, soft shadow,
+// icon tile in the top-left, name + description, chevron on hover.
+// ---------------------------------------------------------------------------
+
+function ToolTile({ tool }: { tool: ToolCard }) {
+  const Icon = tool.icon;
+
+  const card = (
+    <motion.div variants={itemVariants} className="h-full">
+      <motion.div
+        whileHover={{ y: -2 }}
+        transition={{ type: 'spring' as const, stiffness: 400, damping: 25 }}
+        className={cn(
+          'group relative h-full rounded-2xl border p-4 cursor-pointer transition-all duration-200',
+          'border-zinc-200/80 dark:border-zinc-800',
+          'bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm',
+          'hover:border-zinc-300 dark:hover:border-zinc-700',
+        )}
+        style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)';
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+            <Icon className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{tool.name}</h3>
+              {tool.external && <ExternalLink className="h-3 w-3 shrink-0 text-zinc-400 dark:text-zinc-500" />}
+            </div>
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">{tool.description}</p>
+          </div>
+          {!tool.external && (
+            <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  if (tool.external) {
+    return (
+      <a href={tool.path} target="_blank" rel="noopener noreferrer" className="h-full block">
+        {card}
+      </a>
+    );
+  }
+  return (
+    <Link href={tool.path} className="h-full block">
+      {card}
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// FeaturedTile — larger dark card for the one "headline" tool per category
+// (matches the Create L1 hero on the homepage).
+// ---------------------------------------------------------------------------
+
+function FeaturedTile({ tool }: { tool: ToolCard }) {
+  const Icon = tool.icon;
+
+  const content = (
+    <motion.div variants={itemVariants} className="h-full">
+      <motion.div
+        whileHover={{ y: -2 }}
+        transition={{ type: 'spring' as const, stiffness: 400, damping: 25 }}
+        className="group relative h-full rounded-2xl border border-zinc-700 bg-zinc-800 p-5 cursor-pointer transition-all duration-200 hover:border-zinc-600 overflow-hidden"
+        style={{
+          boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
+        }}
+      >
+        <div className="flex items-start justify-between h-full gap-4">
+          <div className="min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-white/[0.08] flex items-center justify-center mb-3 transition-colors group-hover:bg-white/[0.14]">
+              <Icon className="w-5 h-5 text-zinc-200 group-hover:text-white transition-colors" />
+            </div>
+            <h3 className="text-base font-semibold text-white mb-1">{tool.name}</h3>
+            <p className="text-sm text-zinc-400 leading-relaxed">{tool.description}</p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-zinc-500 shrink-0 self-center transition-all duration-200 group-hover:text-zinc-300 group-hover:translate-x-0.5" />
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  if (tool.external) {
+    return (
+      <a href={tool.path} target="_blank" rel="noopener noreferrer" className="h-full block">
+        {content}
+      </a>
+    );
+  }
+  return (
+    <Link href={tool.path} className="h-full block">
+      {content}
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
 export default function ToolboxBoard() {
   const [search, setSearch] = useState('');
 
@@ -454,124 +548,119 @@ export default function ToolboxBoard() {
       existing.push(tool);
       map.set(tool.category, existing);
     }
-    // Return in sidebar order
     return CATEGORY_ORDER.filter((c) => map.has(c)).map((c) => ({
       category: c,
       tools: map.get(c)!,
     }));
   }, [filtered]);
 
+  const isSearching = search.trim().length > 0;
+
   return (
-    <div className="max-w-[1600px] mx-auto">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Console Toolbox</h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            All tools in one place.{' '}
-            <Link
-              href="/console/toolbox/composer"
-              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 underline underline-offset-2 decoration-zinc-300 dark:decoration-zinc-600 transition-colors"
-            >
-              Flow Composer →
-            </Link>
-          </p>
-        </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Search tools..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 pl-9 pr-9 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-600 transition-colors"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="relative -m-8 p-8" style={{ minHeight: 'calc(100vh - var(--header-height, 3rem))' }}>
+      {/* Grid background — matches the console homepage */}
+      <div
+        className="absolute inset-0 opacity-[0.4] dark:opacity-[0.15] pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgb(148 163 184 / 0.3) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(148 163 184 / 0.3) 1px, transparent 1px)
+          `,
+          backgroundSize: '24px 24px',
+        }}
+      />
 
-      {/* Results */}
-      {grouped.length === 0 ? (
-        <div className="py-16 text-center text-sm text-zinc-400 dark:text-zinc-500">
-          No tools match &ldquo;{search}&rdquo;
-        </div>
-      ) : (
-        <div className="space-y-10">
-          {grouped.map(({ category, tools }) => {
-            const style = CATEGORY_STYLES[category] ?? DEFAULT_STYLE;
-            return (
-              <section key={category}>
-                <div className="flex items-center gap-3 mb-4">
-                  <span
-                    className={cn(
-                      'inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
-                      style.badge,
-                    )}
-                  >
-                    {category}
-                  </span>
-                  <div className="flex-1 h-px bg-zinc-200/80 dark:bg-zinc-800" />
-                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
-                    {tools.length} tool{tools.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
-                  {tools.map((tool) => {
-                    const card = (
-                      <div
-                        className={cn(
-                          'group relative rounded-xl border border-zinc-200/80 dark:border-zinc-800',
-                          'bg-white dark:bg-zinc-900 px-4 py-3',
-                          'hover:border-zinc-300 dark:hover:border-zinc-700',
-                          'hover:bg-zinc-50 dark:hover:bg-zinc-800/80',
-                          'transition-all duration-150 cursor-pointer',
-                          'flex items-center justify-between gap-3',
-                        )}
-                      >
-                        <div className="min-w-0">
-                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{tool.name}</span>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">{tool.description}</p>
-                        </div>
-                        {tool.external ? (
-                          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
-                        )}
+      <div className="relative max-w-6xl mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+        >
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Toolbox</h1>
+            <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">Every Console tool in one place.</p>
+          </div>
+
+          <div className="relative w-full sm:w-80">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Search tools..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm pl-9 pr-9 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-700 focus:border-zinc-300 dark:focus:border-zinc-700 transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Results */}
+        {grouped.length === 0 ? (
+          <div className="py-24 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800 mb-4">
+              <Search className="h-5 w-5 text-zinc-400" />
+            </div>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">No tools match &ldquo;{search}&rdquo;</p>
+          </div>
+        ) : (
+          <motion.div className="space-y-10" variants={containerVariants} initial="hidden" animate="visible">
+            {grouped.map(({ category, tools }) => {
+              // Don't hero-promote the featured tile while a search is active —
+              // it would visually dominate filtered results. Use a uniform grid
+              // of tiles so matches are easy to compare at a glance.
+              const featured = !isSearching ? tools.find((t) => t.featured) : undefined;
+              const rest = featured ? tools.filter((t) => t !== featured) : tools;
+
+              return (
+                <section key={category}>
+                  {/* Section header — mimics the homepage's "Built on Avalanche" bar */}
+                  <div className="mb-4 flex items-center gap-3">
+                    <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{category}</h2>
+                    <div className="h-px flex-1 bg-zinc-200/80 dark:bg-zinc-800" />
+                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
+                      {tools.length} {tools.length === 1 ? 'tool' : 'tools'}
+                    </span>
+                  </div>
+
+                  {featured ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="md:col-span-2 md:row-span-2">
+                        <FeaturedTile tool={featured} />
                       </div>
-                    );
+                      {rest.map((tool) => (
+                        <ToolTile key={tool.path + tool.name} tool={tool} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {rest.map((tool) => (
+                        <ToolTile key={tool.path + tool.name} tool={tool} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </motion.div>
+        )}
 
-                    if (tool.external) {
-                      return (
-                        <a key={tool.path} href={tool.path} target="_blank" rel="noopener noreferrer">
-                          {card}
-                        </a>
-                      );
-                    }
-
-                    return (
-                      <Link key={tool.path} href={tool.path}>
-                        {card}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Summary */}
-      <div className="mt-10 text-center text-xs text-zinc-400 dark:text-zinc-500">
-        {filtered.length} tool{filtered.length !== 1 ? 's' : ''} across {grouped.length} categor
-        {grouped.length !== 1 ? 'ies' : 'y'}
+        {/* Footer count */}
+        {grouped.length > 0 && (
+          <div className="mt-12 text-center text-xs text-zinc-400 dark:text-zinc-500">
+            {filtered.length} {filtered.length === 1 ? 'tool' : 'tools'} across {grouped.length}{' '}
+            {grouped.length === 1 ? 'category' : 'categories'}
+          </div>
+        )}
       </div>
     </div>
   );

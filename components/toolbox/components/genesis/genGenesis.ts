@@ -30,6 +30,10 @@ type GenerateGenesisArgs = {
   preinstallConfig?: PreinstallConfig;
   tokenName?: string;
   tokenSymbol?: string;
+  // Whether to include the Warp precompile config. When false, cross-chain
+  // messaging is disabled at the chain level (ICM Messenger predeploy
+  // becomes inert without Warp). Defaults to true for backwards compatibility.
+  warpEnabled?: boolean;
 };
 
 function generateAllowListConfig(config: AllowlistPrecompileConfig) {
@@ -67,6 +71,7 @@ export function generateGenesis({
   preinstallConfig,
   tokenName,
   tokenSymbol,
+  warpEnabled = true,
 }: GenerateGenesisArgs) {
   // Convert balances to wei
   const allocations: Record<
@@ -228,11 +233,13 @@ export function generateGenesis({
       londonBlock: 0,
       muirGlacierBlock: 0,
       petersburgBlock: 0,
-      warpConfig: {
-        blockTimestamp: currentTimestamp,
-        quorumNumerator: 67,
-        requirePrimaryNetworkSigners: true,
-      },
+      ...(warpEnabled && {
+        warpConfig: {
+          blockTimestamp: currentTimestamp,
+          quorumNumerator: 67,
+          requirePrimaryNetworkSigners: true,
+        },
+      }),
       ...(txAllowlistConfig.activated && {
         txAllowListConfig: generateAllowListConfig(txAllowlistConfig),
       }),

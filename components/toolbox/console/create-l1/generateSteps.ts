@@ -1,3 +1,4 @@
+import React from 'react';
 import { type StepDefinition } from '@/components/console/step-flow';
 import { type QuestionnaireAnswers } from '@/components/toolbox/stores/createL1FlowStore';
 
@@ -39,6 +40,22 @@ import ERC20TransferOwnershipStep from '@/components/toolbox/console/permissionl
 import ManagedTestnetRelayers from '@/components/toolbox/console/testnet-infra/managed-testnet-relayers/ManagedTestnetRelayers';
 
 /**
+ * Produces a prop-less component for step-flow that mounts CreateChain with
+ * the questionnaire-driven defaults. The step runner can't pass props, so we
+ * close over `answers` here. The user can still toggle any genesis option
+ * from the GenesisBuilder UI — these are only *defaults*.
+ */
+function createChainWithAnswers(answers: QuestionnaireAnswers): React.ComponentType {
+  const preinstallDefaults = {
+    icmMessenger: answers.interoperability,
+  };
+  const warpEnabled = answers.interoperability;
+  const Wrapped: React.ComponentType = () => React.createElement(CreateChain, { preinstallDefaults, warpEnabled });
+  Wrapped.displayName = 'CreateChainWithAnswers';
+  return Wrapped;
+}
+
+/**
  * Generates a complete deployment flow based on questionnaire answers.
  *
  * Question order:
@@ -72,7 +89,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         type: 'single',
         key: 'create-chain',
         title: 'Create Chain',
-        component: CreateChain,
+        component: createChainWithAnswers(answers),
         requiredChain: 'p-chain',
       });
 
@@ -157,7 +174,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         type: 'single',
         key: 'create-chain',
         title: 'Create Chain',
-        component: CreateChain,
+        component: createChainWithAnswers(answers),
         requiredChain: 'p-chain',
       });
 
