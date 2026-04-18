@@ -45,9 +45,15 @@ export function triggerLoginComplete() {
 // Hook for components that need to trigger the login modal
 export function useLoginModalTrigger() {
   const openLoginModal = useCallback((callbackUrl?: string) => {
+    // Default to the current URL so post-login the user returns to the page
+    // they were on (VerifyEmail fires window.location.href = callbackUrl on
+    // success). Without this, callbackUrl falls back to "/" and the user
+    // gets bounced to the homepage instead of the tool that gated them.
+    const resolvedCallback =
+      callbackUrl ?? (typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : undefined);
     globalLoginModalState = {
       isOpen: true,
-      callbackUrl,
+      callbackUrl: resolvedCallback,
     };
     notifyLoginModalChange();
   }, []);

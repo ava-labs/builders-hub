@@ -38,14 +38,18 @@ function CreateManagedTestnetNodeBase() {
   const [secondsUntilWalletEnabled, setSecondsUntilWalletEnabled] = useState<number>(0);
   const [isConnectingWallet, setIsConnectingWallet] = useState(false);
 
+  // Back-up matcher for the case where createNode couldn't return the DB
+  // node directly (legacy responses) — prefer the synchronously-set
+  // createdNode from handleCreate below.
   useEffect(() => {
+    if (createdNode) return;
     if (createdResponse && nodes.length > 0) {
       const node = nodes.find((n) => n.node_id === createdResponse.nodeID && n.subnet_id === subnetId);
       if (node) {
         setCreatedNode(node);
       }
     }
-  }, [nodes, createdResponse, subnetId]);
+  }, [nodes, createdResponse, subnetId, createdNode]);
 
   useEffect(() => {
     if (!createdNode) return;
@@ -82,6 +86,11 @@ function CreateManagedTestnetNodeBase() {
     try {
       const response = await createNodePromise;
       setCreatedResponse(response);
+      // The POST response carries the freshly-created DB node; apply it
+      // synchronously so Step 3 unlocks without waiting for a re-fetch round-trip.
+      if (response.node) {
+        setCreatedNode(response.node);
+      }
     } finally {
       setIsCreatingNode(false);
       await fetchNodes();
