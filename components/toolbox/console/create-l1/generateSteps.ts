@@ -8,7 +8,9 @@ import CreateChain from '@/components/toolbox/console/layer-1/create/CreateChain
 import ConvertSubnetToL1 from '@/components/toolbox/console/layer-1/create/ConvertSubnetToL1';
 
 // ── Node hosting ─────────────────────────────────────────────
-import AvalancheGoDockerL1 from '@/components/toolbox/console/layer-1/AvalancheGoDockerL1';
+import AvalancheGoDockerL1, {
+  type AvalancheGoDockerL1Props,
+} from '@/components/toolbox/console/layer-1/AvalancheGoDockerL1';
 import ManagedTestnetNodes from '@/components/toolbox/console/testnet-infra/managed-testnet-nodes/ManagedTestnetNodes';
 
 // ── Validator Manager (PoA foundation) ───────────────────────
@@ -52,6 +54,22 @@ function createChainWithAnswers(answers: QuestionnaireAnswers): React.ComponentT
   const warpEnabled = answers.interoperability;
   const Wrapped: React.ComponentType = () => React.createElement(CreateChain, { preinstallDefaults, warpEnabled });
   Wrapped.displayName = 'CreateChainWithAnswers';
+  return Wrapped;
+}
+
+/**
+ * Wraps AvalancheGoDockerL1 with Create L1 flow defaults: force validator
+ * node type (the user just created a validator set) and hide the node-type
+ * selector so RPC/archival options don't clutter the flow.
+ */
+function dockerForL1Flow(): React.ComponentType {
+  const props: AvalancheGoDockerL1Props = {
+    forceNodeType: 'validator',
+    showPrerequisites: true,
+  };
+  const Target = AvalancheGoDockerL1 as React.ComponentType<AvalancheGoDockerL1Props>;
+  const Wrapped: React.ComponentType = () => React.createElement(Target, props);
+  Wrapped.displayName = 'AvalancheGoDockerL1ForFlow';
   return Wrapped;
 }
 
@@ -107,7 +125,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
           type: 'single',
           key: 'docker-setup',
           title: 'Docker Node Setup',
-          component: AvalancheGoDockerL1,
+          component: dockerForL1Flow(),
           requiredChain: 'any',
         });
       }
@@ -192,7 +210,7 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
           type: 'single',
           key: 'docker-setup',
           title: 'Docker Node Setup',
-          component: AvalancheGoDockerL1,
+          component: dockerForL1Flow(),
           requiredChain: 'any',
         });
       }
