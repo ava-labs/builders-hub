@@ -49,20 +49,6 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
         <DetailRow label="Validator Node" value={result.nodeId} mono truncate />
       </div>
 
-      {/* What's next */}
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-2">
-          What&apos;s next
-        </div>
-        <ul className="space-y-1 text-sm text-zinc-600 dark:text-zinc-300">
-          <li>• Deploy a contract with Foundry using the RPC URL above</li>
-          <li>
-            • Add validators from <span className="font-medium">Validators → Add Validator</span> in the sidebar
-          </li>
-          <li>• Your managed validator node expires in 3 days — swap in self-hosted nodes for persistence</li>
-        </ul>
-      </div>
-
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={handleAddToWallet} loading={addingToWallet} icon={<Wallet className="h-4 w-4" />} stickLeft>

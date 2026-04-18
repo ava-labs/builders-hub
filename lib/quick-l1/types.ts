@@ -74,6 +74,33 @@ export interface DeployResponse {
 }
 
 /**
+ * A single on-chain transaction produced by a deployment step. Steps
+ * like `waiting-for-bootstrap` produce none; `deploying-validator-manager`
+ * typically produces several (library, implementation, proxy).
+ */
+export interface TxRecord {
+  /** P-Chain tx id (base58) or EVM tx hash (0x-prefixed hex). */
+  hash: string;
+  /** Which chain the tx landed on — determines the explorer URL. */
+  chain: 'p-chain' | 'c-chain' | 'l1';
+  network: 'fuji' | 'mainnet';
+  /** Optional short label (e.g. "ValidatorMessages library"). */
+  label?: string;
+  /** ISO-8601 timestamp of submission. */
+  timestamp: string;
+}
+
+/**
+ * Per-step record of what happened — surfaced in the progress UI so
+ * users can follow each tx live. Keep this ordered to match
+ * DEPLOYMENT_STEPS order.
+ */
+export interface StepEvidence {
+  step: DeploymentStep;
+  txs: TxRecord[];
+}
+
+/**
  * Full job state — returned from GET /api/quick-l1/status/:jobId.
  * Frontend polls this every ~2s.
  */
@@ -86,6 +113,8 @@ export interface DeploymentJob {
   completedSteps: DeploymentStep[];
   /** Optional human-readable detail (e.g. tx hash, node ID). */
   statusDetail?: string;
+  /** Per-step tx evidence. Steps without txs (e.g. bootstrap wait) still get an entry with an empty txs array once they complete. */
+  evidence: StepEvidence[];
   /** Final deployment details — populated only when status='complete'. */
   result?: DeploymentResult;
   /** Populated only when status='failed'. */
