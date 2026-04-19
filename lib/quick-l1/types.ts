@@ -22,6 +22,7 @@ export type DeploymentStep =
   | 'deploying-icm-registry'
   | 'deploying-token-remote'
   | 'starting-relayer'
+  | 'registering-remote'
   | 'bridging-initial-tokens';
 
 export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
@@ -57,6 +58,7 @@ export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'deploying-icm-registry',
   'deploying-token-remote',
   'starting-relayer',
+  'registering-remote',
   'bridging-initial-tokens',
 ];
 
@@ -67,6 +69,7 @@ export const INTEROP_ONLY_STEPS: readonly DeploymentStep[] = [
   'deploying-icm-registry',
   'deploying-token-remote',
   'starting-relayer',
+  'registering-remote',
   'bridging-initial-tokens',
 ];
 
@@ -84,6 +87,7 @@ export const STEP_LABEL: Record<DeploymentStep, string> = {
   'deploying-icm-registry': 'Deploying ICM Registry (L1)',
   'deploying-token-remote': 'Deploying TokenRemote (L1)',
   'starting-relayer': 'Starting ICM Relayer',
+  'registering-remote': 'Registering TokenRemote with TokenHome',
   'bridging-initial-tokens': 'Bridging MockUSDC to L1',
 };
 

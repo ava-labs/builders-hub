@@ -39,6 +39,7 @@ const STEP_DELAYS_MS: Record<DeploymentStep, number> = {
   'deploying-icm-registry': 2000,
   'deploying-token-remote': 2000,
   'starting-relayer': 1500,
+  'registering-remote': 2500,
   'bridging-initial-tokens': 3500,
 };
 
@@ -60,6 +61,8 @@ const STEP_DETAIL: Record<DeploymentStep, (job: DeploymentJob) => string> = {
   'deploying-icm-registry': () => 'Deploying TeleporterRegistry on the new L1…',
   'deploying-token-remote': () => 'Deploying ERC20TokenRemote on the new L1…',
   'starting-relayer': () => 'Attaching chain configs to the reserved relayer…',
+  'registering-remote': () =>
+    'Calling registerWithHome on L1 and waiting for the Home to record the remote…',
   'bridging-initial-tokens': (job) =>
     `Bridging 100 MockUSDC to ${job.request.ownerEvmAddress} on L1…`,
 };
@@ -126,6 +129,8 @@ function makeTxsForStep(step: DeploymentStep, network: 'fuji' | 'mainnet'): TxRe
       return [{ hash: fakeEvmTxHash(), chain: 'l1', network, label: 'Deploy ERC20TokenRemote', timestamp: now }];
     case 'starting-relayer':
       return []; // Upstream HTTP call — no on-chain tx.
+    case 'registering-remote':
+      return [{ hash: fakeEvmTxHash(), chain: 'l1', network, label: 'registerWithHome()', timestamp: now }];
     case 'bridging-initial-tokens':
       return [
         { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'Mint MockUSDC', timestamp: now },
