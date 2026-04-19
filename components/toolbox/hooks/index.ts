@@ -1,5 +1,6 @@
 export { useAccountRequirements, AccountRequirementsConfigKey } from './useAccountRequirements';
 export { useChainPublicClient } from './useChainPublicClient';
+export { usePublicClientForChain } from './usePublicClientForChain';
 export { useCriticalError } from './useCriticalError';
 export { useERC20Token } from './useERC20Token';
 export type { ERC20TokenHook } from './useERC20Token';
