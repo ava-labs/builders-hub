@@ -35,7 +35,6 @@ const STEP_DELAYS_MS: Record<DeploymentStep, number> = {
   'provisioning-node': 3000,
   'converting-to-l1': 2500,
   'initializing-validator-set': 2000,
-  'deploying-token-home': 3000,
   'deploying-icm-registry': 2000,
   'deploying-token-remote': 2000,
   'starting-relayer': 1500,
@@ -57,7 +56,6 @@ const STEP_DETAIL: Record<DeploymentStep, (job: DeploymentJob) => string> = {
   'provisioning-node': () => 'Requesting a managed validator node on Fuji…',
   'converting-to-l1': () => 'Submitting convertSubnetToL1Tx with validator credentials…',
   'initializing-validator-set': () => 'Aggregating Warp signatures and seeding the initial validator set…',
-  'deploying-token-home': () => 'Deploying MockUSDC + ERC20TokenHome on Fuji C-Chain…',
   'deploying-icm-registry': () => 'Deploying TeleporterRegistry on the new L1…',
   'deploying-token-remote': () => 'Deploying ERC20TokenRemote on the new L1…',
   'starting-relayer': () => 'Attaching chain configs to the reserved relayer…',
@@ -118,11 +116,6 @@ function makeTxsForStep(step: DeploymentStep, network: 'fuji' | 'mainnet'): TxRe
       return [{ hash: fakePChainTxId(), chain: 'p-chain', network, label: 'ConvertSubnetToL1Tx', timestamp: now }];
     case 'initializing-validator-set':
       return [{ hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'initializeValidatorSet()', timestamp: now }];
-    case 'deploying-token-home':
-      return [
-        { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'Deploy MockUSDC', timestamp: now },
-        { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'Deploy ERC20TokenHome', timestamp: now },
-      ];
     case 'deploying-icm-registry':
       return [{ hash: fakeEvmTxHash(), chain: 'l1', network, label: 'Deploy TeleporterRegistry', timestamp: now }];
     case 'deploying-token-remote':

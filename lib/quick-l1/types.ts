@@ -18,7 +18,6 @@ export type DeploymentStep =
   | 'provisioning-node'
   | 'converting-to-l1'
   | 'initializing-validator-set'
-  | 'deploying-token-home'
   | 'deploying-icm-registry'
   | 'deploying-token-remote'
   | 'starting-relayer'
@@ -54,7 +53,6 @@ export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'provisioning-node',
   'converting-to-l1',
   'initializing-validator-set',
-  'deploying-token-home',
   'deploying-icm-registry',
   'deploying-token-remote',
   'starting-relayer',
@@ -65,7 +63,6 @@ export const DEPLOYMENT_STEPS: DeploymentStep[] = [
 /** Subset of steps that only run when `precompiles.interoperability` is true. */
 export const INTEROP_ONLY_STEPS: readonly DeploymentStep[] = [
   'reserving-relayer',
-  'deploying-token-home',
   'deploying-icm-registry',
   'deploying-token-remote',
   'starting-relayer',
@@ -83,7 +80,6 @@ export const STEP_LABEL: Record<DeploymentStep, string> = {
   'provisioning-node': 'Provisioning Validator Node',
   'converting-to-l1': 'Converting Subnet to L1',
   'initializing-validator-set': 'Initializing Validator Set',
-  'deploying-token-home': 'Deploying MockUSDC + TokenHome (C-Chain)',
   'deploying-icm-registry': 'Deploying ICM Registry (L1)',
   'deploying-token-remote': 'Deploying TokenRemote (L1)',
   'starting-relayer': 'Starting ICM Relayer',
