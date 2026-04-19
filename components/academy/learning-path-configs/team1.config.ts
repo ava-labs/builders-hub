@@ -1,4 +1,4 @@
-import { BookOpen, Code, CalendarDays } from 'lucide-react';
+import { BookOpen, Code, CalendarDays, Lightbulb } from 'lucide-react';
 import type { CourseNode } from '../learning-tree';
 
 export const team1LearningPaths: CourseNode[] = [
@@ -18,7 +18,7 @@ export const team1LearningPaths: CourseNode[] = [
         slug: "team1/team1-technical-member",
         category: "Technical",
         dependencies: ["team1-fundamentals"],
-        position: { x: 30, y: 200 },
+        position: { x: 20, y: 200 },
         mobileOrder: 2
     },
     {
@@ -28,7 +28,7 @@ export const team1LearningPaths: CourseNode[] = [
         slug: "team1/team1-organizing-first-event",
         category: "Community",
         dependencies: ["team1-fundamentals"],
-        position: { x: 70, y: 200 },
+        position: { x: 80, y: 200 },
         mobileOrder: 3
     },
     {
@@ -38,8 +38,18 @@ export const team1LearningPaths: CourseNode[] = [
         slug: "team1/team1-advanced-technical-member",
         category: "Technical",
         dependencies: ["team1-technical-member"],
-        position: { x: 30, y: 400 },
+        position: { x: 20, y: 400 },
         mobileOrder: 4
+    },
+    {
+        id: "team1-soft-skills",
+        name: "Team1 Soft Skills",
+        description: "Communicate clearly, present confidently, listen deeply, and lead without authority.",
+        slug: "team1/team1-soft-skills",
+        category: "Soft Skills",
+        dependencies: ["team1-fundamentals"],
+        position: { x: 50, y: 200 },
+        mobileOrder: 5
     },
 ];
 
@@ -64,6 +74,13 @@ export const team1CategoryStyles = {
         lightBg: "bg-purple-50",
         darkBg: "dark:bg-purple-950",
         label: "Community"
+    },
+    "Soft Skills": {
+        gradient: "from-green-500 to-green-600",
+        icon: Lightbulb,
+        lightBg: "bg-green-50",
+        darkBg: "dark:bg-green-950",
+        label: "Soft Skills"
     },
 };
 
