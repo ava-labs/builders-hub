@@ -19,7 +19,6 @@ import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { baseOptions } from "@/app/layout.config";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
-import Script from "next/script";
 
 function ConsolePageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -87,8 +86,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
       <TrackNewUser />
-      {/* Temporary: Figma capture script for design export — remove after capture */}
-      <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="afterInteractive" />
       <ConsoleContent>{children}</ConsoleContent>
       <LoginModalWrapper />
     </SessionProvider>
