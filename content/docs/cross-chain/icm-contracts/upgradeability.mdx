@@ -36,10 +36,10 @@ In the `TeleporterRegistry` contract, the `latestVersion` state variable returns
 ## Integrating `TeleporterRegistryApp` into a dApp
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/ava-labs/teleporter/main/contracts/teleporter/registry/upgrade-uml.png" /> alt="Upgrade UML diagram"/>
+  <img src="https://raw.githubusercontent.com/ava-labs/icm-services/main/icm-contracts/avalanche/teleporter/registry/upgrade-uml.png" /> alt="Upgrade UML diagram"/>
 </div>
 
-[TeleporterRegistryApp](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/registry/TeleporterRegistryApp.sol) is an abstract contract that helps integrate the `TeleporterRegistry` into ICM contracts. To support upgradeable contracts, there is also a corresponding `TeleporterRegistryAppUpgradeable` contract that is upgrade compatible. By inheriting from `TeleporterRegistryApp`, dApps get:
+[TeleporterRegistryApp](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/registry/TeleporterRegistryApp.sol) is an abstract contract that helps integrate the `TeleporterRegistry` into ICM contracts. To support upgradeable contracts, there is also a corresponding `TeleporterRegistryAppUpgradeable` contract that is upgrade compatible. By inheriting from `TeleporterRegistryApp`, dApps get:
 
 - Ability to send ICM messages through the latest version of the `TeleporterMessenger` contract registered in the Teleporter registry. (The dApp can also override this to use a specific version of the `TeleporterMessenger` contract.)
 - `minTeleporterVersion` management that allows the dApp to specify the minimum `TeleporterMessenger` version that can send messages to the dApp.
@@ -85,7 +85,7 @@ contract ExampleApp is
 
 ### Checking TeleporterRegistryApp access
 
-To prevent anyone from calling the dApp's `updateMinTeleporterVersion`, which would disallow messages from old `TeleporterMessenger` versions from being received, this function should be safeguarded with access controls. All contracts deriving from `TeleporterRegistryApp` will need to implement `TeleporterRegistryApp._checkTeleporterRegistryAppAccess`. For example, [TeleporterRegistryOwnableApp](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/registry/TeleporterRegistryOwnableApp.sol) is an abstract contract that inherits `TeleporterRegistryApp`, and implements `_checkTeleporterRegistryAppAccess` to check whether the caller is the owner. There is also a corresponding `TeleporterRegistryOwnableAppUpgradeable` contract that is upgrade compatible.
+To prevent anyone from calling the dApp's `updateMinTeleporterVersion`, which would disallow messages from old `TeleporterMessenger` versions from being received, this function should be safeguarded with access controls. All contracts deriving from `TeleporterRegistryApp` will need to implement `TeleporterRegistryApp._checkTeleporterRegistryAppAccess`. For example, [TeleporterRegistryOwnableApp](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/registry/TeleporterRegistryOwnableApp.sol) is an abstract contract that inherits `TeleporterRegistryApp`, and implements `_checkTeleporterRegistryAppAccess` to check whether the caller is the owner. There is also a corresponding `TeleporterRegistryOwnableAppUpgradeable` contract that is upgrade compatible.
 
 ```solidity
     function _checkTeleporterRegistryAppAccess() internal view virtual override {
@@ -136,7 +136,7 @@ Using specific version:
 
 ### Receiving from specific TeleporterMessenger versions
 
-`TeleporterRegistryApp` also provides an initial implementation of [ITeleporterReceiver.receiveTeleporterMessage](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/ITeleporterReceiver.sol) that ensures `_msgSender` is a `TeleporterMessenger` contract with a version greater than or equal to `minTeleporterVersion`. This supports the case where a dApp wants to use a new version of the `TeleporterMessenger` contract, but still wants to be able to receive messages from the old `TeleporterMessenger` contract.The dApp can override `_receiveTeleporterMessage` to implement its own logic for receiving messages from `TeleporterMessenger` contracts.
+`TeleporterRegistryApp` also provides an initial implementation of [ITeleporterReceiver.receiveTeleporterMessage](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/ITeleporterReceiver.sol) that ensures `_msgSender` is a `TeleporterMessenger` contract with a version greater than or equal to `minTeleporterVersion`. This supports the case where a dApp wants to use a new version of the `TeleporterMessenger` contract, but still wants to be able to receive messages from the old `TeleporterMessenger` contract.The dApp can override `_receiveTeleporterMessage` to implement its own logic for receiving messages from `TeleporterMessenger` contracts.
 
 ## Managing a TeleporterRegistryApp dApp
 

@@ -34,13 +34,17 @@ export function useWrappedNativeToken(): WrappedNativeTokenHook {
       functionName: 'deposit',
       value: parseEther(amount),
       account: walletEVMAddress as `0x${string}`,
-      chain: viemChain
+      chain: viemChain,
     });
 
-    notify({
-      type: 'call',
-      name: 'Wrap Native Token'
-    }, writePromise, viemChain);
+    notify(
+      {
+        type: 'call',
+        name: 'Wrap Native Token',
+      },
+      writePromise,
+      viemChain,
+    );
 
     return await writePromise;
   };
@@ -56,13 +60,17 @@ export function useWrappedNativeToken(): WrappedNativeTokenHook {
       functionName: 'withdraw',
       args: [parseEther(amount)],
       account: walletEVMAddress as `0x${string}`,
-      chain: viemChain
+      chain: viemChain,
     });
 
-    notify({
-      type: 'call',
-      name: 'Unwrap Native Token'
-    }, writePromise, viemChain);
+    notify(
+      {
+        type: 'call',
+        name: 'Unwrap Native Token',
+      },
+      writePromise,
+      viemChain,
+    );
 
     return await writePromise;
   };
@@ -70,6 +78,6 @@ export function useWrappedNativeToken(): WrappedNativeTokenHook {
   return {
     ...erc20Token,
     deposit,
-    withdraw
+    withdraw,
   };
 }

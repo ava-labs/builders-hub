@@ -4,21 +4,21 @@
  * which lives outside the console WagmiProvider tree.
  */
 export function useWalletConnect() {
-    const connectWallet = async () => {
-        if (typeof window === 'undefined') return;
+  const connectWallet = async () => {
+    if (typeof window === 'undefined') return;
 
-        if (window.ethereum?.request) {
-            try {
-                await window.ethereum.request({
-                    method: 'eth_requestAccounts',
-                });
-            } catch (error) {
-                console.error('Error connecting wallet:', error);
-            }
-        }
-    };
+    if (window.ethereum?.request) {
+      try {
+        await window.ethereum.request({
+          method: 'eth_requestAccounts',
+        });
+      } catch (error) {
+        console.error('Error connecting wallet:', error);
+      }
+    }
+  };
 
-    return {
-        connectWallet
-    };
+  return {
+    connectWallet,
+  };
 }

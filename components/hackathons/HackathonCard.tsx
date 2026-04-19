@@ -17,7 +17,7 @@ function labelForEventType(eventType: string) {
 
 export default function HackathonCard({
   hackathon,
-  basePath = '/hackathons',
+  basePath = '/events',
 }: {
   hackathon: HackathonHeader;
   basePath?: string;

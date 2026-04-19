@@ -4,7 +4,7 @@ import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
 
 // Constants
-export const C_CHAIN_ID = "C";
+export const C_CHAIN_ID = 'C';
 
 /**
  * Generates the VM configuration for a blockchain
@@ -13,43 +13,39 @@ export const C_CHAIN_ID = "C";
  * @param minDelayTarget The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks
  * @returns VM configuration object
  */
-const generateVMConfig = (
-  debugEnabled: boolean,
-  pruningEnabled: boolean,
-  minDelayTarget: number | null
-) => {
+const generateVMConfig = (debugEnabled: boolean, pruningEnabled: boolean, minDelayTarget: number | null) => {
   const baseConfig: any = {
-    "pruning-enabled": pruningEnabled,
+    'pruning-enabled': pruningEnabled,
   };
 
   // Add min-delay-target if provided
   if (minDelayTarget !== null) {
-    baseConfig["min-delay-target"] = minDelayTarget;
+    baseConfig['min-delay-target'] = minDelayTarget;
   }
 
   if (debugEnabled) {
     return {
       ...baseConfig,
-      "log-level": "debug",
-      "warp-api-enabled": true,
+      'log-level': 'debug',
+      'warp-api-enabled': true,
       // Note: internal-personal is intentionally excluded -- it exposes wallet
       // management RPCs (personal_unlockAccount, etc.) dangerous on public nodes.
-      "eth-apis": [
-        "eth",
-        "eth-filter",
-        "net",
-        "admin",
-        "web3",
-        "internal-eth",
-        "internal-blockchain",
-        "internal-transaction",
-        "internal-debug",
-        "internal-account",
-        "debug",
-        "debug-tracer",
-        "debug-file-tracer",
-        "debug-handler"
-      ]
+      'eth-apis': [
+        'eth',
+        'eth-filter',
+        'net',
+        'admin',
+        'web3',
+        'internal-eth',
+        'internal-blockchain',
+        'internal-transaction',
+        'internal-debug',
+        'internal-account',
+        'debug',
+        'debug-tracer',
+        'debug-file-tracer',
+        'debug-handler',
+      ],
     };
   }
 
@@ -68,14 +64,14 @@ export const nodeConfigBase64 = (
   chainId: string,
   debugEnabled: boolean,
   pruningEnabled: boolean,
-  minDelayTarget: number | null
+  minDelayTarget: number | null,
 ) => {
   const vmConfig = generateVMConfig(debugEnabled, pruningEnabled, minDelayTarget);
 
   // First encode the inner config object
   const vmConfigEncoded = btoa(JSON.stringify(vmConfig));
 
-  const configMap: Record<string, { Config: string, Upgrade: any }> = {};
+  const configMap: Record<string, { Config: string; Upgrade: any }> = {};
   configMap[chainId] = { Config: vmConfigEncoded, Upgrade: null };
 
   return btoa(JSON.stringify(configMap));
@@ -103,28 +99,30 @@ export const generateDockerCommand = (
   debugEnabled: boolean = false,
   pruningEnabled: boolean = true,
   isPrimaryNetwork: boolean = false,
-  minDelayTarget: number | null = null
+  minDelayTarget: number | null = null,
 ) => {
   const env: Record<string, string> = {
-    AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
-    AVAGO_HTTP_HOST: "0.0.0.0",
+    AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: 'opendns',
+    AVAGO_HTTP_HOST: '0.0.0.0',
   };
 
   // Only add partial sync for L1s, not for Primary Network
   if (!isPrimaryNetwork) {
-    env.AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK = "true";
+    env.AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK = 'true';
   }
 
   // Add subnets to track if provided and not empty
-  subnets = subnets.filter(subnet => subnet !== "");
+  subnets = subnets.filter((subnet) => subnet !== '');
   if (subnets.length !== 0) {
-    env.AVAGO_TRACK_SUBNETS = subnets.join(",");
+    env.AVAGO_TRACK_SUBNETS = subnets.join(',');
   }
 
   // Set network ID
-  if (networkID === 5) { // Fuji
-    env.AVAGO_NETWORK_ID = "fuji";
-  } else if (networkID === 1) { // Mainnet
+  if (networkID === 5) {
+    // Fuji
+    env.AVAGO_NETWORK_ID = 'fuji';
+  } else if (networkID === 1) {
+    // Mainnet
     // Default is mainnet, no need to set
   } else {
     throw new Error(`This tool only supports Fuji (5) and Mainnet (1). Network ID ${networkID} is not supported.`);
@@ -132,7 +130,7 @@ export const generateDockerCommand = (
 
   // Configure RPC settings
   if (isRPC) {
-    env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
+    env.AVAGO_HTTP_ALLOWED_HOSTS = '"*"';
   }
 
   // Add chain config
@@ -144,7 +142,7 @@ export const generateDockerCommand = (
   if (isCustomVM && !isPrimaryNetwork) {
     // Add VM aliases as an environment variable
     const vmAliases = {
-      [vmId]: [SUBNET_EVM_VM_ID]
+      [vmId]: [SUBNET_EVM_VM_ID],
     };
     const base64Content = btoa(JSON.stringify(vmAliases, null, 2));
     env.AVAGO_VM_ALIASES_FILE_CONTENT = base64Content;
@@ -152,9 +150,9 @@ export const generateDockerCommand = (
 
   // Build Docker command
   const chunks = [
-    "docker run -it -d",
+    'docker run -it -d',
     `--name avago`,
-    `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
+    `-p ${isRPC ? '' : '127.0.0.1:'}9650:9650 -p 9651:9651`,
     `-v ~/.avalanchego:/root/.avalanchego`,
     ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
   ];
@@ -168,5 +166,8 @@ export const generateDockerCommand = (
     chunks.push(`avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`);
   }
 
-  return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
-}; 
+  return chunks
+    .map((chunk) => `    ${chunk}`)
+    .join(' \\\n')
+    .trim();
+};

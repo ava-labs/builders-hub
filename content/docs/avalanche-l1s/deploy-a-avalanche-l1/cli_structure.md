@@ -1134,7 +1134,7 @@ avalanche contract [subcommand] [flags]
 
 - [`deploy`](#avalanche-contract-deploy): The contract command suite provides a collection of tools for deploying
 smart contracts.
-- [`initValidatorManager`](#avalanche-contract-initvalidatormanager): Initializes Proof of Authority(PoA) or Proof of Stake(PoS)Validator Manager contract on a Blockchain and sets up initial validator set on the Blockchain. For more info on Validator Manager, please head to https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager
+- [`initValidatorManager`](#avalanche-contract-initvalidatormanager): Initializes Proof of Authority(PoA) or Proof of Stake(PoS)Validator Manager contract on a Blockchain and sets up initial validator set on the Blockchain. For more info on Validator Manager, please head to https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/validator-manager
 
 **Flags:**
 
@@ -1207,7 +1207,7 @@ avalanche contract deploy erc20 [subcommand] [flags]
 <a id="avalanche-contract-initvalidatormanager"></a>
 ### initValidatorManager
 
-Initializes Proof of Authority(PoA) or Proof of Stake(PoS)Validator Manager contract on a Blockchain and sets up initial validator set on the Blockchain. For more info on Validator Manager, please head to https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager
+Initializes Proof of Authority(PoA) or Proof of Stake(PoS)Validator Manager contract on a Blockchain and sets up initial validator set on the Blockchain. For more info on Validator Manager, please head to https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/validator-manager
 
 **Usage:**
 ```bash

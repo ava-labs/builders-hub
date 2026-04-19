@@ -20,7 +20,7 @@ When a delegator stakes tokens with a validator:
 
 ### Phase 1: Initiation (L1)
 
-The delegator calls [`initiateDelegatorRegistration`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol) on the Staking Manager contract:
+The delegator calls [`initiateDelegatorRegistration`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/NativeTokenStakingManager.sol) on the Staking Manager contract:
 
 ```solidity
 function initiateDelegatorRegistration(
@@ -50,7 +50,7 @@ The weight update message must be signed and submitted to the P-Chain as a `SetL
 
 ### Phase 3: Completion (L1)
 
-Call [`completeDelegatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/PoSValidatorManager.sol) with the P-Chain's signed response:
+Call [`completeDelegatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/PoSValidatorManager.sol) with the P-Chain's signed response:
 
 - Verifies the Warp message and nonce correspondence
 - Activates the delegation (status → Active)

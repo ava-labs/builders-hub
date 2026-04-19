@@ -172,6 +172,7 @@ export async function createRegisterForm(
       tools: (registerData.tools ?? []).join(","),
       web3_proficiency: registerData.web3_proficiency ?? "",
       github_portfolio: registerData.github_portfolio ?? "",
+      ...(registerData.referrer_handle ? { referrer_handle: registerData.referrer_handle } : {}),
     },
   });
   registerData.id = newRegisterFormData.id;
@@ -303,7 +304,7 @@ export async function sendRegistrationToHubSpot(
     const hubspotPayload = {
       fields: fields,
       context: {
-        pageUri: 'https://build.avax.network/hackathons/registration-form',
+        pageUri: 'https://build.avax.network/events/registration-form',
         pageName: 'Hackathon Registration'
       },
       legalConsentOptions: {

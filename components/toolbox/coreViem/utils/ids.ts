@@ -1,5 +1,5 @@
-import { fromBytes } from "viem";
-import { utils } from "@avalabs/avalanchejs";
+import { fromBytes } from 'viem';
+import { utils } from '@avalabs/avalanchejs';
 
 /**
  * Parses an Avalanche NodeID string to its hex representation without the prefix and checksum
@@ -7,7 +7,7 @@ import { utils } from "@avalabs/avalanchejs";
  * @returns The hex string representation without the prefix and checksum
  */
 export const parseNodeID = (nodeID: string): string => {
-  const nodeIDWithoutPrefix = nodeID.replace("NodeID-", "");
+  const nodeIDWithoutPrefix = nodeID.replace('NodeID-', '');
   const decodedID = utils.base58.decode(nodeIDWithoutPrefix);
   const nodeIDHex = fromBytes(decodedID, 'hex');
   const nodeIDHexTrimmed = nodeIDHex.slice(0, -8);
@@ -35,7 +35,9 @@ export const parsePChainAddress = (address: string): `0x${string}` => {
   try {
     const addressBytes = utils.bech32ToBytes(address);
     return fromBytes(addressBytes, 'hex') as `0x${string}`;
-  } catch (e) {
-    throw new Error(`Invalid P-Chain address format: ${address}. Expected bech32 format (e.g., P-avax1... or P-fuji1...)`);
+  } catch {
+    throw new Error(
+      `Invalid P-Chain address format: ${address}. Expected bech32 format (e.g., P-avax1... or P-fuji1...)`,
+    );
   }
 };
