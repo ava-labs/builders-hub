@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { EcosystemMarquee } from "@/components/console/ecosystem-marquee";
+import { AlphaSequence } from "@/components/console/alpha-sequence";
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -159,137 +160,11 @@ function CrossChainCard() {
         transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
         className="group relative h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-5 overflow-hidden transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-lg"
       >
-        {/* AVAX mark — exact geometry from partner portal */}
+        {/* avax.network alpha_webm sequence — replaces the cross-chain
+            SVG animation. Original preserved at
+            components/console/cross-chain-animation-svg.tsx for revert. */}
         <div className="absolute right-4 top-4 bottom-4 w-[50%] pointer-events-none">
-          <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-            {/* Slash left edge */}
-            <circle cx="9.6" cy="86" r="1.2" className="fill-red-400/30 dark:fill-red-400/25" />
-            <circle cx="14.1" cy="77" r="1" className="fill-zinc-400/40 dark:fill-zinc-500/40" />
-            <circle cx="18.6" cy="68" r="1.3" className="fill-blue-400/30 dark:fill-blue-400/25" />
-            <circle cx="23.2" cy="59" r="0.9" className="fill-zinc-400/35 dark:fill-zinc-500/35" />
-            <circle cx="27.8" cy="50" r="1.2" className="fill-emerald-400/28 dark:fill-emerald-400/22" />
-            <circle cx="32.3" cy="41" r="1.1" className="fill-zinc-400/50 dark:fill-zinc-500/50" />
-            <circle cx="36.8" cy="32" r="1" className="fill-violet-400/28 dark:fill-violet-400/22" />
-            <circle cx="41.4" cy="23" r="1.3" className="fill-zinc-400/55 dark:fill-zinc-500/55" />
-            <circle cx="46" cy="14" r="0.9" className="fill-orange-400/25 dark:fill-orange-400/20" />
-            {/* Slash top edge */}
-            <circle cx="54.7" cy="12.4" r="1.2" className="fill-zinc-400/50 dark:fill-zinc-500/50" />
-            <circle cx="59" cy="19.8" r="1" className="fill-sky-400/25 dark:fill-sky-400/20" />
-            <circle cx="63.2" cy="27.1" r="1.3" className="fill-zinc-400/55 dark:fill-zinc-500/55" />
-            {/* Slash right edge */}
-            <circle cx="63.8" cy="42.1" r="1.2" className="fill-rose-400/28 dark:fill-rose-400/22" />
-            <circle cx="60.2" cy="49.6" r="1" className="fill-zinc-400/40 dark:fill-zinc-500/40" />
-            <circle cx="56.6" cy="57.2" r="1.3" className="fill-zinc-400/55 dark:fill-zinc-500/55" />
-            <circle cx="53.1" cy="64.8" r="0.9" className="fill-teal-400/22 dark:fill-teal-400/16" />
-            <circle cx="49.5" cy="72.3" r="1.2" className="fill-zinc-400/45 dark:fill-zinc-500/45" />
-            <circle cx="45.9" cy="79.9" r="1.1" className="fill-amber-400/28 dark:fill-amber-400/22" />
-            <circle cx="42.3" cy="87.4" r="1" className="fill-zinc-400/40 dark:fill-zinc-500/40" />
-            {/* Slash base */}
-            <circle cx="32" cy="95" r="1.2" className="fill-indigo-400/28 dark:fill-indigo-400/22" />
-            <circle cx="25.2" cy="95" r="1" className="fill-zinc-400/40 dark:fill-zinc-500/40" />
-            <circle cx="18.5" cy="95" r="1.3" className="fill-zinc-400/55 dark:fill-zinc-500/55" />
-            <circle cx="11.7" cy="95" r="0.9" className="fill-pink-400/22 dark:fill-pink-400/16" />
-            {/* Slash corners */}
-            <circle cx="5" cy="95" r="1.5" className="fill-red-500/35 dark:fill-red-400/25" />
-            <circle cx="50.5" cy="5" r="1.5" className="fill-blue-500/35 dark:fill-blue-400/25" />
-            <circle cx="67.4" cy="34.5" r="1.5" className="fill-emerald-500/32 dark:fill-emerald-400/25" />
-            <circle cx="38.7" cy="95" r="1.5" className="fill-violet-500/32 dark:fill-violet-400/25" />
-            {/* Slash interior */}
-            <circle cx="45.8" cy="78.4" r="0.8" className="fill-zinc-400/22 dark:fill-zinc-500/22" />
-            <circle cx="45.5" cy="40.9" r="0.6" className="fill-zinc-400/25 dark:fill-zinc-500/25" />
-            <circle cx="47.9" cy="69.5" r="1" className="fill-zinc-400/22 dark:fill-zinc-500/22" />
-            <circle cx="45.2" cy="32.8" r="0.7" className="fill-zinc-400/20 dark:fill-zinc-500/20" />
-            <circle cx="44" cy="27.4" r="0.8" className="fill-zinc-400/20 dark:fill-zinc-500/20" />
-            <circle cx="48.2" cy="59.3" r="0.7" className="fill-zinc-400/18 dark:fill-zinc-500/18" />
-            <circle cx="61.6" cy="46.2" r="0.7" className="fill-zinc-400/25 dark:fill-zinc-500/25" />
-            <circle cx="31.7" cy="85.6" r="0.9" className="fill-zinc-400/25 dark:fill-zinc-500/25" />
-            <circle cx="30" cy="89.4" r="0.8" className="fill-zinc-400/25 dark:fill-zinc-500/25" />
-            <circle cx="51.2" cy="32" r="0.8" className="fill-zinc-400/18 dark:fill-zinc-500/18" />
-            <circle cx="42.9" cy="66.9" r="1.1" className="fill-zinc-400/18 dark:fill-zinc-500/18" />
-            <circle cx="41.8" cy="61.6" r="0.9" className="fill-zinc-400/15 dark:fill-zinc-500/15" />
-            <circle cx="29.8" cy="86.6" r="1" className="fill-zinc-400/15 dark:fill-zinc-500/15" />
-            <circle cx="16.3" cy="92.2" r="0.7" className="fill-zinc-400/18 dark:fill-zinc-500/18" />
-            <circle cx="48" cy="49.7" r="1" className="fill-zinc-400/20 dark:fill-zinc-500/20" />
-            <circle cx="56.4" cy="32.4" r="0.9" className="fill-zinc-400/20 dark:fill-zinc-500/20" />
-
-            {/* Triangle left edge */}
-            <circle cx="70.6" cy="54.8" r="1.2" className="fill-zinc-400/50 dark:fill-zinc-500/50" />
-            <circle cx="67.1" cy="62.8" r="1" className="fill-cyan-400/25 dark:fill-cyan-400/20" />
-            <circle cx="63.6" cy="70.8" r="1.3" className="fill-zinc-400/55 dark:fill-zinc-500/55" />
-            <circle cx="60.2" cy="78.9" r="0.9" className="fill-purple-400/22 dark:fill-purple-400/16" />
-            <circle cx="56.7" cy="87" r="1.2" className="fill-zinc-400/45 dark:fill-zinc-500/45" />
-            {/* Triangle right edge */}
-            <circle cx="77.6" cy="54.8" r="1.2" className="fill-orange-400/28 dark:fill-orange-400/22" />
-            <circle cx="81.1" cy="62.8" r="1" className="fill-zinc-400/40 dark:fill-zinc-500/40" />
-            <circle cx="84.5" cy="70.8" r="1.3" className="fill-lime-400/28 dark:fill-lime-400/22" />
-            <circle cx="88" cy="78.9" r="0.9" className="fill-zinc-400/35 dark:fill-zinc-500/35" />
-            <circle cx="91.5" cy="87" r="1.2" className="fill-blue-400/28 dark:fill-blue-400/22" />
-            {/* Triangle base */}
-            <circle cx="59.2" cy="95" r="1.2" className="fill-zinc-400/50 dark:fill-zinc-500/50" />
-            <circle cx="65.1" cy="95" r="1" className="fill-rose-400/25 dark:fill-rose-400/20" />
-            <circle cx="71.1" cy="95" r="1.3" className="fill-zinc-400/55 dark:fill-zinc-500/55" />
-            <circle cx="77.1" cy="95" r="0.9" className="fill-emerald-400/22 dark:fill-emerald-400/25" />
-            <circle cx="83.1" cy="95" r="1.2" className="fill-zinc-400/45 dark:fill-zinc-500/45" />
-            <circle cx="89" cy="95" r="1.1" className="fill-sky-400/28 dark:fill-sky-400/22" />
-            {/* Triangle corners */}
-            <circle cx="74.1" cy="46.7" r="1.4" className="fill-red-500/32 dark:fill-red-400/25" />
-            <circle cx="53.2" cy="95" r="1.4" className="fill-amber-500/32 dark:fill-amber-400/25" />
-            <circle cx="95" cy="95" r="1.4" className="fill-indigo-500/32 dark:fill-indigo-400/25" />
-            {/* Triangle interior */}
-            <circle cx="60.8" cy="77.4" r="0.7" className="fill-zinc-400/20 dark:fill-zinc-500/20" />
-            <circle cx="78.5" cy="77.1" r="0.8" className="fill-zinc-400/12 dark:fill-zinc-500/12" />
-            <circle cx="77" cy="59.6" r="0.8" className="fill-zinc-400/12 dark:fill-zinc-500/12" />
-            <circle cx="71.3" cy="78" r="0.8" className="fill-zinc-400/18 dark:fill-zinc-500/18" />
-            <circle cx="60.9" cy="86.7" r="0.9" className="fill-zinc-400/18 dark:fill-zinc-500/18" />
-            <circle cx="75.7" cy="87.1" r="0.6" className="fill-zinc-400/20 dark:fill-zinc-500/20" />
-            <circle cx="72.6" cy="73.6" r="1" className="fill-zinc-400/18 dark:fill-zinc-500/18" />
-            <circle cx="82.4" cy="87.4" r="1" className="fill-zinc-400/15 dark:fill-zinc-500/15" />
-            <circle cx="68" cy="68" r="0.7" className="fill-zinc-400/15 dark:fill-zinc-500/15" />
-            <circle cx="84" cy="92" r="0.6" className="fill-zinc-400/12 dark:fill-zinc-500/12" />
-
-            {/* Edge — up the slash (pulsing radius = "important" message) */}
-            <circle r="1.4" opacity="0" className="fill-red-500/70 dark:fill-red-400/60">
-              <animateMotion dur="3s" repeatCount="indefinite" path="M5,95 L50.5,5" />
-              <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.06;0.88;1" dur="3s" repeatCount="indefinite" />
-              <animate attributeName="r" values="1.4;1.8;1.4" dur="0.7s" repeatCount="indefinite" />
-            </circle>
-            {/* Cross — TL to Peak (request) */}
-            <circle r="1.2" opacity="0" className="fill-blue-500/70 dark:fill-blue-400/60">
-              <animateMotion dur="2s" repeatCount="indefinite" path="M50.5,5 Q55,35 74.1,46.7" begin="0.6s" />
-              <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.1;0.88;1" dur="2s" repeatCount="indefinite" begin="0.6s" />
-            </circle>
-            {/* Cross — Peak to TL (response) */}
-            <circle r="1.0" opacity="0" className="fill-indigo-500/60 dark:fill-indigo-400/50">
-              <animateMotion dur="2.2s" repeatCount="indefinite" path="M74.1,46.7 Q68,18 50.5,5" begin="1.8s" />
-              <animate attributeName="opacity" values="0;0.8;0.8;0" keyTimes="0;0.1;0.88;1" dur="2.2s" repeatCount="indefinite" begin="1.8s" />
-            </circle>
-            {/* Cross — TR to TriBL (dramatic rightward sweep) */}
-            <circle r="1.1" opacity="0" className="fill-amber-500/65 dark:fill-amber-400/55">
-              <animateMotion dur="2.8s" repeatCount="indefinite" path="M67.4,34.5 Q82,68 53.2,95" begin="0.2s" />
-              <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.06;0.88;1" dur="2.8s" repeatCount="indefinite" begin="0.2s" />
-            </circle>
-            {/* Cross — interior diagonal (slash mid to triangle mid) */}
-            <circle r="1.1" opacity="0" className="fill-violet-500/65 dark:fill-violet-400/55">
-              <animateMotion dur="2.4s" repeatCount="indefinite" path="M45,41 Q63,42 72,74" begin="1.4s" />
-              <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.1;0.88;1" dur="2.4s" repeatCount="indefinite" begin="1.4s" />
-            </circle>
-            {/* Cross — base to peak (long arc, pulsing = relay message) */}
-            <circle r="1.2" opacity="0" className="fill-cyan-500/65 dark:fill-cyan-400/55">
-              <animateMotion dur="3.2s" repeatCount="indefinite" path="M38.7,95 Q38,52 74.1,46.7" begin="2.6s" />
-              <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.06;0.88;1" dur="3.2s" repeatCount="indefinite" begin="2.6s" />
-              <animate attributeName="r" values="1.2;1.5;1.2" dur="0.9s" repeatCount="indefinite" />
-            </circle>
-            {/* Edge — down the triangle right side */}
-            <circle r="1.1" opacity="0" className="fill-emerald-500/65 dark:fill-emerald-400/55">
-              <animateMotion dur="2s" repeatCount="indefinite" path="M74.1,46.7 L95,95" begin="3.4s" />
-              <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.1;0.88;1" dur="2s" repeatCount="indefinite" begin="3.4s" />
-            </circle>
-            {/* Cross — triangle interior back to slash (return path) */}
-            <circle r="0.9" opacity="0" className="fill-rose-500/60 dark:fill-rose-400/50">
-              <animateMotion dur="2.2s" repeatCount="indefinite" path="M80,80 Q62,82 38.7,95" begin="4.4s" />
-              <animate attributeName="opacity" values="0;0.8;0.8;0" keyTimes="0;0.1;0.88;1" dur="2.2s" repeatCount="indefinite" begin="4.4s" />
-            </circle>
-          </svg>
+          <AlphaSequence className="h-full w-full" />
         </div>
 
         <div className="relative">
@@ -307,7 +182,9 @@ function CrossChainCard() {
           </div>
           <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Cross-Chain</h3>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">ICM & ICTT bridges</p>
-          <div className="space-y-1">
+          {/* Width-capped so SubLink hover backgrounds don't bleed behind
+              the alpha video on the right half of the card. */}
+          <div className="space-y-1 max-w-[50%]">
             <SubLink href="/console/icm/setup" icon={MessagesSquare} label="ICM Setup" />
             <SubLink href="/console/ictt/setup" icon={ArrowUpDown} label="ICTT Bridge" />
           </div>
