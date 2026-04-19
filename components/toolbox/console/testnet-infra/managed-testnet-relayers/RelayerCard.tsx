@@ -20,7 +20,8 @@ import {
 import { Button } from '@/components/toolbox/components/Button';
 import { Input, RawInput } from '@/components/toolbox/components/Input';
 import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
-import { createPublicClient, http, formatEther, parseEther, Chain } from 'viem';
+import { formatEther, parseEther, Chain } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';
@@ -123,9 +124,8 @@ export default function RelayerCard({
       }
       for (const config of relayer.configs) {
         try {
-          const client = createPublicClient({
-            transport: http(config.rpcUrl),
-          });
+          const client = makePublicClientForChain(config.rpcUrl);
+          if (!client) throw new Error('Unreachable RPC');
           const balance = await client.getBalance({ address: relayer.relayerId as `0x${string}` });
           newBalances[config.blockchainId] = formatEther(balance);
         } catch (error) {
@@ -165,7 +165,8 @@ export default function RelayerCard({
       let evmChainId: number | undefined = l1?.evmChainId;
       if (!evmChainId) {
         try {
-          const probe = createPublicClient({ transport: http(config.rpcUrl) });
+          const probe = makePublicClientForChain(config.rpcUrl);
+          if (!probe) throw new Error('no client');
           evmChainId = await probe.getChainId();
         } catch {
           throw new Error(
@@ -193,9 +194,8 @@ export default function RelayerCard({
       // Switch chain in Core wallet
       await walletClient.switchChain({ id: evmChainId });
 
-      const publicClient = createPublicClient({
-        transport: http(config.rpcUrl),
-      });
+      const publicClient = makePublicClientForChain(config.rpcUrl);
+      if (!publicClient) throw new Error(`Could not create public client for ${config.rpcUrl}`);
 
       const nextNonce = await publicClient.getTransactionCount({
         address: walletEVMAddress as `0x${string}`,

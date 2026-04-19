@@ -13,6 +13,11 @@ set -euo pipefail
 errors=0
 warnings=0
 
+# Track whether we're in full-scan mode (no args) so per-check functions
+# can decide their own scope instead of always reusing the console-only
+# `files` array.
+FULL_SCAN=0
+
 # If specific files passed (lint-staged mode), filter to only .tsx/.ts
 if [ $# -gt 0 ]; then
   files=()
@@ -26,6 +31,7 @@ if [ $# -gt 0 ]; then
   fi
 else
   # Full scan mode (CI) — compatible with bash 3.2+ (no mapfile)
+  FULL_SCAN=1
   files=()
   while IFS= read -r f; do
     files+=("$f")
@@ -128,18 +134,19 @@ check_double_notify() {
 # ── Direct viem Client Instantiation ─────────────────────────────
 # createPublicClient should come from a shared hook so RPC resolution
 # lives in one place:
-#   - usePublicClientForChain(blockchainId) → reads on any chain
-#                                              (the common case for
-#                                              cross-chain contract reads)
-#   - useChainPublicClient()                → reads on the wallet's
-#                                              currently-selected chain
+#   - usePublicClientForChain(blockchainIdOrRpcUrl) → any chain by id or url
+#                                                     (the default for reads)
+#   - useChainPublicClient()                        → the wallet's current chain
 #
 # Inline createPublicClient() calls duplicate RPC resolution and silently
 # fail when the user's l1ListStore is customized or a chain's RPC isn't
-# obvious from its blockchainId. The approved lists below bypass the rule
-# — add to them only with clear justification.
+# obvious from its blockchainId. Template-string matches (snippets shown
+# to users to copy) are detected and skipped — detection is multi-line
+# backtick-aware, so even `code: \`const x = createPublicClient(…)\`` on
+# its own line passes. The approved list below is for foundational
+# primitives that own the pattern; there is no grandfather list.
 check_direct_viem_client() {
-  # Permanent approval — foundational primitives that own the pattern
+  # Permanent approval — foundational primitives that own the pattern.
   local approved_core=(
     "components/toolbox/hooks/useChainPublicClient.ts"
     "components/toolbox/hooks/usePublicClientForChain.ts"
@@ -147,52 +154,29 @@ check_direct_viem_client() {
     "components/toolbox/lib/chainId.ts"
     "components/toolbox/services/balanceService.ts"
   )
-  # Grandfathered — migrate to usePublicClientForChain in follow-up work.
-  # New violations in these files will still pass the check; removing
-  # entries here is how we progress toward full enforcement.
-  local grandfathered=(
-    "components/toolbox/components/CheckPrecompile.tsx"
-    "components/toolbox/hooks/contracts/core/useContractDeployer.ts"
-    "components/toolbox/console/primary-network/DevnetFaucet.tsx"
-    "components/toolbox/console/permissionless-l1s/QueryPoSValidatorSet.tsx"
-    "components/toolbox/console/permissionless-l1s/staking-manager-setup/InitializeStakingManager.tsx"
-    "components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx"
-    "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx"
-    "components/toolbox/console/testnet-infra/managed-testnet-relayers/RelayerCard.tsx"
-    "components/toolbox/console/icm/setup/ICMRelayer.tsx"
-    "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx"
-    "components/toolbox/console/icm/test-connection/SendICMMessage.tsx"
-    "components/toolbox/console/ictt/setup/AddCollateral.tsx"
-    "components/toolbox/console/ictt/setup/DeployERC20TokenRemote.tsx"
-    "components/toolbox/console/ictt/setup/DeployNativeTokenRemote.tsx"
-    "components/toolbox/console/ictt/setup/DeployTokenHome.tsx"
-    "components/toolbox/console/ictt/setup/DeployWrappedNative.tsx"
-    "components/toolbox/console/ictt/setup/RegisterWithHome.tsx"
-    "components/toolbox/console/ictt/token-transfer/TestSend.tsx"
-  )
 
   # This rule cares about the whole toolbox, not just console — so it
-  # builds its own file list instead of reusing the outer `files` array.
+  # builds its own file list. In full-scan mode do a fresh find over the
+  # entire toolbox; in lint-staged mode filter the passed files (which
+  # come from `$@` in the outer script and may include non-console toolbox
+  # paths like hooks/ or components/).
   local scan=()
-  if [ ${#files[@]} -gt 0 ]; then
-    # lint-staged mode: filter the passed files to toolbox paths
+  if [ $FULL_SCAN -eq 1 ]; then
+    while IFS= read -r f; do
+      scan+=("$f")
+    done < <(find components/toolbox \( -name '*.tsx' -o -name '*.ts' \) 2>/dev/null | sort)
+  else
     for f in "${files[@]}"; do
       if [[ "$f" == *"components/toolbox/"* ]]; then
         scan+=("$f")
       fi
     done
-  else
-    # Full scan (CI mode) — scope to entire toolbox
-    while IFS= read -r f; do
-      scan+=("$f")
-    done < <(find components/toolbox -name '*.tsx' -o -name '*.ts' 2>/dev/null | sort)
   fi
 
   for f in "${scan[@]}"; do
-    # Skip approved / grandfathered files (match suffix to handle both
-    # absolute lint-staged paths and relative CI paths)
+    # Skip approved files
     local skip=0
-    for a in "${approved_core[@]}" "${grandfathered[@]}"; do
+    for a in "${approved_core[@]}"; do
       if [[ "$f" == *"$a" ]]; then
         skip=1
         break
@@ -200,23 +184,45 @@ check_direct_viem_client() {
     done
     [ $skip -eq 1 ] && continue
 
-    # Flag each createPublicClient( call, excluding lines that are
-    # clearly inside a template literal (heuristic: a backtick appears
-    # on the same line before the match — catches `code: \`...\`` blocks
-    # that render sample code for users to copy).
-    while IFS= read -r match; do
-      local content="${match#*:}"
-      content="${content#*:}"
-      if [[ "$content" == *'`'*createPublicClient* ]]; then
-        continue
-      fi
-      errors=$((errors + 1))
-      echo "error: $match"
-      echo "       Use usePublicClientForChain(blockchainId) for arbitrary-chain reads,"
-      echo "       or useChainPublicClient() for the wallet's current chain."
-      echo "       If you genuinely need a bespoke client, add the path to the"
-      echo "       approved list in scripts/check-console-design.sh with a reason."
-    done < <(grep -Hn "createPublicClient(" "$f" 2>/dev/null || true)
+    # Use awk to track whether we're inside a template literal by
+    # counting unescaped backticks. Only flag createPublicClient calls
+    # that are NOT inside one — so `code: \`…\`` snippets used to render
+    # sample code for users don't trigger false positives.
+    local matches
+    matches=$(awk '
+      BEGIN { in_tmpl = 0 }
+      {
+        line = $0
+        # Strip escaped backticks so they do not flip state
+        gsub(/\\`/, "", line)
+        # Match createPublicClient( and flag only if not inside template
+        cpc = match(line, /createPublicClient\(/)
+        if (cpc > 0) {
+          before = substr(line, 1, cpc - 1)
+          n_before = gsub(/`/, "`", before)
+          at_pos = (in_tmpl + (n_before % 2)) % 2
+          if (at_pos == 0) {
+            printf "%s:%d:%s\n", FILENAME, NR, $0
+          }
+        }
+        # Update state for next line based on all backticks on this line
+        n_total = gsub(/`/, "`", line)
+        if (n_total % 2 == 1) in_tmpl = 1 - in_tmpl
+      }
+    ' "$f" 2>/dev/null)
+
+    if [ -n "$matches" ]; then
+      while IFS= read -r m; do
+        [ -z "$m" ] && continue
+        errors=$((errors + 1))
+        echo "error: $m"
+        echo "       Use usePublicClientForChain(idOrRpcUrl) at component top level,"
+        echo "       makePublicClientForChain(idOrRpcUrl, l1List) inside async handlers / loops,"
+        echo "       or useChainPublicClient() for the wallet's current chain."
+        echo "       If you genuinely need a bespoke client, add the path to the"
+        echo "       approved list in scripts/check-console-design.sh with a reason."
+      done <<< "$matches"
+    fi
   done
 }
 

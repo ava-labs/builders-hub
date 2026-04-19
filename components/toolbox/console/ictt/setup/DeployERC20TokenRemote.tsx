@@ -10,7 +10,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Success } from '@/components/toolbox/components/Success';
 import { Input, Suggestion } from '@/components/toolbox/components/Input';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
-import { createPublicClient, http } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Note } from '@/components/toolbox/components/Note';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import { cb58ToHex } from '@/components/tools/common/utils/cb58';
@@ -112,9 +112,8 @@ function DeployERC20TokenRemote() {
 
         if (!sourceL1?.rpcUrl || !tokenHomeAddress) return;
 
-        const publicClient = createPublicClient({
-          transport: http(sourceL1.rpcUrl),
-        });
+        const publicClient = makePublicClientForChain(sourceL1.rpcUrl);
+        if (!publicClient) return;
 
         const tokenAddress = await publicClient.readContract({
           address: tokenHomeAddress as `0x${string}`,

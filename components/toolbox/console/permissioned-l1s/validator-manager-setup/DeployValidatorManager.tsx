@@ -4,7 +4,7 @@ import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState } from 'react';
-import { createPublicClient, http } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Button } from '@/components/toolbox/components/Button';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import ValidatorMessagesABI from '@/contracts/icm-contracts/compiled/ValidatorMessages.json';
@@ -93,10 +93,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: 'deploy', name: 'ValidatorMessages Library' }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
-      const chainClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!chainClient) throw new Error('Could not create public client for chain');
       const receipt = await chainClient.waitForTransactionReceipt({ hash });
       if (!receipt.contractAddress) {
         throw new Error('No contract address in receipt');
@@ -129,10 +127,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: 'deploy', name: 'ValidatorManager' }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
-      const chainClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!chainClient) throw new Error('Could not create public client for chain');
       const receipt = await chainClient.waitForTransactionReceipt({ hash });
       if (!receipt.contractAddress) {
         throw new Error('No contract address in receipt');

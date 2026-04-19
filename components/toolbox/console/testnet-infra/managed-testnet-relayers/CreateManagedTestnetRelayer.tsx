@@ -13,7 +13,8 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import { useL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { RefreshCw } from 'lucide-react';
 import { Input, RawInput } from '@/components/toolbox/components/Input';
-import { createPublicClient, http, formatEther, parseEther, Chain } from 'viem';
+import { formatEther, parseEther, Chain } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 
@@ -141,9 +142,8 @@ function CreateManagedTestnetRelayerBase() {
       const newBalances: Record<string, string> = {};
       for (const config of createdRelayer.configs) {
         try {
-          const client = createPublicClient({
-            transport: http(config.rpcUrl),
-          });
+          const client = makePublicClientForChain(config.rpcUrl);
+          if (!client) throw new Error('Unreachable RPC');
           const balance = await client.getBalance({ address: createdRelayer.relayerId as `0x${string}` });
           newBalances[config.blockchainId] = formatEther(balance);
         } catch (error) {
@@ -185,7 +185,8 @@ function CreateManagedTestnetRelayerBase() {
       let evmChainId: number | undefined = l1?.evmChainId;
       if (!evmChainId) {
         try {
-          const probe = createPublicClient({ transport: http(config.rpcUrl) });
+          const probe = makePublicClientForChain(config.rpcUrl);
+          if (!probe) throw new Error('no client');
           evmChainId = await probe.getChainId();
         } catch {
           throw new Error(
@@ -213,9 +214,8 @@ function CreateManagedTestnetRelayerBase() {
       // Switch chain in Core wallet
       await walletClient.switchChain({ id: evmChainId });
 
-      const publicClient = createPublicClient({
-        transport: http(config.rpcUrl),
-      });
+      const publicClient = makePublicClientForChain(config.rpcUrl);
+      if (!publicClient) throw new Error(`Could not create public client for ${config.rpcUrl}`);
 
       const nextNonce = await publicClient.getTransactionCount({
         address: walletEVMAddress as `0x${string}`,

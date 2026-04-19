@@ -6,7 +6,8 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import ERC20TokenRemoteABI from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
-import { Abi, createPublicClient, http, PublicClient, zeroAddress } from 'viem';
+import { Abi, PublicClient, zeroAddress } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Suggestion } from '@/components/toolbox/components/Input';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { ListContractEvents } from '@/components/toolbox/components/ListContractEvents';
@@ -77,14 +78,9 @@ function RegisterWithHome() {
     try {
       if (!viemChain || !sourceL1?.rpcUrl || !selectedL1?.id) return;
 
-      const remotePublicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
-
-      const homePublicClient = createPublicClient({
-        transport: http(sourceL1.rpcUrl),
-      });
+      const remotePublicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      const homePublicClient = makePublicClientForChain(sourceL1.rpcUrl);
+      if (!remotePublicClient || !homePublicClient) return;
 
       setHomeContractClient(homePublicClient);
 
@@ -148,10 +144,10 @@ function RegisterWithHome() {
     setLastTxId(undefined);
 
     try {
-      const publicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const publicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!publicClient) {
+        throw new Error('Could not create public client for selected chain');
+      }
 
       const feeInfo: readonly [`0x${string}`, bigint] = [zeroAddress, 0n]; // feeTokenAddress, amount
 

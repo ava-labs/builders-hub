@@ -2,7 +2,7 @@
 
 import { useToolboxStore, useViemChainStore, getToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useState, useMemo } from 'react';
-import { createPublicClient, http } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ICMDemoABI from '@/contracts/example-contracts/compiled/ICMDemo.json';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import SelectBlockchainId from '@/components/toolbox/components/SelectBlockchainId';
@@ -240,10 +240,10 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
       const sourceAddress = icmReceiverAddress as `0x${string}`;
       const destinationAddress = targetToolboxStore.icmReceiverAddress as `0x${string}`;
 
-      const publicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const publicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!publicClient) {
+        throw new Error('Could not create public client for source chain');
+      }
 
       if (!walletClient.account) {
         throw new Error('No wallet account connected');
@@ -288,9 +288,11 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
 
     setIsQuerying(true);
     try {
-      const destinationClient = createPublicClient({
-        transport: http(targetL1.rpcUrl),
-      });
+      const destinationClient = makePublicClientForChain(targetL1.rpcUrl);
+      if (!destinationClient) {
+        setCriticalError(new Error('Could not resolve destination chain RPC'));
+        return;
+      }
 
       const lastMessage = await destinationClient.readContract({
         address: targetToolboxStore.icmReceiverAddress as `0x${string}`,

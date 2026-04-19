@@ -9,7 +9,7 @@ import { useNativeCurrencyInfo, useSetNativeCurrencyInfo } from '@/components/to
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import { Success } from '@/components/toolbox/components/Success';
-import { http, createPublicClient } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import WrapNativeToken from './wrapped-native-token/WrapNativeToken';
@@ -138,9 +138,8 @@ function DeployWrappedNative({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
           setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);
         }
 
-        const publicClient = createPublicClient({
-          transport: http(viemChain.rpcUrls.default.http[0] || ''),
-        });
+        const publicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0] || '');
+        if (!publicClient) return;
 
         // Check cache first for wrapped token
         let tokenAddress = cachedWrappedToken || '';
