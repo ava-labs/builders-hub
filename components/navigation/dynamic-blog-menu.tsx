@@ -35,16 +35,45 @@ const staticBlogItems = [
 
 export function useDynamicBlogMenu(): LinkItemType {
   const [latestBlogs, setLatestBlogs] = useState<BlogPost[] | null>(null);
+  const [mounted, setMounted] = useState(false);
 
+  // Defer the fetch — and any state transition — until after hydration
+  // has finished. Ensures SSR and the first client render both emit
+  // exactly the static menu, so Radix's useId sequence upstream stays
+  // deterministic between the two passes.
   useEffect(() => {
-    fetch('/api/latest-blogs')
-      .then(res => res.json())
-      .then(data => setLatestBlogs(data))
-      .catch(err => console.error('Failed to fetch latest blogs:', err));
+    setMounted(true);
   }, []);
 
-  // Use static items until data is loaded to prevent hydration mismatch
-  if (latestBlogs === null) {
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/latest-blogs');
+        if (!res.ok) return;
+        // Dev-mode Turbopack can briefly return an HTML error page for
+        // a route during HMR. Gate on content-type so we don't trip
+        // JSON.parse on "<!DOCTYPE ..." and leak a SyntaxError to the
+        // console.
+        const contentType = res.headers.get('content-type') ?? '';
+        if (!contentType.includes('application/json')) return;
+        const data = (await res.json()) as BlogPost[];
+        if (!cancelled) setLatestBlogs(data);
+      } catch {
+        // Silently ignore — users don't need to know the blog preview
+        // failed, and the static fallback keeps the menu usable.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted]);
+
+  // Static fallback — returned on SSR, during hydration, and until the
+  // fetch resolves successfully. Guarantees identical markup on both
+  // render passes.
+  if (!mounted || latestBlogs === null) {
     return {
       type: 'menu',
       text: 'Blog',

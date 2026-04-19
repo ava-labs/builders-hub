@@ -13,31 +13,61 @@ export type DeploymentStep =
   | 'creating-subnet'
   | 'deploying-validator-manager'
   | 'initializing-manager'
+  | 'reserving-relayer'
   | 'creating-chain'
   | 'provisioning-node'
   | 'converting-to-l1'
-  | 'initializing-validator-set';
+  | 'initializing-validator-set'
+  | 'deploying-token-home'
+  | 'deploying-icm-registry'
+  | 'deploying-token-remote'
+  | 'starting-relayer'
+  | 'bridging-initial-tokens';
 
 export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
 
 /**
- * The ordered list of steps every deployment walks through. Frontend
+ * The ordered list of steps every deployment may walk through. Frontend
  * progress tracker renders this in order; the orchestrator advances one
  * at a time. Any reordering must stay in sync with the `quick-l1`
  * Railway service.
  *
+ * Steps after `initializing-validator-set` only run when the request
+ * has `precompiles.interoperability` enabled — they bootstrap ICM +
+ * ICTT so the user gets a bridged MockUSDC on the new L1 out of the
+ * box. Hide them from progress UI when interop is off.
+ *
+ * `reserving-relayer` runs *before* `creating-chain` because the
+ * relayer's EVM address is baked into L1 genesis alloc.
+ *
  * Validator Manager is deployed on **C-Chain**, not on the new L1 —
  * that's why convert-to-L1 happens after the manager's contract
- * address is known (step 2) + initialized (step 3).
+ * address is known + initialized.
  */
 export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'creating-subnet',
   'deploying-validator-manager',
   'initializing-manager',
+  'reserving-relayer',
   'creating-chain',
   'provisioning-node',
   'converting-to-l1',
   'initializing-validator-set',
+  'deploying-token-home',
+  'deploying-icm-registry',
+  'deploying-token-remote',
+  'starting-relayer',
+  'bridging-initial-tokens',
+];
+
+/** Subset of steps that only run when `precompiles.interoperability` is true. */
+export const INTEROP_ONLY_STEPS: readonly DeploymentStep[] = [
+  'reserving-relayer',
+  'deploying-token-home',
+  'deploying-icm-registry',
+  'deploying-token-remote',
+  'starting-relayer',
+  'bridging-initial-tokens',
 ];
 
 /** Human-readable label for each step (shown in the UI). */
@@ -45,10 +75,16 @@ export const STEP_LABEL: Record<DeploymentStep, string> = {
   'creating-subnet': 'Creating Subnet',
   'deploying-validator-manager': 'Deploying Validator Manager (C-Chain)',
   'initializing-manager': 'Initializing Validator Manager',
+  'reserving-relayer': 'Reserving ICM Relayer',
   'creating-chain': 'Creating Chain',
   'provisioning-node': 'Provisioning Validator Node',
   'converting-to-l1': 'Converting Subnet to L1',
   'initializing-validator-set': 'Initializing Validator Set',
+  'deploying-token-home': 'Deploying MockUSDC + TokenHome (C-Chain)',
+  'deploying-icm-registry': 'Deploying ICM Registry (L1)',
+  'deploying-token-remote': 'Deploying TokenRemote (L1)',
+  'starting-relayer': 'Starting ICM Relayer',
+  'bridging-initial-tokens': 'Bridging MockUSDC to L1',
 };
 
 /**
@@ -183,4 +219,24 @@ export interface DeploymentResult {
   validatorManagerAddress: `0x${string}`;
   /** NodeID of the provisioned validator (for display). */
   nodeId: string;
+  /**
+   * ICM/ICTT artifacts — only populated when `interoperability` is on.
+   * `undefined` means the feature was disabled for this deploy.
+   */
+  interop?: InteropResult;
+}
+
+export interface InteropResult {
+  /** EVM address of the managed ICM relayer, pre-funded via L1 genesis. */
+  relayerAddress: `0x${string}`;
+  /** MockUSDC ERC20 deployed on Fuji C-Chain. Mintable by the service. */
+  mockUsdcAddress: `0x${string}`;
+  /** ERC20TokenHome on Fuji C-Chain, pointing at MockUSDC. */
+  tokenHomeAddress: `0x${string}`;
+  /** TeleporterRegistry on the new L1, constructed with messenger v1. */
+  icmRegistryAddress: `0x${string}`;
+  /** ERC20TokenRemote on the new L1, pointing at TokenHome on C-Chain. */
+  tokenRemoteAddress: `0x${string}`;
+  /** Amount of MockUSDC (base units) sent to the owner on L1. */
+  bridgedAmount: string;
 }
