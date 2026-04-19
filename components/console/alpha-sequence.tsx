@@ -32,8 +32,9 @@ import { cn } from '@/lib/utils';
  */
 
 const BASE = '/videos/alpha';
-/** Ordered playlist. `reveal` is part of every cycle. */
-const PLAYLIST = ['reveal', '1', '2', '3', '4', '5', '6', '7', '8'] as const;
+/** Ordered playlist. `reveal` is part of every cycle. Clip `6` was
+ *  the LFJ-branded one and is intentionally skipped. */
+const PLAYLIST = ['reveal', '1', '2', '3', '4', '5', '7', '8'] as const;
 /** Index the loop wraps to after the last clip (start of the cycle). */
 const LOOP_START = 0;
 
