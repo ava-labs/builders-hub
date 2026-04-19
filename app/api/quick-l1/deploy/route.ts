@@ -67,11 +67,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<DeployRes
         { status: 503 },
       );
     }
+    // Tell the upstream which builders-hub origin to call back to for
+    // register-node — so preview deploys register nodes onto themselves
+    // rather than whatever `BUILDER_HUB_URL` the Railway env happens to
+    // point at. `nextUrl.origin` is whatever host the browser hit.
     const res = await fetch(`${upstream.replace(/\/$/, '')}/deploy`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'x-quick-l1-secret': secret,
+        'x-builder-hub-url': request.nextUrl.origin,
       },
       body: JSON.stringify(body),
     });
