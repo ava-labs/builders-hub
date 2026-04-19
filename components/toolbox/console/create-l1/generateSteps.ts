@@ -230,53 +230,6 @@ export function generateCreateL1Steps(answers: QuestionnaireAnswers): StepDefini
         requiredChain: 'c-chain',
       });
     }
-  } else {
-    // ── Convert existing subnet ────────────────────────────
-    // They already have a chain running with nodes. Just need:
-    // deploy VM → setup → convert → init validator set
-    //
-    // For `vmLocation='l1'` the VM lives on the user's existing L1. We don't
-    // know that L1's EVM chain id in advance — the subnet selector in the
-    // convert step tells us — so we can't use `requiredChain:'l1'`, which
-    // would ask `createChainStore.evmChainId` (a random placeholder for
-    // convert-existing flows). Use `'any'` and defer chain validation to
-    // each tool; `'c-chain'` stays strict since that case is knowable.
-    const convertExistingEvmChain = answers.vmLocation === 'l1' ? 'any' : 'c-chain';
-    steps.push({
-      type: 'single',
-      key: 'deploy-validator-manager',
-      title: 'Deploy Validator Manager',
-      component: DeployValidatorManager,
-      requiredChain: convertExistingEvmChain,
-    });
-    steps.push({
-      type: 'single',
-      key: 'proxy-setup',
-      title: 'Proxy Setup',
-      component: ProxySetup,
-      requiredChain: convertExistingEvmChain,
-    });
-    steps.push({
-      type: 'single',
-      key: 'initialize-manager',
-      title: 'Initialize Validator Manager',
-      component: Initialize,
-      requiredChain: convertExistingEvmChain,
-    });
-    steps.push({
-      type: 'single',
-      key: 'convert-to-l1',
-      title: 'Convert to L1',
-      component: ConvertSubnetToL1,
-      requiredChain: 'p-chain',
-    });
-    steps.push({
-      type: 'single',
-      key: 'init-validator-set',
-      title: 'Initialize Validator Set',
-      component: InitValidatorSet,
-      requiredChain: convertExistingEvmChain,
-    });
   }
 
   // ── Phase 2: PoS Staking Manager (same chain as VM) ──────

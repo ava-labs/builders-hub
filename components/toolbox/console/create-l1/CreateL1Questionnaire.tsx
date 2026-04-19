@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  ArrowRightLeft,
   Shield,
   Coins,
   HandCoins,
@@ -221,8 +220,9 @@ export default function CreateL1Questionnaire() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [direction, setDirection] = useState(1);
 
-  // Q1: Starting point, Q2: Validator type, Q3: VM location, Q4: Ownership (conditional), Q5: Hosting
-  const [startingPoint, setStartingPoint] = useState<StartingPoint>('new');
+  // Q1: Validator type, Q2: VM location, Q3: Interop, Q4: Ownership (conditional), Q5: Hosting
+  // Convert-existing flow was dropped — the questionnaire only creates new L1s now.
+  const startingPoint: StartingPoint = 'new';
   const [validatorType, setValidatorTypeRaw] = useState<ValidatorType>('poa');
   const [vmLocation, setVmLocation] = useState<VMLocation>('l1');
 
@@ -235,14 +235,15 @@ export default function CreateL1Questionnaire() {
   const [hosting, setHosting] = useState<HostingOption>('managed');
   const [interoperability, setInteroperability] = useState(true);
 
-  // Q4 (multisig) only for PoA + C-Chain. Q5 (hosting) only for new L1.
-  // Q-interop only for new L1 (convert-existing reuses existing genesis).
+  // Multisig only for PoA + C-Chain. Hosting and interop always shown
+  // now that convert-existing is gone (both were gated on startingPoint='new').
   const showMultisigQ = validatorType === 'poa' && vmLocation === 'c-chain';
-  const showHostingQ = startingPoint === 'new';
-  const showInteropQ = startingPoint === 'new';
+  const showHostingQ = true;
+  const showInteropQ = true;
 
-  // Dynamic question count
-  const totalQuestions = 3 + (showMultisigQ ? 1 : 0) + (showInteropQ ? 1 : 0) + (showHostingQ ? 1 : 0);
+  // Dynamic question count — base 2 (validator + vm location) plus any
+  // conditional questions that are currently applicable.
+  const totalQuestions = 2 + (showMultisigQ ? 1 : 0) + (showInteropQ ? 1 : 0) + (showHostingQ ? 1 : 0);
 
   const previewAnswers: QuestionnaireAnswers = useMemo(
     () => ({
@@ -251,9 +252,7 @@ export default function CreateL1Questionnaire() {
       vmLocation,
       multisig: showMultisigQ ? multisig : false,
       hosting,
-      // Convert-existing flows don't touch genesis, so the answer is irrelevant
-      // there — default to true so generated defaults stay backwards-compatible.
-      interoperability: showInteropQ ? interoperability : true,
+      interoperability,
     }),
     [startingPoint, validatorType, vmLocation, multisig, showMultisigQ, hosting, interoperability, showInteropQ],
   );
@@ -280,7 +279,7 @@ export default function CreateL1Questionnaire() {
       setDirection(-1);
       setQuestionIndex((i) => i - 1);
     } else {
-      // At Q1, Back returns to the Basic vs Advanced chooser.
+      // At the first question, Back returns to the Basic vs Advanced chooser.
       setSetupMode(null);
     }
   }, [questionIndex]);
@@ -500,55 +499,8 @@ export default function CreateL1Questionnaire() {
       {/* ── Question area ─────────────────────────────────── */}
       <div className="flex-1 relative">
         <AnimatePresence mode="wait" custom={direction}>
-          {/* Q1: Starting point */}
+          {/* Q1: Validator management type */}
           {questionIndex === 0 && (
-            <motion.div
-              key="q-start"
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  What would you like to do?
-                </h2>
-                <p className="mt-2 text-[15px] text-zinc-500 dark:text-zinc-400">
-                  <Link
-                    href="/docs/avalanche-l1s"
-                    target="_blank"
-                    className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 underline underline-offset-2 decoration-zinc-300 dark:decoration-zinc-600 transition-colors"
-                  >
-                    What is an Avalanche L1? →
-                  </Link>
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <OptionCard
-                  id="new"
-                  selected={startingPoint === 'new'}
-                  onSelect={setStartingPoint}
-                  icon={<LayersIcon className="h-5 w-5" />}
-                  title="New Layer 1"
-                  description="Create a new subnet, chain, and validator manager from the ground up."
-                  recommended
-                />
-                <OptionCard
-                  id="convert-existing"
-                  selected={startingPoint === 'convert-existing'}
-                  onSelect={setStartingPoint}
-                  icon={<ArrowRightLeft className="h-5 w-5" />}
-                  title="Convert existing subnet"
-                  description="Already have a subnet? Convert it directly to an L1."
-                />
-              </div>
-            </motion.div>
-          )}
-
-          {/* Q2: Validator management type */}
-          {questionIndex === 1 && (
             <motion.div
               key="q-validator"
               custom={direction}
@@ -602,8 +554,8 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q3: VM location */}
-          {questionIndex === 2 && (
+          {/* Q2: VM location */}
+          {questionIndex === 1 && (
             <motion.div
               key="q-vm"
               custom={direction}
@@ -651,8 +603,8 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q4: Interoperability (only for new L1 — convert-existing reuses existing genesis) */}
-          {showInteropQ && questionIndex === 3 && !isReview && (
+          {/* Q3: Interoperability */}
+          {showInteropQ && questionIndex === 2 && !isReview && (
             <motion.div
               key="q-interop"
               custom={direction}
@@ -700,8 +652,8 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q5: Ownership (only for PoA + C-Chain) */}
-          {questionIndex === (showInteropQ ? 4 : 3) && showMultisigQ && (
+          {/* Q4: Ownership (only for PoA + C-Chain) */}
+          {questionIndex === (showInteropQ ? 3 : 2) && showMultisigQ && (
             <motion.div
               key="q3"
               custom={direction}
@@ -752,8 +704,8 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q6 (index depends on which earlier questions are shown): Hosting */}
-          {showHostingQ && questionIndex === 3 + (showInteropQ ? 1 : 0) + (showMultisigQ ? 1 : 0) && !isReview && (
+          {/* Q5 (index depends on which earlier questions are shown): Hosting */}
+          {showHostingQ && questionIndex === 2 + (showInteropQ ? 1 : 0) + (showMultisigQ ? 1 : 0) && !isReview && (
             <motion.div
               key="q-hosting"
               custom={direction}
