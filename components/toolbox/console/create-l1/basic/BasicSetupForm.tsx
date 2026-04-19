@@ -73,7 +73,7 @@ export default function BasicSetupForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl py-10">
+    <div className="mx-auto max-w-5xl py-6 px-4">
       {/* Back link — subtle, top-left */}
       <motion.button
         type="button"
@@ -82,25 +82,25 @@ export default function BasicSetupForm() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
         whileHover={{ x: -2 }}
-        className="mb-8 inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to setup choice
       </motion.button>
 
-      {/* Hero */}
+      {/* Hero — tighter so the form below fits without scroll */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.05 }}
-        className="mb-12"
+        className="mb-6"
       >
-        <div className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
+        <div className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
           <Sparkles className="h-3 w-3" />
           Basic setup
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Create your L1</h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Create your L1</h1>
+        <p className="mt-1.5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 max-w-2xl">
           Name your chain and pick an owner. We&apos;ll configure the subnet, genesis, a managed validator node, and the
           Validator Manager for you.
         </p>
@@ -112,44 +112,48 @@ export default function BasicSetupForm() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
-          className="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200"
+          className="mb-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-2.5 text-sm text-amber-800 dark:text-amber-200"
         >
           Basic setup is Fuji-testnet only. Switch your wallet to Fuji to continue.
         </motion.div>
       )}
 
       <form onSubmit={handleSubmit}>
-        {/* Fields — staggered entrance, generous vertical rhythm */}
+        {/* Split-pane: fields on the left, precompiles on the right.
+            Stacks on narrow screens (below lg) so mobile stays usable. */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={{
             hidden: {},
-            visible: { transition: { staggerChildren: 0.08, delayChildren: 0.2 } },
+            visible: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } },
           }}
-          className="space-y-8"
+          className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5 lg:gap-6"
         >
-          <BigField
-            label="Chain name"
-            hint="Registered on the Avalanche P-Chain. 2–32 characters."
-            value={chainName}
-            onChange={setChainName}
-            placeholder="My Awesome L1"
-            maxLength={32}
-          />
-          <BigField
-            label="Owner address"
-            hint="Receives 1M initial tokens and owns the Validator Manager."
-            value={ownerAddress}
-            onChange={(v) => {
-              setOwnerTouched(true);
-              setOwnerAddress(v);
-            }}
-            placeholder="0x…"
-            mono
-          />
+          {/* Left: chain name + owner */}
+          <div className="space-y-4">
+            <BigField
+              label="Chain name"
+              hint="Registered on the Avalanche P-Chain. 2–32 characters."
+              value={chainName}
+              onChange={setChainName}
+              placeholder="My Awesome L1"
+              maxLength={32}
+            />
+            <BigField
+              label="Owner address"
+              hint="Receives 1M initial tokens and owns the Validator Manager."
+              value={ownerAddress}
+              onChange={(v) => {
+                setOwnerTouched(true);
+                setOwnerAddress(v);
+              }}
+              placeholder="0x…"
+              mono
+            />
+          </div>
 
-          {/* Precompile toggles — admin-listed to the owner address */}
+          {/* Right: precompile toggles — admin-listed to the owner address */}
           <PrecompileCard precompiles={precompiles} onToggle={togglePrecompile} />
         </motion.div>
 
@@ -158,18 +162,18 @@ export default function BasicSetupForm() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-6 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-700 dark:text-red-300"
+            className="mt-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-700 dark:text-red-300"
           >
             {error}
           </motion.div>
         )}
 
-        {/* CTA — deliberately prominent */}
+        {/* CTA — deliberately prominent; full-width below the split */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.5 }}
-          className="mt-12"
+          transition={{ duration: 0.4, delay: 0.45 }}
+          className="mt-6"
         >
           <motion.button
             type="submit"
@@ -178,7 +182,7 @@ export default function BasicSetupForm() {
             whileTap={canSubmit && !submitting ? { scale: 0.99 } : {}}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             className={cn(
-              'group relative w-full inline-flex items-center justify-center gap-3 rounded-xl px-6 py-4 text-base font-semibold transition-colors',
+              'group relative w-full inline-flex items-center justify-center gap-3 rounded-xl px-6 py-3.5 text-base font-semibold transition-colors',
               canSubmit && !submitting
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed',
@@ -203,7 +207,7 @@ export default function BasicSetupForm() {
           </motion.button>
 
           {/* Reassurance line — small, muted */}
-          <p className="mt-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
+          <p className="mt-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
             Usually takes 1–2 minutes. You can leave the tab open.
           </p>
         </motion.div>
@@ -324,15 +328,13 @@ function PrecompileCard({
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
       }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit"
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-900">
-        <div>
-          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompiles</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Baked into genesis. Admin list seeded with your owner address.
-          </p>
-        </div>
+      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
+        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompiles</h3>
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
+          Baked into genesis. Admin list seeded with your owner address.
+        </p>
       </div>
       <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
         {PRECOMPILE_META.map((p) => (
@@ -364,11 +366,11 @@ function PrecompileRow({
     <button
       type="button"
       onClick={onToggle}
-      className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+      className="w-full flex items-center gap-3 px-3.5 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
     >
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{title}</div>
-        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{description}</div>
+        <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">{title}</div>
+        <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">{description}</div>
       </div>
       <Toggle checked={enabled} />
     </button>
