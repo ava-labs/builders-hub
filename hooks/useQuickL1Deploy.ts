@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DeployRequest, DeployResponse, DeploymentJob } from '@/lib/quick-l1/types';
+import type { ClientDeployRequest, DeployResponse, DeploymentJob } from '@/lib/quick-l1/types';
 
 /**
  * Client-side wrapper for the Basic L1 Setup deploy + status endpoints.
@@ -16,7 +16,7 @@ export function useStartDeployment() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const deploy = useCallback(async (request: DeployRequest): Promise<string | null> => {
+  const deploy = useCallback(async (request: ClientDeployRequest): Promise<string | null> => {
     setSubmitting(true);
     setError(null);
     try {

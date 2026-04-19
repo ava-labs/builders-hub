@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useStartDeployment } from '@/hooks/useQuickL1Deploy';
+import { DEFAULT_PRECOMPILES, type PrecompileConfig } from '@/lib/quick-l1/types';
 import { cn } from '@/lib/utils';
 
 /**
@@ -28,9 +29,13 @@ export default function BasicSetupForm() {
   const { deploy, submitting, error } = useStartDeployment();
 
   const [chainName, setChainName] = useState('');
-  const [tokenSymbol, setTokenSymbol] = useState('');
   const [ownerAddress, setOwnerAddress] = useState<string>('');
   const [ownerTouched, setOwnerTouched] = useState(false);
+  const [precompiles, setPrecompiles] = useState<Required<PrecompileConfig>>(DEFAULT_PRECOMPILES);
+
+  const togglePrecompile = (key: keyof PrecompileConfig) => {
+    setPrecompiles((p) => ({ ...p, [key]: !p[key] }));
+  };
 
   // Pre-fill owner with the connected wallet address on first render
   // (and only when the user hasn't typed yet). Prevents stomping a
@@ -41,17 +46,28 @@ export default function BasicSetupForm() {
     }
   }, [walletEVMAddress, ownerAddress, ownerTouched]);
 
-  const canSubmit =
-    chainName.trim().length >= 2 && tokenSymbol.trim().length >= 2 && /^0x[a-fA-F0-9]{40}$/.test(ownerAddress);
+  const canSubmit = chainName.trim().length >= 2 && /^0x[a-fA-F0-9]{40}$/.test(ownerAddress);
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     if (!canSubmit || submitting) return;
+    // Token symbol is cosmetic — it only shows up in wallet network
+    // metadata and explorer labels. Derive a sensible default from the
+    // chain name (first 5 uppercase letters, stripped of non-alpha)
+    // so users don't have to think about it. Falls back to "COIN" if
+    // the name has no alpha characters.
+    const derived = chainName
+      .replace(/[^A-Za-z]/g, '')
+      .toUpperCase()
+      .slice(0, 5);
+    const tokenSymbol = derived.length >= 2 ? derived : 'COIN';
+
     const jobId = await deploy({
       chainName: chainName.trim(),
-      tokenSymbol: tokenSymbol.trim().toUpperCase(),
+      tokenSymbol,
       ownerEvmAddress: ownerAddress as `0x${string}`,
       network: 'fuji',
+      precompiles,
     });
     if (jobId) router.push(`/console/create-l1/basic/${jobId}`);
   }
@@ -85,7 +101,7 @@ export default function BasicSetupForm() {
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Create your L1</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Three inputs, one button. We&apos;ll configure the subnet, genesis, a managed validator node, and the
+          Name your chain and pick an owner. We&apos;ll configure the subnet, genesis, a managed validator node, and the
           Validator Manager for you.
         </p>
       </motion.div>
@@ -115,20 +131,11 @@ export default function BasicSetupForm() {
         >
           <BigField
             label="Chain name"
-            hint="Shown in wallets and explorers. 2–32 characters."
+            hint="Registered on the Avalanche P-Chain. 2–32 characters."
             value={chainName}
             onChange={setChainName}
             placeholder="My Awesome L1"
             maxLength={32}
-          />
-          <BigField
-            label="Token symbol"
-            hint="Native currency ticker. 2–6 characters, uppercase."
-            value={tokenSymbol}
-            onChange={(v) => setTokenSymbol(v.toUpperCase())}
-            placeholder="MYTOKEN"
-            maxLength={6}
-            mono
           />
           <BigField
             label="Owner address"
@@ -141,6 +148,9 @@ export default function BasicSetupForm() {
             placeholder="0x…"
             mono
           />
+
+          {/* Precompile toggles — admin-listed to the owner address */}
+          <PrecompileCard precompiles={precompiles} onToggle={togglePrecompile} />
         </motion.div>
 
         {/* Error */}
@@ -255,5 +265,134 @@ function BigField({
       />
       {hint && <p className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>}
     </motion.div>
+  );
+}
+
+/**
+ * Precompile toggles. Each toggle corresponds to a Subnet-EVM
+ * precompile; enabled precompiles seed their admin list with the
+ * owner address. Defaults mirror DEFAULT_PRECOMPILES (native minter +
+ * interoperability on).
+ */
+const PRECOMPILE_META: Array<{
+  key: keyof PrecompileConfig;
+  title: string;
+  description: string;
+}> = [
+  {
+    key: 'nativeMinter',
+    title: 'Native Minter',
+    description: 'Mint the native token at runtime.',
+  },
+  {
+    key: 'interoperability',
+    title: 'Interoperability',
+    description: 'Warp messaging + Teleporter (ICM) for cross-chain messages.',
+  },
+  {
+    key: 'feeManager',
+    title: 'Fee Manager',
+    description: 'Adjust the dynamic fee config without a network upgrade.',
+  },
+  {
+    key: 'rewardManager',
+    title: 'Reward Manager',
+    description: 'Redirect the base fee to a recipient instead of burning it.',
+  },
+  {
+    key: 'txAllowList',
+    title: 'Tx Allow List',
+    description: 'Gate transaction senders to an allow list.',
+  },
+  {
+    key: 'contractDeployerAllowList',
+    title: 'Contract Deployer Allow List',
+    description: 'Gate contract deployers to an allow list.',
+  },
+];
+
+function PrecompileCard({
+  precompiles,
+  onToggle,
+}: {
+  precompiles: Required<PrecompileConfig>;
+  onToggle: (key: keyof PrecompileConfig) => void;
+}) {
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 10 },
+        visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
+      }}
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
+    >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-900">
+        <div>
+          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompiles</h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Baked into genesis. Admin list seeded with your owner address.
+          </p>
+        </div>
+      </div>
+      <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+        {PRECOMPILE_META.map((p) => (
+          <PrecompileRow
+            key={p.key}
+            title={p.title}
+            description={p.description}
+            enabled={precompiles[p.key]}
+            onToggle={() => onToggle(p.key)}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function PrecompileRow({
+  title,
+  description,
+  enabled,
+  onToggle,
+}: {
+  title: string;
+  description: string;
+  enabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+    >
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{title}</div>
+        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{description}</div>
+      </div>
+      <Toggle checked={enabled} />
+    </button>
+  );
+}
+
+/** Small switch-style toggle. Controlled — parent handles state. */
+function Toggle({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'relative inline-flex h-5 w-9 shrink-0 mt-0.5 rounded-full border transition-colors',
+        checked
+          ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white'
+          : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
+      )}
+    >
+      <span
+        className={cn(
+          'absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-200',
+          checked ? 'left-[18px] bg-white dark:bg-zinc-900' : 'left-0.5 bg-white dark:bg-zinc-600',
+        )}
+      />
+    </span>
   );
 }

@@ -21,14 +21,12 @@ import { DEPLOYMENT_STEPS } from './types';
  */
 const STEP_DELAYS_MS: Record<DeploymentStep, number> = {
   'creating-subnet': 2500,
-  'creating-chain': 2500,
-  'provisioning-node': 3000,
-  'waiting-for-bootstrap': 6000,
-  'converting-to-l1': 2500,
   'deploying-validator-manager': 3500,
   'initializing-manager': 2000,
+  'creating-chain': 2500,
+  'provisioning-node': 3000,
+  'converting-to-l1': 2500,
   'initializing-validator-set': 2000,
-  'transferring-ownership': 1500,
 };
 
 /**
@@ -37,14 +35,13 @@ const STEP_DELAYS_MS: Record<DeploymentStep, number> = {
  */
 const STEP_DETAIL: Record<DeploymentStep, (job: DeploymentJob) => string> = {
   'creating-subnet': () => 'Submitting subnet creation tx to P-Chain…',
+  'deploying-validator-manager': () => 'Deploying ValidatorMessages + ValidatorManager on C-Chain…',
+  'initializing-manager': (job) =>
+    `Calling initialize() on Validator Manager — owner set to ${job.request.ownerEvmAddress}`,
   'creating-chain': () => 'Building genesis and submitting chain creation tx…',
   'provisioning-node': () => 'Requesting a managed validator node on Fuji…',
-  'waiting-for-bootstrap': () => 'Node syncing Primary Network headers — this usually takes ~60s',
   'converting-to-l1': () => 'Submitting convertSubnetToL1Tx with validator credentials…',
-  'deploying-validator-manager': () => 'Deploying ValidatorMessages + ValidatorManager + proxy…',
-  'initializing-manager': () => 'Calling initialize() on Validator Manager proxy…',
-  'initializing-validator-set': () => 'Seeding the initial validator set…',
-  'transferring-ownership': (job) => `Handing Subnet + Validator Manager control to ${job.request.ownerEvmAddress}`,
+  'initializing-validator-set': () => 'Aggregating Warp signatures and seeding the initial validator set…',
 };
 
 const jobs = new Map<string, DeploymentJob>();
@@ -71,9 +68,9 @@ function fakeEvmTxHash(): `0x${string}` {
 }
 
 /**
- * Scripted tx evidence per step. Real backend (opensource-avacloud)
- * produces these for real via avalanche-cli + cast; the mock emits
- * plausible fakes so the progress UI can exercise the same render
+ * Scripted tx evidence per step. Real backend (quick-l1 Railway service)
+ * produces these for real via @avalanche-sdk/client + viem; the mock
+ * emits plausible fakes so the progress UI can exercise the same render
  * path end to end.
  */
 function makeTxsForStep(step: DeploymentStep, network: 'fuji' | 'mainnet'): TxRecord[] {
@@ -81,28 +78,21 @@ function makeTxsForStep(step: DeploymentStep, network: 'fuji' | 'mainnet'): TxRe
   switch (step) {
     case 'creating-subnet':
       return [{ hash: fakePChainTxId(), chain: 'p-chain', network, label: 'CreateSubnetTx', timestamp: now }];
+    case 'deploying-validator-manager':
+      return [
+        { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'ValidatorMessages library', timestamp: now },
+        { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'ValidatorManager', timestamp: now },
+      ];
+    case 'initializing-manager':
+      return [{ hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'initialize()', timestamp: now }];
     case 'creating-chain':
       return [{ hash: fakePChainTxId(), chain: 'p-chain', network, label: 'CreateChainTx', timestamp: now }];
     case 'provisioning-node':
-    case 'waiting-for-bootstrap':
-      return []; // Builder-Hub API / health poll — no user-visible tx
+      return []; // Managed-node HTTP call — no on-chain tx.
     case 'converting-to-l1':
       return [{ hash: fakePChainTxId(), chain: 'p-chain', network, label: 'ConvertSubnetToL1Tx', timestamp: now }];
-    case 'deploying-validator-manager':
-      return [
-        { hash: fakeEvmTxHash(), chain: 'l1', network, label: 'ValidatorMessages library', timestamp: now },
-        { hash: fakeEvmTxHash(), chain: 'l1', network, label: 'ValidatorManager implementation', timestamp: now },
-        { hash: fakeEvmTxHash(), chain: 'l1', network, label: 'TransparentUpgradeableProxy', timestamp: now },
-      ];
-    case 'initializing-manager':
-      return [{ hash: fakeEvmTxHash(), chain: 'l1', network, label: 'initialize()', timestamp: now }];
     case 'initializing-validator-set':
-      return [{ hash: fakeEvmTxHash(), chain: 'l1', network, label: 'initializeValidatorSet()', timestamp: now }];
-    case 'transferring-ownership':
-      return [
-        { hash: fakePChainTxId(), chain: 'p-chain', network, label: 'TransferSubnetOwnershipTx', timestamp: now },
-        { hash: fakeEvmTxHash(), chain: 'l1', network, label: 'ValidatorManager.transferOwnership()', timestamp: now },
-      ];
+      return [{ hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'initializeValidatorSet()', timestamp: now }];
   }
 }
 
@@ -126,7 +116,7 @@ function mockResult(req: DeployRequest): DeploymentResult {
 /**
  * Kick off the step-by-step progression. Setters run on setTimeout
  * chains — simple but adequate for dev mocks. Real backend will do the
- * actual avalanche.js / viem work.
+ * actual @avalanche-sdk/client + viem work.
  */
 function runMockLifecycle(jobId: string) {
   const advance = (stepIdx: number) => {

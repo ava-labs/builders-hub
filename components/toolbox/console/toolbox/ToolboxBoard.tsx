@@ -478,32 +478,137 @@ function ToolTile({ tool }: { tool: ToolCard }) {
 }
 
 // ---------------------------------------------------------------------------
-// FeaturedTile — larger dark card for the one "headline" tool per category
-// (matches the Create L1 hero on the homepage).
+// FeaturedTile — larger accented card for the one "headline" tool per category.
+// Each category gets a distinct color scheme so featured tiles don't visually
+// merge with each other (or with the homepage's Create L1 hero).
 // ---------------------------------------------------------------------------
+
+type FeaturedScheme = {
+  background: string;
+  border: string;
+  borderHover: string;
+  iconWrap: string;
+  iconWrapHover: string;
+  iconColor: string;
+  title: string;
+  description: string;
+  chevron: string;
+  chevronHover: string;
+  shadow: string;
+  shadowHover: string;
+};
+
+const FEATURED_SCHEMES: Record<string, FeaturedScheme> = {
+  // Primary Network — Avalanche red (matches primary network branding)
+  'Primary Network': {
+    background: 'bg-gradient-to-br from-red-950 via-rose-950 to-zinc-950',
+    border: 'border-red-900/60',
+    borderHover: 'hover:border-red-800',
+    iconWrap: 'bg-red-500/15',
+    iconWrapHover: 'group-hover:bg-red-500/25',
+    iconColor: 'text-red-300 group-hover:text-red-200',
+    title: 'text-white',
+    description: 'text-red-100/70',
+    chevron: 'text-red-400/60',
+    chevronHover: 'group-hover:text-red-200',
+    shadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(127,29,29,0.25), 0 8px 24px rgba(127,29,29,0.18)',
+    shadowHover:
+      'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(127,29,29,0.35), 0 16px 40px rgba(127,29,29,0.25)',
+  },
+  // Create & Deploy — indigo/violet (launching something new)
+  'Create & Deploy': {
+    background: 'bg-gradient-to-br from-indigo-950 via-violet-950 to-zinc-950',
+    border: 'border-indigo-900/60',
+    borderHover: 'hover:border-indigo-800',
+    iconWrap: 'bg-indigo-500/15',
+    iconWrapHover: 'group-hover:bg-indigo-500/25',
+    iconColor: 'text-indigo-300 group-hover:text-indigo-200',
+    title: 'text-white',
+    description: 'text-indigo-100/70',
+    chevron: 'text-indigo-400/60',
+    chevronHover: 'group-hover:text-indigo-200',
+    shadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(49,46,129,0.25), 0 8px 24px rgba(49,46,129,0.18)',
+    shadowHover:
+      'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(49,46,129,0.35), 0 16px 40px rgba(49,46,129,0.25)',
+  },
+  // Interchain Messaging — emerald/teal (connection, cross-chain flow)
+  'Interchain Messaging': {
+    background: 'bg-gradient-to-br from-emerald-950 via-teal-950 to-zinc-950',
+    border: 'border-emerald-900/60',
+    borderHover: 'hover:border-emerald-800',
+    iconWrap: 'bg-emerald-500/15',
+    iconWrapHover: 'group-hover:bg-emerald-500/25',
+    iconColor: 'text-emerald-300 group-hover:text-emerald-200',
+    title: 'text-white',
+    description: 'text-emerald-100/70',
+    chevron: 'text-emerald-400/60',
+    chevronHover: 'group-hover:text-emerald-200',
+    shadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(6,78,59,0.25), 0 8px 24px rgba(6,78,59,0.18)',
+    shadowHover:
+      'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(6,78,59,0.35), 0 16px 40px rgba(6,78,59,0.25)',
+  },
+};
+
+// Fallback scheme matches the original dark zinc look.
+const DEFAULT_SCHEME: FeaturedScheme = {
+  background: 'bg-zinc-800',
+  border: 'border-zinc-700',
+  borderHover: 'hover:border-zinc-600',
+  iconWrap: 'bg-white/[0.08]',
+  iconWrapHover: 'group-hover:bg-white/[0.14]',
+  iconColor: 'text-zinc-200 group-hover:text-white',
+  title: 'text-white',
+  description: 'text-zinc-400',
+  chevron: 'text-zinc-500',
+  chevronHover: 'group-hover:text-zinc-300',
+  shadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
+  shadowHover: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.15)',
+};
 
 function FeaturedTile({ tool }: { tool: ToolCard }) {
   const Icon = tool.icon;
+  const scheme = FEATURED_SCHEMES[tool.category] ?? DEFAULT_SCHEME;
 
   const content = (
     <motion.div variants={itemVariants} className="h-full">
       <motion.div
         whileHover={{ y: -2 }}
         transition={{ type: 'spring' as const, stiffness: 400, damping: 25 }}
-        className="group relative h-full rounded-2xl border border-zinc-700 bg-zinc-800 p-5 cursor-pointer transition-all duration-200 hover:border-zinc-600 overflow-hidden"
-        style={{
-          boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
+        className={cn(
+          'group relative h-full rounded-2xl border p-5 cursor-pointer transition-all duration-200 overflow-hidden',
+          scheme.background,
+          scheme.border,
+          scheme.borderHover,
+        )}
+        style={{ boxShadow: scheme.shadow }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = scheme.shadowHover;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = scheme.shadow;
         }}
       >
-        <div className="flex items-start justify-between h-full gap-4">
+        <div className="flex items-start justify-between h-full gap-4 relative">
           <div className="min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-white/[0.08] flex items-center justify-center mb-3 transition-colors group-hover:bg-white/[0.14]">
-              <Icon className="w-5 h-5 text-zinc-200 group-hover:text-white transition-colors" />
+            <div
+              className={cn(
+                'w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                scheme.iconWrap,
+                scheme.iconWrapHover,
+              )}
+            >
+              <Icon className={cn('w-5 h-5 transition-colors', scheme.iconColor)} />
             </div>
-            <h3 className="text-base font-semibold text-white mb-1">{tool.name}</h3>
-            <p className="text-sm text-zinc-400 leading-relaxed">{tool.description}</p>
+            <h3 className={cn('text-base font-semibold mb-1', scheme.title)}>{tool.name}</h3>
+            <p className={cn('text-sm leading-relaxed', scheme.description)}>{tool.description}</p>
           </div>
-          <ChevronRight className="w-5 h-5 text-zinc-500 shrink-0 self-center transition-all duration-200 group-hover:text-zinc-300 group-hover:translate-x-0.5" />
+          <ChevronRight
+            className={cn(
+              'w-5 h-5 shrink-0 self-center transition-all duration-200 group-hover:translate-x-0.5',
+              scheme.chevron,
+              scheme.chevronHover,
+            )}
+          />
         </div>
       </motion.div>
     </motion.div>
