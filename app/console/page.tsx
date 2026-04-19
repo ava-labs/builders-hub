@@ -206,14 +206,15 @@ function CliCopyBlock() {
   return (
     <button
       onClick={handleCopy}
-      className="w-full rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-4 py-3 flex items-center gap-2.5 overflow-x-auto cursor-pointer transition-colors duration-200 hover:border-zinc-300 dark:hover:border-zinc-600"
+      aria-label="Copy install command"
+      className="group w-full rounded-lg bg-zinc-100 dark:bg-zinc-950 px-3.5 py-2.5 flex items-center gap-2.5 overflow-x-auto cursor-pointer transition-colors hover:bg-zinc-200/70 dark:hover:bg-black"
     >
       <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none font-mono shrink-0">$</span>
-      <code className="text-xs font-mono whitespace-nowrap text-zinc-600 dark:text-zinc-300">
+      <code className="text-xs font-mono whitespace-nowrap text-zinc-700 dark:text-zinc-200 text-left">
         curl -sSfL build.avax.network/install/platform-cli | sh
       </code>
-      <span className="ml-auto p-1 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors shrink-0">
-        {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+      <span className="ml-auto p-1 rounded text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors shrink-0">
+        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
       </span>
     </button>
   );
@@ -506,24 +507,26 @@ function ConsoleDashboard() {
 
           {/* Row 3: Platform CLI (4) + Cross-Chain (2) */}
           <motion.div variants={itemVariants} className="md:col-span-4">
-            <div className="h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col justify-center">
-              <div className="flex items-center gap-2.5 mb-2.5">
-                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+            <div className="h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col justify-center gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
                   <Terminal className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                 </div>
-                <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Platform CLI</h3>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">Platform CLI</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                    Manage L1s, validators, and P-Chain operations from the terminal
+                  </p>
+                </div>
                 <a
                   href="https://github.com/ava-labs/platform-cli"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-auto text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors inline-flex items-center gap-1"
+                  className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   GitHub <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Manage L1s, validators, and P-Chain operations from the terminal
-              </p>
               <CliCopyBlock />
             </div>
           </motion.div>
