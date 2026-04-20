@@ -336,6 +336,9 @@ model FormData {
   current_stage  Int          @default(0)
   project        Project      @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   evaluations    Evaluation[]
+
+  @@index([project_id, origin])
+  @@index([origin, current_stage])
 }
 
 model Evaluation {
