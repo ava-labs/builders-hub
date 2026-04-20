@@ -2268,9 +2268,9 @@ const HackathonsEdit = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div ref={step1Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
+                      <h2 ref={step1Ref} className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
                       {collapsed.main && (
                         <button onClick={() => setCollapsed({ ...collapsed, main: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2362,9 +2362,9 @@ const HackathonsEdit = () => {
                       <div className="text-zinc-400 italic">✓ Basic hackathon info completed</div>
                     )}
                   </div>
-                  <div ref={step2Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">Step 2: Stages</h2>
+                      <h2 ref={step2Ref} className="text-2xl font-bold">Step 2: Stages</h2>
                     </div>
                     {collapsed.stages && (
                       <div className="text-zinc-400 italic">✓ Stages completed</div>
@@ -2395,9 +2395,9 @@ const HackathonsEdit = () => {
                   </div>
 
                   {/* Step 3: Images & Branding */}
-                  <div ref={step3Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">Step 3: Images & Branding</h2>
+                      <h2 ref={step3Ref} className="text-2xl font-bold">Step 3: Images & Branding</h2>
                       {collapsed.images && (
                         <button onClick={() => setCollapsed({ ...collapsed, images: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2565,9 +2565,9 @@ const HackathonsEdit = () => {
                   </div>
 
                   {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
-                  <div ref={step3Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">
+                      <h2 ref={step4Ref} className="text-2xl font-bold">
                         {formDataLatest.event === 'hackathon' ? 'Step 4: Participants & Prizes' : 'Step 4: Organizer'}
                       </h2>
                       {collapsed.about && (
@@ -2625,9 +2625,9 @@ const HackathonsEdit = () => {
 
                   {/* Step 4: Track Text - Only for Hackathons */}
                   {formDataLatest.event === 'hackathon' && (
-                    <div ref={step4Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                    <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-2xl font-bold">Step 5: Track Text</h2>
+                        <h2 ref={step4Ref} className="text-2xl font-bold">Step 5: Track Text</h2>
                         {collapsed.trackText && (
                           <button onClick={() => setCollapsed({ ...collapsed, trackText: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                             <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -3090,9 +3090,9 @@ const HackathonsEdit = () => {
                   )}
 
                   {/* Step 5: Content - Tracks, Schedule, etc. */}
-                  <div ref={step5Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">Step 6: Content</h2>
+                      <h2 ref={step5Ref} className="text-2xl font-bold">Step 6: Content</h2>
                       {collapsed.content && (
                         <button onClick={() => setCollapsed({ ...collapsed, content: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -3103,7 +3103,7 @@ const HackathonsEdit = () => {
                       <>
                         {/* Inner tabs for content sections */}
                         <div className="mb-6">
-                          <div className="flex flex-wrap gap-2">
+                          <div ref={step6Ref} className="flex flex-wrap gap-2">
                             {formDataLatest.event === 'hackathon' && (
                               <button
                                 type="button"
@@ -3362,9 +3362,9 @@ const HackathonsEdit = () => {
                       <div className="text-zinc-400 italic">{t[language].contentCompleted}</div>
                     )}
                   </div>
-                  <div ref={step6Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">Step 7: Last Details</h2>
+                      <h2 ref={step7Ref} className="text-2xl font-bold">Step 7: Last Details</h2>
                       {collapsed.last && (
                         <button onClick={() => setCollapsed({ ...collapsed, last: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
