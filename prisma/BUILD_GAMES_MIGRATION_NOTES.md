@@ -149,12 +149,33 @@ Landed in this migration stream:
   shim-stage `User` construction updated to include the new nullable
   fields so the full `User` type remains satisfiable
 
-Rollout nuance: existing users whose `x_handle` or `linkedin_url` are
-null will be prompted by the form on their next profile edit. The
-server accepts updates without the fields (so legacy callers do not
-break), but the ProfileTab form will block `Save` until both are
-filled. This gives us a natural backfill path without writing a
-one-shot migration over existing `social_media` URLs.
+Enforcement lives at two levels so users cannot skip past it:
+
+1. `components/login/BasicProfileSetup.tsx` — the onboarding modal
+   that fires after Terms for new users now has `x_handle` and
+   `linkedin_url` as `z.string().min(1, ...)`; both the "Save and
+   close" and "Complete Profile" buttons route through
+   `form.handleSubmit`, so neither can proceed until the fields are
+   filled.
+2. `components/login/LoginModalWrapper.tsx` — an authenticated-mount
+   effect fetches `/api/profile/extended/[id]` and reopens
+   `BasicProfileSetup` if `x_handle` or `linkedin_url` is still null.
+   This catches three cases the first-time-user flow misses: users
+   who dismissed the modal via ESC / overlay, users who predate the
+   requirement, and users created via the older auth path that did
+   not route through the basic-setup flow.
+
+The two user-creation paths (`server/services/auth.ts` OAuth upsert
+and `app/api/user/create-after-terms/route.ts` credentials flow)
+intentionally keep creating rows with null `x_handle` and
+`linkedin_url`. That is the only practical shape: OAuth does not
+expose Twitter or LinkedIn, and credentials flow only has an email
+and an OTP. The enforcement layer above closes the gap by forcing
+the modal open until the fields are filled.
+
+ProfileTab (`components/profile/components/profile.tsx`) independently
+blocks `Save` until both fields are filled, so the full profile
+editor stays consistent with the basic-setup modal.
 
 Still intentionally deferred:
 
@@ -162,6 +183,9 @@ Still intentionally deferred:
   and `linkedin_url`
 - removing the `social_media` array entirely (not safe until the typed
   fields are populated)
+- server-side validation on the profile update endpoint (would break
+  legitimate partial updates like country-only edits; the UI is the
+  enforcement surface)
 - the legacy `components/profile/ProfileForm.tsx` is still behind the
   `new-profile-ui` feature flag (default `true`), so almost every user
   hits the new ProfileTab; the legacy form was left alone because it

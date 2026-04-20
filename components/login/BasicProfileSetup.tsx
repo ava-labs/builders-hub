@@ -34,6 +34,8 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 const basicProfileSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
   country: z.string().optional(),
+  x_handle: z.string().min(1, 'X (Twitter) handle is required'),
+  linkedin_url: z.string().min(1, 'LinkedIn URL is required'),
   is_student: z.boolean().default(false),
   student_institution: z.string().optional(),
   is_founder: z.boolean().default(false),
@@ -63,6 +65,8 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
     defaultValues: {
       name: '',
       country: '',
+      x_handle: '',
+      linkedin_url: '',
       is_student: false,
       student_institution: '',
       is_founder: false,
@@ -92,13 +96,17 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
         is_developer,
         is_enthusiast,
         name,
-        country
+        country,
+        x_handle,
+        linkedin_url,
       } = data;
 
       // Construct user_type object with all role fields
       const profileData = {
         name,
         country,
+        x_handle,
+        linkedin_url,
         user_type: {
           is_student,
           is_founder,
@@ -213,6 +221,44 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                   )}
                 />
               </div>
+            </div>
+
+            {/* X (Twitter) and LinkedIn - required */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <FormField
+                control={form.control}
+                name="x_handle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">X (Twitter) *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="@yourhandle"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="linkedin_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">LinkedIn *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://www.linkedin.com/in/username"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             {/* Roles */}
