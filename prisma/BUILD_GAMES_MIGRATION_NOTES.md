@@ -84,24 +84,35 @@ If public prize display comes back later, it should come back as a
 deliberate product decision with its own schema, not as a revived empty
 table.
 
-## `Retro9000ReturningApplication`: being removed in a follow-up commit
+## `Retro9000ReturningApplication`: removed
 
 Audit summary: write-only table. One writer (`POST /api/retro9000-returning`),
-zero readers anywhere in the app, form lives at
+zero readers anywhere in the app, form lived at
 `/grants/retro9000returning`. HubSpot is the real CRM via the parallel
 `POST /api/retro9000` route, so dropping the Prisma path does not lose
 data capture.
 
-This entry will be updated with the exact commit reference once the
-removal lands. Planned removal covers:
+Removed in this stream:
 
-1. `prisma/schema.prisma` — drop the model
-2. new migration — `DROP TABLE "Retro9000ReturningApplication"`
-3. `app/api/retro9000-returning/route.ts` — delete the route
-4. `app/(home)/grants/retro9000returning/page.tsx` — delete the form
-5. any link/nav references that pointed at the internal form
+- `prisma/schema.prisma` — `Retro9000ReturningApplication` model
+  deleted
+- `prisma/migrations/20260421140000_drop_retro9000_returning_application/`
+  — drops the table (indexes are dropped with it; no FKs pointed at
+  this table)
+- `app/api/retro9000-returning/route.ts` — deleted (sole
+  `prisma.retro9000ReturningApplication.upsert` caller)
+- `app/(home)/grants/retro9000returning/page.tsx` — deleted
+- `types/retro9000ReturningForm.ts` — deleted (only the form page
+  referenced it)
 
-The `/api/retro9000` HubSpot-only route stays untouched.
+Out of scope and intentionally untouched:
+
+- `app/api/retro9000/route.ts` — the HubSpot-only submission route is
+  a separate flow and keeps working
+- `components/evaluate/event-configs.ts` — Retro9000 evaluation config
+  does not query the returning-application table
+- external links in `components/navigation/*` point at the public
+  `avax.network` Retro9000 site, not the deleted internal form
 
 ## `User` profile: typed and mandatory `x_handle` / `linkedin_url`
 
