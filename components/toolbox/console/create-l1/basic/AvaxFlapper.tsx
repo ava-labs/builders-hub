@@ -19,31 +19,45 @@ import { GameExitButton } from './GameExitButton';
  * down while plummeting. Clamped so it never looks broken at extreme vy.
  */
 
-const WIDTH = 600;
-const HEIGHT = 180;
-const PLAYER_X = 58;
-const PLAYER_SIZE = 30;
+// Phone-portrait canvas (9:16). Flappy benefits hugely from portrait —
+// way more vertical runway for pipe gaps and player arc. Horizontal
+// scroll slowed since the runway from spawn → player is now ~220px
+// instead of ~540px; keeping old speed would have made pipes arrive
+// unreadably fast.
+const WIDTH = 280;
+const HEIGHT = 500;
+const PLAYER_X = 50;
+const PLAYER_SIZE = 26;
 
-// Physics — units in px/s².
-const GRAVITY = 1350;
-const FLAP_V = -360;
-const INITIAL_SPEED = 170;
-const MAX_SPEED = 260;
-const SPEED_GROWTH = 5; // px/s per second
+// Physics — units in px/s². Gravity + flap velocity tuned so a single
+// flap lifts the player ~50px (one pipe-gap's worth of control margin).
+const GRAVITY = 1200;
+const FLAP_V = -340;
+const INITIAL_SPEED = 95;
+const MAX_SPEED = 170;
+const SPEED_GROWTH = 3; // px/s per second
 
-// Pipe geometry — gap constants scale with HEIGHT so the playable
-// vertical band grows with the viewport instead of staying pinned
-// to a 38–102 range that would leave dead space at the top/bottom.
-const PIPE_WIDTH = 36;
-const PIPE_GAP = 68;
-const PIPE_MIN_CENTER = 48;
-const PIPE_MAX_CENTER = 132;
-const INITIAL_SPAWN_DELAY = 0.75; // grace period before first pipe
+// Pipe geometry — wide vertical band of legal gap centers so the route
+// through the pipes actually snakes up-and-down, not just stays flat.
+const PIPE_WIDTH = 32;
+const PIPE_GAP_INITIAL = 110;
+const PIPE_GAP_MIN = 72;
+const PIPE_GAP_SHRINK_PER_PIPE = 2; // 110 → 72 over 19 pipes; plateaus there
+const PIPE_MIN_CENTER = 100;
+const PIPE_MAX_CENTER = 400;
+const INITIAL_SPAWN_DELAY = 0.9; // grace period before first pipe
+
+// Score-flash window (ms after a pipe pass). Used to pulse the HUD.
+const SCORE_FLASH_MS = 280;
 
 type Pipe = {
   id: number;
   x: number;
   gapCenter: number;
+  /** Pipe-specific gap size, baked in at spawn. Shrinks as score grows
+   * so late-game pipes are tighter — but an individual pipe never
+   * changes mid-flight, which would cause jarring collision snaps. */
+  gap: number;
   scored: boolean;
 };
 
@@ -63,6 +77,9 @@ export function AvaxFlapper({ className, onExit }: { className?: string; onExit?
   const score = useRef(0);
   const pipeId = useRef(0);
   const nextSpawnIn = useRef(INITIAL_SPAWN_DELAY);
+  // Timestamp (ms) until which the score HUD pulses after a pipe pass.
+  // Set in the loop when a pipe transitions to scored.
+  const scoreFlashUntil = useRef(0);
   const frameRef = useRef<number | null>(null);
 
   const stateRef = useRef<GameState>('ready');
@@ -79,6 +96,7 @@ export function AvaxFlapper({ className, onExit }: { className?: string; onExit?
     score.current = 0;
     pipeId.current = 0;
     nextSpawnIn.current = INITIAL_SPAWN_DELAY;
+    scoreFlashUntil.current = 0;
     setGameState('playing');
   }, []);
 
@@ -166,14 +184,21 @@ export function AvaxFlapper({ className, onExit }: { className?: string; onExit?
       nextSpawnIn.current -= dt;
       if (nextSpawnIn.current <= 0) {
         const gapCenter = PIPE_MIN_CENTER + Math.random() * (PIPE_MAX_CENTER - PIPE_MIN_CENTER);
+        // Dynamic per-pipe gap: starts at 110 and shrinks 2px per pipe
+        // passed, floored at 72 (≈65% of initial). A skilled player
+        // hitting 20 pipes is now squeezing through a narrow window.
+        const gap = Math.max(PIPE_GAP_MIN, PIPE_GAP_INITIAL - score.current * PIPE_GAP_SHRINK_PER_PIPE);
         pipes.current.push({
           id: pipeId.current++,
           x: WIDTH + 10,
           gapCenter,
+          gap,
           scored: false,
         });
         // Spawn interval tightens with speed. Floor keeps things survivable.
-        nextSpawnIn.current = Math.max(1.1, 1.7 - speed.current / 500);
+        // Spawn interval scaled for the slower scroll speed so pipes
+        // arrive at comparable on-screen cadence to the landscape version.
+        nextSpawnIn.current = Math.max(1.8, 2.6 - speed.current / 140);
       }
 
       // Ramp speed
@@ -191,11 +216,12 @@ export function AvaxFlapper({ className, onExit }: { className?: string; onExit?
         if (!p.scored && p.x + PIPE_WIDTH < PLAYER_X) {
           p.scored = true;
           score.current += 1;
+          scoreFlashUntil.current = ts + SCORE_FLASH_MS;
         }
 
         if (hx + hw > p.x && hx < p.x + PIPE_WIDTH) {
-          const gapTop = p.gapCenter - PIPE_GAP / 2;
-          const gapBottom = p.gapCenter + PIPE_GAP / 2;
+          const gapTop = p.gapCenter - p.gap / 2;
+          const gapBottom = p.gapCenter + p.gap / 2;
           if (hy < gapTop || hy + hh > gapBottom) {
             endGame();
             return;
@@ -217,6 +243,10 @@ export function AvaxFlapper({ className, onExit }: { className?: string; onExit?
   // Derived visuals
   const tilt = Math.max(-25, Math.min(70, playerVy.current / 11));
   const displayedScore = score.current;
+  // Frame-local flash intensity — decays from 1 at the moment of pass
+  // to 0 after SCORE_FLASH_MS. Used for HUD pulse.
+  const nowMs = typeof performance !== 'undefined' ? performance.now() : 0;
+  const flashT = Math.max(0, (scoreFlashUntil.current - nowMs) / SCORE_FLASH_MS);
 
   return (
     <motion.div
@@ -234,10 +264,12 @@ export function AvaxFlapper({ className, onExit }: { className?: string; onExit?
         flap();
       }}
     >
-      {/* Pipes — top + bottom halves per pipe, gap between */}
+      {/* Pipes — top + bottom halves per pipe, gap between. Each pipe
+          renders with its own baked-in p.gap rather than a global
+          constant, so visibly tighter pipes appear deeper into a run. */}
       {pipes.current.map((p) => {
-        const gapTop = p.gapCenter - PIPE_GAP / 2;
-        const gapBottom = p.gapCenter + PIPE_GAP / 2;
+        const gapTop = p.gapCenter - p.gap / 2;
+        const gapBottom = p.gapCenter + p.gap / 2;
         return (
           <div
             key={p.id}
@@ -287,7 +319,14 @@ export function AvaxFlapper({ className, onExit }: { className?: string; onExit?
             HI {highScore.toString().padStart(3, '0')}
           </span>
         )}
-        <span className="text-xs font-mono tabular-nums text-zinc-700 dark:text-zinc-200">
+        <span
+          className="text-xs font-mono tabular-nums text-zinc-700 dark:text-zinc-200 transition-colors"
+          style={{
+            color: flashT > 0 ? 'rgb(34, 197, 94)' : undefined,
+            transform: flashT > 0 ? `scale(${1 + flashT * 0.35})` : undefined,
+            transformOrigin: 'right center',
+          }}
+        >
           {displayedScore.toString().padStart(3, '0')}
         </span>
       </div>

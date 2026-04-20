@@ -25,18 +25,23 @@ import { GameExitButton } from './GameExitButton';
  *     with a backdrop blur — reads as UI rather than raw text.
  */
 
-const WIDTH = 600;
-const HEIGHT = 180;
-const GROUND_Y = HEIGHT - 28;
-const PLAYER_X = 40;
-const PLAYER_SIZE = 36;
+// Phone-portrait canvas (9:16). Physics retuned for the narrower
+// horizontal runway: scroll speed scaled so the initial reaction window
+// (spawn-edge → player-X) stays around ~1.85s as in the original 600px
+// landscape layout. Player + obstacles shrunk ~25% so they read
+// proportionally in the tighter canvas.
+const WIDTH = 280;
+const HEIGHT = 500;
+const GROUND_Y = HEIGHT - 44;
+const PLAYER_X = 36;
+const PLAYER_SIZE = 28;
 
 // Physics constants — units scaled so dt is in seconds.
-const GRAVITY = 1750; // px/s²
-const JUMP_V = 620; // px/s (initial up-velocity)
-const INITIAL_SPEED = 260; // px/s horizontal scroll
-const MAX_SPEED = 640;
-const SPEED_GROWTH = 18; // px/s per second
+const GRAVITY = 1500; // px/s²
+const JUMP_V = 540; // px/s (initial up-velocity)
+const INITIAL_SPEED = 130; // px/s horizontal scroll
+const MAX_SPEED = 300;
+const SPEED_GROWTH = 9; // px/s per second
 
 // Visual constants
 const GROUND_DASH_WIDTH = 8;
@@ -57,12 +62,15 @@ type ObstacleSpec = {
   clusterable?: boolean;
 };
 
+// Obstacles scaled ~75% for the tighter portrait canvas. Tall
+// obstacles stay just under the player's max jump height
+// (JUMP_V²/(2*GRAVITY) ≈ 97px) so they're always jumpable.
 const OBSTACLE_SPECS: ObstacleSpec[] = [
-  { width: 14, height: 22, weight: 3, clusterable: true }, // short rock — most common
-  { width: 18, height: 34, weight: 2 }, // tall rock
-  { width: 28, height: 20, weight: 2, clusterable: true }, // wide rock — low and broad
-  { width: 8, height: 36, weight: 2 }, // narrow pillar — tall and skinny
-  { width: 22, height: 28, weight: 1 }, // boulder — rare, mid-sized
+  { width: 11, height: 17, weight: 3, clusterable: true }, // short rock — most common
+  { width: 14, height: 26, weight: 2 }, // tall rock
+  { width: 22, height: 15, weight: 2, clusterable: true }, // wide rock — low and broad
+  { width: 6, height: 28, weight: 2 }, // narrow pillar — tall and skinny
+  { width: 17, height: 22, weight: 1 }, // boulder — rare, mid-sized
 ];
 
 /** Weighted random pick from OBSTACLE_SPECS. */
@@ -116,6 +124,17 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
   const groundOffset = useRef(0);
   const bobPhase = useRef(0);
   const landSquashUntil = useRef(0); // performance.now() timestamp
+  // Dust particles — tiny motes kicked up on landing. Flat array,
+  // filtered each frame by life > 0. Cap at ~30 live particles so we
+  // never torch render perf.
+  const dust = useRef<Array<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number }>>([]);
+  // Variable jump — when the key is released early, cut upward velocity
+  // so short-press = short hop, long-press = full arc. Classic Mario.
+  const jumpHeld = useRef(false);
+  // Score-milestone flash: set to a timestamp when score crosses a
+  // milestone (100, 500, 1000, 5000...). HUD pulses for 500ms after.
+  const milestoneFlashUntil = useRef(0);
+  const lastMilestoneHit = useRef(0);
 
   const stateRef = useRef<GameState>('ready');
   stateRef.current = gameState;
@@ -134,6 +153,10 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
     groundOffset.current = 0;
     bobPhase.current = 0;
     landSquashUntil.current = 0;
+    dust.current = [];
+    jumpHeld.current = false;
+    milestoneFlashUntil.current = 0;
+    lastMilestoneHit.current = 0;
     setGameState('playing');
   }, []);
 
@@ -144,8 +167,20 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
     }
     if (playerY.current >= GROUND_Y - PLAYER_SIZE - 0.5) {
       playerVy.current = -JUMP_V;
+      jumpHeld.current = true;
     }
   }, [startRound]);
+
+  // Early release = short hop. Cuts upward velocity on key/touch end
+  // while the player is still rising. Industry-standard platformer trick
+  // dating back to SMB: gives fine jump-height control without adding
+  // state or new controls.
+  const releaseJump = useCallback(() => {
+    jumpHeld.current = false;
+    if (playerVy.current < 0) {
+      playerVy.current *= 0.45;
+    }
+  }, []);
 
   // Persisted high score
   useEffect(() => {
@@ -159,8 +194,9 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
 
   // Keyboard input — only active once the user has engaged (avoid
   // hijacking Space when they're navigating elsewhere on the page).
+  // Listens to keyup too so variable-jump can cut the arc on release.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
       if (stateRef.current === 'ready') return;
       const tag = (e.target as HTMLElement | null)?.tagName;
@@ -168,9 +204,18 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
       e.preventDefault();
       jump();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [jump]);
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
+      if (stateRef.current !== 'playing') return;
+      releaseJump();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [jump, releaseJump]);
 
   // Game loop
   useEffect(() => {
@@ -196,9 +241,36 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
           // Trigger squash only when actually landing from a fall of
           // meaningful speed — prevents jitter on ground contact.
           landSquashUntil.current = ts + LAND_SQUASH_MS;
+          // Kick up a puff of dust at the player's feet. 5–7 motes is
+          // the sweet spot — enough to read as a burst, few enough that
+          // the screen doesn't feel busy.
+          const n = 5 + Math.floor(Math.random() * 3);
+          for (let i = 0; i < n; i++) {
+            dust.current.push({
+              x: PLAYER_X + PLAYER_SIZE / 2 + (Math.random() - 0.5) * PLAYER_SIZE * 0.6,
+              y: GROUND_Y - 2,
+              vx: (Math.random() - 0.3) * 90 - 30, // biased slightly backward
+              vy: -40 - Math.random() * 40,
+              life: 0.45,
+              maxLife: 0.45,
+            });
+          }
+          // Cap live particles to keep cheap.
+          if (dust.current.length > 30) dust.current.splice(0, dust.current.length - 30);
         }
         playerVy.current = 0;
+        jumpHeld.current = false;
       }
+
+      // Dust physics — gravity + damping + lifetime.
+      for (const p of dust.current) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 260 * dt;
+        p.vx *= 0.94;
+        p.life -= dt;
+      }
+      if (dust.current.length) dust.current = dust.current.filter((p) => p.life > 0);
 
       // Bob cycles only while grounded — looks like the logo is running.
       const grounded = playerY.current >= GROUND_Y - PLAYER_SIZE - 0.5;
@@ -233,7 +305,7 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
           const second = CLUSTER_SECOND_SPECS[Math.floor(Math.random() * CLUSTER_SECOND_SPECS.length)];
           obstacles.current.push({
             id: obstacleId.current++,
-            x: WIDTH + 20 + first.width + 28, // 28px in-cluster gap
+            x: WIDTH + 20 + first.width + 22, // 22px in-cluster gap (scaled from 28px landscape)
             width: second.width,
             height: second.height,
           });
@@ -248,6 +320,25 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
 
       // Score
       score.current += (speed.current / 260) * 40 * dt;
+
+      // Milestone flash — celebrate 100, 500, 1000, 5000 crossings.
+      // Uses >= for cleanness; `lastMilestoneHit` prevents re-firing
+      // on the same milestone if score fluctuates near a boundary.
+      const s = Math.floor(score.current);
+      const nextMilestone =
+        lastMilestoneHit.current < 100
+          ? 100
+          : lastMilestoneHit.current < 500
+            ? 500
+            : lastMilestoneHit.current < 1000
+              ? 1000
+              : lastMilestoneHit.current < 5000
+                ? 5000
+                : lastMilestoneHit.current + 5000;
+      if (s >= nextMilestone) {
+        lastMilestoneHit.current = nextMilestone;
+        milestoneFlashUntil.current = ts + 550;
+      }
 
       // Collision
       const px = PLAYER_X + 5;
@@ -300,6 +391,10 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
   const scaleY = 1 + (LAND_SQUASH_Y - 1) * squashT;
 
   const displayedScore = Math.floor(score.current);
+  // Frame-local milestone flash intensity — decays from 1 at crossing
+  // to 0 after 550ms. HUD uses it to scale/recolor the score number.
+  const nowMsRunner = typeof performance !== 'undefined' ? performance.now() : 0;
+  const milestoneFlashT = Math.max(0, (milestoneFlashUntil.current - nowMsRunner) / 550);
 
   return (
     <motion.div
@@ -316,6 +411,8 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
         e.preventDefault();
         jump();
       }}
+      onTouchEnd={releaseJump}
+      onMouseUp={releaseJump}
     >
       {/* Ground line */}
       <div
@@ -366,6 +463,27 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
         }}
       />
 
+      {/* Dust particles — kicked up on landing. 2px dots that fade and
+          fall under gravity. Rendered above the ground line but behind
+          the player sprite for a natural kick-up feel. */}
+      {dust.current.map((p, i) => {
+        const alpha = p.life / p.maxLife;
+        return (
+          <div
+            key={i}
+            aria-hidden
+            className="pointer-events-none absolute rounded-full bg-zinc-500 dark:bg-zinc-400"
+            style={{
+              left: p.x - 1,
+              top: p.y - 1,
+              width: 2,
+              height: 2,
+              opacity: alpha * 0.7,
+            }}
+          />
+        );
+      })}
+
       {/* Obstacles — beveled gradient blocks */}
       {obstacles.current.map((o) => (
         <div
@@ -390,7 +508,14 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
             HI {highScore.toString().padStart(5, '0')}
           </span>
         )}
-        <span className="text-xs font-mono tabular-nums text-zinc-700 dark:text-zinc-200">
+        <span
+          className="text-xs font-mono tabular-nums text-zinc-700 dark:text-zinc-200 transition-colors"
+          style={{
+            color: milestoneFlashT > 0 ? 'rgb(34, 197, 94)' : undefined,
+            transform: milestoneFlashT > 0 ? `scale(${1 + milestoneFlashT * 0.4})` : undefined,
+            transformOrigin: 'right center',
+          }}
+        >
           {displayedScore.toString().padStart(5, '0')}
         </span>
       </div>

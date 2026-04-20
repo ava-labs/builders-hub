@@ -22,42 +22,61 @@ import { GameExitButton } from './GameExitButton';
  *     angle falls inside the gap (|angleDiff| < gap/2). If not, game over.
  */
 
-const WIDTH = 600;
-const HEIGHT = 180;
+// Phone-portrait canvas (9:16). Spin's radial geometry fights this
+// aspect: a 280×500 canvas caps horizontal orbit space at half-WIDTH
+// (140). We lean in — the tall canvas becomes a decorative "orbit
+// column" with empty space above/below the ring band.
+const WIDTH = 280;
+const HEIGHT = 500;
 const CX = WIDTH / 2;
 const CY = HEIGHT / 2;
 
-// Orbit + wall radii scaled up so the game fills the taller viewport.
-// With CY=90, keeping WALL_SPAWN_R > 90 guarantees walls still spawn
-// off-screen (above/below the canvas) rather than appearing mid-air.
-const PLAYER_ORBIT_R = 38;
-const PLAYER_SIZE = 20;
-const HOME_R = PLAYER_ORBIT_R - 8; // filled central disc
+// Orbit scaled to fill the canvas. WALL_SPAWN_R intentionally exceeds
+// CX so walls slide in from canvas edges — looks like the ring is
+// being crushed inward from outside.
+const PLAYER_ORBIT_R = 60;
+const PLAYER_SIZE = 22;
+const HOME_R = PLAYER_ORBIT_R - 12; // filled central disc
 
-const WALL_THICKNESS = 8;
-const WALL_SPAWN_R = 110; // well outside the visible area
-const WALL_DESPAWN_R = 16; // disappear after sweeping past the player
+const WALL_THICKNESS = 9;
+const WALL_SPAWN_R = 150; // past WIDTH/2 so walls enter clipped from edges
+const WALL_DESPAWN_R = 20; // disappear after sweeping past the player
 
-// Speeds scaled up to match the enlarged orbit (38) and spawn radius
-// (110). The travel distance from spawn to player grew from 60px to
-// 72px, so linear speeds needed the same ~20% bump to preserve the
-// original reaction window (~1.15s at round start).
-const INITIAL_WALL_SPEED = 65;
-const MAX_WALL_SPEED = 160;
-const WALL_SPEED_GROWTH = 3.0;
+// Traversal distance from spawn → player is 90px (150 − 60). Speeds
+// tuned so the initial reaction window (~1.1s) and the max-speed
+// window (~0.45s) match what felt right in the landscape version.
+const INITIAL_WALL_SPEED = 82;
+const MAX_WALL_SPEED = 200;
+const WALL_SPEED_GROWTH = 3.8;
 
 const INITIAL_SPAWN_INTERVAL = 0.9;
 const MIN_SPAWN_INTERVAL = 0.4;
 const SPAWN_INTERVAL_DECAY = 0.012;
 
-const PLAYER_OMEGA = 3.4; // rad/s
+// Angular rotation — 5.5 rad/s → ~1.14s for a full revolution, ~0.57s
+// worst-case traverse to the opposite side. Beats the max-speed wall
+// window (0.45s) only because GAP_WIDTH provides ±half-gap tolerance
+// around each dodge.
+const PLAYER_OMEGA = 5.5; // rad/s
 
-const GAP_WIDTH = Math.PI / 2.8; // ~64° — forgiving
+// Gap width shrinks with difficulty. Initial 64° (forgiving) →
+// minimum 42° (real precision demanded). Per-wall storage means
+// in-flight walls keep their original gap — mid-flight shrinkage
+// would feel like unfair collision snaps.
+const GAP_WIDTH_INITIAL = Math.PI / 2.8; // ~64°
+const GAP_WIDTH_MIN = Math.PI / 4.3; // ~42°
+
+// Subtle whole-field rotation — Super Hexagon's signature. Starts at
+// 0, climbs to MAX_FIELD_SPIN deg/s at full difficulty. Visual only:
+// gameplay uses un-rotated player + wall angles.
+const MAX_FIELD_SPIN = 14; // deg/s at full difficulty
 
 type Wall = {
   id: number;
   r: number;
   gapAngle: number;
+  /** Baked at spawn; shrinks with difficulty. */
+  gapWidth: number;
   scored: boolean;
 };
 
@@ -86,6 +105,12 @@ export function AvaxSpin({ className, onExit }: { className?: string; onExit?: (
   const nextSpawnIn = useRef(0.5);
   const score = useRef(0);
   const wallId = useRef(0);
+  // Difficulty 0 → 1, climbs to max over ~35s. Drives gap shrinkage
+  // and field rotation independent of wallSpeed's own ramp.
+  const difficulty = useRef(0);
+  // Cumulative field rotation (deg, mod 360). Advances each frame by
+  // (MAX_FIELD_SPIN * difficulty * dt).
+  const fieldAngle = useRef(0);
   const frameRef = useRef<number | null>(null);
 
   const stateRef = useRef<GameState>('ready');
@@ -103,6 +128,8 @@ export function AvaxSpin({ className, onExit }: { className?: string; onExit?: (
     nextSpawnIn.current = 0.5;
     score.current = 0;
     wallId.current = 0;
+    difficulty.current = 0;
+    fieldAngle.current = 0;
     setGameState('playing');
   }, []);
 
@@ -179,23 +206,36 @@ export function AvaxSpin({ className, onExit }: { className?: string; onExit?: (
       if (keys.current.right) playerAngle.current += PLAYER_OMEGA * dt;
       playerAngle.current = normalizeAngle(playerAngle.current);
 
+      // Difficulty tick — climbs to 1 over ~35s. Drives gap shrinkage
+      // and field rotation independently of the existing wallSpeed ramp.
+      difficulty.current = Math.min(1, difficulty.current + dt / 35);
+
+      // Field rotation — the whole ring drifts angularly (Super Hexagon
+      // signature). Pure visual transform; gameplay uses un-rotated
+      // angles so rotation never "cheats" the player into a collision.
+      fieldAngle.current = (fieldAngle.current + MAX_FIELD_SPIN * difficulty.current * dt) % 360;
+
       // Shrink walls
       for (const w of walls.current) w.r -= wallSpeed.current * dt;
       walls.current = walls.current.filter((w) => w.r > WALL_DESPAWN_R);
 
-      // Spawn
+      // Spawn — gap width per-wall lerps between INITIAL and MIN based
+      // on current difficulty. Walls keep their baked gap for life, so
+      // in-flight walls never change mid-journey.
       nextSpawnIn.current -= dt;
       if (nextSpawnIn.current <= 0) {
+        const gapWidth = GAP_WIDTH_INITIAL - (GAP_WIDTH_INITIAL - GAP_WIDTH_MIN) * difficulty.current;
         walls.current.push({
           id: wallId.current++,
           r: WALL_SPAWN_R,
           gapAngle: (Math.random() * 2 - 1) * Math.PI,
+          gapWidth,
           scored: false,
         });
         nextSpawnIn.current = spawnInterval.current + Math.random() * 0.2;
       }
 
-      // Difficulty ramp
+      // Difficulty ramp (wall speed + spawn frequency)
       wallSpeed.current = Math.min(MAX_WALL_SPEED, wallSpeed.current + WALL_SPEED_GROWTH * dt);
       spawnInterval.current = Math.max(MIN_SPAWN_INTERVAL, spawnInterval.current - SPAWN_INTERVAL_DECAY * dt);
 
@@ -207,7 +247,7 @@ export function AvaxSpin({ className, onExit }: { className?: string; onExit?: (
           w.r <= PLAYER_ORBIT_R + WALL_THICKNESS / 2 && w.r + WALL_THICKNESS >= PLAYER_ORBIT_R - WALL_THICKNESS / 2;
         if (inBand) {
           const diff = Math.abs(normalizeAngle(playerAngle.current - w.gapAngle));
-          if (diff > GAP_WIDTH / 2) {
+          if (diff > w.gapWidth / 2) {
             endGame();
             return;
           }
@@ -267,34 +307,46 @@ export function AvaxSpin({ className, onExit }: { className?: string; onExit?: (
         keys.current.right = false;
       }}
     >
-      {/* Central home disc — the "safe" center the player orbits around */}
+      {/* Rotating field — home disc, walls, and player all share the
+          same rotation so gameplay is unaffected (the player keeps its
+          ring-relative angle). HUD + exit button live outside this
+          wrapper so they stay upright. */}
       <div
-        aria-hidden
-        className="pointer-events-none absolute rounded-full bg-zinc-300/60 dark:bg-zinc-700/40 border border-zinc-300/60 dark:border-zinc-700/40"
+        className="pointer-events-none absolute inset-0"
         style={{
-          left: CX - HOME_R,
-          top: CY - HOME_R,
-          width: HOME_R * 2,
-          height: HOME_R * 2,
-        }}
-      />
-
-      {/* Walls — conic-gradient donuts with a radial mask */}
-      {walls.current.map((w) => (
-        <WallRing key={w.id} wall={w} />
-      ))}
-
-      {/* Player */}
-      <div
-        className="pointer-events-none absolute"
-        style={{
-          left: playerPos.x,
-          top: playerPos.y,
-          width: PLAYER_SIZE,
-          height: PLAYER_SIZE,
+          transform: `rotate(${fieldAngle.current}deg)`,
+          transformOrigin: `${CX}px ${CY}px`,
         }}
       >
-        <AvaxLogo className="h-full w-full text-zinc-900 dark:text-zinc-100 drop-shadow-[0_0_4px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_0_4px_rgba(255,255,255,0.45)]" />
+        {/* Central home disc — the "safe" center the player orbits around */}
+        <div
+          aria-hidden
+          className="absolute rounded-full bg-zinc-300/60 dark:bg-zinc-700/40 border border-zinc-300/60 dark:border-zinc-700/40"
+          style={{
+            left: CX - HOME_R,
+            top: CY - HOME_R,
+            width: HOME_R * 2,
+            height: HOME_R * 2,
+          }}
+        />
+
+        {/* Walls — conic-gradient donuts with a radial mask */}
+        {walls.current.map((w) => (
+          <WallRing key={w.id} wall={w} />
+        ))}
+
+        {/* Player */}
+        <div
+          className="absolute"
+          style={{
+            left: playerPos.x,
+            top: playerPos.y,
+            width: PLAYER_SIZE,
+            height: PLAYER_SIZE,
+          }}
+        >
+          <AvaxLogo className="h-full w-full text-zinc-900 dark:text-zinc-100 drop-shadow-[0_0_4px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_0_4px_rgba(255,255,255,0.45)]" />
+        </div>
       </div>
 
       {onExit && <GameExitButton onExit={onExit} />}
@@ -369,8 +421,8 @@ export function AvaxSpin({ className, onExit }: { className?: string; onExit?: (
 function WallRing({ wall }: { wall: Wall }) {
   const rOut = wall.r + WALL_THICKNESS;
   const rIn = wall.r;
-  const gapDeg = (GAP_WIDTH * 180) / Math.PI;
-  const gapStartConicDeg = ((wall.gapAngle - GAP_WIDTH / 2) * 180) / Math.PI + 90;
+  const gapDeg = (wall.gapWidth * 180) / Math.PI;
+  const gapStartConicDeg = ((wall.gapAngle - wall.gapWidth / 2) * 180) / Math.PI + 90;
   // Normalize into [0, 360)
   const from = ((gapStartConicDeg % 360) + 360) % 360;
 

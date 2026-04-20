@@ -20,8 +20,8 @@ import { cn } from '@/lib/utils';
  * produce different server vs. client HTML and trigger hydration warnings.
  */
 
-const WIDTH = 600;
-const HEIGHT = 180;
+const WIDTH = 280;
+const HEIGHT = 500;
 
 type GameKind = 'runner' | 'flappy' | 'slope' | 'spin';
 type ShellState = GameKind | 'select';
@@ -94,7 +94,12 @@ function GameSelect({ onPick }: { onPick: (kind: GameKind) => void }) {
           <span>Random</span>
         </button>
       </div>
-      <div className="grid grid-cols-4 gap-2">
+      {/* 2×2 grid sized for the portrait canvas — 4 side-by-side
+          cards would overflow 280px width, and a single-column list
+          would waste the vertical room. Cards deliberately roomier
+          (p-3, w-[118px]) than the old 100px versions since we now
+          have space to make them readable. */}
+      <div className="grid grid-cols-2 gap-2">
         {GAME_KINDS.map((k) => {
           const meta = GAME_META[k];
           return (
@@ -104,9 +109,9 @@ function GameSelect({ onPick }: { onPick: (kind: GameKind) => void }) {
               onClick={() => onPick(k)}
               whileHover={{ scale: 1.04, y: -1 }}
               whileTap={{ scale: 0.96 }}
-              className="group flex w-[100px] flex-col items-center gap-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-950/40 px-2 py-2 transition-colors hover:border-zinc-400 dark:hover:border-zinc-600 hover:bg-white dark:hover:bg-zinc-900"
+              className="group flex w-[118px] flex-col items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-950/40 px-3 py-3 transition-colors hover:border-zinc-400 dark:hover:border-zinc-600 hover:bg-white dark:hover:bg-zinc-900"
             >
-              <meta.Icon className="h-4 w-4 text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
+              <meta.Icon className="h-5 w-5 text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
               <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">{meta.label}</span>
               <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{meta.blurb}</span>
             </motion.button>

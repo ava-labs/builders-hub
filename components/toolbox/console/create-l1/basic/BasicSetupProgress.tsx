@@ -2,10 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDeploymentStatus } from '@/hooks/useQuickL1Deploy';
-import { DEPLOYMENT_STEPS, INTEROP_ONLY_STEPS, STEP_LABEL, type DeploymentStep } from '@/lib/quick-l1/types';
+import {
+  DEPLOYMENT_STEPS,
+  MANAGED_RELAYER_ONLY_STEPS,
+  STEP_LABEL,
+  type DeploymentStep,
+  type TxRecord,
+} from '@/lib/quick-l1/types';
 import { cn } from '@/lib/utils';
 import BasicSetupComplete from './BasicSetupComplete';
 import { AvaxGame } from './AvaxGame';
@@ -31,11 +37,18 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
   const router = useRouter();
   const { job, error } = useDeploymentStatus(jobId);
 
-  // Hide interop steps when the user disabled interoperability — they
-  // never run, so they'd be dead weight in the progress footer.
+  // Only show steps the orchestrator will actually run. The managed-
+  // relayer bundle (reserving-relayer, deploying-icm-registry,
+  // token-remote, relayer boot, bridging MockUSDC, …) is conditional
+  // on the user opting into `enableManagedRelayer`, *not* on the Warp
+  // precompile. A user can have Interop on for on-chain messaging but
+  // skip the managed relayer — in that case the registry/remote/bridge
+  // steps never run, and showing them in the timeline would be a lie.
   const visibleSteps = useMemo<readonly DeploymentStep[]>(() => {
-    const interopEnabled = job?.request.precompiles?.interoperability ?? true;
-    return interopEnabled ? DEPLOYMENT_STEPS : DEPLOYMENT_STEPS.filter((s) => !INTEROP_ONLY_STEPS.includes(s));
+    const managedRelayerOn = job?.request.enableManagedRelayer ?? false;
+    return managedRelayerOn
+      ? DEPLOYMENT_STEPS
+      : DEPLOYMENT_STEPS.filter((s) => !MANAGED_RELAYER_ONLY_STEPS.includes(s));
   }, [job]);
 
   // Defer to the recap screen once the job finishes. Confetti lives there.
@@ -56,7 +69,7 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
   const failed = job?.status === 'failed';
 
   return (
-    <div className="mx-auto max-w-3xl flex flex-col gap-3 py-4 px-4">
+    <div className="mx-auto max-w-5xl flex flex-col gap-4 py-4 px-4">
       {/* Header row: back link + chain name + elapsed timer */}
       <div>
         <motion.button
@@ -96,12 +109,14 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
         </motion.div>
       </div>
 
-      {/* Focal content — fixed min-height so the game below never shifts
-          when the status detail / tx badge appear or change length.
-          The ancestor chain (ConsolePageTransition motion.div) doesn't
-          propagate `h-full`, so `flex-1` on this section would size to
-          content and the game would jitter vertically. Static min-h is
-          the robust fix.
+      {/* Split-pane focal area — two panes of comparable visual weight,
+          centered as a pair. Left pane hosts the loader + step info in
+          a bordered card; right pane hosts the phone-portrait game with
+          its "While you wait" eyebrow. Both panes are 500px tall so they
+          read as a matched set; the left is wider (360) to comfortably
+          hold step labels that can run to ~40 characters.
+
+          Stacks vertically on < lg: for narrower viewports.
 
           IMPORTANT: the AvaxLoader is hoisted OUT of the AnimatePresence
           on purpose — it must keep animating continuously across step
@@ -109,68 +124,104 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
           would unmount + remount it on every step change, resetting the
           SMIL + CSS animations to t=0. Only the title/status text should
           cross-fade per step. */}
-      <div className="relative flex flex-col items-center justify-center min-h-[230px]">
+      {/* Split-pane focal area — both panes share the same outer shape:
+          eyebrow label + card below. This mirror-image structure is what
+          keeps the card tops aligned on the same Y axis. Without the
+          matching eyebrow on the left, the game card top would sit
+          ~20px below the loader card top (space stolen by the right-
+          side label). Identical wrappers → identical offsets → aligned. */}
+      <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center lg:gap-8">
+        {/* Left pane — eyebrow + loader card. Grows to fill whatever
+            horizontal space remains after the fixed-width game column,
+            so the pair spans the full container edge-to-edge (matching
+            the header + progress strip widths). Loader + text stay
+            centered inside the wider card. */}
+        <div className="flex flex-col items-center gap-1.5 w-full lg:flex-1 lg:min-w-0">
+          <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">
+            Current step
+          </span>
+          <div className="relative w-full lg:h-[500px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/40 px-5 py-5 flex flex-col overflow-hidden">
+            {failed ? (
+              <div className="flex-1 flex items-center justify-center">
+                <FailureContent message={job?.error ?? 'Unknown error'} />
+              </div>
+            ) : (
+              <>
+                {/* Top row — horizontal layout: smaller loader on the left
+                    + current step name + status on the right. This
+                    compacts the old centered 92px loader block down to
+                    ~80px so the step timeline gets 400px+ of vertical
+                    space below. */}
+                <div className="flex items-start gap-4 shrink-0">
+                  <div className="shrink-0 pt-0.5">
+                    <AvaxLoader size={52} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">
+                      Now
+                    </div>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentStep ?? 'pending'}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance break-words leading-tight">
+                          {currentStep ? STEP_LABEL[currentStep] : 'Getting ready'}
+                        </h2>
+                        {/* Status detail reserved-height slot. min-h to
+                            prevent jitter when the text appears/changes. */}
+                        <div className="min-h-8 mt-1">
+                          <AnimatePresence mode="wait">
+                            {job?.statusDetail && (
+                              <motion.p
+                                key={job.statusDetail}
+                                initial={{ opacity: 0, y: 3 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -3 }}
+                                transition={{ duration: 0.18 }}
+                                className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed text-balance break-words max-w-full"
+                              >
+                                {job.statusDetail}
+                              </motion.p>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                <div className="border-t border-zinc-100 dark:border-zinc-800/80 my-3 shrink-0" />
+
+                {/* Step timeline — scrollable list of every step in the
+                    deploy, with tx evidence inlined per step. Fills
+                    remaining vertical space via flex-1 + overflow-y-auto. */}
+                <StepTimeline
+                  visibleSteps={visibleSteps}
+                  completedSteps={job?.completedSteps ?? []}
+                  currentStep={currentStep}
+                  evidence={job?.evidence ?? []}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right pane — eyebrow + phone-portrait game (280×500). Hidden
+            on failure and on very narrow viewports where the 280px
+            canvas feels cramped against the text content. */}
         {!failed && (
-          <div className="mb-5 flex items-center justify-center h-24">
-            <AvaxLoader size={92} />
+          <div className="hidden sm:flex flex-col items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">
+              While you wait
+            </span>
+            <AvaxGame />
           </div>
         )}
-
-        <AnimatePresence mode="wait">
-          {failed ? (
-            <FailureContent key="failed" message={job?.error ?? 'Unknown error'} />
-          ) : (
-            <motion.div
-              key={currentStep ?? 'pending'}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25, ease: [0.21, 0.47, 0.32, 0.98] }}
-              className="flex flex-col items-center text-center max-w-md px-4"
-            >
-              <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {currentStep ? STEP_LABEL[currentStep] : 'Getting ready'}
-              </h2>
-
-              {/* Reserved-height status slot so the game below never
-                  shifts when the detail text appears/changes. */}
-              <div className="mt-2 h-10 w-full flex items-start justify-center">
-                <AnimatePresence mode="wait">
-                  {job?.statusDetail && (
-                    <motion.p
-                      key={job.statusDetail}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed"
-                    >
-                      {job.statusDetail}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-
-      {/* Play while you wait — one of four infinite-runner games, picked
-          at random on mount. Users can swap via the small exit button
-          in each game (top-left), which reveals a selection screen with
-          a "Random" pick plus direct game picks.
-          Framed with a muted "While you wait" label so it reads as an
-          intentional companion feature rather than a floating decoration.
-          Hidden in failure state (user has other things on their mind)
-          and on narrow viewports where the 600px canvas won't fit. */}
-      {!failed && (
-        <div className="hidden sm:flex flex-col items-center gap-1.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">
-            While you wait
-          </span>
-          <AvaxGame />
-        </div>
-      )}
 
       {/* Footer — compact progress strip. Doesn't expand regardless of
           step count, and keeps a sense of "where am I in the whole thing". */}
@@ -234,6 +285,152 @@ function StepDot({ state }: { state: DotState }) {
 
 // ─── Failure state ─────────────────────────────────────────────────
 
+// ─── Step timeline ─────────────────────────────────────────────────
+//
+// Full list of deploy steps with per-step tx evidence. Replaces the old
+// "single big loader in a blank card" focal UI with something useful
+// during the 3–5 minute wait: users can watch txs land live, click
+// through to P-Chain / C-Chain explorers, and track what's done vs.
+// coming up.
+
+type StepState = 'done' | 'active' | 'pending';
+
+/** Subnets-explorer URL for a P-Chain or C-Chain tx. L1 txs return null
+ *  (we don't have the rpcUrl until the deploy completes — users see
+ *  full interop addresses on the recap screen anyway). */
+function txExplorerUrl(tx: TxRecord): string | null {
+  const base = tx.network === 'fuji' ? 'https://subnets-test.avax.network' : 'https://subnets.avax.network';
+  if (tx.chain === 'p-chain') return `${base}/p-chain/tx/${tx.hash}`;
+  if (tx.chain === 'c-chain') return `${base}/c-chain/tx/${tx.hash}`;
+  return null;
+}
+
+function chainLabelShort(chain: TxRecord['chain']): string {
+  return chain === 'p-chain' ? 'P' : chain === 'c-chain' ? 'C' : 'L1';
+}
+
+function chainDotColor(chain: TxRecord['chain']): string {
+  return chain === 'p-chain' ? 'bg-blue-500' : chain === 'c-chain' ? 'bg-purple-500' : 'bg-red-500';
+}
+
+function StepTimeline({
+  visibleSteps,
+  completedSteps,
+  currentStep,
+  evidence,
+}: {
+  visibleSteps: readonly DeploymentStep[];
+  completedSteps: DeploymentStep[];
+  currentStep: DeploymentStep | undefined;
+  evidence: { step: DeploymentStep; txs: TxRecord[] }[];
+}) {
+  return (
+    <ol className="flex-1 flex flex-col justify-between gap-0.5 min-h-0">
+      {visibleSteps.map((step) => {
+        const isCompleted = completedSteps.includes(step);
+        const isActive = step === currentStep && !isCompleted;
+        const state: StepState = isCompleted ? 'done' : isActive ? 'active' : 'pending';
+        const stepEvidence = evidence.find((e) => e.step === step);
+        return <StepRow key={step} state={state} label={STEP_LABEL[step]} txs={stepEvidence?.txs ?? []} />;
+      })}
+    </ol>
+  );
+}
+
+function StepRow({ state, label, txs }: { state: StepState; label: string; txs: TxRecord[] }) {
+  return (
+    <li
+      className={cn(
+        'flex items-center gap-2 rounded-md px-1.5 py-0.5 transition-colors min-w-0',
+        state === 'active' && 'bg-zinc-100/70 dark:bg-zinc-800/50',
+      )}
+    >
+      <StepIcon state={state} />
+      <span
+        title={label}
+        className={cn(
+          'flex-1 min-w-0 truncate text-[12px] leading-snug',
+          state === 'done' && 'text-zinc-600 dark:text-zinc-400',
+          state === 'active' && 'font-semibold text-zinc-900 dark:text-zinc-100',
+          state === 'pending' && 'text-zinc-400 dark:text-zinc-600',
+        )}
+      >
+        {label}
+      </span>
+      {txs.length > 0 && (
+        <span className="flex items-center gap-1 shrink-0">
+          {txs.map((tx) => (
+            <TxChip key={tx.hash} tx={tx} />
+          ))}
+        </span>
+      )}
+    </li>
+  );
+}
+
+function StepIcon({ state }: { state: StepState }) {
+  if (state === 'done') {
+    return (
+      <span className="shrink-0 mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white">
+        <Check className="h-3 w-3" strokeWidth={3} />
+      </span>
+    );
+  }
+  if (state === 'active') {
+    return (
+      <span className="shrink-0 mt-0.5 flex h-4 w-4 items-center justify-center">
+        <span className="h-3.5 w-3.5 rounded-full border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-zinc-100 animate-spin" />
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 mt-0.5 flex h-4 w-4 items-center justify-center">
+      <span className="h-2 w-2 rounded-full border border-zinc-300 dark:border-zinc-700" />
+    </span>
+  );
+}
+
+function TxChip({ tx }: { tx: TxRecord }) {
+  const url = txExplorerUrl(tx);
+  const short = tx.hash.length > 10 ? `${tx.hash.slice(0, 4)}…${tx.hash.slice(-4)}` : tx.hash;
+  // Full tooltip includes the chain + label + hash so nothing's lost when
+  // the visible chip is tiny. Shows on hover for users who want details.
+  const tooltip = tx.label
+    ? `${chainLabelShort(tx.chain)} · ${tx.label} · ${tx.hash}`
+    : `${chainLabelShort(tx.chain)} · ${tx.hash}`;
+
+  const inner = (
+    <>
+      <span className={cn('h-1 w-1 rounded-full shrink-0', chainDotColor(tx.chain))} />
+      <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0">
+        {chainLabelShort(tx.chain)}
+      </span>
+      <code className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400 shrink-0">{short}</code>
+      {url && <ExternalLink className="h-2.5 w-2.5 shrink-0 text-zinc-400 dark:text-zinc-500" />}
+    </>
+  );
+  const commonClass =
+    'inline-flex items-center gap-1 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-1 py-[1px] leading-none';
+  return url ? (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      title={tooltip}
+      className={cn(
+        commonClass,
+        'hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors',
+      )}
+    >
+      {inner}
+    </a>
+  ) : (
+    <span className={commonClass} title={tooltip}>
+      {inner}
+    </span>
+  );
+}
+
 function FailureContent({ message }: { message: string }) {
   return (
     <motion.div
@@ -242,11 +439,14 @@ function FailureContent({ message }: { message: string }) {
       transition={{ type: 'spring', stiffness: 240, damping: 26 }}
       className="flex flex-col items-center text-center max-w-md"
     >
-      <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-red-500">
+      <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-red-500 shrink-0">
         <AlertCircle className="h-10 w-10 text-red-500" />
       </div>
       <h2 className="mt-6 text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Deployment failed</h2>
-      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{message}</p>
+      {/* Error messages can contain long RPC URLs, tx hashes, or stack
+          traces — break-words ensures they wrap inside the 312px-wide
+          card content area rather than overflowing horizontally. */}
+      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 break-words max-w-full">{message}</p>
     </motion.div>
   );
 }

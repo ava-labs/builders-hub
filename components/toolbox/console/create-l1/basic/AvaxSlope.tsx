@@ -15,19 +15,26 @@ import { GameExitButton } from './GameExitButton';
  * Clustered tree spawns force commit decisions.
  */
 
-const WIDTH = 600;
-const HEIGHT = 180;
-const PLAYER_SIZE = 26;
-const PLAYER_Y = HEIGHT - PLAYER_SIZE - 14;
+// Phone-portrait canvas (9:16). Ski is the game that most naturally fits
+// this aspect — trees fall top→bottom along the long axis, so the extra
+// vertical runway (500 vs 180) means trees spend meaningfully longer
+// in view. Horizontal movement bounded by the narrower 280px width
+// means fewer big dodges, more fine-position adjustments.
+const WIDTH = 280;
+const HEIGHT = 500;
+const PLAYER_SIZE = 24;
+const PLAYER_Y = HEIGHT - PLAYER_SIZE - 24;
 const MIN_X = 6;
 const MAX_X = WIDTH - PLAYER_SIZE - 6;
 
-const INITIAL_SPEED = 180; // vertical scroll speed (trees falling)
-const MAX_SPEED = 420;
-const SPEED_GROWTH = 12;
-const PLAYER_H_SPEED = 320;
+// Vertical scroll speed stays in the same ballpark — trees take ~2.5s
+// to cross from top to bottom at start, which is a readable window.
+const INITIAL_SPEED = 180;
+const MAX_SPEED = 360;
+const SPEED_GROWTH = 10;
+const PLAYER_H_SPEED = 260;
 
-const TREE_SIZE = 26;
+const TREE_SIZE = 22;
 
 type Tree = { id: number; x: number; y: number };
 
@@ -41,6 +48,12 @@ export function AvaxSlope({ className, onExit }: { className?: string; onExit?: 
   const [shakeKey, setShakeKey] = useState(0);
 
   const playerX = useRef((WIDTH - PLAYER_SIZE) / 2);
+  // Horizontal velocity (px/s). Decoupled from instantaneous input so
+  // we can have momentum — starting + stopping ease instead of snap.
+  const playerVx = useRef(0);
+  // Smoothed tilt (degrees). Chases a target based on input direction,
+  // making the player lean into the turn like a real skier.
+  const playerTilt = useRef(0);
   const trees = useRef<Tree[]>([]);
   const speed = useRef(INITIAL_SPEED);
   const score = useRef(0);
@@ -59,6 +72,8 @@ export function AvaxSlope({ className, onExit }: { className?: string; onExit?: 
 
   const startRound = useCallback(() => {
     playerX.current = (WIDTH - PLAYER_SIZE) / 2;
+    playerVx.current = 0;
+    playerTilt.current = 0;
     trees.current = [];
     speed.current = INITIAL_SPEED;
     score.current = 0;
@@ -136,17 +151,39 @@ export function AvaxSlope({ className, onExit }: { className?: string; onExit?: 
       const dt = Math.min(0.05, (ts - last) / 1000);
       last = ts;
 
-      // Player movement — keyboard takes precedence; touch overrides when active
-      let dx = 0;
-      if (keys.current.left) dx -= PLAYER_H_SPEED * dt;
-      if (keys.current.right) dx += PLAYER_H_SPEED * dt;
+      // Player movement — momentum-based. Target velocity comes from
+      // keyboard/touch; actual velocity eases toward it with a high
+      // acceleration so the skier slides smoothly instead of snapping
+      // on/off at 0 → PLAYER_H_SPEED. Feels way more like a skier than
+      // the old instantaneous motion.
+      let targetVx = 0;
+      if (keys.current.left) targetVx -= PLAYER_H_SPEED;
+      if (keys.current.right) targetVx += PLAYER_H_SPEED;
       if (touchX.current !== null) {
         const target = Math.max(MIN_X, Math.min(MAX_X, touchX.current - PLAYER_SIZE / 2));
         const diff = target - playerX.current;
-        const maxStep = PLAYER_H_SPEED * dt * 1.8;
-        dx = Math.max(-maxStep, Math.min(maxStep, diff));
+        // Touch mode: derive velocity from distance-to-touch with a cap
+        // at PLAYER_H_SPEED × 1.8 so flicks feel snappy.
+        targetVx = Math.max(-PLAYER_H_SPEED * 1.8, Math.min(PLAYER_H_SPEED * 1.8, diff * 10));
       }
-      playerX.current = Math.max(MIN_X, Math.min(MAX_X, playerX.current + dx));
+      // Acceleration of 1800 px/s² reaches PLAYER_H_SPEED (260) in
+      // ~0.14s — crisp but not instant. Increase for snappier, decrease
+      // for drifty.
+      const accel = 1800;
+      const delta = targetVx - playerVx.current;
+      const step = Math.sign(delta) * Math.min(Math.abs(delta), accel * dt);
+      playerVx.current += step;
+      playerX.current = Math.max(MIN_X, Math.min(MAX_X, playerX.current + playerVx.current * dt));
+      // Kill velocity at the walls so the player doesn't "build up"
+      // against the edge and then blast back on release.
+      if (playerX.current === MIN_X && playerVx.current < 0) playerVx.current = 0;
+      if (playerX.current === MAX_X && playerVx.current > 0) playerVx.current = 0;
+
+      // Smooth player tilt toward ±14° based on velocity sign+magnitude.
+      // 0.14 coefficient = critically damped look at 60fps; doesn't
+      // overshoot.
+      const targetTilt = (playerVx.current / PLAYER_H_SPEED) * 14;
+      playerTilt.current += (targetTilt - playerTilt.current) * 0.14;
 
       // Scroll trees + snow
       const move = speed.current * dt;
@@ -157,7 +194,10 @@ export function AvaxSlope({ className, onExit }: { className?: string; onExit?: 
       // Spawn — occasional clusters of 2 at varied x for challenge
       nextSpawnIn.current -= dt;
       if (nextSpawnIn.current <= 0) {
-        const clusterCount = Math.random() < 0.25 ? 2 : 1;
+        // Cluster chance scales with speed: starts at 20%, climbs to
+        // ~50% at MAX_SPEED. Late game feels genuinely dense.
+        const clusterP = 0.2 + 0.3 * ((speed.current - INITIAL_SPEED) / (MAX_SPEED - INITIAL_SPEED));
+        const clusterCount = Math.random() < clusterP ? 2 : 1;
         for (let i = 0; i < clusterCount; i++) {
           trees.current.push({
             id: treeId.current++,
@@ -254,7 +294,8 @@ export function AvaxSlope({ className, onExit }: { className?: string; onExit?: 
         </div>
       ))}
 
-      {/* Player */}
+      {/* Player — leans into the direction of travel via playerTilt,
+          which eases toward ±14° based on horizontal velocity. */}
       <div
         className="pointer-events-none absolute"
         style={{
@@ -262,6 +303,8 @@ export function AvaxSlope({ className, onExit }: { className?: string; onExit?: 
           top: PLAYER_Y,
           width: PLAYER_SIZE,
           height: PLAYER_SIZE,
+          transform: `rotate(${playerTilt.current}deg)`,
+          transformOrigin: '50% 80%',
         }}
       >
         <AvaxLogo className="h-full w-full text-zinc-900 dark:text-zinc-100 drop-shadow-[0_2px_3px_rgba(0,0,0,0.3)] dark:drop-shadow-[0_2px_3px_rgba(0,0,0,0.55)]" />
