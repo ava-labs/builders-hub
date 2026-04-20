@@ -16,6 +16,7 @@ export type DeploymentStep =
   | 'reserving-relayer'
   | 'creating-chain'
   | 'provisioning-node'
+  | 'attaching-relayer'
   | 'converting-to-l1'
   | 'initializing-validator-set'
   | 'deploying-icm-registry'
@@ -51,6 +52,7 @@ export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'reserving-relayer',
   'creating-chain',
   'provisioning-node',
+  'attaching-relayer',
   'converting-to-l1',
   'initializing-validator-set',
   'deploying-icm-registry',
@@ -63,6 +65,7 @@ export const DEPLOYMENT_STEPS: DeploymentStep[] = [
 /** Subset of steps that only run when `precompiles.interoperability` is true. */
 export const INTEROP_ONLY_STEPS: readonly DeploymentStep[] = [
   'reserving-relayer',
+  'attaching-relayer',
   'deploying-icm-registry',
   'deploying-token-remote',
   'registering-remote',
@@ -78,6 +81,7 @@ export const STEP_LABEL: Record<DeploymentStep, string> = {
   'reserving-relayer': 'Reserving ICM Relayer',
   'creating-chain': 'Creating Chain',
   'provisioning-node': 'Provisioning Validator Node',
+  'attaching-relayer': 'Booting ICM Relayer (parallel)',
   'converting-to-l1': 'Converting Subnet to L1',
   'initializing-validator-set': 'Initializing Validator Set',
   'deploying-icm-registry': 'Deploying ICM Registry (L1)',

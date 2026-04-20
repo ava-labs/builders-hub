@@ -33,6 +33,7 @@ const STEP_DELAYS_MS: Record<DeploymentStep, number> = {
   'reserving-relayer': 800,
   'creating-chain': 2500,
   'provisioning-node': 3000,
+  'attaching-relayer': 600,
   'converting-to-l1': 2500,
   'initializing-validator-set': 2000,
   'deploying-icm-registry': 2000,
@@ -54,6 +55,8 @@ const STEP_DETAIL: Record<DeploymentStep, (job: DeploymentJob) => string> = {
   'reserving-relayer': () => 'Reserving ICM relayer key for L1 genesis alloc…',
   'creating-chain': () => 'Building genesis and submitting chain creation tx…',
   'provisioning-node': () => 'Requesting a managed validator node on Fuji…',
+  'attaching-relayer': () =>
+    'Attaching chain configs + booting ICM relayer container in the background…',
   'converting-to-l1': () => 'Submitting convertSubnetToL1Tx with validator credentials…',
   'initializing-validator-set': () => 'Aggregating Warp signatures and seeding the initial validator set…',
   'deploying-icm-registry': () => 'Deploying TeleporterRegistry on the new L1…',
@@ -112,6 +115,8 @@ function makeTxsForStep(step: DeploymentStep, network: 'fuji' | 'mainnet'): TxRe
       return [{ hash: fakePChainTxId(), chain: 'p-chain', network, label: 'CreateChainTx', timestamp: now }];
     case 'provisioning-node':
       return []; // Managed-node HTTP call — no on-chain tx.
+    case 'attaching-relayer':
+      return []; // Upstream HTTP call (PUT relayer configs) — no on-chain tx.
     case 'converting-to-l1':
       return [{ hash: fakePChainTxId(), chain: 'p-chain', network, label: 'ConvertSubnetToL1Tx', timestamp: now }];
     case 'initializing-validator-set':
