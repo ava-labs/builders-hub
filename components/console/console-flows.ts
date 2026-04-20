@@ -26,6 +26,29 @@ export type FlowMetadata = {
  * Key is derived from basePath: "/console/layer-1/create" → "layer-1/create"
  */
 export const consoleFlows: Record<string, FlowMetadata> = {
+  "encrypted-erc/deposit": {
+    title: "Deposit into Encrypted ERC",
+    completionSummary: "You've wrapped AVAX into its encrypted form. The contract holds a Poseidon ciphertext of your balance — only you and the auditor can decrypt it.",
+    accomplishments: [
+      "Wrapped native AVAX into WAVAX (ERC20)",
+      "Approved + deposited WAVAX into the EncryptedERC converter",
+    ],
+    nextSteps: [
+      {
+        path: "/console/encrypted-erc/balance",
+        title: "Decrypt your balance",
+        description: "View the plaintext amount and toggle the raw ciphertext",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/transfer",
+        title: "Make a private transfer",
+        description: "Send encrypted amounts to any registered address",
+        priority: "recommended",
+      },
+    ],
+  },
+
   "encrypted-erc/deploy": {
     title: "Deploy Your Own Encrypted ERC",
     completionSummary: "You've deployed a complete Encrypted ERC protocol — library, five verifiers, Registrar, and the main contract — and registered yourself as both an eERC user and the auditor.",

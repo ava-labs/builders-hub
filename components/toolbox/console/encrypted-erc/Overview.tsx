@@ -582,7 +582,7 @@ function CanonicalDeploymentCard({ known }: { known: ReturnType<typeof listKnown
         </div>
         <div className="flex items-center justify-between">
           <span className="text-zinc-500 dark:text-zinc-400">Wrapped tokens</span>
-          <span className="font-mono text-zinc-700 dark:text-zinc-300">mUSDC · WAVAX</span>
+          <span className="font-mono text-zinc-700 dark:text-zinc-300">WAVAX</span>
         </div>
       </div>
       <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">

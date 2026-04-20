@@ -87,3 +87,16 @@ export const ENCRYPTED_ERC_SOURCES: ContractSource[] = [
     description: 'Tracks the current auditor address + public key; owner rotates via setAuditorPublicKey.',
   },
 ];
+
+const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const icmRaw = (path: string) =>
+  `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/${path}`;
+
+export const WAVAX_SOURCES: ContractSource[] = [
+  {
+    name: 'WrappedNativeToken',
+    filename: 'WrappedNativeToken.sol',
+    url: icmRaw('contracts/ictt/WrappedNativeToken.sol'),
+    description: 'Canonical Wrapped AVAX (WAVAX) — deposit() wraps the native asset into an ERC20; withdraw() unwraps it. The Fuji WAVAX at 0xd00ae084... is deployed from this source.',
+  },
+];

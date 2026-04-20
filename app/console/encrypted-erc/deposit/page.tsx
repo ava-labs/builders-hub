@@ -1,7 +1,8 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import DepositMint from '@/components/toolbox/console/encrypted-erc/DepositMint';
-
+// Old single-page Deposit got split into a 2-step StepFlow (Wrap AVAX → Deposit)
+// so users who only hold native AVAX aren't stuck at an "insufficient WAVAX"
+// error. Users with WAVAX already can skip step 1 via the stepper.
 export default function Page() {
-  return <DepositMint />;
+  redirect('/console/encrypted-erc/deposit/wrap-avax');
 }

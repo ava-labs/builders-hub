@@ -16,12 +16,12 @@
           "withdraw": "0x87329ec6f2ffa8123c5f7f3bd03edf4634dd8ad7",
           "burn": "0xe6b66eac11e7a96c5acce4c51d7ff306d235d3ab"
         },
-        "auditorAddress": "",
+        "auditorAddress": "0x0DA967B35CE94A1Cc808Ec4497Bfbf88615ed006",
         "decimals": 2,
         "deployedAtBlock": 54383527
       },
       "converter": {
-        "label": "Demo Converter (wraps mUSDC + WAVAX)",
+        "label": "Demo Converter (wraps WAVAX)",
         "encryptedERC": "0xaa1e09ff9ea69128574293340bed9c4e906f24b0",
         "registrar": "0x7830a1c35da4fded5a2d2e1cb3432ac28a5bb2de",
         "babyJubJubLibrary": "0x386be94190c91a599852827ef2211676774990fc",
@@ -32,16 +32,10 @@
           "withdraw": "0x87329ec6f2ffa8123c5f7f3bd03edf4634dd8ad7",
           "burn": "0xe6b66eac11e7a96c5acce4c51d7ff306d235d3ab"
         },
-        "auditorAddress": "",
+        "auditorAddress": "0x0DA967B35CE94A1Cc808Ec4497Bfbf88615ed006",
         "decimals": 2,
         "deployedAtBlock": 54383527,
         "supportedTokens": [
-          {
-            "address": "0xfa4586d45469f64aeb77c05f8bc25f7b8cc9890f",
-            "symbol": "mUSDC",
-            "name": "Mock USDC (Fuji)",
-            "decimals": 6
-          },
           {
             "address": "0xd00ae08403B9bbb9124bB305C09058E32C39A48c",
             "symbol": "WAVAX",

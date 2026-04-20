@@ -35,9 +35,9 @@ const EERC_BUILD = '/tmp/eerc-build';
 const ARTIFACTS = join(EERC_BUILD, 'artifacts', 'contracts');
 const DEPLOYMENTS_PATH = join(REPO, 'constants', 'eerc-deployments.json');
 
-// Token addresses the converter mode will wrap on Fuji. Mock-USDC is a
-// well-known Fuji test token; WAVAX is the canonical wrapped AVAX.
-const FUJI_MOCK_USDC = '0xfa4586d45469f64aeb77c05f8bc25f7b8cc9890f' as const;
+// Canonical Fuji WAVAX. Users on C-Chain always have AVAX (from the faucet),
+// can wrap it into WAVAX via the Deposit tool, then deposit into eERC —
+// a single public token path avoids access-controlled mock-token friction.
 const FUJI_WAVAX = '0xd00ae08403B9bbb9124bB305C09058E32C39A48c' as const;
 
 // eERC decimals is fixed at 2 by the canonical protocol constants.
@@ -212,7 +212,6 @@ async function main() {
     decimals: EERC_DECIMALS,
     deployedAtBlock,
     supportedTokens: [
-      { address: FUJI_MOCK_USDC, symbol: 'mUSDC', name: 'Mock USDC (Fuji)', decimals: 6 },
       { address: FUJI_WAVAX, symbol: 'WAVAX', name: 'Wrapped AVAX (Fuji)', decimals: 18 },
     ],
   };
