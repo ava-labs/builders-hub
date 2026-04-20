@@ -13,6 +13,7 @@
     "update-index": "tsx ./utils/update-index.ts",
     "start": "pnpm build:remote && next build && next start",
     "eerc:deploy-fuji": "tsx ./scripts/eerc/deploy-fuji.ts",
+    "eerc:setup-fuji-auditor": "tsx ./scripts/eerc/setup-fuji-auditor.ts",
     "generate:event-signatures": "tsx ./scripts/generate-event-signatures.mts",
     "generate:course": "tsx ./scripts/generate-course.mts",
     "enrich:chains": "tsx ./scripts/enrich-chains.mts",
