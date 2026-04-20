@@ -33,10 +33,10 @@ export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
  * at a time. Any reordering must stay in sync with the `quick-l1`
  * Railway service.
  *
- * Steps after `initializing-validator-set` only run when the request
- * has `precompiles.interoperability` enabled — they bootstrap ICM +
- * ICTT so the user gets a bridged MockUSDC on the new L1 out of the
- * box. Hide them from progress UI when interop is off.
+ * The last 6 steps only run when the request has
+ * `precompiles.interoperability` enabled — they bootstrap ICM + ICTT
+ * so the user gets a bridged MockUSDC on the new L1 out of the box.
+ * Hide them from progress UI when interop is off.
  *
  * `reserving-relayer` runs *before* `creating-chain` because the
  * relayer's EVM address is baked into L1 genesis alloc.
@@ -44,6 +44,11 @@ export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
  * Validator Manager is deployed on **C-Chain**, not on the new L1 —
  * that's why convert-to-L1 happens after the manager's contract
  * address is known + initialized.
+ *
+ * `attaching-relayer` sits *after* `initializing-validator-set` so the
+ * relayer boots against a live L1 RPC + a proper P-Chain-registered
+ * validator set. Booting earlier stranded register messages on the
+ * v1.7.5 "subscribe-timeout skips historical scan" bug.
  */
 export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'creating-subnet',
@@ -52,9 +57,9 @@ export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'reserving-relayer',
   'creating-chain',
   'provisioning-node',
-  'attaching-relayer',
   'converting-to-l1',
   'initializing-validator-set',
+  'attaching-relayer',
   'deploying-icm-registry',
   'deploying-token-remote',
   'registering-remote',
