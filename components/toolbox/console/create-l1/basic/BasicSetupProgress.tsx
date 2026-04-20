@@ -2,18 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, ArrowLeft, Check, Copy, ExternalLink } from 'lucide-react';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDeploymentStatus } from '@/hooks/useQuickL1Deploy';
-import {
-  DEPLOYMENT_STEPS,
-  INTEROP_ONLY_STEPS,
-  STEP_LABEL,
-  type DeploymentStep,
-  type TxRecord,
-} from '@/lib/quick-l1/types';
+import { DEPLOYMENT_STEPS, INTEROP_ONLY_STEPS, STEP_LABEL, type DeploymentStep } from '@/lib/quick-l1/types';
 import { cn } from '@/lib/utils';
 import BasicSetupComplete from './BasicSetupComplete';
+import { AvaxGame } from './AvaxGame';
+import { AvaxLoader } from './AvaxLoader';
 
 /**
  * Live deployment tracker — one step at a time, typeform-style.
@@ -58,13 +54,11 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
   );
   const progressPct = Math.round((completedCount / visibleSteps.length) * 100);
   const failed = job?.status === 'failed';
-  const currentEvidence = job?.evidence.find((e) => e.step === currentStep);
-  const latestTx = currentEvidence?.txs[currentEvidence.txs.length - 1];
 
   return (
-    <div className="mx-auto max-w-3xl h-full flex flex-col py-4 px-4">
+    <div className="mx-auto max-w-3xl flex flex-col gap-3 py-4 px-4">
       {/* Header row: back link + chain name + elapsed timer */}
-      <div className="flex-shrink-0">
+      <div>
         <motion.button
           type="button"
           onClick={() => router.push('/console/create-l1')}
@@ -102,65 +96,85 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
         </motion.div>
       </div>
 
-      {/* Focal content — flex-1 so it vertically centers in whatever
-          space the header + footer leave behind. One step at a time,
-          fades through AnimatePresence as the deploy advances. */}
-      <div className="flex-1 min-h-0 flex items-center justify-center py-6">
+      {/* Focal content — fixed min-height so the game below never shifts
+          when the status detail / tx badge appear or change length.
+          The ancestor chain (ConsolePageTransition motion.div) doesn't
+          propagate `h-full`, so `flex-1` on this section would size to
+          content and the game would jitter vertically. Static min-h is
+          the robust fix.
+
+          IMPORTANT: the AvaxLoader is hoisted OUT of the AnimatePresence
+          on purpose — it must keep animating continuously across step
+          changes. If it lived inside the motion.div (keyed by step), React
+          would unmount + remount it on every step change, resetting the
+          SMIL + CSS animations to t=0. Only the title/status text should
+          cross-fade per step. */}
+      <div className="relative flex flex-col items-center justify-center min-h-[230px]">
+        {!failed && (
+          <div className="mb-5 flex items-center justify-center h-24">
+            <AvaxLoader size={92} />
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {failed ? (
             <FailureContent key="failed" message={job?.error ?? 'Unknown error'} />
           ) : (
             <motion.div
               key={currentStep ?? 'pending'}
-              initial={{ opacity: 0, y: 14, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -14, scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 26 }}
-              className="flex flex-col items-center text-center max-w-md"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: [0.21, 0.47, 0.32, 0.98] }}
+              className="flex flex-col items-center text-center max-w-md px-4"
             >
-              <Ring progress={progressPct} />
-
-              <h2 className="mt-6 text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {currentStep ? STEP_LABEL[currentStep] : 'Getting ready…'}
+              <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {currentStep ? STEP_LABEL[currentStep] : 'Getting ready'}
               </h2>
 
-              <AnimatePresence mode="wait">
-                {job?.statusDetail && (
-                  <motion.p
-                    key={job.statusDetail}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.25 }}
-                    className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed"
-                  >
-                    {job.statusDetail}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              <AnimatePresence>
-                {latestTx && (
-                  <motion.div
-                    key={latestTx.hash}
-                    initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 26 }}
-                    className="mt-5 w-full"
-                  >
-                    <TxBadge tx={latestTx} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Reserved-height status slot so the game below never
+                  shifts when the detail text appears/changes. */}
+              <div className="mt-2 h-10 w-full flex items-start justify-center">
+                <AnimatePresence mode="wait">
+                  {job?.statusDetail && (
+                    <motion.p
+                      key={job.statusDetail}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed"
+                    >
+                      {job.statusDetail}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
+      {/* Play while you wait — one of four infinite-runner games, picked
+          at random on mount. Users can swap via the small exit button
+          in each game (top-left), which reveals a selection screen with
+          a "Random" pick plus direct game picks.
+          Framed with a muted "While you wait" label so it reads as an
+          intentional companion feature rather than a floating decoration.
+          Hidden in failure state (user has other things on their mind)
+          and on narrow viewports where the 520px canvas won't fit. */}
+      {!failed && (
+        <div className="hidden sm:flex flex-col items-center gap-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">
+            While you wait
+          </span>
+          <AvaxGame />
+        </div>
+      )}
+
       {/* Footer — compact progress strip. Doesn't expand regardless of
           step count, and keeps a sense of "where am I in the whole thing". */}
-      <div className="flex-shrink-0">
+      <div>
         <div className="mb-2 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
           <span>
             Step {Math.min(currentIdx + 1, visibleSteps.length)} of {visibleSteps.length}
@@ -187,62 +201,9 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
   );
 }
 
-// ─── Animated ring loader ──────────────────────────────────────────
-// SVG conic-ish progress ring: dim base circle + primary-colored arc
-// that fills as `progress` climbs from 0..100. A small dot orbits the
-// ring constantly as a "heartbeat" so the UI feels alive even when
-// progress is stalled between steps.
-
-function Ring({ progress }: { progress: number }) {
-  const R = 44;
-  const C = 2 * Math.PI * R;
-  const clamped = Math.max(0, Math.min(100, progress));
-  const dashOffset = C * (1 - clamped / 100);
-  return (
-    <div className="relative h-28 w-28">
-      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-        {/* Base dim ring */}
-        <circle
-          cx="50"
-          cy="50"
-          r={R}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          className="text-zinc-200 dark:text-zinc-800"
-        />
-        {/* Progress arc */}
-        <motion.circle
-          cx="50"
-          cy="50"
-          r={R}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeDasharray={C}
-          initial={{ strokeDashoffset: C }}
-          animate={{ strokeDashoffset: dashOffset }}
-          transition={{ duration: 0.6, ease: 'easeInOut' }}
-          className="text-primary"
-        />
-      </svg>
-      {/* Orbiting heartbeat dot — pure CSS rotation so it always runs */}
-      <motion.div
-        className="pointer-events-none absolute inset-0"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
-        style={{ transformOrigin: 'center' }}
-      >
-        <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_10px_rgba(59,130,246,0.6)]" />
-      </motion.div>
-      {/* Center label — percentage */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <span className="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400">{clamped}%</span>
-      </div>
-    </div>
-  );
-}
+// ─── Loader placeholder ────────────────────────────────────────────
+// The focal area currently shows just the step title + status detail.
+// Next iteration picks a unique loading animation (see brainstorm).
 
 // ─── Progress dot strip ────────────────────────────────────────────
 
@@ -318,76 +279,6 @@ function ElapsedTimer({ startedAt, running }: { startedAt: string; running: bool
       <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Elapsed</div>
       <div className="mt-0.5 font-mono tabular-nums text-lg leading-none text-zinc-900 dark:text-zinc-100">
         {mm}:{ss}
-      </div>
-    </div>
-  );
-}
-
-// ─── Single tx badge (current step's latest tx) ────────────────────
-
-function chainDotClass(chain: TxRecord['chain']): string {
-  return chain === 'p-chain' ? 'bg-blue-500' : chain === 'c-chain' ? 'bg-purple-500' : 'bg-red-500';
-}
-
-function chainName(chain: TxRecord['chain']): string {
-  return chain === 'p-chain' ? 'P-Chain' : chain === 'c-chain' ? 'C-Chain' : 'L1';
-}
-
-function explorerUrl(tx: TxRecord): string | null {
-  const base = tx.network === 'fuji' ? 'https://subnets-test.avax.network' : 'https://subnets.avax.network';
-  if (tx.chain === 'p-chain') return `${base}/p-chain/tx/${tx.hash}`;
-  if (tx.chain === 'c-chain') return `${base}/c-chain/tx/${tx.hash}`;
-  return null;
-}
-
-function TxBadge({ tx }: { tx: TxRecord }) {
-  const [copied, setCopied] = useState(false);
-  const url = explorerUrl(tx);
-
-  const onCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(tx.hash);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
-
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-2.5 pr-1 py-1 text-[11px] max-w-full">
-      <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', chainDotClass(tx.chain))} />
-      <span className="text-zinc-600 dark:text-zinc-300 shrink-0">{chainName(tx.chain)}</span>
-      {tx.label && (
-        <>
-          <span className="text-zinc-300 dark:text-zinc-700 shrink-0">·</span>
-          <span className="text-zinc-700 dark:text-zinc-200 shrink-0 font-medium">{tx.label}</span>
-        </>
-      )}
-      <span className="text-zinc-300 dark:text-zinc-700 shrink-0">·</span>
-      <code className="font-mono text-zinc-500 dark:text-zinc-400 truncate select-all max-w-[160px]">
-        {tx.hash.length > 20 ? `${tx.hash.slice(0, 8)}…${tx.hash.slice(-6)}` : tx.hash}
-      </code>
-      <div className="shrink-0 flex items-center">
-        <button
-          type="button"
-          onClick={onCopy}
-          title="Copy hash"
-          className="rounded-full p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-        </button>
-        {url && (
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            title="Open in explorer"
-            className="rounded-full p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
       </div>
     </div>
   );
