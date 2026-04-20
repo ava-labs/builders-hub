@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Check, ChevronDown, Copy, ExternalLink, Layers, Link2, Wallet } from 'lucide-react';
+import { Check, ChevronDown, Copy, ExternalLink, Layers, Link2, Server, Wallet } from 'lucide-react';
 import type { Address } from 'viem';
 import type { DeploymentJob } from '@/lib/quick-l1/types';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
@@ -419,7 +419,12 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
       </motion.div>
 
       {/* Secondary actions — sidebar + breadcrumb already give the user
-          plenty of ways back to the console, so we keep this minimal. */}
+          plenty of ways back to the console, so we keep this minimal.
+          Testnet-infra links land on the account-scoped pages (filtered
+          by userId server-side) so the user sees *their* nodes +
+          relayers, not the global upstream list. The relayer link only
+          renders when interop was enabled — there's no relayer to show
+          otherwise. */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -435,6 +440,22 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
           Open in Explorer
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
+        <a
+          href="/console/testnet-infra/nodes"
+          className="inline-flex items-center gap-1.5 text-primary hover:underline"
+        >
+          <Server className="h-3.5 w-3.5" />
+          My managed nodes
+        </a>
+        {result.interop && (
+          <a
+            href="/console/testnet-infra/icm-relayer"
+            className="inline-flex items-center gap-1.5 text-primary hover:underline"
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            My managed relayer
+          </a>
+        )}
       </motion.div>
     </div>
   );
