@@ -162,7 +162,7 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
           Framed with a muted "While you wait" label so it reads as an
           intentional companion feature rather than a floating decoration.
           Hidden in failure state (user has other things on their mind)
-          and on narrow viewports where the 520px canvas won't fit. */}
+          and on narrow viewports where the 600px canvas won't fit. */}
       {!failed && (
         <div className="hidden sm:flex flex-col items-center gap-1.5">
           <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-500">

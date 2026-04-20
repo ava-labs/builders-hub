@@ -15,8 +15,8 @@ import { GameExitButton } from './GameExitButton';
  * Clustered tree spawns force commit decisions.
  */
 
-const WIDTH = 520;
-const HEIGHT = 140;
+const WIDTH = 600;
+const HEIGHT = 180;
 const PLAYER_SIZE = 26;
 const PLAYER_Y = HEIGHT - PLAYER_SIZE - 14;
 const MIN_X = 6;

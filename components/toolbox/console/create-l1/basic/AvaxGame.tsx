@@ -20,8 +20,8 @@ import { cn } from '@/lib/utils';
  * produce different server vs. client HTML and trigger hydration warnings.
  */
 
-const WIDTH = 520;
-const HEIGHT = 140;
+const WIDTH = 600;
+const HEIGHT = 180;
 
 type GameKind = 'runner' | 'flappy' | 'slope' | 'spin';
 type ShellState = GameKind | 'select';

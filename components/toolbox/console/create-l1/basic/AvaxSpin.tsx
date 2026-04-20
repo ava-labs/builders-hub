@@ -22,22 +22,29 @@ import { GameExitButton } from './GameExitButton';
  *     angle falls inside the gap (|angleDiff| < gap/2). If not, game over.
  */
 
-const WIDTH = 520;
-const HEIGHT = 140;
+const WIDTH = 600;
+const HEIGHT = 180;
 const CX = WIDTH / 2;
 const CY = HEIGHT / 2;
 
-const PLAYER_ORBIT_R = 30;
-const PLAYER_SIZE = 18;
+// Orbit + wall radii scaled up so the game fills the taller viewport.
+// With CY=90, keeping WALL_SPAWN_R > 90 guarantees walls still spawn
+// off-screen (above/below the canvas) rather than appearing mid-air.
+const PLAYER_ORBIT_R = 38;
+const PLAYER_SIZE = 20;
 const HOME_R = PLAYER_ORBIT_R - 8; // filled central disc
 
-const WALL_THICKNESS = 7;
-const WALL_SPAWN_R = 90; // well outside the visible area
-const WALL_DESPAWN_R = 14; // disappear after sweeping past the player
+const WALL_THICKNESS = 8;
+const WALL_SPAWN_R = 110; // well outside the visible area
+const WALL_DESPAWN_R = 16; // disappear after sweeping past the player
 
-const INITIAL_WALL_SPEED = 52;
-const MAX_WALL_SPEED = 130;
-const WALL_SPEED_GROWTH = 2.4;
+// Speeds scaled up to match the enlarged orbit (38) and spawn radius
+// (110). The travel distance from spawn to player grew from 60px to
+// 72px, so linear speeds needed the same ~20% bump to preserve the
+// original reaction window (~1.15s at round start).
+const INITIAL_WALL_SPEED = 65;
+const MAX_WALL_SPEED = 160;
+const WALL_SPEED_GROWTH = 3.0;
 
 const INITIAL_SPAWN_INTERVAL = 0.9;
 const MIN_SPAWN_INTERVAL = 0.4;

@@ -25,9 +25,9 @@ import { GameExitButton } from './GameExitButton';
  *     with a backdrop blur — reads as UI rather than raw text.
  */
 
-const WIDTH = 520;
-const HEIGHT = 140;
-const GROUND_Y = HEIGHT - 20;
+const WIDTH = 600;
+const HEIGHT = 180;
+const GROUND_Y = HEIGHT - 28;
 const PLAYER_X = 40;
 const PLAYER_SIZE = 36;
 

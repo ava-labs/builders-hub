@@ -19,9 +19,9 @@ import { GameExitButton } from './GameExitButton';
  * down while plummeting. Clamped so it never looks broken at extreme vy.
  */
 
-const WIDTH = 520;
-const HEIGHT = 140;
-const PLAYER_X = 52;
+const WIDTH = 600;
+const HEIGHT = 180;
+const PLAYER_X = 58;
 const PLAYER_SIZE = 30;
 
 // Physics — units in px/s².
@@ -31,11 +31,13 @@ const INITIAL_SPEED = 170;
 const MAX_SPEED = 260;
 const SPEED_GROWTH = 5; // px/s per second
 
-// Pipe geometry
+// Pipe geometry — gap constants scale with HEIGHT so the playable
+// vertical band grows with the viewport instead of staying pinned
+// to a 38–102 range that would leave dead space at the top/bottom.
 const PIPE_WIDTH = 36;
-const PIPE_GAP = 58;
-const PIPE_MIN_CENTER = 38;
-const PIPE_MAX_CENTER = 102;
+const PIPE_GAP = 68;
+const PIPE_MIN_CENTER = 48;
+const PIPE_MAX_CENTER = 132;
 const INITIAL_SPAWN_DELAY = 0.75; // grace period before first pipe
 
 type Pipe = {
