@@ -28,6 +28,8 @@ export type ExtendedProfile = {
     country?: string | null;
     user_type: UserType;
     github?: string | null;
+    x_handle: string | null;
+    linkedin_url: string | null;
     wallet?: string[] | null;
     socials: string[];
     skills: string[];

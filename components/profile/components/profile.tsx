@@ -408,9 +408,51 @@ export default function Profile() {
                       <FormLabel className="w-32 shrink-0">GitHub</FormLabel>
                       <div className="flex-1">
                         <FormControl>
-                          <Input 
-                            placeholder="https://github.com/username" 
-                            {...field} 
+                          <Input
+                            placeholder="https://github.com/username"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* X (Twitter) handle */}
+                <FormField
+                  control={form.control}
+                  name="x_handle"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center gap-4">
+                      <FormLabel className="w-32 shrink-0">X (Twitter) *</FormLabel>
+                      <div className="flex-1">
+                        <FormControl>
+                          <Input
+                            placeholder="@yourhandle"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* LinkedIn URL */}
+                <FormField
+                  control={form.control}
+                  name="linkedin_url"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center gap-4">
+                      <FormLabel className="w-32 shrink-0">LinkedIn *</FormLabel>
+                      <div className="flex-1">
+                        <FormControl>
+                          <Input
+                            placeholder="https://www.linkedin.com/in/username"
+                            {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />

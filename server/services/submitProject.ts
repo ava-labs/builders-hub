@@ -242,6 +242,8 @@ function normalizeUser(user: Partial<User>): User {
     country: user.country ?? null,
     user_type: user.user_type ?? null,
     github: user.github ?? null,
+    x_handle: user.x_handle ?? null,
+    linkedin_url: user.linkedin_url ?? null,
     wallet: user.wallet ?? [],
     skills: user.skills ?? [],
     noun_avatar_seed: user.noun_avatar_seed ?? null,

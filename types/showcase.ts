@@ -24,7 +24,6 @@ export type Project = {
   updated_at: string;
   is_winner?: boolean;
   members: Member[];
-  prizes: ProjectPrize[];
   badges?: ProjectBadge[];
   hackathon: HackathonHeader;
   origin: string;
@@ -39,12 +38,6 @@ export type Member = {
   project: Project;
   user: User;
 };
-
-export type ProjectPrize = {
-  icon: string
-  prize: number
-  track: string
-}
 
 export type ProjectResource = {
   icon: string

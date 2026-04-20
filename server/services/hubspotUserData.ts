@@ -28,6 +28,8 @@ export interface UserDataForHubSpot {
   is_developer?: boolean;
   is_enthusiast?: boolean;
   github?: string;
+  x_handle?: string;
+  linkedin_url?: string;
   telegram_user?: string;
   wallet?: string[];
   socials?: string[];
@@ -55,6 +57,8 @@ function buildHubSpotUserProperties(userData: UserDataForHubSpot, includeEmail: 
     ...(userData.employee_role && { hs_role: userData.employee_role }),
     ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
     ...(userData.github && { github_url: userData.github }),
+    ...(userData.x_handle && { x_handle: userData.x_handle }),
+    ...(userData.linkedin_url && { linkedin_url: userData.linkedin_url }),
     ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
     ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
     ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),

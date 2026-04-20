@@ -57,6 +57,8 @@ model User {
   created_at               DateTime                  @default(now()) @db.Timestamptz(3)
   country                  String?
   github                   String?
+  x_handle                 String?
+  linkedin_url             String?
   noun_avatar_enabled      Boolean                   @default(false)
   noun_avatar_seed         Json?
   skills                   String[]                  @default([])
@@ -143,18 +145,8 @@ model Project {
   deployed_addresses  Json[]         @default([])
   formData            FormData[]
   members             Member[]
-  prizes              Prize[]
   hackathon           Hackathon?     @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
   badges              ProjectBadge[]
-}
-
-model Prize {
-  id         String  @id @default(uuid())
-  icon       String
-  prize      Int
-  track      String
-  project_id String
-  Project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
 }
 
 model Member {
