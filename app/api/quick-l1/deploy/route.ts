@@ -55,6 +55,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<DeployRes
     ownerPChainAddress: clientBody.ownerPChainAddress,
     network: 'fuji',
     precompiles: clientBody.precompiles,
+    enableManagedRelayer: clientBody.enableManagedRelayer ?? false,
     userId,
   };
 

@@ -447,15 +447,18 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
           <Server className="h-3.5 w-3.5" />
           My managed nodes
         </a>
-        {result.interop && (
-          <a
-            href="/console/testnet-infra/icm-relayer"
-            className="inline-flex items-center gap-1.5 text-primary hover:underline"
-          >
-            <Link2 className="h-3.5 w-3.5" />
-            My managed relayer
-          </a>
-        )}
+        {/* Two variants of the relayer link based on whether a managed
+            relayer was provisioned during this deploy:
+             - With interop (relayer provisioned): link to view it.
+             - Without interop: CTA to spin one up now if they want
+               cross-chain bridging after the fact. */}
+        <a
+          href="/console/testnet-infra/icm-relayer"
+          className="inline-flex items-center gap-1.5 text-primary hover:underline"
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          {result.interop ? 'My managed relayer' : 'Need cross-chain? Spin up a relayer'}
+        </a>
       </motion.div>
     </div>
   );

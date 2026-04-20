@@ -19,7 +19,7 @@ import type {
   InteropResult,
   TxRecord,
 } from './types';
-import { DEFAULT_PRECOMPILES, DEPLOYMENT_STEPS, INTEROP_ONLY_STEPS } from './types';
+import { DEPLOYMENT_STEPS, MANAGED_RELAYER_ONLY_STEPS } from './types';
 
 /**
  * Per-step delay in ms. Tuned to feel real without making demos tedious —
@@ -161,8 +161,8 @@ function mockResult(req: DeployRequest): DeploymentResult {
     validatorManagerAddress: fakeEvmAddress(),
     nodeId,
   };
-  const interopOn = req.precompiles?.interoperability ?? DEFAULT_PRECOMPILES.interoperability;
-  if (!interopOn) return base;
+  const managedRelayerOn = req.enableManagedRelayer ?? false;
+  if (!managedRelayerOn) return base;
   const interop: InteropResult = {
     relayerAddress: fakeEvmAddress(),
     mockUsdcAddress: fakeEvmAddress(),
@@ -182,13 +182,13 @@ function mockResult(req: DeployRequest): DeploymentResult {
 function runMockLifecycle(jobId: string) {
   const initialJob = jobs.get(jobId);
   if (!initialJob) return;
-  // Mirror the real orchestrator: drop interop-only steps when the user
-  // has disabled `interoperability` on the precompile config.
-  const interopOn =
-    initialJob.request.precompiles?.interoperability ?? DEFAULT_PRECOMPILES.interoperability;
-  const steps: DeploymentStep[] = interopOn
+  // Mirror the real orchestrator: drop relayer-only steps when the
+  // user hasn't opted in to the managed relayer. Warp/ICM precompile
+  // in genesis is independent and doesn't affect step progression.
+  const managedRelayerOn = initialJob.request.enableManagedRelayer ?? false;
+  const steps: DeploymentStep[] = managedRelayerOn
     ? [...DEPLOYMENT_STEPS]
-    : DEPLOYMENT_STEPS.filter((s) => !INTEROP_ONLY_STEPS.includes(s));
+    : DEPLOYMENT_STEPS.filter((s) => !MANAGED_RELAYER_ONLY_STEPS.includes(s));
 
   const advance = (stepIdx: number) => {
     const job = jobs.get(jobId);

@@ -32,9 +32,37 @@ export default function BasicSetupForm() {
   const [ownerAddress, setOwnerAddress] = useState<string>('');
   const [ownerTouched, setOwnerTouched] = useState(false);
   const [precompiles, setPrecompiles] = useState<Required<PrecompileConfig>>(DEFAULT_PRECOMPILES);
+  // Managed ICM relayer + MockUSDC bridge — opt-in, off by default so
+  // the common path (baseline L1 deploy) stays ~30s. Enabling it costs
+  // ~60-120s for relayer boot + ICTT deploys. Requires Warp/ICM to be
+  // on in genesis; we enforce that dependency on submit and visually
+  // in the UI below.
+  const [enableManagedRelayer, setEnableManagedRelayer] = useState(false);
 
   const togglePrecompile = (key: keyof PrecompileConfig) => {
-    setPrecompiles((p) => ({ ...p, [key]: !p[key] }));
+    setPrecompiles((p) => {
+      const next = { ...p, [key]: !p[key] };
+      // Relayer can't run without Warp — auto-untick relayer if the
+      // user flips interop off. (The reverse is fine: Warp alone is
+      // a valid standalone capability.)
+      if (key === 'interoperability' && !next.interoperability) {
+        setEnableManagedRelayer(false);
+      }
+      return next;
+    });
+  };
+
+  const toggleManagedRelayer = () => {
+    setEnableManagedRelayer((prev) => {
+      const next = !prev;
+      // Turning the relayer ON implies Warp must be ON. Auto-enable
+      // interop for the user rather than blocking the click — fewer
+      // clicks to a valid config.
+      if (next && !precompiles.interoperability) {
+        setPrecompiles((p) => ({ ...p, interoperability: true }));
+      }
+      return next;
+    });
   };
 
   // Pre-fill owner with the connected wallet address on first render
@@ -68,6 +96,10 @@ export default function BasicSetupForm() {
       ownerEvmAddress: ownerAddress as `0x${string}`,
       network: 'fuji',
       precompiles,
+      // Safety: if Warp got toggled off at the last instant, strip the
+      // relayer flag before sending. Orchestrator also rejects, but
+      // this avoids a round-trip error.
+      enableManagedRelayer: precompiles.interoperability ? enableManagedRelayer : false,
     });
     if (jobId) router.push(`/console/create-l1/basic/${jobId}`);
   }
@@ -153,8 +185,15 @@ export default function BasicSetupForm() {
             />
           </div>
 
-          {/* Right: precompile toggles — admin-listed to the owner address */}
-          <PrecompileCard precompiles={precompiles} onToggle={togglePrecompile} />
+          {/* Right: precompile toggles + managed-relayer opt-in */}
+          <div className="space-y-4">
+            <PrecompileCard precompiles={precompiles} onToggle={togglePrecompile} />
+            <ManagedRelayerCard
+              enabled={enableManagedRelayer}
+              onToggle={toggleManagedRelayer}
+              warpEnabled={precompiles.interoperability}
+            />
+          </div>
         </motion.div>
 
         {/* Error */}
@@ -374,6 +413,61 @@ function PrecompileRow({
       </div>
       <Toggle checked={enabled} />
     </button>
+  );
+}
+
+/**
+ * Managed ICM relayer opt-in. Separate card below Precompiles so it
+ * reads as an add-on service rather than an on-chain capability.
+ *
+ * Disabled state (when Warp is off) uses a muted look + helper text
+ * so the requirement is legible before the user clicks. Clicking
+ * anyway auto-enables Warp in the parent state — fewer clicks to a
+ * valid config than a blocked/disabled click.
+ */
+function ManagedRelayerCard({
+  enabled,
+  onToggle,
+  warpEnabled,
+}: {
+  enabled: boolean;
+  onToggle: () => void;
+  warpEnabled: boolean;
+}) {
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 10 },
+        visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
+      }}
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden h-fit"
+    >
+      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
+        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Managed ICM Relayer</h3>
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
+          Optional. Spins up a dedicated relayer + bridges 10 MockUSDC to your owner address.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
+            Run a relayer for me
+          </div>
+          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
+            {enabled
+              ? 'Adds ~60-120s to setup. Ready-to-use cross-chain bridge when done.'
+              : warpEnabled
+                ? 'Leave off for a ~30s deploy. Enable anytime later from the relayer page.'
+                : 'Requires Warp/Interoperability — clicking will auto-enable it.'}
+          </div>
+        </div>
+        <Toggle checked={enabled} />
+      </button>
+    </motion.div>
   );
 }
 

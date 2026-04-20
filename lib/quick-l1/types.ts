@@ -70,8 +70,15 @@ export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'bridging-initial-tokens',
 ];
 
-/** Subset of steps that only run when `precompiles.interoperability` is true. */
-export const INTEROP_ONLY_STEPS: readonly DeploymentStep[] = [
+/**
+ * Subset of steps that only run when `enableManagedRelayer` is true.
+ * Warp/ICM precompile in genesis (`precompiles.interoperability`) is
+ * independent — you can enable on-chain messaging without us running
+ * a relayer for you. Only the managed-relayer opt-in spins up the
+ * docker-compose relayer container, deploys TeleporterRegistry +
+ * TokenRemote on L1, and bridges MockUSDC.
+ */
+export const MANAGED_RELAYER_ONLY_STEPS: readonly DeploymentStep[] = [
   'reserving-relayer',
   'attaching-relayer',
   'deploying-icm-registry',
@@ -80,6 +87,9 @@ export const INTEROP_ONLY_STEPS: readonly DeploymentStep[] = [
   'starting-relayer',
   'bridging-initial-tokens',
 ];
+
+/** @deprecated Use MANAGED_RELAYER_ONLY_STEPS. Kept as alias for one cycle. */
+export const INTEROP_ONLY_STEPS = MANAGED_RELAYER_ONLY_STEPS;
 
 /** Human-readable label for each step (shown in the UI). */
 export const STEP_LABEL: Record<DeploymentStep, string> = {
@@ -145,6 +155,17 @@ export interface DeployRequest {
   network: 'fuji';
   /** Optional precompile overrides — merged with DEFAULT_PRECOMPILES. */
   precompiles?: PrecompileConfig;
+  /**
+   * Opt in to the managed ICM relayer + demo MockUSDC bridge. Default
+   * false — baseline deploys finish in ~30s. Setting this to true adds
+   * ~60-120s because we spin up a docker-compose relayer, deploy
+   * TeleporterRegistry + TokenRemote on the new L1, and bridge 10
+   * MockUSDC to the owner. Requires `precompiles.interoperability`
+   * to be true; the Railway orchestrator rejects the request
+   * otherwise. Frontend should enforce the same constraint at form
+   * submit so users don't round-trip to see the error.
+   */
+  enableManagedRelayer?: boolean;
   /**
    * Builders Hub userId. Injected server-side by `/api/quick-l1/deploy`
    * from the authenticated session — clients should not set this.
