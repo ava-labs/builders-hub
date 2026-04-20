@@ -8,8 +8,10 @@ import {
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
+import Link from 'next/link';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useEERCDeposit } from '@/hooks/eerc/useEERCDeposit';
+import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId';
 import type { ERC20Meta } from '@/lib/eerc/types';
 import { parseUnits, formatUnits } from 'viem';
 
@@ -36,6 +38,10 @@ function DepositMint() {
   }, [selectedToken, tokens]);
 
   const dep = useEERCDeposit(deployment, selectedToken);
+  // The contract reverts every state-changing op with "Auditor public key not set"
+  // until an auditor is appointed — we surface it up-front instead of letting
+  // the user eat a revert after paying the approval gas.
+  const aud = useEERCAuditorAndTokenId(deployment, selectedToken?.address);
 
   if (!deployment) {
     return (
@@ -124,6 +130,19 @@ function DepositMint() {
           </div>
         )}
 
+        {!aud.isAuditorSet && !aud.isLoading && (
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-300">
+            Auditor public key not set on this deployment — deposits will revert. The deployment owner must visit{' '}
+            <Link href="/console/encrypted-erc/register" className="underline font-medium">
+              Register
+            </Link>{' '}
+            then{' '}
+            <Link href="/console/encrypted-erc/deploy/auditor" className="underline font-medium">
+              Set Auditor
+            </Link>{' '}
+            first.
+          </div>
+        )}
         {parseError && <div className="text-xs text-red-600 dark:text-red-400">{parseError}</div>}
         {dep.error && <div className="text-xs text-red-600 dark:text-red-400">{dep.error}</div>}
 
@@ -145,7 +164,7 @@ function DepositMint() {
           <Button
             variant="primary"
             loading={busy}
-            disabled={amountWei === null || amountWei <= 0n || preview.cents === 0n}
+            disabled={amountWei === null || amountWei <= 0n || preview.cents === 0n || !aud.isAuditorSet}
             onClick={() => {
               if (amountWei !== null)
                 dep.deposit(amountWei).catch(() => {
