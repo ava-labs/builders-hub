@@ -1820,8 +1820,8 @@ export default function ConfigurableChart({
         <ChartWatermark className="p-6">
             {renderChart()}
 
-            {/* Brush Slider — hidden on mobile */}
-            {!isMobile && filteredData.length > 0 && visibleSeries.length > 0 && (
+            {/* Brush Slider */}
+            {filteredData.length > 0 && visibleSeries.length > 0 && (
               <div 
                 className="mt-4 bg-white dark:bg-black pl-[60px] brush-slider-container cursor-default"
                 onMouseDown={(e) => e.stopPropagation()}
