@@ -26,6 +26,38 @@ export type FlowMetadata = {
  * Key is derived from basePath: "/console/layer-1/create" → "layer-1/create"
  */
 export const consoleFlows: Record<string, FlowMetadata> = {
+  "encrypted-erc/deploy": {
+    title: "Deploy Your Own Encrypted ERC",
+    completionSummary: "You've deployed a complete Encrypted ERC protocol — library, five verifiers, Registrar, and the main contract — and registered yourself as both an eERC user and the auditor.",
+    accomplishments: [
+      "Deployed BabyJubJub curve-ops library",
+      "Deployed five Groth16 verifiers (registration, mint, transfer, withdraw, burn)",
+      "Deployed Registrar and EncryptedERC",
+      "Registered your BabyJubJub identity",
+      "Appointed yourself as the deployment's auditor",
+    ],
+    nextSteps: [
+      {
+        path: "/console/encrypted-erc/deposit",
+        title: "Deposit into your converter",
+        description: "Wrap an ERC20 into its encrypted form (converter mode only)",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/transfer",
+        title: "Make a private transfer",
+        description: "Try the full ZK-proof transfer flow on your new deployment",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/auditor",
+        title: "Open the auditor dashboard",
+        description: "Decrypt every transaction on your deployment as the auditor",
+        priority: "optional",
+      },
+    ],
+  },
+
   "toolbox": {
     title: "Console Toolbox",
     completionSummary: "Browse all available console tools.",
