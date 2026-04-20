@@ -5,9 +5,14 @@
 // move to a Web Worker, but the interface below is already async so we can
 // swap the implementation without rippling changes.
 
-import * as snarkjs from 'snarkjs';
 import type { CircuitKind, ProofPoints } from './types';
 import type { BJPoint } from './crypto/babyjub';
+
+// snarkjs is dynamically imported (vs static `import * as snarkjs from 'snarkjs'`)
+// because Next 16's Turbopack otherwise traces snarkjs's internal
+// `new URL(..., import.meta.url)` modules and fails the production build
+// with "NftJsonAsset: cannot handle filepath url". Dynamic import keeps the
+// module off Turbopack's static graph — it's only loaded at proof time.
 
 /** URL helpers — circuits live at /eerc/circuits/<kind>/<kind>.{wasm,zkey}. */
 export function circuitWasmUrl(kind: CircuitKind): string {
@@ -47,6 +52,7 @@ export async function generateProof(
   // snarkjs accepts URL strings in browser environments — it fetches the
   // artifacts lazily. The first call per circuit is slow (artifact download
   // + compile); subsequent calls hit the HTTP cache.
+  const snarkjs = await import('snarkjs');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { proof, publicSignals } = await (snarkjs as any).groth16.fullProve(input, wasmUrl, zkeyUrl);
 

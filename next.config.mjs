@@ -10,6 +10,13 @@ const config = {
     'typescript',
     'twoslash',
     'shiki',
+    // snarkjs + its ffjavascript dep ship CLI files using `import.meta.url`
+    // that Turbopack's NftJsonAsset can't handle during build-time tracing.
+    // Marking them external keeps the package off NFT's static graph —
+    // at runtime, the client dynamically imports snarkjs in lib/eerc/proof.ts.
+    'snarkjs',
+    'ffjavascript',
+    'blake-hash',
   ],
   // Include tsconfig.json in serverless function bundles for twoslash
   outputFileTracingIncludes: {
