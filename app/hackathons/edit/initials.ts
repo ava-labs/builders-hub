@@ -59,9 +59,9 @@ export interface IDataContent {
   tracks_text: string;
   speakers_text: string;
   speakers_banner: string;
-  join_custom_link: string;
+  join_custom_link: string | null;
   join_custom_text: string | null;
-  become_sponsor_link: string;
+  become_sponsor_link: string | null;
   submission_custom_link: string | null;
   judging_guidelines: string;
   submission_deadline: string;

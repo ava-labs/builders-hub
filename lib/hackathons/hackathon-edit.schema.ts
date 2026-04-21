@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { SubmitFormFieldType } from "@/types/hackathon-stage";
 
+const urlOrEmptySchema = z.union([z.url(), z.literal("")]);
+const nullableUrlOrEmptySchema = z.union([z.url(), z.literal(""), z.null()]);
+
 const textFieldSchema = z.object({
   id: z.string().min(1),
   type: z.literal(SubmitFormFieldType.Text),
@@ -81,7 +84,7 @@ const speakerSchema = z.object({
 
 const resourceSchema = z.object({
   icon: z.string().max(128),
-  link: z.url(),
+  link: urlOrEmptySchema,
   title: z.string().max(120),
   description: z.string().max(500),
 });
@@ -108,10 +111,10 @@ export const hackathonEditSchema = z.object({
     tracks_text: z.string().max(20_000),
     speakers_text: z.string().max(20_000),
     speakers_banner: z.string().max(2048),
-    join_custom_link: z.url(),
+    join_custom_link: nullableUrlOrEmptySchema,
     join_custom_text: z.string().max(300).nullable(),
-    become_sponsor_link: z.url(),
-    submission_custom_link: z.url().nullable(),
+    become_sponsor_link: nullableUrlOrEmptySchema,
+    submission_custom_link: nullableUrlOrEmptySchema,
     judging_guidelines: z.string().max(20_000),
     submission_deadline: z.string().max(64),
     registration_deadline: z.string().max(64),
@@ -124,7 +127,7 @@ export const hackathonEditSchema = z.object({
     banner: z.string().max(2048),
     icon: z.string().max(2048),
     small_banner: z.string().max(2048),
-    custom_link: z.url().nullable(),
+    custom_link: nullableUrlOrEmptySchema,
     top_most: z.boolean(),
     event: z.string().max(64),
     new_layout: z.boolean(),

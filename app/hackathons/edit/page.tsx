@@ -3388,7 +3388,7 @@ const HackathonsEdit = () => {
                             type="text"
                             name="join_custom_link"
                             placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.join_custom_link}
+                            value={formDataContent.join_custom_link ?? ''}
                             onChange={(e) => {
                               setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
                             }}
