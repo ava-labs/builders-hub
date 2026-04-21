@@ -23,7 +23,8 @@ export type DeploymentStep =
   | 'deploying-token-remote'
   | 'registering-remote'
   | 'starting-relayer'
-  | 'bridging-initial-tokens';
+  | 'bridging-initial-tokens'
+  | 'verifying-l1-bootstrap';
 
 export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
 
@@ -68,6 +69,7 @@ export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'registering-remote',
   'starting-relayer',
   'bridging-initial-tokens',
+  'verifying-l1-bootstrap',
 ];
 
 /**
@@ -107,6 +109,7 @@ export const STEP_LABEL: Record<DeploymentStep, string> = {
   'registering-remote': 'Registering TokenRemote with TokenHome',
   'starting-relayer': 'Starting ICM Relayer',
   'bridging-initial-tokens': 'Bridging MockUSDC to L1',
+  'verifying-l1-bootstrap': 'Verifying L1 is Ready',
 };
 
 /**

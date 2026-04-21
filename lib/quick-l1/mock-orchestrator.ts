@@ -41,6 +41,7 @@ const STEP_DELAYS_MS: Record<DeploymentStep, number> = {
   'starting-relayer': 1500,
   'registering-remote': 2500,
   'bridging-initial-tokens': 3500,
+  'verifying-l1-bootstrap': 1800,
 };
 
 /**
@@ -66,6 +67,8 @@ const STEP_DETAIL: Record<DeploymentStep, (job: DeploymentJob) => string> = {
     'Calling registerWithHome on L1 and waiting for the Home to record the remote…',
   'bridging-initial-tokens': (job) =>
     `Bridging 100 MockUSDC to ${job.request.ownerEvmAddress} on L1…`,
+  'verifying-l1-bootstrap': () =>
+    'Waiting for the L1 RPC to serve state queries before handoff…',
 };
 
 const jobs = new Map<string, DeploymentJob>();
@@ -135,6 +138,8 @@ function makeTxsForStep(step: DeploymentStep, network: 'fuji' | 'mainnet'): TxRe
         { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'Approve TokenHome', timestamp: now },
         { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'Send → L1', timestamp: now },
       ];
+    case 'verifying-l1-bootstrap':
+      return []; // No tx — RPC polling only.
   }
 }
 
