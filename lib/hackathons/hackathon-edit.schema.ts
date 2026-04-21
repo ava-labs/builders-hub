@@ -81,7 +81,7 @@ const speakerSchema = z.object({
 
 const resourceSchema = z.object({
   icon: z.string().max(128),
-  link: z.string().max(2048),
+  link: z.url(),
   title: z.string().max(120),
   description: z.string().max(500),
 });
@@ -108,10 +108,10 @@ export const hackathonEditSchema = z.object({
     tracks_text: z.string().max(20_000),
     speakers_text: z.string().max(20_000),
     speakers_banner: z.string().max(2048),
-    join_custom_link: z.string().max(2048),
+    join_custom_link: z.url(),
     join_custom_text: z.string().max(300).nullable(),
-    become_sponsor_link: z.string().max(2048),
-    submission_custom_link: z.string().max(2048).nullable(),
+    become_sponsor_link: z.url(),
+    submission_custom_link: z.url().nullable(),
     judging_guidelines: z.string().max(20_000),
     submission_deadline: z.string().max(64),
     registration_deadline: z.string().max(64),
@@ -124,7 +124,7 @@ export const hackathonEditSchema = z.object({
     banner: z.string().max(2048),
     icon: z.string().max(2048),
     small_banner: z.string().max(2048),
-    custom_link: z.string().max(2048).nullable(),
+    custom_link: z.url().nullable(),
     top_most: z.boolean(),
     event: z.string().max(64),
     new_layout: z.boolean(),

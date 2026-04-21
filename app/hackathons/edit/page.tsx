@@ -896,28 +896,28 @@ const HackathonsEdit = () => {
       typeof nextState === 'function'
         ? (nextState as (prevState: IDataMain) => IDataMain)(getValues('main'))
         : nextState;
-    setValue('main', nextValue, { shouldDirty: true });
+    setValue('main', nextValue, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
   }, [getValues, setValue]);
   const setFormDataContent = useCallback((nextState: React.SetStateAction<IDataContent>) => {
     const nextValue =
       typeof nextState === 'function'
         ? (nextState as (prevState: IDataContent) => IDataContent)(getValues('content'))
         : nextState;
-    setValue('content', nextValue, { shouldDirty: true });
+    setValue('content', nextValue, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
   }, [getValues, setValue]);
   const setFormDataLatest = useCallback((nextState: React.SetStateAction<IDataLatest>) => {
     const nextValue =
       typeof nextState === 'function'
         ? (nextState as (prevState: IDataLatest) => IDataLatest)(getValues('latest'))
         : nextState;
-    setValue('latest', nextValue, { shouldDirty: true });
+    setValue('latest', nextValue, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
   }, [getValues, setValue]);
   const setCohostsEmails = useCallback((nextState: React.SetStateAction<string[]>) => {
     const nextValue =
       typeof nextState === 'function'
         ? (nextState as (prevState: string[]) => string[])(getValues('cohostsEmails'))
         : nextState;
-    setValue('cohostsEmails', nextValue, { shouldDirty: true });
+    setValue('cohostsEmails', nextValue, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
   }, [getValues, setValue]);
   const [activePreviewTab, setActivePreviewTab] = React.useState<
     'hackathon-preview' | 'stages-submit-form'
@@ -2333,6 +2333,9 @@ const HackathonsEdit = () => {
                     label={t[language].cohostsLabel}
                     description={t[language].cohostsHelp}
                   />
+                  {getInlineError('cohostsEmails') && (
+                    <p className="text-red-500 text-sm mt-2">{getInlineError('cohostsEmails')}</p>
+                  )}
                 </div>
                 {/* Event Type option */}
                 <div className="rounded-lg p-6 mb-6">
@@ -2599,6 +2602,9 @@ const HackathonsEdit = () => {
                                   onChange={e => setFormDataLatest({ ...formDataLatest, banner: e.target.value })}
                                   className="w-full"
                                 />
+                                {getInlineError('latest.banner') && (
+                                  <p className="text-red-500 text-sm mt-2">{getInlineError('latest.banner')}</p>
+                                )}
                               </div>
                             </div>
 
@@ -2667,6 +2673,9 @@ const HackathonsEdit = () => {
                                   onChange={e => setFormDataLatest({ ...formDataLatest, small_banner: e.target.value })}
                                   className="w-full"
                                 />
+                                {getInlineError('latest.small_banner') && (
+                                  <p className="text-red-500 text-sm mt-2">{getInlineError('latest.small_banner')}</p>
+                                )}
                               </div>
                             </div>
 
@@ -2766,6 +2775,9 @@ const HackathonsEdit = () => {
                               className="w-full mb-4"
                               required
                             />
+                            {getInlineError('main.total_prizes') && (
+                              <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.total_prizes')}</p>
+                            )}
 
                             <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
                             <Input
@@ -2780,6 +2792,9 @@ const HackathonsEdit = () => {
                               className="w-full mb-4"
                               required
                             />
+                            {getInlineError('main.participants') && (
+                              <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.participants')}</p>
+                            )}
                           </>
                         )}
                         <div className="flex justify-end mt-4">
@@ -2998,6 +3013,9 @@ const HackathonsEdit = () => {
                             className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-48"
                             required
                           />
+                          {getInlineError('content.tracks_text') && (
+                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.tracks_text')}</p>
+                          )}
 
                           <div className="flex gap-2 mb-4">
                             <button
@@ -3168,6 +3186,9 @@ const HackathonsEdit = () => {
                                 className="w-full mb-4"
                                 required
                               />
+                              {getInlineError('content.address') && (
+                                <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.address')}</p>
+                              )}
                             </div>
                             <div className="space-y-4">
                               <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
@@ -3179,6 +3200,9 @@ const HackathonsEdit = () => {
                                 onChange={(e) => setFormDataLatest({ ...formDataLatest, google_calendar_id: e.target.value || null })}
                                 className="w-full mb-4"
                               />
+                              {getInlineError('latest.google_calendar_id') && (
+                                <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.google_calendar_id')}</p>
+                              )}
                             </div>
                           </>
                         )}
@@ -3355,6 +3379,9 @@ const HackathonsEdit = () => {
                             }}
                             className="w-full mb-4"
                           />
+                          {getInlineError('latest.custom_link') && (
+                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.custom_link')}</p>
+                          )}
                           <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
                           <div className="mb-2 text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
                           <Input
@@ -3367,6 +3394,9 @@ const HackathonsEdit = () => {
                             }}
                             className="w-full mb-4"
                           />
+                          {getInlineError('content.join_custom_link') && (
+                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.join_custom_link')}</p>
+                          )}
                           <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
                           <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
                           <Input
@@ -3379,6 +3409,9 @@ const HackathonsEdit = () => {
                             }}
                             className="w-full mb-4"
                           />
+                          {getInlineError('content.submission_custom_link') && (
+                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_custom_link')}</p>
+                          )}
                           <div>
                             <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
                             <div className="mb-2 text-zinc-400 text-sm">{t[language].startDateHelp}</div>
@@ -3471,6 +3504,9 @@ const HackathonsEdit = () => {
                                 <SelectItem value="Pacific/Honolulu">Honolulu (HST) - GMT-10</SelectItem>
                               </SelectContent>
                             </Select>
+                            {getInlineError('latest.timezone') && (
+                              <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.timezone')}</p>
+                            )}
                           </div>
                         </div>
                         <div className="flex justify-end mt-4">
