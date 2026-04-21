@@ -87,7 +87,7 @@ export default function CChainValidatorMetrics() {
     current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
   } | null>(null);
   const [stakingAPYLoading, setStakingAPYLoading] = useState(true);
-  const [totalEcosystemValidators, setTotalEcosystemValidators] = useState<TimeSeriesMetric | null>(null);
+  const [totalValidatorSeats, setTotalValidatorSeats] = useState<TimeSeriesMetric | null>(null);
 
   const fetchData = async () => {
     try {
@@ -211,15 +211,17 @@ export default function CChainValidatorMetrics() {
         }
       }
 
-      // Process total ecosystem validator data (Primary Network + indexed L1s)
+      // Total validator seats: sum of per-network validatorCount series
+      // across the Primary Network + indexed mainnet L1s. Counts memberships,
+      // not distinct nodes (a validator on N networks is counted N times).
       if (totalEcosystemResponse.ok) {
         try {
           const totalEcosystemData = await totalEcosystemResponse.json();
-          if (totalEcosystemData?.total_validator_count) {
-            setTotalEcosystemValidators(totalEcosystemData.total_validator_count);
+          if (totalEcosystemData?.total_validator_seats) {
+            setTotalValidatorSeats(totalEcosystemData.total_validator_seats);
           }
         } catch (err) {
-          console.error('Error parsing total ecosystem validator data:', err);
+          console.error('Error parsing total validator seats data:', err);
         }
       }
     } catch (err) {
@@ -1122,11 +1124,11 @@ export default function CChainValidatorMetrics() {
               const period = chartPeriods[config.metricKey];
               const currentValue = getCurrentValue(config.metricKey);
 
-              // Only the validator_count chart gets a total-ecosystem overlay + ACP-77 marker
+              // Only the validator_count chart gets a total-seats overlay + ACP-77 marker
               const isValidatorCount = config.metricKey === "validator_count";
               const overlayData: ChartDataPoint[] | undefined =
-                isValidatorCount && totalEcosystemValidators?.data?.length
-                  ? totalEcosystemValidators.data
+                isValidatorCount && totalValidatorSeats?.data?.length
+                  ? totalValidatorSeats.data
                       .filter((point) => point.date !== new Date().toISOString().split("T")[0])
                       .map((point) => ({
                         day: point.date,
@@ -1160,7 +1162,9 @@ export default function CChainValidatorMetrics() {
                       : formatNumber
                   }
                   overlayData={overlayData}
-                  overlayLabel={isValidatorCount ? "Total Ecosystem Validators" : undefined}
+                  overlayLabel={
+                    isValidatorCount ? "Total Validator Seats (Primary + L1s)" : undefined
+                  }
                   overlayColor={isValidatorCount ? "#3B82F6" : undefined}
                   referenceLineDate={isValidatorCount ? "2024-12-16" : undefined}
                   referenceLineLabel={isValidatorCount ? "ACP-77 (Etna)" : undefined}
@@ -2458,8 +2462,20 @@ function ValidatorChartCard({
 
     if (period === "D") {
       const daysToShow = 90;
+      let startIndex = Math.max(0, aggregatedData.length - daysToShow);
+
+      // When a reference date (e.g. ACP-77) is outside the default 90-day
+      // window, widen the initial view so the annotation is visible without
+      // the user having to zoom out manually.
+      if (referenceLineBucket) {
+        const refIdx = aggregatedData.findIndex((p) => p.day === referenceLineBucket);
+        if (refIdx >= 0 && refIdx < startIndex) {
+          startIndex = Math.max(0, refIdx - 30);
+        }
+      }
+
       setBrushIndexes({
-        startIndex: Math.max(0, aggregatedData.length - daysToShow),
+        startIndex,
         endIndex: aggregatedData.length - 1,
       });
     } else {
@@ -2468,7 +2484,7 @@ function ValidatorChartCard({
         endIndex: aggregatedData.length - 1,
       });
     }
-  }, [period, aggregatedData.length]);
+  }, [period, aggregatedData.length, referenceLineBucket]);
 
   const displayData = brushIndexes
     ? mergedAggregated.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
@@ -2732,7 +2748,7 @@ function ValidatorChartCard({
                                     style={{ backgroundColor: overlayColor }}
                                   />
                                   <span>
-                                    {overlayLabel ?? "Total Ecosystem"}: {formatTooltipValue(overlayPoint.value as number)}
+                                    {overlayLabel ?? "Total Validator Seats"}: {formatTooltipValue(overlayPoint.value as number)}
                                   </span>
                                 </div>
                               )}

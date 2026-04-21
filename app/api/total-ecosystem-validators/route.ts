@@ -13,14 +13,22 @@ export const dynamic = 'force-dynamic';
 
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const MAX_CONCURRENT_REQUESTS = 10;
+
+// l1-chains.json includes the Primary Network subnet ID (C-Chain entry). The
+// Primary Network series is fetched separately; exclude it from the L1 loop to
+// avoid double-counting.
 const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
 
 const avalanche = new Avalanche({ network: "mainnet" });
 const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
 
+// Sum of per-network validatorCount series, i.e. total validator *seats* (a
+// node validating N networks is counted N times). Computing distinct node
+// counts historically would require per-date node-ID snapshots for every
+// subnet, which Glacier does not expose cheaply.
 interface TotalEcosystemValidatorsResponse {
-  total_validator_count: TimeSeriesMetric;
-  l1_validator_count: TimeSeriesMetric;
+  total_validator_seats: TimeSeriesMetric;
+  l1_validator_seats: TimeSeriesMetric;
   primary_network_validator_count: TimeSeriesMetric;
   subnets_included: number;
   last_updated: number;
@@ -37,6 +45,7 @@ function getActiveMainnetSubnetIds(): string[] {
     if (chain.isTestnet === true) continue;
     if (chain.isActive === false) continue;
     if (!chain.subnetId || chain.subnetId === 'N/A') continue;
+    if (chain.subnetId === PRIMARY_NETWORK_SUBNET_ID) continue;
     if (seen.has(chain.subnetId)) continue;
     seen.add(chain.subnetId);
     ids.push(chain.subnetId);
@@ -140,8 +149,8 @@ async function fetchFreshDataInternal(timeRange: string): Promise<TotalEcosystem
     const grandTotals = sumSeriesByDate([primarySeries, l1Totals]);
 
     return {
-      total_validator_count: createTimeSeriesMetric(grandTotals),
-      l1_validator_count: createTimeSeriesMetric(l1Totals),
+      total_validator_seats: createTimeSeriesMetric(grandTotals),
+      l1_validator_seats: createTimeSeriesMetric(l1Totals),
       primary_network_validator_count: createTimeSeriesMetric(primarySeries),
       subnets_included: subnetIds.length,
       last_updated: Date.now(),
