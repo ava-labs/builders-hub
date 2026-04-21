@@ -2,7 +2,7 @@ import { withAuth } from "@/lib/protectedRoute";
 import { GetProjectsByUserId } from "@/server/services/memberProject";
 import { NextResponse } from "next/server";
 
-export const GET = withAuth(async (_, context: any, session: any) => {
+export const GET = withAuth(async (_, _context: any, session: any) => {
     try {
         const projects = await GetProjectsByUserId(session.user.id);
         return NextResponse.json(projects);
