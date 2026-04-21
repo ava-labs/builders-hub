@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { BookOpen } from 'lucide-react';
 import {
   withConsoleToolMetadata,
   type ConsoleToolMetadata,
@@ -14,6 +15,8 @@ import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
 import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId';
 import { useEERCWithdraw } from '@/hooks/eerc/useEERCWithdraw';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
+import { EERCToolShell } from './shared/EERCToolShell';
+import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { ERC20Meta } from '@/lib/eerc/types';
 
 const metadata: ConsoleToolMetadata = {
@@ -45,11 +48,10 @@ function WithdrawBurn() {
 
   if (!deployment) {
     return (
-      <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-sm">
-        <p className="font-medium mb-1">No converter deployment on this chain.</p>
-        <p className="text-muted-foreground">
-          Withdraw only applies to converter mode (unwrapping an ERC20). Standalone mode uses Burn (not yet implemented
-          in this console).
+      <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-6 text-sm">
+        <p className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">No converter deployment on this chain.</p>
+        <p className="text-zinc-600 dark:text-zinc-400">
+          Withdraw only applies to converter mode. Switch to Avalanche Fuji to use the canonical converter.
         </p>
       </div>
     );
@@ -84,68 +86,59 @@ function WithdrawBurn() {
   const busy = wd.status === 'proving' || wd.status === 'submitting' || wd.status === 'confirming';
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground uppercase tracking-wide">Token:</span>
-        {supportedTokens.map((t) => (
-          <button
-            key={t.address}
-            onClick={() => setToken(t)}
-            className={
-              token?.address === t.address
-                ? 'px-3 py-1 text-xs rounded-full bg-foreground text-background'
-                : 'px-3 py-1 text-xs rounded-full border hover:bg-accent'
-            }
-          >
-            {t.symbol}
-          </button>
-        ))}
+    <EERCToolShell
+      contracts={ENCRYPTED_ERC_SOURCES}
+      footerLinks={[
+        {
+          label: 'withdraw() source',
+          href: `https://github.com/ava-labs/EncryptedERC/blob/${EERC_COMMIT}/contracts/EncryptedERC.sol`,
+          icon: <BookOpen className="w-3.5 h-3.5" />,
+        },
+      ]}
+    >
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 p-3 flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Encrypted balance</div>
+        <div className="font-mono text-sm text-zinc-900 dark:text-zinc-100">
+          {balance.formatted ?? '—'}{' '}
+          <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">e{token?.symbol ?? ''}</span>
+        </div>
       </div>
 
-      <div className="rounded-lg border bg-card p-5 space-y-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Your encrypted balance</span>
-          <span className="font-mono">
-            {balance.formatted ?? '—'} e{token?.symbol ?? ''}
-          </span>
+      {!aud.isAuditorSet && !aud.isLoading && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+          Auditor public key not set — withdrawals will revert. Visit{' '}
+          <Link href="/console/encrypted-erc/deploy/auditor" className="underline font-medium">
+            Set Auditor
+          </Link>{' '}
+          first.
         </div>
+      )}
 
-        {!aud.isAuditorSet && (
-          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-300">
-            The auditor public key is not set on this deployment — withdrawals will revert. Visit{' '}
-            <Link href="/console/encrypted-erc/deploy/auditor" className="underline">
-              Set Auditor
-            </Link>{' '}
-            first.
-          </div>
-        )}
-
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
         <Input
-          label="Amount to withdraw"
+          label={`Amount to withdraw (e${token?.symbol ?? ''})`}
           value={amountText}
           onChange={setAmountText}
           placeholder="0.00"
           type="number"
           step="0.01"
         />
-        {parseError && <div className="text-xs text-red-600 dark:text-red-400">{parseError}</div>}
+        {parseError && <div className="text-[11px] text-red-600 dark:text-red-400">{parseError}</div>}
         {amountCents !== null && balance.decryptedCents !== null && amountCents > balance.decryptedCents && (
-          <div className="text-xs text-red-600 dark:text-red-400">
-            Exceeds your balance ({Scalar.parseEERCBalance(balance.decryptedCents)}).
+          <div className="text-[11px] text-red-600 dark:text-red-400">
+            Exceeds balance ({Scalar.parseEERCBalance(balance.decryptedCents)}).
           </div>
         )}
-
-        {wd.error && <div className="text-xs text-red-600 dark:text-red-400">{wd.error}</div>}
+        {wd.error && <div className="text-[11px] text-red-600 dark:text-red-400">{wd.error}</div>}
         {wd.status === 'success' && wd.txHash && (
-          <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3 text-xs text-green-700 dark:text-green-300">
-            Withdrawal confirmed.{' '}
+          <div className="text-[11px]">
             <a
               href={`https://testnet.snowtrace.io/tx/${wd.txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline"
+              className="underline text-emerald-600 dark:text-emerald-400"
             >
-              View on Snowtrace
+              Withdrawn — {wd.txHash.slice(0, 10)}...
             </a>
           </div>
         )}
@@ -176,7 +169,7 @@ function WithdrawBurn() {
           }}
         >
           {wd.status === 'proving'
-            ? 'Generating proof (5-10s)...'
+            ? 'Generating proof (5–10s)...'
             : wd.status === 'submitting'
               ? 'Submitting tx...'
               : wd.status === 'confirming'
@@ -184,7 +177,7 @@ function WithdrawBurn() {
                 : 'Withdraw'}
         </Button>
       </div>
-    </div>
+    </EERCToolShell>
   );
 }
 

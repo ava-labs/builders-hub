@@ -85,12 +85,11 @@ export default function DepositStep() {
     <ContractDeployViewer contracts={ENCRYPTED_ERC_SOURCES}>
       <div className="flex flex-col h-[540px] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="flex-1 overflow-auto p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard
-              label="WAVAX (public)"
-              value={wavaxBalance === null ? '…' : formatUnits(wavaxBalance, 18).slice(0, 7)}
-            />
-            <StatCard label="eWAVAX (encrypted)" value="see Balance" muted />
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 p-3 flex items-center justify-between">
+            <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">WAVAX (public)</div>
+            <div className="font-mono text-sm text-zinc-900 dark:text-zinc-100">
+              {wavaxBalance === null ? '…' : formatUnits(wavaxBalance, 18).slice(0, 7)}
+            </div>
           </div>
 
           {!aud.isAuditorSet && !aud.isLoading && (
@@ -257,24 +256,5 @@ export default function DepositStep() {
         </div>
       </div>
     </ContractDeployViewer>
-  );
-}
-
-function StatCard({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
-  return (
-    <div
-      className={
-        muted
-          ? 'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-900/30 p-3'
-          : 'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 p-3'
-      }
-    >
-      <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</div>
-      <div
-        className={`font-mono text-sm mt-0.5 ${muted ? 'text-zinc-400 dark:text-zinc-600' : 'text-zinc-900 dark:text-zinc-100'}`}
-      >
-        {value}
-      </div>
-    </div>
   );
 }

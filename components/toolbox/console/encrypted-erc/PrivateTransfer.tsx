@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { isAddress } from 'viem';
+import { BookOpen } from 'lucide-react';
 import {
   withConsoleToolMetadata,
   type ConsoleToolMetadata,
@@ -15,6 +16,8 @@ import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
 import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId';
 import { useEERCTransfer } from '@/hooks/eerc/useEERCTransfer';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
+import { EERCToolShell } from './shared/EERCToolShell';
+import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { ERC20Meta, Hex } from '@/lib/eerc/types';
 
 const metadata: ConsoleToolMetadata = {
@@ -55,9 +58,9 @@ function PrivateTransfer() {
 
   if (availableModes.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-sm">
-        <p className="font-medium mb-1">No Encrypted ERC deployment on this chain.</p>
-        <p className="text-muted-foreground">Switch to Avalanche Fuji or deploy your own.</p>
+      <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-6 text-sm">
+        <p className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">No Encrypted ERC deployment on this chain.</p>
+        <p className="text-zinc-600 dark:text-zinc-400">Switch to Avalanche Fuji or deploy your own.</p>
       </div>
     );
   }
@@ -67,11 +70,8 @@ function PrivateTransfer() {
   let parseError: string | null = null;
   if (amountText) {
     const n = Number(amountText);
-    if (!Number.isFinite(n) || n <= 0) {
-      parseError = 'Amount must be positive';
-    } else {
-      amountCents = BigInt(Math.round(n * 100));
-    }
+    if (!Number.isFinite(n) || n <= 0) parseError = 'Amount must be positive';
+    else amountCents = BigInt(Math.round(n * 100));
   }
   const recipientValid = recipient.length > 0 && isAddress(recipient);
 
@@ -97,36 +97,51 @@ function PrivateTransfer() {
 
   const busy =
     tr.status === 'lookup' || tr.status === 'proving' || tr.status === 'submitting' || tr.status === 'confirming';
+  const symbol = mode === 'standalone' ? 'PRIV' : `e${token?.symbol ?? ''}`;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
-        {availableModes.map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={
-              mode === m
-                ? 'px-3 py-1.5 text-sm rounded-md bg-foreground text-background'
-                : 'px-3 py-1.5 text-sm rounded-md border hover:bg-accent'
-            }
-          >
-            {m === 'standalone' ? 'Standalone (PRIV)' : 'Converter'}
-          </button>
-        ))}
-      </div>
+    <EERCToolShell
+      contracts={ENCRYPTED_ERC_SOURCES}
+      height={640}
+      footerLinks={[
+        {
+          label: 'transfer() source',
+          href: `https://github.com/ava-labs/EncryptedERC/blob/${EERC_COMMIT}/contracts/EncryptedERC.sol`,
+          icon: <BookOpen className="w-3.5 h-3.5" />,
+        },
+      ]}
+    >
+      {availableModes.length > 1 && (
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 w-fit">
+          {availableModes.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={
+                mode === m
+                  ? 'px-3 py-1.5 text-xs font-medium rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-sm'
+                  : 'px-3 py-1.5 text-xs font-medium rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              }
+            >
+              {m === 'standalone' ? 'Standalone' : 'Converter'}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {mode === 'converter' && supportedTokens.length > 0 && (
+      {mode === 'converter' && supportedTokens.length > 1 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground uppercase tracking-wide">Token:</span>
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Token:</span>
           {supportedTokens.map((t) => (
             <button
               key={t.address}
+              type="button"
               onClick={() => setToken(t)}
               className={
                 token?.address === t.address
-                  ? 'px-3 py-1 text-xs rounded-full bg-foreground text-background'
-                  : 'px-3 py-1 text-xs rounded-full border hover:bg-accent'
+                  ? 'px-3 py-1 text-xs rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'px-3 py-1 text-xs rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800'
               }
             >
               {t.symbol}
@@ -135,55 +150,56 @@ function PrivateTransfer() {
         </div>
       )}
 
-      <div className="rounded-lg border bg-card p-5 space-y-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Your encrypted balance</span>
-          <span className="font-mono">
-            {balance.formatted ?? '—'} {mode === 'standalone' ? 'PRIV' : `e${token?.symbol ?? ''}`}
-          </span>
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 p-3 flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+          Your encrypted balance
         </div>
+        <div className="font-mono text-sm text-zinc-900 dark:text-zinc-100">
+          {balance.formatted ?? '—'} <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">{symbol}</span>
+        </div>
+      </div>
 
-        {!aud.isAuditorSet && (
-          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-300">
-            The auditor public key is not set on this deployment — transfers will revert. Visit{' '}
-            <Link href="/console/encrypted-erc/deploy/auditor" className="underline">
-              Set Auditor
-            </Link>{' '}
-            first (owner-only).
-          </div>
-        )}
+      {!aud.isAuditorSet && !aud.isLoading && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+          Auditor public key not set — transfers will revert. Visit{' '}
+          <Link href="/console/encrypted-erc/deploy/auditor" className="underline font-medium">
+            Set Auditor
+          </Link>{' '}
+          first.
+        </div>
+      )}
 
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
         <Input label="Recipient EVM address" value={recipient} onChange={setRecipient} placeholder="0x..." />
         {recipient && !recipientValid && (
-          <div className="text-xs text-red-600 dark:text-red-400">Invalid EVM address</div>
+          <div className="text-[11px] text-red-600 dark:text-red-400">Invalid EVM address</div>
         )}
 
         <Input
-          label="Amount"
+          label={`Amount (${symbol})`}
           value={amountText}
           onChange={setAmountText}
           placeholder="0.00"
           type="number"
           step="0.01"
         />
-        {parseError && <div className="text-xs text-red-600 dark:text-red-400">{parseError}</div>}
+        {parseError && <div className="text-[11px] text-red-600 dark:text-red-400">{parseError}</div>}
         {amountCents !== null && balance.decryptedCents !== null && amountCents > balance.decryptedCents && (
-          <div className="text-xs text-red-600 dark:text-red-400">
-            Exceeds your balance ({Scalar.parseEERCBalance(balance.decryptedCents)}).
+          <div className="text-[11px] text-red-600 dark:text-red-400">
+            Exceeds balance ({Scalar.parseEERCBalance(balance.decryptedCents)}).
           </div>
         )}
 
-        {tr.error && <div className="text-xs text-red-600 dark:text-red-400">{tr.error}</div>}
+        {tr.error && <div className="text-[11px] text-red-600 dark:text-red-400">{tr.error}</div>}
         {tr.status === 'success' && tr.txHash && (
-          <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3 text-xs text-green-700 dark:text-green-300">
-            Transfer confirmed.{' '}
+          <div className="text-[11px]">
             <a
               href={`https://testnet.snowtrace.io/tx/${tr.txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline"
+              className="underline text-emerald-600 dark:text-emerald-400"
             >
-              View on Snowtrace
+              Transfer confirmed — {tr.txHash.slice(0, 10)}...
             </a>
           </div>
         )}
@@ -217,7 +233,7 @@ function PrivateTransfer() {
           {tr.status === 'lookup'
             ? 'Checking recipient...'
             : tr.status === 'proving'
-              ? 'Generating proof (this takes 5-20s)...'
+              ? 'Generating proof (5–20s)...'
               : tr.status === 'submitting'
                 ? 'Submitting tx...'
                 : tr.status === 'confirming'
@@ -226,33 +242,24 @@ function PrivateTransfer() {
         </Button>
       </div>
 
-      <Educational />
-    </div>
-  );
-}
-
-function Educational() {
-  return (
-    <details className="rounded-lg border bg-muted/20 p-4 text-sm">
-      <summary className="cursor-pointer font-medium">What happens during a private transfer?</summary>
-      <div className="space-y-2 pt-3 text-muted-foreground">
-        <p>
-          A private transfer is the operation where eERC's privacy model pays off. We encrypt the amount three times —
-          once to the sender's pubkey, once to the recipient's, once to the auditor's — and then prove in zero knowledge
-          that sender balance &gt;= amount, all three encryptions are consistent, and the sender's new balance is
-          correctly derived.
-        </p>
-        <p>
-          The proof uses the TRANSFER circuit (ptau 15, ~900 KB wasm, ~36 MB zkey). Proof generation is CPU-heavy —
-          expect 5-20 seconds depending on device. It runs entirely in your browser; no server ever sees the amount or
-          your BJJ private key.
-        </p>
-        <p>
-          On-chain, only the auditor can later decrypt (sender, recipient, amount) tuples by reading the auditor PCT
-          attached to each <code className="text-xs bg-muted px-1 rounded">PrivateTransfer</code> event.
-        </p>
-      </div>
-    </details>
+      <details className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 p-3 text-xs">
+        <summary className="cursor-pointer font-medium text-zinc-800 dark:text-zinc-200">
+          What happens during a private transfer?
+        </summary>
+        <div className="space-y-2 pt-2 text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          <p>
+            We encrypt the amount three times — to the sender, recipient, and auditor — and then prove in zero knowledge
+            that sender balance ≥ amount, all three encryptions are consistent, and the sender&apos;s new balance is
+            correctly derived.
+          </p>
+          <p>
+            The proof uses the TRANSFER circuit (ptau 15, ~36 MB zkey). Proof generation is CPU-heavy — expect 5-20
+            seconds depending on device. It runs entirely in your browser; no server ever sees the amount or your BJJ
+            private key.
+          </p>
+        </div>
+      </details>
+    </EERCToolShell>
   );
 }
 

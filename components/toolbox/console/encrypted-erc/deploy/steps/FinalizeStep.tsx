@@ -75,13 +75,7 @@ export default function FinalizeStep() {
     }
   };
 
-  if (!fakeDeployment) {
-    return (
-      <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm text-amber-700 dark:text-amber-300">
-        Prior steps not complete yet.
-      </div>
-    );
-  }
+  const prereqsMissing = !fakeDeployment;
 
   const registerDone = reg.status === 'registered';
   const auditorDone = auditorTxHash !== null;
@@ -90,6 +84,12 @@ export default function FinalizeStep() {
     <ContractDeployViewer contracts={FINALIZE_SOURCES}>
       <div className="flex flex-col h-[500px] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="flex-1 overflow-auto p-5 space-y-4">
+          {prereqsMissing && (
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+              Prior deploy steps aren&apos;t complete — the EncryptedERC and Registrar addresses are missing from the
+              flow store. Go back to deploy them, then return here. The buttons below are disabled until that's done.
+            </div>
+          )}
           <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
             Two transactions finalize the deployment: <strong>register</strong> binds a BabyJubJub identity to your
             address, and <strong>setAuditorPublicKey</strong> points the contract's audit-PCT target at that same

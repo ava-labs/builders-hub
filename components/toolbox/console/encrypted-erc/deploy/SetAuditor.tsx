@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { isAddress } from 'viem';
+import { BookOpen, Check } from 'lucide-react';
 import {
   withConsoleToolMetadata,
   type ConsoleToolMetadata,
@@ -14,6 +15,8 @@ import { Input } from '@/components/toolbox/components/Input';
 import EncryptedERCArtifact from '@/contracts/encrypted-erc/compiled/EncryptedERC.json';
 import RegistrarArtifact from '@/contracts/encrypted-erc/compiled/Registrar.json';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
+import { EERCToolShell } from '../shared/EERCToolShell';
+import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { EERCDeployment, Hex } from '@/lib/eerc/types';
 
 const metadata: ConsoleToolMetadata = {
@@ -40,20 +43,46 @@ function SetAuditor() {
 
   if (deployments.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-sm">
-        <p className="font-medium mb-1">No Encrypted ERC deployment on this chain.</p>
-        <p className="text-muted-foreground">Switch to Avalanche Fuji or deploy your own.</p>
+      <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-6 text-sm">
+        <p className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">No Encrypted ERC deployment on this chain.</p>
+        <p className="text-zinc-600 dark:text-zinc-400">Switch to Avalanche Fuji or deploy your own.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <EERCToolShell
+      contracts={ENCRYPTED_ERC_SOURCES}
+      height={640}
+      footerLinks={[
+        {
+          label: 'setAuditorPublicKey() source',
+          href: `https://github.com/ava-labs/EncryptedERC/blob/${EERC_COMMIT}/contracts/EncryptedERC.sol`,
+          icon: <BookOpen className="w-3.5 h-3.5" />,
+        },
+      ]}
+    >
       {deployments.map(({ mode, deployment }) => (
         <DeploymentCard key={deployment.encryptedERC} mode={mode} deployment={deployment} />
       ))}
-      <Educational />
-    </div>
+      <details className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 p-3 text-xs">
+        <summary className="cursor-pointer font-medium text-zinc-800 dark:text-zinc-200">
+          Why is setting an auditor required?
+        </summary>
+        <div className="space-y-2 pt-2 text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          <p>
+            Every state-changing op ships with a Poseidon ciphertext encrypted to the auditor&apos;s public key. The
+            contract refuses to process any op before an auditor is set, because otherwise the audit trail would be
+            missing from day-one transactions.
+          </p>
+          <p>
+            The auditor is chosen by address, but the decryption key comes from that address&apos;s Registrar entry — so
+            the candidate must register first. The owner can rotate the auditor at any time; pre-rotation txs remain
+            decryptable only by the old auditor&apos;s key.
+          </p>
+        </div>
+      </details>
+    </EERCToolShell>
   );
 }
 
@@ -119,6 +148,9 @@ function DeploymentCard({ mode, deployment }: { mode: Mode; deployment: EERCDepl
   }, [candidate, publicClient, deployment]);
 
   const candidateValid = isAddress(candidate);
+  const isZeroAuditor = currentAuditor && /^0x0+$/i.test(currentAuditor);
+  const isMatchingCandidate =
+    currentAuditor && candidateValid && currentAuditor.toLowerCase() === candidate.toLowerCase();
 
   const onSubmit = async () => {
     if (!walletClient || !publicClient || !candidateValid || !candidateRegistered) return;
@@ -142,55 +174,59 @@ function DeploymentCard({ mode, deployment }: { mode: Mode; deployment: EERCDepl
     }
   };
 
-  const isZeroAuditor = currentAuditor && /^0x0+$/i.test(currentAuditor);
-
   return (
-    <div className="rounded-lg border bg-card p-5 space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-medium">
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
           {mode === 'standalone' ? 'Standalone deployment' : 'Converter deployment'}
         </h3>
-        <code className="text-xs text-muted-foreground">{deployment.encryptedERC}</code>
+        <code className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">{deployment.encryptedERC}</code>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-        <div>
-          <div className="text-muted-foreground">Current auditor</div>
-          <code className="block break-all font-mono">
-            {currentAuditor ?? '—'}{' '}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+        <Field label="Current auditor">
+          <span className="flex items-center gap-1.5">
+            <code className="font-mono break-all">{currentAuditor ?? '—'}</code>
             {isZeroAuditor && <span className="text-amber-600 dark:text-amber-400">(not set)</span>}
-          </code>
-        </div>
-        <div>
-          <div className="text-muted-foreground">You</div>
-          <code className="block break-all font-mono">{myAddress ?? '—'}</code>
-        </div>
+          </span>
+        </Field>
+        <Field label="You">
+          <code className="font-mono break-all">{myAddress ?? '—'}</code>
+        </Field>
       </div>
 
       <Input label="Auditor candidate" value={candidate} onChange={setCandidate} placeholder="0x..." />
-      {candidate && !candidateValid && <div className="text-xs text-red-600 dark:text-red-400">Invalid address</div>}
+      {candidate && !candidateValid && (
+        <div className="text-[11px] text-red-600 dark:text-red-400">Invalid address</div>
+      )}
       {candidateValid && candidateRegistered === false && (
-        <div className="text-xs text-red-600 dark:text-red-400">
-          Candidate is not registered on the Registrar — they must register first before they can serve as auditor.
+        <div className="text-[11px] text-red-600 dark:text-red-400">
+          Candidate is not registered on the Registrar — they must register first.
         </div>
       )}
-      {error && <div className="text-xs text-red-600 dark:text-red-400">{error}</div>}
+      {isMatchingCandidate && (
+        <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">
+          <Check className="w-3 h-3" />
+          Already set to this candidate.
+        </div>
+      )}
+      {error && <div className="text-[11px] text-red-600 dark:text-red-400">{error}</div>}
       {txHash && (
-        <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3 text-xs text-green-700 dark:text-green-300">
-          Auditor set.{' '}
+        <div className="text-[11px]">
           <a
             href={`https://testnet.snowtrace.io/tx/${txHash}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline"
+            className="underline text-emerald-600 dark:text-emerald-400"
           >
-            View on Snowtrace
+            Auditor set — {txHash.slice(0, 10)}...
           </a>
         </div>
       )}
 
       <Button
         variant="primary"
-        disabled={!candidateValid || candidateRegistered !== true}
+        disabled={!candidateValid || candidateRegistered !== true || !!isMatchingCandidate}
         loading={submitting}
         onClick={onSubmit}
       >
@@ -200,28 +236,12 @@ function DeploymentCard({ mode, deployment }: { mode: Mode; deployment: EERCDepl
   );
 }
 
-function Educational() {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <details className="rounded-lg border bg-muted/20 p-4 text-sm">
-      <summary className="cursor-pointer font-medium">Why is setting an auditor required?</summary>
-      <div className="space-y-2 pt-3 text-muted-foreground">
-        <p>
-          Encrypted ERC's compliance model ships every mint, transfer, withdrawal, and burn with an extra auditor PCT —
-          a Poseidon ciphertext of the amount encrypted under the auditor's public key. The contract refuses to process
-          any of these operations before an auditor is set, because otherwise the audit trail would be missing on
-          day-one transactions.
-        </p>
-        <p>
-          The auditor is chosen by address, but the actual decryption key comes from that address's <em>Registrar</em>{' '}
-          entry — so the candidate must register first. The owner (usually the deployer) can rotate the auditor at any
-          time; pre-rotation transactions remain decryptable only by the old auditor's key.
-        </p>
-        <p>
-          On the canonical Fuji demo, the deployer typically registers themselves and becomes the auditor — giving you a
-          single identity that both deployed and audits the system.
-        </p>
-      </div>
-    </details>
+    <div className="space-y-1">
+      <div className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</div>
+      <div className="text-zinc-700 dark:text-zinc-300">{children}</div>
+    </div>
   );
 }
 

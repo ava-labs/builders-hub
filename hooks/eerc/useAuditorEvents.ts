@@ -84,12 +84,27 @@ export function useAuditorEvents(deployment: EERCDeployment | undefined): UseAud
     setIsLoading(true);
     setError(null);
     try {
+      // Fuji's public RPC caps eth_getLogs at 2048 blocks per call. Chunk the
+      // range from deployedAtBlock → latest into pages below that limit.
+      const CHUNK = 2000n;
       const fromBlock = deployment.deployedAtBlock ? BigInt(deployment.deployedAtBlock) : 0n;
-      const [transfers, mints, burns] = await Promise.all([
-        publicClient.getLogs({ address: deployment.encryptedERC, event: transferEvent, fromBlock, toBlock: 'latest' }),
-        publicClient.getLogs({ address: deployment.encryptedERC, event: mintEvent, fromBlock, toBlock: 'latest' }),
-        publicClient.getLogs({ address: deployment.encryptedERC, event: burnEvent, fromBlock, toBlock: 'latest' }),
-      ]);
+      const latest = await publicClient.getBlockNumber();
+
+      type FetchedLogs = Awaited<ReturnType<typeof publicClient.getLogs>>;
+      const transfers: FetchedLogs = [];
+      const mints: FetchedLogs = [];
+      const burns: FetchedLogs = [];
+      for (let cur = fromBlock; cur <= latest; cur += CHUNK + 1n) {
+        const end = cur + CHUNK > latest ? latest : cur + CHUNK;
+        const [t, m, b] = await Promise.all([
+          publicClient.getLogs({ address: deployment.encryptedERC, event: transferEvent, fromBlock: cur, toBlock: end }),
+          publicClient.getLogs({ address: deployment.encryptedERC, event: mintEvent, fromBlock: cur, toBlock: end }),
+          publicClient.getLogs({ address: deployment.encryptedERC, event: burnEvent, fromBlock: cur, toBlock: end }),
+        ]);
+        transfers.push(...t);
+        mints.push(...m);
+        burns.push(...b);
+      }
 
       type RawLog = (typeof transfers)[number] & {
         args: { from?: Hex; to?: Hex; user?: Hex; auditorPCT: readonly bigint[]; auditorAddress: Hex };
@@ -108,7 +123,7 @@ export function useAuditorEvents(deployment: EERCDeployment | undefined): UseAud
         return {
           kind,
           txHash: log.transactionHash as Hex,
-          blockNumber: log.blockNumber,
+          blockNumber: log.blockNumber ?? 0n,
           from: kind === 'PrivateTransfer' ? log.args.from ?? null : kind === 'PrivateBurn' ? log.args.user ?? null : null,
           to: kind === 'PrivateTransfer' ? log.args.to ?? null : kind === 'PrivateMint' ? log.args.user ?? null : null,
           auditorAddress: log.args.auditorAddress,
