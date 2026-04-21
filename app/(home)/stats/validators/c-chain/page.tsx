@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell, ReferenceLine, Label } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +17,7 @@ import { SortIcon } from "@/components/stats/SortIcon";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
+import { TimeSeriesDataPoint, TimeSeriesMetric, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
@@ -87,6 +87,7 @@ export default function CChainValidatorMetrics() {
     current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
   } | null>(null);
   const [stakingAPYLoading, setStakingAPYLoading] = useState(true);
+  const [totalEcosystemValidators, setTotalEcosystemValidators] = useState<TimeSeriesMetric | null>(null);
 
   const fetchData = async () => {
     try {
@@ -96,13 +97,14 @@ export default function CChainValidatorMetrics() {
 
       // Fetch all APIs in parallel
       // Use validator-stats API for version breakdown (same as landing page)
-      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse, p2pResponse] =
+      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse, p2pResponse, totalEcosystemResponse] =
         await Promise.all([
           fetch(`/api/primary-network-stats?timeRange=all`),
           fetch("/api/primary-network-validators"),
           fetch("/api/validator-stats?network=mainnet"),
           fetch('/api/staking-apy'),
           fetch('/api/validators'),
+          fetch('/api/total-ecosystem-validators?timeRange=all'),
         ]);
 
       if (!statsResponse.ok) {
@@ -206,6 +208,18 @@ export default function CChainValidatorMetrics() {
           setP2pValidators(p2pMap);
         } catch (err) {
           console.error('Error parsing P2P validators data:', err);
+        }
+      }
+
+      // Process total ecosystem validator data (Primary Network + indexed L1s)
+      if (totalEcosystemResponse.ok) {
+        try {
+          const totalEcosystemData = await totalEcosystemResponse.json();
+          if (totalEcosystemData?.total_validator_count) {
+            setTotalEcosystemValidators(totalEcosystemData.total_validator_count);
+          }
+        } catch (err) {
+          console.error('Error parsing total ecosystem validator data:', err);
         }
       }
     } catch (err) {
@@ -1108,6 +1122,22 @@ export default function CChainValidatorMetrics() {
               const period = chartPeriods[config.metricKey];
               const currentValue = getCurrentValue(config.metricKey);
 
+              // Only the validator_count chart gets a total-ecosystem overlay + ACP-77 marker
+              const isValidatorCount = config.metricKey === "validator_count";
+              const overlayData: ChartDataPoint[] | undefined =
+                isValidatorCount && totalEcosystemValidators?.data?.length
+                  ? totalEcosystemValidators.data
+                      .filter((point) => point.date !== new Date().toISOString().split("T")[0])
+                      .map((point) => ({
+                        day: point.date,
+                        value:
+                          typeof point.value === "string"
+                            ? parseFloat(point.value)
+                            : point.value,
+                      }))
+                      .sort((a, b) => a.day.localeCompare(b.day))
+                  : undefined;
+
               return (
                 <ValidatorChartCard
                   key={config.metricKey}
@@ -1129,6 +1159,11 @@ export default function CChainValidatorMetrics() {
                       ? formatWeightForAxis
                       : formatNumber
                   }
+                  overlayData={overlayData}
+                  overlayLabel={isValidatorCount ? "Total Ecosystem Validators" : undefined}
+                  overlayColor={isValidatorCount ? "#3B82F6" : undefined}
+                  referenceLineDate={isValidatorCount ? "2024-12-16" : undefined}
+                  referenceLineLabel={isValidatorCount ? "ACP-77 (Etna)" : undefined}
                 />
               );
             })}
@@ -2264,6 +2299,11 @@ function ValidatorChartCard({
   onPeriodChange,
   formatTooltipValue,
   formatYAxisValue,
+  overlayData,
+  overlayLabel,
+  overlayColor,
+  referenceLineDate,
+  referenceLineLabel,
 }: {
   config: any;
   rawData: any[];
@@ -2272,7 +2312,13 @@ function ValidatorChartCard({
   onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
+  overlayData?: { day: string; value: number }[];
+  overlayLabel?: string;
+  overlayColor?: string;
+  referenceLineDate?: string;
+  referenceLineLabel?: string;
 }) {
+  const hasOverlay = Array.isArray(overlayData) && overlayData.length > 0;
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
@@ -2347,6 +2393,66 @@ function ValidatorChartCard({
       .sort((a, b) => a.day.localeCompare(b.day));
   }, [rawData, period]);
 
+  const aggregatedOverlay = useMemo(() => {
+    if (!hasOverlay) return null;
+    if (period === "D") return overlayData!;
+
+    const grouped = new Map<string, { sum: number; count: number; date: string }>();
+    overlayData!.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) grouped.set(key, { sum: 0, count: 0, date: key });
+      const group = grouped.get(key)!;
+      group.sum += point.value;
+      group.count += 1;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({ day: group.date, value: group.sum / group.count }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [overlayData, period, hasOverlay]);
+
+  const mergedAggregated = useMemo(() => {
+    if (!hasOverlay || !aggregatedOverlay) return aggregatedData;
+    const overlayMap = new Map(aggregatedOverlay.map((p) => [p.day, p.value]));
+    return aggregatedData.map((point) => ({
+      ...point,
+      overlayValue: overlayMap.get(point.day) ?? null,
+    }));
+  }, [aggregatedData, aggregatedOverlay, hasOverlay]);
+
+  const referenceLineBucket = useMemo(() => {
+    if (!referenceLineDate) return null;
+    const date = new Date(referenceLineDate);
+    if (period === "D") return referenceLineDate;
+    if (period === "W") {
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay());
+      return weekStart.toISOString().split("T")[0];
+    }
+    if (period === "M") {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+    if (period === "Q") {
+      const q = Math.floor(date.getMonth() / 3) + 1;
+      return `${date.getFullYear()}-Q${q}`;
+    }
+    return String(date.getFullYear());
+  }, [referenceLineDate, period]);
+
   useEffect(() => {
     if (aggregatedData.length === 0) return;
 
@@ -2365,8 +2471,15 @@ function ValidatorChartCard({
   }, [period, aggregatedData.length]);
 
   const displayData = brushIndexes
-    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
-    : aggregatedData;
+    ? mergedAggregated.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
+    : mergedAggregated;
+
+  const isReferenceInRange = useMemo(() => {
+    if (!referenceLineBucket || displayData.length === 0) return false;
+    const first = displayData[0].day;
+    const last = displayData[displayData.length - 1].day;
+    return referenceLineBucket >= first && referenceLineBucket <= last;
+  }, [referenceLineBucket, displayData]);
 
   const brushRangeDays = useMemo(() => {
     return calculateDateRangeDays(displayData, "day");
@@ -2555,7 +2668,7 @@ function ValidatorChartCard({
           <ChartWatermark className="mb-6">
             <ResponsiveContainer width="100%" height={350}>
               {config.chartType === "bar" ? (
-                <BarChart
+                <ComposedChart
                   data={displayData}
                   margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                 >
@@ -2580,19 +2693,49 @@ function ValidatorChartCard({
                   <Tooltip
                     cursor={{ fill: `${config.color}20` }}
                     content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
+                      if (!active || !payload?.length) return null;
+                      const barPoint =
+                        payload.find((p: any) => p.dataKey === "value") ?? payload[0];
+                      const overlayPoint = payload.find(
+                        (p: any) => p.dataKey === "overlayValue",
+                      );
                       const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
+                        barPoint.payload.day,
                       );
                       return (
                         <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                          <div className="grid gap-2">
+                          <div className="grid gap-1.5">
                             <div className="font-medium text-sm">
                               {formattedDate}
                             </div>
-                            <div className="text-sm">
-                              {formatTooltipValue(payload[0].value as number)}
-                            </div>
+                            {hasOverlay ? (
+                              <div className="text-sm flex items-center gap-2">
+                                <span
+                                  className="inline-block h-2 w-2 rounded-sm"
+                                  style={{ backgroundColor: config.color }}
+                                />
+                                <span>
+                                  Primary Network: {formatTooltipValue(barPoint.value as number)}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-sm">
+                                {formatTooltipValue(barPoint.value as number)}
+                              </div>
+                            )}
+                            {hasOverlay &&
+                              overlayPoint &&
+                              overlayPoint.value != null && (
+                                <div className="text-sm flex items-center gap-2">
+                                  <span
+                                    className="inline-block h-2 w-2 rounded-sm"
+                                    style={{ backgroundColor: overlayColor }}
+                                  />
+                                  <span>
+                                    {overlayLabel ?? "Total Ecosystem"}: {formatTooltipValue(overlayPoint.value as number)}
+                                  </span>
+                                </div>
+                              )}
                           </div>
                         </div>
                       );
@@ -2603,7 +2746,34 @@ function ValidatorChartCard({
                     fill={config.color}
                     radius={[4, 4, 0, 0]}
                   />
-                </BarChart>
+                  {hasOverlay && (
+                    <Line
+                      type="monotone"
+                      dataKey="overlayValue"
+                      stroke={overlayColor ?? "#3B82F6"}
+                      strokeWidth={2}
+                      dot={false}
+                      connectNulls
+                      isAnimationActive={false}
+                    />
+                  )}
+                  {referenceLineBucket && isReferenceInRange && (
+                    <ReferenceLine
+                      x={referenceLineBucket}
+                      stroke="#E84142"
+                      strokeDasharray="4 4"
+                      strokeWidth={2}
+                    >
+                      <Label
+                        value={referenceLineLabel ?? "ACP-77"}
+                        position="insideTopRight"
+                        fill="#E84142"
+                        fontSize={11}
+                        offset={8}
+                      />
+                    </ReferenceLine>
+                  )}
+                </ComposedChart>
               ) : (
                 <AreaChart
                   data={displayData}
