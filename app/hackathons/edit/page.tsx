@@ -101,7 +101,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-white text-white border-gray-300 hover:bg-gray-50"
+                    className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                     onClick={(e) => {
                       e.stopPropagation();
                       window.open(`/hackathons/${hackathon.id}`, '_blank');
@@ -193,7 +193,7 @@ type TrackItemProps = {
 const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, onDone, onExpand, onRemove, onScrollToPreview, t, language, removing, tracksLength, rawTrackDescriptions, setRawTrackDescriptions, convertToHTML }: TrackItemProps) {
   return (
     <div
-      className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`track-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}
+      className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`track-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}
     >
       {tracksLength > 1 && (
         <button
@@ -214,7 +214,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
         </div>
       ) : (
         <>
-          {/* <div className="mb-2 text-zinc-400 text-sm">{t[language].selectIcon}</div>
+          {/* <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].selectIcon}</div>
           <Select
             value={track.icon}
             onValueChange={(value) => {
@@ -235,7 +235,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
               <SelectItem value="cpu">CPU</SelectItem>
             </SelectContent>
           </Select> */}
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].selectLogo}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].selectLogo}</div>
           <Select
             value={track.logo}
             onValueChange={(value) => {
@@ -256,7 +256,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
               <SelectItem value="cpu">CPU</SelectItem>
             </SelectContent>
           </Select>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].trackName}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackName}</div>
           <Input
             type="text"
             placeholder="Name"
@@ -265,7 +265,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].trackPartner}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackPartner}</div>
           <Input
             type="text"
             placeholder="Partner"
@@ -274,7 +274,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].trackDescription}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackDescription}</div>
           <div className="mb-2 text-zinc-500 text-xs">Type a detailed description with formatting. Use the buttons below or type HTML directly.</div>
           {/* Formatting Toolbar for Track Description */}
           <div className="flex flex-wrap gap-2 mb-3 p-3 bg-zinc-800/50 border border-zinc-600 rounded-lg">
@@ -406,18 +406,18 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
                 }
               }
             }}
-            className="w-full mb-3 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-32"
+            className="w-full mb-3 p-3 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 resize-none h-32"
             required
           />
           {track.description && (
             <div className="mb-3">
-              <div className="text-zinc-400 text-sm mb-2">HTML Preview:</div>
+              <div className="text-zinc-700 dark:text-zinc-400 text-sm mb-2">HTML Preview:</div>
               <div className="p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-20 overflow-y-auto">
                 {track.description}
               </div>
             </div>
           )}
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].shortDescription}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].shortDescription}</div>
           <Input
             type="text"
             placeholder="Short Description"
@@ -454,7 +454,7 @@ type ScheduleItemProps = {
 
 const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, scheduleLength, toLocalDatetimeString }: ScheduleItemProps) {
   return (
-    <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`schedule-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
+    <div className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`schedule-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       <button
         type="button"
         onClick={() => onRemove(index)}
@@ -472,7 +472,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleDate}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleDate}</div>
           <Input
             type="datetime-local"
             placeholder="Date"
@@ -483,7 +483,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleName}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleName}</div>
           <Input
             type="text"
             placeholder="Name"
@@ -492,7 +492,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleCategory}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleCategory}</div>
           <Select
             value={event.category}
             onValueChange={(value) => onChange(index, 'category', value)}
@@ -513,7 +513,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
               <SelectItem value="Ceremony">Ceremony</SelectItem>
             </SelectContent>
           </Select>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleLocation}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleLocation}</div>
           <Input
             type="text"
             placeholder="Location"
@@ -522,7 +522,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleDescription}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleDescription}</div>
           <Input
             type="text"
             placeholder="Description"
@@ -531,7 +531,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleDuration}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleDuration}</div>
           <Input
             type="number"
             placeholder="Duration (minutes)"
@@ -610,7 +610,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
   };
   return (
     <div
-      className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'
+      className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'
         }`}
     >
       {speakersLength > 1 && (
@@ -638,7 +638,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-400 text-sm">Default speaker</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Default speaker</div>
 
           <div suppressHydrationWarning>
             <Select
@@ -666,7 +666,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             </Select>
           </div>
 
-          {/* <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerIcon}</div>
+          {/* <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].speakerIcon}</div>
           <Select
             value={speaker.icon || '__none__'}
             onValueChange={(value: string) =>
@@ -683,7 +683,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             </SelectContent>
           </Select> */}
 
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerName}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].speakerName}</div>
           <Input
             type="text"
             placeholder="Name"
@@ -695,7 +695,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             required
           />
 
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerCompany}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].speakerCompany}</div>
           <Input
             type="text"
             placeholder="Category"
@@ -707,7 +707,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             required
           />
 
-          <div className="mb-2 text-zinc-400 text-sm">Picture</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Picture</div>
           <div className="mb-2">
             <input
               type="file"
@@ -783,7 +783,7 @@ type ResourceItemProps = {
 
 const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, resourcesLength }: ResourceItemProps) {
   return (
-    <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`resource-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
+    <div className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`resource-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       {resourcesLength > 1 && (
         <button
           type="button"
@@ -803,7 +803,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].resourceIcon}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceIcon}</div>
           <Select
             value={resource.icon}
             onValueChange={(value) => onChange(index, 'icon', value)}
@@ -818,7 +818,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
               <SelectItem value="layout-grid">Layout Grid</SelectItem>
             </SelectContent>
           </Select>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].resourceLink}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceLink}</div>
           <Input
             type="text"
             placeholder="Link"
@@ -827,7 +827,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].resourceTitle}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceTitle}</div>
           <Input
             type="text"
             placeholder="Title"
@@ -836,7 +836,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].resourceDescription}</div>
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceDescription}</div>
           <Input
             type="text"
             placeholder="Description"
@@ -2048,8 +2048,8 @@ const HackathonsEdit = () => {
   // Show loading while checking authentication
   if (status === "loading") {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
+        <div className="text-zinc-900 dark:text-zinc-100 text-xl">Loading...</div>
       </div>
     );
   }
@@ -2114,13 +2114,13 @@ const HackathonsEdit = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
       <Toaster />
       {/* Header */}
-      <div className="bg-zinc-900 border-b border-zinc-700 p-4">
+      <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 p-4">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-white">{t[language].editEvents}</h1>
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t[language].editEvents}</h1>
             <div className="flex items-center gap-2 px-3 py-1 bg-green-600 rounded-full text-sm">
               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
               <span className="text-white">Live Preview</span>
@@ -2146,11 +2146,11 @@ const HackathonsEdit = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 min-h-0 overflow-hidden flex">
         {/* Left Panel - Edit Form */}
         <div
           ref={leftPanelRef}
-          className="w-1/2 overflow-y-auto bg-zinc-950 max-h-[calc(100vh-80px)]"
+          className="w-1/2 h-full min-h-0 overflow-y-auto bg-white dark:bg-zinc-950"
         >
           <div className="container mx-auto px-4 py-8">
             <UpdateModal
@@ -2172,7 +2172,7 @@ const HackathonsEdit = () => {
             />
             {/* Sticky bar: action buttons + step navigation (always visible when editing) */}
             {(isSelectedHackathon || (showForm && hasEditPermission)) && (
-              <div className="sticky top-0 z-20 bg-zinc-950/98 backdrop-blur border-b border-zinc-800 mb-4">
+              <div className="sticky top-0 z-20 bg-white/95 dark:bg-zinc-950/98 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 mb-4">
                 {isSelectedHackathon && (
                   <div className="flex gap-2 py-2 flex-wrap items-center">
                     <Button onClick={handleCancelEdit} variant="outline">
@@ -2208,7 +2208,7 @@ const HackathonsEdit = () => {
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step1'
                         ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
                       Basic Info
@@ -2224,7 +2224,7 @@ const HackathonsEdit = () => {
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step2'
                         ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
                       Stages
@@ -2240,7 +2240,7 @@ const HackathonsEdit = () => {
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step3'
                         ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
                       Images & Branding
@@ -2256,7 +2256,7 @@ const HackathonsEdit = () => {
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step4'
                         ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
                       {formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}
@@ -2273,7 +2273,7 @@ const HackathonsEdit = () => {
                         }}
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step5'
                           ? 'bg-red-600 text-white border-red-500'
-                          : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                          : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                           }`}
                       >
                         Track Text
@@ -2290,7 +2290,7 @@ const HackathonsEdit = () => {
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step6'
                         ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
                       Content
@@ -2306,7 +2306,7 @@ const HackathonsEdit = () => {
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step7'
                         ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
                       Last Details
@@ -2319,9 +2319,9 @@ const HackathonsEdit = () => {
             {showForm && hasEditPermission && (
               <>
                 {/* Cohosts Section - Always Visible */}
-                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mb-6">
-                  <h2 className="text-xl font-semibold mb-2 text-blue-300">{t[language].cohostsTitle}</h2>
-                  <p className="text-sm text-blue-200 mb-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 mb-6">
+                  <h2 className="text-xl font-semibold mb-2 text-blue-700 dark:text-blue-300">{t[language].cohostsTitle}</h2>
+                  <p className="text-sm text-blue-700/90 dark:text-blue-200 mb-4">
                     {t[language].cohostsDescription}
                   </p>
                   <EmailListInput
@@ -2387,13 +2387,13 @@ const HackathonsEdit = () => {
                       Use new layout (modern event page)
                     </label>
                   </div>
-                  <p className="text-zinc-400 text-sm mt-2">
+                  <p className="text-zinc-700 dark:text-zinc-400 text-sm mt-2">
                     Toggle on for the modern layout (workshop-style), off for the legacy hackathon layout.
                   </p>
                 </div>
 
                 <form onSubmit={submitWithValidation} noValidate className="space-y-4">
-                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step1Ref} className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
                       {collapsed.main && (
@@ -2404,12 +2404,12 @@ const HackathonsEdit = () => {
                     </div>
                     {!collapsed.main && (
                       <>
-                        <div className="mb-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-                          <h3 className="text-lg font-semibold text-green-300 mb-2">Hackathon Details</h3>
-                          <p className="text-sm text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
+                        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-500/30 rounded-lg">
+                          <h3 className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">Hackathon Details</h3>
+                          <p className="text-sm text-green-800 dark:text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
                         </div>
 
-                        <div className="mb-2 text-zinc-400 text-sm">Hackathon Title</div>
+                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Hackathon Title</div>
                         <Input
                           type="text"
                           name="title"
@@ -2426,7 +2426,7 @@ const HackathonsEdit = () => {
                           <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.title')}</p>
                         )}
 
-                        <div className="mb-2 text-zinc-400 text-sm">Description</div>
+                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Description</div>
                         <textarea
                           name="description"
                           placeholder="Describe your hackathon, its goals, and what participants will build..."
@@ -2435,14 +2435,14 @@ const HackathonsEdit = () => {
                             setFormDataMain(prev => ({ ...prev, description: e.target.value }));
                             scrollToSection('about');
                           }}
-                          className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-24"
+                          className="w-full mb-4 p-3 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 resize-none h-24"
                           required
                         />
                         {getInlineError('main.description') && (
                           <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.description')}</p>
                         )}
 
-                        <div className="mb-2 text-zinc-400 text-sm">Location</div>
+                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Location</div>
                         <Input
                           type="text"
                           name="location"
@@ -2459,9 +2459,9 @@ const HackathonsEdit = () => {
                           <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.location')}</p>
                         )}
 
-                        <div className="flex flex-col space-y-2 bg-zinc-900/60 border border-zinc-700 rounded-lg p-4 my-4">
+                        <div className="flex flex-col space-y-2 bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 my-4">
                           <label className="font-medium">Tags (Optional)</label>
-                          <div className="mb-2 text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
                           <div className="flex flex-wrap gap-2 items-center">
                             {formDataMain.tags.map((tag, idx) => (
                               <div key={idx} className="flex items-center gap-1">
@@ -2503,15 +2503,15 @@ const HackathonsEdit = () => {
                       </>
                     )}
                     {collapsed.main && (
-                      <div className="text-zinc-400 italic">✓ Basic hackathon info completed</div>
+                      <div className="text-zinc-600 dark:text-zinc-400 italic">✓ Basic hackathon info completed</div>
                     )}
                   </div>
-                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step2Ref} className="text-2xl font-bold">Step 2: Stages</h2>
                     </div>
                     {collapsed.stages && (
-                      <div className="text-zinc-400 italic">✓ Stages completed</div>
+                      <div className="text-zinc-600 dark:text-zinc-400 italic">✓ Stages completed</div>
                     )}
                     {
                       !collapsed.stages && (
@@ -2542,7 +2542,7 @@ const HackathonsEdit = () => {
                   </div>
 
                   {/* Step 3: Images & Branding */}
-                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step3Ref} className="text-2xl font-bold">Step 3: Images & Branding</h2>
                       {collapsed.images && (
@@ -2553,15 +2553,15 @@ const HackathonsEdit = () => {
                     </div>
                     {!collapsed.images && (
                       <>
-                        <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                          <h3 className="text-lg font-semibold text-blue-300 mb-2">Hackathon Images & Branding</h3>
-                          <p className="text-sm text-blue-200">Upload your hackathon banner and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
+                        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg">
+                          <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-300 mb-2">Hackathon Images & Branding</h3>
+                          <p className="text-sm text-blue-800 dark:text-blue-200">Upload your hackathon banner and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
                         </div>
 
                         {/* Banner Image */}
                         <div className="mb-6">
                           <label className="font-medium text-xl mb-2 block">Main Banner:</label>
-                          <div className="mb-2 text-zinc-400 text-sm">The main banner image displayed at the top of your hackathon page</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">The main banner image displayed at the top of your hackathon page</div>
 
                           <div className="mb-4">
                             <div className="flex gap-4 items-start">
@@ -2611,7 +2611,7 @@ const HackathonsEdit = () => {
                             {/* Banner Preview */}
                             {formDataLatest.banner && (
                               <div className="mt-4">
-                                <div className="text-zinc-400 text-sm mb-2">Preview (1600 x 909):</div>
+                                <div className="text-zinc-700 dark:text-zinc-400 text-sm mb-2">Preview (1600 x 909):</div>
                                 <div className="relative w-full max-w-2xl mx-auto bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden" style={{ aspectRatio: '1600/909' }}>
                                   <img
                                     src={formDataLatest.banner}
@@ -2634,7 +2634,7 @@ const HackathonsEdit = () => {
 
                         <div className="mb-6">
                           <label className="font-medium text-xl mb-2 block">Small Banner:</label>
-                          <div className="mb-2 text-zinc-400 text-sm">A smaller banner image for additional branding</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">A smaller banner image for additional branding</div>
 
                           <div className="mb-4">
                             <div className="flex gap-4 items-start">
@@ -2681,7 +2681,7 @@ const HackathonsEdit = () => {
 
                             {formDataLatest.small_banner && (
                               <div className="mt-4">
-                                <div className="text-zinc-400 text-sm mb-2">Preview (601 x 1028):</div>
+                                <div className="text-zinc-700 dark:text-zinc-400 text-sm mb-2">Preview (601 x 1028):</div>
                                 <div className="relative w-32 mx-auto bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden" style={{ aspectRatio: '601/1028' }}>
                                   <img
                                     src={formDataLatest.small_banner}
@@ -2713,12 +2713,12 @@ const HackathonsEdit = () => {
                       </>
                     )}
                     {collapsed.images && (
-                      <div className="text-zinc-400 italic">✓ Images & branding completed</div>
+                      <div className="text-zinc-600 dark:text-zinc-400 italic">✓ Images & branding completed</div>
                     )}
                   </div>
 
                   {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
-                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step4Ref} className="text-2xl font-bold">
                         {formDataLatest.event === 'hackathon' ? 'Step 4: Participants & Prizes' : 'Step 4: Organizer'}
@@ -2733,15 +2733,15 @@ const HackathonsEdit = () => {
                       <>
                         {formDataLatest.event === 'hackathon' && (
                           <>
-                            <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
-                              <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
-                              <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
+                            <div className="mb-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-500/30 rounded-lg">
+                              <h3 className="text-lg font-semibold text-orange-700 dark:text-orange-300 mb-2">Participants & Prize Information</h3>
+                              <p className="text-sm text-orange-800 dark:text-orange-200">Now let's add details about participants and the prize pool.</p>
                             </div>
                           </>
                         )}
 
                         <>
-                          <div className="mb-2 text-zinc-400 text-sm">Organizer Name/Organization</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Organizer Name/Organization</div>
                           <Input
                             type="text"
                             name="organizers"
@@ -2762,7 +2762,7 @@ const HackathonsEdit = () => {
                         {/* Step 4: Track Text - Only for Hackathons */}
                         {formDataLatest.event === 'hackathon' && (
                           <>
-                            <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Total Prize Pool (USD)</div>
                             <Input
                               type="number"
                               name="total_prizes"
@@ -2779,7 +2779,7 @@ const HackathonsEdit = () => {
                               <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.total_prizes')}</p>
                             )}
 
-                            <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Expected Number of Participants</div>
                             <Input
                               type="number"
                               name="participants"
@@ -2809,7 +2809,7 @@ const HackathonsEdit = () => {
                       </>
                     )}
                     {collapsed.about && (
-                      <div className="text-zinc-400 italic">
+                      <div className="text-zinc-600 dark:text-zinc-400 italic">
                         {formDataLatest.event === 'hackathon' ? '✓ Participants & prizes completed' : '✓ Organizer completed'}
                       </div>
                     )}
@@ -2817,7 +2817,7 @@ const HackathonsEdit = () => {
 
                   {/* Step 4: Track Text - Only for Hackathons */}
                   {formDataLatest.event === 'hackathon' && (
-                    <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                    <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                       <div className="flex items-center justify-between mb-4">
                         <h2 ref={step5Ref} className="text-2xl font-bold">Step 5: Track Text</h2>
                         {collapsed.trackText && (
@@ -2828,12 +2828,12 @@ const HackathonsEdit = () => {
                       </div>
                       {!collapsed.trackText && (
                         <>
-                          <div className="mb-4 p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg">
-                            <h3 className="text-lg font-semibold text-purple-300 mb-2">Track Description</h3>
-                            <p className="text-sm text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
+                          <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-lg">
+                            <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Track Description</h3>
+                            <p className="text-sm text-purple-800 dark:text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
                           </div>
 
-                          <div className="mb-2 text-zinc-400 text-sm">Schedule Text:</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Schedule Text:</div>
                           <div className="mb-2 text-zinc-500 text-xs">Write a step-by-step schedule outlining what will happen, either hour by hour or week by week. Use the formatting buttons below or type markdown directly.</div>
 
                           {/* Formatting Toolbar */}
@@ -3010,7 +3010,7 @@ const HackathonsEdit = () => {
                                 }
                               }
                             }}
-                            className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-48"
+                            className="w-full mb-4 p-3 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 resize-none h-48"
                             required
                           />
                           {getInlineError('content.tracks_text') && (
@@ -3034,7 +3034,7 @@ const HackathonsEdit = () => {
 
                           {formDataContent.tracks_text && (
                             <div className="mb-4">
-                              <div className="text-zinc-400 text-sm mb-2">Markdown Preview:</div>
+                              <div className="text-zinc-700 dark:text-zinc-400 text-sm mb-2">Markdown Preview:</div>
                               <div className="p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
                                 {formDataContent.tracks_text}
                               </div>
@@ -3053,13 +3053,13 @@ const HackathonsEdit = () => {
                         </>
                       )}
                       {collapsed.trackText && (
-                        <div className="text-zinc-400 italic">✓ Track text completed</div>
+                        <div className="text-zinc-600 dark:text-zinc-400 italic">✓ Track text completed</div>
                       )}
                     </div>
                   )}
 
                   {/* Step 5: Content - Tracks, Schedule, etc. */}
-                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step5Ref} className="text-2xl font-bold">Step 6: Content</h2>
                       {collapsed.content && (
@@ -3177,7 +3177,7 @@ const HackathonsEdit = () => {
                           <>
                             <div className="space-y-4">
                               <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
-                              <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
+                              <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].addressHelp}</div>
                               <Input
                                 type="text"
                                 placeholder="Address"
@@ -3192,7 +3192,7 @@ const HackathonsEdit = () => {
                             </div>
                             <div className="space-y-4">
                               <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
-                              <div className="mb-2 text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
+                              <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
                               <Input
                                 type="text"
                                 placeholder="e.g. primary or abc123@group.calendar.google.com"
@@ -3211,7 +3211,7 @@ const HackathonsEdit = () => {
                         {contentTab === 'schedule' && (
                           <div className="space-y-4">
                             <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
-                            <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
                             {formDataContent.schedule.map((event, index) => (
                               <ScheduleItem
                                 key={index}
@@ -3309,7 +3309,7 @@ const HackathonsEdit = () => {
                           <div className="space-y-4">
                             <div>
                               <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                              <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
+                              <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
                               <Input
                                 type="datetime-local"
                                 placeholder="Submission Deadline"
@@ -3337,10 +3337,10 @@ const HackathonsEdit = () => {
                       </>
                     )}
                     {collapsed.content && (
-                      <div className="text-zinc-400 italic">{t[language].contentCompleted}</div>
+                      <div className="text-zinc-600 dark:text-zinc-400 italic">{t[language].contentCompleted}</div>
                     )}
                   </div>
-                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
+                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6 mt-10">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step7Ref} className="text-2xl font-bold">Step 7: Last Details</h2>
                       {collapsed.last && (
@@ -3362,13 +3362,13 @@ const HackathonsEdit = () => {
                           setFormDataLatest(prev => ({ ...prev, top_most: checked }));
                         }}
                       />
-                      <label htmlFor="top_most" className="text-zinc-400 text-sm cursor-pointer">
+                      <label htmlFor="top_most" className="text-zinc-700 dark:text-zinc-400 text-sm cursor-pointer">
                         Top most
                       </label>
                     </div>
                     */}
                           <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                          <div className="mb-2 text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
                           <Input
                             type="text"
                             name="custom_link"
@@ -3383,7 +3383,7 @@ const HackathonsEdit = () => {
                             <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.custom_link')}</p>
                           )}
                           <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                          <div className="mb-2 text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
                           <Input
                             type="text"
                             name="join_custom_link"
@@ -3398,7 +3398,7 @@ const HackathonsEdit = () => {
                             <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.join_custom_link')}</p>
                           )}
                           <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                          <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
                           <Input
                             type="text"
                             name="submission_custom_link"
@@ -3414,7 +3414,7 @@ const HackathonsEdit = () => {
                           )}
                           <div>
                             <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
-                            <div className="mb-2 text-zinc-400 text-sm">{t[language].startDateHelp}</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].startDateHelp}</div>
                             <Input
                               type="datetime-local"
                               placeholder="Start Date"
@@ -3433,7 +3433,7 @@ const HackathonsEdit = () => {
                           </div>
                           <div>
                             <label className="font-medium text-xl mb-2 block">{t[language].endDate}:</label>
-                            <div className="mb-2 text-zinc-400 text-sm">{t[language].endDateHelp}</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].endDateHelp}</div>
                             <Input
                               type="datetime-local"
                               placeholder="End Date"
@@ -3455,7 +3455,7 @@ const HackathonsEdit = () => {
                           </div>
                           <div>
                             <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
-                            <div className="mb-2 text-zinc-400 text-sm">{t[language].timezoneHelp}</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].timezoneHelp}</div>
                             <Select
                               value={formDataLatest.timezone}
                               onValueChange={(value) => setFormDataLatest({ ...formDataLatest, timezone: value })}
@@ -3521,7 +3521,7 @@ const HackathonsEdit = () => {
                       </>
                     )}
                     {collapsed.last && (
-                      <div className="text-zinc-400 italic">{t[language].lastDetailsCompleted}</div>
+                      <div className="text-zinc-600 dark:text-zinc-400 italic">{t[language].lastDetailsCompleted}</div>
                     )}
                   </div>
                   {!isSelectedHackathon && (
@@ -3533,9 +3533,9 @@ const HackathonsEdit = () => {
               </>
             )}
             {showForm && !hasEditPermission && (
-              <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-900/10 text-red-100 max-w-2xl mx-auto text-center">
+              <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-100 max-w-2xl mx-auto text-center">
                 <h2 className="text-xl font-semibold mb-2">You don&apos;t have permission to edit this hackathon</h2>
-                <p className="text-sm text-red-200">
+                <p className="text-sm text-red-600 dark:text-red-200">
                   Only the creator, authorized roles, or configured cohosts can edit this hackathon. Please contact the hackathon owner if you believe this is a mistake.
                 </p>
               </div>
@@ -3562,7 +3562,7 @@ const HackathonsEdit = () => {
             )}
           </div>
         </div>
-        <div className={`w-1/2 max-h-[calc(100vh-80px)] ${activePreviewTab === 'stages-submit-form' ? 'overflow-y-auto' : ''} border-zinc-700 bg-white dark:bg-zinc-900`}>
+        <div className={`w-1/2 h-full min-h-0 ${activePreviewTab === 'stages-submit-form' ? 'overflow-y-auto' : 'overflow-hidden'} border-l border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900`}>
           <div className="h-full">
             {renderHackathonPreviewTabs()}
           </div>
