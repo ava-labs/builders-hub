@@ -168,14 +168,20 @@ export default function ModernEventLayout({
               {hackathon.location && (
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-zinc-600 dark:text-zinc-400 flex-shrink-0" />
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hackathon.location)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100 hover:underline cursor-pointer"
-                  >
-                    {hackathon.location}
-                  </a>
+                  {/online/i.test(hackathon.location) ? (
+                    <span className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100">
+                      {hackathon.location}
+                    </span>
+                  ) : (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hackathon.location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100 hover:underline cursor-pointer"
+                    >
+                      {hackathon.location}
+                    </a>
+                  )}
                 </div>
               )}
 
