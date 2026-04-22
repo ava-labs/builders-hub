@@ -116,7 +116,12 @@ export function LoginModalWrapper() {
         if (!res.ok) return;
         const profile = await res.json();
         if (cancelled) return;
-        if (!profile?.x_handle || !profile?.linkedin_url) {
+        if (
+          !profile?.x_handle ||
+          !profile?.linkedin_url ||
+          !profile?.github ||
+          !profile?.telegram_user
+        ) {
           setTermsUserId(session.user.id);
           setShowBasicProfile(true);
         }

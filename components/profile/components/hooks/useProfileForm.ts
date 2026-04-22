@@ -29,7 +29,7 @@ export const profileSchema = z.object({
   // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
-  github: z.string().optional(),
+  github: z.string().min(1, "GitHub profile is required"),
   x_handle: z.string().min(1, "X (Twitter) handle is required"),
   linkedin_url: z.string().min(1, "LinkedIn URL is required"),
   wallet: z.array(z.string()).optional().default([]),
@@ -37,7 +37,7 @@ export const profileSchema = z.object({
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
-  telegram_user: z.string().optional(),
+  telegram_user: z.string().min(1, "Telegram username is required"),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;

@@ -36,6 +36,8 @@ const basicProfileSchema = z.object({
   country: z.string().optional(),
   x_handle: z.string().min(1, 'X (Twitter) handle is required'),
   linkedin_url: z.string().min(1, 'LinkedIn URL is required'),
+  github: z.string().min(1, 'GitHub profile is required'),
+  telegram_user: z.string().min(1, 'Telegram username is required'),
   is_student: z.boolean().default(false),
   student_institution: z.string().optional(),
   is_founder: z.boolean().default(false),
@@ -67,6 +69,8 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
       country: '',
       x_handle: '',
       linkedin_url: '',
+      github: '',
+      telegram_user: '',
       is_student: false,
       student_institution: '',
       is_founder: false,
@@ -100,6 +104,8 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
           country: profile.country ?? '',
           x_handle: profile.x_handle ?? '',
           linkedin_url: profile.linkedin_url ?? '',
+          github: profile.github ?? '',
+          telegram_user: profile.telegram_user ?? '',
           is_student: Boolean(userType.is_student),
           student_institution: userType.student_institution ?? '',
           is_founder: Boolean(userType.is_founder),
@@ -137,6 +143,8 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
         country,
         x_handle,
         linkedin_url,
+        github,
+        telegram_user,
       } = data;
 
       // Construct user_type object with all role fields
@@ -145,6 +153,8 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
         country,
         x_handle,
         linkedin_url,
+        github,
+        telegram_user,
         user_type: {
           is_student,
           is_founder,
@@ -261,7 +271,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
             </div>
 
-            {/* X (Twitter) and LinkedIn - required */}
+            {/* Required social handles */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <FormField
                 control={form.control}
@@ -289,6 +299,40 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     <FormControl>
                       <Input
                         placeholder="https://www.linkedin.com/in/username"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="github"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">GitHub *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://github.com/username"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="telegram_user"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">Telegram *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter your Telegram username (without @)"
                         {...field}
                         className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
                       />

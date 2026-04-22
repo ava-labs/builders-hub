@@ -405,7 +405,7 @@ export default function Profile() {
                   name="github"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center gap-4">
-                      <FormLabel className="w-32 shrink-0">GitHub</FormLabel>
+                      <FormLabel className="w-32 shrink-0">GitHub *</FormLabel>
                       <div className="flex-1">
                         <FormControl>
                           <Input
@@ -516,7 +516,7 @@ export default function Profile() {
                   name="telegram_user"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center gap-4">
-                      <FormLabel className="w-32 shrink-0">Telegram</FormLabel>
+                      <FormLabel className="w-32 shrink-0">Telegram *</FormLabel>
                       <div className="flex-1">
                         <FormControl>
                           <Input
