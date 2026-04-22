@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -80,6 +80,44 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
   });
 
   const watchedValues = form.watch();
+
+  // Prefill from the current extended profile so existing users who open the
+  // modal to backfill X / LinkedIn don't wipe their existing name, country,
+  // or user_type flags. Brand-new users will get mostly-null values here,
+  // which keeps the current blank-default behavior.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/profile/extended/${userId}`);
+        if (!res.ok || cancelled) return;
+        const profile = await res.json();
+        if (cancelled || !profile) return;
+        const userType = profile.user_type ?? {};
+        form.reset({
+          name: profile.name ?? '',
+          country: profile.country ?? '',
+          x_handle: profile.x_handle ?? '',
+          linkedin_url: profile.linkedin_url ?? '',
+          is_student: Boolean(userType.is_student),
+          student_institution: userType.student_institution ?? '',
+          is_founder: Boolean(userType.is_founder),
+          founder_company_name: userType.founder_company_name ?? '',
+          is_employee: Boolean(userType.is_employee),
+          employee_company_name: userType.employee_company_name ?? '',
+          employee_role: userType.employee_role ?? '',
+          is_developer: Boolean(userType.is_developer),
+          is_enthusiast: Boolean(userType.is_enthusiast),
+        });
+      } catch {
+        // silent: blank defaults are fine if the fetch fails
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, form]);
 
   const handleSave = async (data: BasicProfileFormValues, redirectToProfile: boolean = false) => {
     setIsSaving(true);
