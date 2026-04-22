@@ -209,7 +209,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
   return (
     <Card className="w-full rounded-md text-black dark:bg-zinc-800 dark:text-white border">
       <CardHeader className="text-center pb-4 px-4 sm:px-6">
-        <h3 className="text-base sm:text-lg font-semibold">Help us know you better</h3>
+        <h3 className="text-xl sm:text-2xl font-bold tracking-tight">Help us know you better</h3>
         <p className="text-xs sm:text-sm text-muted-foreground">
           A few details so we can send you personalized hackathon invites, rewards, and more as they roll out on Builder Hub.
         </p>
@@ -495,7 +495,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
                     </FormItem>
                   )}
                 />
-                <FormLabel className="text-sm font-normal cursor-pointer shrink-0 w-[70px]" onClick={() => {
+                <FormLabel className="text-sm sm:text-base font-normal cursor-pointer shrink-0" onClick={() => {
                   const currentValue = watchedValues.is_employee;
                   form.setValue("is_employee", !currentValue);
                   if (currentValue) {
