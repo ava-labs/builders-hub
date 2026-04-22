@@ -12,6 +12,7 @@ const prisma = new PrismaClient();
 const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
 const IMPORT_SOURCE = 'build_games_2026_final_csv';
 const DRY_RUN = process.argv.includes('--dry-run');
+const UPDATE_CONCURRENCY = 8;
 
 type ImportSummary = {
   created: number;
@@ -30,6 +31,17 @@ function normalizeName(value: string): string {
 
 function isRecord(value: Prisma.JsonValue | unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function shallowEqualRecord(
+  a: Record<string, unknown> | null,
+  b: Record<string, unknown>,
+): boolean {
+  if (a === null) return false;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((key) => a[key] === b[key]);
 }
 
 function buildImportedProgression(row: BuildGamesStageSeedRow) {
@@ -56,101 +68,40 @@ function mergeFormData(existingFormData: Prisma.JsonValue | null, row: BuildGame
   } as Prisma.InputJsonValue;
 }
 
-async function importRow(row: BuildGamesStageSeedRow, summary: ImportSummary): Promise<void> {
-  const project = await prisma.project.findUnique({
-    where: { id: row.projectId },
-    select: {
-      id: true,
-      project_name: true,
-      hackaton_id: true,
-    },
-  });
+type ProjectRecord = {
+  id: string;
+  project_name: string;
+  hackaton_id: string | null;
+};
 
-  if (!project) {
-    summary.unresolved.push(`Missing project for ${row.projectId} (${row.projectName})`);
-    return;
-  }
+type FormDataRecord = {
+  id: string;
+  project_id: string;
+  form_data: Prisma.JsonValue;
+  current_stage: number;
+  timestamp: Date;
+};
 
-  if (project.hackaton_id !== BUILD_GAMES_HACKATHON_ID) {
-    summary.unresolved.push(`Project ${row.projectId} (${project.project_name}) is not part of Build Games`);
-    return;
-  }
+type PendingWrite =
+  | { kind: 'create'; row: BuildGamesStageSeedRow; nextFormData: Prisma.InputJsonValue }
+  | { kind: 'update'; row: BuildGamesStageSeedRow; formDataId: string; nextFormData: Prisma.InputJsonValue };
 
-  if (normalizeName(project.project_name) !== normalizeName(row.projectName)) {
-    summary.warnings.push(
-      `Name mismatch for ${row.projectId}: DB="${project.project_name}" vs sheet="${row.projectName}"`,
+async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
+  let index = 0;
+  const runners: Promise<void>[] = [];
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  for (let w = 0; w < workerCount; w += 1) {
+    runners.push(
+      (async () => {
+        while (index < items.length) {
+          const current = index;
+          index += 1;
+          await worker(items[current]);
+        }
+      })(),
     );
   }
-
-  const existingRows = await prisma.formData.findMany({
-    where: {
-      project_id: row.projectId,
-      origin: 'build_games',
-    },
-    orderBy: {
-      timestamp: 'desc',
-    },
-  });
-
-  if (existingRows.length > 1) {
-    summary.warnings.push(
-      `Multiple build_games FormData rows found for ${row.projectId}; updating the most recent record`,
-    );
-  }
-
-  const latest = existingRows[0];
-  const nextFormData = mergeFormData(latest?.form_data ?? null, row);
-  const nextImportedProgression = buildImportedProgression(row);
-
-  if (!latest) {
-    if (DRY_RUN) {
-      summary.created += 1;
-      return;
-    }
-
-    await prisma.formData.create({
-      data: {
-        origin: 'build_games',
-        project_id: row.projectId,
-        current_stage: row.stage,
-        timestamp: new Date(),
-        form_data: nextFormData,
-      },
-    });
-
-    summary.created += 1;
-    return;
-  }
-
-  const latestRoot = isRecord(latest.form_data) ? latest.form_data : {};
-  const latestBuildGames = isRecord(latestRoot.build_games) ? latestRoot.build_games : {};
-  const currentImportedProgression = isRecord(latestBuildGames.imported_stage_progression)
-    ? latestBuildGames.imported_stage_progression
-    : null;
-
-  const stageUnchanged = latest.current_stage === row.stage;
-  const importMetaUnchanged = JSON.stringify(currentImportedProgression) === JSON.stringify(nextImportedProgression);
-
-  if (stageUnchanged && importMetaUnchanged) {
-    summary.unchanged += 1;
-    return;
-  }
-
-  if (DRY_RUN) {
-    summary.updated += 1;
-    return;
-  }
-
-  await prisma.formData.update({
-    where: { id: latest.id },
-    data: {
-      current_stage: row.stage,
-      timestamp: new Date(),
-      form_data: nextFormData,
-    },
-  });
-
-  summary.updated += 1;
+  await Promise.all(runners);
 }
 
 async function main() {
@@ -164,14 +115,10 @@ async function main() {
 
   const duplicateIds = new Set<string>();
   const seenIds = new Set<string>();
-
   for (const row of BUILD_GAMES_2026_STAGE_ROWS) {
-    if (seenIds.has(row.projectId)) {
-      duplicateIds.add(row.projectId);
-    }
+    if (seenIds.has(row.projectId)) duplicateIds.add(row.projectId);
     seenIds.add(row.projectId);
   }
-
   if (duplicateIds.size > 0) {
     throw new Error(`Duplicate project ids found in embedded Build Games stage data: ${[...duplicateIds].join(', ')}`);
   }
@@ -180,8 +127,130 @@ async function main() {
     `${DRY_RUN ? '[dry-run] ' : ''}Importing ${BUILD_GAMES_2026_STAGE_ROWS.length} Build Games stage rows into Builder Hub...`,
   );
 
+  // Prefetch every project and every build_games FormData row the seed cares
+  // about in two queries, instead of 2 * N. The whole seed runs in ~1057
+  // in-memory lookups plus the updates, which keeps the Neon pooler happy.
+  const projectIds = [...seenIds];
+  const projects = (await prisma.project.findMany({
+    where: { id: { in: projectIds } },
+    select: { id: true, project_name: true, hackaton_id: true },
+  })) as ProjectRecord[];
+  const projectsById = new Map(projects.map((p) => [p.id, p]));
+
+  const formDataRows = (await prisma.formData.findMany({
+    where: { project_id: { in: projectIds }, origin: 'build_games' },
+    orderBy: { timestamp: 'desc' },
+    select: { id: true, project_id: true, form_data: true, current_stage: true, timestamp: true },
+  })) as FormDataRecord[];
+
+  const formDataByProjectId = new Map<string, FormDataRecord[]>();
+  for (const fd of formDataRows) {
+    const arr = formDataByProjectId.get(fd.project_id) ?? [];
+    arr.push(fd);
+    formDataByProjectId.set(fd.project_id, arr);
+  }
+
+  const pending: PendingWrite[] = [];
+
   for (const row of BUILD_GAMES_2026_STAGE_ROWS) {
-    await importRow(row, summary);
+    const project = projectsById.get(row.projectId);
+
+    if (!project) {
+      summary.unresolved.push(`Missing project for ${row.projectId} (${row.projectName})`);
+      continue;
+    }
+
+    if (project.hackaton_id !== BUILD_GAMES_HACKATHON_ID) {
+      summary.unresolved.push(`Project ${row.projectId} (${project.project_name}) is not part of Build Games`);
+      continue;
+    }
+
+    if (normalizeName(project.project_name) !== normalizeName(row.projectName)) {
+      summary.warnings.push(
+        `Name mismatch for ${row.projectId}: DB="${project.project_name}" vs sheet="${row.projectName}"`,
+      );
+    }
+
+    const existingRows = formDataByProjectId.get(row.projectId) ?? [];
+    if (existingRows.length > 1) {
+      summary.warnings.push(
+        `Multiple build_games FormData rows found for ${row.projectId}; updating the most recent record`,
+      );
+    }
+
+    const latest = existingRows[0];
+    const nextFormData = mergeFormData(latest?.form_data ?? null, row);
+    const nextImportedProgression = buildImportedProgression(row);
+
+    if (!latest) {
+      if (DRY_RUN) {
+        summary.created += 1;
+        continue;
+      }
+      pending.push({ kind: 'create', row, nextFormData });
+      continue;
+    }
+
+    // Funnel rule: current_stage holds the highest stage the project reached.
+    // Never demote — if the DB already has a higher stage than the seed row
+    // (e.g. manually advanced, or a prior seed run at a different scope),
+    // leave the row alone.
+    if (latest.current_stage > row.stage) {
+      summary.unchanged += 1;
+      continue;
+    }
+
+    const latestRoot = isRecord(latest.form_data) ? latest.form_data : {};
+    const latestBuildGames = isRecord(latestRoot.build_games) ? latestRoot.build_games : {};
+    const currentImportedProgression = isRecord(latestBuildGames.imported_stage_progression)
+      ? latestBuildGames.imported_stage_progression
+      : null;
+
+    const stageUnchanged = latest.current_stage === row.stage;
+    const importMetaUnchanged = shallowEqualRecord(currentImportedProgression, nextImportedProgression);
+
+    if (stageUnchanged && importMetaUnchanged) {
+      summary.unchanged += 1;
+      continue;
+    }
+
+    if (DRY_RUN) {
+      summary.updated += 1;
+      continue;
+    }
+
+    pending.push({ kind: 'update', row, formDataId: latest.id, nextFormData });
+  }
+
+  if (!DRY_RUN && pending.length > 0) {
+    console.log(
+      `Writing ${pending.length} FormData row(s) with concurrency ${UPDATE_CONCURRENCY}...`,
+    );
+    await runWithConcurrency(pending, UPDATE_CONCURRENCY, async (item) => {
+      if (item.kind === 'create') {
+        await prisma.formData.create({
+          data: {
+            origin: 'build_games',
+            project_id: item.row.projectId,
+            current_stage: item.row.stage,
+            timestamp: new Date(),
+            form_data: item.nextFormData,
+          },
+        });
+        summary.created += 1;
+        return;
+      }
+
+      await prisma.formData.update({
+        where: { id: item.formDataId },
+        data: {
+          current_stage: item.row.stage,
+          timestamp: new Date(),
+          form_data: item.nextFormData,
+        },
+      });
+      summary.updated += 1;
+    });
   }
 
   console.log('');

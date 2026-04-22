@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 import {
   BUILD_GAMES_2026_STAGE_ROWS,
@@ -14,8 +14,7 @@ const IMPORT_SOURCE = 'build_games_2026_final_csv';
 
 type CheckSummary = {
   checked: number;
-  stage3Expected: number;
-  stage4Expected: number;
+  expectedByStage: Record<1 | 2 | 3 | 4, number>;
   missingProjects: string[];
   wrongHackathon: string[];
   missingFormData: string[];
@@ -52,37 +51,33 @@ function getImportedProgression(formData: unknown): Record<string, unknown> | nu
 function expectedCounts(rows: BuildGamesStageSeedRow[]) {
   return rows.reduce(
     (acc, row) => {
-      if (row.stage === 4) {
-        acc.stage4Expected += 1;
-      } else {
-        acc.stage3Expected += 1;
-      }
+      acc[row.stage] = (acc[row.stage] ?? 0) + 1;
       return acc;
     },
-    { stage3Expected: 0, stage4Expected: 0 },
+    { 1: 0, 2: 0, 3: 0, 4: 0 } as Record<1 | 2 | 3 | 4, number>,
   );
 }
 
-async function checkRow(row: BuildGamesStageSeedRow, summary: CheckSummary) {
-  const project = await prisma.project.findUnique({
-    where: { id: row.projectId },
-    select: {
-      id: true,
-      project_name: true,
-      hackaton_id: true,
-      formData: {
-        where: { origin: 'build_games' },
-        orderBy: { timestamp: 'desc' },
-        select: {
-          id: true,
-          current_stage: true,
-          form_data: true,
-          timestamp: true,
-        },
-      },
-    },
-  });
+type ProjectRecord = {
+  id: string;
+  project_name: string;
+  hackaton_id: string | null;
+};
 
+type FormDataRecord = {
+  id: string;
+  project_id: string;
+  current_stage: number;
+  form_data: Prisma.JsonValue;
+  timestamp: Date;
+};
+
+function checkRow(
+  row: BuildGamesStageSeedRow,
+  project: ProjectRecord | undefined,
+  projectFormData: FormDataRecord[] | undefined,
+  summary: CheckSummary,
+) {
   if (!project) {
     summary.missingProjects.push(`${row.projectId} (${row.projectName})`);
     return;
@@ -99,18 +94,19 @@ async function checkRow(row: BuildGamesStageSeedRow, summary: CheckSummary) {
     );
   }
 
-  if (project.formData.length === 0) {
+  const rows = projectFormData ?? [];
+  if (rows.length === 0) {
     summary.missingFormData.push(`${row.projectId} (${project.project_name})`);
     return;
   }
 
-  if (project.formData.length > 1) {
+  if (rows.length > 1) {
     summary.warnings.push(
-      `Multiple build_games FormData rows found for ${row.projectId}; checked latest row ${project.formData[0].id}`,
+      `Multiple build_games FormData rows found for ${row.projectId}; checked latest row ${rows[0].id}`,
     );
   }
 
-  const latest = project.formData[0];
+  const latest = rows[0];
   if (latest.current_stage !== row.stage) {
     summary.stageMismatches.push(
       `${row.projectId} (${project.project_name}) expected stage ${row.stage}, found ${latest.current_stage}`,
@@ -154,8 +150,7 @@ async function main() {
   const counts = expectedCounts(BUILD_GAMES_2026_STAGE_ROWS);
   const summary: CheckSummary = {
     checked: 0,
-    stage3Expected: counts.stage3Expected,
-    stage4Expected: counts.stage4Expected,
+    expectedByStage: counts,
     missingProjects: [],
     wrongHackathon: [],
     missingFormData: [],
@@ -165,11 +160,40 @@ async function main() {
   };
 
   console.log(`Checking ${BUILD_GAMES_2026_STAGE_ROWS.length} seeded Build Games projects...`);
-  console.log(`Expected stage 4 finalists: ${summary.stage4Expected}`);
-  console.log(`Expected stage 3 only projects: ${summary.stage3Expected}`);
+  console.log(`Expected stage 1 applied only : ${counts[1]}`);
+  console.log(`Expected stage 2 only         : ${counts[2]}`);
+  console.log(`Expected stage 3 only         : ${counts[3]}`);
+  console.log(`Expected stage 4 finalists    : ${counts[4]}`);
+
+  // Prefetch in two queries instead of hitting the DB per row. This keeps the
+  // check tolerant of Neon pooler idle-drops on long runs.
+  const projectIds = BUILD_GAMES_2026_STAGE_ROWS.map((r) => r.projectId);
+  const projects = (await prisma.project.findMany({
+    where: { id: { in: projectIds } },
+    select: { id: true, project_name: true, hackaton_id: true },
+  })) as ProjectRecord[];
+  const projectsById = new Map(projects.map((p) => [p.id, p]));
+
+  const formDataRows = (await prisma.formData.findMany({
+    where: { project_id: { in: projectIds }, origin: 'build_games' },
+    orderBy: { timestamp: 'desc' },
+    select: { id: true, project_id: true, current_stage: true, form_data: true, timestamp: true },
+  })) as FormDataRecord[];
+
+  const formDataByProjectId = new Map<string, FormDataRecord[]>();
+  for (const fd of formDataRows) {
+    const arr = formDataByProjectId.get(fd.project_id) ?? [];
+    arr.push(fd);
+    formDataByProjectId.set(fd.project_id, arr);
+  }
 
   for (const row of BUILD_GAMES_2026_STAGE_ROWS) {
-    await checkRow(row, summary);
+    checkRow(
+      row,
+      projectsById.get(row.projectId),
+      formDataByProjectId.get(row.projectId),
+      summary,
+    );
   }
 
   console.log('');
@@ -212,7 +236,7 @@ async function main() {
   }
 
   console.log('');
-  console.log('All seeded Build Games stage assignments matched the expected stage 3 / stage 4 list.');
+  console.log('All seeded Build Games stage assignments matched the expected stage 1 through stage 4 funnel.');
 }
 
 main()
