@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -209,7 +210,18 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
   return (
     <Card className="w-full rounded-md text-black dark:bg-zinc-800 dark:text-white border">
       <CardHeader className="text-center pb-4 px-4 sm:px-6">
-        <h3 className="text-xl sm:text-2xl font-bold tracking-tight">Help us know you better</h3>
+        <div className="flex items-center justify-center gap-3 mb-1">
+          <Image
+            src="/common-images/Avalanche_Logomark_Red.svg"
+            alt="Avalanche"
+            width={28}
+            height={28}
+            priority
+          />
+          <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-red-500">
+            Help us know you better
+          </h3>
+        </div>
         <p className="text-xs sm:text-sm text-muted-foreground">
           A few details so we can send you personalized hackathon invites, rewards, and more as they roll out on Builder Hub.
         </p>
@@ -356,6 +368,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
                       <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                         <FormControl>
                           <Checkbox
+                            className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                             checked={field.value}
                             onCheckedChange={(checked) => {
                               field.onChange(checked);
@@ -408,6 +421,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
                       <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                         <FormControl>
                           <Checkbox
+                            className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                             checked={field.value}
                             onCheckedChange={(checked) => {
                               field.onChange(checked);
@@ -459,6 +473,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
                     <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
+                          className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
@@ -482,6 +497,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
                     <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
+                          className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                           checked={field.value}
                           onCheckedChange={(checked) => {
                             field.onChange(checked);
@@ -559,6 +575,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
                     <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
+                          className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
