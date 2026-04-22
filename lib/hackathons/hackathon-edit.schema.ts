@@ -4,6 +4,16 @@ import { SubmitFormFieldType } from "@/types/hackathon-stage";
 const urlOrEmptySchema = z.union([z.url(), z.literal("")]);
 const nullableUrlOrEmptySchema = z.union([z.url(), z.literal(""), z.null()]);
 
+/** File picker preview in editor uses data URLs; union ensures they validate even if z.url() is strict. */
+const speakerPictureSchema = z.union([
+  z.literal(""),
+  z.url(),
+  z
+    .string()
+    .max(2_500_000)
+    .refine((s) => s.startsWith("data:image/"), { message: "Invalid picture data URL" }),
+]);
+
 const textFieldSchema = z.object({
   id: z.string().min(1),
   type: z.literal(SubmitFormFieldType.Text),
@@ -66,20 +76,20 @@ const trackSchema = z.object({
 });
 
 const scheduleSchema = z.object({
-  url: z.string().max(2048).nullable(),
+  url: nullableUrlOrEmptySchema,
   date: z.string().max(64),
-  name: z.string().max(180),
-  category: z.string().max(120),
-  location: z.string().max(120),
-  description: z.string().max(2000),
-  duration: z.number().int().min(0).max(1440),
+  name: z.string().max(50),
+  category: z.string().max(30),
+  location: z.string().max(50),
+  description: z.string().max(150),
+  duration: z.number().int().min(0).max(500),
 });
 
 const speakerSchema = z.object({
-  icon: z.string().max(128),
+  // icon: z.string().max(128),
   name: z.string().max(120),
   category: z.string().max(120),
-  picture: z.string().max(2048),
+  picture: speakerPictureSchema,
 });
 
 const resourceSchema = z.object({
@@ -93,7 +103,7 @@ export const hackathonEditSchema = z.object({
   main: z.object({
     title: z.string().trim().min(3).max(30),
     description: z.string().trim().min(10).max(270),
-    location: z.string().trim().min(2).max(40),
+    location: z.string().trim().min(2).max(50),
     total_prizes: z.number().min(0).max(100_000_000),
     tags: z.array(z.string().max(30)).max(10),
     participants: z.number().min(0).max(1_000_000).optional(),
@@ -110,7 +120,7 @@ export const hackathonEditSchema = z.object({
     resources: z.array(resourceSchema).max(100),
     tracks_text: z.string().max(20_000),
     speakers_text: z.string().max(20_000),
-    speakers_banner: z.string().max(2048),
+    speakers_banner: z.string(),
     join_custom_link: nullableUrlOrEmptySchema,
     join_custom_text: z.string().max(300).nullable(),
     become_sponsor_link: nullableUrlOrEmptySchema,
@@ -124,9 +134,9 @@ export const hackathonEditSchema = z.object({
     start_date: z.string().max(64),
     end_date: z.string().max(64),
     timezone: z.string().max(100),
-    banner: z.string().max(2048),
-    icon: z.string().max(2048),
-    small_banner: z.string().max(2048),
+    banner: urlOrEmptySchema,
+    icon: z.string(),
+    small_banner: urlOrEmptySchema,
     custom_link: nullableUrlOrEmptySchema,
     top_most: z.boolean(),
     event: z.string().max(64),

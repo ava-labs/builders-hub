@@ -172,6 +172,18 @@ const UpdateModal = ({ open, onClose, onConfirm, fieldsToUpdate, t, language }: 
   );
 };
 
+function SubformFieldError({
+  fieldError,
+  field,
+}: {
+  fieldError?: (field: string) => string | null;
+  field: string;
+}): React.ReactNode {
+  const msg = fieldError?.(field);
+  if (!msg) return null;
+  return <p className="text-red-500 text-sm -mt-2 mb-2">{msg}</p>;
+}
+
 type TrackItemProps = {
   track: ITrack;
   index: number;
@@ -188,9 +200,10 @@ type TrackItemProps = {
   rawTrackDescriptions: { [key: number]: string };
   setRawTrackDescriptions: (value: { [key: number]: string } | ((prev: { [key: number]: string }) => { [key: number]: string })) => void;
   convertToHTML: (text: string) => string;
+  fieldError?: (field: string) => string | null;
 };
 
-const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, onDone, onExpand, onRemove, onScrollToPreview, t, language, removing, tracksLength, rawTrackDescriptions, setRawTrackDescriptions, convertToHTML }: TrackItemProps) {
+const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, onDone, onExpand, onRemove, onScrollToPreview, t, language, removing, tracksLength, rawTrackDescriptions, setRawTrackDescriptions, convertToHTML, fieldError }: TrackItemProps) {
   return (
     <div
       className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`track-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}
@@ -256,6 +269,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
               <SelectItem value="cpu">CPU</SelectItem>
             </SelectContent>
           </Select>
+          <SubformFieldError fieldError={fieldError} field="logo" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackName}</div>
           <Input
             type="text"
@@ -265,6 +279,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="name" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackPartner}</div>
           <Input
             type="text"
@@ -274,6 +289,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="partner" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackDescription}</div>
           <div className="mb-2 text-zinc-500 text-xs">Type a detailed description with formatting. Use the buttons below or type HTML directly.</div>
           {/* Formatting Toolbar for Track Description */}
@@ -409,6 +425,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             className="w-full mb-3 p-3 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 resize-none h-32"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="description" />
           {track.description && (
             <div className="mb-3">
               <div className="text-zinc-700 dark:text-zinc-400 text-sm mb-2">HTML Preview:</div>
@@ -426,6 +443,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             className="w-full mb-1"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="short_description" />
           <div className="flex justify-end mt-2">
             <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
               {t[language].done} <ChevronDown className="w-4 h-4" />
@@ -450,9 +468,10 @@ type ScheduleItemProps = {
   removing: { [key: string]: number | null };
   scheduleLength: number;
   toLocalDatetimeString: (isoString: string) => string;
+  fieldError?: (field: string) => string | null;
 };
 
-const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, scheduleLength, toLocalDatetimeString }: ScheduleItemProps) {
+const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, scheduleLength, toLocalDatetimeString, fieldError }: ScheduleItemProps) {
   return (
     <div className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`schedule-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       <button
@@ -483,6 +502,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="date" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleName}</div>
           <Input
             type="text"
@@ -492,6 +512,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="name" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleCategory}</div>
           <Select
             value={event.category}
@@ -513,6 +534,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
               <SelectItem value="Ceremony">Ceremony</SelectItem>
             </SelectContent>
           </Select>
+          <SubformFieldError fieldError={fieldError} field="category" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleLocation}</div>
           <Input
             type="text"
@@ -522,6 +544,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="location" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleDescription}</div>
           <Input
             type="text"
@@ -531,6 +554,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="description" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleDuration}</div>
           <Input
             type="number"
@@ -541,6 +565,8 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             required
             min="1"
           />
+          <SubformFieldError fieldError={fieldError} field="duration" />
+          <SubformFieldError fieldError={fieldError} field="url" />
           <div className="flex justify-end mt-2">
             <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
               {t[language].done} <ChevronDown className="w-4 h-4" />
@@ -569,6 +595,7 @@ type SpeakerItemProps = {
   speakerTemplates: SpeakerTemplate[];
   loadingSpeakerTemplates: boolean;
   onImageFileTooLarge: (fileSize: number) => void;
+  fieldError?: (field: string) => string | null;
 };
 type SpeakerTemplate = {
   id: string;
@@ -578,7 +605,7 @@ type SpeakerTemplate = {
   icon: string;
 };
 
-const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, speakersLength, onPictureChange, onImageFileTooLarge, onApplyTemplate, speakerTemplates, loadingSpeakerTemplates }: SpeakerItemProps) {
+const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, speakersLength, onPictureChange, onImageFileTooLarge, onApplyTemplate, speakerTemplates, loadingSpeakerTemplates, fieldError }: SpeakerItemProps) {
   const [isMounted, setIsMounted] = useState<boolean>(false);
 
   useEffect((): void => {
@@ -694,6 +721,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="name" />
 
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].speakerCompany}</div>
           <Input
@@ -706,6 +734,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             className="w-full mb-1"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="category" />
 
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Picture</div>
           <div className="mb-2">
@@ -726,7 +755,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
                   reader.readAsDataURL(file);
                 }
               }}
-              className="w-full p-2 border border-zinc-600 rounded bg-zinc-800 text-zinc-200"
+              className="w-full p-2 border border-zinc-600 rounded bg-zinc-800 text-zinc-200 cursor-pointer"
             />
           </div>
 
@@ -741,6 +770,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
               className="w-full"
             />
           </div>
+          <SubformFieldError fieldError={fieldError} field="picture" />
 
           {speaker.picture && speaker.picture.trim() !== '' && (
             <div className="mb-2">
@@ -779,9 +809,10 @@ type ResourceItemProps = {
   language: 'en' | 'es';
   removing: { [key: string]: number | null };
   resourcesLength: number;
+  fieldError?: (field: string) => string | null;
 };
 
-const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, resourcesLength }: ResourceItemProps) {
+const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, resourcesLength, fieldError }: ResourceItemProps) {
   return (
     <div className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`resource-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       {resourcesLength > 1 && (
@@ -818,6 +849,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
               <SelectItem value="layout-grid">Layout Grid</SelectItem>
             </SelectContent>
           </Select>
+          <SubformFieldError fieldError={fieldError} field="icon" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceLink}</div>
           <Input
             type="text"
@@ -827,6 +859,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="link" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceTitle}</div>
           <Input
             type="text"
@@ -836,6 +869,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
             className="w-full mb-3"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="title" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceDescription}</div>
           <Input
             type="text"
@@ -845,6 +879,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
             className="w-full mb-1"
             required
           />
+          <SubformFieldError fieldError={fieldError} field="description" />
           <div className="flex justify-end mt-2">
             <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
               {t[language].done} <ChevronDown className="w-4 h-4" />
@@ -878,7 +913,7 @@ const HackathonsEdit = () => {
         latest: initialData.latest,
         cohostsEmails: [],
       },
-      mode: 'onBlur',
+      mode: 'onChange',
       reValidateMode: 'onChange',
     });
   const formDataMain = useWatch({ control, name: 'main' }) ?? initialData.main;
@@ -998,7 +1033,7 @@ const HackathonsEdit = () => {
           ...newSpeakers[idx],
           name: template.name,
           category: template.category,
-          icon: template.icon,
+          // icon: template.icon,
           picture: template.picture,
         };
         return { ...prev, speakers: newSpeakers };
@@ -1402,7 +1437,7 @@ const HackathonsEdit = () => {
       ...formDataContent,
       speakers: [
         ...formDataContent.speakers,
-        { icon: '', name: '', category: '', picture: '' },
+        { name: '', category: '', picture: '' },
       ],
     });
   };
@@ -1949,7 +1984,7 @@ const HackathonsEdit = () => {
       ],
       speakers: [
         {
-          icon: "Megaphone",
+          // icon: "Megaphone",
           name: "Dr. Emin Gün Sirer",
           category: "Keynote Speaker",
           picture: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/2259ff3def815083bf765c53d57327dc-1657109283036.jpg"
@@ -2509,7 +2544,13 @@ const HackathonsEdit = () => {
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step2Ref} className="text-2xl font-bold">Step 2: Stages</h2>
+                      {collapsed.stages && (
+                        <button onClick={() => setCollapsed({ ...collapsed, stages: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                          <ChevronRight className="w-5 h-5" /> {t[language].expand}
+                        </button>
+                      )}
                     </div>
+
                     {collapsed.stages && (
                       <div className="text-zinc-600 dark:text-zinc-400 italic">✓ Stages completed</div>
                     )}
@@ -3162,6 +3203,7 @@ const HackathonsEdit = () => {
                                 rawTrackDescriptions={rawTrackDescriptions}
                                 setRawTrackDescriptions={setRawTrackDescriptions}
                                 convertToHTML={convertToHTML}
+                                fieldError={(f) => getInlineError(`content.tracks.${index}.${f}`)}
                               />
                             ))}
                             <div className="flex justify-end">
@@ -3227,6 +3269,7 @@ const HackathonsEdit = () => {
                                 removing={removing}
                                 scheduleLength={formDataContent.schedule.length}
                                 toLocalDatetimeString={toLocalDatetimeString}
+                                fieldError={(f) => getInlineError(`content.schedule.${index}.${f}`)}
                               />
                             ))}
                             <div className="flex justify-end">
@@ -3255,6 +3298,7 @@ const HackathonsEdit = () => {
                                 language={language}
                                 removing={removing}
                                 resourcesLength={formDataContent.resources.length}
+                                fieldError={(f) => getInlineError(`content.resources.${index}.${f}`)}
                               />
                             ))}
                             <div className="flex justify-end">
@@ -3294,6 +3338,7 @@ const HackathonsEdit = () => {
                                     variant: 'destructive',
                                   })
                                 }
+                                fieldError={(f) => getInlineError(`content.speakers.${index}.${f}`)}
                               />
                             ))}
                             <div className="flex justify-end">

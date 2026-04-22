@@ -34,7 +34,7 @@ export interface ISchedule {
 }
 
 export interface ISpeaker {
-  icon: string;
+  // icon: string;
   name: string;
   category: string;
   picture: string;
