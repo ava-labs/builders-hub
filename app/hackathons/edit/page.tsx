@@ -2246,7 +2246,7 @@ const HackathonsEdit = () => {
                         : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
-                      Basic Info
+                      {t[language].mainTopics}
                     </button>
                     <button
                       type="button"
@@ -2311,7 +2311,7 @@ const HackathonsEdit = () => {
                           : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                           }`}
                       >
-                        Track Text
+                        {t[language].trackText}
                       </button>
                     )}
                     <button
@@ -2328,7 +2328,7 @@ const HackathonsEdit = () => {
                         : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
-                      Content
+                      {t[language].content}
                     </button>
                     <button
                       type="button"
@@ -2344,7 +2344,7 @@ const HackathonsEdit = () => {
                         : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                         }`}
                     >
-                      Last Details
+                      {t[language].lastDetails}
                     </button>
                   </div>
                 )}
@@ -2430,7 +2430,7 @@ const HackathonsEdit = () => {
                 <form onSubmit={submitWithValidation} noValidate className="space-y-4">
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 ref={step1Ref} className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
+                      <h2 ref={step1Ref} className="text-2xl font-bold">Step 1: {t[language].mainTopics}</h2>
                       {collapsed.main && (
                         <button onClick={() => setCollapsed({ ...collapsed, main: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2444,7 +2444,7 @@ const HackathonsEdit = () => {
                           <p className="text-sm text-green-800 dark:text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
                         </div>
 
-                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Hackathon Title</div>
+                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].mainName}</div>
                         <Input
                           type="text"
                           name="title"
@@ -2461,7 +2461,7 @@ const HackathonsEdit = () => {
                           <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.title')}</p>
                         )}
 
-                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Description</div>
+                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].description}</div>
                         <textarea
                           name="description"
                           placeholder="Describe your hackathon, its goals, and what participants will build..."
@@ -2477,7 +2477,7 @@ const HackathonsEdit = () => {
                           <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.description')}</p>
                         )}
 
-                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Location</div>
+                        <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].city}</div>
                         <Input
                           type="text"
                           name="location"
@@ -2495,8 +2495,8 @@ const HackathonsEdit = () => {
                         )}
 
                         <div className="flex flex-col space-y-2 bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 my-4">
-                          <label className="font-medium">Tags (Optional)</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
+                          <label className="font-medium">{t[language].tags}</label>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].tagsHelp}</div>
                           <div className="flex flex-wrap gap-2 items-center">
                             {formDataMain.tags.map((tag, idx) => (
                               <div key={idx} className="flex items-center gap-1">
@@ -2538,7 +2538,7 @@ const HackathonsEdit = () => {
                       </>
                     )}
                     {collapsed.main && (
-                      <div className="text-zinc-600 dark:text-zinc-400 italic">✓ Basic hackathon info completed</div>
+                      <div className="text-zinc-600 dark:text-zinc-400 italic">✓ {t[language].mainTopicsCompleted}</div>
                     )}
                   </div>
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
@@ -2601,8 +2601,8 @@ const HackathonsEdit = () => {
 
                         {/* Banner Image */}
                         <div className="mb-6">
-                          <label className="font-medium text-xl mb-2 block">Main Banner:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">The main banner image displayed at the top of your hackathon page</div>
+                          <label className="font-medium text-xl mb-2 block">{ t[language].banner }:</label>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{ t[language].bannerHelp }</div>
 
                           <div className="mb-4">
                             <div className="flex gap-4 items-start">
@@ -2674,8 +2674,8 @@ const HackathonsEdit = () => {
 
 
                         <div className="mb-6">
-                          <label className="font-medium text-xl mb-2 block">Small Banner:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">A smaller banner image for additional branding</div>
+                          <label className="font-medium text-xl mb-2 block">{t[language].smallBanner}:</label>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].smallBannerHelp}</div>
 
                           <div className="mb-4">
                             <div className="flex gap-4 items-start">
@@ -2803,7 +2803,7 @@ const HackathonsEdit = () => {
                         {/* Step 4: Track Text - Only for Hackathons */}
                         {formDataLatest.event === 'hackathon' && (
                           <>
-                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Total Prize Pool (USD)</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].totalPrizes}</div>
                             <Input
                               type="number"
                               name="total_prizes"
@@ -2820,7 +2820,7 @@ const HackathonsEdit = () => {
                               <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.total_prizes')}</p>
                             )}
 
-                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Expected Number of Participants</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].participants}</div>
                             <Input
                               type="number"
                               name="participants"
@@ -2851,7 +2851,7 @@ const HackathonsEdit = () => {
                     )}
                     {collapsed.about && (
                       <div className="text-zinc-600 dark:text-zinc-400 italic">
-                        {formDataLatest.event === 'hackathon' ? '✓ Participants & prizes completed' : '✓ Organizer completed'}
+                        {formDataLatest.event === 'hackathon' ? `✓ ${t[language].mainTopicsCompleted}` : '✓ Organizer completed'}
                       </div>
                     )}
                   </div>
@@ -2860,7 +2860,7 @@ const HackathonsEdit = () => {
                   {formDataLatest.event === 'hackathon' && (
                     <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h2 ref={step5Ref} className="text-2xl font-bold">Step 5: Track Text</h2>
+                        <h2 ref={step5Ref} className="text-2xl font-bold">Step 5: {t[language].trackText}</h2>
                         {collapsed.trackText && (
                           <button onClick={() => setCollapsed({ ...collapsed, trackText: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                             <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2874,7 +2874,7 @@ const HackathonsEdit = () => {
                             <p className="text-sm text-purple-800 dark:text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
                           </div>
 
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Schedule Text:</div>
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackText}</div>
                           <div className="mb-2 text-zinc-500 text-xs">Write a step-by-step schedule outlining what will happen, either hour by hour or week by week. Use the formatting buttons below or type markdown directly.</div>
 
                           {/* Formatting Toolbar */}
@@ -3102,7 +3102,7 @@ const HackathonsEdit = () => {
                   {/* Step 5: Content - Tracks, Schedule, etc. */}
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 ref={step5Ref} className="text-2xl font-bold">Step 6: Content</h2>
+                      <h2 ref={step5Ref} className="text-2xl font-bold">Step 6: {t[language].content}</h2>
                       {collapsed.content && (
                         <button onClick={() => setCollapsed({ ...collapsed, content: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -3387,7 +3387,7 @@ const HackathonsEdit = () => {
                   </div>
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6 mt-10">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 ref={step7Ref} className="text-2xl font-bold">Step 7: Last Details</h2>
+                      <h2 ref={step7Ref} className="text-2xl font-bold">Step 7: {t[language].lastDetails}</h2>
                       {collapsed.last && (
                         <button onClick={() => setCollapsed({ ...collapsed, last: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
