@@ -80,6 +80,12 @@ export default function StageSubmitDialog({
     return null
   }
 
+  const fieldLabelClassName: string = 'font-medium text-zinc-800 dark:text-white'
+  const inputClassName: string =
+    'border-zinc-300 bg-zinc-50 text-zinc-900 placeholder:text-zinc-500 focus:border-[#d66666] dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-white dark:placeholder:text-zinc-500'
+  const chipBaseClassName: string =
+    'rounded-lg border px-6 py-2 text-base font-medium transition-all duration-200 bg-zinc-100 dark:bg-[#0f1016]'
+
   const renderField = (field: SubmitFormField): React.JSX.Element | null => {
     switch (field.type) {
       case SubmitFormFieldType.Text: {
@@ -98,7 +104,7 @@ export default function StageSubmitDialog({
             name={textField.id}
             render={({ field: rhfField }) => (
               <FormItem className="space-y-2">
-                <FormLabel className="font-medium text-white">
+                <FormLabel className={fieldLabelClassName}>
                   {textField.label}
                   {textField.required ? (
                     <span className="ml-1 text-[#d66666]">*</span>
@@ -113,7 +119,7 @@ export default function StageSubmitDialog({
                       placeholder={textField.placeholder}
                       rows={rows}
                       maxLength={textField.maxCharacters ?? undefined}
-                      className="min-h-[120px] resize-none border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
+                      className={`min-h-[120px] resize-none ${inputClassName}`}
                     />
                   ) : (
                     <Input
@@ -121,7 +127,7 @@ export default function StageSubmitDialog({
                       onChange={rhfField.onChange}
                       placeholder={textField.placeholder}
                       maxLength={textField.maxCharacters ?? undefined}
-                      className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
+                      className={inputClassName}
                     />
                   )}
                 </FormControl>
@@ -151,7 +157,7 @@ export default function StageSubmitDialog({
 
               return (
                 <FormItem className="space-y-2">
-                  <FormLabel className="font-medium text-white">
+                  <FormLabel className={fieldLabelClassName}>
                     {linkField.label}
                     {linkField.required ? (
                       <span className="ml-1 text-[#d66666]">*</span>
@@ -164,7 +170,7 @@ export default function StageSubmitDialog({
                       value={value}
                       onChange={rhfField.onChange}
                       placeholder={linkField.placeholder}
-                      className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
+                      className={inputClassName}
                     />
                   </FormControl>
 
@@ -178,7 +184,7 @@ export default function StageSubmitDialog({
                         : value
 
                     return (
-                      <div className="pt-1 text-sm text-zinc-400">
+                      <div className="pt-1 text-sm text-zinc-600 dark:text-zinc-400">
                         Visit your link:{' '}
                         <a
                           href={normalizedUrl}
@@ -213,7 +219,7 @@ export default function StageSubmitDialog({
 
               return (
                 <FormItem className="space-y-3">
-                  <FormLabel className="font-medium text-white">
+                  <FormLabel className={fieldLabelClassName}>
                     {chipsField.label}
                     {chipsField.required ? (
                       <span className="ml-1 text-[#d66666]">*</span>
@@ -236,11 +242,10 @@ export default function StageSubmitDialog({
                               })
                             }}
                             className={[
-                              'rounded-lg border px-6 py-2 text-base font-medium transition-all duration-200',
-                              'bg-[#0f1016]',
+                              chipBaseClassName,
                               isSelected
                                 ? 'border-[#d66666] text-[#ff8a8a] shadow-[0_0_0_1px_rgba(214,102,102,0.35),0_0_18px_rgba(214,102,102,0.22)]'
-                                : 'border-white/10 text-white/85 hover:border-[#d66666]/45 hover:text-white',
+                                : 'border-zinc-300 text-zinc-700 hover:border-[#d66666]/45 hover:text-zinc-900 dark:border-white/10 dark:text-white/85 dark:hover:text-white',
                             ].join(' ')}
                           >
                             {chip}
@@ -291,9 +296,9 @@ export default function StageSubmitDialog({
         </button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[85vh] overflow-y-auto border-[#d66666]/20 bg-[#0b0b0f] text-white sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] overflow-y-auto border-[#d66666]/20 bg-zinc-50 text-zinc-900 dark:bg-[#0b0b0f] dark:text-white sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold text-white">
+          <DialogTitle className="text-2xl font-semibold text-zinc-900 dark:text-white">
             {selectedStage.label}
           </DialogTitle>
         </DialogHeader>

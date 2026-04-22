@@ -80,6 +80,12 @@ export default function StageSubmitPageContent({
     defaultValues: buildDefaultValues(stage),
     shouldUnregister: true,
   })
+  const fieldLabelClassName: string = 'font-medium text-zinc-800 dark:text-white'
+  const fieldDescriptionClassName: string = 'text-sm text-zinc-600 dark:text-zinc-400'
+  const inputClassName: string =
+    'border-zinc-300 bg-zinc-50 text-zinc-900 placeholder:text-zinc-500 focus:border-[#d66666] dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-white dark:placeholder:text-zinc-500'
+  const panelClassName: string =
+    'rounded-2xl border border-[#d66666]/20 bg-white/90 p-6 text-zinc-900 sm:p-8 dark:bg-[#0b0b0f] dark:text-white'
 
   React.useEffect((): void => {
     setLinkDrafts({})
@@ -122,13 +128,13 @@ export default function StageSubmitPageContent({
             name={textField.id}
             render={({ field: rhfField }) => (
               <FormItem>
-                <FormLabel className="font-medium text-white">
+                <FormLabel className={fieldLabelClassName}>
                   {textField.label}
                   {textField.required ? (
                     <span className="ml-1 text-[#d66666]">*</span>
                   ) : null}
                 </FormLabel>
-                <FormDescription className="text-sm text-zinc-400">{textField.description}</FormDescription>
+                <FormDescription className={fieldDescriptionClassName}>{textField.description}</FormDescription>
                 <FormControl>
                   {rows > 1 ? (
                     <Textarea
@@ -137,7 +143,7 @@ export default function StageSubmitPageContent({
                       placeholder={textField.placeholder}
                       rows={rows}
                       maxLength={textField.maxCharacters ?? undefined}
-                      className="min-h-[120px] resize-none border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
+                      className={`min-h-[120px] resize-none ${inputClassName}`}
                     />
                   ) : (
                     <Input
@@ -145,7 +151,7 @@ export default function StageSubmitPageContent({
                       onChange={rhfField.onChange}
                       placeholder={textField.placeholder}
                       maxLength={textField.maxCharacters ?? undefined}
-                      className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
+                      className={inputClassName}
                     />
                   )}
                 </FormControl>
@@ -225,13 +231,13 @@ export default function StageSubmitPageContent({
 
               return (
                 <FormItem >
-                  <FormLabel className="font-medium text-white">
+                  <FormLabel className={fieldLabelClassName}>
                     {linkField.label}
                     {linkField.required ? (
                       <span className="ml-1 text-[#d66666]">*</span>
                     ) : null}
                   </FormLabel>
-                  <FormDescription className="text-sm text-zinc-400">{linkField.description}</FormDescription>
+                  <FormDescription className={fieldDescriptionClassName}>{linkField.description}</FormDescription>
                   <div className="flex gap-2">
                     <FormControl>
                       <Input
@@ -252,7 +258,7 @@ export default function StageSubmitPageContent({
                           }
                         }}
                         placeholder={linkField.placeholder}
-                        className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
+                        className={inputClassName}
                       />
                     </FormControl>
 
@@ -277,7 +283,7 @@ export default function StageSubmitPageContent({
                         return (
                           <div
                             key={`${link}-${index}`}
-                            className="flex items-center gap-2 rounded-md border border-[#d66666]/20 bg-[rgba(255,255,255,0.03)] px-3 py-1.5 text-sm text-white"
+                            className="flex items-center gap-2 rounded-md border border-[#d66666]/20 bg-zinc-100 px-3 py-1.5 text-sm text-zinc-800 dark:bg-[rgba(255,255,255,0.03)] dark:text-white"
                           >
                             <a
                               href={link}
@@ -291,7 +297,7 @@ export default function StageSubmitPageContent({
 
                             <button
                               type="button"
-                              className="cursor-pointer text-zinc-400 transition-colors hover:text-[#d66666]"
+                              className="cursor-pointer text-zinc-500 transition-colors hover:text-[#d66666] dark:text-zinc-400"
                               onClick={(): void => handleRemoveLink(link)}
                             >
                               <X size={14} />
@@ -322,13 +328,13 @@ export default function StageSubmitPageContent({
 
               return (
                 <FormItem>
-                  <FormLabel className="font-medium text-white">
+                  <FormLabel className={fieldLabelClassName}>
                     {chipsField.label}
                     {chipsField.required ? (
                       <span className="ml-1 text-[#d66666]">*</span>
                     ) : null}
                   </FormLabel>
-                  <FormDescription className="text-sm text-zinc-400">{chipsField.description}</FormDescription>
+                  <FormDescription className={fieldDescriptionClassName}>{chipsField.description}</FormDescription>
 
                   {!!chips.length && (
                     <div className="flex flex-wrap gap-3">
@@ -346,11 +352,10 @@ export default function StageSubmitPageContent({
                               })
                             }}
                             className={[
-                              'rounded-lg border px-6 py-2 text-base font-medium transition-all duration-200',
-                              'bg-[#0f1016]',
+                              'rounded-lg border px-6 py-2 text-base font-medium transition-all duration-200 bg-zinc-100 dark:bg-[#0f1016]',
                               isSelected
                                 ? 'border-[#d66666] text-[#ff8a8a] shadow-[0_0_0_1px_rgba(214,102,102,0.35),0_0_18px_rgba(214,102,102,0.22)]'
-                                : 'border-white/10 text-white/85 hover:border-[#d66666]/45 hover:text-white',
+                                : 'border-zinc-300 text-zinc-700 hover:border-[#d66666]/45 hover:text-zinc-900 dark:border-white/10 dark:text-white/85 dark:hover:text-white',
                             ].join(' ')}
                           >
                             {chip}
@@ -419,12 +424,12 @@ export default function StageSubmitPageContent({
       return null
     }
     return (
-      <div className="rounded-2xl border border-[#d66666]/20 bg-[#0b0b0f] p-6 text-white sm:p-8">
+      <div className={panelClassName}>
         <div className="mb-8">
           <p className="text-sm uppercase tracking-[0.2em] text-[#d66666]">
             Form
           </p>
-          <h2 className="mt-2 text-3xl font-semibold text-white">
+          <h2 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-white">
             {stage.label}
           </h2>
         </div>
@@ -465,7 +470,7 @@ export default function StageSubmitPageContent({
         className="flex flex-col gap-6 lg:flex-row"
       >
         <div className="w-full lg:w-[300px] lg:shrink-0">
-          <div className="space-y-6 rounded-2xl border border-[#d66666]/20 bg-[#0b0b0f] p-6 lg:sticky lg:top-4 lg:self-start">
+          <div className="space-y-6 rounded-2xl border border-[#d66666]/20 bg-white/90 p-6 dark:bg-[#0b0b0f] lg:sticky lg:top-4 lg:self-start">
             <div>
 
               <div className="flex flex-col items-start gap-4">
@@ -493,24 +498,24 @@ export default function StageSubmitPageContent({
                 </span>
               </div>
 
-              <p className="mt-2 text-sm text-zinc-400">
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                 {stage.label}
               </p>
             </div>
 
-            <div className="border-t border-zinc-800" />
+            <div className="border-t border-zinc-200 dark:border-zinc-800" />
 
             <TabsList className="flex h-auto w-full flex-col gap-2 bg-transparent p-0">
               <TabsTrigger
                 value="form"
-                className="w-full justify-start rounded-lg border border-transparent bg-zinc-900/70 text-white data-[state=active]:border-[#d66666]/30 data-[state=active]:bg-[#141419] data-[state=active]:text-[#ff8a8a]"
+                className="w-full justify-start rounded-lg border border-transparent bg-zinc-200/80 text-zinc-800 data-[state=active]:border-[#d66666]/30 data-[state=active]:bg-[#f6dada] data-[state=active]:text-[#b45353] dark:bg-zinc-900/70 dark:text-white dark:data-[state=active]:bg-[#141419] dark:data-[state=active]:text-[#ff8a8a]"
               >
                 Form
               </TabsTrigger>
 
               <TabsTrigger
                 value="team"
-                className="w-full justify-start rounded-lg border border-transparent bg-zinc-900/70 text-white data-[state=active]:border-[#d66666]/30 data-[state=active]:bg-[#141419] data-[state=active]:text-[#ff8a8a]"
+                className="w-full justify-start rounded-lg border border-transparent bg-zinc-200/80 text-zinc-800 data-[state=active]:border-[#d66666]/30 data-[state=active]:bg-[#f6dada] data-[state=active]:text-[#b45353] dark:bg-zinc-900/70 dark:text-white dark:data-[state=active]:bg-[#141419] dark:data-[state=active]:text-[#ff8a8a]"
               >
                 Team
               </TabsTrigger>
@@ -520,12 +525,12 @@ export default function StageSubmitPageContent({
 
         <div className="min-w-0 flex-1">
           <TabsContent value="form" className="mt-0">
-            <div className="rounded-2xl border border-[#d66666]/20 bg-[#0b0b0f] p-6 text-white sm:p-8">
+            <div className={panelClassName}>
               <div className="mb-8">
                 <p className="text-sm uppercase tracking-[0.2em] text-[#d66666]">
                   Form
                 </p>
-                <h2 className="mt-2 text-3xl font-semibold text-white">
+                <h2 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-white">
                   {stage.label}
                 </h2>
               </div>

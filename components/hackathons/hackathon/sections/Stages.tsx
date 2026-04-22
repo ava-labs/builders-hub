@@ -107,8 +107,8 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
       <div className="relative flex flex-col items-start w-full rounded-[inherit] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10 lg:px-12 lg:py-12">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6 mb-8 sm:mb-10 md:mb-12 w-full">
           <div className="flex flex-col gap-2 items-start p-0 sm:p-2 shrink-0">
-            <div className="leading-none text-white">
-              <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-zinc-50 font-bold">
+            <div className="leading-none text-zinc-900 dark:text-zinc-100">
+              <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-zinc-900 dark:text-zinc-50 font-bold">
                 Program
                 <br aria-hidden="true" />
                 Timeline
@@ -131,7 +131,7 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
           </div>
         </div>
 
-        <div className="mb-8 sm:mb-10 md:mb-12 rounded-2xl bg-[rgba(255,255,255,0.03)] border border-[#d66666]/20 overflow-hidden backdrop-blur-sm w-full shadow-lg shadow-black/20 relative">
+        <div className="mb-8 sm:mb-10 md:mb-12 rounded-2xl border border-[#d66666]/20 bg-white/80 dark:bg-[rgba(255,255,255,0.03)] overflow-hidden backdrop-blur-sm w-full shadow-lg shadow-black/10 dark:shadow-black/20 relative">
           <DesktopTimeline
             phases={normalizedStages}
             onPhaseClick={setSelectedPhaseIndex}
@@ -159,26 +159,26 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   {getStageStatus(highlightedStage, todayDate) === "current" ? (
                     <>
-                      <span className="text-white/50 text-[10px] uppercase tracking-wider">
+                      <span className="text-zinc-600 dark:text-white/50 text-[10px] uppercase tracking-wider">
                         Current Stage:
                       </span>
                       <span className="text-[#d66666] text-xs sm:text-[13px]">
                         {highlightedStage.label}
                       </span>
-                      <span className="text-white/50 text-[11px]">
+                      <span className="text-zinc-600 dark:text-white/50 text-[11px]">
                         · deadline in {daysUntilRelevantDate ?? 0}{" "}
                         {(daysUntilRelevantDate ?? 0) === 1 ? "day" : "days"}
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="text-white/50 text-[10px] uppercase tracking-wider">
+                      <span className="text-zinc-600 dark:text-white/50 text-[10px] uppercase tracking-wider">
                         Next Stage:
                       </span>
                       <span className="text-[#d66666] text-xs sm:text-[13px]">
                         {highlightedStage.label}
                       </span>
-                      <span className="text-white/50 text-[11px]">
+                      <span className="text-zinc-600 dark:text-white/50 text-[11px]">
                         · starts in {daysUntilRelevantDate ?? 0}{" "}
                         {(daysUntilRelevantDate ?? 0) === 1 ? "day" : "days"}
                       </span>
@@ -199,7 +199,7 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
             <div className="mb-8 sm:mb-10 md:mb-12 w-full">
               <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-medium text-white text-center break-words">
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-medium text-zinc-900 dark:text-white text-center break-words">
                   {selectedStage.label}
                 </h3>
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
@@ -295,14 +295,14 @@ function DesktopTimeline({
             <div className="flex flex-col items-center px-2">
               <span
                 className={`text-[14px] text-center ${status === "completed" || status === "current"
-                  ? "text-white"
-                  : "text-[rgba(255,255,255,0.5)]"
+                  ? "text-zinc-900 dark:text-white"
+                  : "text-zinc-500 dark:text-[rgba(255,255,255,0.5)]"
                   }`}
               >
                 {phase.label}
               </span>
 
-              <span className="text-[12px] text-[rgba(255,255,255,0.5)]">
+              <span className="text-[12px] text-zinc-500 dark:text-[rgba(255,255,255,0.5)]">
                 {formatStageDate(phase.date)}
               </span>
             </div>
@@ -374,14 +374,14 @@ function MobileTimeline({
               <span
                 className={`text-sm leading-tight ${
                   status === "completed" || status === "current"
-                    ? "text-white"
-                    : "text-[rgba(255,255,255,0.5)]"
+                    ? "text-zinc-900 dark:text-white"
+                    : "text-zinc-500 dark:text-[rgba(255,255,255,0.5)]"
                 }`}
               >
                 {phase.label}
               </span>
 
-              <span className="text-xs text-[rgba(255,255,255,0.5)] mt-1">
+              <span className="text-xs text-zinc-500 dark:text-[rgba(255,255,255,0.5)] mt-1">
                 {formatStageDate(phase.date)}
               </span>
             </button>
@@ -440,7 +440,7 @@ function CardsComponent({ stage }: { stage: HackathonStage }): JSX.Element | nul
       {detailItems.map((item: PhaseDetailItem, index: number): JSX.Element => (
         <div
           key={`${item.title}-${index}`}
-          className="group relative p-6 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[#d66666]/20 backdrop-blur-sm hover:bg-[rgba(255,255,255,0.04)] transition-all duration-300 hover:border-[#d66666]/40 hover:shadow-lg hover:shadow-[#d66666]/10"
+          className="group relative rounded-xl border border-[#d66666]/20 bg-white/70 p-6 backdrop-blur-sm transition-all duration-300 hover:border-[#d66666]/40 hover:bg-white/90 hover:shadow-lg hover:shadow-[#d66666]/10 dark:bg-[rgba(255,255,255,0.02)] dark:hover:bg-[rgba(255,255,255,0.04)]"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-[#d66666]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
 
@@ -449,9 +449,9 @@ function CardsComponent({ stage }: { stage: HackathonStage }): JSX.Element | nul
               {renderIcon(item.icon)}
             </div> */}
 
-            <h3 className="text-lg font-medium text-white mb-3">{item.title}</h3>
+            <h3 className="mb-3 text-lg font-medium text-zinc-900 dark:text-white">{item.title}</h3>
 
-            <div className="text-[15px] text-white/70 leading-relaxed">
+            <div className="text-[15px] text-zinc-700 dark:text-white/70 leading-relaxed">
               {item.description}
             </div>
           </div>
@@ -474,11 +474,11 @@ function TagsComponent({ stage }: { stage: HackathonStage }): JSX.Element | null
 
       <div className="relative">
         <div className="mb-8">
-          <h3 className="text-[28px] text-white mb-4">
+          <h3 className="text-[28px] text-zinc-900 dark:text-white mb-4">
             {stage.component.title}
           </h3>
 
-          <p className="text-[18px] text-white/80 leading-relaxed">
+          <p className="text-[18px] text-zinc-700 dark:text-white/80 leading-relaxed">
             {stage.component.description}
           </p>
         </div>
@@ -491,8 +491,8 @@ function TagsComponent({ stage }: { stage: HackathonStage }): JSX.Element | null
               </div> */}
 
               <div className="flex-1">
-                <h4 className="text-[17px] text-white mb-2">{item.title}</h4>
-                <p className="text-[15px] text-white/70 leading-relaxed">
+                <h4 className="text-[17px] text-zinc-900 dark:text-white mb-2">{item.title}</h4>
+                <p className="text-[15px] text-zinc-700 dark:text-white/70 leading-relaxed">
                   {item.description}
                 </p>
               </div>

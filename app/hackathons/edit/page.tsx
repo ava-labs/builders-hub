@@ -2149,7 +2149,7 @@ const HackathonsEdit = () => {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
+    <div className="fixed inset-0 overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
       <Toaster />
       {/* Header */}
       <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 p-4">
@@ -3607,7 +3607,7 @@ const HackathonsEdit = () => {
             )}
           </div>
         </div>
-        <div className={`w-1/2 h-full min-h-0 ${activePreviewTab === 'stages-submit-form' ? 'overflow-y-auto' : 'overflow-hidden'} border-l border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900`}>
+        <div className={`w-1/2 min-h-0 ${activePreviewTab === 'stages-submit-form' ? 'overflow-y-auto' : 'overflow-hidden'} border-l border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900`}>
           <div className="h-full">
             {renderHackathonPreviewTabs()}
           </div>
