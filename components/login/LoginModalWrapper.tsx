@@ -196,27 +196,6 @@ export function LoginModalWrapper() {
     }
   };
 
-  const handleCompleteProfile = async () => {
-    // Close basic profile modal and close login modal
-    setShowBasicProfile(false);
-    setStoredCallbackUrl(null);
-    closeLoginModal();
-
-    // Force multiple session updates to ensure all components see the new auth state
-    await update();
-    await new Promise(resolve => setTimeout(resolve, 200));
-    await update();
-
-    // Trigger login complete event to notify all listening components
-    triggerLoginComplete();
-
-    // Navigate to profile page so user can complete their full profile
-    // Use window.location.href for a full page reload to ensure server gets fresh session
-    // Don't redirect to callback URL - user explicitly chose to complete profile
-    await new Promise(resolve => setTimeout(resolve, 300));
-    window.location.href = "/profile";
-  };
-
   const handleTermsDecline = () => {
     // Clean up localStorage
     if (typeof window !== "undefined") {
@@ -334,7 +313,6 @@ export function LoginModalWrapper() {
                   <BasicProfileSetup
                     userId={(termsUserId || session?.user?.id)!}
                     onSuccess={handleBasicProfileSuccess}
-                    onCompleteProfile={handleCompleteProfile}
                   />
                 </div>
               </DialogContent>

@@ -429,7 +429,7 @@ export default function Profile() {
                       <div className="flex-1">
                         <FormControl>
                           <Input
-                            placeholder="@yourhandle"
+                            placeholder="https://x.com/yourhandle"
                             {...field}
                             value={field.value ?? ""}
                           />

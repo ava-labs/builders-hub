@@ -5,6 +5,14 @@ import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
 
+// Validation patterns shared with BasicProfileSetup so both forms enforce
+// the same "URL must be from the right site / Telegram follows its own
+// username rules" checks.
+const X_URL_PATTERN = /^https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{1,15}\/?$/i;
+const LINKEDIN_URL_PATTERN = /^https?:\/\/(?:www\.)?linkedin\.com\/(?:in|pub)\/[\w\-\.%]+\/?$/i;
+const GITHUB_PATTERN = /^(?:[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}|https?:\/\/(?:www\.)?github\.com\/[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\/?)$/;
+const TELEGRAM_PATTERN = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
+
 // Zod validation schema - no required fields, only format validations
 export const profileSchema = z.object({
   name: z.string().optional(),
@@ -29,15 +37,27 @@ export const profileSchema = z.object({
   // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
-  github: z.string().min(1, "GitHub profile is required"),
-  x_handle: z.string().min(1, "X (Twitter) handle is required"),
-  linkedin_url: z.string().min(1, "LinkedIn URL is required"),
+  github: z
+    .string()
+    .min(1, "GitHub profile is required")
+    .regex(GITHUB_PATTERN, "Enter a valid GitHub username or github.com URL"),
+  x_handle: z
+    .string()
+    .min(1, "X (Twitter) profile URL is required")
+    .regex(X_URL_PATTERN, "Enter a URL like https://x.com/yourhandle"),
+  linkedin_url: z
+    .string()
+    .min(1, "LinkedIn URL is required")
+    .regex(LINKEDIN_URL_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"),
   wallet: z.array(z.string()).optional().default([]),
   socials: z.array(z.string()).default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
-  telegram_user: z.string().min(1, "Telegram username is required"),
+  telegram_user: z
+    .string()
+    .min(1, "Telegram username is required")
+    .regex(TELEGRAM_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;

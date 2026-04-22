@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   Form,
@@ -25,19 +24,42 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { Button } from '@/components/ui/button';
 import { countries } from '@/constants/countries';
 import { hsEmploymentRoles } from '@/constants/hs_employment_role';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+
+// Must be an x.com or twitter.com profile URL pointing at a username
+// that follows X's own rules (1-15 chars, letters/digits/underscore).
+const X_URL_PATTERN = /^https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{1,15}\/?$/i;
+// Must be a linkedin.com/in/<slug> or linkedin.com/pub/<slug> URL.
+const LINKEDIN_URL_PATTERN = /^https?:\/\/(?:www\.)?linkedin\.com\/(?:in|pub)\/[\w\-\.%]+\/?$/i;
+// Accept either a bare GitHub username (1-39 chars, no leading/trailing dash,
+// no double dashes) or a github.com URL pointing at one.
+const GITHUB_PATTERN = /^(?:[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}|https?:\/\/(?:www\.)?github\.com\/[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\/?)$/;
+// Telegram's own rules: starts with a letter, 5-32 chars, letters/digits/underscore.
+// Leading @ is allowed and stripped on display by the server side if needed.
+const TELEGRAM_PATTERN = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
 
 // Form schema
 const basicProfileSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
   country: z.string().optional(),
-  x_handle: z.string().min(1, 'X (Twitter) handle is required'),
-  linkedin_url: z.string().min(1, 'LinkedIn URL is required'),
-  github: z.string().min(1, 'GitHub profile is required'),
-  telegram_user: z.string().min(1, 'Telegram username is required'),
+  x_handle: z
+    .string()
+    .min(1, 'X (Twitter) profile URL is required')
+    .regex(X_URL_PATTERN, 'Enter a URL like https://x.com/yourhandle'),
+  linkedin_url: z
+    .string()
+    .min(1, 'LinkedIn URL is required')
+    .regex(LINKEDIN_URL_PATTERN, 'Enter a LinkedIn URL like https://www.linkedin.com/in/username'),
+  github: z
+    .string()
+    .min(1, 'GitHub profile is required')
+    .regex(GITHUB_PATTERN, 'Enter a valid GitHub username or github.com URL'),
+  telegram_user: z
+    .string()
+    .min(1, 'Telegram username is required')
+    .regex(TELEGRAM_PATTERN, 'Enter a valid Telegram username (5-32 chars, starts with a letter)'),
   is_student: z.boolean().default(false),
   student_institution: z.string().optional(),
   is_founder: z.boolean().default(false),
@@ -54,12 +76,10 @@ type BasicProfileFormValues = z.infer<typeof basicProfileSchema>;
 interface BasicProfileSetupProps {
   userId: string;
   onSuccess?: () => void;
-  onCompleteProfile?: () => void;
 }
 
-export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: BasicProfileSetupProps) {
+export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
-  const router = useRouter();
   const { update } = useSession();
 
   const form = useForm<BasicProfileFormValues>({
@@ -125,7 +145,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
     };
   }, [userId, form]);
 
-  const handleSave = async (data: BasicProfileFormValues, redirectToProfile: boolean = false) => {
+  const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
     try {
       // Format data to match the API expected format
@@ -170,28 +190,11 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
 
       // Save to API using extended profile endpoint
       await axios.put(`/api/profile/extended/${userId}`, profileData);
-      
+
       // Update session
       await update();
 
-      if (redirectToProfile) {
-        // Store data in localStorage to populate profile form
-        if (typeof window !== "undefined") {
-          localStorage.setItem('basicProfileData', JSON.stringify(data));
-        }
-
-        // Call onCompleteProfile callback
-        onCompleteProfile?.();
-
-        // Small delay to allow session to propagate before redirect
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Redirect to profile
-        router.push('/profile');
-      } else {
-        // Just call onSuccess callback
-        onSuccess?.();
-      }
+      onSuccess?.();
     } catch (error) {
       console.error('Error saving basic profile:', error);
     } finally {
@@ -200,19 +203,15 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
   };
 
   const onSubmit = (data: BasicProfileFormValues) => {
-    handleSave(data, false);
-  };
-
-  const onCompleteProfileClick = () => {
-    form.handleSubmit((data) => handleSave(data, true))();
+    handleSave(data);
   };
 
   return (
     <Card className="w-full rounded-md text-black dark:bg-zinc-800 dark:text-white border">
       <CardHeader className="text-center pb-4 px-4 sm:px-6">
-        <h3 className="text-base sm:text-lg font-semibold">Complete Your Basic Info</h3>
+        <h3 className="text-base sm:text-lg font-semibold">Help us know you better</h3>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Tell us a bit about yourself to get started
+          A few details so we can send you personalized hackathon invites, rewards, and more as they roll out on Builder Hub.
         </p>
       </CardHeader>
 
@@ -281,7 +280,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     <FormLabel className="text-sm sm:text-base">X (Twitter) *</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="@yourhandle"
+                        placeholder="https://x.com/yourhandle"
                         {...field}
                         className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
                       />
@@ -575,26 +574,17 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
             </div>
 
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 sm:pt-5">
+            {/* Submit */}
+            <div className="pt-4 sm:pt-5">
               <LoadingButton
                 type="submit"
-                variant="outline"
-                className="flex-1 w-full sm:w-auto text-sm sm:text-base"
+                variant="red"
+                className="w-full text-sm sm:text-base"
                 isLoading={isSaving}
                 loadingText="Saving..."
               >
-                Save and close
+                Save
               </LoadingButton>
-              <Button
-                type="button"
-                variant="red"
-                className="flex-1 w-full sm:w-auto text-sm sm:text-base"
-                onClick={onCompleteProfileClick}
-                disabled={isSaving}
-              >
-                Complete Profile
-              </Button>
             </div>
           </form>
         </Form>
