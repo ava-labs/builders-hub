@@ -2,7 +2,7 @@
  * Script to enrich l1-chains.json.
  *
  * Enrichment source: Glacier API (descriptions, logos, RPC URLs, network tokens).
- * Prune authority:   P-Chain `platform.getAllValidatorsAt({ height: "proposed" })`.
+ * Activity authority: P-Chain `platform.getAllValidatorsAt({ height: "proposed" })`.
  *
  * Why two sources: Glacier's /v1/chains is not a source of truth for active L1s —
  * it can omit live L1s (undercount) and retain chains whose validators have all
@@ -14,11 +14,16 @@
  * - Adds new chains discovered in Glacier (only if their subnetID is active on P-Chain)
  * - Does NOT remove stale local entries
  *
- * Optional prune mode (explicit):
- * - `--prune` removes local entries whose `subnetId` has no active validators on
- *   P-Chain (mainnet P-Chain for mainnet entries, Fuji P-Chain for testnet), unless
- *   protected via `preserveOnPrune: true` or `PROTECTED_CHAIN_IDS`.
- * - If the P-Chain fetch fails, prune is skipped (no destructive action on transient errors).
+ * Optional prune mode (explicit; non-destructive):
+ * - `--prune` flags local entries based on their current P-Chain activity by
+ *   writing `isActive: true` / `isActive: false`. No entry is ever deleted, so
+ *   curated metadata (descriptions, socials, logos, coingeckoId, brand colors)
+ *   is preserved across runs. Downstream consumers already filter on
+ *   `isActive === false` to exclude inactive chains from user-facing lists.
+ * - Entries with `preserveOnPrune: true` or a `chainId` in `PROTECTED_CHAIN_IDS`
+ *   (C-Chain etc.) are always flagged active.
+ * - If the P-Chain fetch fails, flagging is skipped (no activity changes on
+ *   transient errors).
  * - `--dry-run` previews changes without writing to disk.
  *
  * Usage:
@@ -142,8 +147,13 @@ interface L1Chain {
   networkToken?: L1NetworkToken;
   sourcifySupport?: boolean;
   isTestnet?: boolean;
-  // Manual safeguard: if true, never remove this entry in --prune mode.
+  // Manual safeguard: if true, always flag this entry as active in --prune mode,
+  // even if P-Chain reports no current validators.
   preserveOnPrune?: boolean;
+  // Set by --prune mode from P-Chain validator activity. Consumers (e.g.
+  // app/api/overview-stats) filter on `isActive === false` to hide inactive
+  // chains from user-facing lists while preserving their metadata on disk.
+  isActive?: boolean;
 }
 
 const GLACIER_API_ENDPOINT = 'https://glacier-api.avax.network';
@@ -162,8 +172,8 @@ interface CliOptions {
   help: boolean;
 }
 
-interface PruneDecision {
-  keep: boolean;
+interface ActivityDecision {
+  active: boolean;
   reason: string;
 }
 
@@ -205,27 +215,28 @@ Options:
 `);
 }
 
-function getPruneDecision(chain: L1Chain, activeSubnets: ActiveSubnetSets): PruneDecision {
+function getActivityDecision(chain: L1Chain, activeSubnets: ActiveSubnetSets): ActivityDecision {
   if (chain.preserveOnPrune) {
-    return { keep: true, reason: 'protected: preserveOnPrune=true' };
+    return { active: true, reason: 'protected: preserveOnPrune=true' };
   }
 
   if (PROTECTED_CHAIN_IDS.has(chain.chainId)) {
-    return { keep: true, reason: 'protected: chainId allowlist' };
+    return { active: true, reason: 'protected: chainId allowlist' };
   }
 
-  // A local entry may lack subnetId (malformed); leave those for a human to fix
-  // rather than prune on incomplete data.
+  // A local entry may lack subnetId (malformed). We cannot evaluate activity, so
+  // we leave the existing isActive flag untouched (signaled with active=true +
+  // reason so the caller can skip mutation).
   if (!chain.subnetId) {
-    return { keep: true, reason: 'kept: missing subnetId (cannot evaluate)' };
+    return { active: true, reason: 'kept: missing subnetId (cannot evaluate)' };
   }
 
   const set = chain.isTestnet ? activeSubnets.fuji : activeSubnets.mainnet;
   if (set.has(chain.subnetId)) {
-    return { keep: true, reason: 'active on P-Chain' };
+    return { active: true, reason: 'active on P-Chain' };
   }
 
-  return { keep: false, reason: 'stale: no active validators on P-Chain' };
+  return { active: false, reason: 'inactive: no active validators on P-Chain' };
 }
 
 interface ValidatorSet {
@@ -447,28 +458,43 @@ async function main() {
   console.log(`Chains matched with Glacier: ${matchedCount}`);
   console.log(`Chains updated: ${updatedCount}`);
 
-  // Optional prune pass. Default remains non-destructive.
-  let retainedChains: L1Chain[] = updatedChains;
-  const prunedChains: Array<{ chainName: string; chainId: string; reason: string }> = [];
-  let protectedKeeps = 0;
+  // Optional prune pass (non-destructive: flags activity, never deletes).
+  const retainedChains: L1Chain[] = updatedChains;
+  const flaggedInactive: Array<{ chainName: string; chainId: string; reason: string }> = [];
+  let flaggedActive = 0;
+  let protectedActive = 0;
+  let skippedNoSubnetId = 0;
 
   if (options.prune) {
     if (!activeSubnets.ok) {
-      console.warn(`\n⚠ Skipping prune: P-Chain active validator set could not be fetched.`);
-      console.warn(`  l1-chains.json will be enriched but not pruned.`);
+      console.warn(`\n⚠ Skipping activity flagging: P-Chain active validator set could not be fetched.`);
+      console.warn(`  l1-chains.json will be enriched but isActive flags left untouched.`);
     } else {
-      retainedChains = [];
+      for (let i = 0; i < retainedChains.length; i++) {
+        const chain = retainedChains[i];
+        const decision = getActivityDecision(chain, activeSubnets);
 
-      for (const chain of updatedChains) {
-        const decision = getPruneDecision(chain, activeSubnets);
+        // Cannot evaluate — leave existing isActive as-is.
+        if (decision.reason.startsWith('kept: missing subnetId')) {
+          skippedNoSubnetId++;
+          continue;
+        }
 
-        if (decision.keep) {
-          retainedChains.push(chain);
-          if (decision.reason.startsWith('protected:')) {
-            protectedKeeps++;
-          }
+        const previousActive = chain.isActive;
+        const nextActive = decision.active;
+
+        if (previousActive !== nextActive) {
+          retainedChains[i] = { ...chain, isActive: nextActive };
+        } else if (chain.isActive === undefined) {
+          // First-time flag write even if boolean value matches default.
+          retainedChains[i] = { ...chain, isActive: nextActive };
+        }
+
+        if (nextActive) {
+          flaggedActive++;
+          if (decision.reason.startsWith('protected:')) protectedActive++;
         } else {
-          prunedChains.push({
+          flaggedInactive.push({
             chainName: chain.chainName,
             chainId: chain.chainId,
             reason: decision.reason,
@@ -476,16 +502,19 @@ async function main() {
         }
       }
 
-      console.log(`\n=== Prune Summary ===`);
-      console.log(`Prune enabled: yes (authority: P-Chain getAllValidatorsAt)`);
+      console.log(`\n=== Activity Flagging Summary ===`);
+      console.log(`Authority: P-Chain getAllValidatorsAt`);
       console.log(`Active L1s on mainnet: ${activeSubnets.mainnet.size}`);
       console.log(`Active L1s on Fuji: ${activeSubnets.fuji.size}`);
-      console.log(`Protected keeps: ${protectedKeeps}`);
-      console.log(`Pruned chains: ${prunedChains.length}`);
+      console.log(`Flagged isActive=true:  ${flaggedActive} (of which ${protectedActive} via protection rules)`);
+      console.log(`Flagged isActive=false: ${flaggedInactive.length}`);
+      if (skippedNoSubnetId > 0) {
+        console.log(`Skipped (no subnetId, cannot evaluate): ${skippedNoSubnetId}`);
+      }
 
-      if (prunedChains.length > 0) {
-        console.log(`\nPruned entries:`);
-        prunedChains.forEach((entry) => {
+      if (flaggedInactive.length > 0) {
+        console.log(`\nEntries flagged isActive=false (metadata preserved):`);
+        flaggedInactive.forEach((entry) => {
           console.log(`  - ${entry.chainName} (${entry.chainId}) -> ${entry.reason}`);
         });
       }
@@ -519,7 +548,8 @@ async function main() {
     console.log(`\nSkipped ${skippedInactiveNewChains} Glacier chain(s) with no active P-Chain validators.`);
   }
 
-  // Create new L1Chain entries from Glacier chains
+  // Create new L1Chain entries from Glacier chains. When prune gating is on,
+  // these come from the P-Chain-active subset, so tag isActive: true.
   const createdChains: L1Chain[] = newGlacierChains.map(glacierChain => {
     const newChain: L1Chain = {
       chainId: glacierChain.chainId,
@@ -541,6 +571,7 @@ async function main() {
         { name: 'Avalanche Explorer', link: glacierChain.explorerUrl }
       ] : undefined,
       isTestnet: glacierChain.isTestnet || false,
+      ...(gateNewByActivity ? { isActive: true } : {}),
     };
     return newChain;
   });
@@ -567,10 +598,11 @@ async function main() {
 
   console.log(`\n=== Final Summary ===`);
   console.log(`Existing chains: ${existingChains.length}`);
-  console.log(`Retained existing chains: ${retainedChains.length}`);
-  console.log(`Pruned chains: ${prunedChains.length}`);
   console.log(`New chains added: ${createdChains.length}`);
   console.log(`Total chains: ${finalChains.length}`);
+  if (options.prune && activeSubnets.ok) {
+    console.log(`Entries flagged isActive=false: ${flaggedInactive.length} (metadata preserved)`);
+  }
 
   if (options.dryRun) {
     console.log(`\n⚠ Dry-run mode: no file changes written.`);
