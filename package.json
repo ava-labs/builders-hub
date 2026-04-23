@@ -12,6 +12,7 @@
     "generate:event-signatures": "tsx ./scripts/generate-event-signatures.mts",
     "generate:course": "tsx ./scripts/generate-course.mts",
     "enrich:chains": "tsx ./scripts/enrich-chains.mts",
+    "enrich:chains:prune": "tsx ./scripts/enrich-chains.mts --prune",
     "index-repos": "tsx ./scripts/index-repos.mts",
     "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts",
     "postbuild": "tsx ./utils/update-index.ts",

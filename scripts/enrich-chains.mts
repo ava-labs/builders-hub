@@ -1,9 +1,21 @@
 /**
- * Script to enrich l1-chains.json with data from Glacier API
- * This runs at build time to sync and enrich chain data with fields like:
- * - description, rpcUrl, blockchainId, chainLogoURI, networkToken, etc.
- * 
- * Run manually: yarn enrich:chains
+ * Script to enrich l1-chains.json with data from Glacier API.
+ *
+ * Default behavior (non-destructive):
+ * - Updates matching chains
+ * - Adds new chains
+ * - Does NOT remove stale local entries
+ *
+ * Optional prune mode (explicit):
+ * - `--prune` removes stale local entries that are no longer in Glacier's
+ *   public chain list (or are now private), unless protected.
+ * - `--dry-run` previews changes without writing to disk.
+ *
+ * Usage:
+ * - `yarn enrich:chains`
+ * - `yarn enrich:chains --prune`
+ * - `yarn enrich:chains --prune --dry-run`
+ *
  * Runs automatically during: yarn build:remote
  */
 
@@ -120,9 +132,68 @@ interface L1Chain {
   networkToken?: L1NetworkToken;
   sourcifySupport?: boolean;
   isTestnet?: boolean;
+  // Manual safeguard: if true, never remove this entry in --prune mode.
+  preserveOnPrune?: boolean;
 }
 
 const GLACIER_API_ENDPOINT = 'https://glacier-api.avax.network';
+
+interface CliOptions {
+  prune: boolean;
+  dryRun: boolean;
+  help: boolean;
+}
+
+interface PruneDecision {
+  keep: boolean;
+  reason: string;
+}
+
+// Additional guardrails for chains that should never be pruned accidentally.
+// Keep this list intentionally small and explicit.
+const PROTECTED_CHAIN_IDS = new Set<string>([
+  '43114', // Avalanche C-Chain
+]);
+
+function parseCliArgs(argv: string[]): CliOptions {
+  const args = new Set(argv);
+  return {
+    prune: args.has('--prune'),
+    dryRun: args.has('--dry-run'),
+    help: args.has('--help') || args.has('-h'),
+  };
+}
+
+function printUsage(): void {
+  console.log(`
+Usage: tsx ./scripts/enrich-chains.mts [options]
+
+Options:
+  --prune      Remove stale chains not present in Glacier public list (or now private)
+  --dry-run    Show planned updates/prunes without writing constants/l1-chains.json
+  -h, --help   Show this help
+`);
+}
+
+function getPruneDecision(chain: L1Chain, glacierChain?: GlacierChain): PruneDecision {
+  if (chain.preserveOnPrune) {
+    return { keep: true, reason: 'protected: preserveOnPrune=true' };
+  }
+
+  if (PROTECTED_CHAIN_IDS.has(chain.chainId)) {
+    return { keep: true, reason: 'protected: chainId allowlist' };
+  }
+
+  if (!glacierChain) {
+    return { keep: false, reason: 'stale: missing from Glacier' };
+  }
+
+  if (glacierChain.private) {
+    return { keep: false, reason: 'stale: now private in Glacier' };
+  }
+
+  return { keep: true, reason: 'present in Glacier public list' };
+}
 
 async function fetchGlacierChains(network: 'mainnet' | 'fuji'): Promise<GlacierChain[]> {
   const url = `${GLACIER_API_ENDPOINT}/v1/chains?network=${network}`;
@@ -212,11 +283,19 @@ function enrichChain(existingChain: L1Chain, glacierChain: GlacierChain): L1Chai
 }
 
 async function main() {
+  const options = parseCliArgs(process.argv.slice(2));
+
+  if (options.help) {
+    printUsage();
+    return;
+  }
+
   console.log('=== Enriching l1-chains.json from Glacier API ===\n');
+  console.log(`Mode: ${options.prune ? 'enrich + prune' : 'enrich only'}${options.dryRun ? ' (dry-run)' : ''}\n`);
 
   // Read existing l1-chains.json
   const chainsFilePath = path.join(process.cwd(), 'constants', 'l1-chains.json');
-  
+
   if (!fs.existsSync(chainsFilePath)) {
     console.error('l1-chains.json not found at:', chainsFilePath);
     process.exit(1);
@@ -276,10 +355,48 @@ async function main() {
   console.log(`Chains matched with Glacier: ${matchedCount}`);
   console.log(`Chains updated: ${updatedCount}`);
 
-  // Find new chains from Glacier that are not in l1-chains.json
-  const existingChainIds = new Set(existingChains.map(c => c.chainId));
+  // Optional prune pass. Default remains non-destructive.
+  let retainedChains: L1Chain[] = updatedChains;
+  const prunedChains: Array<{ chainName: string; chainId: string; reason: string }> = [];
+  let protectedKeeps = 0;
+
+  if (options.prune) {
+    retainedChains = [];
+
+    for (const chain of updatedChains) {
+      const decision = getPruneDecision(chain, glacierChainMap.get(chain.chainId));
+
+      if (decision.keep) {
+        retainedChains.push(chain);
+        if (decision.reason.startsWith('protected:')) {
+          protectedKeeps++;
+        }
+      } else {
+        prunedChains.push({
+          chainName: chain.chainName,
+          chainId: chain.chainId,
+          reason: decision.reason,
+        });
+      }
+    }
+
+    console.log(`\n=== Prune Summary ===`);
+    console.log(`Prune enabled: yes`);
+    console.log(`Protected keeps: ${protectedKeeps}`);
+    console.log(`Pruned chains: ${prunedChains.length}`);
+
+    if (prunedChains.length > 0) {
+      console.log(`\nPruned entries:`);
+      prunedChains.forEach((entry) => {
+        console.log(`  - ${entry.chainName} (${entry.chainId}) -> ${entry.reason}`);
+      });
+    }
+  }
+
+  // Find new chains from Glacier that are not in retained local chains
+  const existingChainIds = new Set(retainedChains.map(c => c.chainId));
   const newGlacierChains: GlacierChain[] = [];
-  
+
   for (const [chainId, glacierChain] of glacierChainMap) {
     if (!existingChainIds.has(chainId) && !glacierChain.private) {
       newGlacierChains.push(glacierChain);
@@ -319,8 +436,8 @@ async function main() {
     });
   }
 
-  // Merge updated and new chains
-  const finalChains = [...updatedChains, ...createdChains];
+  // Merge retained + new chains
+  const finalChains = [...retainedChains, ...createdChains];
 
   // Sort chains: mainnet first, then testnet, alphabetically within each group
   finalChains.sort((a, b) => {
@@ -334,8 +451,15 @@ async function main() {
 
   console.log(`\n=== Final Summary ===`);
   console.log(`Existing chains: ${existingChains.length}`);
+  console.log(`Retained existing chains: ${retainedChains.length}`);
+  console.log(`Pruned chains: ${prunedChains.length}`);
   console.log(`New chains added: ${createdChains.length}`);
   console.log(`Total chains: ${finalChains.length}`);
+
+  if (options.dryRun) {
+    console.log(`\n⚠ Dry-run mode: no file changes written.`);
+    return;
+  }
 
   // Write updated chains back to file
   fs.writeFileSync(
