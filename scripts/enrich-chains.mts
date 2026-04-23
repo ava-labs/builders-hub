@@ -16,7 +16,7 @@
  * - `yarn enrich:chains --prune`
  * - `yarn enrich:chains --prune --dry-run`
  *
- * Runs automatically during: yarn build:remote
+ * Runs automatically during: yarn build:remote (with --prune)
  */
 
 import fs from 'fs';
