@@ -44,6 +44,9 @@ interface OverviewMetrics {
     totalMarketCap: number;
     totalValidators: number;
     activeChains: number;
+    // Active L1s from P-Chain (source of truth). Falls back to enriched chain
+    // count if P-Chain is unreachable.
+    activeL1Count: number;
   };
   timeRange: TimeRangeKey;
   last_updated: number;
@@ -93,6 +96,46 @@ function sumValues(sorted: MetricResult[], daysToSum: number): number {
     sum += sorted[i]?.value || 0;
   }
   return sum;
+}
+
+// P-Chain is the source of truth for "is this L1 active?". An L1 is active iff
+// its subnetID appears in platform.getAllValidatorsAt with a non-empty validator
+// set, excluding the Primary Network key. Returns null on failure so the caller
+// can fall back to the enriched chain count rather than showing 0.
+const P_CHAIN_MAINNET_RPC = 'https://api.avax.network/ext/bc/P';
+const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
+
+async function fetchActiveMainnetL1Count(): Promise<number | null> {
+  try {
+    const response = await fetchWithTimeout(P_CHAIN_MAINNET_RPC, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'platform.getAllValidatorsAt',
+        params: { height: 'proposed' },
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const body = await response.json() as {
+      result?: { validatorSets?: Record<string, { validators?: unknown[] }> };
+    };
+    const sets = body.result?.validatorSets;
+    if (!sets) return null;
+
+    let count = 0;
+    for (const [subnetId, set] of Object.entries(sets)) {
+      if (subnetId === PRIMARY_NETWORK_SUBNET_ID) continue;
+      if (Array.isArray(set.validators) && set.validators.length > 0) count++;
+    }
+    return count;
+  } catch (error) {
+    console.error('[fetchActiveMainnetL1Count] Failed:', error);
+    return null;
+  }
 }
 
 function getAllChains(): ChainInfo[] {
@@ -296,9 +339,10 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
     const startTime = Date.now();
     const allChains = getAllChains();
     
-    const [chainResults, marketCaps] = await Promise.all([
+    const [chainResults, marketCaps, activeL1CountFromPChain] = await Promise.all([
       processInBatches(allChains, (chain) => fetchChainMetrics(chain, timeRange), MAX_CONCURRENT_CHAINS),
       fetchMarketCaps(allChains),
+      fetchActiveMainnetL1Count(),
     ]);
     const chainMetrics = chainResults
       .filter((r): r is PromiseFulfilledResult<ChainOverviewMetrics> => r.status === 'fulfilled' && r.value !== null)
@@ -333,7 +377,11 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
 
     const metrics: OverviewMetrics = {
       chains: chainMetrics,
-      aggregated: { ...aggregated, totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange },
+      aggregated: {
+        ...aggregated,
+        totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange,
+        activeL1Count: activeL1CountFromPChain ?? chainMetrics.length,
+      },
       timeRange,
       last_updated: Date.now()
     };
