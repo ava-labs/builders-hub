@@ -52,6 +52,12 @@ const ROWS: ComparisonRow[] = [
     firewood: "Native",
     advantage: true,
   },
+  {
+    metric: "Archival Footprint",
+    leveldb: "~16 TB",
+    firewood: "~3 TB",
+    advantage: true,
+  },
 ]
 
 const HEADERS = ["Metric", "LevelDB", "Firewood"]
@@ -198,6 +204,10 @@ export function DatabaseComparison({ colors }: { colors: Colors }) {
           </motion.div>
         ))}
       </div>
+
+      <p className={`text-[9px] sm:text-[10px] font-mono ${colors.textFaint} mt-3`}>
+        Archival footprint figures: early engineering measurements, C-Chain. Source: Firewood engineering team.
+      </p>
     </div>
   )
 }

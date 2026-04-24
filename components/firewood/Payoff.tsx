@@ -1,5 +1,6 @@
 "use client"
 import { Colors } from "./types"
+import { ArchivalFootprintCard } from "./ArchivalFootprintCard"
 import { DatabaseComparison } from "./DatabaseComparison"
 import { PipelineIntegration } from "./PipelineIntegration"
 
@@ -7,6 +8,9 @@ export function Payoff({ colors }: { colors: Colors }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="col-span-1 md:col-span-2">
+          <ArchivalFootprintCard colors={colors} />
+        </div>
         <div className="col-span-1 md:col-span-2">
           <DatabaseComparison colors={colors} />
         </div>
