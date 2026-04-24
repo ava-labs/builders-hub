@@ -19,7 +19,7 @@ const features = [
     title: "Hackathons",
     description: "Compete for prizes",
     icon: Trophy,
-    href: "/hackathons"
+    href: "/events"
   },
   {
     id: 3,

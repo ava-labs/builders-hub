@@ -13,7 +13,7 @@ export function useGetHackathons(): any {
     try {
 
       const response: Response = await fetch(
-        `/api/hackathons`,
+        `/api/hackathons?joined_only=true`,
         {
           method: "GET",
           headers: {

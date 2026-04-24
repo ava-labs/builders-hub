@@ -1,30 +1,30 @@
 export interface ApiKeyListItem {
-    keyId: string;
-    alias: string;
-    customerId: string;
-    productId: string;
+  keyId: string;
+  alias: string;
+  customerId: string;
+  productId: string;
 }
 
 export interface CreateApiKeyRequest {
-    alias: string;
+  alias: string;
 }
 
 export interface CreateApiKeyResponse {
-    keyId: string;
-    alias: string;
-    customerId: string;
-    productId: string;
-    key: string;
+  keyId: string;
+  alias: string;
+  customerId: string;
+  productId: string;
+  key: string;
 }
 
 export interface ListApiKeysResponse {
-    keys: ApiKeyListItem[];
-    maxApiKeysAllowed: number;
+  keys: ApiKeyListItem[];
+  maxApiKeysAllowed: number;
 }
 
 export interface ApiKeyDetailsResponse {
-    keyId: string;
-    alias: string;
-    customerId: string;
-    productId: string;
+  keyId: string;
+  alias: string;
+  customerId: string;
+  productId: string;
 }

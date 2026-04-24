@@ -12,9 +12,6 @@ export {
   useRecentPagesStore,
 } from "./command-palette";
 
-// Notification System
-export { NotificationCenter } from "./notification-center";
-
 // Skeleton Components
 export {
   CardSkeleton,

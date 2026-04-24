@@ -55,6 +55,8 @@ export async function proxy(req: NextRequest) {
   const protectedPaths = [
     "/hackathons/registration-form",
     "/hackathons/project-submission",
+    "/events/registration-form",
+    "/events/project-submission",
     "/showcase",
     "/send-notifications",
     "/profile",
@@ -79,13 +81,13 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(new URL("/", req.url));
 
     if (isShowCase && !custom_attributes.includes('showcase'))
-      return NextResponse.redirect(new URL("/hackathons", req.url))
+      return NextResponse.redirect(new URL("/events", req.url))
 
     if (isSendNotifications && !(custom_attributes.includes('devrel') || custom_attributes.includes('notify_event')))
       return NextResponse.redirect(new URL("/", req.url))
 
-    // Protect hackathons/edit route - only team1-admin and hackathonCreator can access
-    if (pathname.startsWith("/hackathons/edit")) {
+    // Protect hackathons/edit and events/edit routes - only team1-admin and hackathonCreator can access
+    if (pathname.startsWith("/hackathons/edit") || pathname.startsWith("/events/edit")) {
       const hasRequiredPermissions = custom_attributes.includes("team1-admin") ||
                                    custom_attributes.includes("hackathonCreator")  ||
                                    custom_attributes.includes("devrel");
@@ -122,6 +124,9 @@ export const config = {
     "/hackathons/registration-form/:path*",
     "/hackathons/project-submission/:path*",
     "/hackathons/edit/:path*",
+    "/events/registration-form/:path*",
+    "/events/project-submission/:path*",
+    "/events/edit/:path*",
     "/showcase/:path*",
     "/send-notifications/:path*",
     "/login/:path*",

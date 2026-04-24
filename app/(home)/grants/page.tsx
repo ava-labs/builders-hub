@@ -21,21 +21,7 @@ const programs = [
     external: true,
     image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg",
   },
-  {
-    title: "infraBUIDL ( )",
-    description: "Strengthen Avalanche's infrastructure by building the foundation for next-generation applications.",
-    href: "/grants/infrabuidl",
-    external: false,
-    image: "/infrabuidl.png",
-  },
-  {
-    title: "infraBUIDL (AI)",
-    description: "Support projects that combine artificial intelligence with decentralized infrastructure.",
-    href: "/grants/infrabuidlai",
-    external: false,
-    image: "/infrabuidl-ai.png",
-  },
-  {
+{
     title: "Blizzard Fund",
     description: "A $200M+ fund investing in promising Avalanche projects with institutional support.",
     href: "https://www.blizzard.fund/",
@@ -59,14 +45,7 @@ const partnerPrograms = [
     external: true,
     image: "/images/spacentime.jpg",
   },
-  {
-    title: "Hexagate Security",
-    description: "Onchain security for Avalanche builders, delivering real-time threat detection for smart contracts and protocols.",
-    href: "https://hexagate.typeform.com/HexagateForAva?typeform-source=t.co",
-    external: true,
-    image: "/images/blocksec.jpeg",
-  },
-  {
+{
     title: "Security Audits",
     description: "Explore 20+ trusted auditing providers and find the right partner to review, test, and strengthen your smart contracts.",
     href: "https://areta.market/avalanche",
@@ -189,7 +168,7 @@ export default function Page() {
               <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-6">
                 Partner Programs
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {partnerPrograms.map((program) => (
                   <ProgramCard key={program.title} {...program} />
                 ))}

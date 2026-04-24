@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { EventsLang, t } from "@/lib/events/i18n";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -9,14 +10,14 @@ interface InvalidInvitationProps {
     open: boolean;
     hackathonId: string;
     onOpenChange: (open: boolean) => void;
+    lang?: EventsLang;
 }
 
-export default function InvalidInvitationComponent({open, hackathonId, onOpenChange}: InvalidInvitationProps) {
+export default function InvalidInvitationComponent({ open, hackathonId, onOpenChange, lang = "en" }: InvalidInvitationProps) {
     const router = useRouter();
     const { toast } = useToast();
     const wasActionTaken = useRef(false);
 
-    // Reset the flag when modal opens
     useEffect(() => {
         if (open) {
             wasActionTaken.current = false;
@@ -24,26 +25,22 @@ export default function InvalidInvitationComponent({open, hackathonId, onOpenCha
     }, [open]);
 
     const handleAccept = () => {
-        wasActionTaken.current = true; // Mark that an action was taken
-        router.push(`/hackathons/${hackathonId}`);
+        wasActionTaken.current = true;
+        router.push(`/events/${hackathonId}`);
         onOpenChange(false);
     };
 
     const handleClose = (open: boolean) => {
-        // If modal is closing and no action was taken, show toast and redirect
         if (!open && !wasActionTaken.current) {
             toast({
-                title: "Redirecting...",
-                description: "You will be redirected to hackathon",
+                title: t(lang, "invitation.invalid.redirecting"),
+                description: t(lang, "invitation.invalid.redirectDesc"),
                 duration: 3000,
             });
-            
-            // Small delay to show the toast before redirecting
             setTimeout(() => {
-                router.push(`/hackathons/${hackathonId}`);
+                router.push(`/events/${hackathonId}`);
             }, 1000);
         }
-        
         onOpenChange(open);
     };
 
@@ -58,30 +55,24 @@ export default function InvalidInvitationComponent({open, hackathonId, onOpenCha
                         variant="ghost"
                         size="icon"
                         className="absolute top-6 right-4 dark:text-white hover:text-red-400 p-0 h-6 w-6"
-                        onClick={() => {
-                            // This will trigger handleClose with open=false
-                            onOpenChange(false);
-                        }}
+                        onClick={() => onOpenChange(false)}
                     >
                         ✕
                     </Button>
                 </DialogClose>
-                <DialogHeader>
-                
-                </DialogHeader>
+                <DialogHeader />
                 <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
                     <div className="flex flex-col px-6">
                         <p className="text-md dark:text-white text-gray-700">
-                            Invitation link is not valid. Verify you're logged in the correct account and try again.
+                            {t(lang, "invitation.invalid.message")}
                         </p>
                     </div>
-        
-                    <div className="flex flex-col items-center justify-center gap-4 ">
+                    <div className="flex flex-col items-center justify-center gap-4">
                         <Button
                             onClick={handleAccept}
                             className="dark:bg-white dark:text-black"
                         >
-                            Accept 
+                            {t(lang, "invitation.invalid.accept")}
                         </Button>
                     </div>
                 </Card>

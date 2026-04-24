@@ -3,7 +3,7 @@ import CreateSubnet from "@/components/toolbox/console/layer-1/create/CreateSubn
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 import AvalancheGoDockerL1 from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1";
-import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
+import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode";
 
 export const steps: StepDefinition[] = [
     {

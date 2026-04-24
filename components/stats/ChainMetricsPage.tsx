@@ -3338,9 +3338,8 @@ function ChartCard({
                 )}
               </ChartWatermark>
 
-              {/* Brush Slider — hidden on mobile */}
-              {!isMobile &&
-                aggregatedData.length > 0 &&
+              {/* Brush Slider */}
+              {aggregatedData.length > 0 &&
                 brushIndexes &&
                 !isNaN(brushIndexes.startIndex) &&
                 !isNaN(brushIndexes.endIndex) &&

@@ -1,4 +1,5 @@
 const REFERRER_STORAGE_KEY = 'buildGamesReferrer';
+const EVENT_REFERRER_STORAGE_KEY = 'eventReferrer';
 
 /**
  * Stores the referrer handle in localStorage
@@ -69,6 +70,70 @@ export function generateReferralLink(handle: string, userId?: string): string {
   }
 
   return `${BASE_URL}?ref=${encodeURIComponent(referralCode)}`;
+}
+
+/**
+ * Gets the event referrer handle from localStorage
+ */
+export function getEventReferrer(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(EVENT_REFERRER_STORAGE_KEY);
+}
+
+/**
+ * Clears the event referrer from localStorage
+ */
+export function clearEventReferrer(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(EVENT_REFERRER_STORAGE_KEY);
+}
+
+/**
+ * Checks URL for ref parameter and stores it in the event referrer key
+ * Call this on registration form page load
+ */
+export function captureEventReferrerFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const ref = urlParams.get('ref');
+
+  if (ref) {
+    localStorage.setItem(EVENT_REFERRER_STORAGE_KEY, ref);
+    return ref;
+  }
+
+  return getEventReferrer();
+}
+
+/**
+ * Generates a referral link for an event registration
+ * Code format: first4chars-last4chars-handle
+ */
+export function generateEventReferralLink(
+  handle: string,
+  eventId: string,
+  userId?: string
+): string {
+  const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
+  let referralCode = cleanHandle;
+
+  if (userId) {
+    try {
+      const firstFour = userId.substring(0, 4);
+      const lastFour = userId.substring(userId.length - 4);
+      referralCode = `${firstFour}-${lastFour}-${cleanHandle}`;
+    } catch (error) {
+      console.error('Error processing user ID for event referral:', error);
+    }
+  }
+
+  const base =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : 'https://build.avax.network';
+
+  return `${base}/events/registration-form?event=${encodeURIComponent(eventId)}&ref=${encodeURIComponent(referralCode)}`;
 }
 
 /**

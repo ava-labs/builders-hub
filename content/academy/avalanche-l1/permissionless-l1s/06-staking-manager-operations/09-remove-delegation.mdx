@@ -12,7 +12,7 @@ Delegators can remove their delegation to retrieve their staked tokens and claim
 
 ### Phase 1: Initiation (L1)
 
-The delegator calls [`initiateDelegatorRemoval(delegationID)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/PoSValidatorManager.sol) on the Staking Manager contract.
+The delegator calls [`initiateDelegatorRemoval(delegationID)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/PoSValidatorManager.sol) on the Staking Manager contract.
 
 Under the hood, the contract:
 - Verifies the caller is the delegation owner
@@ -38,7 +38,7 @@ The weight update is signed and submitted to the P-Chain as a `SetL1ValidatorWei
 
 ### Phase 3: Completion (L1)
 
-Call [`completeDelegatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/PoSValidatorManager.sol) with the P-Chain's signed response:
+Call [`completeDelegatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/PoSValidatorManager.sol) with the P-Chain's signed response:
 
 - Verifies the Warp message and nonce correspondence
 - Calculates delegation rewards based on uptime
