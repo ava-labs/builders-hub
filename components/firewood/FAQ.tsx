@@ -75,7 +75,7 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     question: "How does Firewood handle state growth?",
-    answer: "Firewood uses a malloc-like free space manager with 23 predefined area sizes (16 bytes to 16MB). When revisions expire, their unique nodes are returned to per-size free lists. This inline reclamation keeps disk usage bounded without compaction.",
+    answer: "Firewood uses a malloc-like free space manager with 23 predefined area sizes (16 bytes to 16MB). When revisions expire, their unique nodes are returned to per-size free lists. This inline reclamation keeps disk usage bounded without compaction. Early engineering measurements put an archival C-Chain node at roughly 3 TB on Firewood versus ~16 TB on LevelDB — around 5× smaller.",
   },
   {
     question: "What about crash recovery?",
@@ -83,19 +83,15 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     question: "Can I switch an existing node from LevelDB to Firewood?",
-    answer: "Migration tooling is planned but not yet available. Currently, switching requires a full resync of the node with Firewood configured as the database backend.",
+    answer: "Switching requires a full resync of the node with Firewood configured as the database backend.",
   },
   {
     question: "How does parallel Merkle hashing work?",
-    answer: "The root node is forced into a branch with no partial path, creating 16 independent subtrees (one per nibble 0-F). Each subtree is processed by a separate worker thread via Rayon. Insertions, deletions, and hash computation within each subtree are fully independent.",
-  },
-  {
-    question: "What is the Future-Delete Log?",
-    answer: "When a new revision is committed, Firewood records which nodes from previous revisions are no longer needed in a delete list. When those revisions expire (default retention: 128 revisions, configurable via max_revisions), the recorded nodes are freed and their space is returned to the per-size free lists. Each node return is O(1) — a push onto the free list head.",
+    answer: "We create 16 independent subtrees (one per nibble 0-F). Each subtree is processed by a separate worker thread via Rayon. Insertions, deletions, and hash computation within each subtree are fully independent.",
   },
   {
     question: "Does Firewood support Merkle proofs natively?",
-    answer: "Yes. Since the trie structure exists directly on disk, proof generation doesn't require rebuilding the trie from flattened KV pairs. Branch paths and inclusion proofs can be read directly, making proof generation faster and more efficient.",
+    answer: "Yes. Since the trie structure exists directly on disk, proof generation doesn't require rebuilding the trie from flattened KV pairs. Key proofs - both exclusion and inclusioon, as well as range and change proofs between stored revisions are natively supported, making these operations faster and more efficient.",
   },
   {
     question: "Will Firewood benefit L1s or just the C-Chain?",
