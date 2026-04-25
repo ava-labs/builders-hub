@@ -98,42 +98,20 @@ function sumValues(sorted: MetricResult[], daysToSum: number): number {
   return sum;
 }
 
-// P-Chain is the source of truth for "is this L1 active?". An L1 is active iff
-// its subnetID appears in platform.getAllValidatorsAt with a non-empty validator
-// set, excluding the Primary Network key. Returns null on failure so the caller
-// can fall back to the enriched chain count rather than showing 0.
-const P_CHAIN_MAINNET_RPC = 'https://api.avax.network/ext/bc/P';
-const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
-
-async function fetchActiveMainnetL1Count(): Promise<number | null> {
+// Active L1 count is sourced from a build-time snapshot written by
+// scripts/enrich-chains.mts (P-Chain platform.getAllValidatorsAt). Reading at
+// build time instead of per-request avoids serverless cold-start hangs from
+// the 280KB+ P-Chain payload and removes a runtime dependency on the public
+// node. The count refreshes whenever the build runs.
+function getActiveMainnetL1CountFromSnapshot(): number | null {
   try {
-    const response = await fetchWithTimeout(P_CHAIN_MAINNET_RPC, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'platform.getAllValidatorsAt',
-        params: { height: 'proposed' },
-      }),
-    });
-
-    if (!response.ok) return null;
-
-    const body = await response.json() as {
-      result?: { validatorSets?: Record<string, { validators?: unknown[] }> };
+    // Lazy require so a missing file doesn't break the route on first deploy.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const counts = require('@/constants/active-l1-counts.json') as {
+      mainnet?: number;
     };
-    const sets = body.result?.validatorSets;
-    if (!sets) return null;
-
-    let count = 0;
-    for (const [subnetId, set] of Object.entries(sets)) {
-      if (subnetId === PRIMARY_NETWORK_SUBNET_ID) continue;
-      if (Array.isArray(set.validators) && set.validators.length > 0) count++;
-    }
-    return count;
-  } catch (error) {
-    console.error('[fetchActiveMainnetL1Count] Failed:', error);
+    return typeof counts.mainnet === 'number' ? counts.mainnet : null;
+  } catch {
     return null;
   }
 }
@@ -339,11 +317,11 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
     const startTime = Date.now();
     const allChains = getAllChains();
     
-    const [chainResults, marketCaps, activeL1CountFromPChain] = await Promise.all([
+    const [chainResults, marketCaps] = await Promise.all([
       processInBatches(allChains, (chain) => fetchChainMetrics(chain, timeRange), MAX_CONCURRENT_CHAINS),
       fetchMarketCaps(allChains),
-      fetchActiveMainnetL1Count(),
     ]);
+    const activeL1CountFromPChain = getActiveMainnetL1CountFromSnapshot();
     const chainMetrics = chainResults
       .filter((r): r is PromiseFulfilledResult<ChainOverviewMetrics> => r.status === 'fulfilled' && r.value !== null)
       .map(r => r.value);
