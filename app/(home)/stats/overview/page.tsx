@@ -530,8 +530,7 @@ export default function AvalancheMetrics() {
       setError(null);
       try {
         const response = await fetch(
-          `/api/overview-stats?timeRange=${timeRange}`,
-          { cache: 'no-store' }
+          `/api/overview-stats?timeRange=${timeRange}`
         );
         if (!response.ok)
           throw new Error(`Failed to fetch metrics: ${response.status}`);
