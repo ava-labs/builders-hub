@@ -7,13 +7,23 @@
 
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
+import {
+  countOccurrences,
+  makeExcerpt,
+  matchesPathPrefix,
+  normalizeForSearch,
+  scoreChunk,
+  splitIntoChunks,
+  tokenizeQuery,
+} from '@/lib/mcp/search-utils';
 
 // Cache for documentation content
 const docsCache: Map<string, { content: string; timestamp: number }> = new Map();
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
-const CHUNK_WORDS = 180;
-const CHUNK_OVERLAP_WORDS = 35;
 const MAX_RESULTS = 50;
+// Concurrency cap for the cold-start index build. Prevents Promise.all from issuing
+// a thousand simultaneous getLLMText calls and overwhelming the event loop / memory.
+const INDEX_BUILD_CONCURRENCY = 8;
 
 type SourceName = 'docs' | 'academy' | 'integrations' | 'blog';
 
@@ -61,143 +71,70 @@ function getSourceGroups(source?: string): SourceGroup[] {
   return groups;
 }
 
-function normalizeForSearch(value: string): string {
-  return value.toLowerCase().replace(/\s+/g, ' ').trim();
-}
+async function processWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
 
-function tokenizeQuery(query: string): string[] {
-  return normalizeForSearch(query)
-    .split(/[^a-z0-9_/-]+/)
-    .map((term) => term.trim())
-    .filter((term) => term.length >= 2);
-}
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const index = cursor++;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index]);
+    }
+  });
 
-function splitIntoChunks(content: string): string[] {
-  const words = content
-    .replace(/\r\n/g, '\n')
-    .split(/\s+/)
-    .map((word) => word.trim())
-    .filter(Boolean);
-
-  if (words.length === 0) return [];
-  if (words.length <= CHUNK_WORDS) return [words.join(' ')];
-
-  const chunks: string[] = [];
-  const step = CHUNK_WORDS - CHUNK_OVERLAP_WORDS;
-
-  for (let start = 0; start < words.length; start += step) {
-    const chunk = words.slice(start, start + CHUNK_WORDS).join(' ');
-    if (chunk) chunks.push(chunk);
-    if (start + CHUNK_WORDS >= words.length) break;
-  }
-
-  return chunks;
+  await Promise.all(runners);
+  return results;
 }
 
 async function buildDocsSearchIndex(): Promise<SearchChunk[]> {
   const groups = getSourceGroups();
-  const chunksByPage = await Promise.all(
-    groups.flatMap(({ name, pages }) =>
-      pages.map(async (page) => {
-        let content = '';
-
-        try {
-          content = await getLLMText(page as Parameters<typeof getLLMText>[0]);
-        } catch (error) {
-          console.error(`Error indexing content for ${page.url}:`, error);
-        }
-
-        if (content) {
-          docsCache.set(page.url, { content, timestamp: Date.now() });
-        }
-
-        return splitIntoChunks(content).map((chunk, chunkIndex) => ({
-          url: page.url,
-          title: page.data.title || 'Untitled',
-          description: page.data.description,
-          source: name,
-          chunkIndex,
-          text: chunk,
-          normalizedText: normalizeForSearch(chunk),
-        }));
-      })
-    )
+  const tasks = groups.flatMap(({ name, pages }) =>
+    pages.map((page) => ({ name, page }))
   );
+
+  const chunksByPage = await processWithConcurrency(tasks, INDEX_BUILD_CONCURRENCY, async ({ name, page }) => {
+    let content = '';
+
+    try {
+      content = await getLLMText(page as Parameters<typeof getLLMText>[0]);
+    } catch (error) {
+      console.error(`Error indexing content for ${page.url}:`, error);
+    }
+
+    if (content) {
+      docsCache.set(page.url, { content, timestamp: Date.now() });
+    }
+
+    return splitIntoChunks(content).map((chunk, chunkIndex) => ({
+      url: page.url,
+      title: page.data.title || 'Untitled',
+      description: page.data.description,
+      source: name,
+      chunkIndex,
+      text: chunk,
+      normalizedText: normalizeForSearch(chunk),
+    }));
+  });
 
   return chunksByPage.flat();
 }
 
 async function getDocsSearchIndex(): Promise<SearchChunk[]> {
   if (!docsSearchIndexPromise) {
-    docsSearchIndexPromise = buildDocsSearchIndex();
+    // Capture rejection so a transient build failure doesn't cache forever; a subsequent
+    // call will rebuild instead of permanently returning the same rejection.
+    docsSearchIndexPromise = buildDocsSearchIndex().catch((error) => {
+      docsSearchIndexPromise = null;
+      throw error;
+    });
   }
 
   return docsSearchIndexPromise;
-}
-
-function countOccurrences(haystack: string, needle: string): number {
-  if (!needle) return 0;
-
-  let count = 0;
-  let index = haystack.indexOf(needle);
-
-  while (index !== -1) {
-    count += 1;
-    index = haystack.indexOf(needle, index + needle.length);
-  }
-
-  return count;
-}
-
-function scoreChunk(chunk: SearchChunk, normalizedQuery: string, queryTerms: string[]): number {
-  const title = normalizeForSearch(chunk.title);
-  const description = normalizeForSearch(chunk.description || '');
-  const url = normalizeForSearch(chunk.url);
-  let score = 0;
-
-  if (title.includes(normalizedQuery)) score += 80;
-  if (description.includes(normalizedQuery)) score += 45;
-  if (url.includes(normalizedQuery)) score += 30;
-  if (chunk.normalizedText.includes(normalizedQuery)) score += 60;
-
-  for (const term of queryTerms) {
-    if (title.includes(term)) score += 18;
-    if (description.includes(term)) score += 10;
-    if (url.includes(term)) score += 6;
-
-    const bodyMatches = countOccurrences(chunk.normalizedText, term);
-    if (bodyMatches > 0) {
-      score += Math.min(bodyMatches, 6) * 5;
-    }
-  }
-
-  if (queryTerms.length > 1 && queryTerms.every((term) => chunk.normalizedText.includes(term))) {
-    score += 25;
-  }
-
-  return score;
-}
-
-function makeExcerpt(text: string, normalizedQuery: string, queryTerms: string[]): string {
-  const collapsed = text.replace(/\s+/g, ' ').trim();
-  const lower = collapsed.toLowerCase();
-  const matchCandidates = [normalizedQuery, ...queryTerms].filter(Boolean);
-  const firstMatch = matchCandidates
-    .map((term) => lower.indexOf(term))
-    .filter((index) => index >= 0)
-    .sort((a, b) => a - b)[0] ?? 0;
-
-  const start = Math.max(0, firstMatch - 140);
-  const end = Math.min(collapsed.length, firstMatch + 360);
-  const prefix = start > 0 ? '...' : '';
-  const suffix = end < collapsed.length ? '...' : '';
-
-  return `${prefix}${collapsed.slice(start, end)}${suffix}`;
-}
-
-function matchesPathPrefix(url: string, pathPrefixes?: string[]): boolean {
-  if (!pathPrefixes || pathPrefixes.length === 0) return true;
-  return pathPrefixes.some((prefix) => url.startsWith(prefix));
 }
 
 /**
@@ -345,14 +282,3 @@ export function clearCache() {
   docsCache.clear();
   docsSearchIndexPromise = null;
 }
-
-/**
- * MCP Server configuration
- */
-export const MCP_SERVER_CONFIG = {
-  name: 'avalanche-mcp',
-  version: '2.1.0',
-  protocolVersion: '2024-11-05',
-  description: 'Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, GitHub code search, blockchain lookups, P-Chain, and Info API',
-  baseUrl: 'https://build.avax.network',
-};
