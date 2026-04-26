@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { MCPServer } from '@/lib/mcp/server'
+import { MCPServer, MAX_BATCH_SIZE } from '@/lib/mcp/server'
 import { jsonRpcMessageSchema } from '@/lib/mcp/types'
 import { GITHUB_REPOSITORIES, githubTools } from '@/lib/mcp/tools/github'
 
@@ -81,6 +81,24 @@ describe('MCPServer.handlePost', () => {
         result: {},
       },
     ])
+  })
+
+  it('rejects batches that exceed the maximum batch size', async () => {
+    const server = createServer()
+    const batch = Array.from({ length: MAX_BATCH_SIZE + 1 }, (_, i) => ({
+      jsonrpc: '2.0' as const,
+      id: i,
+      method: 'ping' as const,
+    }))
+
+    await expect(server.handlePost(batch)).resolves.toEqual({
+      jsonrpc: '2.0',
+      id: null,
+      error: {
+        code: -32600,
+        message: expect.stringContaining(`exceeds the maximum of ${MAX_BATCH_SIZE}`),
+      },
+    })
   })
 })
 

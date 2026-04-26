@@ -32,6 +32,10 @@ interface ServerConfig {
   description?: string;
 }
 
+// Cap how many JSON-RPC items a single batch can carry. The 60/min global rate limit only
+// charges per HTTP request, so without this cap a single batch could amplify a client's quota.
+export const MAX_BATCH_SIZE = 20;
+
 export class MCPServer {
   private readonly config: ServerConfig;
   private toolDomains: ToolDomain[] = [];
@@ -147,7 +151,9 @@ export class MCPServer {
           } catch (err) {
             toolError = sanitizeErrorMessage(err);
             toolResult = {
-              content: [{ type: 'text', text: err instanceof Error ? err.message : 'Tool error' }],
+              // Use sanitized message in the user-facing payload too — raw err.message can
+              // leak internal paths or library stack-trace fragments.
+              content: [{ type: 'text', text: toolError }],
               isError: true,
             };
           }
@@ -207,7 +213,7 @@ export class MCPServer {
         id,
         error: {
           code: -32603,
-          message: error instanceof Error ? error.message : 'Internal error',
+          message: sanitizeErrorMessage(error),
         },
       };
     }
@@ -227,6 +233,17 @@ export class MCPServer {
    */
   async handlePost(body: unknown): Promise<JsonRpcResponse | JsonRpcResponse[] | null> {
     if (Array.isArray(body)) {
+      if (body.length > MAX_BATCH_SIZE) {
+        return {
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32600,
+            message: `Batch size ${body.length} exceeds the maximum of ${MAX_BATCH_SIZE}`,
+          },
+        };
+      }
+
       const responses = await Promise.all(
         body.map(async (message) => {
           const parsed = jsonRpcMessageSchema.safeParse(message);
