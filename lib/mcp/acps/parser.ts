@@ -130,7 +130,12 @@ function parseAuthors(value: string): string[] {
 
 function parseDiscussionUrl(value: string): string | undefined {
   const match = value.match(/Discussion\]\(([^)]+)\)/i);
-  return match ? match[1] : undefined;
+  if (!match) return undefined;
+  // Allowlist: only http(s) URLs. ACP markdown is upstream-community-authored,
+  // so we neutralize javascript:/data:/file: schemes before they flow into AI clients.
+  const url = match[1].trim();
+  if (/^https?:\/\//i.test(url)) return url;
+  return undefined;
 }
 
 function parseAcpNumberFromUrl(url: string): number | undefined {
@@ -154,15 +159,23 @@ function parseTitleFromFrontmatter(title: string | undefined): string | undefine
   return stripped || undefined;
 }
 
+// Cap raw doc content before parsing to bound regex / split costs on a hostile or oversized doc.
+const MAX_PARSE_CHARS = 1_000_000;
+
 /**
  * Parse an ACP markdown document into a structured record.
  *
  * The parser is tolerant of small formatting variations (extra spaces,
  * variable separator widths, missing optional fields). When fields cannot
  * be derived from the body, it falls back to the frontmatter or URL.
+ *
+ * Returns `null` when no ACP number can be derived from the body, frontmatter,
+ * or URL — callers should treat that as "not a real ACP page" rather than
+ * polluting the registry with phantom ACP-0 entries.
  */
-export function parseAcpDocument(content: string, url: string): AcpEntry {
-  const { body, frontmatter } = stripFrontmatter(content);
+export function parseAcpDocument(content: string, url: string): AcpEntry | null {
+  const safeContent = content.length > MAX_PARSE_CHARS ? content.slice(0, MAX_PARSE_CHARS) : content;
+  const { body, frontmatter } = stripFrontmatter(safeContent);
   const rows = parseTableRows(body);
 
   const tableNumber = rows.get('acp');
@@ -171,6 +184,8 @@ export function parseAcpDocument(content: string, url: string): AcpEntry {
     parseAcpNumberFromTitle(frontmatter.title) ||
     parseAcpNumberFromUrl(url) ||
     0;
+
+  if (number <= 0) return null;
 
   const tableTitle = rows.get('title');
   const title = tableTitle || parseTitleFromFrontmatter(frontmatter.title) || 'Untitled ACP';

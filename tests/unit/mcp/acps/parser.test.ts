@@ -58,9 +58,15 @@ title: "ACP-77: Reinventing Subnets"
 | **Replaces**  | [ACP-13](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/13-subnet-only-validators/README.md)                                          |
 `;
 
+function expectParsed(content: string, url: string) {
+  const parsed = parseAcpDocument(content, url);
+  expect(parsed).not.toBeNull();
+  return parsed!;
+}
+
 describe('parseAcpDocument', () => {
   it('extracts number, title, status, track, and authors from ACP-103', () => {
-    const parsed = parseAcpDocument(acp103, '/docs/acps/103-dynamic-fees');
+    const parsed = expectParsed(acp103, '/docs/acps/103-dynamic-fees');
 
     expect(parsed.number).toBe(103);
     expect(parsed.title).toBe('Add Dynamic Fees to the P-Chain');
@@ -72,7 +78,7 @@ describe('parseAcpDocument', () => {
   });
 
   it('extracts the Superseded-By reference for ACP-13', () => {
-    const parsed = parseAcpDocument(acp13, '/docs/acps/13-subnet-only-validators');
+    const parsed = expectParsed(acp13, '/docs/acps/13-subnet-only-validators');
 
     expect(parsed.number).toBe(13);
     expect(parsed.status).toBe('Stale');
@@ -80,7 +86,7 @@ describe('parseAcpDocument', () => {
   });
 
   it('extracts the Replaces reference for ACP-77', () => {
-    const parsed = parseAcpDocument(acp77, '/docs/acps/77-reinventing-subnets');
+    const parsed = expectParsed(acp77, '/docs/acps/77-reinventing-subnets');
 
     expect(parsed.number).toBe(77);
     expect(parsed.replaces).toEqual([13]);
@@ -88,18 +94,23 @@ describe('parseAcpDocument', () => {
   });
 
   it('splits comma-separated tracks for ACP-131', () => {
-    const parsed = parseAcpDocument(acp131, '/docs/acps/131-cancun-eips');
+    const parsed = expectParsed(acp131, '/docs/acps/131-cancun-eips');
 
     expect(parsed.tracks).toEqual(['Standards', 'Subnet']);
   });
 
   it('falls back to URL when number cannot be parsed from the table', () => {
     const incomplete = `---\ntitle: "ACP-256: Hardware"\n---\n\nNo table here.`;
-    const parsed = parseAcpDocument(incomplete, '/docs/acps/256-hardware-recommendations');
+    const parsed = expectParsed(incomplete, '/docs/acps/256-hardware-recommendations');
 
     expect(parsed.number).toBe(256);
     expect(parsed.title).toBe('Hardware');
     expect(parsed.status).toBe('Unknown');
+  });
+
+  it('returns null when no ACP number can be derived from anywhere', () => {
+    const noNumber = `---\ntitle: "Just a doc"\n---\n\nNo table, no number.`;
+    expect(parseAcpDocument(noNumber, '/docs/acps/index')).toBeNull();
   });
 });
 

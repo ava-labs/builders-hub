@@ -32,6 +32,8 @@ async function loadAcpEntry(page: { url: string }): Promise<AcpEntry | null> {
     const fullPage = page as { url: string; absolutePath?: string; data?: { getText?: (k: string) => Promise<string> } };
     const content = await getLLMText(fullPage as Parameters<typeof getLLMText>[0]);
     if (!content) return null;
+    // parseAcpDocument now returns null when no ACP number can be derived; we propagate that
+    // upward so the registry only contains real numbered ACPs.
     return parseAcpDocument(content, page.url);
   } catch (error) {
     console.error(`[mcp/acps] failed to load ${page.url}`, error);
