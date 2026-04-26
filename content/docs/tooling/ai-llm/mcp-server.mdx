@@ -53,7 +53,7 @@ The GitHub tools cover these repositories:
 ## Claude Code Setup
 
 ```bash
-claude mcp add avalanche-docs --transport http https://build.avax.network/api/mcp
+claude mcp add avalanche-mcp --transport http https://build.avax.network/api/mcp
 ```
 
 Or add it to `.claude/settings.json`:
@@ -61,7 +61,7 @@ Or add it to `.claude/settings.json`:
 ```json
 {
   "mcpServers": {
-    "avalanche-docs": {
+    "avalanche-mcp": {
       "transport": {
         "type": "http",
         "url": "https://build.avax.network/api/mcp"
@@ -78,7 +78,7 @@ Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "avalanche-docs": {
+    "avalanche-mcp": {
       "transport": {
         "type": "http",
         "url": "https://build.avax.network/api/mcp"
@@ -212,7 +212,7 @@ The hosted MCP server is read-only. It does not execute local shell commands, ru
 For AvaCloud and Chainkit API surfaces, use companion MCP servers alongside this hosted server:
 
 ```bash
-claude mcp add avalanche-docs --transport http https://build.avax.network/api/mcp
+claude mcp add avalanche-mcp --transport http https://build.avax.network/api/mcp
 claude mcp add avalanche-chainkit --command "npx -y @avalanche-sdk/chainkit mcp-server"
 claude mcp add avalanche-avacloud --command "npx -y @avalabs/avacloud-sdk mcp-server --apikey $AVACLOUD_API_KEY"
 ```
