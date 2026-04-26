@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { MCPServer } from '@/lib/mcp/server'
 import { jsonRpcMessageSchema } from '@/lib/mcp/types'
+import { GITHUB_REPOSITORIES, githubTools } from '@/lib/mcp/tools/github'
 
 vi.mock('@/lib/posthog-server', () => ({
   captureServerEvent: vi.fn(),
@@ -80,5 +81,34 @@ describe('MCPServer.handlePost', () => {
         result: {},
       },
     ])
+  })
+})
+
+describe('githubTools', () => {
+  it('covers the core Avalanche repositories from the MCP roadmap', () => {
+    expect(GITHUB_REPOSITORIES.map((repo) => repo.fullName)).toEqual([
+      'ava-labs/avalanchego',
+      'ava-labs/subnet-evm',
+      'ava-labs/coreth',
+      'ava-labs/avalanche-cli',
+      'ava-labs/platform-cli',
+      'ava-labs/icm-services',
+      'ava-labs/avalanche-network-runner',
+      'ava-labs/icm-contracts',
+      'ava-labs/hypersdk',
+      'ava-labs/libevm',
+      'ava-labs/builders-hub',
+    ])
+  })
+
+  it('exposes repository coverage through an MCP tool', async () => {
+    const result = await githubTools.handlers.github_list_repositories({})
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload.repositories).toHaveLength(11)
+    expect(payload.repositories[0]).toMatchObject({
+      name: 'avalanchego',
+      fullName: 'ava-labs/avalanchego',
+    })
   })
 })

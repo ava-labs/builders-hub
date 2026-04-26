@@ -1,36 +1,148 @@
 import type { ToolDomain, ToolResult } from '../types';
 
 const GITHUB_API = 'https://api.github.com';
-const ALLOWED_REPOS = ['ava-labs/avalanchego', 'ava-labs/icm-services', 'ava-labs/builders-hub'];
+const MAX_FILE_CONTENT_CHARS = 50_000;
+
+export const GITHUB_REPOSITORIES = [
+  {
+    name: 'avalanchego',
+    fullName: 'ava-labs/avalanchego',
+    description: 'AvalancheGo node, consensus, PlatformVM, AVM, networking, and core node APIs',
+  },
+  {
+    name: 'subnet-evm',
+    fullName: 'ava-labs/subnet-evm',
+    description: 'Subnet-EVM implementation, precompiles, EVM chain configuration, and VM plugin code',
+  },
+  {
+    name: 'coreth',
+    fullName: 'ava-labs/coreth',
+    description: 'C-Chain EVM implementation history and Coreth code',
+  },
+  {
+    name: 'avalanche-cli',
+    fullName: 'ava-labs/avalanche-cli',
+    description: 'Avalanche CLI commands for L1 creation, deployment, validation, and node workflows',
+  },
+  {
+    name: 'platform-cli',
+    fullName: 'ava-labs/platform-cli',
+    description: 'Platform CLI commands for P-Chain, staking, validators, keys, and transfers',
+  },
+  {
+    name: 'icm-services',
+    fullName: 'ava-labs/icm-services',
+    description: 'Interchain Messaging services, relayer code, and ICM contracts',
+  },
+  {
+    name: 'avalanche-network-runner',
+    fullName: 'ava-labs/avalanche-network-runner',
+    description: 'Local Avalanche network orchestration and test network tooling',
+  },
+  {
+    name: 'icm-contracts',
+    fullName: 'ava-labs/icm-contracts',
+    description: 'Interchain Messaging Solidity contracts (Teleporter, ICTT, registry)',
+  },
+  {
+    name: 'hypersdk',
+    fullName: 'ava-labs/hypersdk',
+    description: 'HyperSDK framework for high-performance Avalanche VMs',
+  },
+  {
+    name: 'libevm',
+    fullName: 'ava-labs/libevm',
+    description: 'libevm shared EVM library used by Avalanche VMs',
+  },
+  {
+    name: 'builders-hub',
+    fullName: 'ava-labs/builders-hub',
+    description: 'Builders Hub docs, examples, MCP server, and developer site code',
+  },
+] as const;
+
+export const GITHUB_REPO_NAMES = GITHUB_REPOSITORIES.map((repo) => repo.name);
+export const GITHUB_LANGUAGE_FILTERS = [
+  'go',
+  'solidity',
+  'typescript',
+  'javascript',
+  'python',
+  'rust',
+  'shell',
+  'markdown',
+  'yaml',
+  'json',
+  'any',
+] as const;
+
+type RepoName = (typeof GITHUB_REPO_NAMES)[number];
+type RepoSearchName = RepoName | 'all';
+type LanguageFilter = (typeof GITHUB_LANGUAGE_FILTERS)[number];
+
+const ALLOWED_REPOS = GITHUB_REPOSITORIES.map((repo) => repo.fullName);
 
 interface SearchCodeParams {
   query: string;
-  repo?: 'avalanchego' | 'icm-services' | 'builders-hub' | 'all';
-  language?: 'go' | 'solidity' | 'typescript' | 'any';
+  repo?: RepoSearchName;
+  language?: LanguageFilter;
   perPage?: number;
 }
 
 interface GetFileParams {
-  repo: 'avalanchego' | 'icm-services' | 'builders-hub';
+  repo: RepoName;
   path: string;
   ref?: string;
 }
 
+function isRepoName(repo: unknown): repo is RepoName {
+  return typeof repo === 'string' && GITHUB_REPO_NAMES.includes(repo as RepoName);
+}
+
+function getRepoFullName(repo: RepoName): string {
+  return `ava-labs/${repo}`;
+}
+
+function validateRepoPath(path: string): string | null {
+  if (!path) return 'File path is required';
+  if (path.startsWith('/')) return 'File path must be relative to the repository root';
+  if (path.includes('..')) return 'File path must not include path traversal';
+  if (path.includes('://')) return 'File path must not include a protocol';
+  return null;
+}
+
 async function searchCode(params: SearchCodeParams) {
   const { query, repo = 'all', language = 'any', perPage = 10 } = params;
+  const trimmedQuery = typeof query === 'string' ? query.trim() : '';
+
+  if (!trimmedQuery) {
+    return {
+      total_count: 0,
+      items: [],
+      error: 'Search query is required',
+    };
+  }
+
+  if (repo !== 'all' && !isRepoName(repo)) {
+    return {
+      total_count: 0,
+      items: [],
+      error: `Repository ${repo} is not in the allowed list`,
+      allowedRepos: [...GITHUB_REPO_NAMES, 'all'],
+    };
+  }
 
   // Simplify query for better GitHub API compatibility
   // Remove very long queries that cause timeouts
-  const simplifiedQuery = query.length > 100 ? query.slice(0, 100) : query;
+  const simplifiedQuery = trimmedQuery.length > 100 ? trimmedQuery.slice(0, 100) : trimmedQuery;
 
   // Build GitHub search query
   let searchQuery = simplifiedQuery;
 
   if (repo === 'all') {
-    // Search all repos
-    searchQuery = `${simplifiedQuery} repo:ava-labs/avalanchego repo:ava-labs/icm-services repo:ava-labs/builders-hub`;
+    searchQuery = `${simplifiedQuery} ${ALLOWED_REPOS.map((fullName) => `repo:${fullName}`).join(' ')}`;
   } else {
-    searchQuery = `${simplifiedQuery} repo:ava-labs/${repo}`;
+    searchQuery = `${simplifiedQuery} repo:${getRepoFullName(repo)}`;
   }
 
   if (language !== 'any') {
@@ -39,7 +151,7 @@ async function searchCode(params: SearchCodeParams) {
 
   const url = new URL(`${GITHUB_API}/search/code`);
   url.searchParams.set('q', searchQuery);
-  url.searchParams.set('per_page', String(Math.min(perPage, 5))); // Limit to 5 results to avoid timeouts
+  url.searchParams.set('per_page', String(Math.min(Math.max(perPage, 1), 10)));
 
   const headers: HeadersInit = {
     'Accept': 'application/vnd.github.v3+json',
@@ -105,17 +217,24 @@ async function searchCode(params: SearchCodeParams) {
 async function getFileContents(params: GetFileParams) {
   const { repo, path, ref = 'HEAD' } = params;
   const owner = 'ava-labs';
+  const requestedPath = typeof path === 'string' ? path : '';
 
-  // Validate repo is in allowed list
-  const fullRepo = `${owner}/${repo}`;
-  if (!ALLOWED_REPOS.includes(fullRepo)) {
+  if (!isRepoName(repo)) {
     return {
-      error: `Repository ${fullRepo} is not in the allowed list`,
-      allowedRepos: ALLOWED_REPOS
+      error: `Repository ${owner}/${String(repo)} is not in the allowed list`,
+      allowedRepos: GITHUB_REPO_NAMES
     };
   }
 
-  const url = `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}?ref=${ref}`;
+  const pathError = validateRepoPath(requestedPath);
+  if (pathError) {
+    return {
+      error: pathError,
+      path: requestedPath,
+    };
+  }
+
+  const url = `${GITHUB_API}/repos/${owner}/${repo}/contents/${requestedPath}?ref=${ref}`;
 
   const headers: HeadersInit = {
     'Accept': 'application/vnd.github.v3+json',
@@ -139,7 +258,7 @@ async function getFileContents(params: GetFileParams) {
       return {
         error: 'Rate limit exceeded or file access restricted.',
         suggestion: 'Wait a moment and try again, or try a different file.',
-        path: path
+        path: requestedPath
       };
     }
     // Return error instead of throwing to avoid disrupting the AI stream
@@ -147,7 +266,7 @@ async function getFileContents(params: GetFileParams) {
     return {
       error: `GitHub API error: ${response.status}`,
       details: errorText.substring(0, 500),
-      path: path
+      path: requestedPath
     };
   }
 
@@ -155,15 +274,17 @@ async function getFileContents(params: GetFileParams) {
 
   // Decode base64 content
   if (data.content && data.encoding === 'base64') {
-    const content = atob(data.content.replace(/\n/g, ''));
+    const content = Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf-8');
+    const truncated = content.length > MAX_FILE_CONTENT_CHARS;
     return {
       name: data.name,
       path: data.path,
       size: data.size,
       html_url: data.html_url,
-      content: content,
-      // Truncate very large files
-      truncated: content.length > 50000,
+      content: truncated
+        ? `${content.slice(0, MAX_FILE_CONTENT_CHARS)}\n\n... [truncated at ${MAX_FILE_CONTENT_CHARS} characters]`
+        : content,
+      truncated,
     };
   }
 
@@ -174,7 +295,8 @@ export const githubTools: ToolDomain = {
   tools: [
     {
       name: 'github_search_code',
-      description: 'Search for code across Avalanche GitHub repositories (avalanchego, icm-services, builders-hub).',
+      description:
+        'Search for code across core Avalanche GitHub repositories including avalanchego, subnet-evm, coreth, libevm, avalanche-cli, platform-cli, icm-services, icm-contracts, avalanche-network-runner, hypersdk, and builders-hub.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -184,13 +306,19 @@ export const githubTools: ToolDomain = {
           },
           repo: {
             type: 'string',
-            enum: ['avalanchego', 'icm-services', 'builders-hub', 'all'],
+            enum: [...GITHUB_REPO_NAMES, 'all'],
             description: 'The repository to search in. Defaults to "all".',
           },
           language: {
             type: 'string',
-            enum: ['go', 'solidity', 'typescript', 'any'],
+            enum: GITHUB_LANGUAGE_FILTERS,
             description: 'Filter results by programming language. Defaults to "any".',
+          },
+          perPage: {
+            type: 'number',
+            minimum: 1,
+            maximum: 10,
+            description: 'Maximum number of GitHub results to return (default: 10).',
           },
         },
         required: ['query'],
@@ -204,7 +332,7 @@ export const githubTools: ToolDomain = {
         properties: {
           repo: {
             type: 'string',
-            enum: ['avalanchego', 'icm-services', 'builders-hub'],
+            enum: GITHUB_REPO_NAMES,
             description: 'The repository to fetch the file from (owner is always ava-labs).',
           },
           path: {
@@ -219,6 +347,15 @@ export const githubTools: ToolDomain = {
         required: ['repo', 'path'],
       },
     },
+    {
+      name: 'github_list_repositories',
+      description: 'List the Avalanche GitHub repositories covered by github_search_code and github_get_file.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
   ],
   handlers: {
     github_search_code: async (args): Promise<ToolResult> => {
@@ -227,6 +364,7 @@ export const githubTools: ToolDomain = {
           query: args.query as string,
           repo: args.repo as SearchCodeParams['repo'],
           language: args.language as SearchCodeParams['language'],
+          perPage: typeof args.perPage === 'number' ? args.perPage : undefined,
         });
         return {
           content: [{ type: 'text', text: JSON.stringify(result) }],
@@ -257,5 +395,8 @@ export const githubTools: ToolDomain = {
         };
       }
     },
+    github_list_repositories: async (_args): Promise<ToolResult> => ({
+      content: [{ type: 'text', text: JSON.stringify({ repositories: GITHUB_REPOSITORIES }) }],
+    }),
   },
 };

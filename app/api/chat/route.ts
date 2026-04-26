@@ -592,11 +592,24 @@ export async function POST(req: Request) {
     },
     tools: {
       github_search_code: tool({
-        description: 'Search for code in Avalanche repositories (avalanchego, icm-services, builders-hub). Use this to find functions, types, implementations, or understand how Avalanche works internally. Returns file paths and code snippets.',
+        description: 'Search for code in core Avalanche repositories including avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Use this to find functions, types, implementations, or understand how Avalanche works internally.',
         inputSchema: z.object({
           query: z.string().describe('Search query - keywords, function names, type names, or concepts'),
-          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub', 'all']).default('all').describe('Which repository to search'),
-          language: z.enum(['go', 'solidity', 'typescript', 'any']).default('any').describe('Filter by programming language'),
+          repo: z.enum([
+            'avalanchego',
+            'subnet-evm',
+            'coreth',
+            'avalanche-cli',
+            'platform-cli',
+            'icm-services',
+            'avalanche-network-runner',
+            'icm-contracts',
+            'hypersdk',
+            'libevm',
+            'builders-hub',
+            'all',
+          ]).default('all').describe('Which repository to search'),
+          language: z.enum(['go', 'solidity', 'typescript', 'javascript', 'python', 'rust', 'shell', 'markdown', 'yaml', 'json', 'any']).default('any').describe('Filter by programming language'),
         }),
         execute: async (input) => {
           const { query, repo, language } = input;
@@ -611,9 +624,21 @@ export async function POST(req: Request) {
       }),
 
       github_get_file: tool({
-        description: 'Read the contents of a specific file from avalanchego, icm-services, or builders-hub. Use this after searching to read the full code of a relevant file.',
+        description: 'Read the contents of a specific file from a covered Avalanche repository. Use this after searching to read the full code of a relevant file.',
         inputSchema: z.object({
-          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub']).describe('Repository name'),
+          repo: z.enum([
+            'avalanchego',
+            'subnet-evm',
+            'coreth',
+            'avalanche-cli',
+            'platform-cli',
+            'icm-services',
+            'avalanche-network-runner',
+            'icm-contracts',
+            'hypersdk',
+            'libevm',
+            'builders-hub',
+          ]).describe('Repository name'),
           path: z.string().describe('File path within the repository (e.g., "vms/platformvm/block/builder.go")'),
         }),
         execute: async (input) => {
@@ -733,7 +758,7 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - **metrics_lookup**: For stats questions (active accounts, TPS, validators, etc.), call \`metrics_lookup\` first to get numbers, then \`render_component("OverviewStats")\` to show visually. For burns → \`render_component("LiveBlockBurns")\`, ICM traffic → \`render_component("ICMFlowDiagram")\`, ICTT → \`render_component("ICTTDashboard")\`.
 - **YouTube**: Embed with \`render_component("YouTubeEmbed", { videoId, title })\`. Never paste bare YouTube links.
 - **blockchain_lookup_***: For tx hashes, addresses, validators, subnets, chains. Follow up on \`_lookupHints\` in results.
-- **github_search_code / github_get_file**: Search avalanchego, icm-services, builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
+- **github_search_code / github_get_file**: Search core Avalanche repos: avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
 - **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
 - **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
 

@@ -11,9 +11,9 @@ import { docsResources } from '@/lib/mcp/resources';
 
 const server = new MCPServer({
   name: 'avalanche-mcp',
-  version: '2.0.0',
+  version: '2.1.0',
   protocolVersion: '2024-11-05',
-  description: 'Unified MCP server for Avalanche — docs, blockchain, GitHub, P-Chain, and Info API',
+  description: 'Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, GitHub code search, blockchain lookups, P-Chain, and Info API',
 });
 
 server.registerToolDomain(docsTools);
@@ -46,7 +46,7 @@ function createSSEResponse(data: unknown, eventId?: string): Response {
 }
 
 // ---------------------------------------------------------------------------
-// GET — server info + capabilities, or 405 for Streamable HTTP polling
+// GET - server info + capabilities, or 405 for Streamable HTTP polling
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
