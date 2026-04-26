@@ -14,6 +14,10 @@ const CLI_VALUES = ['avalanche-cli', 'platform-cli', 'tmpnet', 'all'] as const;
 const RPC_CHAIN_VALUES = ['p-chain', 'c-chain', 'x-chain', 'subnet-evm', 'other', 'all'] as const;
 const ACP_TRACKS = ['Standards', 'Best Practices', 'Meta', 'Subnet'] as const;
 
+// Cap a single docs_fetch response so a long Academy page can't dump 100KB+ of markdown
+// into the AI client in one tool call. Matches github_get_file's MAX_FILE_CONTENT_CHARS.
+const MAX_FETCH_CONTENT_CHARS = 50_000;
+
 const CLI_PATH_PREFIXES: Record<(typeof CLI_VALUES)[number], string[]> = {
   'avalanche-cli': ['/docs/tooling/avalanche-cli'],
   'platform-cli': ['/docs/tooling/platform-cli'],
@@ -391,8 +395,13 @@ export const docsTools: ToolDomain = {
         };
       }
 
+      const truncated = content.length > MAX_FETCH_CONTENT_CHARS;
+      const responseText = truncated
+        ? `${content.slice(0, MAX_FETCH_CONTENT_CHARS)}\n\n... [truncated at ${MAX_FETCH_CONTENT_CHARS} characters; use docs_search for targeted excerpts] ...`
+        : content;
+
       return {
-        content: [{ type: 'text', text: content }],
+        content: [{ type: 'text', text: responseText }],
       };
     },
 

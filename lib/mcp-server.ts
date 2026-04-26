@@ -97,12 +97,15 @@ async function buildDocsSearchIndex(): Promise<SearchChunk[]> {
     pages.map((page) => ({ name, page }))
   );
 
+  let failedCount = 0;
+
   const chunksByPage = await processWithConcurrency(tasks, INDEX_BUILD_CONCURRENCY, async ({ name, page }) => {
     let content = '';
 
     try {
       content = await getLLMText(page as Parameters<typeof getLLMText>[0]);
     } catch (error) {
+      failedCount += 1;
       console.error(`Error indexing content for ${page.url}:`, error);
     }
 
@@ -120,6 +123,18 @@ async function buildDocsSearchIndex(): Promise<SearchChunk[]> {
       normalizedText: normalizeForSearch(chunk),
     }));
   });
+
+  // Surface high failure rates so silent index degradation is visible in logs —
+  // bounded concurrency prevents resource exhaustion, but per-page errors still
+  // drop pages from the index.
+  if (failedCount > 0 && tasks.length > 0) {
+    const failureRate = failedCount / tasks.length;
+    if (failureRate > 0.05 || failedCount >= 10) {
+      console.warn(
+        `[mcp/docs-index] ${failedCount}/${tasks.length} pages failed to index (${(failureRate * 100).toFixed(1)}%) — searches may return incomplete results`,
+      );
+    }
+  }
 
   return chunksByPage.flat();
 }

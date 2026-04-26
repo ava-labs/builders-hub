@@ -138,9 +138,14 @@ function buildSearchQuery(rawQuery: string): string {
   return sanitized.length > MAX_USER_QUERY_CHARS ? sanitized.slice(0, MAX_USER_QUERY_CHARS) : sanitized;
 }
 
-function buildGithubHeaders(): HeadersInit {
+function buildGithubHeaders(options: { textMatch?: boolean } = {}): HeadersInit {
+  // The text-match media type is only useful on /search/code — it tells GitHub to populate
+  // the `text_matches` array with code-context fragments. Without it, the fragments we map
+  // over in searchSingleRepo are always empty.
   const headers: HeadersInit = {
-    Accept: 'application/vnd.github.v3+json',
+    Accept: options.textMatch
+      ? 'application/vnd.github.v3.text-match+json'
+      : 'application/vnd.github.v3+json',
     'User-Agent': 'Avalanche-Builders-Hub',
   };
   const token = process.env.GITHUB_TOKEN;
@@ -194,7 +199,7 @@ async function searchSingleRepo(
   url.searchParams.set('q', searchQuery);
   url.searchParams.set('per_page', String(perPage));
 
-  const response = await fetch(url.toString(), { headers: buildGithubHeaders() });
+  const response = await fetch(url.toString(), { headers: buildGithubHeaders({ textMatch: true }) });
 
   if (!response.ok) {
     const details = await response.text().catch(() => '');
