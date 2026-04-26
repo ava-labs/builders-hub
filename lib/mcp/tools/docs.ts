@@ -237,19 +237,24 @@ const acpListTool: MCPTool = {
 };
 
 function validateFetchUrl(url: string): { valid: boolean; error?: string } {
-  // Must start with /
-  if (!url.startsWith('/')) {
+  if (typeof url !== 'string' || !url.startsWith('/')) {
     return { valid: false, error: 'URL must start with /' };
   }
 
-  // Reject external URLs, protocols, and path traversal
-  if (url.includes('://') || url.includes('..')) {
-    return { valid: false, error: 'URL must be an internal path without ".." or protocols' };
+  // Decode once so a percent-encoded `..` doesn't slip past the literal check.
+  let decoded = url;
+  try {
+    decoded = decodeURIComponent(url);
+  } catch {
+    return { valid: false, error: 'URL contains invalid percent-encoded characters' };
   }
 
-  // Only allow specific prefixes
+  if (decoded.includes('://') || decoded.includes('..') || decoded.includes('\\')) {
+    return { valid: false, error: 'URL must be an internal path without "..", "\\", or protocols' };
+  }
+
   const allowedPrefixes = ['/docs/', '/academy/', '/integrations/', '/blog/'];
-  if (!allowedPrefixes.some((prefix) => url.startsWith(prefix))) {
+  if (!allowedPrefixes.some((prefix) => decoded.startsWith(prefix))) {
     return {
       valid: false,
       error: `URL must start with one of: ${allowedPrefixes.join(', ')}`,
@@ -515,11 +520,16 @@ export const docsTools: ToolDomain = {
       }
 
       const sections: string[] = [];
+      let structuredEntry: AcpEntry | undefined;
 
       if (hasNumber) {
         try {
-          const entry = await findAcpByNumber(numericInput);
-          if (entry) sections.push(formatAcpEntry(entry));
+          structuredEntry = await findAcpByNumber(numericInput);
+          if (structuredEntry) {
+            sections.push(formatAcpEntry(structuredEntry));
+          } else {
+            sections.push(`No structured ACP-${numericInput} record found in the registry.`);
+          }
         } catch (error) {
           console.error('[acp_lookup] structured lookup failed', error);
         }
@@ -531,7 +541,13 @@ export const docsTools: ToolDomain = {
         pathPrefixes: ['/docs/acps'],
       });
 
-      sections.push(formatSearchResults(searchQuery, results, 'ACP results'));
+      const dedupedResults = structuredEntry
+        ? results.filter((result) => result.url !== structuredEntry!.url)
+        : results;
+
+      if (dedupedResults.length > 0 || !structuredEntry) {
+        sections.push(formatSearchResults(searchQuery, dedupedResults, 'ACP results'));
+      }
 
       return {
         content: [{ type: 'text', text: sections.join('\n\n') }],
@@ -541,10 +557,9 @@ export const docsTools: ToolDomain = {
     acp_list: async (args): Promise<ToolResult> => {
       const status = getStringArg(args, 'status') || undefined;
       const track = getStringArg(args, 'track') || undefined;
-      const limit =
-        typeof args.limit === 'number' && args.limit > 0
-          ? Math.min(Math.floor(args.limit), 100)
-          : 50;
+      // Use a 100-cap default of 50 — separate from the search-result getLimit (which caps at 50).
+      const rawLimit = typeof args.limit === 'number' ? args.limit : 50;
+      const limit = Math.min(Math.max(Math.floor(rawLimit), 1), 100);
 
       try {
         const entries = await listAcps({ status, track, limit });
