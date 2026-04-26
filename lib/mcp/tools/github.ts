@@ -2,6 +2,13 @@ import type { ToolDomain, ToolResult } from '../types';
 
 const GITHUB_API = 'https://api.github.com';
 const MAX_FILE_CONTENT_CHARS = 50_000;
+const MAX_USER_QUERY_CHARS = 100;
+const MAX_PATH_CHARS = 512;
+// Conservative subset of valid git refs: branches, tags, SHAs (e.g. "main", "v1.2.3", "feat/foo", "abc123def").
+// Disallows whitespace, ?, &, #, %, NUL, and anything else that could change request semantics.
+const REF_REGEX = /^[A-Za-z0-9._/\-]{1,200}$/;
+// Strip GitHub search qualifiers a user might inject (repo:, org:, user:, in:, path:, etc.) — we'll add our own.
+const QUALIFIER_REGEX = /\b(repo|org|user|in|path|filename|extension|language|fork|size|stars|forks|created|pushed|topic|topics|archived|mirror|is):\S*/gi;
 
 export const GITHUB_REPOSITORIES = [
   {
@@ -105,10 +112,112 @@ function getRepoFullName(repo: RepoName): string {
 
 function validateRepoPath(path: string): string | null {
   if (!path) return 'File path is required';
-  if (path.startsWith('/')) return 'File path must be relative to the repository root';
-  if (path.includes('..')) return 'File path must not include path traversal';
-  if (path.includes('://')) return 'File path must not include a protocol';
+  if (path.length > MAX_PATH_CHARS) return `File path exceeds ${MAX_PATH_CHARS} characters`;
+
+  // Decode once to catch percent-encoded traversal attempts.
+  let decoded = path;
+  try {
+    decoded = decodeURIComponent(path);
+  } catch {
+    return 'File path contains invalid percent-encoded characters';
+  }
+
+  if (decoded.startsWith('/')) return 'File path must be relative to the repository root';
+  if (decoded.includes('..')) return 'File path must not include path traversal';
+  if (decoded.includes('://')) return 'File path must not include a protocol';
+  if (decoded.includes('\\')) return 'File path must use forward slashes';
+  if (/^[A-Za-z]:/.test(decoded)) return 'File path must not be an absolute Windows path';
+  if (/[\x00-\x1f]/.test(decoded)) return 'File path must not contain control characters';
   return null;
+}
+
+function buildSearchQuery(rawQuery: string): string {
+  // Strip qualifier-style tokens to prevent users from broadening the search scope to repos
+  // outside the allowlist (the server-side GITHUB_TOKEN could otherwise expose private content).
+  const sanitized = rawQuery.replace(QUALIFIER_REGEX, ' ').replace(/\s+/g, ' ').trim();
+  return sanitized.length > MAX_USER_QUERY_CHARS ? sanitized.slice(0, MAX_USER_QUERY_CHARS) : sanitized;
+}
+
+function buildGithubHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    Accept: 'application/vnd.github.v3+json',
+    'User-Agent': 'Avalanche-Builders-Hub',
+  };
+  const token = process.env.GITHUB_TOKEN;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+interface GithubSearchItem {
+  name: string;
+  path: string;
+  repository: { full_name: string };
+  html_url: string;
+  text_matches?: Array<{ fragment?: string }>;
+  score?: number;
+}
+
+interface GithubSearchResponse {
+  total_count?: number;
+  items?: GithubSearchItem[];
+}
+
+interface SingleRepoSearchOk {
+  ok: true;
+  total_count: number;
+  items: Array<{
+    name: string;
+    path: string;
+    repository: string;
+    html_url: string;
+    text_matches?: Array<{ fragment?: string }>;
+    score?: number;
+  }>;
+}
+
+interface SingleRepoSearchErr {
+  ok: false;
+  status: number;
+  details: string;
+}
+
+async function searchSingleRepo(
+  sanitizedQuery: string,
+  repoFullName: string,
+  language: LanguageFilter,
+  perPage: number
+): Promise<SingleRepoSearchOk | SingleRepoSearchErr> {
+  let searchQuery = `${sanitizedQuery} repo:${repoFullName}`;
+  if (language !== 'any') searchQuery += ` language:${language}`;
+
+  const url = new URL(`${GITHUB_API}/search/code`);
+  url.searchParams.set('q', searchQuery);
+  url.searchParams.set('per_page', String(perPage));
+
+  const response = await fetch(url.toString(), { headers: buildGithubHeaders() });
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => '');
+    return { ok: false, status: response.status, details: details.slice(0, 500) };
+  }
+
+  const data = (await response.json()) as GithubSearchResponse;
+  const items = Array.isArray(data.items) ? data.items : [];
+
+  return {
+    ok: true,
+    total_count: typeof data.total_count === 'number' ? data.total_count : items.length,
+    items: items
+      .filter((item): item is GithubSearchItem => !!item && !!item.repository?.full_name)
+      .map((item) => ({
+        name: item.name,
+        path: item.path,
+        repository: item.repository.full_name,
+        html_url: item.html_url,
+        text_matches: item.text_matches?.map((m) => ({ fragment: m.fragment })),
+        score: typeof item.score === 'number' ? item.score : undefined,
+      })),
+  };
 }
 
 async function searchCode(params: SearchCodeParams) {
@@ -132,85 +241,83 @@ async function searchCode(params: SearchCodeParams) {
     };
   }
 
-  // Simplify query for better GitHub API compatibility
-  // Remove very long queries that cause timeouts
-  const simplifiedQuery = trimmedQuery.length > 100 ? trimmedQuery.slice(0, 100) : trimmedQuery;
-
-  // Build GitHub search query
-  let searchQuery = simplifiedQuery;
-
-  if (repo === 'all') {
-    searchQuery = `${simplifiedQuery} ${ALLOWED_REPOS.map((fullName) => `repo:${fullName}`).join(' ')}`;
-  } else {
-    searchQuery = `${simplifiedQuery} repo:${getRepoFullName(repo)}`;
-  }
-
-  if (language !== 'any') {
-    searchQuery += ` language:${language}`;
-  }
-
-  const url = new URL(`${GITHUB_API}/search/code`);
-  url.searchParams.set('q', searchQuery);
-  url.searchParams.set('per_page', String(Math.min(Math.max(perPage, 1), 10)));
-
-  const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
-    'User-Agent': 'Avalanche-Builders-Hub',
-  };
-
-  // Add auth token if available for higher rate limits
-  const token = process.env.GITHUB_TOKEN;
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(url.toString(), { headers });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('GitHub search error:', response.status, error);
-
-    // Return helpful error info instead of throwing
-    if (response.status === 408) {
-      return {
-        total_count: 0,
-        items: [],
-        error: 'Search timed out. Try a simpler query with fewer keywords.',
-        suggestion: 'Use specific function or type names instead of long phrases.'
-      };
-    }
-    if (response.status === 403) {
-      return {
-        total_count: 0,
-        items: [],
-        error: 'Rate limit exceeded. Please wait a moment before searching again.',
-        suggestion: 'GitHub allows ~30 searches per minute for authenticated users.'
-      };
-    }
-    // Return error instead of throwing to avoid disrupting the AI stream
+  const sanitizedQuery = buildSearchQuery(trimmedQuery);
+  if (!sanitizedQuery) {
     return {
       total_count: 0,
       items: [],
-      error: `GitHub API error: ${response.status}`,
-      details: error.substring(0, 500)
+      error: 'Search query was empty after sanitization (qualifier tokens are stripped automatically)',
     };
   }
 
-  const data = await response.json();
+  const clampedPerPage = Math.min(Math.max(perPage, 1), 10);
 
-  // Format results for the chat
+  // Single-repo search: one round-trip.
+  if (repo !== 'all') {
+    const result = await searchSingleRepo(sanitizedQuery, getRepoFullName(repo), language, clampedPerPage);
+    if (!result.ok) {
+      console.error('GitHub search error:', result.status, result.details);
+      return mapGithubError(result.status, result.details);
+    }
+    return { total_count: result.total_count, items: result.items };
+  }
+
+  // Multi-repo "all": fan out in parallel, then merge.
+  // (Each `repo:` qualifier costs 14-38 chars; combining all 11 into one query exceeds GitHub's 256-char q limit.)
+  const results = await Promise.all(
+    ALLOWED_REPOS.map((fullName) => searchSingleRepo(sanitizedQuery, fullName, language, clampedPerPage))
+  );
+
+  const okResults = results.filter((r): r is SingleRepoSearchOk => r.ok);
+  if (okResults.length === 0) {
+    const firstErr = results.find((r): r is SingleRepoSearchErr => !r.ok);
+    if (firstErr) {
+      console.error('GitHub search error (all repos failed):', firstErr.status, firstErr.details);
+      return mapGithubError(firstErr.status, firstErr.details);
+    }
+    return { total_count: 0, items: [] };
+  }
+
+  // Merge: total_count is the sum, items sorted by score desc and capped to perPage.
+  const totalCount = okResults.reduce((sum, r) => sum + r.total_count, 0);
+  const merged = okResults.flatMap((r) => r.items);
+  merged.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+
   return {
-    total_count: data.total_count,
-    items: data.items.map((item: any) => ({
-      name: item.name,
-      path: item.path,
-      repository: item.repository.full_name,
-      html_url: item.html_url,
-      // Include a snippet of the match context if available
-      text_matches: item.text_matches?.map((match: any) => ({
-        fragment: match.fragment,
-      })),
-    })),
+    total_count: totalCount,
+    items: merged.slice(0, clampedPerPage),
+  };
+}
+
+function mapGithubError(status: number, details: string) {
+  if (status === 408) {
+    return {
+      total_count: 0,
+      items: [],
+      error: 'Search timed out. Try a simpler query with fewer keywords.',
+      suggestion: 'Use specific function or type names instead of long phrases.',
+    };
+  }
+  if (status === 403) {
+    return {
+      total_count: 0,
+      items: [],
+      error: 'Rate limit exceeded. Please wait a moment before searching again.',
+      suggestion: 'GitHub allows ~30 searches per minute for authenticated users.',
+    };
+  }
+  if (status === 422) {
+    return {
+      total_count: 0,
+      items: [],
+      error: 'Query was rejected by GitHub (likely too long or malformed).',
+      suggestion: 'Use a shorter query with specific symbol or function names.',
+    };
+  }
+  return {
+    total_count: 0,
+    items: [],
+    error: `GitHub API error: ${status}`,
   };
 }
 
@@ -218,6 +325,7 @@ async function getFileContents(params: GetFileParams) {
   const { repo, path, ref = 'HEAD' } = params;
   const owner = 'ava-labs';
   const requestedPath = typeof path === 'string' ? path : '';
+  const requestedRef = typeof ref === 'string' ? ref.trim() : 'HEAD';
 
   if (!isRepoName(repo)) {
     return {
@@ -234,18 +342,23 @@ async function getFileContents(params: GetFileParams) {
     };
   }
 
-  const url = `${GITHUB_API}/repos/${owner}/${repo}/contents/${requestedPath}?ref=${ref}`;
-
-  const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
-    'User-Agent': 'Avalanche-Builders-Hub',
-  };
-
-  if (process.env.GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+  if (!REF_REGEX.test(requestedRef)) {
+    return {
+      error: 'Ref must be a valid git ref (alphanumerics, dot, underscore, slash, dash; max 200 chars)',
+      ref: requestedRef,
+    };
   }
 
-  const response = await fetch(url, { headers });
+  // Encode each path segment but preserve `/` as a separator (GitHub contents API expects path segments).
+  const encodedPath = requestedPath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+
+  const url = new URL(`${GITHUB_API}/repos/${owner}/${repo}/contents/${encodedPath}`);
+  url.searchParams.set('ref', requestedRef);
+
+  const response = await fetch(url.toString(), { headers: buildGithubHeaders() });
 
   if (!response.ok) {
     if (response.status === 404) {
