@@ -587,10 +587,10 @@ export default function CChainValidatorMetrics() {
 
   const chartConfigs = [
     {
-      title: "Primary Network Validator Count",
+      title: "Avalanche Network Validator Count",
       icon: Monitor,
       metricKey: "validator_count" as const,
-      description: "Number of active validators on the Primary Network",
+      description: "Number of active validators in the Avalanche ecosystem",
       color: chainConfig.color,
       chartType: "bar" as const,
     },
@@ -1168,6 +1168,11 @@ export default function CChainValidatorMetrics() {
                   overlayColor={isValidatorCount ? "#3B82F6" : undefined}
                   referenceLineDate={isValidatorCount ? "2024-12-16" : undefined}
                   referenceLineLabel={isValidatorCount ? "ACP-77 (Etna)" : undefined}
+                  descriptionNote={
+                    isValidatorCount
+                      ? "After the Etna upgrade, validators of subnets that converted into sovereign L1s no longer needed to also stake on the Primary Network — which is why the two series diverge from this point on."
+                      : undefined
+                  }
                 />
               );
             })}
@@ -2308,6 +2313,7 @@ function ValidatorChartCard({
   overlayColor,
   referenceLineDate,
   referenceLineLabel,
+  descriptionNote,
 }: {
   config: any;
   rawData: any[];
@@ -2321,6 +2327,7 @@ function ValidatorChartCard({
   overlayColor?: string;
   referenceLineDate?: string;
   referenceLineLabel?: string;
+  descriptionNote?: string;
 }) {
   const hasOverlay = Array.isArray(overlayData) && overlayData.length > 0;
   const [brushIndexes, setBrushIndexes] = useState<{
@@ -2615,6 +2622,11 @@ function ValidatorChartCard({
               <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                 {config.description}
               </p>
+              {descriptionNote && isReferenceInRange && (
+                <p className="mt-1 text-xs text-muted-foreground/80 italic hidden sm:block max-w-2xl">
+                  {descriptionNote}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-1">
