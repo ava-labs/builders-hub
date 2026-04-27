@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useAccount, useChainId } from 'wagmi';
+import { useAccount, useAccountEffect, useChainId, useSwitchChain } from 'wagmi';
+import { avalancheFuji } from 'wagmi/chains';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { createCoreWalletClient } from '@/components/toolbox/coreViem';
 import { networkIDs } from '@avalabs/avalanchejs';
@@ -21,6 +22,26 @@ import posthog from 'posthog-js';
 export function WalletSync() {
   const { address, connector, isConnected } = useAccount();
   const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+
+  /**
+   * On a *fresh* wallet connect (user just clicked Connect — not a reload
+   * rehydration), nudge the wallet to Fuji testnet. Builder Hub tooling
+   * defaults to testnet for safety: deploys, faucets, validator flows,
+   * and Quick L1 are all testnet-first. `isReconnected` lets us skip
+   * the nudge on page reloads so we don't fight a user who deliberately
+   * switched to mainnet in a prior session.
+   *
+   * If the user rejects the switch we silently let them stay on whatever
+   * chain they connected to — mainnet still works for read-only flows.
+   */
+  useAccountEffect({
+    onConnect({ chainId: connectChainId, isReconnected }) {
+      if (isReconnected) return;
+      if (connectChainId === avalancheFuji.id) return;
+      switchChainAsync({ chainId: avalancheFuji.id }).catch(() => {});
+    },
+  });
 
   const setCoreWalletClient = useWalletStore((s) => s.setCoreWalletClient);
   const setWalletEVMAddress = useWalletStore((s) => s.setWalletEVMAddress);

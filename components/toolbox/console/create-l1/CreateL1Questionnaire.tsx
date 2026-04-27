@@ -15,7 +15,6 @@ import {
   Sparkles,
   Check,
   Droplets,
-  Wallet,
   Link2,
   Link2Off,
   PlayCircle,
@@ -205,7 +204,7 @@ export default function CreateL1Questionnaire() {
   const resumeStepKey = useMemo(() => getResumeStepKey(savedAnswers, savedStepIndex), [savedAnswers, savedStepIndex]);
   const resetFlow = useCreateL1FlowStore((s) => s.reset);
 
-  const { isTestnet, pChainBalance, walletEVMAddress } = useWalletStore();
+  const { isTestnet, pChainBalance } = useWalletStore();
   const toolboxStore = useToolboxStore();
 
   // Setup-mode gate: before any questionnaire question, ask whether the
@@ -232,7 +231,10 @@ export default function CreateL1Questionnaire() {
     setVmLocation(v === 'pos-erc20' ? 'c-chain' : 'l1');
   }, []);
   const [multisig, setMultisig] = useState(false);
-  const [hosting, setHosting] = useState<HostingOption>('managed');
+  // Advanced flow defaults to Docker — users who opted into Advanced are
+  // typically running their own infra. Managed remains the Basic flow's
+  // implicit choice.
+  const [hosting, setHosting] = useState<HostingOption>('docker');
   const [interoperability, setInteroperability] = useState(true);
 
   // Multisig only for PoA + C-Chain. Hosting and interop always shown
@@ -265,7 +267,6 @@ export default function CreateL1Questionnaire() {
   // The P-Chain step has its own balance check for the truly-zero case.
   const needsFaucet =
     isTestnet && typeof pChainBalance === 'number' && pChainBalance > 0 && pChainBalance < MIN_P_BALANCE;
-  const isConnected = !!walletEVMAddress;
 
   const goNext = useCallback(() => {
     if (questionIndex < totalQuestions) {
@@ -305,7 +306,7 @@ export default function CreateL1Questionnaire() {
   // other question. Card selection is pending until the user hits
   // Continue; at that point we either route to /basic or flip into the
   // Advanced questionnaire.
-  if (isConnected && setupMode === null) {
+  if (setupMode === null) {
     const totalSteps = totalQuestions + 1; // +1 for this chooser
     const handleContinue = () => {
       if (pendingSetupMode === 'basic') {
@@ -406,32 +407,6 @@ export default function CreateL1Questionnaire() {
             Continue
             <ArrowRight className="h-4 w-4" />
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Wallet gate + questionnaire — no early returns (hooks must be called unconditionally)
-  if (!isConnected) {
-    return (
-      <div className="mx-auto max-w-xl min-h-[50vh] flex items-center justify-center">
-        <div
-          className="rounded-2xl border border-zinc-700 bg-zinc-800 p-8 text-center w-full"
-          style={{
-            boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
-          }}
-        >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.08] mx-auto mb-4">
-            <Wallet className="h-7 w-7 text-zinc-300" />
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">Connect your wallet</h2>
-          <p className="text-sm text-zinc-400 mb-1">
-            Connect a wallet to get started. We recommend starting on{' '}
-            <span className="text-zinc-200 font-medium">Fuji testnet</span>.
-          </p>
-          <p className="text-xs text-zinc-500">
-            Use Core Wallet for full P-Chain support, or MetaMask for EVM-only operations.
-          </p>
         </div>
       </div>
     );
@@ -767,19 +742,7 @@ export default function CreateL1Questionnaire() {
                 </p>
               </div>
 
-              {/* Wallet preflight warnings */}
-              {!isConnected && (
-                <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-4">
-                  <Wallet className="h-5 w-5 text-amber-500 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Wallet not connected</p>
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Connect your wallet to begin. A faucet step will be added if you need testnet AVAX.
-                    </p>
-                  </div>
-                </div>
-              )}
-              {isConnected && needsFaucet && (
+              {needsFaucet && (
                 <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-4">
                   <Droplets className="h-5 w-5 text-amber-500 shrink-0" />
                   <div>

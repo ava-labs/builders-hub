@@ -49,8 +49,24 @@ interface AddChainFormData {
 
 type InputMode = 'rpc' | 'chainId';
 
+/**
+ * Thin open/closed shell. The actual form lives in `AddChainModalInner`
+ * which is mounted *only* while `isOpen` — that way each open starts
+ * with fresh `useForm` / `useState` / `useEffect` instances. The previous
+ * version used `if (!isOpen) return null` inside the same component,
+ * which keeps the component mounted and preserves form state across
+ * open/close cycles. That caused the second open with the same RPC URL
+ * to fail to re-detect the chain (stale form values + an in-flight
+ * fetch from the previous open could clobber the freshly-reset state).
+ */
 export function AddChainModal() {
-  const { isOpen, options, closeModal } = useModalState();
+  const { isOpen } = useModalState();
+  if (!isOpen) return null;
+  return <AddChainModalInner />;
+}
+
+function AddChainModalInner() {
+  const { options, closeModal } = useModalState();
   const { client: walletClient } = useWallet();
   const { l1List } = useL1ListStore()();
   const { addL1 } = useL1ListStore()();
@@ -58,11 +74,14 @@ export function AddChainModal() {
   const [inputMode, setInputMode] = useState<InputMode>('rpc');
   const [isFetchingChainData, setIsFetchingChainData] = useState(false);
 
+  // Seed defaults from the caller's options on mount. Because this
+  // component unmounts on close and remounts on open, useForm picks up
+  // the latest options.rpcUrl every time without needing a reset effect.
   const form = useForm<AddChainFormData>({
     defaultValues: {
-      rpcUrl: '',
-      chainName: '',
-      coinName: '',
+      rpcUrl: options?.rpcUrl || '',
+      chainName: options?.chainName || '',
+      coinName: options?.coinName || '',
       evmChainId: 0,
       chainId: '',
       subnetId: '',
@@ -76,7 +95,6 @@ export function AddChainModal() {
   const {
     control,
     handleSubmit,
-    reset,
     setValue,
     watch,
     trigger,
@@ -99,27 +117,6 @@ export function AddChainModal() {
     },
     [l1List],
   );
-
-  // Reset form when modal opens; seed from caller options if provided.
-  useEffect(() => {
-    if (isOpen) {
-      reset({
-        rpcUrl: options?.rpcUrl || '',
-        coinName: options?.coinName || '',
-        chainName: options?.chainName || '',
-        evmChainId: 0,
-        chainId: '',
-        subnetId: '',
-        wrappedTokenAddress: '',
-        validatorManagerAddress: '',
-        logoUrl: '',
-        isTestnet: false,
-      });
-      setInputMode('rpc');
-    } else {
-      reset();
-    }
-  }, [isOpen, options, reset]);
 
   // Fetch + populate chain metadata whenever the RPC URL changes.
   // Preserves the original three-call glacier flow; only the error/
@@ -266,8 +263,6 @@ export function AddChainModal() {
       });
     }
   };
-
-  if (!isOpen) return null;
 
   const detected = !!evmChainId && !!chainId && !isFetchingChainData;
   const allowLookup = (options?.allowLookup ?? true) && !options?.rpcUrl;
