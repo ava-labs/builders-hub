@@ -132,9 +132,10 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 			validatorCount: typeof avalancheChain?.validatorCount === 'number' ? avalancheChain.validatorCount : undefined,
 		}];
 
-		// Add every active L1 from the API. Chains without logos (e.g. P-Chain
-		// stub entries seeded from platform.getBlockchains) still render — the
-		// diagram falls back to a colored circle with the chain's initial.
+		// Homepage is a marketing surface — only render chains with curated
+		// logos so it feels polished. P-Chain stub entries (no Glacier
+		// metadata, no logo) are intentionally hidden here; they still appear
+		// on /stats/overview where comprehensiveness matters more than polish.
 		l1Chains.forEach(chain => {
 			const l1Chain = l1ChainsData.find(
 				(c: any) => c.chainId === chain.chainId ||
@@ -143,7 +144,9 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 
 			const category = l1Chain?.category || 'General';
 			const slug = l1Chain?.slug;
-			const logo = chain.chainLogoURI || l1Chain?.chainLogoURI || undefined;
+			const logo = chain.chainLogoURI || l1Chain?.chainLogoURI;
+
+			if (!logo) return;
 
 			result.push({
 				id: chain.chainId,
