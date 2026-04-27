@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  Activity,
   ArrowUpDown,
   BarChart3,
   Blocks,
@@ -37,6 +38,22 @@ import { useL1ValidatorCount, type L1ValidatorCountState } from '@/hooks/useL1Va
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
+import l1ChainsData from '@/constants/l1-chains.json';
+
+// Index l1-chains.json by EVM chainId so we can deep-link to the
+// /stats/l1/<slug> page when one exists. Most well-known L1s (Echo,
+// Dispatch, Dexalot, Andromeda, …) have an entry here; managed Builder Hub
+// testnets generally don't.
+const STATS_SLUG_BY_CHAIN_ID = (() => {
+  const map = new Map<number, string>();
+  (l1ChainsData as Array<{ chainId: string; slug: string }>).forEach((c) => {
+    const id = Number(c.chainId);
+    if (Number.isFinite(id) && c.slug) {
+      map.set(id, c.slug);
+    }
+  });
+  return map;
+})();
 
 // C-Chain (Fuji + Mainnet) lives in the wallet's l1List as a sentinel for
 // the primary network; it's not an L1 in this dashboard's sense, so we strip
@@ -661,14 +678,24 @@ function DetailHeader({ l1 }: { l1: CombinedL1 }) {
           </p>
         </div>
       </div>
-      {l1.explorerUrl && (
-        <a href={l1.explorerUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
-          <Button variant="outline" size="sm">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Open Explorer
-          </Button>
-        </a>
-      )}
+      <div className="flex flex-wrap gap-2 shrink-0">
+        {l1.evmChainId !== null && STATS_SLUG_BY_CHAIN_ID.has(l1.evmChainId) && (
+          <Link href={`/stats/l1/${STATS_SLUG_BY_CHAIN_ID.get(l1.evmChainId)}`}>
+            <Button variant="outline" size="sm">
+              <Activity className="w-4 h-4 mr-2" />
+              View Stats
+            </Button>
+          </Link>
+        )}
+        {l1.explorerUrl && (
+          <a href={l1.explorerUrl} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Open Explorer
+            </Button>
+          </a>
+        )}
+      </div>
     </div>
   );
 }
