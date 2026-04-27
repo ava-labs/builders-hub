@@ -154,6 +154,11 @@ interface L1Chain {
   // app/api/overview-stats) filter on `isActive === false` to hide inactive
   // chains from user-facing lists while preserving their metadata on disk.
   isActive?: boolean;
+  // True/absent for subnet-evm L1s; false for stub entries created from
+  // P-Chain `platform.getBlockchains` whose VM is not subnet-evm. Lets EVM-
+  // only consumers (RPC calls, explorer pages, faucet, etc.) skip non-EVM
+  // chains while they still appear in counts and the network globe.
+  isEvm?: boolean;
 }
 
 const GLACIER_API_ENDPOINT = 'https://glacier-api.avax.network';
@@ -245,6 +250,101 @@ interface ValidatorSet {
 
 interface GetAllValidatorsAtResult {
   validatorSets: Record<string, ValidatorSet>;
+}
+
+// platform.getBlockchains response entry. Used to seed stub L1 entries for
+// subnets active on P-Chain but not present in Glacier.
+interface PChainBlockchain {
+  id: string;       // blockchainID (CB58)
+  name: string;
+  subnetID: string;
+  vmID: string;     // CB58 VM identifier
+}
+
+// CB58 vmID for subnet-evm. L1s with this vmID are EVM-compatible; others use
+// custom VMs (e.g. nftchain, kite) and don't expose an Ethereum-style RPC.
+const SUBNET_EVM_VM_ID = 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy';
+
+async function fetchPChainBlockchains(network: 'mainnet' | 'fuji'): Promise<PChainBlockchain[] | null> {
+  const url = P_CHAIN_ENDPOINTS[network];
+  console.log(`Fetching blockchain registry from P-Chain (${network})...`);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'platform.getBlockchains',
+        params: {},
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`P-Chain (${network}) getBlockchains returned ${response.status}`);
+      return null;
+    }
+
+    const body = (await response.json()) as { result?: { blockchains?: PChainBlockchain[] } };
+    const blockchains = body.result?.blockchains;
+    if (!Array.isArray(blockchains)) {
+      console.error(`P-Chain (${network}) getBlockchains: unexpected response shape`);
+      return null;
+    }
+
+    console.log(`P-Chain (${network}): ${blockchains.length} blockchains registered`);
+    return blockchains;
+  } catch (err) {
+    console.error(`P-Chain (${network}) getBlockchains failed:`, err);
+    return null;
+  }
+}
+
+// Deterministic accent color from subnetId so stub entries get a stable look
+// across runs (used as a fallback brand color for chains without a logo).
+function colorFromSubnetId(subnetId: string): string {
+  const hash = sha256(new TextEncoder().encode(subnetId));
+  return '#' + bytesToHex(hash.slice(0, 3));
+}
+
+// Build a stub L1Chain entry for a subnet active on P-Chain but missing from
+// Glacier. Uses blockchainID as the unique `chainId` — non-EVM chains have no
+// EVM chainId, and even EVM L1s outside Glacier's catalog have no public way
+// to discover one without their RPC. Downstream EVM-only code should branch
+// on `isEvm` (or fail gracefully on non-numeric chainId).
+function createPChainStubChain(
+  subnetId: string,
+  blockchain: PChainBlockchain,
+  isTestnet: boolean,
+): L1Chain {
+  const isEvm = blockchain.vmID === SUBNET_EVM_VM_ID;
+  return {
+    chainId: blockchain.id,
+    chainName: blockchain.name,
+    chainLogoURI: '',
+    blockchainId: toHexBlockchainId(blockchain.id),
+    subnetId,
+    slug: generateSlug(blockchain.name) || `subnet-${subnetId.slice(0, 8).toLowerCase()}`,
+    color: colorFromSubnetId(subnetId),
+    isTestnet,
+    isActive: true,
+    isEvm,
+  };
+}
+
+// Pick one blockchain per subnet to seed stubs (preferring subnet-evm if
+// multiple exist). Used to dedupe before creating stub entries.
+function buildSubnetToBlockchainMap(blockchains: PChainBlockchain[] | null): Map<string, PChainBlockchain> {
+  const map = new Map<string, PChainBlockchain>();
+  if (!blockchains) return map;
+  for (const bc of blockchains) {
+    const existing = map.get(bc.subnetID);
+    if (!existing || (bc.vmID === SUBNET_EVM_VM_ID && existing.vmID !== SUBNET_EVM_VM_ID)) {
+      map.set(bc.subnetID, bc);
+    }
+  }
+  return map;
 }
 
 async function fetchActiveSubnetIds(network: 'mainnet' | 'fuji'): Promise<Set<string> | null> {
@@ -399,12 +499,24 @@ async function main() {
   const existingChains: L1Chain[] = JSON.parse(fs.readFileSync(chainsFilePath, 'utf-8'));
   console.log(`Loaded ${existingChains.length} existing chains from l1-chains.json\n`);
 
-  // Fetch chains from Glacier API + active subnet sets from P-Chain in parallel.
-  const [mainnetChains, testnetChains, activeMainnet, activeFuji] = await Promise.all([
+  // Fetch Glacier chains + P-Chain active subnet sets + P-Chain blockchain
+  // registry in parallel. The blockchain registry is only consulted when prune
+  // mode is on, since that's when we materialise stub entries for active
+  // subnets that Glacier doesn't know about.
+  const [
+    mainnetChains,
+    testnetChains,
+    activeMainnet,
+    activeFuji,
+    mainnetBlockchains,
+    fujiBlockchains,
+  ] = await Promise.all([
     fetchGlacierChains('mainnet'),
     fetchGlacierChains('fuji'),
     options.prune ? fetchActiveSubnetIds('mainnet') : Promise.resolve(null),
     options.prune ? fetchActiveSubnetIds('fuji') : Promise.resolve(null),
+    options.prune ? fetchPChainBlockchains('mainnet') : Promise.resolve(null),
+    options.prune ? fetchPChainBlockchains('fuji') : Promise.resolve(null),
   ]);
 
   const activeSubnets: ActiveSubnetSets = {
@@ -583,8 +695,47 @@ async function main() {
     });
   }
 
-  // Merge retained + new chains
-  const finalChains = [...retainedChains, ...createdChains];
+  // P-Chain stub pass: every subnet with active validators on P-Chain that's
+  // still not represented (no entry with matching subnetId across retained or
+  // newly-created Glacier entries) gets a stub seeded from
+  // platform.getBlockchains. This makes P-Chain the source of truth for which
+  // L1s exist — Glacier is just an enrichment layer when available.
+  const pchainStubs: L1Chain[] = [];
+  if (options.prune && activeSubnets.ok) {
+    const coveredSubnetIds = new Set<string>();
+    for (const c of [...retainedChains, ...createdChains]) {
+      if (c.subnetId) coveredSubnetIds.add(c.subnetId);
+    }
+
+    const mainnetSubnetMap = buildSubnetToBlockchainMap(mainnetBlockchains);
+    const fujiSubnetMap = buildSubnetToBlockchainMap(fujiBlockchains);
+
+    for (const sid of activeSubnets.mainnet) {
+      if (coveredSubnetIds.has(sid)) continue;
+      const bc = mainnetSubnetMap.get(sid);
+      if (!bc) continue; // Active subnet with no registered blockchain; skip.
+      pchainStubs.push(createPChainStubChain(sid, bc, false));
+    }
+    for (const sid of activeSubnets.fuji) {
+      if (coveredSubnetIds.has(sid)) continue;
+      const bc = fujiSubnetMap.get(sid);
+      if (!bc) continue;
+      pchainStubs.push(createPChainStubChain(sid, bc, true));
+    }
+
+    if (pchainStubs.length > 0) {
+      console.log(`\n=== P-Chain stub entries (active L1s without Glacier metadata) ===`);
+      const evmCount = pchainStubs.filter(c => c.isEvm).length;
+      console.log(`Total: ${pchainStubs.length}  (EVM: ${evmCount}, non-EVM: ${pchainStubs.length - evmCount})`);
+      pchainStubs.forEach(c => {
+        const tag = `${c.isTestnet ? 'Testnet' : 'Mainnet'}, ${c.isEvm ? 'EVM' : 'non-EVM'}`;
+        console.log(`  + ${c.chainName}  [${tag}]  subnet=${c.subnetId.slice(0, 12)}...`);
+      });
+    }
+  }
+
+  // Merge retained + new Glacier-derived + P-Chain stub chains.
+  const finalChains = [...retainedChains, ...createdChains, ...pchainStubs];
 
   // Sort chains: mainnet first, then testnet, alphabetically within each group
   finalChains.sort((a, b) => {
@@ -598,7 +749,8 @@ async function main() {
 
   console.log(`\n=== Final Summary ===`);
   console.log(`Existing chains: ${existingChains.length}`);
-  console.log(`New chains added: ${createdChains.length}`);
+  console.log(`New from Glacier: ${createdChains.length}`);
+  console.log(`P-Chain stubs: ${pchainStubs.length}`);
   console.log(`Total chains: ${finalChains.length}`);
   if (options.prune && activeSubnets.ok) {
     console.log(`Entries flagged isActive=false: ${flaggedInactive.length} (metadata preserved)`);
