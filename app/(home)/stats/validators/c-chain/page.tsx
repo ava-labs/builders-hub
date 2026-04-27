@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell, ReferenceLine, Label } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,13 +17,14 @@ import { SortIcon } from "@/components/stats/SortIcon";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
+import { TimeSeriesDataPoint, TimeSeriesMetric, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
+import { ValidatorChartCard, timeSeriesToChartData } from "@/components/stats/ValidatorChartCard";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getMAConfig } from "@/utils/chart-utils";
 import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
@@ -87,6 +88,7 @@ export default function CChainValidatorMetrics() {
     current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
   } | null>(null);
   const [stakingAPYLoading, setStakingAPYLoading] = useState(true);
+  const [totalValidatorSeats, setTotalValidatorSeats] = useState<TimeSeriesMetric | null>(null);
 
   const fetchData = async () => {
     try {
@@ -208,6 +210,7 @@ export default function CChainValidatorMetrics() {
           console.error('Error parsing P2P validators data:', err);
         }
       }
+
     } catch (err) {
       setError(`An error occurred while fetching data`);
     } finally {
@@ -216,8 +219,22 @@ export default function CChainValidatorMetrics() {
     }
   };
 
+  const fetchTotalEcosystemValidators = async () => {
+    try {
+      const response = await fetch('/api/total-ecosystem-validators?timeRange=all');
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data?.total_validator_seats) {
+        setTotalValidatorSeats(data.total_validator_seats);
+      }
+    } catch (err) {
+      console.error('Error parsing total validator seats data:', err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchTotalEcosystemValidators();
   }, []);
 
   const formatNumber = (num: number | string): string => {
@@ -440,21 +457,8 @@ export default function CChainValidatorMetrics() {
       | "delegator_weight"
     >
   ): ChartDataPoint[] => {
-    if (!metrics || !metrics[metricKey]?.data) return [];
-    const today = new Date().toISOString().split("T")[0];
-    const finalizedData = metrics[metricKey].data.filter(
-      (point) => point.date !== today
-    );
-
-    return finalizedData
-      .map((point: TimeSeriesDataPoint) => ({
-        day: point.date,
-        value:
-          typeof point.value === "string"
-            ? parseFloat(point.value)
-            : point.value,
-      }))
-      .reverse();
+    if (!metrics) return [];
+    return timeSeriesToChartData(metrics[metricKey]);
   };
 
   const formatTooltipValue = (value: number, metricKey: string): string => {
@@ -1108,6 +1112,11 @@ export default function CChainValidatorMetrics() {
               const period = chartPeriods[config.metricKey];
               const currentValue = getCurrentValue(config.metricKey);
 
+              const isValidatorCount = config.metricKey === "validator_count";
+              const overlayData: ChartDataPoint[] | undefined = isValidatorCount
+                ? timeSeriesToChartData(totalValidatorSeats)
+                : undefined;
+
               return (
                 <ValidatorChartCard
                   key={config.metricKey}
@@ -1128,6 +1137,19 @@ export default function CChainValidatorMetrics() {
                     config.metricKey.includes("weight")
                       ? formatWeightForAxis
                       : formatNumber
+                  }
+                  overlayData={overlayData}
+                  overlayLabel={
+                    isValidatorCount ? "Total Validator Seats (Primary + L1s)" : undefined
+                  }
+                  overlayColor={isValidatorCount ? "#3B82F6" : undefined}
+                  overlayStartDate={isValidatorCount ? "2024-12-16" : undefined}
+                  referenceLineDate={isValidatorCount ? "2024-12-16" : undefined}
+                  referenceLineLabel={isValidatorCount ? "ACP-77 (Etna)" : undefined}
+                  descriptionNote={
+                    isValidatorCount
+                      ? "After the Etna upgrade, validators of subnets that converted into sovereign L1s no longer needed to also stake on the Primary Network."
+                      : undefined
                   }
                 />
               );
@@ -2256,477 +2278,6 @@ export default function CChainValidatorMetrics() {
   );
 }
 
-function ValidatorChartCard({
-  config,
-  rawData,
-  period,
-  currentValue,
-  onPeriodChange,
-  formatTooltipValue,
-  formatYAxisValue,
-}: {
-  config: any;
-  rawData: any[];
-  period: "D" | "W" | "M" | "Q" | "Y";
-  currentValue: number | string;
-  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
-  formatTooltipValue: (value: number) => string;
-  formatYAxisValue: (value: number) => string;
-}) {
-  const [brushIndexes, setBrushIndexes] = useState<{
-    startIndex: number;
-    endIndex: number;
-  } | null>(null);
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const { resolvedTheme } = useTheme();
-  const handleScreenshot = async () => {
-    if (!chartContainerRef.current) return;
-
-    try {
-      const element = chartContainerRef.current;
-      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
-
-      const dataUrl = await toPng(element, {
-        quality: 1,
-        pixelRatio: 2,
-        backgroundColor: bgColor,
-        cacheBust: true,
-      });
-
-      const link = document.createElement("a");
-      link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error("Failed to capture screenshot:", error);
-    }
-  };
-
-  const aggregatedData = useMemo(() => {
-    if (period === "D") return rawData;
-
-    const grouped = new Map<
-      string,
-      { sum: number; count: number; date: string }
-    >();
-
-    rawData.forEach((point) => {
-      const date = new Date(point.day);
-      let key: string;
-
-      if (period === "W") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
-      } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
-      } else if (period === "Q") {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        key = `${date.getFullYear()}-Q${quarter}`;
-      } else {
-        key = String(date.getFullYear());
-      }
-
-      if (!grouped.has(key)) {
-        grouped.set(key, { sum: 0, count: 0, date: key });
-      }
-
-      const group = grouped.get(key)!;
-      group.sum += point.value;
-      group.count += 1;
-    });
-
-    return Array.from(grouped.values())
-      .map((group) => ({
-        day: group.date,
-        value: group.sum / group.count,
-      }))
-      .sort((a, b) => a.day.localeCompare(b.day));
-  }, [rawData, period]);
-
-  useEffect(() => {
-    if (aggregatedData.length === 0) return;
-
-    if (period === "D") {
-      const daysToShow = 90;
-      setBrushIndexes({
-        startIndex: Math.max(0, aggregatedData.length - daysToShow),
-        endIndex: aggregatedData.length - 1,
-      });
-    } else {
-      setBrushIndexes({
-        startIndex: 0,
-        endIndex: aggregatedData.length - 1,
-      });
-    }
-  }, [period, aggregatedData.length]);
-
-  const displayData = brushIndexes
-    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
-    : aggregatedData;
-
-  const brushRangeDays = useMemo(() => {
-    return calculateDateRangeDays(displayData, "day");
-  }, [displayData]);
-
-  const totalDataDays = useMemo(() => {
-    return calculateDateRangeDays(aggregatedData, "day");
-  }, [aggregatedData]);
-
-  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
-  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
-
-  const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
-
-  const dynamicChange = useMemo(() => {
-    if (!displayData || displayData.length < 2) {
-      return { change: 0, isPositive: true };
-    }
-    const firstValue = displayData[0].value;
-    const lastValue = displayData[displayData.length - 1].value;
-    if (lastValue === 0) {
-      return { change: 0, isPositive: true };
-    }
-    const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
-    return {
-      change: Math.abs(changePercentage),
-      isPositive: changePercentage >= 0,
-    };
-  }, [displayData]);
-
-  // CSV download function
-  const downloadCSV = () => {
-    if (!displayData || displayData.length === 0) return;
-
-    const headers = ["Date", config.title];
-    const rows = displayData.map((point: any) => [point.day, point.value].join(","));
-
-    const csvContent = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const formatTooltipDate = (value: string) => {
-    if (period === "Y") {
-      return value;
-    }
-
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) {
-        return `${parts[1]} ${parts[0]}`;
-      }
-      return value;
-    }
-
-    const date = new Date(value);
-
-    if (period === "M") {
-      return date.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-    }
-
-    if (period === "W") {
-      const endDate = new Date(date);
-      endDate.setDate(date.getDate() + 6);
-      const startMonth = date.toLocaleDateString("en-US", { month: "long" });
-      const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
-      const startDay = date.getDate();
-      const endDay = endDate.getDate();
-      const year = endDate.getFullYear();
-
-      if (startMonth === endMonth) {
-        return `${startMonth} ${startDay}-${endDay}, ${year}`;
-      } else {
-        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
-      }
-    }
-
-    return date.toLocaleDateString("en-US", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const Icon = config.icon;
-
-  return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
-      <CardContent className="p-0">
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-              style={{ backgroundColor: `${config.color}20` }}
-            >
-              <Icon
-                className="h-5 w-5 sm:h-6 sm:w-6"
-                style={{ color: config.color }}
-              />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-normal">
-                {config.title}
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                {config.description}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <Select
-              value={period}
-              onValueChange={(value) =>
-                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
-              }
-            >
-              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
-                <SelectValue>
-                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <button
-              onClick={handleScreenshot}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              title="Download chart as image"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-            <button
-              onClick={downloadCSV}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              title="Download CSV"
-            >
-              <Download className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="px-5 pt-6 pb-6">
-          {/* Current Value and Change */}
-          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
-            <div className="text-md sm:text-xl font-mono break-all">
-              {formatTooltipValue(
-                typeof currentValue === "string"
-                  ? parseFloat(currentValue)
-                  : currentValue
-              )}
-            </div>
-            {dynamicChange.change > 0 && (
-              <div
-                className={`flex items-center gap-1 text-xs sm:text-sm ${
-                  dynamicChange.isPositive ? "text-green-600" : "text-red-600"
-                }`}
-                title={`Change over selected time range`}
-              >
-                <TrendingUp
-                  className={`h-3 w-3 sm:h-4 sm:w-4 ${
-                    dynamicChange.isPositive ? "" : "rotate-180"
-                  }`}
-                />
-                {dynamicChange.change.toFixed(1)}%
-              </div>
-            )}
-          </div>
-
-          <ChartWatermark className="mb-6">
-            <ResponsiveContainer width="100%" height={350}>
-              {config.chartType === "bar" ? (
-                <BarChart
-                  data={displayData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    ticks={xAxisTicks}
-                    interval={0}
-                  />
-                  <YAxis
-                    tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: `${config.color}20` }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
-                      );
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                          <div className="grid gap-2">
-                            <div className="font-medium text-sm">
-                              {formattedDate}
-                            </div>
-                            <div className="text-sm">
-                              {formatTooltipValue(payload[0].value as number)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar
-                    dataKey="value"
-                    fill={config.color}
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              ) : (
-                <AreaChart
-                  data={displayData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id={`gradient-${config.metricKey}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor={config.color}
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={config.color}
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    ticks={xAxisTicks}
-                    interval={0}
-                  />
-                  <YAxis
-                    tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: `${config.color}20` }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
-                      );
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                          <div className="grid gap-2">
-                            <div className="font-medium text-sm">
-                              {formattedDate}
-                            </div>
-                            <div className="text-sm">
-                              {formatTooltipValue(payload[0].value as number)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke={config.color}
-                    fill={`url(#gradient-${config.metricKey})`}
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              )}
-            </ResponsiveContainer>
-          </ChartWatermark>
-
-          {/* Brush Slider */}
-          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
-            <ResponsiveContainer width="100%" height={80}>
-              <LineChart
-                data={aggregatedData}
-                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
-              >
-                <Brush
-                  dataKey="day"
-                  height={80}
-                  stroke={config.color}
-                  fill={`${config.color}20`}
-                  alwaysShowText={false}
-                  startIndex={brushIndexes?.startIndex ?? 0}
-                  endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
-                  onChange={(e: any) => {
-                    if (
-                      e.startIndex !== undefined &&
-                      e.endIndex !== undefined
-                    ) {
-                      setBrushIndexes({
-                        startIndex: e.startIndex,
-                        endIndex: e.endIndex,
-                      });
-                    }
-                  }}
-                  travellerWidth={8}
-                  tickFormatter={formatBrushXAxis}
-                >
-                  <LineChart>
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke={config.color}
-                      strokeWidth={1}
-                      dot={false}
-                    />
-                  </LineChart>
-                </Brush>
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // Daily Rewards Chart Card with 30-day moving average and total
 function DailyRewardsChartCard({
