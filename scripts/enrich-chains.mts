@@ -769,21 +769,6 @@ async function main() {
   );
 
   console.log(`\n✓ l1-chains.json updated successfully!\n`);
-
-  // When prune ran successfully, snapshot the P-Chain active L1 counts to a
-  // static file. Consumers (e.g. /stats/overview) can import this at build time
-  // instead of calling P-Chain on every request, which avoids serverless
-  // cold-start hangs and keeps the count fresh as of the last build.
-  if (options.prune && activeSubnets.ok) {
-    const countsFilePath = path.join(process.cwd(), 'constants', 'active-l1-counts.json');
-    const payload = {
-      mainnet: activeSubnets.mainnet.size,
-      fuji: activeSubnets.fuji.size,
-      generatedAt: new Date().toISOString(),
-    };
-    fs.writeFileSync(countsFilePath, JSON.stringify(payload, null, 2) + '\n', 'utf-8');
-    console.log(`✓ active-l1-counts.json written: mainnet=${payload.mainnet} fuji=${payload.fuji}\n`);
-  }
 }
 
 main().catch(error => {
