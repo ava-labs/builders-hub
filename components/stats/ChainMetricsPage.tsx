@@ -11,7 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
+import {
+  calculateMovingAverage,
+  getMAConfig,
+  timeSeriesMetricToChartData,
+} from "@/utils/chart-utils";
 import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles, Monitor } from "lucide-react";
 import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
@@ -30,7 +34,7 @@ import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
-import { ValidatorChartCard, timeSeriesToChartData } from "@/components/stats/ValidatorChartCard";
+import { ValidatorChartCard } from "@/components/stats/ValidatorChartCard";
 import { ValidatorPieCard } from "@/components/stats/ValidatorPieCard";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
@@ -2161,7 +2165,9 @@ export default function ChainMetricsPage({
                         chartType: "bar",
                         icon: Monitor,
                       }}
-                      rawData={timeSeriesToChartData(primaryValidatorMetric)}
+                      rawData={timeSeriesMetricToChartData(primaryValidatorMetric, {
+                        excludeToday: true,
+                      })}
                       period={validatorChartPeriod}
                       currentValue={totalValidatorSeats.current_value}
                       onPeriodChange={setValidatorChartPeriod}
@@ -2169,7 +2175,9 @@ export default function ChainMetricsPage({
                         `${formatNumber(Math.round(value))} Validator Seats`
                       }
                       formatYAxisValue={formatNumber}
-                      overlayData={timeSeriesToChartData(totalValidatorSeats)}
+                      overlayData={timeSeriesMetricToChartData(totalValidatorSeats, {
+                        excludeToday: true,
+                      })}
                       overlayLabel="Total Validator Seats (Primary + L1s)"
                       overlayColor="#3B82F6"
                       overlayStartDate="2024-12-16"

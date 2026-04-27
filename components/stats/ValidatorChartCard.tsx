@@ -33,24 +33,7 @@ import {
 } from "@/components/stats/chart-axis-utils";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
-import { TimeSeriesMetric, TimeSeriesDataPoint, ChartDataPoint } from "@/types/stats";
-
-export function timeSeriesToChartData(
-  metric: TimeSeriesMetric | null | undefined,
-): ChartDataPoint[] {
-  if (!metric?.data) return [];
-  const today = new Date().toISOString().split("T")[0];
-  return metric.data
-    .filter((point) => point.date !== today)
-    .map((point: TimeSeriesDataPoint) => ({
-      day: point.date,
-      value:
-        typeof point.value === "string"
-          ? parseFloat(point.value)
-          : point.value,
-    }))
-    .reverse();
-}
+import type { ChartDataPoint } from "@/types/stats";
 
 export interface ValidatorChartCardProps {
   config: {

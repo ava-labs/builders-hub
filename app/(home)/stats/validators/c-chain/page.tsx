@@ -24,9 +24,9 @@ import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
-import { ValidatorChartCard, timeSeriesToChartData } from "@/components/stats/ValidatorChartCard";
+import { ValidatorChartCard } from "@/components/stats/ValidatorChartCard";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { getMAConfig } from "@/utils/chart-utils";
+import { getMAConfig, timeSeriesMetricToChartData } from "@/utils/chart-utils";
 import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
@@ -458,7 +458,7 @@ export default function CChainValidatorMetrics() {
     >
   ): ChartDataPoint[] => {
     if (!metrics) return [];
-    return timeSeriesToChartData(metrics[metricKey]);
+    return timeSeriesMetricToChartData(metrics[metricKey], { excludeToday: true });
   };
 
   const formatTooltipValue = (value: number, metricKey: string): string => {
@@ -1114,7 +1114,7 @@ export default function CChainValidatorMetrics() {
 
               const isValidatorCount = config.metricKey === "validator_count";
               const overlayData: ChartDataPoint[] | undefined = isValidatorCount
-                ? timeSeriesToChartData(totalValidatorSeats)
+                ? timeSeriesMetricToChartData(totalValidatorSeats, { excludeToday: true })
                 : undefined;
 
               return (
