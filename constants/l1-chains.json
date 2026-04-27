@@ -25,7 +25,32 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "description": "The Grotto is a Layer 1 blockchain and application suite tailored to the creative underground. Developed by The City, LLC and set within the surreal and dystopian universe of Analog Distortions, The Grotto is a living platform that empowers creators to distribute their games, art, and tools in a direct and decentralized way. This ecosystem is built for indie developers, musicians, visual artists, and players who are looking for something different, something with character, depth, and artistic focus.",
+    "isActive": true
+  },
+  {
+    "chainId": "77294",
+    "chainName": "tomatochain",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/7GhldaeEnj3kcTUPu5GgRH/bd786009f2019cba9c5695ec7b4b5a40/logo_á__á__á__á__á__á__á__á__.png",
+    "blockchainId": "0xb6dcfc926327a72ca7bdc07db2748e1e3f21c1c6c73823f55d280f59e68a8671",
+    "subnetId": "LdAcdLzdbEAuPjivWf9HzhBZiztq31xbhGE21xTUqA1YP7LGH",
+    "slug": "tomatochain",
+    "rpcUrl": "https://subnets.avax.network/ttchain/mainnet/rpc",
+    "networkToken": {
+      "name": "TTC",
+      "symbol": "TTC",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer.avax.network/ttchain"
+      }
+    ],
+    "isTestnet": false,
+    "isActive": true
   },
   {
     "chainId": "80000",
@@ -41,7 +66,7 @@
   {
     "chainId": "8787",
     "chainName": "Animalia",
-    "isActive": true,
+    "isActive": false,
     "description": "Free-to-play trading card game with crypto-inspired meme creatures. The L1 chain is now live on Avalanche mainnet, powered by AvaCloud. Features full NFT migration, new $ANIM token airdrop, and node & staking features.",
     "website": "https://animalia.games/",
     "socials": {
@@ -69,7 +94,7 @@
   {
     "chainId": "4313",
     "chainName": "Artery",
-    "isActive": true,
+    "isActive": false,
     "description": "AI-powered gaming blockchain on Avalanche featuring rich storytelling, game-first mechanics, and intelligent AI systems. Processes over 4 million transactions with 30K+ daily active users. Ecosystem includes games like Animalia, NEXA, and Degit.",
     "website": "https://studioartery.com/",
     "socials": {
@@ -109,7 +134,7 @@
   {
     "chainId": "65713",
     "chainName": "AS0314T1TP",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "2vL4TMT23mZzTsdkSSMFWZArFNWskR3xRWvCLxdrgd4rCe6vVy",
     "slug": "as0314t1tp",
@@ -163,7 +188,7 @@
   {
     "chainId": "40404",
     "chainName": "Bango",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "2r7mmEKg3R2gTD22TtErn8KD8TmLeSjVXHdwMpH2S9BESUxH7q",
     "slug": "bango",
@@ -174,7 +199,7 @@
   {
     "chainId": "5506",
     "chainName": "Bangochain",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "4Wuefof5Lp2v5KfmJRnsGJz9HPX4UzWP7DZC5SyhQcXRQkyPp",
     "slug": "bangochain",
@@ -279,7 +304,7 @@
   {
     "chainId": "1344",
     "chainName": "Blitz",
-    "isActive": true,
+    "isActive": false,
     "description": "TSM's competitive gaming platform with 30 million users. Built on an Avalanche Subnet using $AVAX for gas fees, burning a portion with every transaction. Features performance insights, learning tools, and hosts Avalanche-branded tournaments.",
     "website": "https://blitz.gg/",
     "socials": {
@@ -335,7 +360,7 @@
   {
     "chainId": "35414",
     "chainName": "Cedomis",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "2LyJdHSdQDwg84nrbLrmtvEoAuudg41dWnhrbjMQUq78bdDHnT",
     "slug": "cedomis",
@@ -363,7 +388,7 @@
   {
     "chainId": "42069",
     "chainName": "Coqnet",
-    "isActive": true,
+    "isActive": false,
     "description": "Coqnet is a Layer-1 blockchain built within the Avalanche ecosystem. It is specifically designed to serve an empower memecoin communities. Coqnet leverages the robust infraestructure that Avalanche offers while having a unique identity and feature set.",
     "website": "https://coqnet.io/",
     "socials": {
@@ -467,12 +492,13 @@
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/15KL2tZgiggSNEgHbrxG4C/5f9b3f91c0a7666cd3d26b4d273fa158/defikingdoms.png",
       "description": "JEWEL is the central token on the DFK Subnet and used to pay gas for all transactions. While it is not natively minted on the DFK Subnet, it is integral to the subnet's function."
-    }
+    },
+    "isActive": true
   },
   {
     "chainId": "96786",
     "chainName": "Delaunch",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "2ocjsdpN9czPYmHqS4Tc5Aydj4zk2WWVdX9jdXtqvMjQuf9pgV",
     "slug": "delaunch",
@@ -488,7 +514,7 @@
   {
     "chainId": "20250320",
     "chainName": "Dera Chain",
-    "isActive": true,
+    "isActive": false,
     "description": "Provides best Web3 UX with Account Abstraction, fully on-chain data with AI-powered analytics, diversified asset classes, and high-yield staking (40% APY). Features gas sponsorship via Paymaster and smooth fiat on/off ramps.",
     "socials": {
       "twitter": "DeraChain"
@@ -604,12 +630,13 @@
         "name": "Blockscout",
         "link": "https://eto-explorer.ash.center"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "389",
     "chainName": "ETX",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "q54cgHa9RN2NFp9qsfpPzVkhgn8xqDgKEQR1G997xZ1P5Dc8o",
     "slug": "etx",
@@ -771,7 +798,7 @@
   {
     "chainId": "741741",
     "chainName": "Goodcare",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "2TqrQau4E99KoUXcFjyf1Pek3rUHpDpqtN9rC5GDaCKFu7dfPo",
     "slug": "goodcare",
@@ -782,7 +809,7 @@
   {
     "chainId": "7084",
     "chainName": "Growfitter",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "https://f005.backblazeb2.com/file/tracehawk-prod/logo/GrowFitter/Light.png",
     "subnetId": "BCDGWbjqYBJLsXEzHNc2qy9VYPTrF3aGaSMbTGyjn7qJ7RxH8",
     "slug": "growfitter",
@@ -876,7 +903,8 @@
         "name": "Blockscout",
         "link": "https://hatchyverse-explorer.ash.center"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "68414",
@@ -965,7 +993,7 @@
   {
     "chainId": "1216",
     "chainName": "Intersect",
-    "isActive": true,
+    "isActive": false,
     "description": "Exclusive L1 blockchain network launched by STC Bahrain to create a pivotal entry point for Web3 adoption in the Middle East. Hosted 30-day hackathon with tracks in Gaming, Music, Media, Interoperability, and Security.",
     "website": "https://wholesale.stc.com.bh/web3-section/",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/4mDZ5q3a5lxHJcBLTORuMr/b47935fa6007cb3430acabef7e13e9ca/explorer.png",
@@ -988,7 +1016,7 @@
   {
     "chainId": "6533",
     "chainName": "Kali Chain",
-    "isActive": true,
+    "isActive": false,
     "description": "Revolutionizes product certification with blockchain, ensuring a secure, reliable space for brands and consumers where each product tells an authentic, verifiable story. Merges NFC technology with NFTs for certification of physical goods.",
     "website": "https://kalichain.com/",
     "socials": {
@@ -1027,7 +1055,7 @@
   {
     "chainId": "379",
     "chainName": "Koroshi",
-    "isActive": true,
+    "isActive": false,
     "description": "Dynamic Web3 gaming project and decentralized studio powered by Avalanche L1. Features 2,000 upgradeable NFTs representing young warriors progressing through three life stages: Kid, Adolescent, and Adult. Combines competitive community with gaming development.",
     "website": "https://www.thekoroshi.com/",
     "socials": {
@@ -1172,7 +1200,7 @@
   {
     "chainId": "62521",
     "chainName": "Lucid",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "hbP3PrnQS71Py1VVxvHfnCnr7MWos3XQesEsCKQoA9hpciyVR",
     "slug": "lucid",
@@ -1220,7 +1248,7 @@
   {
     "chainId": "5419",
     "chainName": "Marnisa",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "sZ1zmoQx3NeV8WB5D3np8xYUJ2p5hKfWFXDeuSGvxyZkCABs2",
     "slug": "marnisa",
@@ -1231,7 +1259,7 @@
   {
     "chainId": "1888",
     "chainName": "Memoria",
-    "isActive": true,
+    "isActive": false,
     "description": "Memoria is the first decentralized AI Gaming and AI Agent concept platform, seamlessly merging AI-driven gaming with meme culture.",
     "website": "https://hub.xyz/memoria",
     "socials": {
@@ -1326,7 +1354,7 @@
   {
     "chainId": "58166",
     "chainName": "Oumla",
-    "isActive": true,
+    "isActive": false,
     "description": "First digital asset custody infrastructure provider in Saudi Arabia, delivering enterprise-grade security and efficiency. Partnered with Avalanche to create Saudi Arabia's first Layer One Blockchain fully hosted in KSA. Provides secure, scalable blockchain infrastructure for businesses, enterprises, and governments.",
     "website": "https://www.oumla.com/",
     "socials": {
@@ -1390,7 +1418,7 @@
   {
     "chainId": "16180",
     "chainName": "PLYR",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",
     "subnetId": "axp7DUSPvFghTM883ug2B8btAReBAACxD1VyENmRDStH4Lfed",
     "blockchainId": "HUwWdyoExrb1HgVp5X5sh3AWqhYFnKkfXBfGmGL3qjDsnMoR4",
@@ -1418,7 +1446,7 @@
   {
     "chainId": "77757",
     "chainName": "QR0723T1MS",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "subnetId": "TsijYHafTXCUZGoisGnMorh2HGwY9Vg2YzviEo8nrmtZZESp9",
     "slug": "qr0723t1ms",
@@ -1643,7 +1671,7 @@
   {
     "chainId": "710420",
     "chainName": "Tiltyard",
-    "isActive": true,
+    "isActive": false,
     "description": "On-chain gaming platform by Crypto Raiders team. Hosts large-scale poker-style tournaments and integrates fantasy sports elements. First game Midnight Heist is 100% on-chain card-based strategy game. Built on Avalanche Subnet for gas-less transactions.",
     "website": "https://tiltyard.gg/",
     "socials": {
@@ -1734,7 +1762,7 @@
   {
     "chainId": "21024",
     "chainName": "TRX",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "JD8MbaUp75twdVJ7A4j2ryk7gFJ8FCgQeNLhvDv3y4up9bExp",
     "slug": "trx",
@@ -1754,7 +1782,7 @@
   {
     "chainId": "62334",
     "chainName": "Turf Network",
-    "isActive": true,
+    "isActive": false,
     "description": "TURF Network is a real‑time data‑orchestration protocol for gaming and AI built on Avalanche. It converts gameplay events into on‑chain, validated data structures via a network of nodes. Games integrate with TURF to turn in‑game telemetry into composable, verifiable data for analytics, AI, e‑sports, prediction markets, and more.",
     "website": "https://turf.network/",
     "socials": {
@@ -1795,7 +1823,7 @@
   {
     "chainId": "40875",
     "chainName": "V1Migrate",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "kf1sMrGJSA2x9yZfvjBJCHu3ZdTievrCyrbEEPKXbHMH2tXuA",
     "slug": "v1migrate",
@@ -1854,7 +1882,7 @@
   {
     "chainId": "98968",
     "chainName": "Wow",
-    "isActive": true,
+    "isActive": false,
     "chainLogoURI": "",
     "subnetId": "hqqtt4VGmzSACDn2yYxTFMhHu9RpFTECEhbexb4bXu2w6Pxtf",
     "slug": "wow",
@@ -1865,7 +1893,7 @@
   {
     "chainId": "8888",
     "chainName": "Xanachain",
-    "isActive": true,
+    "isActive": false,
     "description": "World's first metaverse-focused public chain leveraging Avalanche's L1 technology. AI-powered Web 3.0 metaverse infrastructure with EVM compatibility. Features $XETA gas token, bridging with Avalanche C-Chain, and customized environment for metaverse applications. Adopted by 100+ institutions and global brands.",
     "website": "https://xana.net/",
     "socials": {
@@ -1881,7 +1909,7 @@
   {
     "chainId": "61360",
     "chainName": "Youmio",
-    "isActive": true,
+    "isActive": false,
     "description": "Youmio is a new kind of blockchain: the first Layer 1 built from the ground up as an agent chain, introducing foundational infrastructure for autonomous agents to operate across apps, games and digital environments.",
     "website": "https://youmio.ai/",
     "socials": {
@@ -1974,7 +2002,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "420101",
@@ -2002,7 +2031,54 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
+  },
+  {
+    "chainId": "83115",
+    "chainName": "Kula",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x626e794dc3fc53d663f2a6e7542fb6f6f3a2ab32468479f2d779261690a7d458",
+    "subnetId": "2aRqefDZES46GBex4nHY6mhn2ZVxh1zGDWoQLNbVeYZEQfJ3cy",
+    "slug": "kula",
+    "rpcUrl": "https://subnets.avax.network/kula/mainnet/rpc",
+    "networkToken": {
+      "name": "KULA",
+      "symbol": "KULA",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer.avax.network/kula"
+      }
+    ],
+    "isTestnet": false,
+    "isActive": true
+  },
+  {
+    "chainId": "122225",
+    "chainName": "north-investments",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x93edd51b1ad4aba594ecd5ae4516d984a88372bba5252dde45c1f8094e27b54c",
+    "subnetId": "3RGWTpWdyveMRv9o9tGhhGsZpVdmZVMvvxZMTXTbaRHYhxA2y",
+    "slug": "north-investments",
+    "rpcUrl": "https://subnets.avax.network/north/mainnet/rpc",
+    "networkToken": {
+      "name": "NORTH",
+      "symbol": "NORTH",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer.avax.network/north"
+      }
+    ],
+    "isTestnet": false,
+    "isActive": true
   },
   {
     "chainId": "49460",
@@ -2030,7 +2106,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "2044",
@@ -2054,7 +2131,8 @@
         "link": "https://subnets.avax.network/shrapnel"
       }
     ],
-    "isTestnet": false
+    "isTestnet": false,
+    "isActive": true
   },
   {
     "chainId": "76410",
@@ -2082,7 +2160,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "89805",
@@ -2110,7 +2189,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "74560",
@@ -2138,7 +2218,77 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
+  },
+  {
+    "chainId": "452927",
+    "chainName": "AP0408Q1TS",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0xc758ad789d170144f116051df96523984c9c2c306ca0a6e8e538e3f7d8bfec78",
+    "subnetId": "2Z5Fa1LUqdGqDVv7pqaCwjAABRak1nJaH2UxC6hkDZVMEh7ZiS",
+    "slug": "ap0408q1ts",
+    "rpcUrl": "https://subnets.avax.network/ap0408q1ts/testnet/rpc",
+    "networkToken": {
+      "name": "EDXN",
+      "symbol": "EDXN",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/ap0408q1ts"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
+  },
+  {
+    "chainId": "385417",
+    "chainName": "AP0423A1TD",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x47c4263655f0060404f6506072ff96d72a7de68efc9592ab98a436e820643f22",
+    "subnetId": "2KzKK7K1xaaVKYEYFyJmzpq6n5LPFmF1aPBbbPjz3bvF5rJeLX",
+    "slug": "ap0423a1td",
+    "rpcUrl": "https://subnets.avax.network/ap0423a1td/testnet/rpc",
+    "networkToken": {
+      "name": "EDXN",
+      "symbol": "EDXN",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/ap0423a1td"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
+  },
+  {
+    "chainId": "402",
+    "chainName": "APIX",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x37c8b7c08dd9c85ece9695316894a080616fb45544a08c39125e12db9ed777c0",
+    "subnetId": "6gG9dvyWfe6Lgh84hyXzxkY3A5NeNb5qF8XsYZFZq55u1zCD9",
+    "slug": "apix",
+    "rpcUrl": "https://subnets.avax.network/apix/testnet/rpc",
+    "networkToken": {
+      "name": "APIX",
+      "symbol": "APIX",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/apix"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "2201",
@@ -2166,7 +2316,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "33410",
@@ -2194,7 +2345,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "47208",
@@ -2218,7 +2370,8 @@
         "link": "https://subnets-test.avax.network/armada"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "39357",
@@ -2246,7 +2399,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "63298",
@@ -2274,7 +2428,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "85297",
@@ -2302,7 +2457,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "43113",
@@ -2326,7 +2482,8 @@
         "link": "https://subnets-test.avax.network/c-chain"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "13337",
@@ -2350,7 +2507,8 @@
         "link": "https://subnets-test.avax.network/beam"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "21390",
@@ -2378,7 +2536,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "75234",
@@ -2406,7 +2565,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "617",
@@ -2434,7 +2594,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "1492",
@@ -2462,7 +2623,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "1991",
@@ -2490,7 +2652,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
+  },
+  {
+    "chainId": "30917",
+    "chainName": "Chennai-Zodor-Testnet",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0xe7167576973bed7ef047eb6e199edaf244706cc4a38f6c117012e0672e34cc81",
+    "subnetId": "28nyhqG8XhGwDUZFxsd1DyRcwjaNtNYWTTh5V6dtLrFSNe1Nm",
+    "slug": "chennai-zodor-testnet",
+    "rpcUrl": "https://subnets.avax.network/zodorrwa/testnet/rpc",
+    "networkToken": {
+      "name": "MASQT",
+      "symbol": "MASQT",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/zodorrwa"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "65152",
@@ -2518,7 +2704,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "1064",
@@ -2546,7 +2733,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "707071",
@@ -2574,7 +2762,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "432201",
@@ -2598,7 +2787,8 @@
         "link": "https://subnets-test.avax.network/dexalot"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "335",
@@ -2622,7 +2812,8 @@
         "link": "https://subnets-test.avax.network/defi-kingdoms"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": false
   },
   {
     "chainId": "179202",
@@ -2650,7 +2841,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "179205",
@@ -2678,7 +2870,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "779672",
@@ -2701,7 +2894,8 @@
         "link": "https://subnets-test.avax.network/dispatch"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "53188",
@@ -2729,7 +2923,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "173750",
@@ -2752,7 +2947,8 @@
         "link": "https://subnets-test.avax.network/echo"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "55197",
@@ -2780,7 +2976,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "90350",
@@ -2808,7 +3005,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "33898",
@@ -2836,7 +3034,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "94797",
@@ -2864,7 +3063,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
+  },
+  {
+    "chainId": "80503",
+    "chainName": "explicit-black-chameleon",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x5a5f759c1dbad054f0a04f42c4922d754eef058d42a19ef54b9d82ac287af48d",
+    "subnetId": "qjrTTP7tGZxB9M7yYLeq3bpoMjSCfTZsPEW2NYqwUdmBfaxSW",
+    "slug": "explicit-black-chameleon",
+    "rpcUrl": "https://subnets.avax.network/chameleon/testnet/rpc",
+    "networkToken": {
+      "name": "TUSDT",
+      "symbol": "TUSDT",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/chameleon"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": false
   },
   {
     "chainId": "27308",
@@ -2892,7 +3115,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "21201",
@@ -2920,7 +3144,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
+  },
+  {
+    "chainId": "56345",
+    "chainName": "fsl-poc",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0xd5862503fa5caa302d2cf4d4dacf21e467bb0178459082b44c635ea5cd8e7b15",
+    "subnetId": "AQQhnfXzcF5qoaivDiwX5b6XaZ85aZMYV7MLPPPfqtPcvwNfB",
+    "slug": "fsl-poc",
+    "rpcUrl": "https://subnets.avax.network/fslpoc/testnet/rpc",
+    "networkToken": {
+      "name": "FSL",
+      "symbol": "FSL",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/fslpoc"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "36237",
@@ -2948,7 +3196,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "97433",
@@ -2972,7 +3221,8 @@
         "link": "https://subnets-test.avax.network/tgp"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": false
   },
   {
     "chainId": "19554",
@@ -3000,7 +3250,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "4227",
@@ -3024,7 +3275,8 @@
         "link": "https://subnets-test.avax.network/hashfire"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "76736",
@@ -3052,7 +3304,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "17070",
@@ -3080,7 +3333,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "54414",
@@ -3104,7 +3358,8 @@
         "link": "https://subnets-test.avax.network/innovomark"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "59932",
@@ -3128,7 +3383,31 @@
         "link": "https://subnets-test.avax.network/instest"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": false
+  },
+  {
+    "chainId": "99062",
+    "chainName": "jelly",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x92ed8f787882fd29d068ff0e4655faa228a9b3a657574ab15ec4fade66e9efa8",
+    "subnetId": "2PCDuvpeYFBcbrdXN1bFzcej9Mg1761Bg3MgH53yTDkJya6zox",
+    "slug": "jelly",
+    "rpcUrl": "https://subnets.avax.network/jelly/testnet/rpc",
+    "networkToken": {
+      "name": "JL",
+      "symbol": "JL",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/jelly"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "11227",
@@ -3152,7 +3431,8 @@
         "link": "https://subnets-test.avax.network/jiritsutes"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": false
   },
   {
     "chainId": "68473",
@@ -3180,7 +3460,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "17789",
@@ -3208,7 +3489,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "99991",
@@ -3236,7 +3518,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "94909",
@@ -3264,7 +3547,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "37558",
@@ -3292,7 +3576,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
+  },
+  {
+    "chainId": "84627",
+    "chainName": "MEZE",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5ZTTNpOC1ZVQsJ2eXYZvrf/0b130986a14369ec7ffe82a33f92f519/Meze.png",
+    "blockchainId": "0x6bd1ef7a4f8c145ac2a7e9925e3817be34aec061cf0f1840b65146208d3ac1da",
+    "subnetId": "2Ha5NPwiSYYZU87XeiGYzRQeV3DTssgSnyw9nEEDJhpEfqfvSS",
+    "slug": "meze",
+    "rpcUrl": "https://subnets.avax.network/mezeblock/testnet/rpc",
+    "networkToken": {
+      "name": "MEZE",
+      "symbol": "MEZE",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/5ZTTNpOC1ZVQsJ2eXYZvrf/0b130986a14369ec7ffe82a33f92f519/Meze.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/mezeblock"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "41548",
@@ -3320,7 +3628,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "77869",
@@ -3348,7 +3657,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
+  },
+  {
+    "chainId": "86025",
+    "chainName": "mirotst89",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x076908495269048f8f0e4b6e525a14e7499af57ee82a15f44f3346ce16c20f6e",
+    "subnetId": "2VedyTWLKYtGctK8HVz75Haz5DbXtUSFKXZRNy1q21tgCDN9fT",
+    "slug": "mirotst89",
+    "rpcUrl": "https://subnets.avax.network/mirotst89/testnet/rpc",
+    "networkToken": {
+      "name": "mirotst89",
+      "symbol": "mirotst89",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/mirotst89"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "27777",
@@ -3376,7 +3709,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "52118",
@@ -3404,7 +3738,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "77242",
@@ -3432,7 +3767,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
+  },
+  {
+    "chainId": "56357",
+    "chainName": "monthly-gold-poc",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x5c03090aae0029daaa8b1870faa80127640182c106dfd79ffe30f7e7ff02f167",
+    "subnetId": "2GHK7bkaJcfzNfgThc82wcSXXjDxvSLNEpp15UJTfmMRyy3RaJ",
+    "slug": "monthly-gold-poc",
+    "rpcUrl": "https://subnets.avax.network/monthlygol/testnet/rpc",
+    "networkToken": {
+      "name": "KRW",
+      "symbol": "KRW",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/monthlygol"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "201",
@@ -3460,7 +3819,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "44269",
@@ -3488,7 +3848,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "95946",
@@ -3516,7 +3877,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "88188",
@@ -3544,7 +3906,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "40478",
@@ -3572,7 +3935,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "8022",
@@ -3596,7 +3960,8 @@
         "link": "https://subnets-test.avax.network/numine"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "987",
@@ -3620,7 +3985,8 @@
         "link": "https://subnets-test.avax.network/orangetest"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "81172",
@@ -3648,7 +4014,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
+  },
+  {
+    "chainId": "4127",
+    "chainName": "ozeki",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x07fb239f21afde47ea1a51092311d49f1284deb7eb798b463f7e63bcabb50724",
+    "subnetId": "22XW34bJYoSZeViQGf7DCpb1nTjKxeyWQtErXzLn4JghEY3Azd",
+    "slug": "ozeki",
+    "rpcUrl": "https://subnets.avax.network/ozeki/testnet/rpc",
+    "networkToken": {
+      "name": "OZK",
+      "symbol": "OZK",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/ozeki"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "99812",
@@ -3676,7 +4066,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "24665",
@@ -3704,7 +4095,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "88479",
@@ -3732,7 +4124,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "1429",
@@ -3760,7 +4153,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "466379",
@@ -3788,7 +4182,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "121083",
@@ -3816,7 +4211,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "690681",
@@ -3844,7 +4240,77 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
+  },
+  {
+    "chainId": "583",
+    "chainName": "qi0401t1tp",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x848e285cb0965ea28ae9fb20e08f348eb0a0a9b0313877ae26b7d66d8064b05c",
+    "subnetId": "2es6k6qHUiJ1d84hTi6eLHU4T1sgxi39ma1EoCaQb6xufD7KXg",
+    "slug": "qi0401t1tp",
+    "rpcUrl": "https://subnets.avax.network/qi0401t1tp/testnet/rpc",
+    "networkToken": {
+      "name": "GWB",
+      "symbol": "GWB",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qi0401t1tp"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
+  },
+  {
+    "chainId": "16286",
+    "chainName": "qi0409t1tp",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x7bc64f6bc779914e4b5ea36e7f9f22fd4fe0d07f47249130a7412415885d5cc5",
+    "subnetId": "t7HLkqAAxsLx77gt6nyGseKnSAMHRUwimSkTWDKrA9aGcHmEh",
+    "slug": "qi0409t1tp",
+    "rpcUrl": "https://subnets.avax.network/qi0409t1tp/testnet/rpc",
+    "networkToken": {
+      "name": "III",
+      "symbol": "III",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qi0409t1tp"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
+  },
+  {
+    "chainId": "76791",
+    "chainName": "qi0410t1tp",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x6a6b7bb08b73b63869f9784d3ff8e6a032e36e798491e651bec4d0b0ff7a806a",
+    "subnetId": "2hQpZJvaBH6RApGK1JjYQUuZ2uRpzoHS7anAdGcewbzaK7tx4y",
+    "slug": "qi0410t1tp",
+    "rpcUrl": "https://subnets.avax.network/qi0410t1tp/testnet/rpc",
+    "networkToken": {
+      "name": "IZY",
+      "symbol": "IZY",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qi0410t1tp"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "12764",
@@ -3872,7 +4338,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "606051",
@@ -3900,7 +4367,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "91088",
@@ -3928,7 +4396,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "10467",
@@ -3956,7 +4425,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "85167",
@@ -3984,7 +4454,77 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
+  },
+  {
+    "chainId": "39447",
+    "chainName": "QR0203Q2TS",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x585fbbf5fd1423ffc8d625aa19c00db2cc9926ffe1416239b6a73a17c68d3ef1",
+    "subnetId": "2pdnPQGRSSpPNnMnoSRwqQPRuRadVfUskxX1QrtB9qdSArY91U",
+    "slug": "qr0203q2ts",
+    "rpcUrl": "https://l1-dev.avacloud.io/v1/ext/bc/2qLtB86ZBRPoMHv86wN9Lz1psLLtp1cswhPxJ7bWnVY3gy7fcg/dedicated/rpc",
+    "networkToken": {
+      "name": "PBY",
+      "symbol": "PBY",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qr0203q2ts"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
+  },
+  {
+    "chainId": "49925",
+    "chainName": "QR0213Q1TS",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x8690d0069b940482cfb96a8e6f586ff3cb95944bc91d484b1c44beb6b13e0fea",
+    "subnetId": "dX6nRB5hHaZVVM2D69tznJmkqhv9Qh2ezwGsCm3LZHmm1KtMB",
+    "slug": "qr0213q1ts",
+    "rpcUrl": "https://subnets.avax.network/qr0213q1ts/testnet/rpc",
+    "networkToken": {
+      "name": "NYN",
+      "symbol": "NYN",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qr0213q1ts"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
+  },
+  {
+    "chainId": "89485",
+    "chainName": "QR0219Q2TS",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x52cfb4ea94b7a1e34b83b0d8c988bf80140686c65d0bd82b978c08cc4cc609cb",
+    "subnetId": "uGPobaFCprysDkZx2h8i465qKfWeRMzs9YHRquySyriLwFQs8",
+    "slug": "qr0219q2ts",
+    "rpcUrl": "https://subnets.avax.network/qr0219q2ts/testnet/rpc",
+    "networkToken": {
+      "name": "SBR",
+      "symbol": "SBR",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qr0219q2ts"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "84352",
@@ -4012,7 +4552,77 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
+  },
+  {
+    "chainId": "52287",
+    "chainName": "QR0423Q2TP",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0xcbeac474a729562b599581aec482e83be514793b5c61ad77b36b6463cc891345",
+    "subnetId": "2AYT6zQownYskfvCWHGMreJwM57ZcbkBn3ghznj2XYevvfgwHD",
+    "slug": "qr0423q2tp",
+    "rpcUrl": "https://subnets.avax.network/qr0423q2tp/testnet/rpc",
+    "networkToken": {
+      "name": "NUQ",
+      "symbol": "NUQ",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qr0423q2tp"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
+  },
+  {
+    "chainId": "93918",
+    "chainName": "QR0424Q1TS",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x9c5bd8535f8feb9795f62de8ae441d2bf267ee49dcf6fe4c0529e892bdb62466",
+    "subnetId": "F6ULDtDDgZuTFZ4opwmNHrSQMpDYN2Uj7j1B9AtHwDmGn893T",
+    "slug": "qr0424q1ts",
+    "rpcUrl": "https://subnets.avax.network/qr0424q1ts/testnet/rpc",
+    "networkToken": {
+      "name": "QGS",
+      "symbol": "QGS",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qr0424q1ts"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
+  },
+  {
+    "chainId": "8210",
+    "chainName": "QR0424Q2TS",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0xccea341229d5295c340c16bb00aefd1901a6d7ec98bd1045524e8f2803312246",
+    "subnetId": "232gUrywyXfg5RZBWxxqqhDvDL3Y5NZ5i8ZYDpQWyhrqMt2Epn",
+    "slug": "qr0424q2ts",
+    "rpcUrl": "https://subnets.avax.network/qr0424q2ts/testnet/rpc",
+    "networkToken": {
+      "name": "WBC",
+      "symbol": "WBC",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/qr0424q2ts"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "25406",
@@ -4040,7 +4650,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "14457",
@@ -4068,7 +4679,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "41350",
@@ -4096,7 +4708,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "30237",
@@ -4124,7 +4737,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "35385",
@@ -4152,7 +4766,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "30614",
@@ -4180,7 +4795,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "1776",
@@ -4209,7 +4825,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
+  },
+  {
+    "chainId": "73649",
+    "chainName": "quixotic-aqua-leopon",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x66f23e6814a1af37df60d472cf033c42ef2074b35b68d3a00b21e3188fdc5d40",
+    "subnetId": "2rcZgiYUz9skYLyh2iCzmuVNnDHzEQQzRAPasn2bTpZpK4eaBg",
+    "slug": "quixotic-aqua-leopon",
+    "rpcUrl": "https://subnets.avax.network/quixoticaq/testnet/rpc",
+    "networkToken": {
+      "name": "IKS",
+      "symbol": "IKS",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/quixoticaq"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "66525",
@@ -4237,7 +4877,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "15394",
@@ -4265,7 +4906,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "80816",
@@ -4293,7 +4935,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "86302",
@@ -4321,7 +4964,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "41542",
@@ -4349,7 +4993,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "18176",
@@ -4377,7 +5022,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "42610",
@@ -4405,7 +5051,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "62989",
@@ -4433,7 +5080,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "77722",
@@ -4461,7 +5109,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "94078",
@@ -4489,7 +5138,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "80952",
@@ -4517,7 +5167,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "48795",
@@ -4541,7 +5192,8 @@
         "link": "https://subnets-test.avax.network/space"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": false
   },
   {
     "chainId": "23903",
@@ -4569,7 +5221,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "54585",
@@ -4597,7 +5250,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "80541",
@@ -4625,7 +5279,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "58667",
@@ -4653,7 +5308,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "56400",
@@ -4677,7 +5333,8 @@
         "link": "https://subnets-test.avax.network/testnetzer"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "28066",
@@ -4705,7 +5362,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "85011",
@@ -4727,7 +5385,8 @@
         "link": "https://subnets-test.avax.network/criminalsa"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "723107",
@@ -4751,7 +5410,8 @@
         "link": "https://subnets-test.avax.network/tixchain"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "131076",
@@ -4779,7 +5439,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
   },
   {
     "chainId": "70616",
@@ -4807,7 +5468,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "79424",
@@ -4835,7 +5497,31 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": true
+  },
+  {
+    "chainId": "59120",
+    "chainName": "uninterested-blush-leech",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x71be08805f51c4bf42da64af40478c5a8a30fa61dae518b3af2e0cb9dc01239d",
+    "subnetId": "2bXaojemr9LjZdCPQKMaSwn3snVc5ycwbY7gZi4kiuxDURnDfn",
+    "slug": "uninterested-blush-leech",
+    "rpcUrl": "https://subnets.avax.network/uninterest/testnet/rpc",
+    "networkToken": {
+      "name": "PRZ",
+      "symbol": "PRZ",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/uninterest"
+      }
+    ],
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "6118",
@@ -4859,7 +5545,8 @@
         "link": "http://testnet.explorer.uptn.io/"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "32829",
@@ -4887,7 +5574,8 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   },
   {
     "chainId": "92870",
@@ -4909,7 +5597,8 @@
         "link": "https://subnets-test.avax.network/watr"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "isActive": true
   },
   {
     "chainId": "83577",
@@ -4937,6 +5626,7 @@
         "name": "AvaCloud",
         "slug": "avacloud"
       }
-    ]
+    ],
+    "isActive": false
   }
 ]
