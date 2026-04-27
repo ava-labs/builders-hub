@@ -4,15 +4,20 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users } from "lucide-react";
 
-// Subnets that run a Proof-of-Stake validator manager (StakingManager). The
-// rest of the sovereign L1s on l1-chains.json use Proof-of-Authority via
-// ValidatorManager, where the L1 owner controls the validator set directly.
-// Sourced from on-chain configuration; update when more L1s adopt PoS.
+// Sovereign L1s with token-staked validator economics. Every other sovereign
+// L1 on l1-chains.json is treated as Proof-of-Authority via the default
+// ValidatorManager. Hybrid setups with permissioned validator admission (e.g.
+// GUNZ) are intentionally excluded. L1s using the Suzaku BalancerValidator-
+// Manager (progressive decentralization) are counted here as PoS — their
+// permissionless validator slots are PoS even if a PoA module also exists.
+// TODO: add Kite once its subnetId lands in constants/l1-chains.json.
 export const POS_L1_SUBNET_IDS: Record<string, string> = {
   // Beam
   eYwmVU67LmSfZb1RwqCMhBYkFyG8ftxn6jAwqzFmxC9STBWLC: "Beam",
-  // CX
+  // CX Chain
   WChFQ1twkXBLxZGo4qojC9AgizFrRdMRnPCK9FZmisY7z6pUs: "CX",
+  // Dexalot — Suzaku BalancerValidatorManager
+  wenKDikJWAYQs3f2v9JhV86fC6kHZwkFZsuUBftnmgZ4QXPnu: "Dexalot",
 };
 
 const PRIMARY_NETWORK_COLOR = "#E84142";
