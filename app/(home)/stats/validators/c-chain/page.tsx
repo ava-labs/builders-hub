@@ -457,12 +457,14 @@ export default function CChainValidatorMetrics() {
     >
   ): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
-    const today = new Date().toISOString().split("T")[0];
-    const finalizedData = metrics[metricKey].data.filter(
-      (point) => point.date !== today
-    );
+    return toChartData(metrics[metricKey]);
+  };
 
-    return finalizedData
+  const toChartData = (metric: TimeSeriesMetric | null): ChartDataPoint[] => {
+    if (!metric?.data) return [];
+    const today = new Date().toISOString().split("T")[0];
+    return metric.data
+      .filter((point) => point.date !== today)
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
         value:
@@ -1126,19 +1128,9 @@ export default function CChainValidatorMetrics() {
 
               // Only the validator_count chart gets a total-seats overlay + ACP-77 marker
               const isValidatorCount = config.metricKey === "validator_count";
-              const overlayData: ChartDataPoint[] | undefined =
-                isValidatorCount && totalValidatorSeats?.data?.length
-                  ? totalValidatorSeats.data
-                      .filter((point) => point.date !== new Date().toISOString().split("T")[0])
-                      .map((point) => ({
-                        day: point.date,
-                        value:
-                          typeof point.value === "string"
-                            ? parseFloat(point.value)
-                            : point.value,
-                      }))
-                      .sort((a, b) => a.day.localeCompare(b.day))
-                  : undefined;
+              const overlayData: ChartDataPoint[] | undefined = isValidatorCount
+                ? toChartData(totalValidatorSeats)
+                : undefined;
 
               return (
                 <ValidatorChartCard
