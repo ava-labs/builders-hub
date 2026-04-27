@@ -9,22 +9,16 @@ import {
   MessagesSquare,
   Wrench,
   Droplets,
-  Shield,
   Network,
   GitMerge,
   Server,
   Telescope,
   ArrowLeftRight,
   Calculator,
-  Coins,
-  Box,
-  ArrowUpDown,
   ShieldCheck,
   ShieldUser,
   SquareTerminal,
   Hexagon,
-  SlidersVertical,
-  SquareMinus,
   SquarePlus,
   HandCoins,
   ExternalLink,
@@ -165,6 +159,28 @@ const data = {
         },
       ],
     },
+    // Testnet Infrastructure — sits right after Getting Started because these
+    // are the two entry points users return to after a Quick L1: the managed
+    // node they just provisioned, and the relayer that drives ICM/ICTT for
+    // it. The rest of the old Manage L1 group (Validator Set/Balance, Fee
+    // Params) lives in /console/toolbox.
+    {
+      id: "testnet-infra",
+      title: "Testnet Infrastructure",
+      icon: Server,
+      items: [
+        {
+          title: "Testnet Nodes",
+          url: "/console/testnet-infra/nodes",
+          icon: Server,
+        },
+        {
+          title: "ICM Relayer",
+          url: "/console/testnet-infra/icm-relayer",
+          icon: Layers,
+        },
+      ],
+    },
     // Primary Network
     {
       id: "primary-network",
@@ -194,123 +210,31 @@ const data = {
         },
       ],
     },
-    // Validators — grouped by consensus model. PoA (permissioned) and the
-    // two PoS variants (Native AVAX staking vs ERC20 staking) each have
-    // independent flows, so they live in their own subgroups.
-    //
-    // Disable Validator sits at the top as a flat item because it's a
-    // direct P-Chain transaction that works for any validator regardless
-    // of consensus model — PoA or PoS, Native or ERC20. Slotting it under
-    // one subgroup would hide it from the other users.
-    //
-    // On the PoS side there are two distinct removal routes:
-    //   • /remove-validator-uptime — normal removal with uptime proof
-    //     (`initiateValidatorRemoval(id, true)`); validator keeps rewards.
-    //   • /remove-validator — force removal without uptime proof
-    //     (`forceInitiateValidatorRemoval`); power-user escape hatch when
-    //     the validator can't produce a valid uptime proof.
-    // Both are surfaced separately so users don't silently forfeit rewards
-    // by picking the wrong one.
+    // Validators — flat list of the highest-traffic actions. Add Validator
+    // is the canonical entry point for a freshly created PoA L1; Stake is
+    // the equivalent for PoS-Native; Disable Validator is the consensus-
+    // agnostic P-Chain exit. The full matrix (force-remove, change-weight,
+    // delegations, ERC20-flavored variants, etc.) lives in /console/toolbox
+    // so power users can still find them while the sidebar stays focused.
     {
       id: "validators",
       title: "Validators",
       icon: Hexagon,
       items: [
         {
+          title: "Add Validator",
+          url: "/console/permissioned-l1s/add-validator",
+          icon: SquarePlus,
+        },
+        {
+          title: "Stake",
+          url: "/console/permissionless-l1s/stake/native",
+          icon: HandCoins,
+        },
+        {
           title: "Disable Validator",
           url: "/console/permissioned-l1s/disable-validator",
           icon: ShieldOff,
-        },
-        {
-          id: "validators-poa",
-          title: "Proof of Authority",
-          icon: Shield,
-          items: [
-            {
-              title: "Add Validator",
-              url: "/console/permissioned-l1s/add-validator",
-              icon: SquarePlus,
-            },
-            {
-              title: "Remove Validator",
-              url: "/console/permissioned-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Change Weight",
-              url: "/console/permissioned-l1s/change-validator-weight",
-              icon: SlidersVertical,
-            },
-            {
-              title: "Remove Expired Registration",
-              url: "/console/permissioned-l1s/remove-expired-validator-registration",
-              icon: SquareMinus,
-            },
-          ],
-        },
-        {
-          id: "validators-pos-native",
-          title: "Proof of Stake (Native)",
-          icon: HandCoins,
-          items: [
-            {
-              title: "Stake",
-              url: "/console/permissionless-l1s/stake/native",
-              icon: HandCoins,
-            },
-            {
-              title: "Delegate",
-              url: "/console/permissionless-l1s/delegate/native",
-              icon: ArrowUpDown,
-            },
-            {
-              title: "Remove Validator",
-              url: "/console/permissionless-l1s/remove-validator-uptime",
-              icon: SquareMinus,
-            },
-            {
-              title: "Force Remove Validator",
-              url: "/console/permissionless-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Remove Delegation",
-              url: "/console/permissionless-l1s/remove-delegation",
-              icon: SquareMinus,
-            },
-          ],
-        },
-        {
-          id: "validators-pos-erc20",
-          title: "Proof of Stake (ERC20)",
-          icon: Coins,
-          items: [
-            {
-              title: "Stake",
-              url: "/console/permissionless-l1s/stake/erc20",
-              icon: HandCoins,
-            },
-            {
-              title: "Delegate",
-              url: "/console/permissionless-l1s/delegate/erc20",
-              icon: ArrowUpDown,
-            },
-            {
-              title: "Remove Validator",
-              url: "/console/permissionless-l1s/remove-validator-uptime",
-              icon: SquareMinus,
-            },
-            {
-              title: "Force Remove Validator",
-              url: "/console/permissionless-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Remove Delegation",
-              url: "/console/permissionless-l1s/remove-delegation",
-              icon: SquareMinus,
-            },
-          ],
         },
       ],
     },
@@ -389,39 +313,6 @@ const data = {
           title: "Set Auditor",
           url: "/console/encrypted-erc/deploy/auditor",
           icon: UserCheck,
-        },
-      ],
-    },
-    // Manage L1
-    {
-      id: "manage",
-      title: "Manage L1",
-      icon: Box,
-      items: [
-        {
-          title: "Validator Set",
-          url: "/console/layer-1/validator-set",
-          icon: Hexagon,
-        },
-        {
-          title: "Validator Balance",
-          url: "/console/layer-1/l1-validator-balance",
-          icon: Coins,
-        },
-        {
-          title: "Fee Parameters",
-          url: "/console/l1-tokenomics/fee-manager",
-          icon: Coins,
-        },
-        {
-          title: "Testnet Nodes",
-          url: "/console/testnet-infra/nodes",
-          icon: Server,
-        },
-        {
-          title: "ICM Relayer",
-          url: "/console/testnet-infra/icm-relayer",
-          icon: Layers,
         },
       ],
     },
@@ -699,7 +590,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full rounded-md border border-sidebar-border bg-transparent pl-8 pr-8 py-1.5 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 focus:outline-none focus:ring-1 focus:ring-sidebar-ring"
+              className="w-full rounded-md border border-sidebar-border bg-sidebar-accent/50 pl-8 pr-8 py-1.5 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/50 focus:outline-none focus:ring-1 focus:ring-sidebar-ring focus:bg-sidebar-accent/70 focus:border-sidebar-ring transition-colors"
             />
             {searchQuery && (
               <button
