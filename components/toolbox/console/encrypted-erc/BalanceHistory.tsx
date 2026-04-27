@@ -26,11 +26,30 @@ type Mode = 'standalone' | 'converter';
 function BalanceHistory() {
   const standalone = useEERCDeployment('standalone');
   const converter = useEERCDeployment('converter');
+  // Order favours converter because that's the path the Deposit / Transfer /
+  // Withdraw flows actually use on Fuji and on most user-deployed L1s. Putting
+  // standalone first historically meant Balance defaulted to the empty
+  // standalone contract while the user's tokens were sitting in the converter
+  // one — the "balance always zero" UX bug.
   const modes: Mode[] = [];
-  if (standalone.isReady) modes.push('standalone');
   if (converter.isReady) modes.push('converter');
+  if (standalone.isReady) modes.push('standalone');
+  const modesKey = modes.join(',');
 
   const [activeMode, setActiveMode] = useState<Mode | null>(modes[0] ?? null);
+
+  // Recover from the case where `modes[0]` was undefined on first render
+  // (chainId was 0 before wallet finished connecting), and ensure activeMode
+  // always points at one of the currently-available modes.
+  // modesKey collapses the modes array into a stable string dep so identity
+  // churn doesn't re-trigger this effect every render.
+  React.useEffect(() => {
+    if (modes.length === 0) return;
+    if (activeMode === null || !modes.includes(activeMode)) {
+      setActiveMode(modes[0]);
+    }
+  }, [modesKey, activeMode]);
+
   const deployment = activeMode === 'standalone' ? standalone.deployment : converter.deployment;
   const tokens = deployment?.supportedTokens ?? [];
   const [token, setToken] = useState<ERC20Meta | undefined>(tokens[0]);
@@ -39,7 +58,7 @@ function BalanceHistory() {
     if (activeMode === 'converter' && !token && tokens[0]) setToken(tokens[0]);
   }, [activeMode, token, tokens]);
 
-  const balance = useEERCBalance(deployment, activeMode ?? 'standalone', token);
+  const balance = useEERCBalance(deployment, activeMode ?? 'converter', token);
   const [showRaw, setShowRaw] = useState(false);
 
   if (modes.length === 0) {

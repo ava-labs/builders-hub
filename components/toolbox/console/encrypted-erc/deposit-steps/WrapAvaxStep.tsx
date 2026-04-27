@@ -5,7 +5,7 @@ import { useAccount, usePublicClient } from 'wagmi';
 import { formatUnits, parseAbi, parseEther } from 'viem';
 import { BookOpen, Check } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
+import { RawInput } from '@/components/toolbox/components/Input';
 import { useWrappedNativeToken } from '@/components/toolbox/hooks/useWrappedNativeToken';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { EERCToolShell } from '../shared/EERCToolShell';
@@ -159,18 +159,20 @@ export default function WrapAvaxStep() {
                 : 'WAVAX.withdraw(amount) burns your WAVAX and returns the equivalent amount of native AVAX. Use this after an eERC Withdraw to get back to native AVAX.'}
             </p>
 
-            <div className="mt-3 flex flex-col sm:flex-row gap-2">
-              <div className="flex-1">
-                <Input
-                  label=""
-                  value={amount}
-                  onChange={setAmount}
-                  placeholder={mode === 'wrap' ? 'Amount of AVAX' : 'Amount of WAVAX'}
-                  type="number"
-                  step="0.01"
-                />
-              </div>
-              <div className="flex items-end gap-2">
+            {/* Single-row layout: input + Max + primary CTA all share `h-10`
+                so they sit on the same baseline. The previous Input wrapper
+                added a label slot + mb-6, which left the buttons visually
+                floating below the input field. */}
+            <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
+              <RawInput
+                type="number"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder={mode === 'wrap' ? 'Amount of AVAX' : 'Amount of WAVAX'}
+                className="h-10 flex-1 rounded-md"
+              />
+              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={setMax}
@@ -179,7 +181,13 @@ export default function WrapAvaxStep() {
                 >
                   Max
                 </button>
-                <Button variant="primary" loading={busy} disabled={!canSubmit || busy} onClick={submit}>
+                <Button
+                  variant="primary"
+                  loading={busy}
+                  disabled={!canSubmit || busy}
+                  onClick={submit}
+                  className="h-10 !w-auto px-5"
+                >
                   {mode === 'wrap' ? 'Wrap' : 'Unwrap'}
                 </Button>
               </div>

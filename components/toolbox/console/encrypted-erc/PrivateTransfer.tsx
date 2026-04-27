@@ -36,11 +36,25 @@ type Mode = 'standalone' | 'converter';
 function PrivateTransfer() {
   const standalone = useEERCDeployment('standalone');
   const converter = useEERCDeployment('converter');
+  // Order favours converter — see BalanceHistory.tsx for the rationale.
   const availableModes: Mode[] = [];
-  if (standalone.isReady) availableModes.push('standalone');
   if (converter.isReady) availableModes.push('converter');
+  if (standalone.isReady) availableModes.push('standalone');
+  const availableModesKey = availableModes.join(',');
 
   const [mode, setMode] = useState<Mode | null>(availableModes[0] ?? null);
+
+  // Recover from the empty-on-first-render case (wallet chainId not yet
+  // resolved) and keep `mode` aligned with currently-available deployments.
+  // availableModesKey collapses the array into a stable string dep so
+  // identity churn doesn't re-trigger this effect every render.
+  React.useEffect(() => {
+    if (availableModes.length === 0) return;
+    if (mode === null || !availableModes.includes(mode)) {
+      setMode(availableModes[0]);
+    }
+  }, [availableModesKey, mode]);
+
   const deployment = mode === 'standalone' ? standalone.deployment : converter.deployment;
   const supportedTokens = deployment?.supportedTokens ?? [];
   const [token, setToken] = useState<ERC20Meta | undefined>(supportedTokens[0]);
@@ -49,7 +63,7 @@ function PrivateTransfer() {
     if (mode === 'converter' && !token && supportedTokens[0]) setToken(supportedTokens[0]);
   }, [mode, token, supportedTokens]);
 
-  const balance = useEERCBalance(deployment, mode ?? 'standalone', token);
+  const balance = useEERCBalance(deployment, mode ?? 'converter', token);
   const aud = useEERCAuditorAndTokenId(deployment, mode === 'converter' ? token?.address : undefined);
   const tr = useEERCTransfer(deployment);
 
