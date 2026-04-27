@@ -191,18 +191,20 @@ export async function GET(request: Request) {
     const isCacheValid = cacheAge < STATS_CONFIG.CACHE.LONG_DURATION;
     const isCacheStale = cached && !isCacheValid;
 
-    if (isCacheStale && !revalidatingKeys.has(timeRange)) {
-      revalidatingKeys.add(timeRange);
-      (async () => {
-        try {
-          const freshData = await fetchFreshDataInternal(timeRange);
-          if (freshData) {
-            cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
+    if (isCacheStale && cached) {
+      if (!revalidatingKeys.has(timeRange)) {
+        revalidatingKeys.add(timeRange);
+        (async () => {
+          try {
+            const freshData = await fetchFreshDataInternal(timeRange);
+            if (freshData) {
+              cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
+            }
+          } finally {
+            revalidatingKeys.delete(timeRange);
           }
-        } finally {
-          revalidatingKeys.delete(timeRange);
-        }
-      })();
+        })();
+      }
       return createResponse(cached.data, { source: 'stale-while-revalidate', timeRange, cacheAge });
     }
 
@@ -222,6 +224,18 @@ export async function GET(request: Request) {
     const freshData = await pendingPromise;
 
     if (!freshData) {
+      const fallbackCached = cached ?? cachedData.get(timeRange);
+      if (fallbackCached) {
+        return createResponse(
+          fallbackCached.data,
+          {
+            source: 'error-fallback-cache',
+            timeRange,
+            cacheAge: Date.now() - fallbackCached.timestamp,
+          },
+          206,
+        );
+      }
       return createResponse(
         { error: 'Failed to fetch total ecosystem validator stats' },
         { source: 'error' },
@@ -234,6 +248,20 @@ export async function GET(request: Request) {
     return createResponse(freshData, { source: 'fresh', timeRange, fetchTime });
   } catch (error) {
     console.error('[GET /api/total-ecosystem-validators] Unhandled error:', error);
+    const { searchParams } = new URL(request.url);
+    const timeRange = searchParams.get('timeRange') || 'all';
+    const cached = cachedData.get(timeRange);
+    if (cached) {
+      return createResponse(
+        cached.data,
+        {
+          source: 'error-fallback-cache',
+          timeRange,
+          cacheAge: Date.now() - cached.timestamp,
+        },
+        206,
+      );
+    }
     return createResponse(
       { error: 'Failed to fetch total ecosystem validator stats' },
       { source: 'error' },

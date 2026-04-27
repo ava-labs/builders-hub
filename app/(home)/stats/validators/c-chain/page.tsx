@@ -97,14 +97,13 @@ export default function CChainValidatorMetrics() {
 
       // Fetch all APIs in parallel
       // Use validator-stats API for version breakdown (same as landing page)
-      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse, p2pResponse, totalEcosystemResponse] =
+      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse, p2pResponse] =
         await Promise.all([
           fetch(`/api/primary-network-stats?timeRange=all`),
           fetch("/api/primary-network-validators"),
           fetch("/api/validator-stats?network=mainnet"),
           fetch('/api/staking-apy'),
           fetch('/api/validators'),
-          fetch('/api/total-ecosystem-validators?timeRange=all'),
         ]);
 
       if (!statsResponse.ok) {
@@ -211,19 +210,6 @@ export default function CChainValidatorMetrics() {
         }
       }
 
-      // Total validator seats: sum of per-network validatorCount series
-      // across the Primary Network + indexed mainnet L1s. Counts memberships,
-      // not distinct nodes (a validator on N networks is counted N times).
-      if (totalEcosystemResponse.ok) {
-        try {
-          const totalEcosystemData = await totalEcosystemResponse.json();
-          if (totalEcosystemData?.total_validator_seats) {
-            setTotalValidatorSeats(totalEcosystemData.total_validator_seats);
-          }
-        } catch (err) {
-          console.error('Error parsing total validator seats data:', err);
-        }
-      }
     } catch (err) {
       setError(`An error occurred while fetching data`);
     } finally {
@@ -232,8 +218,28 @@ export default function CChainValidatorMetrics() {
     }
   };
 
+  // Total validator seats: sum of per-network validatorCount series across
+  // the Primary Network + indexed mainnet L1s. Counts memberships, not
+  // distinct nodes (a validator on N networks is counted N times). The
+  // endpoint fans out to every active L1 subnet on a cold cache so it can
+  // be slow or unavailable; fetch it off the critical path so it never
+  // blocks the rest of the page.
+  const fetchTotalEcosystemValidators = async () => {
+    try {
+      const response = await fetch('/api/total-ecosystem-validators?timeRange=all');
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data?.total_validator_seats) {
+        setTotalValidatorSeats(data.total_validator_seats);
+      }
+    } catch (err) {
+      console.error('Error parsing total validator seats data:', err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchTotalEcosystemValidators();
   }, []);
 
   const formatNumber = (num: number | string): string => {
@@ -589,10 +595,10 @@ export default function CChainValidatorMetrics() {
 
   const chartConfigs = [
     {
-      title: "Avalanche Network Validator Count",
+      title: "Primary Network Validator Count",
       icon: Monitor,
       metricKey: "validator_count" as const,
-      description: "Number of active validators in the Avalanche ecosystem",
+      description: "Number of active validators on the Primary Network",
       color: chainConfig.color,
       chartType: "bar" as const,
     },
@@ -1162,7 +1168,7 @@ export default function CChainValidatorMetrics() {
                   referenceLineLabel={isValidatorCount ? "ACP-77 (Etna)" : undefined}
                   descriptionNote={
                     isValidatorCount
-                      ? "After the Etna upgrade, validators of subnets that converted into sovereign L1s no longer needed to also stake on the Primary Network — which is why the two series diverge from this point on."
+                      ? "After the Etna upgrade, validators of subnets that converted into sovereign L1s no longer needed to also stake on the Primary Network."
                       : undefined
                   }
                 />
@@ -2684,6 +2690,25 @@ function ValidatorChartCard({
               </div>
             )}
           </div>
+
+          {hasOverlay && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 pl-2 sm:pl-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-sm"
+                  style={{ backgroundColor: config.color }}
+                />
+                <span>Primary Network</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-block h-0.5 w-3"
+                  style={{ backgroundColor: overlayColor ?? "#3B82F6" }}
+                />
+                <span>{overlayLabel ?? "Total Validator Seats"}</span>
+              </div>
+            </div>
+          )}
 
           <ChartWatermark className="mb-6">
             <ResponsiveContainer width="100%" height={350}>
