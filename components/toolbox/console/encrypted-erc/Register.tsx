@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
-import { Check, Key, BookOpen } from 'lucide-react';
+import { ArrowRight, Check, Key, BookOpen } from 'lucide-react';
 import {
   withConsoleToolMetadata,
   type ConsoleToolMetadata,
@@ -60,6 +60,7 @@ function Register() {
           onChainKey={reg.onChainPublicKey}
           hasLocalKey={reg.identity !== null}
           onResetLocal={reg.resetIdentity}
+          onDeriveLocal={reg.deriveIdentity}
         />
       ) : (
         <>
@@ -204,50 +205,84 @@ function RegisteredPanel({
   onChainKey,
   hasLocalKey,
   onResetLocal,
+  onDeriveLocal,
 }: {
   address: string | undefined;
   registrar: string;
   onChainKey: [bigint, bigint] | null;
   hasLocalKey: boolean;
   onResetLocal: () => void;
+  onDeriveLocal: () => Promise<void>;
 }) {
+  const [isReDeriving, setIsReDeriving] = useState(false);
+
+  const handleReDerive = async () => {
+    if (isReDeriving) return;
+    setIsReDeriving(true);
+    try {
+      await onDeriveLocal();
+    } catch {
+      /* surfaced via reg.error in parent */
+    } finally {
+      setIsReDeriving(false);
+    }
+  };
+
   return (
-    <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 p-5 space-y-4">
-      <div className="flex items-center gap-2.5">
-        <div className="shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center">
-          <Check className="w-4 h-4" />
+    <div className="space-y-4">
+      <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 p-5 space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center">
+            <Check className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-green-800 dark:text-green-300">Registered on-chain</h3>
+            <p className="text-[11px] text-green-700/70 dark:text-green-400/70">
+              Your BabyJubJub public key is published at this Registrar.
+            </p>
+          </div>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <Field label="EVM address" value={address ?? '—'} />
+          <Field label="Registrar" value={registrar} />
+          <Field label="Public key x" value={onChainKey?.[0].toString() ?? '—'} mono />
+          <Field label="Public key y" value={onChainKey?.[1].toString() ?? '—'} mono />
+        </div>
+        <div className="rounded-md border border-green-200/50 dark:border-green-800/50 bg-white/50 dark:bg-zinc-900/30 p-3 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          {hasLocalKey ? (
+            <>
+              Your BabyJubJub private key is cached locally so decrypt and transfer tools won&apos;t re-prompt for a
+              signature.{' '}
+              <button className="underline text-zinc-700 dark:text-zinc-300" onClick={onResetLocal}>
+                Clear local key
+              </button>
+            </>
+          ) : (
+            <>
+              No local private key — decrypt tools will ask you to sign once to re-derive it.{' '}
+              <button
+                className="underline text-zinc-700 dark:text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleReDerive}
+                disabled={isReDeriving}
+              >
+                {isReDeriving ? 'Deriving…' : 'Re-derive now'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      <Link
+        href="/console/encrypted-erc/deposit"
+        className="group flex items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 px-4 py-3 transition-colors"
+      >
         <div>
-          <h3 className="text-sm font-semibold text-green-800 dark:text-green-300">Registered on-chain</h3>
-          <p className="text-[11px] text-green-700/70 dark:text-green-400/70">
-            Your BabyJubJub public key is published at this Registrar.
-          </p>
+          <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Continue to Deposit / Mint</div>
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+            Wrap AVAX and deposit it as encrypted balance to start using private transfers.
+          </div>
         </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-        <Field label="EVM address" value={address ?? '—'} />
-        <Field label="Registrar" value={registrar} />
-        <Field label="Public key x" value={onChainKey?.[0].toString() ?? '—'} mono />
-        <Field label="Public key y" value={onChainKey?.[1].toString() ?? '—'} mono />
-      </div>
-      <div className="rounded-md border border-green-200/50 dark:border-green-800/50 bg-white/50 dark:bg-zinc-900/30 p-3 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-        {hasLocalKey ? (
-          <>
-            Your BabyJubJub private key is cached locally so decrypt and transfer tools won&apos;t re-prompt for a
-            signature.{' '}
-            <button className="underline text-zinc-700 dark:text-zinc-300" onClick={onResetLocal}>
-              Clear local key
-            </button>
-          </>
-        ) : (
-          <>
-            No local private key — decrypt tools will ask you to sign once to re-derive it.{' '}
-            <button className="underline text-zinc-700 dark:text-zinc-300" onClick={onResetLocal}>
-              Re-derive now
-            </button>
-          </>
-        )}
-      </div>
+        <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
+      </Link>
     </div>
   );
 }

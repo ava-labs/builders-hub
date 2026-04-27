@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { registerOnChain } from '@/lib/eerc/register';
-import { loadIdentity, saveIdentity, clearIdentity, type EERCIdentitySecret } from '@/lib/eerc/identity';
+import {
+  loadIdentity,
+  saveIdentity,
+  clearIdentity,
+  deriveIdentity as deriveIdentityFromWallet,
+  type EERCIdentitySecret,
+} from '@/lib/eerc/identity';
 import RegistrarArtifact from '@/contracts/encrypted-erc/compiled/Registrar.json';
 import type { Hex, EERCDeployment } from '@/lib/eerc/types';
 
@@ -29,6 +35,13 @@ export interface UseEERCRegistrationState {
   register: () => Promise<Hex>;
   /** Wipe the cached BJJ identity for this (address, registrar) from localStorage. */
   resetIdentity: () => void;
+  /**
+   * Re-derive the BJJ identity from a fresh wallet signature and cache it
+   * locally without touching the on-chain registration. Used by the
+   * RegisteredPanel when the user has already registered but their local
+   * key cache was cleared (Reset Console State, new browser, etc.).
+   */
+  deriveIdentity: () => Promise<void>;
 }
 
 /**
@@ -151,5 +164,27 @@ export function useEERCRegistration(deployment: EERCDeployment | undefined): Use
     setIdentity(null);
   }, [address, deployment]);
 
-  return { status, error, identity, onChainPublicKey, register, resetIdentity };
+  const deriveIdentity = useCallback(async (): Promise<void> => {
+    if (!address || !walletClient || !deployment) {
+      throw new Error('Wallet not connected or deployment not ready');
+    }
+    setError(null);
+    try {
+      // Cast away viem's strict per-call abi generics at this boundary so
+      // the lib helper stays framework-agnostic.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wc = walletClient as any;
+      const secret = await deriveIdentityFromWallet(
+        address as `0x${string}`,
+        async (message: string) => (await wc.signMessage({ message })) as Hex,
+      );
+      saveIdentity(address, deployment.registrar, secret);
+      setIdentity(secret);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to derive identity');
+      throw err;
+    }
+  }, [address, walletClient, deployment]);
+
+  return { status, error, identity, onChainPublicKey, register, resetIdentity, deriveIdentity };
 }
