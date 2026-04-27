@@ -42,8 +42,9 @@ const C_CHAIN_IDS = new Set([43113, 43114]);
 
 // Combined view across both sources: server-backed NodeRegistration rows
 // (managed) and the wallet's local l1ListStore (wallet-only). Managed
-// entries take precedence on collision because they carry richer data
-// (managed-node list, expiry, etc.).
+// entries take precedence on collision but get enriched with the wallet's
+// L1ListItem metadata when available (validator manager, teleporter, etc.)
+// so Setup Progress can reflect what's actually deployed.
 type CombinedL1 = {
   source: 'managed' | 'wallet';
   subnetId: string;
@@ -58,6 +59,14 @@ type CombinedL1 = {
   firstSeenAt?: string;
   lastSeenAt?: string;
   nodes?: MyL1['nodes'];
+  // L1ListItem-derived metadata (populated by Quick L1 success or manual
+  // Add Chain). Used to drive Setup Progress checks + display niceties.
+  validatorManagerAddress?: string;
+  teleporterRegistryAddress?: string;
+  wrappedTokenAddress?: string;
+  coinName?: string;
+  logoUrl?: string;
+  explorerUrl?: string;
 };
 
 function MyL1DashboardInner() {
@@ -83,8 +92,21 @@ function DashboardBody() {
   const { l1s: managedL1s, isLoading, error, refetch } = useMyL1s();
   const walletL1s = useL1List();
 
+  // Index wallet entries by chainId so managed entries can borrow their
+  // metadata fields (validator manager address, teleporter registry, etc.).
+  const walletByChainId = useMemo(() => {
+    const map = new Map<number, L1ListItem>();
+    walletL1s.forEach((w: L1ListItem) => {
+      if (C_CHAIN_IDS.has(w.evmChainId)) return;
+      map.set(w.evmChainId, w);
+    });
+    return map;
+  }, [walletL1s]);
+
   // Merge managed (server) + wallet (local store) L1s. Managed wins on
-  // collision because it has the richer data set.
+  // collision because it has the richer data set, but we copy the wallet's
+  // L1ListItem metadata over so Setup Progress / explorer link / logo all
+  // work for managed entries the user has also added to their wallet.
   const combinedL1s = useMemo<CombinedL1[]>(() => {
     const byChainId = new Map<string, CombinedL1>();
     const byKey = (l1: { evmChainId: number | null; subnetId: string }) =>
@@ -96,11 +118,16 @@ function DashboardBody() {
     });
 
     managedL1s.forEach((m) => {
-      byChainId.set(byKey(m), { ...m, source: 'managed' });
+      const walletMatch = m.evmChainId !== null ? walletByChainId.get(m.evmChainId) : undefined;
+      byChainId.set(byKey(m), {
+        ...m,
+        source: 'managed',
+        ...(walletMatch ? metadataFromWalletItem(walletMatch) : {}),
+      });
     });
 
     return Array.from(byChainId.values());
-  }, [managedL1s, walletL1s]);
+  }, [managedL1s, walletL1s, walletByChainId]);
 
   // URL-driven selection so refresh + back button work, and so wallet network
   // switches don't change which L1 the dashboard is viewing.
@@ -172,6 +199,22 @@ function walletItemToCombined(w: L1ListItem): CombinedL1 {
     chainName: w.name,
     rpcUrl: w.rpcUrl,
     isTestnet: w.isTestnet,
+    ...metadataFromWalletItem(w),
+  };
+}
+
+// Extract just the metadata fields from a wallet L1ListItem. Empty-string
+// addresses (the Quick L1 placeholder for "not deployed yet") map to
+// undefined so Setup Progress treats them as missing.
+function metadataFromWalletItem(w: L1ListItem) {
+  const optional = (v: string | undefined) => (v && v.length > 0 ? v : undefined);
+  return {
+    validatorManagerAddress: optional(w.validatorManagerAddress),
+    teleporterRegistryAddress: optional(w.wellKnownTeleporterRegistryAddress),
+    wrappedTokenAddress: optional(w.wrappedTokenAddress),
+    coinName: w.coinName,
+    logoUrl: optional(w.logoUrl),
+    explorerUrl: optional(w.explorerUrl),
   };
 }
 
@@ -309,7 +352,7 @@ function L1Details({ l1 }: { l1: CombinedL1 }) {
       <StatsGrid l1={l1} health={health} />
       {l1.source === 'managed' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <SetupProgressCard />
+          <SetupProgressCard l1={l1} />
           <QuickActionsCard />
         </div>
       )}
@@ -399,19 +442,45 @@ function DetailHeader({ l1 }: { l1: CombinedL1 }) {
   const nodeCount = l1.nodes?.length ?? 0;
   return (
     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">{l1.chainName}</h2>
-        <p className="text-sm text-muted-foreground">
-          Chain ID: {l1.evmChainId ?? '—'} · {l1.isTestnet ? 'Testnet' : 'Mainnet'}
-          {l1.source === 'managed' && (
-            <>
-              {' · '}
-              {nodeCount} managed node{nodeCount === 1 ? '' : 's'}
-            </>
-          )}
-          {l1.source === 'wallet' && ' · Added to wallet'}
-        </p>
+      <div className="flex items-start gap-3 min-w-0">
+        {l1.logoUrl && (
+          <img
+            src={l1.logoUrl}
+            alt={l1.chainName}
+            className="w-10 h-10 rounded-lg object-contain bg-muted p-1 shrink-0"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        )}
+        <div className="min-w-0">
+          <h2 className="text-xl font-semibold text-foreground truncate">{l1.chainName}</h2>
+          <p className="text-sm text-muted-foreground">
+            Chain ID: {l1.evmChainId ?? '—'} · {l1.isTestnet ? 'Testnet' : 'Mainnet'}
+            {l1.source === 'managed' && (
+              <>
+                {' · '}
+                {nodeCount} managed node{nodeCount === 1 ? '' : 's'}
+              </>
+            )}
+            {l1.source === 'wallet' && ' · Added to wallet'}
+            {l1.coinName && (
+              <>
+                {' · '}
+                {l1.coinName}
+              </>
+            )}
+          </p>
+        </div>
       </div>
+      {l1.explorerUrl && (
+        <a href={l1.explorerUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
+          <Button variant="outline" size="sm">
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Open Explorer
+          </Button>
+        </a>
+      )}
     </div>
   );
 }
@@ -523,28 +592,41 @@ function StatCard({
   );
 }
 
-function SetupProgressCard() {
-  // The previous heuristics relied on validatorManagerAddress / wrappedTokenAddress
-  // sniffed off the wallet's L1ListItem. With the dashboard now driven by
-  // NodeRegistration we don't have those fields server-side; reduce to the
-  // genuinely-known checkpoints. TODO: wire a per-L1 features endpoint or
-  // pull from chain registry once available.
+function SetupProgressCard({ l1 }: { l1: CombinedL1 }) {
+  // Steps are driven by what we actually know:
+  //   1. L1 created               → true if we've got a managed entry
+  //   2. Managed node provisioned → at least one active node
+  //   3. Validator Manager        → wallet's L1ListItem has the address set
+  //   4. ICM (Teleporter Registry)→ wallet's L1ListItem has the address set
+  //   5. Token bridge             → wrappedTokenAddress set
+  // All metadata-driven checks come from the wallet L1ListItem, populated by
+  // Quick L1 success or manual chain-add. Missing wallet entries fall back
+  // to "unknown / not deployed".
+  const hasNode = (l1.nodes ?? []).some((n) => n.status === 'active');
+  const hasValidatorManager = !!l1.validatorManagerAddress;
+  const hasIcm = !!l1.teleporterRegistryAddress;
+  const hasBridge = !!l1.wrappedTokenAddress;
+
   const steps = [
     { label: 'L1 created', completed: true, href: '/console/create-l1' },
-    { label: 'Managed node provisioned', completed: true, href: '/console/testnet-infra/nodes' },
+    {
+      label: 'Managed node provisioned',
+      completed: hasNode,
+      href: '/console/testnet-infra/nodes',
+    },
     {
       label: 'Validator Manager configured',
-      completed: false,
+      completed: hasValidatorManager,
       href: '/console/permissioned-l1s/validator-manager-setup',
     },
     {
       label: 'Interchain Messaging (ICM)',
-      completed: false,
+      completed: hasIcm,
       href: '/console/icm/setup',
     },
     {
       label: 'Token Bridge',
-      completed: false,
+      completed: hasBridge,
       href: '/console/ictt/setup',
     },
   ];
