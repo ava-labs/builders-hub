@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
-import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles } from "lucide-react";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles, Monitor } from "lucide-react";
 import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
@@ -30,6 +30,8 @@ import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { ValidatorChartCard, timeSeriesToChartData } from "@/components/stats/ValidatorChartCard";
+import { ValidatorPieCard } from "@/components/stats/ValidatorPieCard";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -130,6 +132,18 @@ export default function ChainMetricsPage({
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Ecosystem validator data — only fetched on the all-chains view, off the
+  // critical path so the rest of the page is never blocked on these.
+  const [primaryValidatorMetric, setPrimaryValidatorMetric] = useState<any>(null);
+  const [totalValidatorSeats, setTotalValidatorSeats] = useState<any>(null);
+  const [subnetValidatorStats, setSubnetValidatorStats] = useState<
+    { id: string; name: string; nodes: number; isL1: boolean }[] | null
+  >(null);
+  const [validatorsLoading, setValidatorsLoading] = useState(false);
+  const [validatorChartPeriod, setValidatorChartPeriod] = useState<
+    "D" | "W" | "M" | "Q" | "Y"
+  >("D");
 
   // Cache for "all chains" data - fetched once and reused for filtering
   const [cachedAllData, setCachedAllData] = useState<CChainMetrics | null>(
@@ -449,6 +463,63 @@ export default function ChainMetricsPage({
     selectedChainIds.size,
     excludedChainIds.join(","),
   ]);
+
+  // Fetch ecosystem validator data only on the all-chains view. The total-
+  // ecosystem endpoint fans out over every active L1 subnet on a cold cache,
+  // so it is intentionally fired separately from the page's main fetch and
+  // never blocks the rest of the page.
+  useEffect(() => {
+    if (!isAllChainsView) return;
+    let cancelled = false;
+    setValidatorsLoading(true);
+
+    Promise.allSettled([
+      fetch("/api/primary-network-stats?timeRange=all").then((r) =>
+        r.ok ? r.json() : null,
+      ),
+      fetch("/api/validator-stats?network=mainnet").then((r) =>
+        r.ok ? r.json() : null,
+      ),
+    ])
+      .then(([primaryResult, subnetsResult]) => {
+        if (cancelled) return;
+        if (primaryResult.status === "fulfilled" && primaryResult.value?.validator_count) {
+          setPrimaryValidatorMetric(primaryResult.value.validator_count);
+        }
+        if (subnetsResult.status === "fulfilled" && Array.isArray(subnetsResult.value)) {
+          setSubnetValidatorStats(
+            subnetsResult.value.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              nodes: Object.values(s.byClientVersion ?? {}).reduce(
+                (sum: number, v: any) => sum + (v?.nodes ?? 0),
+                0,
+              ),
+              isL1: Boolean(s.isL1),
+            })),
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setValidatorsLoading(false);
+      });
+
+    fetch("/api/total-ecosystem-validators?timeRange=all")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.total_validator_seats) {
+          setTotalValidatorSeats(data.total_validator_seats);
+        }
+      })
+      .catch((err) =>
+        console.error("Error fetching total ecosystem validators:", err),
+      );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAllChainsView]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -925,6 +996,9 @@ export default function ChainMetricsPage({
     },
     { id: "fees", label: "Fees", metricKeys: ["feesPaid", "avgGasPrice", "maxGasPrice"] },
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
+    ...(isAllChainsView
+      ? [{ id: "validators", label: "Validators", metricKeys: [] as string[] }]
+      : []),
   ];
 
   // export all metrics as csv
@@ -2060,6 +2134,62 @@ export default function ChainMetricsPage({
                 })}
               </div>
             </section>
+
+            {/* Validators Section — only shown on the all-chains ecosystem view */}
+            {isAllChainsView && (
+              <section className="space-y-4 sm:space-y-6">
+                <div className="space-y-2">
+                  <LinkableHeading
+                    as="h2"
+                    id="validators"
+                    className="text-lg sm:text-2xl font-medium text-left"
+                  >
+                    Validators
+                  </LinkableHeading>
+                  <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                    Validator distribution across the Avalanche ecosystem
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  <ValidatorChartCard
+                    config={{
+                      title: "Primary Network Validator Count",
+                      description:
+                        "Number of active validators on the Primary Network",
+                      metricKey: "validator_count",
+                      color: themeColor,
+                      chartType: "bar",
+                      icon: Monitor,
+                    }}
+                    rawData={timeSeriesToChartData(primaryValidatorMetric)}
+                    period={validatorChartPeriod}
+                    currentValue={primaryValidatorMetric?.current_value ?? 0}
+                    onPeriodChange={setValidatorChartPeriod}
+                    formatTooltipValue={(value) =>
+                      `${formatNumber(Math.round(value))} Validators`
+                    }
+                    formatYAxisValue={formatNumber}
+                    overlayData={timeSeriesToChartData(totalValidatorSeats)}
+                    overlayLabel="Total Validator Seats (Primary + L1s)"
+                    overlayColor="#3B82F6"
+                    referenceLineDate="2024-12-16"
+                    referenceLineLabel="ACP-77 (Etna)"
+                    descriptionNote="After the Etna upgrade, validators of subnets that converted into sovereign L1s no longer needed to also stake on the Primary Network."
+                  />
+                  <ValidatorPieCard
+                    primaryNetworkCount={
+                      primaryValidatorMetric?.current_value != null
+                        ? typeof primaryValidatorMetric.current_value === "string"
+                          ? parseFloat(primaryValidatorMetric.current_value)
+                          : primaryValidatorMetric.current_value
+                        : null
+                    }
+                    subnetStats={subnetValidatorStats}
+                    loading={validatorsLoading}
+                  />
+                </div>
+              </section>
+            )}
           </>
         )}
       </div>
