@@ -106,19 +106,16 @@ function DashboardBody() {
     return map;
   }, [walletL1s]);
 
-  // Merge managed (server) + wallet (local store) L1s. Managed wins on
-  // collision because it has the richer data set, but we copy the wallet's
-  // L1ListItem metadata over so Setup Progress / explorer link / logo all
-  // work for managed entries the user has also added to their wallet.
+  // Merge managed (server) + wallet (local store) L1s. Managed entries are
+  // inserted first so they sort to the top of the switcher (Map iteration
+  // order = insertion order). Wallet entries fill any gaps. Managed
+  // entries that share an evmChainId with a wallet entry get enriched with
+  // L1ListItem metadata (validator manager, teleporter, explorer URL, etc.)
+  // so Setup Progress + the header explorer button work end-to-end.
   const combinedL1s = useMemo<CombinedL1[]>(() => {
     const byChainId = new Map<string, CombinedL1>();
     const byKey = (l1: { evmChainId: number | null; subnetId: string }) =>
       l1.evmChainId !== null ? `chain:${l1.evmChainId}` : `subnet:${l1.subnetId}`;
-
-    walletL1s.forEach((w: L1ListItem) => {
-      if (C_CHAIN_IDS.has(w.evmChainId)) return;
-      byChainId.set(byKey(w), walletItemToCombined(w));
-    });
 
     managedL1s.forEach((m) => {
       const walletMatch = m.evmChainId !== null ? walletByChainId.get(m.evmChainId) : undefined;
@@ -127,6 +124,13 @@ function DashboardBody() {
         source: 'managed',
         ...(walletMatch ? metadataFromWalletItem(walletMatch) : {}),
       });
+    });
+
+    walletL1s.forEach((w: L1ListItem) => {
+      if (C_CHAIN_IDS.has(w.evmChainId)) return;
+      const key = byKey(w);
+      if (byChainId.has(key)) return;
+      byChainId.set(key, walletItemToCombined(w));
     });
 
     return Array.from(byChainId.values());
