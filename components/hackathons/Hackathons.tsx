@@ -158,7 +158,7 @@ export default function Hackathons({
     if (newFilters.recordsByPage)
       params.set("recordsByPage", String(newFilters.recordsByPage));
 
-    router.replace(`/hackathons?${params.toString()}`);
+    router.replace(`/events?${params.toString()}`);
   };
 
   const handleSearchChange = useCallback((query: string) => {
@@ -173,7 +173,7 @@ export default function Hackathons({
       setFilters(newFilters);
 
       const queryString = buildQueryString(newFilters, query, pageSize);
-      router.replace(`/hackathons?${queryString}`);
+      router.replace(`/events?${queryString}`);
     }, 300);
   }, []);
 
@@ -186,7 +186,7 @@ export default function Hackathons({
                           ongoingHackathons.find((x) => x.top_most);
 
   const addNewHackathon = () => {
-    router.push('/hackathons/edit');
+    router.push('/events/edit');
   };
 
   const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
@@ -204,7 +204,7 @@ export default function Hackathons({
               hideTextOverlay={topMostHackathon.id === BUILD_GAMES_HACKATHON_ID}
               customRedirectUrl={topMostHackathon.id === BUILD_GAMES_HACKATHON_ID ? '/build-games' : undefined}
             />
-            <Link href={topMostHackathon.id === BUILD_GAMES_HACKATHON_ID ? '/build-games' : `/hackathons/${topMostHackathon.id}`}>
+            <Link href={topMostHackathon.id === BUILD_GAMES_HACKATHON_ID ? '/build-games' : `/events/${topMostHackathon.id}`}>
               <Image
                 src={
                   topMostHackathon.banner?.trim().trim().length > 0

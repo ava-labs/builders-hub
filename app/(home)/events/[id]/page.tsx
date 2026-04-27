@@ -45,10 +45,10 @@ export async function generateMetadata({
       title: hackathon.title,
       description: hackathon.description,
       openGraph: {
-        images: `/api/og/hackathons/${id}`,
+        images: `/api/og/events/${id}`,
       },
       twitter: {
-        images: `/api/og/hackathons/${id}`,
+        images: `/api/og/events/${id}`,
       },
     });
   } catch (error) {
@@ -75,14 +75,15 @@ export default async function HackathonPage({
 
   // Check if user is authenticated and registered
   const session = await getAuthSession();
+  const isAuthenticated = !!session?.user;
   let isRegistered = false;
-  
+
   if (session?.user?.email) {
     const registration = await getRegisterForm(session.user.email, id);
     isRegistered = !!registration;
   }
 
-  if (!hackathon) redirect("/hackathons");
+  if (!hackathon) redirect("/events");
 
   // Layout depends only on new_layout; when null/undefined, use legacy
   const useModernLayout = hackathon.new_layout === true;
@@ -93,6 +94,7 @@ export default async function HackathonPage({
         hackathon={hackathon}
         id={id}
         isRegistered={isRegistered}
+        isAuthenticated={isAuthenticated}
         utm={utm as string}
       />
     );
@@ -103,6 +105,7 @@ export default async function HackathonPage({
       hackathon={hackathon}
       id={id}
       isRegistered={isRegistered}
+      isAuthenticated={isAuthenticated}
       utm={utm as string}
     />
   );

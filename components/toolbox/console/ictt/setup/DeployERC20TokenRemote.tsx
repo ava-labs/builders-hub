@@ -26,13 +26,13 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 import versions from '@/scripts/versions.json';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'ERC20TokenRemote',
     filename: 'ERC20TokenRemote.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
     description: 'Remote chain endpoint that receives bridged ERC20 tokens from the home chain via ICTT.',
   },
 ];

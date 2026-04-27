@@ -28,7 +28,7 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import versions from '@/scripts/versions.json';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const metadata: ConsoleToolMetadata = {
   title: 'Add Collateral',
@@ -745,14 +745,14 @@ function AddCollateral() {
         sources={[
           {
             filename: 'ERC20TokenHome.sol',
-            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
-            githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
+            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
+            githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
             highlightFunction: 'addCollateral',
           },
           {
             filename: 'NativeTokenHome.sol',
-            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
-            githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
+            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
+            githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
             highlightFunction: 'addCollateral',
           },
         ]}

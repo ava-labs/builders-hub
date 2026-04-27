@@ -12,7 +12,7 @@ Removing a validator in a PoS setup returns the staked tokens **plus any earned 
 
 ### Phase 1: Initiation (L1)
 
-The validator owner calls [`initiateValidatorRemoval(validationID)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol) on the Staking Manager contract.
+The validator owner calls [`initiateValidatorRemoval(validationID)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol) on the Staking Manager contract.
 
 Under the hood, the contract:
 - Verifies the caller is the validation period owner
@@ -36,7 +36,7 @@ The weight update message (weight = 0) is signed and submitted to the P-Chain as
 
 ### Phase 3: Completion (L1)
 
-Call [`completeValidatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L573) with the P-Chain's signed response:
+Call [`completeValidatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/ValidatorManager.sol#L573) with the P-Chain's signed response:
 
 - Verifies the Warp message and `valid == false`
 - Calculates staking rewards based on uptime

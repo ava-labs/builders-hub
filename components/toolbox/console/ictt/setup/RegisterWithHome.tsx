@@ -21,7 +21,7 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 import versions from '@/scripts/versions.json';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const metadata: ConsoleToolMetadata = {
   title: 'Register Remote Contract with Home',
@@ -285,14 +285,14 @@ function RegisterWithHome() {
         sources={[
           {
             filename: 'ERC20TokenRemote.sol',
-            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
-            githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
+            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
+            githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
             highlightFunction: 'registerWithHome',
           },
           {
             filename: 'TokenRemote.sol',
-            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/TokenRemote.sol`,
-            githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenRemote/TokenRemote.sol`,
+            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/TokenRemote/TokenRemote.sol`,
+            githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/ictt/TokenRemote/TokenRemote.sol`,
             highlightFunction: 'registerWithHome',
           },
         ]}

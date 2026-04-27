@@ -41,7 +41,7 @@ import {
   XCircle,
 } from 'lucide-react';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 type ParsedInitiatedRegistration = {
   validationId: string;
@@ -713,8 +713,8 @@ function RemoveExpiredValidatorRegistration() {
       <ContractFunctionViewer
         contractName="ValidatorManager"
         filename="ValidatorManager.sol"
-        sourceUrl={`https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`}
-        githubUrl={`https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`}
+        sourceUrl={`https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`}
+        githubUrl={`https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`}
         highlightFunction={selectedFunction}
         description={`Viewing ${selectedFunction}() function`}
         showFunctionOnly={true}

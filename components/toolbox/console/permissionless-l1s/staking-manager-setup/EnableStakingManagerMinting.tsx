@@ -27,7 +27,7 @@ import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { Check } from 'lucide-react';
 import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 const DEFAULT_NATIVE_MINTER_ADDRESS = '0x0200000000000000000000000000000000000001';
 const MINTER_ROLE = keccak256(toHex('MINTER_ROLE'));
 
@@ -181,7 +181,7 @@ export function EnableStakingManagerMintingInner({ initialTokenType }: EnableSta
         <div className="shrink-0 px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
           <span className="text-xs text-zinc-500">Native Minter Precompile</span>
           <a
-            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
@@ -257,7 +257,7 @@ export function EnableStakingManagerMintingInner({ initialTokenType }: EnableSta
         <div className="shrink-0 px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
           <span className="text-xs text-zinc-500">ERC20 MINTER_ROLE</span>
           <a
-            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"

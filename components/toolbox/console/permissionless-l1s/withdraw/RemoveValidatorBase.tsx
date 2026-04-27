@@ -97,7 +97,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
           <p className="text-sm text-zinc-500 mb-4">
             Call the{' '}
             <a
-              href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol#L241"
+              href="https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol#L241"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 underline"
@@ -150,7 +150,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
           <p className="text-sm text-zinc-500 mb-4">
             Finalize the validator removal by calling{' '}
             <a
-              href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol"
+              href="https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/StakingManager.sol"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 underline"

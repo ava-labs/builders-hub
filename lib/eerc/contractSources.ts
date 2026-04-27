@@ -88,9 +88,9 @@ export const ENCRYPTED_ERC_SOURCES: ContractSource[] = [
   },
 ];
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 const icmRaw = (path: string) =>
-  `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/${path}`;
+  `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/${path}`;
 
 export const WAVAX_SOURCES: ContractSource[] = [
   {

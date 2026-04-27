@@ -22,6 +22,7 @@ import { Track as HackathonTrack } from '@/types/hackathons';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
 import projectData from '../projectData.json';
+import { EventsLang, t } from '@/lib/events/i18n';
 
 export interface projectProps {
   project_id: string;
@@ -40,10 +41,12 @@ export interface projectProps {
   setOpenCurrentProject: (open: boolean) => void;
   /** When set, the invite link will use this stage number (Build Games specific). */
   invite_stage?: number;
+  lang?: EventsLang;
 }
 
 const SubmitStep1: FC<projectProps> = (project) => {
   const form = useFormContext<SubmissionForm>();
+  const lang = project.lang ?? "en";
 
   const hasHackathon = !!project.hackaton_id;
 
@@ -84,9 +87,9 @@ const SubmitStep1: FC<projectProps> = (project) => {
   return (
     <div className='flex flex-col w-full  mt-6 space-y-8'>
       <section className='space-y-4'>
-        <h3 className='font-medium  text-lg md:text-xl'>General Section</h3>
+        <h3 className='font-medium  text-lg md:text-xl'>{t(lang, "submission.step1.general.title")}</h3>
         <p className='text-sm text-muted-foreground'>
-          Provide key details about your project that will appear in listings.
+          {t(lang, "submission.step1.general.subtitle")}
         </p>
         <FormField
           control={form.control}
@@ -94,12 +97,12 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Project Name'
+                label={t(lang, "submission.step1.projectName.label")}
                 checked={!!field.value}
               />
               <FormControl>
                 <Input
-                  placeholder='Enter your project name'
+                  placeholder={t(lang, "submission.step1.projectName.placeholder")}
                   className='w-full dark:bg-zinc-950'
                   {...field}
                 />
@@ -116,7 +119,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Short Description'
+                label={t(lang, "submission.step1.shortDesc.label")}
                 checked={!!field.value}
               />
               <FormControl>
@@ -126,7 +129,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                     target.style.height = '0px';
                     target.style.height = target.scrollHeight + 'px';
                   }}
-                  placeholder='Write a short and engaging overview...'
+                  placeholder={t(lang, "submission.step1.shortDesc.placeholder")}
                   className='w-full h-9 dark:bg-zinc-950'
                   {...field}
                 />
@@ -143,12 +146,12 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Full Description'
+                label={t(lang, "submission.step1.fullDesc.label")}
                 checked={!!field.value}
               />
               <FormControl>
                 <Textarea
-                  placeholder='Describe your project in detail...'
+                  placeholder={t(lang, "submission.step1.fullDesc.placeholder")}
                   className='w-full h-9 dark:bg-zinc-950'
                   {...field}
                 />
@@ -166,7 +169,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabelWithCheck
-                  label='Tracks'
+                  label={t(lang, "submission.step1.tracks.label")}
                   checked={!!field.value && field.value.length > 0}
                 />
                 <FormControl>
@@ -174,8 +177,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                     options={transformedTracks}
                     selected={field.value || []}
                     onChange={field.onChange}
-                    placeholder='Select tracks'
-                    searchPlaceholder='Search tracks'
+                    placeholder={t(lang, "submission.step1.tracks.placeholder")}
+                    searchPlaceholder={t(lang, "submission.step1.tracks.searchPlaceholder")}
                   />
                 </FormControl>
                 <FormMessage />
@@ -192,7 +195,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabelWithCheck
-                  label='Categories'
+                  label={t(lang, "submission.step1.categories.label")}
                   checked={!!field.value && field.value.length > 0}
                 />
                 <FormControl>
@@ -206,8 +209,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                         form.setValue('other_category', '');
                       }
                     }}
-                    placeholder='Select categories'
-                    searchPlaceholder='Search categories'
+                    placeholder={t(lang, "submission.step1.categories.placeholder")}
+                    searchPlaceholder={t(lang, "submission.step1.categories.searchPlaceholder")}
                   />
                 </FormControl>
                 <FormMessage />
@@ -224,12 +227,12 @@ const SubmitStep1: FC<projectProps> = (project) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabelWithCheck
-                  label='Specify Other Category'
+                  label={t(lang, "submission.step1.otherCategory.label")}
                   checked={!!field.value}
                 />
                 <FormControl>
                   <Input
-                    placeholder='Enter your custom category'
+                    placeholder={t(lang, "submission.step1.otherCategory.placeholder")}
                     className='w-full dark:bg-zinc-950'
                     {...field}
                   />
@@ -248,7 +251,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabelWithCheck
-                  label='Deployed Addresses'
+                  label={t(lang, "submission.step1.deployedAddresses.label")}
                   checked={!!field.value && field.value.length > 0}
                 />
                 <div className='space-y-3'>
@@ -313,7 +316,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                     }}
                className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
                   >
-                    + new address
+                    {t(lang, "submission.step1.deployedAddresses.addButton")}
                   </Button>
                 </div>
                 <FormMessage />
@@ -326,7 +329,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
       {/* TEAM & COLLABORATION */}
       <section className='space-y-4'>
         <h3 className='font-medium  text-lg md:text-xl' id='team'>
-          Team &amp; Collaboration
+          {t(lang, "submission.step1.team.title")}
         </h3>
         <MembersComponent {...project} />
       </section>

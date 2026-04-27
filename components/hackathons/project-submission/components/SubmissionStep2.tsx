@@ -15,10 +15,11 @@ import { FormLabelWithCheck } from "./FormLabelWithCheck";
 import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { MultiLinkInput } from './MultiLinkInput';
 import { useProjectSubmission } from "../context/ProjectSubmissionContext";
+import { EventsLang, t } from "@/lib/events/i18n";
 
 
 
-export default function SubmitStep2() {
+export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
   const form =  useFormContext<SubmissionForm>();
   const { state } = useProjectSubmission();
   const hasHackathon = !!state.hackathonId;
@@ -27,11 +28,10 @@ export default function SubmitStep2() {
       {/* Sección: Technical Details */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-foreground">
-          Technical Details
+          {t(lang, "submission.step2.technical.title")}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Explain how your project works under the hood: tech stack,
-          integrations, and architecture.
+          {t(lang, "submission.step2.technical.subtitle")}
         </p>
 
         {/* Campo: How It's Made */}
@@ -41,19 +41,18 @@ export default function SubmitStep2() {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label="How it's made"
+                label={t(lang, "submission.step2.techStack.label")}
                 checked={!!field.value}
               />
               <FormControl>
                 <Textarea
-                  placeholder="Describe the tech stack, APIs, and integrations used."
+                  placeholder={t(lang, "submission.step2.techStack.placeholder")}
                   className=" h-[180px] resize-none dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
               <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
-                Mention any innovative solutions or "hacky" parts worth
-                highlighting.
+                {t(lang, "submission.step2.techStack.hint")}
               </p>
               <FormMessage />
             </FormItem>
@@ -63,17 +62,17 @@ export default function SubmitStep2() {
         {/* Campo: Repo Link */}
         <MultiLinkInput
           name="github_repository"
-          label="GitHub Repository"
-          placeholder="Paste GitHub link (e.g., https://github.com/user/repo)"
-          validationMessage="Must be a public repository. If design-only, link a Figma file. Use space,enter or tab after each link"
+          label={t(lang, "submission.step2.github.label")}
+          placeholder={t(lang, "submission.step2.github.placeholder")}
+          validationMessage={t(lang, "submission.step2.github.validation")}
         />
 
         {/* Campo: Demo Link */}
         <MultiLinkInput
           name="demo_link"
-          label="Demo and Other Links"
-          placeholder="Paste any project links (e.g., https://yoursite.com)"
-          validationMessage="Provide a live demo, presnetation, deck, Google Drive Folder, website, etc. Use space, enter or tab after each link"
+          label={t(lang, "submission.step2.demo.label")}
+          placeholder={t(lang, "submission.step2.demo.placeholder")}
+          validationMessage={t(lang, "submission.step2.demo.validation")}
         />
       </section>
 
@@ -81,11 +80,10 @@ export default function SubmitStep2() {
       {hasHackathon && (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-foreground">
-            Project Continuity & Development
+            {t(lang, "submission.step2.continuity.title")}
           </h2>
           <p className="text-sm text-muted-foreground pt-0 mt-0">
-            Indicate if your project builds upon a pre-existing idea and clarify
-            your contributions during the hackathon.
+            {t(lang, "submission.step2.continuity.subtitle")}
           </p>
 
           {/* Toggle: isPreExisting */}
@@ -96,22 +94,13 @@ export default function SubmitStep2() {
               <FormItem className="flex items-center justify-between p-4 border rounded">
                 <div className="space-y-1">
                   <FormLabel>
-                    Is this project based on a pre-existing idea?
+                    {t(lang, "submission.step2.preexisting.label")}
                   </FormLabel>
                   <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
-                    If your project is built upon an existing idea, you must
-                    disclose which components were developed specifically during
-                    the      {"\n"}
-                    hackathon.      {"\n"}
-            
+                    {t(lang, "submission.step2.preexisting.description1")}
                   </p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line ">
-              
-                     Judges may not have enough time to fully verify
-                    the implementation during evaluation, but prize distribution
-                    may be
-                    {"\n"}
-                     subject to further review.
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line">
+                    {t(lang, "submission.step2.preexisting.description2")}
                   </p>
                 </div>
                 <FormControl>
@@ -130,19 +119,18 @@ export default function SubmitStep2() {
             name="explanation"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Explain what was built during the hackathon</FormLabel>
+                <FormLabel>{t(lang, "submission.step2.explanation.label")}</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Provide a detailed breakdown of the new features, functionalities, or improvements developed during this event."
+                    placeholder={t(lang, "submission.step2.explanation.placeholder")}
                     className=" h-15 resize-none dark:bg-zinc-950"
                     {...field}
                   />
                 </FormControl>
-                <p className="text-zinc-600 dark:text-zinc-400 text-sm  tracking-[0%] font-aeonik whitespace-pre-line">
-                  Clearly specify what was created during the hackathon.{"\n"}
-                  Differentiate between pre-existing work and new contributions.
-                  {"\n"}
-                  Mention any significant modifications or optimizations.
+                <p className="text-zinc-600 dark:text-zinc-400 text-sm tracking-[0%] font-aeonik whitespace-pre-line">
+                  {t(lang, "submission.step2.explanation.hint1")}{"\n"}
+                  {t(lang, "submission.step2.explanation.hint2")}{"\n"}
+                  {t(lang, "submission.step2.explanation.hint3")}
                 </p>
                 <FormMessage />
               </FormItem>

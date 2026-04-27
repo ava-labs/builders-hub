@@ -20,19 +20,19 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import { ContractDeployViewer, ContractSource } from '@/components/console/contract-deploy-viewer';
 import { Check, Rocket, ExternalLink, Copy, Info, FileCode } from 'lucide-react';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'TeleporterRegistry',
     filename: 'TeleporterRegistry.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistry.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistry.sol`,
     description: 'Registry contract for versioned Teleporter protocol management',
   },
   {
     name: 'TeleporterRegistryApp',
     filename: 'TeleporterRegistryApp.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistryApp.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/teleporter/registry/TeleporterRegistryApp.sol`,
     description: 'Base contract for apps that use the Teleporter Registry',
   },
 ];
@@ -211,7 +211,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
       {/* Footer */}
       <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
         <a
-          href="https://github.com/ava-labs/icm-contracts/tree/main/contracts/teleporter/registry"
+          href="https://github.com/ava-labs/icm-services/tree/main/icm-contracts/avalanche/teleporter/registry"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors"

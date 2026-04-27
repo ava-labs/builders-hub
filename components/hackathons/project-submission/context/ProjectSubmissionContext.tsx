@@ -134,7 +134,7 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
   }, [session?.user?.id, toast]);
 
   useEffect(() => {
-    const hackathonId = searchParams.get('hackathon');
+    const hackathonId = searchParams.get('event') ?? searchParams.get('hackathon');
     const invitationId = searchParams.get('invitation');
     const projectId = searchParams.get('project');
     

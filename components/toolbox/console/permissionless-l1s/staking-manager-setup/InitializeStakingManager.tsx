@@ -29,7 +29,7 @@ import { StepCodeViewer, type StepConfig } from '@/components/console/step-code-
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { Check, RefreshCw, AlertCircle } from 'lucide-react';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 type StakingType = 'native' | 'erc20';
 
@@ -91,12 +91,12 @@ console.log("Initialized:", BigInt(settings.minimumStakeAmount) > 0n);`,
     codeType: 'solidity',
     filename: params.isErc20 ? 'ERC20TokenStakingManager.sol' : 'NativeTokenStakingManager.sol',
     sourceUrl: params.isErc20
-      ? `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`
-      : `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
+      ? `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`
+      : `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
     highlightFunction: 'initialize',
     githubUrl: params.isErc20
-      ? `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`
-      : `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
+      ? `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`
+      : `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
   },
 ];
 
@@ -470,7 +470,7 @@ export function InitializeStakingManagerInner({ onSuccess, initialStakingType }:
         <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
           <span className="text-xs text-zinc-500">Calls initialize(settings)</span>
           <a
-            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"

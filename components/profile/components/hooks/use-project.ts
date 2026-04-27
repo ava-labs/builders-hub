@@ -18,7 +18,7 @@ export const useProject = () => {
         try {
             setIsLoading(true);
             setError(null);
-            const response = await axios.get(`/api/projects/member/${session?.user?.id}`);
+            const response = await axios.get(`/api/projects/member`);
             setProjects(response.data);
         } catch (err) {
             setError(err instanceof Error ? err : new Error("Failed to fetch projects"));

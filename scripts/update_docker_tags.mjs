@@ -232,36 +232,32 @@ async function updateNetwork(versions, network) {
             console.error(`  New version ${latestAvagoTag} is available for ${network} avalanchego. Current version is ${currentAvagoVersion}`);
         }
 
-        // Check for Subnet-EVM updates and combine with AvalancheGo
-        const latestSubnetEvmBaseTag = await fetchGithubLatestReleaseTag('ava-labs', 'subnet-evm', isFuji);
-        const intendedCombinedTag = `${latestSubnetEvmBaseTag}_${networkVersions['avaplatform/avalanchego']}`;
+        // Check for Subnet-EVM Docker image updates
+        // Note: ava-labs/subnet-evm is archived; new combined images are published
+        // directly to Docker Hub. We find the latest tag matching the current avalanchego version.
         const currentSubnetEvmVersion = networkVersions['avaplatform/subnet-evm_avalanchego'] || '';
-        let combinedSubnetEvmAvagoTag = intendedCombinedTag;
+        let combinedSubnetEvmAvagoTag = currentSubnetEvmVersion;
 
         try {
             const allTags = await fetchAllTags('avaplatform/subnet-evm_avalanchego');
-            if (!allTags.includes(intendedCombinedTag)) {
-                // Fallback: find latest published combined tag for this subnet-evm base
-                const candidates = allTags.filter(name => name.startsWith(`${latestSubnetEvmBaseTag}_`));
-                if (candidates.length > 0) {
-                    // sort by the AvalancheGo semver suffix descending
-                    candidates.sort((a, b) => {
-                        const as = a.split('_')[1] || '';
-                        const bs = b.split('_')[1] || '';
-                        return compareSemver(bs, as);
-                    });
-                    combinedSubnetEvmAvagoTag = candidates[0];
-                    console.error(`  Docker tag ${intendedCombinedTag} not found. Falling back to latest available ${combinedSubnetEvmAvagoTag}.`);
-                } else if (allTags.length > 0) {
-                    // Last resort: keep the current one if exists, else pick first available
-                    combinedSubnetEvmAvagoTag = currentSubnetEvmVersion || allTags[0];
-                    if (combinedSubnetEvmAvagoTag !== intendedCombinedTag) {
-                        console.error(`  Docker tag ${intendedCombinedTag} not found. Falling back to ${combinedSubnetEvmAvagoTag}.`);
-                    }
-                }
+            const avagoVersion = networkVersions['avaplatform/avalanchego'];
+
+            // Find tags matching the current avalanchego version
+            const candidates = allTags.filter(name => name.endsWith(`_${avagoVersion}`));
+            if (candidates.length > 0) {
+                // Sort by the subnet-evm semver prefix descending to get the latest
+                candidates.sort((a, b) => {
+                    const as = a.split('_')[0] || '';
+                    const bs = b.split('_')[0] || '';
+                    return compareSemver(bs, as);
+                });
+                combinedSubnetEvmAvagoTag = candidates[0];
+            } else {
+                // No tag for this avalanchego version yet — keep current version to avoid mismatched pairs
+                console.warn(`  No Docker tag found for avalanchego ${avagoVersion}. Keeping current: ${currentSubnetEvmVersion}.`);
             }
         } catch (_) {
-            // If Docker Hub listing fails, keep intended combined tag and hope it exists
+            // If Docker Hub listing fails, keep the current version
         }
 
         const subnetEvmStatus = combinedSubnetEvmAvagoTag === currentSubnetEvmVersion ? '(same as before)' : '(new)';

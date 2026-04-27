@@ -28,33 +28,34 @@ export async function GET(req: NextRequest) {
       event: searchParams.get('event') || undefined,
     };
     
+    const joinedOnly = searchParams.get('joined_only') === 'true';
+
     if (userId) {
       // Get user from database to validate permissions
       const user = await getUserById(userId);
       if (!user) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
-      
+
       // Check user's custom_attributes for permissions
       const customAttributes = user.custom_attributes || [];
       const isDevrel = customAttributes.includes("devrel");
       const isTeam1Admin = customAttributes.includes("team1-admin");
       const isHackathonCreator = customAttributes.includes("hackathonCreator");
-      
-      // If user is devrel, show all hackathons; otherwise filter by user ID
-      const createdByFilter = isDevrel ? undefined : userId;
 
-      options.created_by = createdByFilter || undefined;
-      // Only narrow by cohost email for non-devrel users; devrel should see all
-      if (!isDevrel) {
-        options.cohost_email = user.email || undefined;
+      options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
+
+      if (joinedOnly) {
+        // If user is devrel, show all hackathons; otherwise filter by user ID
+        const createdByFilter = isDevrel ? undefined : userId;
+        options.created_by = createdByFilter || undefined;
+        // Only narrow by cohost email for non-devrel users; devrel should see all
+        if (!isDevrel) {
+          options.cohost_email = user.email || undefined;
+        }
       }
-      options.include_private = isDevrel || isTeam1Admin || isHackathonCreator; // These roles can see private hackathons
-      
-      console.log('API GET /hackathons:', { userId, isDevrel, isTeam1Admin, isHackathonCreator, createdByFilter, options });
     } else {
       options.include_private = false;
-      console.log('API GET /hackathons (no userId):', { options });
     }
     
     const response = await getFilteredHackathons(options);
