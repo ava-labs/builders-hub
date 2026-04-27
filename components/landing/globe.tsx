@@ -96,25 +96,24 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 		// Find Avalanche C-Chain data
 		const avalancheChain = metrics.chains.find(c => c.chainId === AVALANCHE_CCHAIN_ID);
 
-		// Get L1 chains excluding Avalanche C-Chain (it will be the center) and Shrapnel
-		// Score chains by multiple metrics for better representation
+		// Get L1 chains excluding Avalanche C-Chain (it will be the center) and
+		// Shrapnel. Score by activity for sort order, but show every active L1
+		// the API returns so this view stays in sync with /stats/overview
+		// (P-Chain is the source of truth for what counts as an active L1).
 		const l1Chains = metrics.chains
 			.filter(chain => chain.chainId !== AVALANCHE_CCHAIN_ID && chain.chainId !== SHRAPNEL_CHAIN_ID)
 			.map(chain => {
-				// Calculate composite activity score
-				const tpsScore = (chain.tps || 0) * 10; // Weight TPS heavily
+				const tpsScore = (chain.tps || 0) * 10;
 				const txScore = Math.sqrt(chain.txCount || 0) * 0.1;
 				const addressScore = Math.sqrt(chain.activeAddresses || 0) * 0.5;
 				const validatorScore = typeof chain.validatorCount === 'number' ? chain.validatorCount : 0;
 				const icmScore = Math.sqrt(chain.icmMessages || 0) * 0.3;
-				
+
 				const activityScore = tpsScore + txScore + addressScore + validatorScore + icmScore;
-				
+
 				return { ...chain, activityScore };
 			})
-			.filter(chain => chain.activityScore > 0)
-			.sort((a, b) => b.activityScore - a.activityScore)
-			.slice(0, 40); // Show top 40 most active L1 chains
+			.sort((a, b) => b.activityScore - a.activityScore);
 
 		// Calculate total TPS (including Avalanche) for aggregate display
 		const totalTps = metrics.chains.reduce((sum, c) => sum + (c.tps || 0), 0);
@@ -133,25 +132,22 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 			validatorCount: typeof avalancheChain?.validatorCount === 'number' ? avalancheChain.validatorCount : undefined,
 		}];
 
-		// Add L1 chains from API
+		// Add every active L1 from the API. Chains without logos (e.g. P-Chain
+		// stub entries seeded from platform.getBlockchains) still render — the
+		// diagram falls back to a colored circle with the chain's initial.
 		l1Chains.forEach(chain => {
-			// Get additional info from l1-chains.json
 			const l1Chain = l1ChainsData.find(
-				(c: any) => c.chainId === chain.chainId || 
+				(c: any) => c.chainId === chain.chainId ||
 				c.chainName.toLowerCase() === chain.chainName.toLowerCase()
 			);
 
 			const category = l1Chain?.category || 'General';
 			const slug = l1Chain?.slug;
-			// Use API logo first, fallback to l1-chains.json logo
-			const logo = chain.chainLogoURI || l1Chain?.chainLogoURI;
-
-			// Only include chains that have a valid logo
-			if (!logo) return;
+			const logo = chain.chainLogoURI || l1Chain?.chainLogoURI || undefined;
 
 			result.push({
 				id: chain.chainId,
-				chainId: chain.chainId, // Include chainId for ICM matching
+				chainId: chain.chainId,
 				name: chain.chainName,
 				logo,
 				color: l1Chain?.color || getCategoryColor(category) || stringToColor(chain.chainName),
@@ -159,7 +155,7 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 				link: slug ? `/stats/l1/${slug}` : undefined,
 				isPrimary: false,
 				validatorCount: typeof chain.validatorCount === 'number' ? chain.validatorCount : undefined,
-				tps: chain.tps || 0, // Include TPS for pulse effect
+				tps: chain.tps || 0,
 			});
 		});
 
