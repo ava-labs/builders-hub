@@ -849,6 +849,7 @@ export default function ChainMetricsPage({
       color: themeColor,
       chartType: "bar" as const,
       isCurrency: true,
+      showMovingAverage: true,
     },
     {
       title: "Avg Gas Price",
@@ -1991,7 +1992,7 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
-                      showMovingAverage={config.showMovingAverage || config.metricKey === "feesPaid"}
+                      showMovingAverage={config.showMovingAverage}
                       chainId={chainId}
                       chainName={chainName}
                       allChartConfigs={chartConfigs.map((c) => ({
@@ -2122,6 +2123,14 @@ function ChartCard({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const [showImageStudio, setShowImageStudio] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Screenshot handler for downloading chart as image
   const handleScreenshot = async () => {
@@ -2405,10 +2414,33 @@ function ChartCard({
     return result;
   }, [displayData, aggregatedCumulativeData, aggregatedSecondaryData]);
 
+  // Compute 30DMA current value for feesPaid-like charts with moving average
+  const maCurrentValue = useMemo(() => {
+    if (!showMovingAverage || !aggregatedData || aggregatedData.length === 0) return null;
+    const last = aggregatedData[aggregatedData.length - 1];
+    return (last as any).ma !== undefined ? (last as any).ma : null;
+  }, [showMovingAverage, aggregatedData]);
+
   // Calculate percentage change based on brush selection
+  // For charts with moving average, compare MA values instead of raw values
   const dynamicChange = useMemo(() => {
     if (!displayData || displayData.length < 2) {
       return { change: 0, isPositive: true };
+    }
+
+    if (showMovingAverage) {
+      // Compare current MA to MA from one window-period ago
+      const lastMA = (displayData[displayData.length - 1] as any).ma;
+      // Find the point ~window periods back
+      const compareIdx = Math.max(0, displayData.length - 1 - maConfig.window);
+      const compareMA = (displayData[compareIdx] as any).ma;
+      if (lastMA !== undefined && compareMA !== undefined && compareMA > 0) {
+        const changePercentage = ((lastMA - compareMA) / compareMA) * 100;
+        return {
+          change: Math.abs(changePercentage),
+          isPositive: changePercentage >= 0,
+        };
+      }
     }
 
     const firstValue = displayData[0].value;
@@ -2424,17 +2456,31 @@ function ChartCard({
       change: Math.abs(changePercentage),
       isPositive: changePercentage >= 0,
     };
-  }, [displayData]);
+  }, [displayData, showMovingAverage, maConfig.window]);
 
   const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
 
   // Formatter for the brush slider - uses total data range
   const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
 
+  // Responsive chart margins
+  const chartMargin = isMobile
+    ? { top: 5, right: 10, left: 0, bottom: 0 }
+    : { top: 10, right: 40, left: 15, bottom: 0 };
+  const dualChartMargin = isMobile
+    ? { top: 5, right: 10, left: 0, bottom: 0 }
+    : { top: 10, right: 15, left: 15, bottom: 0 };
+
   // Generate custom ticks aligned to meaningful boundaries
+  // On mobile, show fewer ticks to prevent label overlap
   const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
+    const ticks = generateXAxisTicks(displayData, brushRangeDays, "day");
+    if (isMobile && ticks && ticks.length > 3) {
+      const step = Math.ceil(ticks.length / 3);
+      return ticks.filter((_, i) => i % step === 0);
+    }
+    return ticks;
+  }, [displayData, brushRangeDays, isMobile]);
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") {
@@ -2630,7 +2676,7 @@ function ChartCard({
           </div>
         </div>
 
-        <div className="px-5 pt-6 pb-6">
+        <div className="px-2 sm:px-5 pt-4 sm:pt-6 pb-4 sm:pb-6">
           {/* Check if period is supported */}
           {!allowedPeriods.includes(period) ? (
             <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground gap-2">
@@ -2684,6 +2730,11 @@ function ChartCard({
                         ? parseFloat(secondaryCurrentValue)
                         : secondaryCurrentValue
                     )}
+                  </div>
+                ) : showMovingAverage && maCurrentValue !== null ? (
+                  <div className="text-md sm:text-base font-mono break-all">
+                    <span>{formatTooltipValue(maCurrentValue)}</span>
+                    <span className="text-xs text-muted-foreground ml-1.5">{maConfig.label}</span>
                   </div>
                 ) : (
                   <div className="text-md sm:text-base font-mono break-all">
@@ -2809,7 +2860,7 @@ function ChartCard({
 
               <ChartWatermark className="mb-6">
                 {displayData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={isMobile ? 260 : 400}>
                     {config.chartType === "bar" &&
                     (config.metricKey === "txCount" ||
                       config.metricKey === "activeAddresses" ||
@@ -2817,7 +2868,7 @@ function ChartCard({
                       config.metricKey === "deployers") ? (
                       <ComposedChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 15, left: 15, bottom: 0 }}
+                        margin={dualChartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -2830,6 +2881,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -2919,7 +2971,7 @@ function ChartCard({
                     ) : config.chartType === "bar" && showMovingAverage ? (
                       <ComposedChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -2932,6 +2984,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -2994,7 +3047,7 @@ function ChartCard({
                     ) : config.chartType === "bar" ? (
                       <BarChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -3007,6 +3060,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -3050,7 +3104,7 @@ function ChartCard({
                     ) : config.chartType === "area" ? (
                       <AreaChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <defs>
                           <linearGradient
@@ -3083,6 +3137,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -3125,10 +3180,10 @@ function ChartCard({
                           strokeWidth={1}
                         />
                       </AreaChart>
-                    ) : config.chartType === "dual" ? (
+                    ) : config.chartType === "dual" ? ( /* dual: avg/max stacked bars */
                       <BarChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -3141,6 +3196,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -3214,7 +3270,7 @@ function ChartCard({
                     ) : (
                       <LineChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -3276,7 +3332,7 @@ function ChartCard({
                     )}
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  <div className="h-[260px] sm:h-[400px] flex items-center justify-center text-muted-foreground">
                     Loading chart data...
                   </div>
                 )}

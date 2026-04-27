@@ -3,7 +3,7 @@ title: L1 Add-Ons
 description: Deploy Blockscout block explorer, faucets, The Graph, ICM Relayer, eRPC load balancer, and Safe multisig for your Avalanche L1.
 ---
 
-After deploying your L1, you can add optional services to enhance the developer and operator experience. Each add-on is deployed via a dedicated Ansible playbook and runs as a Docker Compose stack on your monitoring or RPC nodes.
+After deploying your L1, you can add optional services to enhance the developer and operator experience. Each add-on is available for both deployment paths: **Ansible playbooks** (Docker Compose on VMs) and **Helm charts** (Kubernetes).
 
 <Callout type="info">
 All add-on commands assume you have sourced your L1 environment: `source l1.env`
@@ -47,19 +47,44 @@ make configure-l1 SUBNET_ID=$SUBNET_ID CHAIN_ID=$CHAIN_ID SKIP_ERPC=true
 
 To redeploy eRPC standalone:
 
+<Tabs items={["Terraform + Ansible", "Kubernetes"]}>
+<Tab value="Terraform + Ansible">
 ```bash
 source l1.env
 make erpc CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999
 ```
+</Tab>
+<Tab value="Kubernetes">
+```bash
+source l1.env
+make k8s-erpc CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999
+```
+
+The Helm chart auto-discovers RPC upstreams from the `l1-rpc` service. Override with custom upstreams in `values.yaml`.
+</Tab>
+</Tabs>
 
 ## Blockscout Block Explorer
 
 Deploy a full-featured block explorer for your L1:
 
+<Tabs items={["Terraform + Ansible", "Kubernetes"]}>
+<Tab value="Terraform + Ansible">
 ```bash
 source l1.env
 make deploy-blockscout CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999 CHAIN_NAME="My L1"
 ```
+</Tab>
+<Tab value="Kubernetes">
+```bash
+source l1.env
+make k8s-blockscout CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999
+
+# Access frontend
+kubectl port-forward svc/blockscout-frontend 3000:3000
+```
+</Tab>
+</Tabs>
 
 **Access**: `http://<archive-rpc-ip>:4001`
 
@@ -73,10 +98,20 @@ Initial indexing can take hours for chains with significant history. Monitor pro
 
 Deploy a token faucet for developers to request test tokens:
 
+<Tabs items={["Terraform + Ansible", "Kubernetes"]}>
+<Tab value="Terraform + Ansible">
 ```bash
 source l1.env
 make faucet CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999 FAUCET_KEY=0x...
 ```
+</Tab>
+<Tab value="Kubernetes">
+```bash
+source l1.env
+make k8s-faucet CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999 FAUCET_KEY=0x...
+```
+</Tab>
+</Tabs>
 
 **Access**: `http://<rpc-ip>:8010`
 
@@ -94,10 +129,23 @@ The faucet wallet must be funded on your L1 chain. Use a dedicated wallet — no
 
 Deploy The Graph for indexing blockchain data via GraphQL subgraphs:
 
+<Tabs items={["Terraform + Ansible", "Kubernetes"]}>
+<Tab value="Terraform + Ansible">
 ```bash
 source l1.env
 make graph-node CHAIN_ID=$CHAIN_ID NETWORK_NAME=my-l1
 ```
+</Tab>
+<Tab value="Kubernetes">
+```bash
+source l1.env
+make k8s-graph-node CHAIN_ID=$CHAIN_ID NETWORK_NAME=my-l1
+
+# Access GraphQL
+kubectl port-forward svc/graph-node 8000:8000
+```
+</Tab>
+</Tabs>
 
 ### Endpoints
 
@@ -174,11 +222,27 @@ make k8s-icm-relayer SUBNET_ID=$SUBNET_ID CHAIN_ID=$CHAIN_ID RELAYER_KEY=0x...
 
 Deploy Gnosis Safe infrastructure for multisig governance of your L1:
 
+<Tabs items={["Terraform + Ansible", "Kubernetes"]}>
+<Tab value="Terraform + Ansible">
 ```bash
 make safe
 ```
 
 This deploys the Safe UI, transaction service, client gateway, and nginx reverse proxy. It auto-detects chain configuration from `l1.env`.
+</Tab>
+<Tab value="Kubernetes">
+```bash
+source l1.env
+make k8s-safe EVM_CHAIN_ID=99999 CHAIN_ID=$CHAIN_ID
+```
+
+Deploys Config Service (CFG), Transaction Service (TXS), Client Gateway (CGW), PostgreSQL (x2), Redis, and RabbitMQ. An init job handles DB migrations, contract registration, and Celery periodic task setup.
+
+<Callout type="info">
+Safe UI requires a custom Docker image with `NEXT_PUBLIC_*` variables baked in at build time. Set `ui.image.repository` and `ui.image.tag` in your Helm values.
+</Callout>
+</Tab>
+</Tabs>
 
 <Callout type="info">
 Safe requires the Singleton Factory (`0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7`) in your genesis `alloc`. The default genesis template includes this.
@@ -188,12 +252,13 @@ For detailed Safe setup including contract deployment and chain registration, se
 
 ## Add-On Summary
 
-| Add-On | Playbook | Port | Deployed To |
-|--------|----------|------|-------------|
-| eRPC | `08-deploy-erpc.yml` | 4000, 4001 | Monitoring host |
-| Blockscout | `04-deploy-blockscout.yml` | 4001 | Archive RPC |
-| Faucet | `06-deploy-faucet.yml` | 8010 | RPC node |
-| The Graph | `07-deploy-graph-node.yml` | 8000, 8020, 5001 | RPC node |
-| ICM Relayer | `16-deploy-icm-relayer.yml` | 8080, 9090 | RPC node |
-| Safe | `05-deploy-safe.yml` | 8100 | RPC node |
-| Monitoring | `03-setup-monitoring.yml` | 3000, 9090 | Monitoring host |
+| Add-On | Ansible Playbook | Helm Chart | Ports |
+|--------|-----------------|------------|-------|
+| eRPC | `l1/deploy-erpc.yml` | `helm/erpc` | 4000, 4001 |
+| Blockscout | `l1/deploy-blockscout.yml` | `helm/blockscout` | 3000, 4000 |
+| Faucet | `l1/deploy-faucet.yml` | `helm/faucet` | 8010 |
+| The Graph | `l1/deploy-graph-node.yml` | `helm/graph-node` | 8000, 8020, 5001 |
+| ICM Relayer | `l1/deploy-icm-relayer.yml` | `helm/icm-relayer` | 8080, 9090 |
+| Safe | `l1/deploy-safe.yml` | `helm/safe` | 3000, 8000, 8888 |
+| Monitoring | `shared/monitoring.yml` | `helm/monitoring` | 3000, 9090 |
+| Staking Key Backup | `primary-network/backup-staking-keys.yml` | `helm/staking-key-backup` | — |

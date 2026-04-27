@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { type ReactNode, useState, useCallback } from "react";
-import { Button } from "./Button";
-import { cn } from "../lib/utils";
-import { useWalletStore } from "../stores/walletStore";
-import { Loader2, Terminal, Copy, Check, ExternalLink, ArrowRight, Download } from "lucide-react";
+import { type ReactNode, useState, useCallback } from 'react';
+import { Button } from './Button';
+import { cn } from '../lib/utils';
+import { useWalletStore } from '../stores/walletStore';
+import { Loader2, Terminal, Copy, Check, ExternalLink, ArrowRight, Download } from 'lucide-react';
 
 interface DownloadFileConfig {
   data: string;
@@ -20,15 +20,15 @@ interface CoreWalletTransactionButtonProps {
   disabled?: boolean;
   cliCommand?: string;
   downloadFile?: DownloadFileConfig;
-  variant?: "primary" | "secondary" | "outline" | "danger" | "outline-danger" | "light-danger";
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'outline-danger' | 'light-danger';
   className?: string;
 }
 
 function DownloadFileButton({ data, filename, label }: DownloadFileConfig) {
   const handleDownload = useCallback(() => {
-    const blob = new Blob([data], { type: "application/json" });
+    const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -64,11 +64,7 @@ function CliCommandBlock({ command }: { command: string }) {
         className="absolute top-2.5 right-2.5 p-1.5 rounded-md text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors"
         aria-label="Copy command"
       >
-        {copied ? (
-          <Check className="w-3.5 h-3.5 text-emerald-500" />
-        ) : (
-          <Copy className="w-3.5 h-3.5" />
-        )}
+        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
       </button>
       <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">
         <span className="text-muted-foreground/50 select-none">$ </span>
@@ -91,7 +87,7 @@ export function CoreWalletTransactionButton({
   disabled,
   cliCommand,
   downloadFile,
-  variant = "primary",
+  variant = 'primary',
   className,
 }: CoreWalletTransactionButtonProps) {
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
@@ -100,17 +96,17 @@ export function CoreWalletTransactionButton({
   if (hasCoreWallet) {
     return (
       <>
-        <div className={cn("space-y-2", className)}>
+        <div className={cn('space-y-2', className)}>
           <button
             onClick={onClick}
             disabled={disabled || loading}
-            className="w-full group relative flex flex-col items-center gap-2 px-6 py-5 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-750 hover:border-zinc-300 dark:hover:border-zinc-600 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="w-full group relative flex flex-col items-center gap-2 px-6 py-5 rounded-2xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100/50 dark:hover:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700/50 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm"
           >
             <img src="/images/core-wordmark.png" alt="Core" className="w-10 h-10 rounded-xl" />
             {loading ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">{loadingText || "Loading..."}</span>
+                <span className="text-sm font-medium text-muted-foreground">{loadingText || 'Loading...'}</span>
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
@@ -173,11 +169,7 @@ export function CoreWalletTransactionButton({
           <CliCommandBlock command={cliCommand} />
         </div>
       ) : (
-        <Button
-          disabled={true}
-          variant={variant}
-          className={className}
-        >
+        <Button disabled={true} variant={variant} className={className}>
           {children}
         </Button>
       )}

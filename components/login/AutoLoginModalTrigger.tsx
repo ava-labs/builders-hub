@@ -8,6 +8,8 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 const protectedPaths = [
   "/hackathons/registration-form",
   "/hackathons/project-submission",
+  "/events/registration-form",
+  "/events/project-submission",
   "/showcase",
   "/profile",
   "/student-launchpad",

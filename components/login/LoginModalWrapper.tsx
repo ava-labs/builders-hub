@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
 import { LoginModal } from './LoginModal';
@@ -12,6 +13,17 @@ import { useLoginModalState, useNewUserLoginListener, triggerLoginComplete } fro
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
   const { isOpen, callbackUrl, closeLoginModal } = useLoginModalState();
+  const pathname = usePathname();
+
+  const protectedPaths = [
+    "/events/registration-form",
+    "/events/project-submission",
+    "/showcase",
+    "/send-notifications",
+    "/profile",
+    "/student-launchpad",
+    "/grants/",
+  ];
   const [showTerms, setShowTerms] = useState(false);
   const [showBasicProfile, setShowBasicProfile] = useState(false);
   // Store user ID separately so we can show modal even before useSession updates
@@ -219,9 +231,12 @@ export function LoginModalWrapper() {
       setStoredCallbackUrl(null);
       closeLoginModal();
 
-      // Sign out the session (this clears the JWT even for pending users)
-      // Stay on the current page - user can click Apply again to restart the flow
-      signOut({ redirect: false });
+      // Sign out only if user is not fully authenticated (clears pending/incomplete sessions).
+      // Never sign out a user who was already authenticated before opening the modal.
+      if (status !== "authenticated") {
+        const isOnProtectedPath = protectedPaths.some(path => pathname?.startsWith(path));
+        signOut({ redirect: isOnProtectedPath, callbackUrl: "/" });
+      }
     }
   };
 

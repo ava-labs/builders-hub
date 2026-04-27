@@ -18,17 +18,17 @@ interface SafeAPIResponse<T = any> {
 
 /**
  * Custom hook for calling the Safe API backend
- * 
+ *
  * @example
  * ```tsx
  * const { callSafeAPI } = useSafeAPI();
- * 
+ *
  * // Get Safe info
  * const safeInfo = await callSafeAPI('getSafeInfo', {
  *   chainId: '43114',
  *   safeAddress: '0x123...'
  * });
- * 
+ *
  * // Get Safes by owner
  * const safes = await callSafeAPI('getSafesByOwner', {
  *   chainId: '43114',
@@ -37,10 +37,7 @@ interface SafeAPIResponse<T = any> {
  * ```
  */
 export const useSafeAPI = () => {
-  const callSafeAPI = useCallback(async <T = any>(
-    action: string,
-    params: SafeAPIParams = {}
-  ): Promise<T> => {
+  const callSafeAPI = useCallback(async <T = any>(action: string, params: SafeAPIParams = {}): Promise<T> => {
     const response = await fetch('/api/safe', {
       method: 'POST',
       headers: {
@@ -91,49 +88,7 @@ export interface AllSafesInfoResponse {
   errors?: Record<string, string>;
 }
 
-interface ProposeTransactionResponse {
-  proposed: boolean;
-}
-
-interface PendingTransactionsResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: any[];
-}
-
-interface TransactionResponse {
-  safe: string;
-  to: string;
-  value: string;
-  data: string;
-  operation: number;
-  gasToken: string;
-  safeTxGas: number;
-  baseGas: number;
-  gasPrice: string;
-  refundReceiver: string;
-  nonce: number;
-  executionDate: string | null;
-  submissionDate: string;
-  modified: string;
-  blockNumber: number | null;
-  transactionHash: string | null;
-  safeTxHash: string;
-  executor: string | null;
-  isExecuted: boolean;
-  isSuccessful: boolean | null;
-  ethGasPrice: string | null;
-  gasUsed: number | null;
-  fee: string | null;
-  origin: string;
-  dataDecoded: any | null;
-  confirmationsRequired: number;
-  confirmations: any[];
-  signatures: string | null;
-}
-
 export interface AshWalletUrlResponse {
   url: string;
   shortName: string;
-} 
+}

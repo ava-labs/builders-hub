@@ -28,6 +28,7 @@ import { ImageIcon, BadgeAlert, PlusCircleIcon } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
+import { EventsLang, t } from '@/lib/events/i18n';
 
 type MediaUploaderProps = {
   name: keyof SubmissionForm;
@@ -40,6 +41,7 @@ type MediaUploaderProps = {
   height?: string;
   extraText?: string;
   buttonText?: string;
+  lang?: EventsLang;
 };
 
 export default function MediaUploader({
@@ -53,6 +55,7 @@ export default function MediaUploader({
   height = 'sm:max-h-[128px]',
   extraText = '',
   buttonText = 'Upload',
+  lang = 'en',
 }: MediaUploaderProps) {
   const form = useFormContext<SubmissionForm>();
 
@@ -173,13 +176,13 @@ export default function MediaUploader({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => handleView(index)}>
-                          View
+                          {t(lang, "submission.media.view")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleReplace(index)}>
-                          Replace
+                          {t(lang, "submission.media.replace")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDelete(index)}>
-                          Delete
+                          {t(lang, "submission.media.delete")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -244,10 +247,10 @@ export default function MediaUploader({
                   <br />
                 </>
               )}
-              File requirements: PNG, JPG, SVG <br />
-              {recommendedSize && `Recommended size: ${recommendedSize}`}
+              {t(lang, "submission.media.fileRequirements")} <br />
+              {recommendedSize && t(lang, "submission.media.recommendedSize", { size: recommendedSize })}
               <br />
-              Max file size: {maxSizeMB}MB
+              {t(lang, "submission.media.maxSize", { size: maxSizeMB })}
             </p>
 
             <FormMessage />
@@ -257,7 +260,7 @@ export default function MediaUploader({
               <DialogContent className='bg-zinc-900 border border-zinc-400 max-w-md w-full px-4'>
                 <DialogHeader className='flex flex-col '>
                   <DialogTitle className='text-white text-lg pb-3'>
-                    Delete Image
+                    {t(lang, "submission.media.deleteTitle")}
                   </DialogTitle>
                 </DialogHeader>
                 <Card
@@ -267,13 +270,13 @@ export default function MediaUploader({
                 >
                   <BadgeAlert className='w-9 h-9' color='rgb(239 68 68)' />
                   <DialogDescription className='text-red-500 text-md'>
-                    Are you sure you want to delete this image?
+                    {t(lang, "submission.media.deleteConfirm")}
                   </DialogDescription>
                   <Button
                     onClick={confirmDelete}
                     className=' bg-white hover:bg-zinc-400 text-black w-full max-w-[73px] '
                   >
-                    Delete
+                    {t(lang, "submission.media.delete")}
                   </Button>
                 </Card>
               </DialogContent>
@@ -282,7 +285,7 @@ export default function MediaUploader({
             <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
               <DialogContent className='bg-zinc-900 max-w-[600px] w-full px-4'>
                 <DialogHeader>
-                  <DialogTitle>View Image</DialogTitle>
+                  <DialogTitle>{t(lang, "submission.media.viewTitle")}</DialogTitle>
                 </DialogHeader>
                 {(() => {
                   if (selectedIndex === null) return null;

@@ -8,8 +8,10 @@
  *   const response = await server.handlePost(body);
  */
 
-import { jsonRpcRequestSchema } from './types';
+import { jsonRpcMessageSchema } from './types';
 import type {
+  JsonRpcMessage,
+  JsonRpcNotification,
   JsonRpcRequest,
   JsonRpcResponse,
   MCPTool,
@@ -29,6 +31,10 @@ interface ServerConfig {
   protocolVersion: string;
   description?: string;
 }
+
+// Cap how many JSON-RPC items a single batch can carry. The 60/min global rate limit only
+// charges per HTTP request, so without this cap a single batch could amplify a client's quota.
+export const MAX_BATCH_SIZE = 20;
 
 export class MCPServer {
   private readonly config: ServerConfig;
@@ -73,6 +79,21 @@ export class MCPServer {
   // -------------------------------------------------------------------------
   // Request processing
   // -------------------------------------------------------------------------
+
+  private async processNotification(notification: JsonRpcNotification): Promise<void> {
+    switch (notification.method) {
+      case 'notifications/initialized':
+        captureMCPEvent('mcp_initialized', {
+          protocol_version: this.config.protocolVersion,
+        });
+        return;
+
+      default:
+        // Ignore unsupported notifications. Streamable HTTP clients do not
+        // expect JSON-RPC responses for notifications.
+        return;
+    }
+  }
 
   async processRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
     const { method, params, id } = request;
@@ -130,7 +151,9 @@ export class MCPServer {
           } catch (err) {
             toolError = sanitizeErrorMessage(err);
             toolResult = {
-              content: [{ type: 'text', text: err instanceof Error ? err.message : 'Tool error' }],
+              // Use sanitized message in the user-facing payload too — raw err.message can
+              // leak internal paths or library stack-trace fragments.
+              content: [{ type: 'text', text: toolError }],
               isError: true,
             };
           }
@@ -190,41 +213,64 @@ export class MCPServer {
         id,
         error: {
           code: -32603,
-          message: error instanceof Error ? error.message : 'Internal error',
+          message: sanitizeErrorMessage(error),
         },
       };
     }
   }
 
+  private async processMessage(message: JsonRpcMessage): Promise<JsonRpcResponse | null> {
+    if ('id' in message && message.id !== undefined) {
+      return this.processRequest(message);
+    }
+
+    await this.processNotification(message);
+    return null;
+  }
+
   /**
    * Entry point for POST handler — accepts either a single request or a batch.
    */
-  async handlePost(body: unknown): Promise<JsonRpcResponse | JsonRpcResponse[]> {
+  async handlePost(body: unknown): Promise<JsonRpcResponse | JsonRpcResponse[] | null> {
     if (Array.isArray(body)) {
-      return Promise.all(
-        body.map(async (req) => {
-          const parsed = jsonRpcRequestSchema.safeParse(req);
+      if (body.length > MAX_BATCH_SIZE) {
+        return {
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32600,
+            message: `Batch size ${body.length} exceeds the maximum of ${MAX_BATCH_SIZE}`,
+          },
+        };
+      }
+
+      const responses = await Promise.all(
+        body.map(async (message) => {
+          const parsed = jsonRpcMessageSchema.safeParse(message);
           if (!parsed.success) {
             return {
               jsonrpc: '2.0' as const,
-              id: (req as { id?: string | number | null })?.id ?? null,
+              id: this.getResponseId(message),
               error: { code: -32600, message: 'Invalid request' },
             };
           }
-          return this.processRequest(parsed.data);
+          return this.processMessage(parsed.data);
         })
       );
+
+      const filteredResponses = responses.filter((response): response is JsonRpcResponse => response !== null);
+      return filteredResponses.length > 0 ? filteredResponses : null;
     }
 
-    const parsed = jsonRpcRequestSchema.safeParse(body);
+    const parsed = jsonRpcMessageSchema.safeParse(body);
     if (!parsed.success) {
       return {
         jsonrpc: '2.0',
-        id: (body as { id?: string | number | null })?.id ?? null,
+        id: this.getResponseId(body),
         error: { code: -32600, message: 'Invalid request' },
       };
     }
-    return this.processRequest(parsed.data);
+    return this.processMessage(parsed.data);
   }
 
   // -------------------------------------------------------------------------
@@ -236,6 +282,19 @@ export class MCPServer {
       if (domain.handlers[name]) return domain.handlers[name];
     }
     return undefined;
+  }
+
+  private getResponseId(message: unknown): string | number | null {
+    if (!message || typeof message !== 'object' || !('id' in message)) {
+      return null;
+    }
+
+    const id = (message as { id?: unknown }).id;
+    if (typeof id === 'string' || typeof id === 'number' || id === null) {
+      return id;
+    }
+
+    return null;
   }
 
   private findResourceHandler(uri: string) {

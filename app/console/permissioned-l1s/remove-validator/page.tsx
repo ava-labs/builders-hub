@@ -1,9 +1,5 @@
-"use client";
-
-import RemoveValidator from "@/components/toolbox/console/permissioned-l1s/RemoveValidator";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return (
-    <RemoveValidator />
-  );
+  redirect("/console/permissioned-l1s/remove-validator/select-subnet");
 }

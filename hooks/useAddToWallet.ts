@@ -14,6 +14,7 @@ interface AddToWalletOptions {
     decimals: number;
   };
   blockExplorerUrl?: string;
+  isTestnet?: boolean;
 }
 
 interface UseAddToWalletReturn {
@@ -28,7 +29,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
   const isWalletConnected = !!coreWalletClient;
 
   const addToWallet = useCallback(async (options: AddToWalletOptions): Promise<boolean> => {
-    const { rpcUrl, chainName, chainId, nativeCurrency, blockExplorerUrl } = options;
+    const { rpcUrl, chainName, chainId, nativeCurrency, blockExplorerUrl, isTestnet } = options;
 
     // Check if ethereum provider is available
     if (typeof window === "undefined" || !window.ethereum) {
@@ -91,6 +92,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
                 decimals: 18,
               },
               blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
+              ...(isTestnet !== undefined && { isTestnet }),
             }],
           });
           toast.success("Chain added", `${chainName || "Chain"} has been added to your wallet`);

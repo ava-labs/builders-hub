@@ -3,16 +3,19 @@
 set -eu -o pipefail
 
 # download source code if not already present
-if [ ! -d "/teleporter_src/contracts" ]; then
-    git clone https://github.com/ava-labs/icm-contracts /teleporter_src 
+if [ ! -d "/teleporter_src/.git" ]; then
+    git clone https://github.com/ava-labs/icm-services /teleporter_src
     cd /teleporter_src
     git submodule update --init --recursive
 fi
 
 cd /teleporter_src
 git config --global --add safe.directory /teleporter_src
+# Ensure remote points to icm-services (may be cached from old icm-contracts clone)
+git remote set-url origin https://github.com/ava-labs/icm-services
 git fetch origin
 git checkout $ICM_COMMIT
+git submodule update --init --recursive
 
 # Add foundry to PATH
 export PATH="/root/.foundry/bin/:${PATH}"

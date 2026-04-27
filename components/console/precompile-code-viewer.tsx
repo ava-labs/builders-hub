@@ -4,32 +4,31 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { codeToHtml } from "shiki";
 import { Copy, Check, ExternalLink, Minus, Plus, FileCode, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import versions from "@/scripts/versions.json";
 
-// Precompile interface file mapping
+// Precompile interface file mapping (paths relative to graft/subnet-evm/ in avalanchego)
 const PRECOMPILE_INTERFACES: Record<string, { file: string; functions: string[] }> = {
   FeeManager: {
-    file: "contracts/precompile/contracts/feemanager/IFeeManager.sol",
+    file: "precompile/contracts/feemanager/IFeeManager.sol",
     functions: ["setFeeConfig", "getFeeConfig", "getFeeConfigLastChangedAt"],
   },
   NativeMinter: {
-    file: "contracts/precompile/contracts/nativeminter/INativeMinter.sol",
+    file: "precompile/contracts/nativeminter/INativeMinter.sol",
     functions: ["mintNativeCoin"],
   },
   RewardManager: {
-    file: "contracts/precompile/contracts/rewardmanager/IRewardManager.sol",
+    file: "precompile/contracts/rewardmanager/IRewardManager.sol",
     functions: ["allowFeeRecipients", "setRewardAddress", "disableRewards", "areFeeRecipientsAllowed", "currentRewardAddress"],
   },
   AllowList: {
-    file: "contracts/precompile/contracts/IAllowList.sol",
+    file: "precompile/allowlist/IAllowList.sol",
     functions: ["setAdmin", "setManager", "setEnabled", "setNone", "readAllowList"],
   },
   ContractDeployerAllowList: {
-    file: "contracts/precompile/contracts/deployerallowlist/IContractDeployerAllowList.sol",
+    file: "precompile/allowlist/IAllowList.sol",
     functions: ["setAdmin", "setManager", "setEnabled", "setNone", "readAllowList"],
   },
   TxAllowList: {
-    file: "contracts/precompile/contracts/txallowlist/ITxAllowList.sol",
+    file: "precompile/allowlist/IAllowList.sol",
     functions: ["setAdmin", "setManager", "setEnabled", "setNone", "readAllowList"],
   },
 };
@@ -163,15 +162,14 @@ export function PrecompileCodeViewer({
   const codeScrollRef = useRef<HTMLDivElement>(null);
 
   const precompileConfig = PRECOMPILE_INTERFACES[precompileName];
-  const subnetEvmVersion = (versions as unknown as Record<string, string>)["ava-labs/subnet-evm"] || "v0.7.2";
 
   const sourceUrl = useMemo(() => {
-    return `https://raw.githubusercontent.com/ava-labs/subnet-evm/${subnetEvmVersion}/${precompileConfig.file}`;
-  }, [precompileConfig.file, subnetEvmVersion]);
+    return `https://raw.githubusercontent.com/ava-labs/avalanchego/master/graft/subnet-evm/${precompileConfig.file}`;
+  }, [precompileConfig.file]);
 
   const githubUrl = useMemo(() => {
-    return `https://github.com/ava-labs/subnet-evm/blob/${subnetEvmVersion}/${precompileConfig.file}`;
-  }, [precompileConfig.file, subnetEvmVersion]);
+    return `https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/${precompileConfig.file}`;
+  }, [precompileConfig.file]);
 
   // Load font size preference
   useEffect(() => {
@@ -325,7 +323,6 @@ export function PrecompileCodeViewer({
         <div className="shrink-0 flex items-center gap-2 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
           <FileCode className="w-4 h-4 text-amber-500" />
           <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100">{filename}</span>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">({subnetEvmVersion})</span>
 
           <div className="flex-1" />
 

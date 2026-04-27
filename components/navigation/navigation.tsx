@@ -15,7 +15,6 @@ import {
   ChevronDownIcon,
   Pyramid,
   HandCoins,
-  Server,
   TrendingUp,
   ScanFace,
   Telescope,
@@ -167,14 +166,7 @@ export function GrantsDropdown() {
       icon: <HandCoins className="w-5 h-5" />,
       url: "https://www.avax.network/retro9000",
     },
-    {
-      title: "infraBUIDL()",
-      description:
-        "Infrastructure projects that enhance user and developer experience",
-      icon: <Server className="w-5 h-5" />,
-      url: "https://www.avax.network/infrabuidl-program",
-    },
-    {
+{
       title: "Blizzard Fund",
       description:
         "VC fund investing in innovative entrepreneurs driving growth on Avalanche",

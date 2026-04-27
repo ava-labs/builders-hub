@@ -1,236 +1,229 @@
-"use client";
+'use client';
 
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/toolbox/components/Button";
-import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
-import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
-import { useProxyAdmin } from "@/components/toolbox/hooks/contracts";
-import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
-import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { Input } from "@/components/toolbox/components/Input";
-import { Step, Steps } from "fumadocs-ui/components/steps";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/toolbox/components/Button';
+import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
+import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { useProxyAdmin } from '@/components/toolbox/hooks/contracts';
+import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
+import { Input } from '@/components/toolbox/components/Input';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 
 // Storage slot with the admin of the proxy (following EIP1967)
-const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
+const ADMIN_SLOT = '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103';
 
 const metadata: ConsoleToolMetadata = {
-    title: "Upgrade Proxy Implementation",
-    description: "Upgrade the proxy implementation to the desired implementation",
-    toolRequirements: [
-        WalletRequirementsConfigKey.EVMChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Upgrade Proxy Implementation',
+  description: 'Upgrade the proxy implementation to the desired implementation',
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { validatorManagerAddress } = useToolboxStore();
-    const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
-    const selectedL1 = useSelectedL1()();
-    const { walletChainId, walletEVMAddress } = useWalletStore();
-    const chainPublicClient = useChainPublicClient();
-    const { walletClient } = useConnectedWallet();
-    const [isUpgrading, setIsUpgrading] = useState(false);
-    const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
-    const [desiredImplementation, setDesiredImplementation] = useState<string | null>(null);
-    const [proxySlotAdmin, setProxySlotAdmin] = useState<string | null>(null);
-    const [contractError, setContractError] = useState<string | undefined>();
-    const viemChain = useViemChainStore();
+  const [criticalError, setCriticalError] = useState<Error | null>(null);
+  const { validatorManagerAddress } = useToolboxStore();
+  const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
+  const selectedL1 = useSelectedL1();
+  const { walletChainId } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
+  const [desiredImplementation, setDesiredImplementation] = useState<string | null>(null);
+  const [proxySlotAdmin, setProxySlotAdmin] = useState<string | null>(null);
+  const [contractError, setContractError] = useState<string | undefined>();
+  const viemChain = useViemChainStore();
 
-    const [proxyAddress, setProxyAddress] = useState<string>("");
+  const [proxyAddress, setProxyAddress] = useState<string>('');
 
-    const proxyAdmin = useProxyAdmin(proxyAdminAddress);
+  const proxyAdmin = useProxyAdmin(proxyAdminAddress);
 
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
+  // Throw critical errors during render
+  if (criticalError) {
+    throw criticalError;
+  }
+
+  useEffect(() => {
+    (async function () {
+      try {
+        const subnetId = selectedL1?.subnetId;
+        if (!subnetId) {
+          return;
+        }
+        const info = await getSubnetInfo(subnetId);
+        const newProxyAddress = info.l1ValidatorManagerDetails?.contractAddress || '';
+        setProxyAddress(newProxyAddress);
+
+        if (!newProxyAddress) return;
+        await readProxyAdminSlot(newProxyAddress);
+      } catch (error) {
+        setCriticalError(error instanceof Error ? error : new Error(String(error)));
+      }
+    })();
+  }, [walletChainId]);
+
+  // Read the proxy admin from storage slot
+  async function readProxyAdminSlot(address: string) {
+    try {
+      if (!address || !chainPublicClient) return;
+
+      const data = await chainPublicClient.getStorageAt({
+        address: address as `0x${string}`,
+        slot: ADMIN_SLOT as `0x${string}`,
+      });
+
+      if (data) {
+        // Convert the bytes32 value to an address (take the last 20 bytes)
+        const adminAddress = `0x${data.slice(-40)}` as `0x${string}`;
+        setProxySlotAdmin(adminAddress);
+
+        // Always use the admin from storage
+        setProxyAdminAddress(adminAddress);
+      }
+    } catch (error) {
+      console.error('Failed to read proxy admin slot:', error);
+    }
+  }
+
+  useEffect(() => {
+    if (proxyAddress) {
+      readProxyAdminSlot(proxyAddress);
+    }
+  }, [proxyAddress]);
+
+  useEffect(() => {
+    if (validatorManagerAddress && !desiredImplementation) {
+      setDesiredImplementation(validatorManagerAddress);
+    }
+  }, [validatorManagerAddress, desiredImplementation]);
+
+  useEffect(() => {
+    checkCurrentImplementation();
+  }, [viemChain, proxyAddress, proxyAdminAddress]);
+
+  async function checkCurrentImplementation() {
+    try {
+      if (!proxyAddress || !proxyAdminAddress || !chainPublicClient) {
+        setCurrentImplementation(null);
+        setContractError('Proxy address and admin address are required');
+        return;
+      }
+
+      const implementation = await chainPublicClient.readContract({
+        address: proxyAdminAddress,
+        abi: ProxyAdminABI.abi,
+        functionName: 'getProxyImplementation',
+        args: [proxyAddress],
+      });
+
+      setCurrentImplementation(implementation as string);
+      setContractError(undefined);
+    } catch (error: unknown) {
+      setCurrentImplementation(null);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to read current implementation';
+      setContractError(errorMessage);
+      console.error(error);
+    }
+  }
+
+  async function handleUpgrade() {
+    if (!desiredImplementation) {
+      throw new Error('Implementation address is required');
     }
 
-    useEffect(() => {
-        (async function () {
-            try {
-                const subnetId = selectedL1?.subnetId;
-                if (!subnetId) {
-                    return;
-                }
-                const info = await getSubnetInfo(subnetId);
-                const newProxyAddress = info.l1ValidatorManagerDetails?.contractAddress || "";
-                setProxyAddress(newProxyAddress);
-
-                if (!newProxyAddress) return
-                await readProxyAdminSlot(newProxyAddress);
-            } catch (error) {
-                setCriticalError(error instanceof Error ? error : new Error(String(error)));
-            }
-        })()
-    }, [walletChainId]);
-
-    // Read the proxy admin from storage slot
-    async function readProxyAdminSlot(address: string) {
-        try {
-            if (!address) return;
-
-            const data = await chainPublicClient!.getStorageAt({
-                address: address as `0x${string}`,
-                slot: ADMIN_SLOT as `0x${string}`,
-            });
-
-            if (data) {
-                // Convert the bytes32 value to an address (take the last 20 bytes)
-                const adminAddress = `0x${data.slice(-40)}` as `0x${string}`;
-                setProxySlotAdmin(adminAddress);
-
-                // Always use the admin from storage
-                setProxyAdminAddress(adminAddress);
-            }
-        } catch (error) {
-            console.error("Failed to read proxy admin slot:", error);
-        }
+    if (!proxyAddress) {
+      throw new Error('Proxy address is required');
     }
 
-    useEffect(() => {
-        if (proxyAddress) {
-            readProxyAdminSlot(proxyAddress);
-        }
-    }, [proxyAddress]);
-
-    useEffect(() => {
-        if (validatorManagerAddress && !desiredImplementation) {
-            setDesiredImplementation(validatorManagerAddress);
-        }
-    }, [validatorManagerAddress, desiredImplementation]);
-
-    useEffect(() => {
-        checkCurrentImplementation();
-    }, [viemChain, proxyAddress, proxyAdminAddress]);
-
-
-    async function checkCurrentImplementation() {
-        try {
-            if (!proxyAddress || !proxyAdminAddress) {
-                setCurrentImplementation(null);
-                setContractError("Proxy address and admin address are required");
-                return;
-            }
-
-            const implementation = await chainPublicClient!.readContract({
-                address: proxyAdminAddress,
-                abi: ProxyAdminABI.abi,
-                functionName: 'getProxyImplementation',
-                args: [proxyAddress],
-            });
-
-            setCurrentImplementation(implementation as string);
-            setContractError(undefined);
-        } catch (error: unknown) {
-            setCurrentImplementation(null);
-            const errorMessage = error instanceof Error ? error.message : "Failed to read current implementation";
-            setContractError(errorMessage);
-            console.error(error);
-        }
+    if (!proxyAdminAddress) {
+      throw new Error('Proxy admin address is required');
     }
 
-    async function handleUpgrade() {
-        if (!desiredImplementation) {
-            throw new Error('Implementation address is required');
-        }
-
-        if (!proxyAddress) {
-            throw new Error('Proxy address is required');
-        }
-
-        if (!proxyAdminAddress) {
-            throw new Error('Proxy admin address is required');
-        }
-
-        setIsUpgrading(true);
-
-        try {
-            const hash = await proxyAdmin.upgrade(
-                proxyAddress as `0x${string}`,
-                desiredImplementation as `0x${string}`
-            );
-            await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
-            await checkCurrentImplementation();
-            onSuccess?.();
-        } finally {
-            setIsUpgrading(false);
-        }
+    if (!chainPublicClient) {
+      throw new Error('Chain public client not available');
     }
 
-    const isUpgradeNeeded = currentImplementation?.toLowerCase() !== desiredImplementation?.toLowerCase();
-    const canUpgrade = !!proxyAddress && !!proxyAdminAddress && !!desiredImplementation && isUpgradeNeeded;
+    setIsUpgrading(true);
 
-    return (
-        <>
+    try {
+      const hash = await proxyAdmin.upgrade(proxyAddress as `0x${string}`, desiredImplementation as `0x${string}`);
+      const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+      if (receipt.status !== 'success') {
+        throw new Error('Proxy upgrade transaction reverted');
+      }
+      await checkCurrentImplementation();
+      onSuccess?.();
+    } catch (error) {
+      setCriticalError(error instanceof Error ? error : new Error(String(error)));
+    } finally {
+      setIsUpgrading(false);
+    }
+  }
 
-                <Steps>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Select Proxy to Upgrade</h2>
-                        <p className="text-sm text-gray-500">
-                            Select the proxy contract you want to upgrade.
-                        </p>
+  const isUpgradeNeeded = currentImplementation?.toLowerCase() !== desiredImplementation?.toLowerCase();
+  const canUpgrade = !!proxyAddress && !!proxyAdminAddress && !!desiredImplementation && isUpgradeNeeded;
 
-                        <EVMAddressInput
-                            label="Proxy Address"
-                            value={proxyAddress}
-                            onChange={setProxyAddress}
-                            disabled={isUpgrading}
-                            placeholder="Enter proxy address"
-                        />
-                        <Input
-                            label="Proxy Admin Address"
-                            value={proxySlotAdmin || ""}
-                            disabled
-                            placeholder="Proxy admin address will be read from storage"
-                        />
-                        <Input
-                            label="Current Implementation"
-                            value={currentImplementation || ""}
-                            disabled
-                            placeholder="Current implementation address will be shown here"
-                            error={contractError}
-                        />
-                    </Step>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Set new Implementation</h2>
-                        <p className="text-sm text-gray-500">
-                            Enter the new implementation contract you want the Proxy to point to.
-                        </p>
+  return (
+    <>
+      <Steps>
+        <Step>
+          <h2 className="text-lg font-semibold">Select Proxy to Upgrade</h2>
+          <p className="text-sm text-zinc-500">Select the proxy contract you want to upgrade.</p>
 
-                        <EVMAddressInput
-                            label="Desired Implementation"
-                            value={desiredImplementation || ""}
-                            onChange={(value: string) => setDesiredImplementation(value)}
-                            placeholder="Enter desired implementation address"
-                        />
+          <EVMAddressInput
+            label="Proxy Address"
+            value={proxyAddress}
+            onChange={setProxyAddress}
+            disabled={isUpgrading}
+            placeholder="Enter proxy address"
+          />
+          <Input
+            label="Proxy Admin Address"
+            value={proxySlotAdmin || ''}
+            disabled
+            placeholder="Proxy admin address will be read from storage"
+          />
+          <Input
+            label="Current Implementation"
+            value={currentImplementation || ''}
+            disabled
+            placeholder="Current implementation address will be shown here"
+            error={contractError}
+          />
+        </Step>
+        <Step>
+          <h2 className="text-lg font-semibold">Set new Implementation</h2>
+          <p className="text-sm text-zinc-500">Enter the new implementation contract you want the Proxy to point to.</p>
 
-                        <Button
-                            variant="primary"
-                            onClick={handleUpgrade}
-                            loading={isUpgrading}
-                            disabled={isUpgrading || !canUpgrade}
-                        >
-                            {!canUpgrade ? (isUpgradeNeeded ? "Enter All Required Addresses" : "Already Up To Date") : "Upgrade Proxy"}
-                        </Button>
+          <EVMAddressInput
+            label="Desired Implementation"
+            value={desiredImplementation || ''}
+            onChange={(value: string) => setDesiredImplementation(value)}
+            placeholder="Enter desired implementation address"
+          />
 
-                    </Step>
-                </Steps>
+          <Button variant="primary" onClick={handleUpgrade} loading={isUpgrading} disabled={isUpgrading || !canUpgrade}>
+            {!canUpgrade ? (isUpgradeNeeded ? 'Enter All Required Addresses' : 'Already Up To Date') : 'Upgrade Proxy'}
+          </Button>
+        </Step>
+      </Steps>
 
-
-                {!isUpgradeNeeded && currentImplementation && (
-                    <p className="mt-4 text-green-600">No change needed - Already up to date</p>
-                )}
-        </>
-    );
+      {!isUpgradeNeeded && currentImplementation && (
+        <p className="mt-4 text-green-600">No change needed - Already up to date</p>
+      )}
+    </>
+  );
 }
 
 export default withConsoleToolMetadata(UpgradeProxy, metadata);

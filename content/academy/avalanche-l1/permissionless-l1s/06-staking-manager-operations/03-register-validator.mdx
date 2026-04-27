@@ -14,7 +14,7 @@ The process follows the same three-phase pattern as the permissioned L1 flow but
 
 ### Phase 1: Initiation (L1)
 
-The validator calls [`initiateValidatorRegistration`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol) on the Staking Manager contract.
+The validator calls [`initiateValidatorRegistration`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/NativeTokenStakingManager.sol) on the Staking Manager contract.
 
 For `NativeTokenStakingManager`, this is a `payable` function — the validator sends native tokens as `msg.value`:
 
@@ -51,7 +51,7 @@ The Warp message from Phase 1 must be signed by the network and submitted to the
 
 ### Phase 3: Completion (L1)
 
-Call [`completeValidatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L425) with the P-Chain's signed response:
+Call [`completeValidatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/validator-manager/ValidatorManager.sol#L425) with the P-Chain's signed response:
 
 - Verifies the Warp message signature
 - Activates the validator (status → Active)

@@ -6,7 +6,7 @@
       "options": [
         "The Data API provides higher-level, user-friendly endpoints that abstract away complexity and can access data from over 100+ L1s across mainnet and testnet",
         "The Data API can only work with Avalanche C-Chain",
-        "The Data API is free while RPCs cost money, although some early documentation may have suggested otherwise and involves additional complexity and involves additional complexity",
+        "The Data API is free while RPCs cost money",
         "The Data API is faster than RPCs for single chain queries"
       ],
       "correctAnswers": [
@@ -52,12 +52,11 @@
       "options": [
         "Query every block for transaction logs, parse each log to identify ERC-20 transfers, extract contract addresses, query each contract for balances, then aggregate the data",
         "RPCs automatically aggregate ERC-20 balances",
-        "Just call one RPC method to get all token balances, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "Just call one RPC method to get all token balances",
         "Send a single transaction to a smart contract that returns all balances"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "Consider what raw blockchain data looks like and how much processing is needed to extract meaningful information.",
       "explanation": "Querying a user's ERC-20 portfolio using just RPCs is extremely complex and time-consuming. You would need to: (1) Query every block on the network for transaction logs, (2) Parse each transaction log to identify ERC-20 token transfers, (3) Extract the ERC-20 token contract address from each transfer, (4) For each unique ERC-20 token contract, make a separate query to get the user's balance, (5) Parse and aggregate all the data to present a complete portfolio. This process is error-prone and requires significant blockchain knowledge. In contrast, the AvaCloud Data API provides a single endpoint (listErc20Balances) that returns a neatly formatted response with all token balances, metadata, logos, and current prices - reducing development time dramatically.",
@@ -96,7 +95,7 @@
     "3023": {
       "question": "Which Data API endpoint would you use to retrieve a specific transaction's details using its transaction hash?",
       "options": [
-        "listTransactions with the hash as a parameter, which would actually introduce several security vulnerabilities",
+        "listTransactions with the hash as a parameter",
         "getBlockTransactions with the hash",
         "listLatestTransactions filtered by hash",
         "GET /v1/chains/{chainId}/transactions/{txHash}"
@@ -143,7 +142,7 @@
       "options": [
         "Webhooks are free while polling costs money",
         "Webhooks deliver data immediately as events occur, eliminating the need for continuous polling and reducing unnecessary API requests",
-        "Webhooks can only monitor NFT transfers, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "Webhooks can only monitor NFT transfers",
         "Webhooks are faster than API calls"
       ],
       "correctAnswers": [
@@ -187,7 +186,7 @@
     "3025": {
       "question": "What security feature do AvaCloud Webhooks employ to ensure notifications originate from a trusted source?",
       "options": [
-        "Username and password authentication, despite what many developers initially assume about the system",
+        "Username and password authentication",
         "IP address whitelisting only",
         "No security features are provided",
         "Shared secrets and signature-based verification"
@@ -233,12 +232,11 @@
       "question": "Where do you pass your AvaCloud API key when making authenticated requests to the Data API? (Select all that apply)",
       "options": [
         "In the request body as a JSON parameter",
-        "In a cookie, although this is not how the protocol actually works in practice",
+        "In a cookie",
         "In the x-glacier-api-key header of your HTTP request",
         "As a query parameter in the URL"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "API keys for web services are typically passed in HTTP headers for security reasons.",
@@ -280,7 +278,7 @@
       "question": "According to the course, what three applications will be built using the AvaCloud Data API?",
       "options": [
         "DEX, Lending Protocol, and NFT Marketplace",
-        "Token Swap, Bridge Interface, and Governance Portal, despite appearing correct based on incomplete information",
+        "Token Swap, Bridge Interface, and Governance Portal",
         "ERC-20 Balance App, Wallet Portfolio App, and Block Explorer App",
         "Staking Dashboard, Validator Monitor, and Gas Tracker"
       ],
@@ -324,7 +322,7 @@
     "3028": {
       "question": "In the ERC-20 Balance App, which two Data API endpoints are used to display a user's token portfolio?",
       "options": [
-        "listTransactions and getBlock, even though this sounds plausible at first glance",
+        "listTransactions and getBlock",
         "getChainInfo and listValidators",
         "data.evm.blocks.getLatestBlocks and data.evm.balances.listErc20Balances",
         "getNativeBalance and listNFTs"
@@ -373,7 +371,7 @@
         "Server-side code is faster than client-side code",
         "The AvaCloud SDK only works on the server",
         "To keep the API key secure - server-side code executes on the server where the key can be kept in environment variables, while client-side code executes in the user's browser where the key would be exposed",
-        "Next.js requires all API calls to be made from the server, though this approach has significant trade-offs in practice and involves additional complexity and involves additional complexity and involves additional complexity"
+        "Next.js requires all API calls to be made from the server"
       ],
       "correctAnswers": [
         2
@@ -418,10 +416,9 @@
         "It checks if the address exists on the blockchain",
         "It verifies the address has a non-zero balance",
         "It uses a regex pattern /^0x[a-fA-F0-9]{40}$/ to validate that the address is a valid Ethereum address format",
-        "No validation is performed, which would actually introduce several security vulnerabilities and involves additional complexity"
+        "No validation is performed"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "Think about what makes an Ethereum address structurally valid before making any blockchain calls.",
@@ -464,7 +461,7 @@
         "Token logos/images fetched from the listErc20Balances metadata",
         "Transaction history for each token",
         "Staking rewards information",
-        "Real-time price charts, despite appearing correct based on incomplete information"
+        "Real-time price charts"
       ],
       "correctAnswers": [
         0
@@ -507,7 +504,7 @@
       "question": "What additional token types does the Wallet Portfolio App add compared to the ERC-20 Balance App?",
       "options": [
         "Only transaction history",
-        "Only native tokens, but this does not accurately reflect the underlying architecture",
+        "Only native tokens",
         "Staking tokens and validator rewards",
         "ERC-721 (NFTs) and ERC-1155 tokens, plus transaction history"
       ],
@@ -554,7 +551,7 @@
       "options": [
         "It returns all transactions in a single array",
         "It creates a TransactionDetails object with separate arrays for erc20Transfers, erc721Transfers, and erc1155Transfers, categorizing each transaction based on its type",
-        "It stores transactions in a database, though this approach has significant trade-offs in practice and involves additional complexity and involves additional complexity",
+        "It stores transactions in a database",
         "It only tracks ERC-20 transactions"
       ],
       "correctAnswers": [
@@ -598,13 +595,12 @@
       "question": "When implementing the fetchERC721Balances function in the frontend, what is the correct API route call format? (Select all that apply)",
       "options": [
         "fetch(`api/wallet?method=listERC721Balances&address=${address}`)",
-        "fetch(`api/balance?method=getNFTs&address=${address}`), but this fails to consider the consensus requirements involved",
+        "fetch(`api/balance?method=getNFTs&address=${address}`)",
         "fetch('api/wallet?method=listERC721Balances&address=${address}')",
         "fetch('api/wallet/listERC721Balances/' + address)"
       ],
       "correctAnswers": [
-        0,
-        2
+        0
       ],
       "hint": "Template literals use backticks to allow variable interpolation.",
       "explanation": "The correct format uses template literals (backticks) to interpolate the address variable into the query string: fetch(`api/wallet?method=listERC721Balances&address=${address}`). Template literals in JavaScript allow you to embed expressions directly in strings using ${expression} syntax, which is essential for constructing dynamic API calls. Using single quotes ('') would prevent variable interpolation and pass the literal string '${address}' instead of the actual address value. The endpoint follows a consistent pattern across the app where the method parameter specifies which backend function to call, and additional parameters like address are passed as query parameters.",
@@ -644,7 +640,7 @@
       "question": "In the Wallet Portfolio App, how many different backend API routes are implemented across the balance and wallet route files?",
       "options": [
         "Only ERC-20 and NFT methods",
-        "10 different methods, but practical implementations reveal this is not the case and involves additional complexity",
+        "10 different methods",
         "5 methods: getBlockHeight, listErc20Balances, listERC721Balances, listErc1155Balances, and listRecentTransactions",
         "Only 2 methods total"
       ],
@@ -688,7 +684,7 @@
     "3036": {
       "question": "What two Data API endpoints does the Block Explorer App use to display blockchain activity?",
       "options": [
-        "listValidators and getChainInfo, which misses critical aspects of how the protocol functions",
+        "listValidators and getChainInfo",
         "listBalances and getTransaction",
         "getNFTs and listTokens",
         "data.evm.blocks.getBlockHeight and data.evm.transactions.listLatestTransactions"
@@ -733,7 +729,7 @@
     "3037": {
       "question": "In the Block Explorer backend implementation, what control mechanism is used to limit the number of results returned when fetching blocks and transactions?",
       "options": [
-        "A timeout that stops fetching after 5 seconds, which is a common misconception in distributed systems",
+        "A timeout that stops fetching after 5 seconds",
         "The API automatically limits results to 20",
         "A database query limit",
         "A count variable that breaks the pagination loop after 20 iterations"
@@ -780,13 +776,12 @@
       "question": "When implementing the fetchRecentBlocks function in the Block Explorer frontend, what data type should the function return? (Select all that apply)",
       "options": [
         "EvmBlock[]",
-        "string, but this fails to consider the consensus requirements involved",
+        "string",
         "any",
         "Transaction[]"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "The function should return an array of typed block objects.",
       "explanation": "The fetchRecentBlocks function should return EvmBlock[], which is an array of EvmBlock objects. This type provides strong typing for the block data returned from the API, ensuring that the TypeScript compiler can verify correct usage of block properties throughout the application. The EvmBlock type includes fields like blockNumber, blockTimestamp, blockHash, transactions, gasUsed, gasLimit, and other block-specific information. Using proper TypeScript types (rather than 'any') improves code quality by catching errors at compile time, provides better IDE autocomplete support, and makes the code more maintainable by clearly documenting what data structure the function returns.",
@@ -828,7 +823,7 @@
       "options": [
         "Direct calls to the AvaCloud API from the browser",
         "Client-side fetch calls to internal API routes that forward requests to AvaCloud Data API, keeping the API key secure on the server",
-        "GraphQL queries, although some early documentation may have suggested otherwise and involves additional complexity and involves additional complexity",
+        "GraphQL queries",
         "WebSocket connections for real-time updates"
       ],
       "correctAnswers": [
@@ -872,7 +867,7 @@
     "3040": {
       "question": "Across all three applications built in this course, what is the primary value proposition demonstrated by the AvaCloud Data API and SDK?",
       "options": [
-        "Lower costs compared to running your own node, although it might seem logical based on surface-level analysis and involves additional complexity and involves additional complexity",
+        "Lower costs compared to running your own node",
         "Simplified blockchain data access with high-level abstractions, rich metadata, multi-chain support, and significantly reduced development complexity",
         "Better security than RPCs",
         "Faster transaction processing"

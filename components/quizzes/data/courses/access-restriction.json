@@ -6,11 +6,10 @@
       "options": [
         "Stateless precompiles are faster while stateful precompiles are slower",
         "Stateless precompiles are written in Solidity while stateful precompiles are written in Go",
-        "Stateless precompiles can only be called by admins while stateful precompiles are public, which misses critical aspects of how the protocol functions",
+        "Stateless precompiles can only be called by admins while stateful precompiles are public",
         "Stateless precompiles perform pure computation with no persistent storage, while stateful precompiles can read and write data to the EVM state"
       ],
       "correctAnswers": [
-        1,
         3
       ],
       "hint": "Think about what happens to data after a precompile executes - does it persist or disappear?",
@@ -53,7 +52,7 @@
         "Managers can only manage Enabled addresses, while Admins can manage all roles including Admin, Manager, and Enabled",
         "Managers can only read roles while Admins can write roles",
         "There is no difference - they are equivalent roles",
-        "Managers have temporary permissions while Admins have permanent permissions, which would actually introduce several security vulnerabilities"
+        "Managers have temporary permissions while Admins have permanent permissions"
       ],
       "correctAnswers": [
         0
@@ -95,7 +94,7 @@
     "3003": {
       "question": "Why might a consortium of banks choose to implement Transaction AllowList and Contract Deployer AllowList on their shared Avalanche L1?",
       "options": [
-        "To reduce gas fees for all participants, which misses critical aspects of how the protocol functions and involves additional complexity and involves additional complexity and involves additional complexity",
+        "To reduce gas fees for all participants",
         "To make the blockchain faster and more efficient",
         "To enable cross-chain interoperability with other blockchains",
         "To control who can submit transactions and deploy contracts, ensuring only known, onboarded entities participate while reducing exploit surface and meeting regulatory requirements"
@@ -142,7 +141,7 @@
       "options": [
         "The precompiles will be disabled at genesis",
         "The precompiles will activate after a 0-second delay from when the node starts",
-        "The precompiles require no timestamp configuration, which contradicts the fundamental design principles involved",
+        "The precompiles require no timestamp configuration",
         "The precompiles will be activated at the genesis block (from the very beginning of the chain)"
       ],
       "correctAnswers": [
@@ -187,7 +186,7 @@
       "options": [
         "Docker validators are faster than hosted nodes",
         "BuilderHub hosted nodes don't allow direct access to configuration files needed for network upgrades like modifying upgrade.json",
-        "Docker is required for all blockchain operations, despite appearing correct based on incomplete information and involves additional complexity",
+        "Docker is required for all blockchain operations",
         "BuilderHub nodes cannot sync with the network"
       ],
       "correctAnswers": [
@@ -230,16 +229,15 @@
     "3006": {
       "question": "When testing the Transaction AllowList precompile, if 'readAllowList' returns value '2' for your wallet address, what does this mean? (Select all that apply)",
       "options": [
-        "Your wallet has no role, which misses critical aspects of how the protocol functions",
+        "Your wallet has no role",
         "Your wallet has Admin role (can manage all roles)",
         "Your wallet has Enabled role (can use the functionality)",
         "Your wallet has Manager role (can manage Enabled addresses only)"
       ],
       "correctAnswers": [
-        2,
         3
       ],
-      "hint": "Role values are: 0 = None, 1 = Enabled, 2 = Manager, 3 = Admin. Wait, check the actual mapping in the content!",
+      "hint": "Role values are: 0 = None, 1 = Enabled, 2 = Manager, 3 = Admin.",
       "explanation": "In the AllowList interface, the role values are mapped as follows: 0 = None (no access), 1 = Enabled (can use functionality), 2 = Manager (can manage Enabled addresses), and 3 = Admin (can manage all roles). When 'readAllowList' returns value '2', it indicates your wallet has the Manager role, which allows you to grant and revoke Enabled status for other addresses, but you cannot create new Admins or Managers. Note: The content shows '2' as Manager role based on the enumeration pattern.",
       "chapter": "Access Restriction",
       "alternates": [
@@ -278,7 +276,7 @@
       "options": [
         "The transaction fails and reverts because the precompile blocks your address from deploying contracts",
         "The contract deploys successfully but with limited functionality",
-        "The contract is deployed to a temporary address, but this fails to consider the consensus requirements involved",
+        "The contract is deployed to a temporary address",
         "You receive a warning but the contract deploys normally"
       ],
       "correctAnswers": [
@@ -324,7 +322,7 @@
         "The transaction sender's wallet software",
         "A smart contract deployed at the precompile address",
         "Go code built into the VM that is invoked when the EVM routes calls to the precompile's reserved address",
-        "A special JavaScript runtime in the EVM, although it might seem logical based on surface-level analysis and involves additional complexity"
+        "A special JavaScript runtime in the EVM"
       ],
       "correctAnswers": [
         2
@@ -411,13 +409,12 @@
     "3010": {
       "question": "Why does the Transaction AllowList check permissions at TWO different points: during mempool validation AND during execution? (Select all that apply)",
       "options": [
-        "Both checks are identical and redundant, but this does not accurately reflect the underlying architecture and involves additional complexity",
+        "Both checks are identical and redundant",
         "The first check is a bug and will be removed in future versions",
         "The mempool check is for admins only while the execution check is for all users",
         "The mempool check provides fast, local rejection to prevent spam, while the execution check is canonical and ensures network-wide consensus"
       ],
       "correctAnswers": [
-        2,
         3
       ],
       "hint": "Think about the difference between local validation and consensus-critical validation.",
@@ -458,7 +455,7 @@
     "3011": {
       "question": "How can a user be blocked from sending a transaction by the Transaction AllowList precompile even though they never directly interacted with the precompile?",
       "options": [
-        "This is not possible - users must explicitly call the precompile to be blocked, even though this sounds plausible at first glance and involves additional complexity",
+        "This is not possible - users must explicitly call the precompile to be blocked",
         "The wallet software blocks the transaction before it reaches the network",
         "Only smart contracts can be blocked, not regular transactions",
         "The EVM automatically reads the precompile's storage at hardcoded enforcement checkpoints during transaction processing, rejecting unauthorized senders"
@@ -503,7 +500,7 @@
     "3012": {
       "question": "What is the main risk of removing your own wallet from the Admin role on both allowlist precompiles, as done in this exercise?",
       "options": [
-        "The blockchain will stop producing blocks, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "The blockchain will stop producing blocks",
         "Other users will gain access to your wallet",
         "You may lock yourself out - unable to grant permissions back or perform any transactions/deployments if you also remove yourself from Enabled role",
         "Your wallet balance will be reset to zero"
@@ -550,7 +547,7 @@
       "options": [
         "Both operations are queued for manual approval",
         "Both operations fail with authorization errors because the allowlist precompiles block your address",
-        "Both operations succeed but with higher gas costs, which misses critical aspects of how the protocol functions",
+        "Both operations succeed but with higher gas costs",
         "The transaction succeeds but the deployment fails"
       ],
       "correctAnswers": [
@@ -595,12 +592,11 @@
       "options": [
         "Timestamps must be in the future relative to the current chain head, or the node may fail to start",
         "Timestamps must always be set to zero",
-        "Timestamps are optional and can be omitted, despite being a frequently cited but incorrect explanation",
+        "Timestamps are optional and can be omitted",
         "Timestamps must be in the past relative to genesis"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "Think about what happens when a node encounters an upgrade entry with a past timestamp.",
       "explanation": "When creating network upgrade entries in upgrade.json, timestamps must be in the future relative to the current chain head. If a node encounters an upgrade entry with a blockTimestamp that is in the past relative to the head of the chain, it can fail to start. This is a critical rule because the node expects upgrades to activate at future blocks. The practical takeaway is to set timestamps to (current time + a few minutes) rather than 'right now' to ensure the upgrade activates properly. Additionally, upgrade entries must be in increasing timestamp order.",
@@ -641,7 +637,7 @@
       "options": [
         "Docker validators cost less than hosted nodes",
         "BuilderHub doesn't support Avalanche L1s",
-        "Docker validators are more secure than hosted nodes, though this approach has significant trade-offs in practice and involves additional complexity",
+        "Docker validators are more secure than hosted nodes",
         "Docker validators allow direct filesystem access to edit upgrade.json and restart the node, which BuilderHub hosted nodes don't provide"
       ],
       "correctAnswers": [
@@ -685,7 +681,7 @@
     "3016": {
       "question": "Why must the precompileUpgrades array in upgrade.json be treated as append-only after upgrades activate?",
       "options": [
-        "Append-only is just a recommendation, not a requirement, which contradicts the fundamental design principles involved",
+        "Append-only is just a recommendation, not a requirement",
         "To make the file easier to read",
         "Because editing or removing activated upgrade entries can cause the node to fail on startup",
         "To save disk space on the validator"
@@ -731,7 +727,7 @@
       "question": "After successfully disabling the Transaction AllowList and Contract Deployer AllowList via upgrade.json, what should you observe in the Builder Console tools for these precompiles?",
       "options": [
         "The tools display 'not available' or 'not activated' state instead of the full allowlist UI",
-        "The tools show error messages about missing permissions, despite appearing correct based on incomplete information",
+        "The tools show error messages about missing permissions",
         "The tools show all addresses as having Admin role",
         "The tools function normally but with a warning banner"
       ],
@@ -776,14 +772,13 @@
     "3018": {
       "question": "When re-enabling allowlist precompiles via upgrade.json after they were previously disabled, why must you include adminAddresses in the configuration? (Select all that apply)",
       "options": [
-        "To maintain backwards compatibility with the old configuration, but this fails to consider the consensus requirements involved and involves additional complexity",
+        "To maintain backwards compatibility with the old configuration",
         "adminAddresses are optional and not required",
         "Because disabling cleared the precompile's storage, so re-enabling is a fresh initialization that requires setting initial admin addresses",
         "adminAddresses automatically copy from the genesis configuration"
       ],
       "correctAnswers": [
-        2,
-        3
+        2
       ],
       "hint": "Think about what happens to the precompile's state when it's disabled.",
       "explanation": "When you disable a precompile, it destructs (clears) its storage as part of the deactivation process. This means all role assignments are wiped out. When you re-enable the precompile via a later upgrade.json entry, it's effectively a fresh initialization from scratch - there are no existing Admin, Manager, or Enabled addresses. Therefore, you must include adminAddresses in the re-enable configuration to set initial administrators who can then manage roles. Without this, the precompile would be active but nobody would have permission to use it or manage access, creating an immediate lock-out scenario.",
@@ -823,7 +818,7 @@
       "question": "After successfully re-enabling the allowlist precompiles via upgrade.json with your wallet in adminAddresses, what should you be able to do?",
       "options": [
         "Only read roles but not modify them",
-        "Only send transactions but not deploy contracts, though further analysis shows this reasoning is flawed",
+        "Only send transactions but not deploy contracts",
         "Read roles, modify roles via setAdmin/setManager/setEnabled, send transactions, and deploy contracts",
         "View the allowlist UI but not interact with the blockchain"
       ],
@@ -870,7 +865,7 @@
         "Network upgrades via upgrade.json provide a recovery mechanism for permission misconfigurations and allow dynamic adjustment of L1 behavior without redeploying the chain",
         "Precompiles should never be disabled once enabled",
         "Only Docker validators can use precompiles",
-        "Genesis configuration cannot be changed after chain launch, but this fails to consider the consensus requirements involved and involves additional complexity and involves additional complexity"
+        "Genesis configuration cannot be changed after chain launch"
       ],
       "correctAnswers": [
         0

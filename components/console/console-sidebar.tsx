@@ -35,9 +35,10 @@ import {
   Rocket,
   LayoutDashboard,
   Workflow,
-  Sparkles,
+
   Search,
   X,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -118,7 +119,7 @@ function useSidebarStateContext() {
   return context;
 }
 
-// Navigation data structure with new hierarchy
+// Navigation data structure
 const data = {
   navMain: [
     {
@@ -128,50 +129,31 @@ const data = {
     },
   ],
   navGroups: [
-    // Get Started - prominent for new users
-    {
-      id: "get-started",
-      title: "Get Started",
-      icon: Rocket,
-      items: [
-        {
-          title: "Blueprints",
-          url: "/console/blueprints",
-          icon: Sparkles,
-          comingSoon: true,
-        },
-        {
-          title: "Create L1",
-          url: "/console/layer-1/create",
-          icon: Layers,
-        },
-        {
-          title: "Testnet Faucet",
-          url: "/console/primary-network/faucet",
-          icon: Droplets,
-        },
-      ],
-    },
-    // Primary Network
+    // Primary Network — the starting point for all developers
     {
       id: "primary-network",
       title: "Primary Network",
       icon: Network,
       items: [
         {
+          title: "Testnet Faucet",
+          url: "/console/primary-network/faucet",
+          icon: Droplets,
+        },
+        {
           title: "Data API Keys",
           url: "/console/utilities/data-api-keys",
           icon: BookKey,
         },
         {
+          title: "Stake AVAX",
+          url: "/console/primary-network/stake",
+          icon: HandCoins,
+        },
+        {
           title: "Node Setup",
           url: "/console/primary-network/node-setup",
           icon: Server,
-        },
-        {
-          title: "Stake",
-          url: "/console/primary-network/stake",
-          icon: HandCoins,
         },
         {
           title: "C/P-Chain Bridge",
@@ -189,25 +171,192 @@ const data = {
           icon: Search,
         },
         {
-          title: "Unit Converter",
-          url: "/console/primary-network/unit-converter",
-          icon: Calculator,
+          title: "Validator Alerts",
+          url: "/console/primary-network/validator-alerts",
+          icon: Bell,
         },
       ],
     },
-    // Your L1 - always visible, pages handle wallet state
+    // Create & Deploy — L1 lifecycle entry point
     {
-      id: "your-l1",
-      title: "Your L1",
-      icon: Box,
-      defaultOpen: true,
+      id: "create-deploy",
+      title: "Create & Deploy",
+      icon: Rocket,
       items: [
+        {
+          title: "Create L1",
+          url: "/console/layer-1/create",
+          icon: Layers,
+        },
         {
           title: "My L1 Dashboard",
           url: "/console/my-l1",
           icon: LayoutDashboard,
         },
-        // Infrastructure sub-group
+      ],
+    },
+    // Permissioned L1s — admin-controlled validator management
+    {
+      id: "permissioned-l1s",
+      title: "Permissioned L1s",
+      icon: Shield,
+      items: [
+        {
+          id: "permissioned-setup",
+          title: "Setup",
+          icon: SquareTerminal,
+          items: [
+            {
+              title: "Validator Manager Setup",
+              url: "/console/permissioned-l1s/validator-manager-setup",
+              icon: SquareTerminal,
+            },
+            {
+              title: "Multisig Setup",
+              url: "/console/permissioned-l1s/multisig-setup",
+              icon: ShieldUser,
+            },
+          ],
+        },
+        {
+          id: "permissioned-manage",
+          title: "Manage Validators",
+          icon: Hexagon,
+          items: [
+            {
+              title: "Add Validator",
+              url: "/console/permissioned-l1s/add-validator",
+              icon: SquarePlus,
+            },
+            {
+              title: "Remove Validator",
+              url: "/console/permissioned-l1s/remove-validator",
+              icon: SquareMinus,
+            },
+            {
+              title: "Change Validator Weight",
+              url: "/console/permissioned-l1s/change-validator-weight",
+              icon: SlidersVertical,
+            },
+            {
+              title: "Disable Validator",
+              url: "/console/permissioned-l1s/disable-validator",
+              icon: ShieldOff,
+            },
+            {
+              title: "Remove Expired Registration",
+              url: "/console/permissioned-l1s/remove-expired-validator-registration",
+              icon: SquareMinus,
+            },
+          ],
+        },
+      ],
+    },
+    // Permissionless L1s — open staking and delegation
+    {
+      id: "permissionless-l1s",
+      title: "Permissionless L1s",
+      icon: HandCoins,
+      items: [
+        {
+          id: "permissionless-setup",
+          title: "Setup",
+          icon: GitMerge,
+          items: [
+            {
+              title: "Native Staking Manager Setup",
+              url: "/console/permissionless-l1s/native-staking-manager-setup",
+              icon: GitMerge,
+            },
+            {
+              title: "ERC20 Staking Manager Setup",
+              url: "/console/permissionless-l1s/erc20-staking-manager-setup",
+              icon: GitMerge,
+            },
+          ],
+        },
+        {
+          id: "permissionless-stake",
+          title: "Stake & Delegate",
+          icon: HandCoins,
+          items: [
+            {
+              title: "Stake (Native Token)",
+              url: "/console/permissionless-l1s/stake/native",
+              icon: HandCoins,
+            },
+            {
+              title: "Stake (ERC20 Token)",
+              url: "/console/permissionless-l1s/stake/erc20",
+              icon: HandCoins,
+            },
+            {
+              title: "Delegate (Native Token)",
+              url: "/console/permissionless-l1s/delegate/native",
+              icon: ArrowUpDown,
+            },
+            {
+              title: "Delegate (ERC20 Token)",
+              url: "/console/permissionless-l1s/delegate/erc20",
+              icon: ArrowUpDown,
+            },
+          ],
+        },
+        {
+          id: "permissionless-withdraw",
+          title: "Withdraw",
+          icon: SquareMinus,
+          items: [
+            {
+              title: "Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator",
+              icon: SquareMinus,
+            },
+            {
+              title: "Remove Delegation",
+              url: "/console/permissionless-l1s/remove-delegation",
+              icon: SquareMinus,
+            },
+          ],
+        },
+      ],
+    },
+    // Interchain Messaging — cross-chain communication
+    {
+      id: "cross-chain",
+      title: "Interchain Messaging",
+      icon: ArrowLeftRight,
+      items: [
+        {
+          id: "icm-setup",
+          title: "Setup",
+          icon: MessagesSquare,
+          items: [
+            {
+              title: "ICM Setup",
+              url: "/console/icm/setup",
+              icon: MessagesSquare,
+            },
+            {
+              title: "ICTT Setup",
+              url: "/console/ictt/setup",
+              icon: Workflow,
+            },
+          ],
+        },
+        {
+          title: "Token Transfer Test",
+          url: "/console/ictt/token-transfer",
+          icon: ArrowLeftRight,
+        },
+      ],
+    },
+    // L1 Management — configure and monitor your running L1
+    {
+      id: "l1-management",
+      title: "L1 Management",
+      icon: Box,
+      items: [
         {
           id: "infrastructure",
           title: "Infrastructure",
@@ -230,93 +379,6 @@ const data = {
             },
           ],
         },
-        // Validators sub-group
-        {
-          id: "validators",
-          title: "Validators",
-          icon: Hexagon,
-          items: [
-            {
-              title: "Validator Manager Setup",
-              url: "/console/permissioned-l1s/validator-manager-setup",
-              icon: SquareTerminal,
-            },
-            {
-              title: "Multisig Setup",
-              url: "/console/permissioned-l1s/multisig-setup",
-              icon: ShieldUser,
-            },
-            {
-              title: "Query Validator Set",
-              url: "/console/layer-1/validator-set",
-              icon: Hexagon,
-            },
-            {
-              title: "L1 Validator Balance",
-              url: "/console/layer-1/l1-validator-balance",
-              icon: Coins,
-            },
-            {
-              title: "Add Validator",
-              url: "/console/permissioned-l1s/add-validator",
-              icon: SquarePlus,
-            },
-            {
-              title: "Remove Validator",
-              url: "/console/permissioned-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Disable Validator",
-              url: "/console/permissioned-l1s/disable-validator",
-              icon: ShieldOff,
-            },
-            {
-              title: "Change Validator Weight",
-              url: "/console/permissioned-l1s/change-validator-weight",
-              icon: SlidersVertical,
-            },
-            {
-              title: "Remove Expired Registration",
-              url: "/console/permissioned-l1s/remove-expired-validator-registration",
-              icon: SquareMinus,
-            },
-          ],
-        },
-        // Staking sub-group (permissionless L1 operations)
-        {
-          id: "staking",
-          title: "Staking",
-          icon: HandCoins,
-          items: [
-            {
-              title: "Staking Manager Setup",
-              url: "/console/permissionless-l1s/staking-manager-setup",
-              icon: GitMerge,
-            },
-            {
-              title: "Stake",
-              url: "/console/permissionless-l1s/stake",
-              icon: HandCoins,
-            },
-            {
-              title: "Delegate",
-              url: "/console/permissionless-l1s/delegate",
-              icon: ArrowUpDown,
-            },
-            {
-              title: "Remove Validator",
-              url: "/console/permissionless-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Remove Delegation",
-              url: "/console/permissionless-l1s/remove-delegation",
-              icon: SquareMinus,
-            },
-          ],
-        },
-        // Tokenomics sub-group
         {
           id: "tokenomics",
           title: "Tokenomics",
@@ -339,7 +401,6 @@ const data = {
             },
           ],
         },
-        // Access Control sub-group
         {
           id: "access-control",
           title: "Access Control",
@@ -357,35 +418,22 @@ const data = {
             },
           ],
         },
-      ],
-    },
-    // Interchain Messaging
-    {
-      id: "cross-chain",
-      title: "Interchain Messaging",
-      icon: ArrowLeftRight,
-      items: [
         {
-          title: "ICM Setup",
-          url: "/console/icm/setup",
-          icon: MessagesSquare,
+          title: "Query Validator Set",
+          url: "/console/layer-1/validator-set",
+          icon: Hexagon,
         },
         {
-          title: "ICTT (Token Transfer) Setup",
-          url: "/console/ictt/setup",
-          icon: Workflow,
-        },
-        {
-          title: "Token Transfer Test",
-          url: "/console/ictt/token-transfer",
-          icon: ArrowLeftRight,
+          title: "L1 Validator Balance",
+          url: "/console/layer-1/l1-validator-balance",
+          icon: Coins,
         },
       ],
     },
-    // Tools & Utilities (merged testnet-infra + utilities)
+    // Utilities — tools and infra helpers
     {
-      id: "tools",
-      title: "Tools",
+      id: "utilities",
+      title: "Utilities",
       icon: Wrench,
       items: [
         {
@@ -404,12 +452,17 @@ const data = {
           icon: Wrench,
         },
         {
+          title: "Unit Converter",
+          url: "/console/primary-network/unit-converter",
+          icon: Calculator,
+        },
+        {
           title: "Transfer Proxy Admin",
           url: "/console/utilities/transfer-proxy-admin",
           icon: Wrench,
         },
         {
-          title: "VMC Migration (V1 to V2)",
+          title: "VMC Migration (V1 → V2)",
           url: "/console/utilities/vmcMigrateFromV1",
           icon: Wrench,
         },
@@ -567,7 +620,7 @@ function CollapsibleSubGroupItem({
 const TOUR_DATA_ATTRS: Record<string, string> = {
   "/console/primary-network/faucet": "faucet-link",
   "/console/layer-1/create": "create-l1-link",
-  "/console/blueprints": "blueprints-link",
+
 };
 
 // Single Nav Menu Item
@@ -621,7 +674,7 @@ function NavMenuItem({
 
 export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const pathname = usePathname();
-  const sidebarState = useSidebarState();
+  const sidebarState = useSidebarState(["primary-network"]);
   const { isCollapsed, toggleSection } = sidebarState;
 
   const [searchQuery, setSearchQuery] = React.useState("");

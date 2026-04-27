@@ -25,8 +25,7 @@
         "./.source/index.ts"
       ],
       "@/*": [
-        "./*",
-        "toolbox/src/*"
+        "./*"
       ],
       "@/stores/*": [
         "components/toolbox/stores/*"
@@ -47,7 +46,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "utils/remote-content.mts",
-    "hooks/getLucideIcon.tsz",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [

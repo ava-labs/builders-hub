@@ -18,16 +18,10 @@ export function ChainLogo({ logoUrl, chainName, className = '' }: ChainLogoProps
   return (
     <div className={`w-5 h-5 rounded-md overflow-hidden flex items-center justify-center ${className}`}>
       {logoUrl ? (
-        <img
-          src={logoUrl}
-          alt={`${chainName} logo`}
-          className="w-full h-full object-cover"
-        />
+        <img src={logoUrl} alt={`${chainName} logo`} className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full rounded-md bg-muted border border-border flex items-center justify-center">
-          <span className="text-[10px] font-bold text-muted-foreground leading-none">
-            {getInitials(chainName)}
-          </span>
+          <span className="text-[10px] font-bold text-muted-foreground leading-none">{getInitials(chainName)}</span>
         </div>
       )}
     </div>

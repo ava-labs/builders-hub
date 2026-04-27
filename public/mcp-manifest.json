@@ -1,48 +1,213 @@
 {
-  "name": "avalanche-docs",
-  "version": "1.0.0",
-  "description": "MCP server for Avalanche documentation - search and retrieve docs, academy courses, integrations, and blog posts",
+  "name": "avalanche-mcp",
+  "version": "2.1.0",
+  "description": "Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, code search, public blockchain lookups, P-Chain RPCs, and Info API calls.",
   "endpoint": "https://build.avax.network/api/mcp",
   "protocol": "mcp/http",
-  "categories": ["documentation", "blockchain", "developer-tools"],
+  "readOnly": true,
+  "categories": ["documentation", "blockchain", "developer-tools", "code-search"],
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "streamableHttp": true
+  },
+  "canonicalTooling": {
+    "preferredDocsTools": ["docs_search", "docs_fetch", "docs_list_sections"],
+    "compatibilityAliases": [
+      "avalanche_docs_search",
+      "avalanche_docs_fetch",
+      "avalanche_docs_list_sections"
+    ]
+  },
+  "repositoryCoverage": [
+    "ava-labs/avalanchego",
+    "ava-labs/subnet-evm",
+    "ava-labs/coreth",
+    "ava-labs/avalanche-cli",
+    "ava-labs/platform-cli",
+    "ava-labs/icm-services",
+    "ava-labs/avalanche-network-runner",
+    "ava-labs/icm-contracts",
+    "ava-labs/hypersdk",
+    "ava-labs/libevm",
+    "ava-labs/builders-hub"
+  ],
   "tools": [
     {
+      "name": "docs_search",
+      "description": "Search body-level chunks across Avalanche docs, academy, integrations, and blog posts with citations and matching excerpts."
+    },
+    {
+      "name": "docs_fetch",
+      "description": "Fetch a specific documentation page as markdown by internal URL path."
+    },
+    {
+      "name": "docs_list_sections",
+      "description": "List available documentation sections and page counts."
+    },
+    {
+      "name": "cli_lookup_command",
+      "description": "Search Avalanche CLI, Platform CLI, and tmpnet docs for commands, flags, and task guidance."
+    },
+    {
+      "name": "rpc_lookup_method",
+      "description": "Search Avalanche RPC method docs across C-Chain, P-Chain, X-Chain, Subnet-EVM, and node APIs."
+    },
+    {
+      "name": "acp_lookup",
+      "description": "Search Avalanche Community Proposals by number, title, or topic."
+    },
+    {
+      "name": "acp_list",
+      "description": "List Avalanche Community Proposals with structured fields and optional status or track filters."
+    },
+    {
       "name": "avalanche_docs_search",
-      "description": "Search across Avalanche documentation, academy courses, integrations, and blog posts",
-      "parameters": {
-        "query": {
-          "type": "string",
-          "description": "The search query",
-          "required": true
-        },
-        "source": {
-          "type": "string",
-          "enum": ["docs", "academy", "integrations", "blog"],
-          "description": "Filter by documentation source (optional)"
-        },
-        "limit": {
-          "type": "number",
-          "minimum": 1,
-          "maximum": 50,
-          "description": "Maximum number of results (default: 10)"
-        }
-      }
+      "description": "Compatibility alias for docs_search."
     },
     {
       "name": "avalanche_docs_fetch",
-      "description": "Fetch a specific documentation page as markdown",
-      "parameters": {
-        "url": {
-          "type": "string",
-          "description": "The page URL path (e.g., /docs/primary-network/overview)",
-          "required": true
-        }
-      }
+      "description": "Compatibility alias for docs_fetch."
     },
     {
       "name": "avalanche_docs_list_sections",
-      "description": "List available documentation sections and their page counts",
-      "parameters": {}
+      "description": "Compatibility alias for docs_list_sections."
+    },
+    {
+      "name": "github_search_code",
+      "description": "Search code across core Avalanche repositories."
+    },
+    {
+      "name": "github_get_file",
+      "description": "Fetch a file from an allowed Avalanche GitHub repository."
+    },
+    {
+      "name": "github_list_repositories",
+      "description": "List GitHub repositories covered by the MCP GitHub tools."
+    },
+    {
+      "name": "blockchain_get_native_balance",
+      "description": "Get native AVAX balance for an EVM address."
+    },
+    {
+      "name": "blockchain_get_contract_info",
+      "description": "Inspect whether an EVM address is a contract and identify common token metadata."
+    },
+    {
+      "name": "blockchain_lookup_transaction",
+      "description": "Look up Avalanche transactions and parse common P-Chain/X-Chain transaction types."
+    },
+    {
+      "name": "blockchain_lookup_address",
+      "description": "Look up EVM or P-Chain address details."
+    },
+    {
+      "name": "blockchain_lookup_subnet",
+      "description": "Look up subnet details."
+    },
+    {
+      "name": "blockchain_lookup_chain",
+      "description": "Look up blockchain details."
+    },
+    {
+      "name": "blockchain_lookup_validator",
+      "description": "Look up validator details."
+    },
+    {
+      "name": "platform_get_height",
+      "description": "Get the current P-Chain block height."
+    },
+    {
+      "name": "platform_get_block",
+      "description": "Get a P-Chain block by block ID."
+    },
+    {
+      "name": "platform_get_block_by_height",
+      "description": "Get a P-Chain block by height."
+    },
+    {
+      "name": "platform_get_blockchains",
+      "description": "Get blockchains registered on the P-Chain."
+    },
+    {
+      "name": "platform_get_subnets",
+      "description": "Get subnet information."
+    },
+    {
+      "name": "platform_get_current_validators",
+      "description": "Get current validators for the Primary Network or a subnet."
+    },
+    {
+      "name": "platform_get_pending_validators",
+      "description": "Get pending validators for the Primary Network or a subnet."
+    },
+    {
+      "name": "platform_get_staking_asset_id",
+      "description": "Get the staking asset ID for a subnet."
+    },
+    {
+      "name": "platform_get_min_stake",
+      "description": "Get minimum validator and delegator stake amounts."
+    },
+    {
+      "name": "platform_get_total_stake",
+      "description": "Get total stake on a subnet."
+    },
+    {
+      "name": "platform_get_balance",
+      "description": "Get P-Chain address balances."
+    },
+    {
+      "name": "platform_get_utxos",
+      "description": "Get P-Chain UTXOs."
+    },
+    {
+      "name": "platform_get_tx",
+      "description": "Get a P-Chain transaction."
+    },
+    {
+      "name": "platform_get_tx_status",
+      "description": "Get P-Chain transaction status."
+    },
+    {
+      "name": "platform_get_current_supply",
+      "description": "Get current AVAX supply from the P-Chain."
+    },
+    {
+      "name": "platform_get_validators_at",
+      "description": "Get validators at a historical P-Chain height."
+    },
+    {
+      "name": "info_get_node_version",
+      "description": "Get Avalanche node version and compatibility information."
+    },
+    {
+      "name": "info_get_network_id",
+      "description": "Get the numeric Avalanche network ID."
+    },
+    {
+      "name": "info_get_network_name",
+      "description": "Get the Avalanche network name."
+    },
+    {
+      "name": "info_get_blockchain_id",
+      "description": "Resolve a blockchain alias to a blockchain ID."
+    },
+    {
+      "name": "info_is_bootstrapped",
+      "description": "Check whether a chain is bootstrapped."
+    },
+    {
+      "name": "info_get_tx_fee",
+      "description": "Get current Avalanche transaction fees."
+    },
+    {
+      "name": "info_peers",
+      "description": "List node peers."
+    },
+    {
+      "name": "info_acps",
+      "description": "Get live ACP voting/status information from the Info API."
     }
   ],
   "resources": [
@@ -63,8 +228,33 @@
       "name": "Integrations Index",
       "description": "Index of all Avalanche integrations",
       "mimeType": "text/markdown"
+    },
+    {
+      "uri": "blog://index",
+      "name": "Blog Index",
+      "description": "Index of all Avalanche Builders Hub blog posts",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "rpcs://index",
+      "name": "RPC Documentation Index",
+      "description": "Index of Avalanche RPC method and API documentation",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "cli://index",
+      "name": "CLI Documentation Index",
+      "description": "Index of Avalanche CLI, Platform CLI, and tmpnet documentation",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "acps://index",
+      "name": "ACP Index",
+      "description": "Index of Avalanche Community Proposal documentation",
+      "mimeType": "text/markdown"
     }
   ],
-  "homepage": "https://build.avax.network/docs/tooling/ai-llm",
-  "repository": "https://github.com/ava-labs/builders-hub"
+  "homepage": "https://build.avax.network/docs/tooling/ai-llm/mcp-server",
+  "repository": "https://github.com/ava-labs/builders-hub",
+  "roadmapIssue": "https://github.com/ava-labs/builders-hub/issues/4070"
 }

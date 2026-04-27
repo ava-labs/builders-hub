@@ -12,7 +12,7 @@ We’re adding a validator in a PoA setup where the `ValidatorManager` contract 
 
 ### Phase 1: Initiation (L1)
 
-First we will call [`initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L328) on `ValidatorManager`.
+First we will call [`initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)`](https://github.com/ava-labs/icm-services/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L328) on `ValidatorManager`.
 
 Under the hood, the contract:
 - Validates sizes and formats (20-byte `nodeID`, 48-byte `blsPublicKey`, owners, churn limits)
@@ -44,7 +44,7 @@ type RegisterL1Validator struct {
 
 ### Phase 3: Completion (L1)
 
-We finally will call the [`completeValidatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L425), where we will pass the message index of the response we received in step 2. The contract verifies it, activates the validator, sets the start time, and emits `CompletedValidatorRegistration`.
+We finally will call the [`completeValidatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-services/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L425), where we will pass the message index of the response we received in step 2. The contract verifies it, activates the validator, sets the start time, and emits `CompletedValidatorRegistration`.
 
 Anyone can call `completeValidatorRegistration(messageIndex)` with the signed message.
 
