@@ -133,8 +133,6 @@ export default function ChainMetricsPage({
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Ecosystem validator data — only fetched on the all-chains view, off the
-  // critical path so the rest of the page is never blocked on these.
   const [primaryValidatorMetric, setPrimaryValidatorMetric] = useState<any>(null);
   const [totalValidatorSeats, setTotalValidatorSeats] = useState<any>(null);
   const [subnetValidatorStats, setSubnetValidatorStats] = useState<
@@ -465,10 +463,6 @@ export default function ChainMetricsPage({
     excludedChainIds.join(","),
   ]);
 
-  // Fetch ecosystem validator data only on the all-chains view. The total-
-  // ecosystem endpoint fans out over every active L1 subnet on a cold cache,
-  // so it is intentionally fired separately from the page's main fetch and
-  // never blocks the rest of the page.
   useEffect(() => {
     if (!isAllChainsView) return;
     let cancelled = false;
@@ -2140,7 +2134,6 @@ export default function ChainMetricsPage({
               </div>
             </section>
 
-            {/* Validators Section — only shown on the all-chains ecosystem view */}
             {isAllChainsView && (
               <section className="space-y-4 sm:space-y-6">
                 <div className="space-y-2">

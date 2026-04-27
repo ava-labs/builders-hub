@@ -219,12 +219,6 @@ export default function CChainValidatorMetrics() {
     }
   };
 
-  // Total validator seats: sum of per-network validatorCount series across
-  // the Primary Network + indexed mainnet L1s. Counts memberships, not
-  // distinct nodes (a validator on N networks is counted N times). The
-  // endpoint fans out to every active L1 subnet on a cold cache so it can
-  // be slow or unavailable; fetch it off the critical path so it never
-  // blocks the rest of the page.
   const fetchTotalEcosystemValidators = async () => {
     try {
       const response = await fetch('/api/total-ecosystem-validators?timeRange=all');
@@ -1118,7 +1112,6 @@ export default function CChainValidatorMetrics() {
               const period = chartPeriods[config.metricKey];
               const currentValue = getCurrentValue(config.metricKey);
 
-              // Only the validator_count chart gets a total-seats overlay + ACP-77 marker
               const isValidatorCount = config.metricKey === "validator_count";
               const overlayData: ChartDataPoint[] | undefined = isValidatorCount
                 ? timeSeriesToChartData(totalValidatorSeats)
@@ -1150,6 +1143,7 @@ export default function CChainValidatorMetrics() {
                     isValidatorCount ? "Total Validator Seats (Primary + L1s)" : undefined
                   }
                   overlayColor={isValidatorCount ? "#3B82F6" : undefined}
+                  overlayStartDate={isValidatorCount ? "2024-12-16" : undefined}
                   referenceLineDate={isValidatorCount ? "2024-12-16" : undefined}
                   referenceLineLabel={isValidatorCount ? "ACP-77 (Etna)" : undefined}
                   descriptionNote={

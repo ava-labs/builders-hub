@@ -70,18 +70,11 @@ export interface ValidatorChartCardProps {
   overlayData?: ChartDataPoint[];
   overlayLabel?: string;
   overlayColor?: string;
-  /** ISO date — overlay points before this date are dropped, so the line only
-   * starts drawing from the given day onward (e.g. an upgrade marker). */
   overlayStartDate?: string;
   referenceLineDate?: string;
   referenceLineLabel?: string;
   descriptionNote?: string;
-  /** When true, the bar series is rendered as a line instead. Used by the
-   * ecosystem view where the headline metric is the overlay line, not the
-   * bars. */
   primaryAsLine?: boolean;
-  /** Label used for the bar/line series in tooltip + legend. Defaults to
-   * "Primary Network". */
   primarySeriesLabel?: string;
 }
 
@@ -226,9 +219,6 @@ export function ValidatorChartCard({
     if (period === "D") {
       const daysToShow = 90;
       let startIndex = Math.max(0, aggregatedData.length - daysToShow);
-      // When a reference date (e.g. ACP-77) is outside the default 90-day
-      // window, widen the initial view so the annotation is visible without
-      // the user having to zoom out manually.
       if (referenceLineBucket) {
         const refIdx = aggregatedData.findIndex((p) => p.day === referenceLineBucket);
         if (refIdx >= 0 && refIdx < startIndex) {
@@ -269,10 +259,6 @@ export function ValidatorChartCard({
     [displayData, brushRangeDays],
   );
 
-  // When the overlay is the headline metric (primaryAsLine), the percentage
-  // change shown next to the headline number must reflect the overlay series,
-  // not the bar/primary series — otherwise the headline value and its delta
-  // describe two different metrics.
   const headlineKey: "value" | "overlayValue" =
     primaryAsLine && hasOverlay ? "overlayValue" : "value";
 

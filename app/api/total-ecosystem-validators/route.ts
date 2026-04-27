@@ -14,18 +14,11 @@ export const dynamic = 'force-dynamic';
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const MAX_CONCURRENT_REQUESTS = 10;
 
-// l1-chains.json includes the Primary Network subnet ID (C-Chain entry). The
-// Primary Network series is fetched separately; exclude it from the L1 loop to
-// avoid double-counting.
 const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
 
 const avalanche = new Avalanche({ network: "mainnet" });
 const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
 
-// Sum of per-network validatorCount series, i.e. total validator *seats* (a
-// node validating N networks is counted N times). Computing distinct node
-// counts historically would require per-date node-ID snapshots for every
-// subnet, which Glacier does not expose cheaply.
 interface TotalEcosystemValidatorsResponse {
   total_validator_seats: TimeSeriesMetric;
   l1_validator_seats: TimeSeriesMetric;
@@ -53,10 +46,6 @@ function getActiveMainnetSubnetIds(): string[] {
   return ids;
 }
 
-// Returns null on fetch failure so callers can distinguish a real fetch error
-// (e.g. Glacier transient) from a successfully fetched empty series. Treating
-// failures as [] silently turns missing L1 validator seats into zeros and
-// poisons the cache.
 async function fetchValidatorCountSeries(
   subnetId: string | undefined,
   startTimestamp: number,
@@ -149,10 +138,6 @@ async function fetchFreshDataInternal(timeRange: string): Promise<TotalEcosystem
       ),
     ]);
 
-    // Fail closed: only a complete fresh fetch (Primary + every active L1)
-    // gets cached. Any subnet failure causes the route to fall back to stale
-    // cached data via the error-fallback-cache path so we never bake an
-    // undercounted total into the 24h cache.
     if (primarySeries === null) {
       console.warn('[total-ecosystem-validators] Primary Network fetch failed; falling back to cache.');
       return null;
