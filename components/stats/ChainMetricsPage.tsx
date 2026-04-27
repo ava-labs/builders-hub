@@ -2154,9 +2154,9 @@ export default function ChainMetricsPage({
                   {primaryValidatorMetric?.data?.length ? (
                     <ValidatorChartCard
                       config={{
-                        title: "Primary Network Validator Count",
+                        title: "Avalanche Ecosystem Validator Count",
                         description:
-                          "Number of active validators on the Primary Network",
+                          "Validator seats across the Primary Network and sovereign L1s",
                         metricKey: "validator_count",
                         color: themeColor,
                         chartType: "bar",
@@ -2164,23 +2164,28 @@ export default function ChainMetricsPage({
                       }}
                       rawData={timeSeriesToChartData(primaryValidatorMetric)}
                       period={validatorChartPeriod}
-                      currentValue={primaryValidatorMetric.current_value}
+                      currentValue={
+                        totalValidatorSeats?.current_value ??
+                        primaryValidatorMetric.current_value
+                      }
                       onPeriodChange={setValidatorChartPeriod}
                       formatTooltipValue={(value) =>
-                        `${formatNumber(Math.round(value))} Validators`
+                        `${formatNumber(Math.round(value))} Validator Seats`
                       }
                       formatYAxisValue={formatNumber}
                       overlayData={timeSeriesToChartData(totalValidatorSeats)}
                       overlayLabel="Total Validator Seats (Primary + L1s)"
                       overlayColor="#3B82F6"
+                      overlayStartDate="2024-12-16"
                       referenceLineDate="2024-12-16"
                       referenceLineLabel="ACP-77 (Etna)"
-                      descriptionNote="After the Etna upgrade, validators of subnets that converted into sovereign L1s no longer needed to also stake on the Primary Network."
+                      descriptionNote="Before the Etna upgrade every L1 validator was also a Primary Network validator, so total ecosystem seats only diverge from the Primary Network count after this point."
+                      primaryAsLine
                     />
                   ) : (
                     <ValidatorChartPlaceholder
-                      title="Primary Network Validator Count"
-                      description="Number of active validators on the Primary Network"
+                      title="Avalanche Ecosystem Validator Count"
+                      description="Validator seats across the Primary Network and sovereign L1s"
                       color={themeColor}
                       loading={validatorsLoading}
                     />

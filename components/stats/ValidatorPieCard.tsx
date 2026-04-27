@@ -137,9 +137,6 @@ export function ValidatorPieCard({
             </div>
           ) : (
             <>
-              <div className="text-md sm:text-xl font-mono break-all mb-4 pl-2 sm:pl-4">
-                {total.toLocaleString()} validator seats
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>

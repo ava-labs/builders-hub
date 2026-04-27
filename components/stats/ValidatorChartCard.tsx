@@ -70,9 +70,19 @@ export interface ValidatorChartCardProps {
   overlayData?: ChartDataPoint[];
   overlayLabel?: string;
   overlayColor?: string;
+  /** ISO date — overlay points before this date are dropped, so the line only
+   * starts drawing from the given day onward (e.g. an upgrade marker). */
+  overlayStartDate?: string;
   referenceLineDate?: string;
   referenceLineLabel?: string;
   descriptionNote?: string;
+  /** When true, the bar series is rendered as a line instead. Used by the
+   * ecosystem view where the headline metric is the overlay line, not the
+   * bars. */
+  primaryAsLine?: boolean;
+  /** Label used for the bar/line series in tooltip + legend. Defaults to
+   * "Primary Network". */
+  primarySeriesLabel?: string;
 }
 
 export function ValidatorChartCard({
@@ -86,11 +96,19 @@ export function ValidatorChartCard({
   overlayData,
   overlayLabel,
   overlayColor,
+  overlayStartDate,
   referenceLineDate,
   referenceLineLabel,
   descriptionNote,
+  primaryAsLine = false,
+  primarySeriesLabel = "Primary Network",
 }: ValidatorChartCardProps) {
-  const hasOverlay = Array.isArray(overlayData) && overlayData.length > 0;
+  const filteredOverlayData = useMemo(() => {
+    if (!overlayData) return undefined;
+    if (!overlayStartDate) return overlayData;
+    return overlayData.filter((p) => p.day >= overlayStartDate);
+  }, [overlayData, overlayStartDate]);
+  const hasOverlay = Array.isArray(filteredOverlayData) && filteredOverlayData.length > 0;
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
@@ -148,9 +166,9 @@ export function ValidatorChartCard({
 
   const aggregatedOverlay = useMemo(() => {
     if (!hasOverlay) return null;
-    if (period === "D") return overlayData!;
+    if (period === "D") return filteredOverlayData!;
     const grouped = new Map<string, { sum: number; count: number; date: string }>();
-    overlayData!.forEach((point) => {
+    filteredOverlayData!.forEach((point) => {
       const date = new Date(point.day);
       let key: string;
       if (period === "W") {
@@ -173,7 +191,7 @@ export function ValidatorChartCard({
     return Array.from(grouped.values())
       .map((group) => ({ day: group.date, value: group.sum / group.count }))
       .sort((a, b) => a.day.localeCompare(b.day));
-  }, [overlayData, period, hasOverlay]);
+  }, [filteredOverlayData, period, hasOverlay]);
 
   const mergedAggregated = useMemo(() => {
     if (!hasOverlay || !aggregatedOverlay) return aggregatedData;
@@ -396,10 +414,12 @@ export function ValidatorChartCard({
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 pl-2 sm:pl-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span
-                  className="inline-block h-2.5 w-2.5 rounded-sm"
+                  className={
+                    primaryAsLine ? "inline-block h-0.5 w-3" : "inline-block h-2.5 w-2.5 rounded-sm"
+                  }
                   style={{ backgroundColor: config.color }}
                 />
-                <span>Primary Network</span>
+                <span>{primarySeriesLabel}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span
@@ -454,7 +474,7 @@ export function ValidatorChartCard({
                                   style={{ backgroundColor: config.color }}
                                 />
                                 <span>
-                                  Primary Network:{" "}
+                                  {primarySeriesLabel}:{" "}
                                   {formatTooltipValue(barPoint.value as number)}
                                 </span>
                               </div>
@@ -480,7 +500,18 @@ export function ValidatorChartCard({
                       );
                     }}
                   />
-                  <Bar dataKey="value" fill={config.color} radius={[4, 4, 0, 0]} />
+                  {primaryAsLine ? (
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={config.color}
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  ) : (
+                    <Bar dataKey="value" fill={config.color} radius={[4, 4, 0, 0]} />
+                  )}
                   {hasOverlay && (
                     <Line
                       type="monotone"
