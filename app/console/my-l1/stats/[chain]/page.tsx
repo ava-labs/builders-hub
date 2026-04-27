@@ -177,13 +177,20 @@ function StatsBody({ chainParam }: { chainParam: string }) {
               </Button>
             </Link>
           )}
-          {explorerUrl && (
+          {explorerUrl ? (
             <a href={explorerUrl} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm">
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Open Explorer
               </Button>
             </a>
+          ) : (
+            <Link href="/console/layer-1/explorer-setup">
+              <Button variant="outline" size="sm">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Setup Explorer
+              </Button>
+            </Link>
           )}
         </div>
       </div>
