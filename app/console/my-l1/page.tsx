@@ -239,16 +239,16 @@ function SwitcherBar({
   onSelect: (l1: CombinedL1) => void;
   onRefresh: () => void;
 }) {
-  const managedCount = l1s.filter((l) => l.source === 'managed').length;
-  const walletCount = l1s.filter((l) => l.source === 'wallet').length;
+  const managed = l1s.filter((l) => l.source === 'managed');
+  const wallet = l1s.filter((l) => l.source === 'wallet');
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">My L1 Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            {managedCount} Builder Hub-managed · {walletCount} added to wallet
+            {managed.length} Builder Hub-managed · {wallet.length} added to wallet
           </p>
         </div>
         <div className="flex gap-2">
@@ -263,6 +263,49 @@ function SwitcherBar({
             </Button>
           </Link>
         </div>
+      </div>
+      {managed.length > 0 && (
+        <SwitcherSection
+          title="Builder Hub-managed"
+          subtitle="Provisioned via Quick L1 — managed nodes auto-expire after 3 days."
+          l1s={managed}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      )}
+      {wallet.length > 0 && (
+        <SwitcherSection
+          title="Added to your wallet"
+          subtitle="Networks added via the wallet's chain selector. No managed nodes attached."
+          l1s={wallet}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      )}
+    </div>
+  );
+}
+
+function SwitcherSection({
+  title,
+  subtitle,
+  l1s,
+  selected,
+  onSelect,
+}: {
+  title: string;
+  subtitle: string;
+  l1s: CombinedL1[];
+  selected: CombinedL1 | null;
+  onSelect: (l1: CombinedL1) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h3>
+        <p className="text-xs text-muted-foreground/70">{subtitle}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {l1s.map((l1) => {
@@ -286,28 +329,12 @@ function SwitcherBar({
               <span className="text-xs opacity-60">
                 {l1.evmChainId ?? l1.subnetId.slice(0, 6)}
               </span>
-              <SourceBadge source={l1.source} />
               {l1.source === 'managed' && l1.expiresAt && <ExpiryPill expiresAt={l1.expiresAt} />}
             </button>
           );
         })}
       </div>
     </div>
-  );
-}
-
-function SourceBadge({ source }: { source: 'managed' | 'wallet' }) {
-  if (source === 'managed') {
-    return (
-      <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-400">
-        Managed
-      </span>
-    );
-  }
-  return (
-    <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-600 dark:text-zinc-400">
-      Wallet
-    </span>
   );
 }
 
