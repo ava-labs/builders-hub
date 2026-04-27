@@ -8,13 +8,20 @@ import {
   X,
   Droplets,
   BookKey,
+  BookOpen,
   HandCoins,
   Server,
   ArrowLeftRight,
   ArrowUpDown,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Bell,
+  Eye,
+  Key,
   Layers,
   LayoutDashboard,
+  Rocket,
+  Send,
   SquareTerminal,
   ShieldUser,
   SquarePlus,
@@ -23,6 +30,7 @@ import {
   ShieldOff,
   GitMerge,
   MessagesSquare,
+  UserCheck,
   Workflow,
   Telescope,
   Activity,
@@ -387,6 +395,75 @@ const TOOLS: ToolCard[] = [
     category: 'Utilities',
     icon: Wrench,
   },
+
+  // ── Encrypted ERC ────────────────────────────────────────
+  // Surfaced in the toolbox so every sub-tool stays searchable even though
+  // the sidebar group has been slimmed to Overview + Deploy. Overview is
+  // the in-page hub linking the rest.
+  {
+    name: 'Encrypted ERC Overview',
+    description: 'Hub for the Encrypted ERC suite — register, deposit, transfer, withdraw, audit.',
+    path: '/console/encrypted-erc/overview',
+    category: 'Encrypted ERC',
+    icon: BookOpen,
+    featured: true,
+  },
+  {
+    name: 'Register Keys',
+    description: 'Derive and publish a BabyJubJub identity to the Encrypted ERC Registrar.',
+    path: '/console/encrypted-erc/register',
+    category: 'Encrypted ERC',
+    icon: Key,
+  },
+  {
+    name: 'Deposit / Mint',
+    description: 'Wrap an ERC20 or native token into encrypted balance.',
+    path: '/console/encrypted-erc/deposit',
+    category: 'Encrypted ERC',
+    icon: ArrowDownToLine,
+  },
+  {
+    name: 'Private Transfer',
+    description: 'Send encrypted amounts via Groth16 zk-SNARK proofs.',
+    path: '/console/encrypted-erc/transfer',
+    category: 'Encrypted ERC',
+    icon: Send,
+  },
+  {
+    name: 'Withdraw / Burn',
+    description: 'Burn encrypted balance back to a public ERC20.',
+    path: '/console/encrypted-erc/withdraw',
+    category: 'Encrypted ERC',
+    icon: ArrowUpFromLine,
+  },
+  {
+    name: 'Balance & History',
+    description: 'Decrypt your encrypted balance and inspect raw ciphertexts.',
+    path: '/console/encrypted-erc/balance',
+    category: 'Encrypted ERC',
+    icon: Eye,
+  },
+  {
+    name: 'Auditor View',
+    description: 'Auditor-side decryption of every transfer for compliance review.',
+    path: '/console/encrypted-erc/auditor',
+    category: 'Encrypted ERC',
+    icon: ShieldCheck,
+  },
+  {
+    name: 'Deploy Your Own',
+    description: 'Six-step wizard to deploy the Encrypted ERC suite on your own L1.',
+    path: '/console/encrypted-erc/deploy',
+    category: 'Encrypted ERC',
+    icon: Rocket,
+  },
+  {
+    name: 'Set Auditor',
+    description: 'Designate the auditor public key for a deployed Encrypted ERC.',
+    path: '/console/encrypted-erc/deploy/auditor',
+    category: 'Encrypted ERC',
+    icon: UserCheck,
+  },
 ];
 
 // Preserve sidebar ordering
@@ -397,6 +474,7 @@ const CATEGORY_ORDER = [
   'Permissionless L1s',
   'Interchain Messaging',
   'L1 Management',
+  'Encrypted ERC',
   'Utilities',
 ];
 

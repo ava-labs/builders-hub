@@ -15,7 +15,6 @@ import {
   Telescope,
   ArrowLeftRight,
   Calculator,
-  ShieldCheck,
   ShieldUser,
   SquareTerminal,
   Hexagon,
@@ -31,12 +30,6 @@ import {
   LayoutGrid,
   Workflow,
   Lock,
-  Key,
-  Send,
-  Eye,
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  UserCheck,
   BookOpen,
   Search,
   X,
@@ -261,9 +254,10 @@ const data = {
         },
       ],
     },
-    // Encrypted ERC — privacy-preserving tokens via zk-SNARKs. On C-Chain
-    // Fuji we ship a canonical deployment so users can try it without
-    // deploying anything; on custom L1s users deploy their own.
+    // Encrypted ERC — slim to two entries: Overview (the in-page hub with
+    // bubble nav for register / deposit / transfer / withdraw / balance /
+    // auditor) and Deploy Your Own (the wizard for custom L1s). The full
+    // sub-tool catalog lives in /console/toolbox under "Encrypted ERC".
     {
       id: "encrypted-erc",
       title: "Encrypted ERC",
@@ -275,44 +269,9 @@ const data = {
           icon: BookOpen,
         },
         {
-          title: "Register Keys",
-          url: "/console/encrypted-erc/register",
-          icon: Key,
-        },
-        {
-          title: "Deposit / Mint",
-          url: "/console/encrypted-erc/deposit",
-          icon: ArrowDownToLine,
-        },
-        {
-          title: "Private Transfer",
-          url: "/console/encrypted-erc/transfer",
-          icon: Send,
-        },
-        {
-          title: "Withdraw / Burn",
-          url: "/console/encrypted-erc/withdraw",
-          icon: ArrowUpFromLine,
-        },
-        {
-          title: "Balance & History",
-          url: "/console/encrypted-erc/balance",
-          icon: Eye,
-        },
-        {
-          title: "Auditor View",
-          url: "/console/encrypted-erc/auditor",
-          icon: ShieldCheck,
-        },
-        {
           title: "Deploy Your Own",
           url: "/console/encrypted-erc/deploy",
           icon: Rocket,
-        },
-        {
-          title: "Set Auditor",
-          url: "/console/encrypted-erc/deploy/auditor",
-          icon: UserCheck,
         },
       ],
     },
