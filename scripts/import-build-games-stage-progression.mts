@@ -15,7 +15,6 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const UPDATE_CONCURRENCY = 8;
 
 type ImportSummary = {
-  created: number;
   updated: number;
   unchanged: number;
   warnings: string[];
@@ -82,9 +81,12 @@ type FormDataRecord = {
   timestamp: Date;
 };
 
-type PendingWrite =
-  | { kind: 'create'; row: BuildGamesStageSeedRow; nextFormData: Prisma.InputJsonValue }
-  | { kind: 'update'; row: BuildGamesStageSeedRow; formDataId: string; nextFormData: Prisma.InputJsonValue };
+type PendingWrite = {
+  kind: 'update';
+  row: BuildGamesStageSeedRow;
+  formDataId: string;
+  nextFormData: Prisma.InputJsonValue;
+};
 
 async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
   let index = 0;
@@ -106,7 +108,6 @@ async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T
 
 async function main() {
   const summary: ImportSummary = {
-    created: 0,
     updated: 0,
     unchanged: 0,
     warnings: [],
@@ -179,26 +180,16 @@ async function main() {
     }
 
     const latest = existingRows[0];
-    const nextFormData = mergeFormData(latest?.form_data ?? null, row);
-    const nextImportedProgression = buildImportedProgression(row);
 
     if (!latest) {
-      if (DRY_RUN) {
-        summary.created += 1;
-        continue;
-      }
-      pending.push({ kind: 'create', row, nextFormData });
+      summary.unresolved.push(
+        `No build_games FormData row found for ${row.projectId} (${project.project_name})`,
+      );
       continue;
     }
 
-    // Funnel rule: current_stage holds the highest stage the project reached.
-    // Never demote — if the DB already has a higher stage than the seed row
-    // (e.g. manually advanced, or a prior seed run at a different scope),
-    // leave the row alone.
-    if (latest.current_stage > row.stage) {
-      summary.unchanged += 1;
-      continue;
-    }
+    const nextFormData = mergeFormData(latest.form_data, row);
+    const nextImportedProgression = buildImportedProgression(row);
 
     const latestRoot = isRecord(latest.form_data) ? latest.form_data : {};
     const latestBuildGames = isRecord(latestRoot.build_games) ? latestRoot.build_games : {};
@@ -227,20 +218,6 @@ async function main() {
       `Writing ${pending.length} FormData row(s) with concurrency ${UPDATE_CONCURRENCY}...`,
     );
     await runWithConcurrency(pending, UPDATE_CONCURRENCY, async (item) => {
-      if (item.kind === 'create') {
-        await prisma.formData.create({
-          data: {
-            origin: 'build_games',
-            project_id: item.row.projectId,
-            current_stage: item.row.stage,
-            timestamp: new Date(),
-            form_data: item.nextFormData,
-          },
-        });
-        summary.created += 1;
-        return;
-      }
-
       await prisma.formData.update({
         where: { id: item.formDataId },
         data: {
@@ -256,7 +233,6 @@ async function main() {
   console.log('');
   console.log('Build Games stage progression import summary');
   console.log('------------------------------------------');
-  console.log(`Created FormData rows: ${summary.created}`);
   console.log(`Updated FormData rows: ${summary.updated}`);
   console.log(`Unchanged FormData rows: ${summary.unchanged}`);
   console.log(`Warnings: ${summary.warnings.length}`);

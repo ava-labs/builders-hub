@@ -107,16 +107,9 @@ function checkRow(
   }
 
   const latest = rows[0];
-  // Aligned with the importer's never-demote rule: the seed row asserts the
-  // minimum stage a project should be at. Higher DB stages (e.g. manual
-  // advancement, a later seed run with a broader scope) are acceptable.
-  if (latest.current_stage < row.stage) {
+  if (latest.current_stage !== row.stage) {
     summary.stageMismatches.push(
-      `${row.projectId} (${project.project_name}) expected stage >= ${row.stage}, found ${latest.current_stage}`,
-    );
-  } else if (latest.current_stage > row.stage) {
-    summary.warnings.push(
-      `${row.projectId} (${project.project_name}) is at stage ${latest.current_stage}, higher than the seed expectation of ${row.stage}`,
+      `${row.projectId} (${project.project_name}) expected stage ${row.stage}, found ${latest.current_stage}`,
     );
   }
 
