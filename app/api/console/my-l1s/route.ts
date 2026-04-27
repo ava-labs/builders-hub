@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/prisma/prisma';
 import { getUserId, jsonError, jsonOk } from '../../managed-testnet-nodes/utils';
-import { getUserNodes } from '../../managed-testnet-nodes/service';
 import { getBlockchainInfoForNetwork } from '@/components/toolbox/coreViem/utils/glacier';
 
 // Per-L1 aggregation of one user's NodeRegistration rows. The dashboard reads
@@ -20,6 +20,8 @@ export interface MyL1 {
   rpcUrl: string;
   /** Whether glacier reports this chain as testnet (managed nodes are always testnet). */
   isTestnet: boolean;
+  /** L1-level status: 'active' if any node is alive, 'expired' if all nodes spun down. */
+  status: 'active' | 'expired';
   /** Earliest expiry across the user's nodes for this L1 — drives the "expires in" pill. */
   expiresAt: string;
   /** First time the user provisioned a node for this L1. */
@@ -52,7 +54,13 @@ interface NodeRow {
   expires_at: Date;
 }
 
+function isNodeActive(node: NodeRow, now: number): boolean {
+  return node.status === 'active' && node.expires_at.getTime() > now;
+}
+
 async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
+  const now = Date.now();
+
   // Group nodes by subnet_id, keeping the most recent blockchain_id per subnet
   // (in practice subnet → blockchain is 1:1, but defensively pick the newest).
   const bySubnet = new Map<string, NodeRow[]>();
@@ -72,10 +80,11 @@ async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
         (a, b) => b.created_at.getTime() - a.created_at.getTime(),
       );
       const newest = sorted[0];
+      const anyActive = group.some((n) => isNodeActive(n, now));
 
       let evmChainId: number | null = null;
       let chainName = newest.chain_name ?? subnetId.slice(0, 8);
-      let isTestnet = true;
+      const isTestnet = true;
       try {
         const info = await getBlockchainInfoForNetwork('testnet', newest.blockchain_id);
         evmChainId = info.evmChainId;
@@ -99,6 +108,7 @@ async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
         chainName,
         rpcUrl: newest.rpc_url,
         isTestnet,
+        status: anyActive ? 'active' : 'expired',
         expiresAt: new Date(expiresAtMs).toISOString(),
         firstSeenAt: firstSeenAt.toISOString(),
         lastSeenAt: lastSeenAt.toISOString(),
@@ -107,7 +117,7 @@ async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
           nodeId: n.node_id,
           nodeIndex: n.node_index,
           rpcUrl: n.rpc_url,
-          status: n.status,
+          status: isNodeActive(n, now) ? 'active' : 'expired',
           createdAt: n.created_at.toISOString(),
           expiresAt: n.expires_at.toISOString(),
         })),
@@ -120,16 +130,19 @@ async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
 
 /**
  * GET /api/console/my-l1s
- * Returns the active L1s tied to the authenticated user's Builder Hub
- * account. Aggregates NodeRegistration rows by subnet_id and enriches each
- * with glacier metadata (evmChainId, friendly name).
+ * Returns the L1s tied to the authenticated user's Builder Hub account.
+ * Includes BOTH active and expired registrations so the dashboard can show
+ * past L1s the user provisioned. Caller distinguishes via `MyL1.status`.
  */
 export async function GET(_request: NextRequest): Promise<NextResponse> {
   const { userId, error } = await getUserId();
   if (error) return error;
 
   try {
-    const nodes = await getUserNodes(userId!);
+    const nodes = await prisma.nodeRegistration.findMany({
+      where: { user_id: userId! },
+      orderBy: { created_at: 'desc' },
+    });
     if (nodes.length === 0) {
       return jsonOk({ l1s: [], total: 0 });
     }

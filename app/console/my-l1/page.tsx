@@ -50,6 +50,10 @@ const C_CHAIN_IDS = new Set([43113, 43114]);
 // so Setup Progress can reflect what's actually deployed.
 type CombinedL1 = {
   source: 'managed' | 'wallet';
+  /** 'active' for live L1s; 'expired' for spun-down managed entries that
+   *  the API still surfaces so users can find their past chain. Wallet
+   *  entries are always 'active' from the wallet's perspective. */
+  status: 'active' | 'expired';
   subnetId: string;
   blockchainId: string;
   evmChainId: number | null;
@@ -150,7 +154,10 @@ function DashboardBody() {
       );
       if (match) return match;
     }
-    return combinedL1s[0];
+    // Default to the first ACTIVE L1 — falling back to the very first
+    // entry only when nothing is alive (in which case the page renders the
+    // NoActiveL1sNote and the Past L1s section instead of a detail view).
+    return combinedL1s.find((l) => l.status === 'active') ?? combinedL1s[0];
   }, [combinedL1s, selectedChainParam]);
 
   // If the selected L1 fell off the list (e.g. expired), point the URL at the
@@ -187,14 +194,117 @@ function DashboardBody() {
     return <ErrorState message={error} onRetry={refetch} />;
   }
 
-  if (combinedL1s.length === 0) {
+  // Active L1s drive the switcher + detail view. Expired managed entries are
+  // surfaced separately at the bottom so users can find a past chain
+  // without confusing the live-data UI.
+  const activeL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'active'), [combinedL1s]);
+  const expiredL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'expired'), [combinedL1s]);
+
+  if (activeL1s.length === 0 && expiredL1s.length === 0) {
     return <EmptyState />;
   }
 
   return (
     <div className="space-y-6">
-      <SwitcherBar l1s={combinedL1s} selected={selectedL1} onSelect={onSelect} onRefresh={refetch} />
-      {selectedL1 && <L1Details l1={selectedL1} />}
+      {activeL1s.length > 0 ? (
+        <>
+          <SwitcherBar
+            l1s={activeL1s}
+            selected={selectedL1?.status === 'active' ? selectedL1 : null}
+            onSelect={onSelect}
+            onRefresh={refetch}
+          />
+          {selectedL1 && selectedL1.status === 'active' && <L1Details l1={selectedL1} />}
+        </>
+      ) : (
+        <NoActiveL1sNote onRefresh={refetch} />
+      )}
+      {expiredL1s.length > 0 && <PastL1sSection l1s={expiredL1s} />}
+    </div>
+  );
+}
+
+function NoActiveL1sNote({ onRefresh }: { onRefresh: () => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">My L1 Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            No active L1s right now — your past chains are listed below for reference.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+          <Link href="/console/create-l1">
+            <Button size="sm">
+              <Layers className="w-4 h-4 mr-2" />
+              Create L1
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Past L1s: managed NodeRegistrations whose nodes have all expired or been
+// terminated. We still surface them so users can find an old chain by name
+// after the 3-day TTL kicks in. There's no live data to show — the chain
+// itself is gone — so the row is a compact summary + Recreate CTA only.
+function PastL1sSection({ l1s }: { l1s: CombinedL1[] }) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Past L1s
+        </h3>
+        <p className="text-xs text-muted-foreground/70">
+          These managed L1s have spun down. Their RPC endpoints are no longer responsive — recreate
+          them with the Quick L1 wizard if you want to spin one up again.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {l1s.map((l1) => (
+          <PastL1Card key={l1.subnetId} l1={l1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PastL1Card({ l1 }: { l1: CombinedL1 }) {
+  const created = l1.firstSeenAt ? new Date(l1.firstSeenAt) : null;
+  const expired = l1.expiresAt ? new Date(l1.expiresAt) : null;
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-medium text-foreground truncate">{l1.chainName}</h4>
+            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-600 dark:text-zinc-400">
+              Spun down
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {l1.nodes?.length ?? 0} node{(l1.nodes?.length ?? 0) === 1 ? '' : 's'} ·{' '}
+            {l1.evmChainId ?? `Subnet ${l1.subnetId.slice(0, 6)}…`}
+          </p>
+        </div>
+      </div>
+      <div className="text-xs text-muted-foreground space-y-0.5">
+        {created && <div>Created {created.toLocaleString()}</div>}
+        {expired && <div>Spun down {expired.toLocaleString()}</div>}
+      </div>
+      <Link href="/console/create-l1" className="self-start">
+        <Button variant="outline" size="sm">
+          <Layers className="w-3.5 h-3.5 mr-2" />
+          Recreate
+        </Button>
+      </Link>
     </div>
   );
 }
@@ -202,6 +312,7 @@ function DashboardBody() {
 function walletItemToCombined(w: L1ListItem): CombinedL1 {
   return {
     source: 'wallet',
+    status: 'active',
     subnetId: w.subnetId,
     blockchainId: w.id,
     evmChainId: w.evmChainId,
