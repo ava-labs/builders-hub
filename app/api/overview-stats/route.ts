@@ -97,24 +97,6 @@ function sumValues(sorted: MetricResult[], daysToSum: number): number {
   return sum;
 }
 
-// Active L1 count is sourced from a build-time snapshot written by
-// scripts/enrich-chains.mts (P-Chain platform.getAllValidatorsAt). Reading at
-// build time instead of per-request avoids serverless cold-start hangs from
-// the 280KB+ P-Chain payload and removes a runtime dependency on the public
-// node. The count refreshes whenever the build runs.
-function getActiveMainnetL1CountFromSnapshot(): number | null {
-  try {
-    // Lazy require so a missing file doesn't break the route on first deploy.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const counts = require('@/constants/active-l1-counts.json') as {
-      mainnet?: number;
-    };
-    return typeof counts.mainnet === 'number' ? counts.mainnet : null;
-  } catch {
-    return null;
-  }
-}
-
 function getAllChains(): ChainInfo[] {
   return l1ChainsData
     .filter(chain =>
@@ -303,7 +285,6 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
       processInBatches(allChains, (chain) => fetchChainMetrics(chain, timeRange), MAX_CONCURRENT_CHAINS),
       fetchMarketCaps(allChains),
     ]);
-    const activeL1CountFromPChain = getActiveMainnetL1CountFromSnapshot();
     const chainMetrics = chainResults
       .filter((r): r is PromiseFulfilledResult<ChainOverviewMetrics> => r.status === 'fulfilled' && r.value !== null)
       .map(r => r.value);
@@ -340,7 +321,12 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
       aggregated: {
         ...aggregated,
         totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange,
-        activeL1Count: activeL1CountFromPChain ?? chainMetrics.length,
+        // Headline count is the same set the table renders below — every
+        // mainnet entry from l1-chains.json with isActive !== false. The
+        // l1-chains.json catalog itself is seeded by P-Chain at build time
+        // via scripts/enrich-chains.mts, so this number transitively reflects
+        // P-Chain truth without a runtime P-Chain dependency.
+        activeL1Count: chainMetrics.length,
       },
       timeRange,
       last_updated: Date.now()
