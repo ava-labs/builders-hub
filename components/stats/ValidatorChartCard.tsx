@@ -269,22 +269,37 @@ export function ValidatorChartCard({
     [displayData, brushRangeDays],
   );
 
+  // When the overlay is the headline metric (primaryAsLine), the percentage
+  // change shown next to the headline number must reflect the overlay series,
+  // not the bar/primary series — otherwise the headline value and its delta
+  // describe two different metrics.
+  const headlineKey: "value" | "overlayValue" =
+    primaryAsLine && hasOverlay ? "overlayValue" : "value";
+
   const dynamicChange = useMemo(() => {
     if (!displayData || displayData.length < 2) return { change: 0, isPositive: true };
-    const firstValue = displayData[0].value;
-    const lastValue = displayData[displayData.length - 1].value;
-    if (lastValue === 0) return { change: 0, isPositive: true };
+    const firstValue = (displayData[0] as any)[headlineKey];
+    const lastValue = (displayData[displayData.length - 1] as any)[headlineKey];
+    if (typeof firstValue !== "number" || typeof lastValue !== "number") {
+      return { change: 0, isPositive: true };
+    }
+    if (firstValue === 0) return { change: 0, isPositive: true };
     const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
     return {
       change: Math.abs(changePercentage),
       isPositive: changePercentage >= 0,
     };
-  }, [displayData]);
+  }, [displayData, headlineKey]);
 
   const downloadCSV = () => {
     if (!displayData || displayData.length === 0) return;
-    const headers = ["Date", config.title];
-    const rows = displayData.map((point: any) => [point.day, point.value].join(","));
+    const headers = ["Date", primarySeriesLabel];
+    if (hasOverlay) headers.push(overlayLabel ?? "Total Validator Seats");
+    const rows = displayData.map((point: any) => {
+      const cells = [point.day, point.value];
+      if (hasOverlay) cells.push(point.overlayValue ?? "");
+      return cells.join(",");
+    });
     const csvContent = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -603,7 +618,7 @@ export function ValidatorChartCard({
 
           <div className="mt-4 bg-white dark:bg-black pl-[60px]">
             <ResponsiveContainer width="100%" height={80}>
-              <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
+              <LineChart data={mergedAggregated} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                 <Brush
                   dataKey="day"
                   height={80}
@@ -623,10 +638,11 @@ export function ValidatorChartCard({
                   <LineChart>
                     <Line
                       type="monotone"
-                      dataKey="value"
+                      dataKey={headlineKey}
                       stroke={config.color}
                       strokeWidth={1}
                       dot={false}
+                      connectNulls
                     />
                   </LineChart>
                 </Brush>

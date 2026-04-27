@@ -109,6 +109,12 @@ export function ValidatorPieCard({
 
   const total = slices.reduce((sum, s) => sum + s.count, 0);
 
+  // null subnetStats means the /api/validator-stats fetch hasn't resolved or
+  // failed entirely — treat that separately from an empty successful array,
+  // otherwise the pie would render as 100% Primary Network and look complete
+  // when the L1 buckets are simply missing.
+  const subnetDataMissing = subnetStats === null;
+
   return (
     <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
       <CardContent className="p-0">
@@ -132,9 +138,9 @@ export function ValidatorPieCard({
         </div>
 
         <div className="px-5 pt-6 pb-6">
-          {loading ? (
+          {loading || subnetDataMissing ? (
             <div className="flex items-center justify-center h-[350px] text-sm text-muted-foreground">
-              Loading…
+              {loading ? "Loading…" : "Validator distribution unavailable."}
             </div>
           ) : total === 0 ? (
             <div className="flex items-center justify-center h-[350px] text-sm text-muted-foreground">

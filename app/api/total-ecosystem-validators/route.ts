@@ -53,13 +53,17 @@ function getActiveMainnetSubnetIds(): string[] {
   return ids;
 }
 
+// Returns null on fetch failure so callers can distinguish a real fetch error
+// (e.g. Glacier transient) from a successfully fetched empty series. Treating
+// failures as [] silently turns missing L1 validator seats into zeros and
+// poisons the cache.
 async function fetchValidatorCountSeries(
   subnetId: string | undefined,
   startTimestamp: number,
   endTimestamp: number,
   pageSize: number,
   fetchAllPages: boolean,
-): Promise<TimeSeriesDataPoint[]> {
+): Promise<TimeSeriesDataPoint[] | null> {
   try {
     const rlToken = getRlToken();
     const params: any = {
@@ -89,7 +93,7 @@ async function fetchValidatorCountSeries(
       }));
   } catch (error) {
     console.warn(`[total-ecosystem-validators] Failed for subnet ${subnetId ?? 'primary'}:`, error);
-    return [];
+    return null;
   }
 }
 
@@ -126,6 +130,11 @@ function sumSeriesByDate(seriesList: TimeSeriesDataPoint[][]): TimeSeriesDataPoi
     .sort((a, b) => b.timestamp - a.timestamp);
 }
 
+// If more than this fraction of L1 subnet fetches fail, treat the whole
+// response as unreliable and return null so the route falls back to stale
+// cached data instead of caching a partial total as fresh.
+const L1_FETCH_FAILURE_TOLERANCE = 0.5;
+
 async function fetchFreshDataInternal(timeRange: string): Promise<TotalEcosystemValidatorsResponse | null> {
   try {
     const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES]
@@ -145,14 +154,36 @@ async function fetchFreshDataInternal(timeRange: string): Promise<TotalEcosystem
       ),
     ]);
 
-    const l1Totals = sumSeriesByDate(l1SeriesList);
+    if (primarySeries === null) {
+      console.warn('[total-ecosystem-validators] Primary Network fetch failed; falling back to cache.');
+      return null;
+    }
+
+    const successfulL1Series: TimeSeriesDataPoint[][] = [];
+    let failedL1Count = 0;
+    for (const series of l1SeriesList) {
+      if (series === null) failedL1Count += 1;
+      else successfulL1Series.push(series);
+    }
+
+    if (
+      subnetIds.length > 0 &&
+      failedL1Count / subnetIds.length > L1_FETCH_FAILURE_TOLERANCE
+    ) {
+      console.warn(
+        `[total-ecosystem-validators] ${failedL1Count}/${subnetIds.length} L1 fetches failed; falling back to cache.`,
+      );
+      return null;
+    }
+
+    const l1Totals = sumSeriesByDate(successfulL1Series);
     const grandTotals = sumSeriesByDate([primarySeries, l1Totals]);
 
     return {
       total_validator_seats: createTimeSeriesMetric(grandTotals),
       l1_validator_seats: createTimeSeriesMetric(l1Totals),
       primary_network_validator_count: createTimeSeriesMetric(primarySeries),
-      subnets_included: subnetIds.length,
+      subnets_included: subnetIds.length - failedL1Count,
       last_updated: Date.now(),
     };
   } catch (error) {
