@@ -141,6 +141,7 @@ export default function ChainMetricsPage({
     { id: string; name: string; nodes: number; isL1: boolean }[] | null
   >(null);
   const [validatorsLoading, setValidatorsLoading] = useState(false);
+  const [totalSeatsLoading, setTotalSeatsLoading] = useState(false);
   const [validatorChartPeriod, setValidatorChartPeriod] = useState<
     "D" | "W" | "M" | "Q" | "Y"
   >("D");
@@ -504,6 +505,7 @@ export default function ChainMetricsPage({
         if (!cancelled) setValidatorsLoading(false);
       });
 
+    setTotalSeatsLoading(true);
     fetch("/api/total-ecosystem-validators?timeRange=all")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -514,7 +516,10 @@ export default function ChainMetricsPage({
       })
       .catch((err) =>
         console.error("Error fetching total ecosystem validators:", err),
-      );
+      )
+      .finally(() => {
+        if (!cancelled) setTotalSeatsLoading(false);
+      });
 
     return () => {
       cancelled = true;
@@ -2151,7 +2156,8 @@ export default function ChainMetricsPage({
                   </p>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  {primaryValidatorMetric?.data?.length ? (
+                  {primaryValidatorMetric?.data?.length &&
+                  totalValidatorSeats?.data?.length ? (
                     <ValidatorChartCard
                       config={{
                         title: "Avalanche Ecosystem Validator Count",
@@ -2164,10 +2170,7 @@ export default function ChainMetricsPage({
                       }}
                       rawData={timeSeriesToChartData(primaryValidatorMetric)}
                       period={validatorChartPeriod}
-                      currentValue={
-                        totalValidatorSeats?.current_value ??
-                        primaryValidatorMetric.current_value
-                      }
+                      currentValue={totalValidatorSeats.current_value}
                       onPeriodChange={setValidatorChartPeriod}
                       formatTooltipValue={(value) =>
                         `${formatNumber(Math.round(value))} Validator Seats`
@@ -2187,7 +2190,7 @@ export default function ChainMetricsPage({
                       title="Avalanche Ecosystem Validator Count"
                       description="Validator seats across the Primary Network and sovereign L1s"
                       color={themeColor}
-                      loading={validatorsLoading}
+                      loading={validatorsLoading || totalSeatsLoading}
                     />
                   )}
                   <ValidatorPieCard
