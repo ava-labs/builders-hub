@@ -34,6 +34,8 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { useMyL1s, type MyL1 } from '@/hooks/useMyL1s';
 import { useL1Health, type L1HealthState } from '@/hooks/useL1Health';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 
 // C-Chain (Fuji + Mainnet) lives in the wallet's l1List as a sentinel for
 // the primary network; it's not an L1 in this dashboard's sense, so we strip
@@ -349,6 +351,7 @@ function L1Details({ l1 }: { l1: CombinedL1 }) {
   return (
     <div className="space-y-6">
       <DetailHeader l1={l1} />
+      <WalletNetworkBanner l1={l1} />
       <StatsGrid l1={l1} health={health} />
       {l1.source === 'managed' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -361,6 +364,57 @@ function L1Details({ l1 }: { l1: CombinedL1 }) {
       {l1.source === 'managed' && l1.nodes && l1.nodes.length > 0 && (
         <NodeListCard nodes={l1.nodes} />
       )}
+    </div>
+  );
+}
+
+// Renders a one-line nudge when the wallet is connected but pointed at a
+// different chain than the dashboard is viewing. One-click switch via
+// useWalletSwitch (handles Core wallet + generic EVM via wagmi). Hidden
+// entirely when the wallet is on the right chain or has no chainId yet.
+function WalletNetworkBanner({ l1 }: { l1: CombinedL1 }) {
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const { safelySwitch } = useWalletSwitch();
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Skip the banner if we don't know the L1's chainId, the wallet is
+  // already on it, or no wallet is connected at all (the CheckRequirements
+  // wrapper already enforces wallet connection — but useWalletStore returns
+  // 0 between mount and hydration, which we treat as "don't render yet").
+  if (l1.evmChainId === null || walletChainId === 0 || walletChainId === l1.evmChainId) {
+    return null;
+  }
+
+  const handleSwitch = async () => {
+    if (l1.evmChainId === null) return;
+    setIsSwitching(true);
+    setError(null);
+    try {
+      await safelySwitch(l1.evmChainId, l1.isTestnet);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to switch network');
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="text-sm">
+        <span className="font-medium text-amber-900 dark:text-amber-200">
+          Wallet on a different chain.
+        </span>{' '}
+        <span className="text-amber-800/80 dark:text-amber-200/70">
+          Switch to <strong>{l1.chainName}</strong> ({l1.evmChainId}) to interact with this L1.
+        </span>
+        {error && (
+          <span className="block mt-1 text-xs text-red-600 dark:text-red-400">{error}</span>
+        )}
+      </div>
+      <Button onClick={handleSwitch} disabled={isSwitching} size="sm">
+        {isSwitching ? 'Switching…' : 'Switch network'}
+      </Button>
     </div>
   );
 }
