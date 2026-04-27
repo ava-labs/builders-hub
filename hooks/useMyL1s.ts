@@ -70,5 +70,26 @@ export function useMyL1s(): UseMyL1sState {
     };
   }, [reloadTick]);
 
+  // Auto-refresh when the user returns to this tab — covers the common
+  // "I just provisioned an L1 in another tab and want to see it here"
+  // flow without forcing a manual Refresh click. Fires on both
+  // visibilitychange (tab activation) and focus (window-level focus return
+  // from another desktop app, where visibilitychange may not fire).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onWake = () => {
+      if (document.visibilityState === 'visible') {
+        setReloadTick((n) => n + 1);
+      }
+    };
+    const onFocus = () => setReloadTick((n) => n + 1);
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
   return { l1s, isLoading, error, refetch };
 }
