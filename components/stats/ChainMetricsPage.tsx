@@ -2151,31 +2151,40 @@ export default function ChainMetricsPage({
                   </p>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  <ValidatorChartCard
-                    config={{
-                      title: "Primary Network Validator Count",
-                      description:
-                        "Number of active validators on the Primary Network",
-                      metricKey: "validator_count",
-                      color: themeColor,
-                      chartType: "bar",
-                      icon: Monitor,
-                    }}
-                    rawData={timeSeriesToChartData(primaryValidatorMetric)}
-                    period={validatorChartPeriod}
-                    currentValue={primaryValidatorMetric?.current_value ?? 0}
-                    onPeriodChange={setValidatorChartPeriod}
-                    formatTooltipValue={(value) =>
-                      `${formatNumber(Math.round(value))} Validators`
-                    }
-                    formatYAxisValue={formatNumber}
-                    overlayData={timeSeriesToChartData(totalValidatorSeats)}
-                    overlayLabel="Total Validator Seats (Primary + L1s)"
-                    overlayColor="#3B82F6"
-                    referenceLineDate="2024-12-16"
-                    referenceLineLabel="ACP-77 (Etna)"
-                    descriptionNote="After the Etna upgrade, validators of subnets that converted into sovereign L1s no longer needed to also stake on the Primary Network."
-                  />
+                  {primaryValidatorMetric?.data?.length ? (
+                    <ValidatorChartCard
+                      config={{
+                        title: "Primary Network Validator Count",
+                        description:
+                          "Number of active validators on the Primary Network",
+                        metricKey: "validator_count",
+                        color: themeColor,
+                        chartType: "bar",
+                        icon: Monitor,
+                      }}
+                      rawData={timeSeriesToChartData(primaryValidatorMetric)}
+                      period={validatorChartPeriod}
+                      currentValue={primaryValidatorMetric.current_value}
+                      onPeriodChange={setValidatorChartPeriod}
+                      formatTooltipValue={(value) =>
+                        `${formatNumber(Math.round(value))} Validators`
+                      }
+                      formatYAxisValue={formatNumber}
+                      overlayData={timeSeriesToChartData(totalValidatorSeats)}
+                      overlayLabel="Total Validator Seats (Primary + L1s)"
+                      overlayColor="#3B82F6"
+                      referenceLineDate="2024-12-16"
+                      referenceLineLabel="ACP-77 (Etna)"
+                      descriptionNote="After the Etna upgrade, validators of subnets that converted into sovereign L1s no longer needed to also stake on the Primary Network."
+                    />
+                  ) : (
+                    <ValidatorChartPlaceholder
+                      title="Primary Network Validator Count"
+                      description="Number of active validators on the Primary Network"
+                      color={themeColor}
+                      loading={validatorsLoading}
+                    />
+                  )}
                   <ValidatorPieCard
                     primaryNetworkCount={
                       primaryValidatorMetric?.current_value != null
@@ -2206,6 +2215,42 @@ export default function ChainMetricsPage({
         <StatsBubbleNav />
       )}
     </div>
+  );
+}
+
+function ValidatorChartPlaceholder({
+  title,
+  description,
+  color,
+  loading,
+}: {
+  title: string;
+  description: string;
+  color: string;
+  loading: boolean;
+}) {
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div
+            className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+            style={{ backgroundColor: `${color}20` }}
+          >
+            <Monitor className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-normal">{title}</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+              {description}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-[440px] text-sm text-muted-foreground">
+          {loading ? "Loading…" : "Validator data unavailable."}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
