@@ -645,6 +645,18 @@ function WalletOnlyActions({ l1 }: { l1: CombinedL1 }) {
 
 function DetailHeader({ l1 }: { l1: CombinedL1 }) {
   const nodeCount = l1.nodes?.length ?? 0;
+  // Show wallet balance only when the wallet is currently connected to this
+  // L1 — otherwise the cached number in the store may be from a different
+  // chain and would mislead. Reading via a selector to avoid re-rendering
+  // when unrelated balances change.
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const balance = useWalletStore((s) =>
+    l1.evmChainId !== null && walletChainId === l1.evmChainId
+      ? s.balances.l1Chains[String(l1.evmChainId)] ?? null
+      : null,
+  );
+  const isWalletOnThisL1 = l1.evmChainId !== null && walletChainId === l1.evmChainId;
+
   return (
     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
       <div className="flex items-start gap-3 min-w-0">
@@ -676,6 +688,14 @@ function DetailHeader({ l1 }: { l1: CombinedL1 }) {
               </>
             )}
           </p>
+          {isWalletOnThisL1 && balance !== null && (
+            <p className="text-sm text-foreground mt-1">
+              <span className="text-muted-foreground">Your balance:</span>{' '}
+              <span className="font-mono">
+                {balance.toFixed(4)} {l1.coinName ?? ''}
+              </span>
+            </p>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap gap-2 shrink-0">
