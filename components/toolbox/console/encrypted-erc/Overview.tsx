@@ -19,6 +19,7 @@ import {
 import { useAccount } from 'wagmi';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
+import { useEERCRegistration } from '@/hooks/eerc/useEERCRegistration';
 import { listKnownChains } from '@/lib/eerc/deployments';
 import { loadIdentity } from '@/lib/eerc/identity';
 import { cn } from '@/lib/utils';
@@ -44,23 +45,28 @@ function Overview() {
 
   const balance = useEERCBalance(converter.deployment, 'converter', converter.deployment?.supportedTokens?.[0]);
 
-  const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
+  // Registration status comes from `useEERCRegistration`, which calls
+  // `Registrar.getUserPublicKey` against the chain — so the Journey card
+  // shows ✓ for "register" only when the on-chain pubkey is actually set.
+  // The previous implementation conflated cached-locally with registered-
+  // on-chain, which incorrectly green-lit users who had derived a key but
+  // never submitted the registration tx.
+  const reg = useEERCRegistration(deployment);
+  const isRegistered = reg.status === 'registered';
+
+  // hasIdentity tracks the localStorage cache independently — useful for
+  // the hero badge ("BJJ cached"), which describes browser state, not the
+  // on-chain registrar.
   const [hasIdentity, setHasIdentity] = useState(false);
 
   useEffect(() => {
     if (!address || !deployment) {
-      setIsRegistered(null);
       setHasIdentity(false);
       return;
     }
     const cached = loadIdentity(address, deployment.registrar);
     setHasIdentity(cached !== null);
-    // Registration status is inferred from balance hook's successful-read state —
-    // if the user has a non-zero encrypted balance OR the balance system is
-    // readable, they're probably registered. For a more precise read we'd call
-    // Registrar.getUserPublicKey, but balance is already fetched.
-    setIsRegistered(cached !== null);
-  }, [address, deployment, balance.decryptedCents]);
+  }, [address, deployment, reg.identity]);
 
   const stepsDone = useMemo(() => {
     const set = new Set<string>();
