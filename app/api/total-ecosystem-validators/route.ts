@@ -130,11 +130,6 @@ function sumSeriesByDate(seriesList: TimeSeriesDataPoint[][]): TimeSeriesDataPoi
     .sort((a, b) => b.timestamp - a.timestamp);
 }
 
-// If more than this fraction of L1 subnet fetches fail, treat the whole
-// response as unreliable and return null so the route falls back to stale
-// cached data instead of caching a partial total as fresh.
-const L1_FETCH_FAILURE_TOLERANCE = 0.5;
-
 async function fetchFreshDataInternal(timeRange: string): Promise<TotalEcosystemValidatorsResponse | null> {
   try {
     const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES]
@@ -154,36 +149,30 @@ async function fetchFreshDataInternal(timeRange: string): Promise<TotalEcosystem
       ),
     ]);
 
+    // Fail closed: only a complete fresh fetch (Primary + every active L1)
+    // gets cached. Any subnet failure causes the route to fall back to stale
+    // cached data via the error-fallback-cache path so we never bake an
+    // undercounted total into the 24h cache.
     if (primarySeries === null) {
       console.warn('[total-ecosystem-validators] Primary Network fetch failed; falling back to cache.');
       return null;
     }
-
-    const successfulL1Series: TimeSeriesDataPoint[][] = [];
-    let failedL1Count = 0;
-    for (const series of l1SeriesList) {
-      if (series === null) failedL1Count += 1;
-      else successfulL1Series.push(series);
-    }
-
-    if (
-      subnetIds.length > 0 &&
-      failedL1Count / subnetIds.length > L1_FETCH_FAILURE_TOLERANCE
-    ) {
+    const failedL1Index = l1SeriesList.findIndex((s) => s === null);
+    if (failedL1Index !== -1) {
       console.warn(
-        `[total-ecosystem-validators] ${failedL1Count}/${subnetIds.length} L1 fetches failed; falling back to cache.`,
+        `[total-ecosystem-validators] L1 fetch failed for subnet ${subnetIds[failedL1Index]}; falling back to cache.`,
       );
       return null;
     }
 
-    const l1Totals = sumSeriesByDate(successfulL1Series);
+    const l1Totals = sumSeriesByDate(l1SeriesList as TimeSeriesDataPoint[][]);
     const grandTotals = sumSeriesByDate([primarySeries, l1Totals]);
 
     return {
       total_validator_seats: createTimeSeriesMetric(grandTotals),
       l1_validator_seats: createTimeSeriesMetric(l1Totals),
       primary_network_validator_count: createTimeSeriesMetric(primarySeries),
-      subnets_included: subnetIds.length - failedL1Count,
+      subnets_included: subnetIds.length,
       last_updated: Date.now(),
     };
   } catch (error) {
