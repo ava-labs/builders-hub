@@ -45,6 +45,9 @@ interface OverviewMetrics {
     totalMarketCap: number;
     totalValidators: number;
     activeChains: number;
+    // Active L1s from P-Chain (source of truth). Falls back to enriched chain
+    // count if P-Chain is unreachable.
+    activeL1Count: number;
   };
   timeRange: TimeRangeKey;
   last_updated: number;
@@ -92,6 +95,24 @@ function sumValues(sorted: MetricResult[], daysToSum: number): number {
     sum += sorted[i]?.value || 0;
   }
   return sum;
+}
+
+// Active L1 count is sourced from a build-time snapshot written by
+// scripts/enrich-chains.mts (P-Chain platform.getAllValidatorsAt). Reading at
+// build time instead of per-request avoids serverless cold-start hangs from
+// the 280KB+ P-Chain payload and removes a runtime dependency on the public
+// node. The count refreshes whenever the build runs.
+function getActiveMainnetL1CountFromSnapshot(): number | null {
+  try {
+    // Lazy require so a missing file doesn't break the route on first deploy.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const counts = require('@/constants/active-l1-counts.json') as {
+      mainnet?: number;
+    };
+    return typeof counts.mainnet === 'number' ? counts.mainnet : null;
+  } catch {
+    return null;
+  }
 }
 
 function getAllChains(): ChainInfo[] {
@@ -282,6 +303,7 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
       processInBatches(allChains, (chain) => fetchChainMetrics(chain, timeRange), MAX_CONCURRENT_CHAINS),
       fetchMarketCaps(allChains),
     ]);
+    const activeL1CountFromPChain = getActiveMainnetL1CountFromSnapshot();
     const chainMetrics = chainResults
       .filter((r): r is PromiseFulfilledResult<ChainOverviewMetrics> => r.status === 'fulfilled' && r.value !== null)
       .map(r => r.value);
@@ -315,7 +337,11 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
 
     const metrics: OverviewMetrics = {
       chains: chainMetrics,
-      aggregated: { ...aggregated, totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange },
+      aggregated: {
+        ...aggregated,
+        totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange,
+        activeL1Count: activeL1CountFromPChain ?? chainMetrics.length,
+      },
       timeRange,
       last_updated: Date.now()
     };

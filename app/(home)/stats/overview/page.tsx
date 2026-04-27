@@ -251,6 +251,7 @@ interface OverviewMetrics {
     totalMarketCap: number;
     totalValidators: number;
     activeChains: number;
+    activeL1Count: number;
   };
   timeRange: TimeRangeKey;
   last_updated: number;
@@ -991,7 +992,7 @@ export default function AvalancheMetrics() {
                   <div className="h-8 sm:h-10 md:h-12 w-12 sm:w-14 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                 ) : (
                   <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    {overviewMetrics.chains.length}
+                    {overviewMetrics.aggregated.activeL1Count ?? overviewMetrics.chains.length}
                   </span>
                 )}
                 <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
