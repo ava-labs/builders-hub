@@ -38,6 +38,7 @@ import { useL1ValidatorCount, type L1ValidatorCountState } from '@/hooks/useL1Va
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
+import { useModalTrigger } from '@/components/toolbox/hooks/useModal';
 
 // C-Chain (Fuji + Mainnet) lives in the wallet's l1List as a sentinel for
 // the primary network; it's not an L1 in this dashboard's sense, so we strip
@@ -517,23 +518,27 @@ function L1Details({ l1 }: { l1: CombinedL1 }) {
   );
 }
 
-// Renders a one-line nudge when the wallet is connected but pointed at a
-// different chain than the dashboard is viewing. One-click switch via
-// useWalletSwitch (handles Core wallet + generic EVM via wagmi). Hidden
-// entirely when the wallet is on the right chain or has no chainId yet.
+// Renders a one-line nudge when the wallet isn't pointed at this L1.
+// Two paths:
+//   - L1 IS in the wallet's l1List but on a different chainId → Switch
+//   - L1 is NOT in the wallet's l1List at all → Add to Wallet (prefills
+//     AddChainModal with rpcUrl + chainName so the user can confirm)
+// Hidden when the wallet is on the right chain or has no chainId yet.
 function WalletNetworkBanner({ l1 }: { l1: CombinedL1 }) {
   const walletChainId = useWalletStore((s) => s.walletChainId);
+  const walletL1s = useL1List();
   const { safelySwitch } = useWalletSwitch();
+  const { openModal: openAddChainModal } = useModalTrigger<{ success: boolean }>();
   const [isSwitching, setIsSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Skip the banner if we don't know the L1's chainId, the wallet is
-  // already on it, or no wallet is connected at all (the CheckRequirements
-  // wrapper already enforces wallet connection — but useWalletStore returns
-  // 0 between mount and hydration, which we treat as "don't render yet").
+  // Skip when we don't know the chainId yet, the wallet is already on it,
+  // or the wallet is still hydrating (chainId === 0).
   if (l1.evmChainId === null || walletChainId === 0 || walletChainId === l1.evmChainId) {
     return null;
   }
+
+  const isInWallet = walletL1s.some((w: L1ListItem) => w.evmChainId === l1.evmChainId);
 
   const handleSwitch = async () => {
     if (l1.evmChainId === null) return;
@@ -548,22 +553,56 @@ function WalletNetworkBanner({ l1 }: { l1: CombinedL1 }) {
     }
   };
 
+  const handleAddToWallet = async () => {
+    setError(null);
+    try {
+      await openAddChainModal({
+        rpcUrl: l1.rpcUrl,
+        chainName: l1.chainName,
+        coinName: l1.coinName ?? '',
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to open Add Chain dialog');
+    }
+  };
+
   return (
     <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div className="text-sm">
-        <span className="font-medium text-amber-900 dark:text-amber-200">
-          Wallet on a different chain.
-        </span>{' '}
-        <span className="text-amber-800/80 dark:text-amber-200/70">
-          Switch to <strong>{l1.chainName}</strong> ({l1.evmChainId}) to interact with this L1.
-        </span>
+        {isInWallet ? (
+          <>
+            <span className="font-medium text-amber-900 dark:text-amber-200">
+              Wallet on a different chain.
+            </span>{' '}
+            <span className="text-amber-800/80 dark:text-amber-200/70">
+              Switch to <strong>{l1.chainName}</strong> ({l1.evmChainId}) to interact with this
+              L1.
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="font-medium text-amber-900 dark:text-amber-200">
+              Not in your wallet yet.
+            </span>{' '}
+            <span className="text-amber-800/80 dark:text-amber-200/70">
+              Add <strong>{l1.chainName}</strong> ({l1.evmChainId}) to your wallet so you can sign
+              transactions on it.
+            </span>
+          </>
+        )}
         {error && (
           <span className="block mt-1 text-xs text-red-600 dark:text-red-400">{error}</span>
         )}
       </div>
-      <Button onClick={handleSwitch} disabled={isSwitching} size="sm">
-        {isSwitching ? 'Switching…' : 'Switch network'}
-      </Button>
+      {isInWallet ? (
+        <Button onClick={handleSwitch} disabled={isSwitching} size="sm">
+          {isSwitching ? 'Switching…' : 'Switch network'}
+        </Button>
+      ) : (
+        <Button onClick={handleAddToWallet} size="sm">
+          Add to wallet
+        </Button>
+      )}
     </div>
   );
 }
@@ -1131,6 +1170,8 @@ function NodeListCard({ nodes }: { nodes: NonNullable<MyL1['nodes']> }) {
 // Empty / error / skeleton states
 // ---------------------------------------------------------------------------
 function EmptyState() {
+  const { openModal: openAddChainModal } = useModalTrigger<{ success: boolean }>();
+
   return (
     <div className="space-y-6">
       <div>
@@ -1143,16 +1184,19 @@ function EmptyState() {
         </div>
         <h2 className="text-xl font-semibold text-foreground mb-2">No L1s yet</h2>
         <p className="text-muted-foreground text-center max-w-md mb-6">
-          You haven&apos;t provisioned a managed L1 or added one to your wallet yet. Create one with
-          the Quick L1 wizard — it spins up a node, ICM, and a token bridge in under 3 minutes —
-          or connect an existing L1 by RPC URL.
+          You haven&apos;t provisioned a managed L1 or added one to your wallet yet. Create one
+          with the Quick L1 wizard — it spins up a node, ICM, and a token bridge in under 3
+          minutes — or connect an existing L1 by RPC URL.
         </p>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap justify-center">
           <Link href="/console/create-l1">
             <Button>Create L1</Button>
           </Link>
+          <Button variant="outline" onClick={() => openAddChainModal()}>
+            Connect by RPC
+          </Button>
           <Link href="/console">
-            <Button variant="outline">Back to Console</Button>
+            <Button variant="ghost">Back to Console</Button>
           </Link>
         </div>
       </div>
