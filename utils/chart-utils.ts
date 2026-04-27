@@ -1,4 +1,5 @@
 // Chart utility functions for moving averages and data transformations
+import type { ChartDataPoint, TimeSeriesMetric } from "@/types/stats";
 
 export type Period = "D" | "W" | "M" | "Q" | "Y";
 
@@ -31,6 +32,28 @@ export interface DataPointWithMA {
   value: number;
   ma: number;
   [key: string]: any;
+}
+
+export function timeSeriesMetricToChartData(
+  metric: TimeSeriesMetric | null | undefined,
+  options: { excludeToday?: boolean } = {},
+): ChartDataPoint[] {
+  if (!metric?.data) return [];
+
+  const today = options.excludeToday
+    ? new Date().toISOString().split("T")[0]
+    : null;
+
+  return metric.data
+    .filter((point) => !today || point.date !== today)
+    .map((point) => ({
+      day: point.date,
+      value:
+        typeof point.value === "string"
+          ? Number.parseFloat(point.value)
+          : point.value,
+    }))
+    .reverse();
 }
 
 /**
@@ -120,4 +143,3 @@ export function processDataWithMA<T extends { day: string; value: number }>(
   const maConfig = getMAConfig(period);
   return calculateMovingAverage(aggregated, maConfig.window);
 }
-
