@@ -33,6 +33,7 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { useMyL1s, type MyL1 } from '@/hooks/useMyL1s';
 import { useL1Health, type L1HealthState } from '@/hooks/useL1Health';
+import { useL1ValidatorCount, type L1ValidatorCountState } from '@/hooks/useL1ValidatorCount';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
@@ -347,12 +348,13 @@ function L1Details({ l1 }: { l1: CombinedL1 }) {
   // surfaced as a coloured "degraded/live" pill anywhere; just descriptive
   // metrics so the page doesn't pretend to know more than it does.
   const health = useL1Health(l1.rpcUrl, l1.evmChainId);
+  const validators = useL1ValidatorCount(l1.subnetId, l1.isTestnet);
 
   return (
     <div className="space-y-6">
       <DetailHeader l1={l1} />
       <WalletNetworkBanner l1={l1} />
-      <StatsGrid l1={l1} health={health} />
+      <StatsGrid l1={l1} health={health} validators={validators} />
       {l1.source === 'managed' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <SetupProgressCard l1={l1} />
@@ -539,10 +541,19 @@ function DetailHeader({ l1 }: { l1: CombinedL1 }) {
   );
 }
 
-function StatsGrid({ l1, health }: { l1: CombinedL1; health: L1HealthState }) {
-  // Block, block-time, gas price come from the live RPC probe. EVM chain
-  // ID + subnet stay in Network Details below — no point duplicating them
-  // here when chain liveness is the more useful at-a-glance signal.
+function StatsGrid({
+  l1,
+  health,
+  validators,
+}: {
+  l1: CombinedL1;
+  health: L1HealthState;
+  validators: L1ValidatorCountState;
+}) {
+  // Block, block-time, gas price come from the live RPC probe. The fourth
+  // card prefers Active validators (Glacier) over managed-node count, since
+  // active validators is the universally-meaningful signal across L1s and
+  // the managed-node count is already visible in the header subtitle.
   const blockValue =
     health.blockNumber !== null ? `#${health.blockNumber.toString()}` : health.isLoading ? '…' : '—';
   const blockSub =
@@ -557,30 +568,45 @@ function StatsGrid({ l1, health }: { l1: CombinedL1; health: L1HealthState }) {
 
   const gasValue = health.gasPriceEth !== null ? formatGasPrice(health.gasPriceEth) : '—';
 
-  // For wallet-only L1s the fourth slot doesn't have managed-node data, so
-  // reuse it for chain-id at a glance instead of leaving an empty card.
-  const fourthCard =
-    l1.source === 'managed' && l1.nodes ? (
-      <StatCard
-        icon={Users}
-        label="Managed nodes"
-        value={String(l1.nodes.length)}
-        subValue={
-          l1.expiresAt
-            ? `${l1.nodes.filter((n) => n.status === 'active').length} active · expires ${formatRelativeFromNow(
-                l1.expiresAt,
-              )}`
-            : `${l1.nodes.filter((n) => n.status === 'active').length} active`
-        }
-      />
-    ) : (
+  // Validator count from Glacier when available, fall back to managed-node
+  // count for managed L1s (still useful when Glacier hasn't indexed the
+  // subnet yet), or the raw EVM chain ID for wallet-only entries on Glacier
+  // misses.
+  const fourthCard = (() => {
+    if (validators.count !== null) {
+      return (
+        <StatCard
+          icon={Users}
+          label="Active validators"
+          value={String(validators.count)}
+          subValue={`Subnet ${l1.subnetId.slice(0, 6)}…`}
+        />
+      );
+    }
+    if (l1.source === 'managed' && l1.nodes) {
+      const active = l1.nodes.filter((n) => n.status === 'active').length;
+      return (
+        <StatCard
+          icon={Users}
+          label="Managed nodes"
+          value={String(l1.nodes.length)}
+          subValue={
+            l1.expiresAt
+              ? `${active} active · expires ${formatRelativeFromNow(l1.expiresAt)}`
+              : `${active} active`
+          }
+        />
+      );
+    }
+    return (
       <StatCard
         icon={Wallet}
         label="EVM chain ID"
         value={l1.evmChainId !== null ? String(l1.evmChainId) : '—'}
-        subValue="Added to wallet"
+        subValue={validators.isLoading ? 'Loading validators…' : 'Added to wallet'}
       />
     );
+  })();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
