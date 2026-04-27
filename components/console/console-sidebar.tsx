@@ -59,6 +59,7 @@ import {
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { cn } from "@/lib/utils";
+import { TOOLS as ALL_CONSOLE_TOOLS } from "@/components/toolbox/console/toolbox/tools";
 
 // C-Chain chain IDs (Fuji testnet and Mainnet)
 const C_CHAIN_IDS = [43113, 43114];
@@ -492,24 +493,46 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   // so we no longer inject a separate "Resume" item here.
   const navGroups = data.navGroups;
 
-  // Flatten all nav items for search, tracking their category path
+  // Flatten all searchable items, tracking their category path. The sidebar
+  // surfaces a curated subset; the toolbox grid is the source of truth for
+  // every console tool. Merge both so search results stay complete even when
+  // an item isn't pinned to the sidebar (e.g. encrypted-erc sub-tools after
+  // the group was slimmed to Overview + Deploy).
   const allNavItems = React.useMemo(() => {
     const items: SearchableNavItem[] = [];
-    data.navMain.forEach((item) =>
-      items.push({ ...item, category: "" })
-    );
+    const seenUrls = new Set<string>();
+
+    const push = (item: SearchableNavItem) => {
+      if (seenUrls.has(item.url)) return;
+      seenUrls.add(item.url);
+      items.push(item);
+    };
+
+    data.navMain.forEach((item) => push({ ...item, category: "" }));
     navGroups.forEach((group) => {
       group.items.forEach((item) => {
         if (isCollapsibleSubGroup(item)) {
           const category = `${group.title} › ${item.title}`;
-          item.items.forEach((subItem) =>
-            items.push({ ...subItem, category })
-          );
+          item.items.forEach((subItem) => push({ ...subItem, category }));
         } else {
-          items.push({ ...item, category: group.title });
+          push({ ...item, category: group.title });
         }
       });
     });
+
+    // Append every toolbox entry not already pinned to the sidebar. The
+    // "Toolbox › <category>" prefix flags it visually in the search results
+    // so users know they're reaching beyond the sidebar tree.
+    ALL_CONSOLE_TOOLS.forEach((tool) => {
+      if (tool.external) return;
+      push({
+        title: tool.name,
+        url: tool.path,
+        icon: tool.icon,
+        category: `Toolbox › ${tool.category}`,
+      });
+    });
+
     return items;
   }, [navGroups]);
 
