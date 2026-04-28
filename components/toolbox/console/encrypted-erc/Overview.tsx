@@ -15,6 +15,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  UserCheck,
 } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
@@ -244,11 +245,8 @@ function Overview() {
           </motion.div>
         </motion.div>
 
-        {/* ROW 3: Bubble-nav for the main flow — covers every sub-tool that
-            used to live in the sidebar. Withdraw was missing from the
-            previous 4-tile layout; surfacing it here keeps the full flow
-            reachable from Overview without scrolling. */}
-        <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3" variants={containerVariants}>
+        {/* ROW 3: Bubble-nav for every sub-tool that used to live in the sidebar. */}
+        <motion.div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-3" variants={containerVariants}>
           <motion.div variants={itemVariants}>
             <ActionTile
               href="/console/encrypted-erc/register"
@@ -256,6 +254,7 @@ function Overview() {
               title="Register"
               subtitle="One wallet sig → BJJ identity"
               icon={<KeyIcon />}
+              status={stepsDone.has('register') ? 'done' : stepsDone.has('connect') ? 'next' : undefined}
             />
           </motion.div>
           <motion.div variants={itemVariants}>
@@ -265,6 +264,7 @@ function Overview() {
               title="Deposit"
               subtitle="Wrap an ERC20 → encrypted"
               icon={<DepositIcon />}
+              status={stepsDone.has('deposit') ? 'done' : stepsDone.has('register') ? 'next' : undefined}
             />
           </motion.div>
           <motion.div variants={itemVariants}>
@@ -274,6 +274,7 @@ function Overview() {
               title="Private Transfer"
               subtitle="ZK proof, hidden amount"
               icon={<SendIconAnim />}
+              status={stepsDone.has('deposit') ? 'available' : undefined}
             />
           </motion.div>
           <motion.div variants={itemVariants}>
@@ -283,6 +284,7 @@ function Overview() {
               title="Withdraw"
               subtitle="Burn encrypted → ERC20 out"
               icon={<WithdrawIcon />}
+              status={stepsDone.has('deposit') ? 'available' : undefined}
             />
           </motion.div>
           <motion.div variants={itemVariants}>
@@ -292,6 +294,27 @@ function Overview() {
               title="Balance & History"
               subtitle="Decrypt + view raw ciphertext"
               icon={<EyeIconAnim />}
+              status={stepsDone.has('deposit') ? 'available' : undefined}
+            />
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <ActionTile
+              href="/console/encrypted-erc/auditor"
+              accent="emerald"
+              title="Auditor View"
+              subtitle="Decrypt compliance events"
+              icon={<ShieldCheck />}
+              status={stepsDone.has('register') ? 'available' : undefined}
+            />
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <ActionTile
+              href="/console/encrypted-erc/deploy/auditor"
+              accent="violet"
+              title="Set Auditor"
+              subtitle="Designate auditor BJJ key"
+              icon={<UserCheck />}
+              status={stepsDone.has('register') ? 'available' : undefined}
             />
           </motion.div>
         </motion.div>
@@ -306,7 +329,7 @@ function Overview() {
           </motion.div>
         </motion.div>
 
-        {/* ROW 5: Auditor + Deploy-your-own */}
+        {/* ROW 5: Compliance context + deploy-your-own */}
         <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3" variants={containerVariants}>
           <motion.div className="md:col-span-3" variants={itemVariants}>
             <AuditorCard />
@@ -784,19 +807,42 @@ const ACCENT_ICON: Record<string, string> = {
   amber: 'text-amber-600 dark:text-amber-400',
 };
 
+type ActionTileStatus = 'done' | 'next' | 'available';
+
+const STATUS_STYLES: Record<ActionTileStatus, { label: string; className: string }> = {
+  done: {
+    label: 'Done',
+    className:
+      'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:text-emerald-300',
+  },
+  next: {
+    label: 'Next',
+    className: 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200',
+  },
+  available: {
+    label: 'Ready',
+    className:
+      'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-900/20 dark:text-blue-300',
+  },
+};
+
 function ActionTile({
   href,
   title,
   subtitle,
   icon,
   accent,
+  status,
 }: {
   href: string;
   title: string;
   subtitle: string;
   icon: React.ReactNode;
   accent: 'emerald' | 'blue' | 'violet' | 'rose' | 'amber';
+  status?: ActionTileStatus;
 }) {
+  const statusMeta = status ? STATUS_STYLES[status] : null;
+
   return (
     <Link href={href} className="block h-full">
       <motion.div
@@ -811,6 +857,16 @@ function ActionTile({
           e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)';
         }}
       >
+        {statusMeta && (
+          <span
+            className={cn(
+              'absolute right-3 top-3 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none',
+              statusMeta.className,
+            )}
+          >
+            {statusMeta.label}
+          </span>
+        )}
         <div
           className={cn(
             'w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3 transition-colors',
