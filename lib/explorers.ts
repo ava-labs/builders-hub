@@ -1,7 +1,9 @@
-// Explorer URL constructors for an L1. Returns three options the user can
-// pick between in the dashboard's "Open Explorer" dropdown — modeled on the
-// 3-way picker added to the dApps page in PR #4093, applied at the L1
-// level instead of per-tx.
+// Explorer URL constructors for an L1. When the L1 already has a configured
+// explorer URL, returns up to three options the user can pick between in the
+// dashboard's "Open Explorer" dropdown — modeled on the 3-way picker added
+// to the dApps page in PR #4093, applied at the L1 level instead of per-tx.
+// When no explorer is configured for a non-C-Chain L1, return no options so
+// ExplorerMenu can surface the "Setup Explorer" action.
 //
 //   1. Avalanche Subnets — the official Avalanche-team explorer at
 //      subnets[-test].avax.network. For L1s where the wallet's
@@ -17,9 +19,9 @@
 //
 //   3. Either L1 Custom Explorer (when the wallet has a non-Subnets
 //      explorerUrl set — e.g. a project's bespoke explorer like
-//      explorer.dexalot.com) OR Avascan as a universal Avalanche-native
-//      fallback. Avascan supports L1s and tx/address search across the
-//      entire ecosystem at avascan.info / testnet.avascan.info.
+//      explorer.dexalot.com) OR Avascan for C-Chain/Subnets-backed entries.
+//      Avascan supports L1s and tx/address search across the entire
+//      ecosystem at avascan.info / testnet.avascan.info.
 
 const C_CHAIN_FUJI = 43113;
 const C_CHAIN_MAINNET = 43114;
@@ -49,6 +51,10 @@ function isSubnetsUrl(url: string): boolean {
 export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
   const { evmChainId, isTestnet, customExplorerUrl } = input;
   const isCChain = evmChainId === C_CHAIN_FUJI || evmChainId === C_CHAIN_MAINNET;
+
+  if (!customExplorerUrl && !isCChain) {
+    return [];
+  }
 
   const options: ExplorerOption[] = [];
   const customPointsAtSubnets = !!customExplorerUrl && isSubnetsUrl(customExplorerUrl);
@@ -80,8 +86,7 @@ export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
   });
 
   // 3. Custom explorer when the wallet has set a non-Subnets URL;
-  // otherwise Avascan as a universal Avalanche-native fallback so the
-  // menu always offers three ways in.
+  // otherwise Avascan for C-Chain or Subnets-backed entries.
   if (customExplorerUrl && !customPointsAtSubnets) {
     options.push({
       id: 'custom',

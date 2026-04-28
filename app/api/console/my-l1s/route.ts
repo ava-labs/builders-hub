@@ -22,7 +22,7 @@ export interface MyL1 {
   isTestnet: boolean;
   /** L1-level status: 'active' if any node is alive, 'expired' if all nodes spun down. */
   status: 'active' | 'expired';
-  /** Earliest expiry across the user's nodes for this L1 — drives the "expires in" pill. */
+  /** Latest active-node expiry for live L1s, or latest historical expiry for spun-down L1s. */
   expiresAt: string;
   /** First time the user provisioned a node for this L1. */
   firstSeenAt: string;
@@ -93,7 +93,14 @@ async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
         // Glacier may not have indexed a brand-new L1 yet; ship without enrichment.
       }
 
-      const expiresAtMs = Math.min(...group.map((n) => n.expires_at.getTime()));
+      const activeExpiryTimes = group
+        .filter((n) => isNodeActive(n, now))
+        .map((n) => n.expires_at.getTime());
+      const allExpiryTimes = group.map((n) => n.expires_at.getTime());
+      const expiresAtMs =
+        activeExpiryTimes.length > 0
+          ? Math.max(...activeExpiryTimes)
+          : Math.max(...allExpiryTimes);
       const firstSeenAt = new Date(
         Math.min(...group.map((n) => n.created_at.getTime())),
       );

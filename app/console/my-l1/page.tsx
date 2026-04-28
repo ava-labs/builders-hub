@@ -211,6 +211,13 @@ function DashboardBody() {
     [router, searchParams],
   );
 
+  // Active L1s drive the switcher + detail view. Expired managed entries are
+  // surfaced separately at the bottom so users can find a past chain
+  // without confusing the live-data UI. Keep these hooks above every early
+  // return so the dashboard has a stable hook order across loading states.
+  const activeL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'active'), [combinedL1s]);
+  const expiredL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'expired'), [combinedL1s]);
+
   if (isLoading && combinedL1s.length === 0) {
     return (
       <div className="space-y-6">
@@ -222,12 +229,6 @@ function DashboardBody() {
   if (error && combinedL1s.length === 0) {
     return <ErrorState message={error} onRetry={refetch} />;
   }
-
-  // Active L1s drive the switcher + detail view. Expired managed entries are
-  // surfaced separately at the bottom so users can find a past chain
-  // without confusing the live-data UI.
-  const activeL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'active'), [combinedL1s]);
-  const expiredL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'expired'), [combinedL1s]);
 
   if (activeL1s.length === 0 && expiredL1s.length === 0) {
     return <EmptyState />;
