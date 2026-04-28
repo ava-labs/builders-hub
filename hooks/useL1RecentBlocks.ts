@@ -22,19 +22,24 @@ export interface L1RecentBlocksState {
 }
 
 const DEFAULT_COUNT = 60;
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 15_000;
 
 /**
- * Fetch the last `count` blocks from a given EVM RPC and re-poll every 30s.
- * Used by /console/my-l1/stats to render live charts (block time, tx count,
- * gas utilization, base fee). Each poll re-fetches the full window — fine
- * for ~60 blocks, but if we ever want longer history we should switch to
- * incremental polling (latest block + drop-oldest).
+ * Fetch the last `count` blocks from a given EVM RPC and refresh every
+ * 15s. Used by `/console/my-l1/stats` to render live charts.
  *
- * Falls back gracefully when:
- * - rpcUrl is undefined → returns empty state
- * - block N can't be fetched → that block is omitted from the result
- * - the RPC times out → existing data stays visible, error is surfaced
+ * Strategy:
+ *  - First load: parallel fetch of [latest - count + 1 .. latest].
+ *  - Subsequent polls: incremental — fetch latest only, then any new
+ *    blocks since the previously-seen tip in parallel. Prepend to the
+ *    window, drop oldest to keep length === count. This means a 240-block
+ *    window costs 240 RPC calls once, then ~1-3 RPC calls per poll
+ *    afterwards instead of 240.
+ *  - rpcUrl or count change: full reset + re-fetch.
+ *
+ * Falls back gracefully when rpcUrl is undefined (returns empty state),
+ * a single block fails (omitted from result), or the RPC errors (existing
+ * data stays visible, error is surfaced).
  */
 export function useL1RecentBlocks(
   rpcUrl: string | undefined,
@@ -46,10 +51,16 @@ export function useL1RecentBlocks(
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [tick, setTick] = useState(0);
   const requestIdRef = useRef(0);
+  // Latest tip known to this hook instance — drives the incremental fetch.
+  // Reset on rpcUrl/count change via the cleanup → effect re-run cycle.
+  const latestSeenRef = useRef<bigint | null>(null);
+  const blocksRef = useRef<BlockSummary[]>([]);
 
   useEffect(() => {
     if (!rpcUrl) {
       setBlocks([]);
+      blocksRef.current = [];
+      latestSeenRef.current = null;
       setError(null);
       setIsLoading(false);
       return;
@@ -59,17 +70,20 @@ export function useL1RecentBlocks(
     const client = createPublicClient({ transport: http(rpcUrl) });
     let pollHandle: ReturnType<typeof setInterval> | null = null;
 
-    const sample = async () => {
+    // Reset state for this rpcUrl/count combo. The hasLoadedOnce flag stays
+    // sticky so we don't flash skeletons on every count change after the
+    // first successful load.
+    latestSeenRef.current = null;
+    blocksRef.current = [];
+
+    const initialLoad = async () => {
       setIsLoading(true);
       try {
         const latest = await client.getBlock();
         if (requestId !== requestIdRef.current) return;
-
         const latestNumber = latest.number;
         const start = latestNumber > BigInt(count - 1) ? latestNumber - BigInt(count - 1) : 0n;
 
-        // Fetch the rest of the window in parallel — the latest block we
-        // already have, so skip refetching it.
         const numbers: bigint[] = [];
         for (let n = start; n < latestNumber; n++) numbers.push(n);
 
@@ -85,6 +99,8 @@ export function useL1RecentBlocks(
         }
         summaries.push(toSummary(latest));
 
+        latestSeenRef.current = latestNumber;
+        blocksRef.current = summaries;
         setBlocks(summaries);
         setError(null);
         setIsLoading(false);
@@ -96,8 +112,49 @@ export function useL1RecentBlocks(
       }
     };
 
-    sample();
-    pollHandle = setInterval(sample, POLL_INTERVAL_MS);
+    const incrementalPoll = async () => {
+      // Skip if the initial load hasn't completed yet — wait for the next tick.
+      if (latestSeenRef.current === null) return;
+      try {
+        const latest = await client.getBlock();
+        if (requestId !== requestIdRef.current) return;
+        const seen = latestSeenRef.current!;
+        if (latest.number <= seen) {
+          // No new blocks — nothing to do.
+          return;
+        }
+
+        // Fetch every new block strictly between (seen, latest.number).
+        const numbers: bigint[] = [];
+        for (let n = seen + 1n; n < latest.number; n++) numbers.push(n);
+        const results = await Promise.allSettled(
+          numbers.map((n) => client.getBlock({ blockNumber: n })),
+        );
+        if (requestId !== requestIdRef.current) return;
+
+        const newSummaries: BlockSummary[] = [];
+        for (const r of results) {
+          if (r.status !== 'fulfilled') continue;
+          newSummaries.push(toSummary(r.value));
+        }
+        newSummaries.push(toSummary(latest));
+
+        const merged = [...blocksRef.current, ...newSummaries];
+        // Keep tail = newest `count` blocks.
+        const trimmed = merged.length > count ? merged.slice(merged.length - count) : merged;
+
+        latestSeenRef.current = latest.number;
+        blocksRef.current = trimmed;
+        setBlocks(trimmed);
+        setError(null);
+      } catch (err) {
+        if (requestId !== requestIdRef.current) return;
+        setError(err instanceof Error ? err.message : 'Failed to refresh blocks');
+      }
+    };
+
+    initialLoad();
+    pollHandle = setInterval(incrementalPoll, POLL_INTERVAL_MS);
     return () => {
       if (pollHandle) clearInterval(pollHandle);
     };

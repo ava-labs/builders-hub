@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use, useMemo } from 'react';
+import React, { use, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -121,7 +121,11 @@ function StatsBody({ chainParam }: { chainParam: string }) {
     ? STATS_SLUG_BY_CHAIN_ID.get(l1.evmChainId)
     : undefined;
 
-  const recent = useL1RecentBlocks(l1?.rpcUrl);
+  // User-selectable history window. Larger windows show more trend but cost
+  // more RPC calls on first load (incremental polling keeps subsequent
+  // refreshes cheap regardless of window size).
+  const [windowSize, setWindowSize] = useState<number>(60);
+  const recent = useL1RecentBlocks(l1?.rpcUrl, windowSize);
 
   if (!l1) {
     if (managedLoading) {
@@ -164,11 +168,12 @@ function StatsBody({ chainParam }: { chainParam: string }) {
           </Link>
           <h1 className="text-2xl font-bold text-foreground">{l1.chainName} — Stats</h1>
           <p className="text-sm text-muted-foreground">
-            Live charts derived from this L1&apos;s RPC. Window: latest {recent.blocks.length}{' '}
-            blocks · refreshing every 30s.
+            Live charts derived from this L1&apos;s RPC. Window: latest {recent.blocks.length} of{' '}
+            {windowSize} blocks · refreshing every 15s.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <RangeSelector value={windowSize} onChange={setWindowSize} />
           {publicStatsSlug && (
             <Link href={`/stats/l1/${publicStatsSlug}`}>
               <Button variant="outline" size="sm">
@@ -215,6 +220,41 @@ function StatsBody({ chainParam }: { chainParam: string }) {
       ) : (
         <ChartsGrid blocks={recent.blocks} />
       )}
+    </div>
+  );
+}
+
+// Pill-style range selector for the chart window. Larger windows are
+// noticeably costlier on first load (parallel RPC fan-out), but the
+// incremental poll keeps subsequent refresh traffic constant regardless
+// of window size — so users can leave it on 240 without penalty.
+const RANGE_OPTIONS = [
+  { count: 30, label: '30' },
+  { count: 60, label: '60' },
+  { count: 120, label: '120' },
+  { count: 240, label: '240' },
+] as const;
+
+function RangeSelector({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="inline-flex items-center gap-0.5 rounded-lg border bg-muted/30 p-0.5">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground px-2">
+        Blocks
+      </span>
+      {RANGE_OPTIONS.map((opt) => (
+        <button
+          key={opt.count}
+          type="button"
+          onClick={() => onChange(opt.count)}
+          className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+            value === opt.count
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }
