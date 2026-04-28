@@ -132,7 +132,7 @@ function StatCard({
   valueTitle?: string;
 }) {
   return (
-    <Card className="py-4">
+    <Card className="py-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-foreground/20">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-muted">

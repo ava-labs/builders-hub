@@ -154,6 +154,24 @@ const FEATURED_SCHEMES: Record<string, FeaturedScheme> = {
     shadowHover:
       'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(6,78,59,0.35), 0 16px 40px rgba(6,78,59,0.25)',
   },
+  // Encrypted ERC — fuchsia/purple (cryptography, privacy). Distinct from
+  // ICM's emerald even though both touch on "privacy" semantically — ICM
+  // is "messages between chains", eERC is "values hidden on a chain".
+  'Encrypted ERC': {
+    background: 'bg-gradient-to-br from-fuchsia-950 via-purple-950 to-zinc-950',
+    border: 'border-fuchsia-900/60',
+    borderHover: 'hover:border-fuchsia-800',
+    iconWrap: 'bg-fuchsia-500/15',
+    iconWrapHover: 'group-hover:bg-fuchsia-500/25',
+    iconColor: 'text-fuchsia-300 group-hover:text-fuchsia-200',
+    title: 'text-white',
+    description: 'text-fuchsia-100/70',
+    chevron: 'text-fuchsia-400/60',
+    chevronHover: 'group-hover:text-fuchsia-200',
+    shadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(86,12,86,0.25), 0 8px 24px rgba(86,12,86,0.18)',
+    shadowHover:
+      'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(86,12,86,0.35), 0 16px 40px rgba(86,12,86,0.25)',
+  },
 };
 
 // Fallback scheme matches the original dark zinc look.
@@ -302,7 +320,7 @@ export default function ToolboxBoard() {
               placeholder="Search tools..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm pl-9 pr-9 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-700 focus:border-zinc-300 dark:focus:border-zinc-700 transition-colors"
+              className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm pl-9 pr-9 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-zinc-600/40 focus:border-zinc-500 dark:focus:border-zinc-500 transition-colors"
             />
             {search && (
               <button

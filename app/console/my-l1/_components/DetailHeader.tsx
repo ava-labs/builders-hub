@@ -24,21 +24,25 @@ export function DetailHeader({ l1 }: { l1: CombinedL1 }) {
   );
   const isWalletOnThisL1 = l1.evmChainId !== null && walletChainId === l1.evmChainId;
 
+  // First letter of chain name, used as a fallback avatar when no logoUrl.
+  // Stable hash of subnetId picks one of a few neutral hues so different
+  // L1s look distinct without us picking a color per chain by hand.
+  const initial = l1.chainName?.charAt(0).toUpperCase() ?? '?';
+  const fallbackTint = pickFallbackTint(l1.subnetId);
+
   return (
     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-      <div className="flex items-start gap-3 min-w-0">
-        {l1.logoUrl && (
-          <img
-            src={l1.logoUrl}
-            alt={l1.chainName}
-            className="w-10 h-10 rounded-lg object-contain bg-muted p-1 shrink-0"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        )}
+      <div className="flex items-center gap-3.5 min-w-0">
+        <ChainLogo
+          logoUrl={l1.logoUrl}
+          chainName={l1.chainName}
+          initial={initial}
+          fallbackTint={fallbackTint}
+        />
         <div className="min-w-0">
-          <h2 className="text-xl font-semibold text-foreground truncate">{l1.chainName}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground truncate">
+            {l1.chainName}
+          </h2>
           <p className="text-sm text-muted-foreground">
             Chain ID: {l1.evmChainId ?? '—'} · {l1.isTestnet ? 'Testnet' : 'Mainnet'}
             {l1.source === 'managed' && (
@@ -124,4 +128,61 @@ function CopyChainConfigButton({ l1 }: { l1: CombinedL1 }) {
       Copy Config
     </Button>
   );
+}
+
+// Compact chain avatar: tries the wallet-provided logoUrl, falls back to a
+// tinted initial when the logo is missing or 404s. Lifts the page header
+// from "small icon next to text" to a real visual anchor without needing
+// every L1 to have a logo asset.
+function ChainLogo({
+  logoUrl,
+  chainName,
+  initial,
+  fallbackTint,
+}: {
+  logoUrl?: string;
+  chainName: string;
+  initial: string;
+  fallbackTint: { bg: string; text: string };
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImg = logoUrl && !imgFailed;
+  return (
+    <div
+      className="w-11 h-11 rounded-xl shrink-0 ring-1 ring-border bg-muted flex items-center justify-center overflow-hidden"
+      aria-hidden={showImg ? undefined : true}
+    >
+      {showImg ? (
+        <img
+          src={logoUrl}
+          alt={chainName}
+          className="w-full h-full object-contain p-1"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <div
+          className={`w-full h-full flex items-center justify-center text-base font-semibold ${fallbackTint.bg} ${fallbackTint.text}`}
+        >
+          {initial}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Tiny stable hash → pick one of 5 muted tints for the fallback avatar.
+// Different L1s read as different swatches without us spending design
+// energy on per-chain branding.
+const FALLBACK_TINTS = [
+  { bg: 'bg-rose-500/10 dark:bg-rose-500/15', text: 'text-rose-700 dark:text-rose-300' },
+  { bg: 'bg-emerald-500/10 dark:bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-300' },
+  { bg: 'bg-sky-500/10 dark:bg-sky-500/15', text: 'text-sky-700 dark:text-sky-300' },
+  { bg: 'bg-amber-500/10 dark:bg-amber-500/15', text: 'text-amber-700 dark:text-amber-300' },
+  { bg: 'bg-violet-500/10 dark:bg-violet-500/15', text: 'text-violet-700 dark:text-violet-300' },
+];
+
+function pickFallbackTint(seed: string): (typeof FALLBACK_TINTS)[number] {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return FALLBACK_TINTS[hash % FALLBACK_TINTS.length];
 }

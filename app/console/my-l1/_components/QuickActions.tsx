@@ -153,16 +153,16 @@ function faucetAction(l1: CombinedL1): QuickAction {
 
 function QuickActionTile({ action }: { action: QuickAction }) {
   const Body = (
-    <div className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 h-full">
+    <div className="p-4 rounded-lg border bg-card hover:bg-accent/40 hover:border-foreground/20 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 h-full">
       <div className="flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-muted">
-          <action.icon className="w-4 h-4 text-muted-foreground" />
+        <div className="p-2 rounded-lg bg-muted group-hover:bg-foreground/[0.08] transition-colors">
+          <action.icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
         </div>
         <div className="flex-1">
           <h4 className="font-medium text-foreground text-sm mb-1">{action.title}</h4>
           <p className="text-xs text-muted-foreground">{action.description}</p>
         </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
+        <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all mt-1" />
       </div>
     </div>
   );
