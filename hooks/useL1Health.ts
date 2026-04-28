@@ -22,6 +22,21 @@ export interface L1HealthState {
 
 const POLL_INTERVAL_MS = 30_000;
 
+// Status thresholds for the L1's most-recent block. Exported for unit
+// testing — the hook itself uses the same boundaries.
+export const HEALTHY_MAX_AGE_SEC = 120;
+export const DEGRADED_MAX_AGE_SEC = 600;
+
+/**
+ * Derive a textual health status from the age of the latest produced block.
+ * Pure helper so the boundaries can be tested without spinning up viem.
+ */
+export function deriveHealthStatus(blockAgeSec: number): L1HealthStatus {
+  if (blockAgeSec <= HEALTHY_MAX_AGE_SEC) return 'healthy';
+  if (blockAgeSec <= DEGRADED_MAX_AGE_SEC) return 'degraded';
+  return 'stale';
+}
+
 /**
  * Per-L1 RPC health probe. Independent of the wallet's selected chain — the
  * `rpcUrl` + `evmChainId` come from the L1 the dashboard is currently
@@ -102,8 +117,7 @@ export function useL1Health(rpcUrl: string | undefined, evmChainId: number | nul
 
         const block = blockResult.value;
         const blockAgeSec = Math.floor(Date.now() / 1000) - Number(block.timestamp);
-        const status: L1HealthStatus =
-          blockAgeSec <= 120 ? 'healthy' : blockAgeSec <= 600 ? 'degraded' : 'stale';
+        const status = deriveHealthStatus(blockAgeSec);
 
         let blockTimeSec: number | null = null;
         if (block.number > 0n) {

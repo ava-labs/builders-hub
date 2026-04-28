@@ -25,6 +25,30 @@ const DEFAULT_COUNT = 60;
 const POLL_INTERVAL_MS = 15_000;
 
 /**
+ * Compute the block numbers strictly between `seen` (last polled tip) and
+ * `latest` (current chain tip), exclusive of `latest` itself. The hook
+ * fetches `latest` separately so the caller can append it after.
+ *
+ * Exported for unit testing — the hook delegates here for the incremental
+ * fetch range so the bigint arithmetic is independently verifiable.
+ */
+export function blocksBetween(seen: bigint, latest: bigint): bigint[] {
+  if (latest <= seen) return [];
+  const out: bigint[] = [];
+  for (let n = seen + 1n; n < latest; n++) out.push(n);
+  return out;
+}
+
+/**
+ * Keep the newest `count` entries of a block window. The hook merges
+ * incremental polls into the existing window and trims the head; this is
+ * pure tail-slicing.
+ */
+export function trimToCount<T>(blocks: T[], count: number): T[] {
+  return blocks.length > count ? blocks.slice(blocks.length - count) : blocks;
+}
+
+/**
  * Fetch the last `count` blocks from a given EVM RPC and refresh every
  * 15s. Used by `/console/my-l1/stats` to render live charts.
  *
@@ -125,8 +149,7 @@ export function useL1RecentBlocks(
         }
 
         // Fetch every new block strictly between (seen, latest.number).
-        const numbers: bigint[] = [];
-        for (let n = seen + 1n; n < latest.number; n++) numbers.push(n);
+        const numbers = blocksBetween(seen, latest.number);
         const results = await Promise.allSettled(
           numbers.map((n) => client.getBlock({ blockNumber: n })),
         );
@@ -140,8 +163,7 @@ export function useL1RecentBlocks(
         newSummaries.push(toSummary(latest));
 
         const merged = [...blocksRef.current, ...newSummaries];
-        // Keep tail = newest `count` blocks.
-        const trimmed = merged.length > count ? merged.slice(merged.length - count) : merged;
+        const trimmed = trimToCount(merged, count);
 
         latestSeenRef.current = latest.number;
         blocksRef.current = trimmed;
