@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Settings,
   Timer,
+  Trash2,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -29,6 +30,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { CheckRequirements } from '@/components/toolbox/components/CheckRequirements';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
@@ -1165,7 +1177,12 @@ function NodeListCard({ l1, onRefetch }: { l1: CombinedL1; onRefetch: () => void
                   remaining
                 </p>
               </div>
-              <Badge variant={n.status === 'active' ? 'default' : 'secondary'}>{n.status}</Badge>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={n.status === 'active' ? 'default' : 'secondary'}>{n.status}</Badge>
+                {n.status === 'active' && (
+                  <DeleteNodeButton nodeDbId={n.id} nodeId={n.nodeId} onSuccess={onRefetch} />
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1252,6 +1269,87 @@ function ProvisionNodeButton({
         </span>
       )}
     </div>
+  );
+}
+
+// Confirmation-gated DELETE for a single managed node. Frees up a slot
+// against the per-user 3-node cap. Wrapping in AlertDialog because losing
+// a node is destructive — once terminated, the L1 may go down if no other
+// nodes are running.
+function DeleteNodeButton({
+  nodeDbId,
+  nodeId,
+  onSuccess,
+}: {
+  nodeDbId: string;
+  nodeId: string;
+  onSuccess: () => void;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/managed-testnet-nodes?id=${encodeURIComponent(nodeDbId)}`,
+        { method: 'DELETE', credentials: 'include' },
+      );
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.message ?? json?.error ?? `HTTP ${res.status}`);
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove node');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          aria-label="Remove node"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove this managed node?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <span className="block mb-2">
+              <code className="text-xs font-mono break-all">{nodeId}</code>
+            </span>
+            This frees up a slot against your 3-node Builder Hub cap. The L1 will keep running as
+            long as at least one node is still active. Removed nodes can&apos;t be brought back —
+            you&apos;d need to provision a fresh one.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {error && (
+          <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+            disabled={isSubmitting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isSubmitting ? 'Removing…' : 'Remove node'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
