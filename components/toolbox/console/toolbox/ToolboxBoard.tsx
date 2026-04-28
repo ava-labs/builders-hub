@@ -108,22 +108,23 @@ type FeaturedScheme = {
   shadowHover: string;
 };
 
-// Single shared scheme — neutral zinc surfaces with light/dark adaptation.
-// Featured tiles read as a "depth shift" from the regular tiles around
-// them: slightly stronger background, slightly brighter border.
+// Always-dark hero card. The featured tile is the "premium" element on the
+// toolbox — it stays dark in both light and dark mode so it pops against
+// any page bg. White-on-dark gives the strongest visual contrast and
+// matches the eERC Overview aesthetic that worked for the user.
 const DEFAULT_SCHEME: FeaturedScheme = {
-  background: 'bg-zinc-50 dark:bg-zinc-900',
-  border: 'border-zinc-200 dark:border-zinc-800',
-  borderHover: 'hover:border-zinc-300 dark:hover:border-zinc-700',
-  iconWrap: 'bg-zinc-200/60 dark:bg-white/[0.08]',
-  iconWrapHover: 'group-hover:bg-zinc-300/60 dark:group-hover:bg-white/[0.14]',
-  iconColor: 'text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white',
-  title: 'text-zinc-900 dark:text-zinc-100',
-  description: 'text-zinc-500 dark:text-zinc-400',
-  chevron: 'text-zinc-400 dark:text-zinc-500',
-  chevronHover: 'group-hover:text-zinc-700 dark:group-hover:text-zinc-300',
-  shadow: 'inset 0 1px 0 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.04)',
-  shadowHover: 'inset 0 1px 0 0 rgba(255,255,255,0.8), 0 4px 12px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04)',
+  background: 'bg-zinc-900',
+  border: 'border-zinc-800',
+  borderHover: 'hover:border-zinc-700',
+  iconWrap: 'bg-white/[0.08]',
+  iconWrapHover: 'group-hover:bg-white/[0.14]',
+  iconColor: 'text-zinc-200 group-hover:text-white',
+  title: 'text-white',
+  description: 'text-zinc-400',
+  chevron: 'text-zinc-500',
+  chevronHover: 'group-hover:text-zinc-300',
+  shadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
+  shadowHover: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.15)',
 };
 
 function FeaturedTile({ tool }: { tool: ToolCard }) {
