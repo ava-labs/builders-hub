@@ -777,6 +777,7 @@ function DetailHeader({ l1 }: { l1: CombinedL1 }) {
           isTestnet={l1.isTestnet}
           customExplorerUrl={l1.explorerUrl}
         />
+        <CopyChainConfigButton l1={l1} />
       </div>
     </div>
   );
@@ -1307,6 +1308,46 @@ function ProvisionNodeButton({
         </span>
       )}
     </div>
+  );
+}
+
+// Copies the L1's wagmi/viem-friendly chain config as JSON. Handy when the
+// user wants to plug the L1 into another tool (Hardhat, Foundry, a custom
+// dApp) without retyping the RPC URL + chain ID + native currency by hand.
+function CopyChainConfigButton({ l1 }: { l1: CombinedL1 }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const config = {
+      chainId: l1.evmChainId,
+      chainName: l1.chainName,
+      rpcUrls: [l1.rpcUrl],
+      nativeCurrency: l1.coinName
+        ? { name: l1.coinName, symbol: l1.coinName, decimals: 18 }
+        : undefined,
+      blockExplorerUrls: l1.explorerUrl ? [l1.explorerUrl] : undefined,
+      subnetId: l1.subnetId,
+      blockchainId: l1.blockchainId,
+      isTestnet: l1.isTestnet,
+    };
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(config, null, 2));
+      setCopied(true);
+      toast.success('Chain config copied', 'Paste into Hardhat / Foundry / your wallet config.');
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      toast.error(
+        'Could not copy',
+        err instanceof Error ? err.message : 'Clipboard unavailable',
+      );
+    }
+  };
+
+  return (
+    <Button variant="outline" size="sm" onClick={handleCopy}>
+      {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
+      Copy Config
+    </Button>
   );
 }
 
