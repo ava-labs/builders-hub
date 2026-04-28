@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ChevronRight, ExternalLink, Search, Star, X } from 'lucide-react';
@@ -91,6 +91,16 @@ const itemVariants = {
   },
 };
 
+const STARRED_TILE_PATTERN: CSSProperties = {
+  backgroundImage:
+    'repeating-linear-gradient(135deg, rgba(113, 113, 122, 0.14) 0px, rgba(113, 113, 122, 0.14) 1px, transparent 1px, transparent 8px)',
+};
+
+const STARRED_FEATURED_PATTERN: CSSProperties = {
+  backgroundImage:
+    'repeating-linear-gradient(135deg, rgba(212, 212, 216, 0.08) 0px, rgba(212, 212, 216, 0.08) 1px, transparent 1px, transparent 9px)',
+};
+
 // ---------------------------------------------------------------------------
 // ToolTile — matches homepage BentoCard geometry: rounded-2xl, soft shadow,
 // icon tile in the top-left, name + description, chevron on hover.
@@ -117,13 +127,17 @@ function ToolTile({
         className={cn(
           'group relative h-full rounded-2xl border p-4 cursor-pointer transition-all duration-200',
           // Starred tiles get an amber-tinted border + subtle bg wash so
-          // the user can spot what they've pinned at a glance. Mandatory
-          // ones share the same treatment for consistency.
+          // the user can spot what they've pinned at a glance. The gray
+          // hatch stays subtle but gives mandatory/sidebar-pinned tools a
+          // second visual cue beyond the yellow star.
           starred
-            ? 'border-amber-300/60 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-500/[0.04] backdrop-blur-sm'
+            ? 'border-amber-300/70 dark:border-amber-500/35 bg-zinc-50/90 dark:bg-zinc-900/90 backdrop-blur-sm'
             : 'border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm hover:border-zinc-300 dark:hover:border-zinc-700',
         )}
-        style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)' }}
+        style={{
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)',
+          ...(starred ? STARRED_TILE_PATTERN : {}),
+        }}
         onMouseEnter={(e) => {
           e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)';
         }}
@@ -201,9 +215,9 @@ type FeaturedScheme = {
 // any page bg. White-on-dark gives the strongest visual contrast and
 // matches the eERC Overview aesthetic that worked for the user.
 const DEFAULT_SCHEME: FeaturedScheme = {
-  background: 'bg-zinc-900',
-  border: 'border-zinc-800',
-  borderHover: 'hover:border-zinc-700',
+  background: 'bg-zinc-800',
+  border: 'border-zinc-700/80',
+  borderHover: 'hover:border-zinc-600',
   iconWrap: 'bg-white/[0.08]',
   iconWrapHover: 'group-hover:bg-white/[0.14]',
   iconColor: 'text-zinc-200 group-hover:text-white',
@@ -238,9 +252,12 @@ function FeaturedTile({
           'group relative h-full rounded-2xl border p-5 cursor-pointer transition-all duration-200 overflow-hidden',
           scheme.background,
           scheme.border,
-          scheme.borderHover,
+          starred ? 'border-amber-400/45 hover:border-amber-400/60' : scheme.borderHover,
         )}
-        style={{ boxShadow: scheme.shadow }}
+        style={{
+          boxShadow: scheme.shadow,
+          ...(starred ? STARRED_FEATURED_PATTERN : {}),
+        }}
         onMouseEnter={(e) => {
           e.currentTarget.style.boxShadow = scheme.shadowHover;
         }}
@@ -328,8 +345,6 @@ export default function ToolboxBoard() {
     }));
   }, [filtered]);
 
-  const isSearching = search.trim().length > 0;
-
   return (
     <div className="relative -m-8 p-8" style={{ minHeight: 'calc(100vh - var(--header-height, 3rem))' }}>
       {/* Grid background — matches the console homepage */}
@@ -389,10 +404,10 @@ export default function ToolboxBoard() {
         ) : (
           <motion.div className="space-y-10" variants={containerVariants} initial="hidden" animate="visible">
             {grouped.map(({ category, tools }) => {
-              // Don't hero-promote the featured tile while a search is active —
-              // it would visually dominate filtered results. Use a uniform grid
-              // of tiles so matches are easy to compare at a glance.
-              const featured = !isSearching ? tools.find((t) => t.featured) : undefined;
+              // Keep the same hierarchy during search. If the category's
+              // featured tool is part of the filtered result, it stays large
+              // instead of switching into a separate "search mode" layout.
+              const featured = tools.find((t) => t.featured);
               const rest = featured ? tools.filter((t) => t !== featured) : tools;
 
               return (

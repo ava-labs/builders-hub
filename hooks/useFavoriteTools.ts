@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'console:favorite-tools';
+const FAVORITES_CHANGED_EVENT = 'console:favorite-tools-changed';
 
 // Tools always pinned to the sidebar — the canonical navigation, not
 // promotable/demotable by the user. Starring exists to lift OTHER toolbox
@@ -28,6 +29,35 @@ const MANDATORY_PATHS = new Set<string>([
   '/console/encrypted-erc/overview',
   '/console/encrypted-erc/deploy',
 ]);
+
+function normalizeFavorites(value: unknown): Set<string> {
+  if (!Array.isArray(value)) return new Set();
+  return new Set(
+    value.filter(
+      (p): p is string =>
+        typeof p === 'string' && p.length > 0 && !MANDATORY_PATHS.has(p),
+    ),
+  );
+}
+
+function readFavorites(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored ? normalizeFavorites(JSON.parse(stored)) : new Set();
+  } catch {
+    // localStorage may be disabled (private mode, denied permission) or the
+    // stored value may be malformed. Start fresh rather than crashing.
+    return new Set();
+  }
+}
+
+function emitFavoritesChanged() {
+  if (typeof window === 'undefined') return;
+  window.setTimeout(() => {
+    window.dispatchEvent(new Event(FAVORITES_CHANGED_EVENT));
+  }, 0);
+}
 
 export interface UseFavoriteTools {
   /** True for any path that's either mandatory OR user-favorited. */
@@ -60,24 +90,18 @@ export function useFavoriteTools(): UseFavoriteTools {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setFavorites(
-            new Set(
-              parsed.filter((p): p is string => typeof p === 'string' && p.length > 0),
-            ),
-          );
-        }
-      }
-    } catch {
-      // localStorage may be disabled (private mode, denied permission) —
-      // start with an empty set rather than crashing the dashboard.
-    } finally {
-      setIsHydrated(true);
-    }
+    const syncFavorites = () => setFavorites(readFavorites());
+
+    syncFavorites();
+    setIsHydrated(true);
+
+    window.addEventListener(FAVORITES_CHANGED_EVENT, syncFavorites);
+    window.addEventListener('storage', syncFavorites);
+
+    return () => {
+      window.removeEventListener(FAVORITES_CHANGED_EVENT, syncFavorites);
+      window.removeEventListener('storage', syncFavorites);
+    };
   }, []);
 
   const persist = useCallback((next: Set<string>) => {
@@ -87,6 +111,7 @@ export function useFavoriteTools(): UseFavoriteTools {
     } catch {
       // ignore — UI state still updates even if persistence fails
     }
+    emitFavoritesChanged();
   }, []);
 
   const toggle = useCallback(
@@ -112,12 +137,14 @@ export function useFavoriteTools(): UseFavoriteTools {
 
   const isMandatory = useCallback((path: string) => MANDATORY_PATHS.has(path), []);
 
+  const userStarred = useMemo(() => Array.from(favorites), [favorites]);
+
   return {
     isStarred,
     isUserStarred,
     isMandatory,
     toggle,
-    userStarred: Array.from(favorites),
+    userStarred,
     isHydrated,
   };
 }

@@ -72,6 +72,7 @@ interface NavItem {
   url: string;
   icon: LucideIcon;
   comingSoon?: boolean;
+  sourceCategory?: string;
 }
 
 interface CollapsibleSubGroup {
@@ -301,11 +302,13 @@ function CollapsibleSection({
   pathname,
   isOpen,
   onToggle,
+  onUnpin,
 }: {
   group: NavGroup;
   pathname: string;
   isOpen: boolean;
   onToggle: () => void;
+  onUnpin?: (path: string) => void;
 }) {
   // Auto-expand if the current path is inside this group
   const containsActive = groupContainsPath(group, pathname);
@@ -340,6 +343,16 @@ function CollapsibleSection({
                     />
                   );
                 }
+                if (group.id === "pinned" && onUnpin) {
+                  return (
+                    <PinnedNavMenuItem
+                      key={item.title}
+                      item={item}
+                      pathname={pathname}
+                      onUnpin={onUnpin}
+                    />
+                  );
+                }
                 return (
                   <NavMenuItem key={item.title} item={item} pathname={pathname} />
                 );
@@ -349,6 +362,57 @@ function CollapsibleSection({
         </CollapsibleContent>
       </SidebarGroup>
     </Collapsible>
+  );
+}
+
+function PinnedNavMenuItem({
+  item,
+  pathname,
+  onUnpin,
+}: {
+  item: NavItem;
+  pathname: string;
+  onUnpin: (path: string) => void;
+}) {
+  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+  const handleUnpin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onUnpin(item.url);
+  };
+
+  return (
+    <SidebarMenuItem>
+      <div
+        className={cn(
+          "group/pinned flex min-h-9 items-center gap-1 rounded-md pr-1 text-sidebar-foreground/70 transition-colors",
+          "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          isActive && "bg-sidebar-accent text-sidebar-foreground"
+        )}
+      >
+        <Link href={item.url} className="flex min-w-0 flex-1 flex-col px-2 py-1.5">
+          <span className="truncate text-sm leading-4">{item.title}</span>
+          {item.sourceCategory && (
+            <span className="truncate text-[10px] leading-3 text-sidebar-foreground/40">
+              {item.sourceCategory}
+            </span>
+          )}
+        </Link>
+        <button
+          type="button"
+          onClick={handleUnpin}
+          title={`Unpin ${item.title}`}
+          aria-label={`Unpin ${item.title} from sidebar`}
+          className={cn(
+            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-amber-500 transition-all",
+            "opacity-100 hover:bg-sidebar-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            "sm:opacity-0 sm:group-hover/pinned:opacity-100 sm:focus-visible:opacity-100"
+          )}
+        >
+          <Star className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />
+        </button>
+      </div>
+    </SidebarMenuItem>
   );
 }
 
@@ -493,7 +557,11 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   // User-pinned tools from the toolbox. Mandatory tools are already in the
   // canonical sidebar groups below; we only inject what the user explicitly
   // starred and isn't already pinned by the static navigation.
-  const { userStarred, isHydrated: favoritesHydrated } = useFavoriteTools();
+  const {
+    userStarred,
+    isHydrated: favoritesHydrated,
+    toggle: toggleFavoriteTool,
+  } = useFavoriteTools();
 
   const starredGroup = React.useMemo<NavGroup | null>(() => {
     if (!favoritesHydrated || userStarred.length === 0) return null;
@@ -501,12 +569,17 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
     for (const path of userStarred) {
       const tool = ALL_CONSOLE_TOOLS.find((t) => t.path === path);
       if (!tool || tool.external) continue;
-      items.push({ title: tool.name, url: tool.path, icon: tool.icon });
+      items.push({
+        title: tool.name,
+        url: tool.path,
+        icon: tool.icon,
+        sourceCategory: tool.category,
+      });
     }
     if (items.length === 0) return null;
     return {
-      id: 'starred',
-      title: 'Starred',
+      id: 'pinned',
+      title: 'Pinned',
       icon: Star,
       defaultOpen: true,
       items,
@@ -701,6 +774,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
                     pathname={pathname}
                     isOpen={isOpen}
                     onToggle={() => toggleSection(group.id)}
+                    onUnpin={group.id === "pinned" ? toggleFavoriteTool : undefined}
                   />
                 );
               })}
