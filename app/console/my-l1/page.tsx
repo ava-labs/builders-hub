@@ -39,6 +39,7 @@ import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListSt
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { useModalTrigger } from '@/components/toolbox/hooks/useModal';
+import { ExplorerMenu } from '@/components/console/ExplorerMenu';
 
 // C-Chain (Fuji + Mainnet) lives in the wallet's l1List as a sentinel for
 // the primary network; it's not an L1 in this dashboard's sense, so we strip
@@ -728,21 +729,11 @@ function DetailHeader({ l1 }: { l1: CombinedL1 }) {
             View Stats
           </Button>
         </Link>
-        {l1.explorerUrl ? (
-          <a href={l1.explorerUrl} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Open Explorer
-            </Button>
-          </a>
-        ) : (
-          <Link href="/console/layer-1/explorer-setup">
-            <Button variant="outline" size="sm">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Setup Explorer
-            </Button>
-          </Link>
-        )}
+        <ExplorerMenu
+          evmChainId={l1.evmChainId}
+          isTestnet={l1.isTestnet}
+          customExplorerUrl={l1.explorerUrl}
+        />
       </div>
     </div>
   );

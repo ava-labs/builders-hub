@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckRequirements } from '@/components/toolbox/components/CheckRequirements';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { ExplorerMenu } from '@/components/console/ExplorerMenu';
 import { useMyL1s } from '@/hooks/useMyL1s';
 import { useL1RecentBlocks, type BlockSummary } from '@/hooks/useL1RecentBlocks';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
@@ -182,21 +183,12 @@ function StatsBody({ chainParam }: { chainParam: string }) {
               </Button>
             </Link>
           )}
-          {explorerUrl ? (
-            <a href={explorerUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open Explorer
-              </Button>
-            </a>
-          ) : (
-            <Link href="/console/layer-1/explorer-setup">
-              <Button variant="outline" size="sm">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Setup Explorer
-              </Button>
-            </Link>
-          )}
+          <ExplorerMenu
+            evmChainId={l1.evmChainId}
+            isTestnet={l1.isTestnet}
+            customExplorerUrl={explorerUrl}
+            icon={ExternalLink}
+          />
         </div>
       </div>
 
