@@ -8,6 +8,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
 import { toast } from '@/lib/toast';
 import type { CombinedL1 } from '../_lib/types';
+import { WalletNetworkAction } from './WalletNetworkAction';
 
 export function DetailHeader({ l1 }: { l1: CombinedL1 }) {
   const nodeCount = l1.nodes?.length ?? 0;
@@ -65,6 +66,9 @@ export function DetailHeader({ l1 }: { l1: CombinedL1 }) {
         </div>
       </div>
       <div className="flex flex-wrap gap-2 shrink-0">
+        {/* Primary action when the wallet isn't on this L1. Renders nothing
+            otherwise — replaces the old full-width banner. */}
+        <WalletNetworkAction l1={l1} />
         <Link href={`/console/my-l1/stats/${l1.evmChainId ?? l1.subnetId}`}>
           <Button variant="outline" size="sm">
             <Activity className="w-4 h-4 mr-2" />

@@ -20,6 +20,10 @@ export function SwitcherBar({
 }) {
   const managed = l1s.filter((l) => l.source === 'managed');
   const wallet = l1s.filter((l) => l.source === 'wallet');
+  // Section titles only render when both kinds of L1 exist — there's no
+  // reason to caption a single list with the same words the page subtitle
+  // already shows ("X managed · Y wallet").
+  const showSectionTitles = managed.length > 0 && wallet.length > 0;
 
   return (
     <div className="space-y-4">
@@ -45,8 +49,7 @@ export function SwitcherBar({
       </div>
       {managed.length > 0 && (
         <SwitcherSection
-          title="Builder Hub-managed"
-          subtitle="Provisioned via Quick L1 — managed nodes auto-expire after 3 days."
+          title={showSectionTitles ? 'Builder Hub-managed' : null}
           l1s={managed}
           selected={selected}
           onSelect={onSelect}
@@ -54,8 +57,7 @@ export function SwitcherBar({
       )}
       {wallet.length > 0 && (
         <SwitcherSection
-          title="Added to your wallet"
-          subtitle="Networks added via the wallet's chain selector. No managed nodes attached."
+          title={showSectionTitles ? 'Added to your wallet' : null}
           l1s={wallet}
           selected={selected}
           onSelect={onSelect}
@@ -67,13 +69,11 @@ export function SwitcherBar({
 
 function SwitcherSection({
   title,
-  subtitle,
   l1s,
   selected,
   onSelect,
 }: {
-  title: string;
-  subtitle: string;
+  title: string | null;
   l1s: CombinedL1[];
   selected: CombinedL1 | null;
   onSelect: (l1: CombinedL1) => void;
@@ -85,12 +85,11 @@ function SwitcherSection({
 
   return (
     <div className="space-y-2">
-      <div>
+      {title && (
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
         </h3>
-        <p className="text-xs text-muted-foreground/70">{subtitle}</p>
-      </div>
+      )}
       {/* Below sm we render pills as a single column — at ~360px the
           chain-ID + ExpiryPill combo blows the row width and a flex-wrap
           row turns into 3 stacked half-rows that read worse than a list.

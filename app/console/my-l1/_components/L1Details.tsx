@@ -5,7 +5,6 @@ import { useL1ValidatorCount } from '@/hooks/useL1ValidatorCount';
 import type { CombinedL1 } from '../_lib/types';
 import { setupSummary } from '../_lib/setup-steps';
 import { DetailHeader } from './DetailHeader';
-import { WalletNetworkBanner } from './WalletNetworkBanner';
 import { StatsGrid } from './StatsGrid';
 import { NextActionBar, SetupCompleteBadge, SetupProgressCard } from './SetupProgress';
 import { QuickActionsCard, WalletOnlyActions } from './QuickActions';
@@ -32,7 +31,6 @@ export function L1Details({
   return (
     <div className="space-y-6">
       <DetailHeader l1={l1} />
-      <WalletNetworkBanner l1={l1} />
       {isManaged && !isComplete && <NextActionBar l1={l1} />}
       <StatsGrid l1={l1} health={health} validators={validators} />
       {isManaged &&
