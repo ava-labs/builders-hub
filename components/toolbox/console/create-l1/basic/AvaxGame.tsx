@@ -1,13 +1,43 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Bird, Footprints, Orbit, Shuffle, Trees } from 'lucide-react';
-import { AvaxFlapper } from './AvaxFlapper';
-import { AvaxRunner } from './AvaxRunner';
-import { AvaxSlope } from './AvaxSlope';
-import { AvaxSpin } from './AvaxSpin';
 import { cn } from '@/lib/utils';
+
+// The four mini-games are entertainment shown during the 3-minute Quick L1
+// deploy wait — no point shipping their ~1.8k lines of canvas-game logic in
+// the initial bundle that every visitor of /console/create-l1/basic loads.
+// `next/dynamic` defers the chunk until the user actually renders the game,
+// and `ssr: false` keeps the canvas code off the server (it'd error anyway —
+// games rely on `window` and `requestAnimationFrame`). Each game has a tiny
+// loading shell so the layout doesn't shift while the chunk fetches.
+const GameLoading = () => (
+  <div
+    className="flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400"
+    style={{ width: 280, height: 500 }}
+  >
+    Loading…
+  </div>
+);
+
+const AvaxFlapper = dynamic(() => import('./AvaxFlapper').then((m) => m.AvaxFlapper), {
+  ssr: false,
+  loading: GameLoading,
+});
+const AvaxRunner = dynamic(() => import('./AvaxRunner').then((m) => m.AvaxRunner), {
+  ssr: false,
+  loading: GameLoading,
+});
+const AvaxSlope = dynamic(() => import('./AvaxSlope').then((m) => m.AvaxSlope), {
+  ssr: false,
+  loading: GameLoading,
+});
+const AvaxSpin = dynamic(() => import('./AvaxSpin').then((m) => m.AvaxSpin), {
+  ssr: false,
+  loading: GameLoading,
+});
 
 /**
  * Shell that picks one of the four "play while you wait" games on mount
