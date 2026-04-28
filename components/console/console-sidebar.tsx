@@ -32,6 +32,7 @@ import {
   Lock,
   BookOpen,
   Search,
+  Star,
   X,
   Bell,
   type LucideIcon,
@@ -57,6 +58,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useSidebarState } from "@/hooks/useSidebarState";
+import { useFavoriteTools } from "@/hooks/useFavoriteTools";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { cn } from "@/lib/utils";
 import { TOOLS as ALL_CONSOLE_TOOLS } from "@/components/toolbox/console/toolbox/tools";
@@ -488,10 +490,38 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const isConnectedToL1 =
     walletChainId !== 0 && !C_CHAIN_IDS.includes(walletChainId);
 
+  // User-pinned tools from the toolbox. Mandatory tools are already in the
+  // canonical sidebar groups below; we only inject what the user explicitly
+  // starred and isn't already pinned by the static navigation.
+  const { userStarred, isHydrated: favoritesHydrated } = useFavoriteTools();
+
+  const starredGroup = React.useMemo<NavGroup | null>(() => {
+    if (!favoritesHydrated || userStarred.length === 0) return null;
+    const items: NavItem[] = [];
+    for (const path of userStarred) {
+      const tool = ALL_CONSOLE_TOOLS.find((t) => t.path === path);
+      if (!tool || tool.external) continue;
+      items.push({ title: tool.name, url: tool.path, icon: tool.icon });
+    }
+    if (items.length === 0) return null;
+    return {
+      id: 'starred',
+      title: 'Starred',
+      icon: Star,
+      defaultOpen: true,
+      items,
+    };
+  }, [userStarred, favoritesHydrated]);
+
   // "Create L1" is a single sidebar entry. When an in-progress flow exists,
   // the `/console/create-l1` page itself auto-redirects to the resume step,
   // so we no longer inject a separate "Resume" item here.
-  const navGroups = data.navGroups;
+  // Inject the user's Starred group at the top so pinned tools always render
+  // ahead of the canonical sidebar nav.
+  const navGroups = React.useMemo(
+    () => (starredGroup ? [starredGroup, ...data.navGroups] : data.navGroups),
+    [starredGroup],
+  );
 
   // Flatten all searchable items, tracking their category path. The sidebar
   // surfaces a curated subset; the toolbox grid is the source of truth for

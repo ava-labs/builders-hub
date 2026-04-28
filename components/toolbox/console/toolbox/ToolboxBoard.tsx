@@ -3,9 +3,76 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Search, X, ExternalLink, ChevronRight } from 'lucide-react';
+import { ChevronRight, ExternalLink, Search, Star, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFavoriteTools } from '@/hooks/useFavoriteTools';
 import { TOOLS, CATEGORY_ORDER, type ToolCard } from './tools';
+
+// Star control rendered absolutely in the top-right of every toolbox tile.
+// Click toggles pin state in localStorage; mandatory paths render the star
+// filled-but-disabled because they're permanent fixtures of the sidebar.
+// `e.preventDefault()` + `e.stopPropagation()` so clicking the star never
+// navigates to the tile's destination.
+function StarButton({
+  path,
+  name,
+  starred,
+  mandatory,
+  onToggle,
+  /** Surface style — featured tile is dark, regular tile is light/dark-adapt. */
+  variant,
+}: {
+  path: string;
+  name: string;
+  starred: boolean;
+  mandatory: boolean;
+  onToggle: () => void;
+  variant: 'regular' | 'featured';
+}) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!mandatory) onToggle();
+  };
+
+  const label = mandatory
+    ? `${name} is pinned to the sidebar`
+    : starred
+      ? `Unpin ${name} from sidebar`
+      : `Pin ${name} to sidebar`;
+
+  // Color logic:
+  // - starred (any reason) → amber-500 fill, always visible
+  // - unstarred → muted outline that brightens on hover/focus, fades in on
+  //   parent group-hover so the star doesn't crowd the tile at rest
+  const idleColor =
+    variant === 'featured'
+      ? 'text-zinc-500 hover:text-amber-400'
+      : 'text-zinc-300 dark:text-zinc-600 hover:text-amber-500';
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={mandatory}
+      title={label}
+      aria-label={label}
+      aria-pressed={starred}
+      data-path={path}
+      className={cn(
+        'absolute top-2 right-2 inline-flex items-center justify-center h-7 w-7 rounded-md',
+        'transition-all duration-150',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40',
+        starred
+          ? 'text-amber-500 opacity-100'
+          : `${idleColor} opacity-0 group-hover:opacity-100 focus-visible:opacity-100`,
+        mandatory && 'cursor-default',
+      )}
+    >
+      <Star className="h-4 w-4" fill={starred ? 'currentColor' : 'none'} strokeWidth={starred ? 1.5 : 2} />
+    </button>
+  );
+}
 
 // Framer variants — staggered children entrance matching console homepage.
 const containerVariants = {
@@ -29,7 +96,17 @@ const itemVariants = {
 // icon tile in the top-left, name + description, chevron on hover.
 // ---------------------------------------------------------------------------
 
-function ToolTile({ tool }: { tool: ToolCard }) {
+function ToolTile({
+  tool,
+  starred,
+  mandatory,
+  onToggleStar,
+}: {
+  tool: ToolCard;
+  starred: boolean;
+  mandatory: boolean;
+  onToggleStar: () => void;
+}) {
   const Icon = tool.icon;
 
   const card = (
@@ -39,9 +116,12 @@ function ToolTile({ tool }: { tool: ToolCard }) {
         transition={{ type: 'spring' as const, stiffness: 400, damping: 25 }}
         className={cn(
           'group relative h-full rounded-2xl border p-4 cursor-pointer transition-all duration-200',
-          'border-zinc-200/80 dark:border-zinc-800',
-          'bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm',
-          'hover:border-zinc-300 dark:hover:border-zinc-700',
+          // Starred tiles get an amber-tinted border + subtle bg wash so
+          // the user can spot what they've pinned at a glance. Mandatory
+          // ones share the same treatment for consistency.
+          starred
+            ? 'border-amber-300/60 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-500/[0.04] backdrop-blur-sm'
+            : 'border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm hover:border-zinc-300 dark:hover:border-zinc-700',
         )}
         style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)' }}
         onMouseEnter={(e) => {
@@ -51,7 +131,15 @@ function ToolTile({ tool }: { tool: ToolCard }) {
           e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)';
         }}
       >
-        <div className="flex items-start gap-3">
+        <StarButton
+          path={tool.path}
+          name={tool.name}
+          starred={starred}
+          mandatory={mandatory}
+          onToggle={onToggleStar}
+          variant="regular"
+        />
+        <div className="flex items-start gap-3 pr-7">
           <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
             <Icon className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
           </div>
@@ -127,7 +215,17 @@ const DEFAULT_SCHEME: FeaturedScheme = {
   shadowHover: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.15)',
 };
 
-function FeaturedTile({ tool }: { tool: ToolCard }) {
+function FeaturedTile({
+  tool,
+  starred,
+  mandatory,
+  onToggleStar,
+}: {
+  tool: ToolCard;
+  starred: boolean;
+  mandatory: boolean;
+  onToggleStar: () => void;
+}) {
   const Icon = tool.icon;
   const scheme = DEFAULT_SCHEME;
 
@@ -150,7 +248,15 @@ function FeaturedTile({ tool }: { tool: ToolCard }) {
           e.currentTarget.style.boxShadow = scheme.shadow;
         }}
       >
-        <div className="flex items-start justify-between h-full gap-4 relative">
+        <StarButton
+          path={tool.path}
+          name={tool.name}
+          starred={starred}
+          mandatory={mandatory}
+          onToggle={onToggleStar}
+          variant="featured"
+        />
+        <div className="flex items-start justify-between h-full gap-4 relative pr-7">
           <div className="min-w-0">
             <div
               className={cn(
@@ -196,6 +302,7 @@ function FeaturedTile({ tool }: { tool: ToolCard }) {
 
 export default function ToolboxBoard() {
   const [search, setSearch] = useState('');
+  const { isStarred, isMandatory, toggle } = useFavoriteTools();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return TOOLS;
@@ -302,16 +409,33 @@ export default function ToolboxBoard() {
                   {featured ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="md:col-span-2 md:row-span-2">
-                        <FeaturedTile tool={featured} />
+                        <FeaturedTile
+                          tool={featured}
+                          starred={isStarred(featured.path)}
+                          mandatory={isMandatory(featured.path)}
+                          onToggleStar={() => toggle(featured.path)}
+                        />
                       </div>
                       {rest.map((tool) => (
-                        <ToolTile key={tool.path + tool.name} tool={tool} />
+                        <ToolTile
+                          key={tool.path + tool.name}
+                          tool={tool}
+                          starred={isStarred(tool.path)}
+                          mandatory={isMandatory(tool.path)}
+                          onToggleStar={() => toggle(tool.path)}
+                        />
                       ))}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {rest.map((tool) => (
-                        <ToolTile key={tool.path + tool.name} tool={tool} />
+                        <ToolTile
+                          key={tool.path + tool.name}
+                          tool={tool}
+                          starred={isStarred(tool.path)}
+                          mandatory={isMandatory(tool.path)}
+                          onToggleStar={() => toggle(tool.path)}
+                        />
                       ))}
                     </div>
                   )}
