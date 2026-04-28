@@ -385,8 +385,10 @@ function HeroCard({
         }}
       >
         {/* Right-aligned rolling ciphertext strip — narrower so the title can
-            breathe and the whole hero stays above the fold on 1366×768. */}
-        <div className="absolute right-0 top-0 bottom-0 w-[35%] pointer-events-none overflow-hidden mask-fade-left">
+            breathe and the whole hero stays above the fold on 1366×768.
+            Hidden below md because at ≤360px it overlaps the headline and
+            forces "accountability." onto its own orphan line. */}
+        <div className="hidden md:block absolute right-0 top-0 bottom-0 w-[35%] pointer-events-none overflow-hidden mask-fade-left">
           <CiphertextStream />
         </div>
 
@@ -406,7 +408,7 @@ function HeroCard({
             </svg>
           </div>
 
-          <div className="flex-1 min-w-0 max-w-[60%]">
+          <div className="flex-1 min-w-0 md:max-w-[60%]">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 enc-flicker" />

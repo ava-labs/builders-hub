@@ -91,7 +91,12 @@ function SwitcherSection({
         </h3>
         <p className="text-xs text-muted-foreground/70">{subtitle}</p>
       </div>
-      <div className="flex flex-wrap gap-2">
+      {/* Below sm we render pills as a single column — at ~360px the
+          chain-ID + ExpiryPill combo blows the row width and a flex-wrap
+          row turns into 3 stacked half-rows that read worse than a list.
+          Above sm we keep the natural flex-wrap so dense rows of L1s pack
+          tightly on the wider switcher. */}
+      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
         {l1s.map((l1) => {
           const key = l1.evmChainId !== null ? `chain:${l1.evmChainId}` : `subnet:${l1.subnetId}`;
           const isActive =
@@ -104,7 +109,7 @@ function SwitcherSection({
             <button
               key={key}
               onClick={() => onSelect(l1)}
-              className={`group flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all ${
+              className={`group flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all w-full sm:w-auto ${
                 isActive
                   ? 'border-primary bg-primary/10 text-foreground'
                   : 'border-border bg-card hover:border-foreground/30 text-muted-foreground hover:text-foreground'
