@@ -27,7 +27,10 @@ export function EERCTxLink({
 
   if (!url) {
     return (
-      <span className={className} title="No explorer URL is configured for this custom L1">
+      <span
+        className={`${className} cursor-help no-underline`}
+        title="No explorer URL is configured for this custom L1"
+      >
         {children}
       </span>
     );
