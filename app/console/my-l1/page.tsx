@@ -587,8 +587,11 @@ function WalletNetworkBanner({ l1 }: { l1: CombinedL1 }) {
     setError(null);
     try {
       await safelySwitch(l1.evmChainId, l1.isTestnet);
+      toast.success(`Switched to ${l1.chainName}`, `Wallet now on chain ${l1.evmChainId}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to switch network');
+      const msg = err instanceof Error ? err.message : 'Failed to switch network';
+      setError(msg);
+      toast.error('Network switch failed', msg);
     } finally {
       setIsSwitching(false);
     }
