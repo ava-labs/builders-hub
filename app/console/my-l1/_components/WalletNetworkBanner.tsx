@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
@@ -60,42 +59,43 @@ export function WalletNetworkBanner({ l1 }: { l1: CombinedL1 }) {
     }
   };
 
+  // Neutral inline strip — a wallet on the wrong network is informational,
+  // not blocking. Reading the dashboard works fine; the user only needs to
+  // switch when they want to sign a tx. So we render this as a thin advisory
+  // line instead of a colored card competing with the actual primary content.
+  const action = isInWallet
+    ? { label: isSwitching ? 'Switching…' : 'Switch network', onClick: handleSwitch }
+    : { label: 'Add to wallet', onClick: handleAddToWallet };
+
   return (
-    <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div className="text-sm">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-l-2 border-zinc-300 dark:border-zinc-700 pl-3 py-1 text-sm text-muted-foreground">
+      <span>
         {isInWallet ? (
           <>
-            <span className="font-medium text-amber-900 dark:text-amber-200">
-              Wallet on a different chain.
-            </span>{' '}
-            <span className="text-amber-800/80 dark:text-amber-200/70">
-              Switch to <strong>{l1.chainName}</strong> ({l1.evmChainId}) to interact with this
-              L1.
+            Wallet on a different chain.{' '}
+            <span className="text-foreground/70">
+              Switch to {l1.chainName} ({l1.evmChainId}) to sign here.
             </span>
           </>
         ) : (
           <>
-            <span className="font-medium text-amber-900 dark:text-amber-200">
-              Not in your wallet yet.
-            </span>{' '}
-            <span className="text-amber-800/80 dark:text-amber-200/70">
-              Add <strong>{l1.chainName}</strong> ({l1.evmChainId}) to your wallet so you can sign
-              transactions on it.
+            Not in your wallet yet.{' '}
+            <span className="text-foreground/70">
+              Add {l1.chainName} ({l1.evmChainId}) to sign on this L1.
             </span>
           </>
         )}
-        {error && (
-          <span className="block mt-1 text-xs text-red-600 dark:text-red-400">{error}</span>
-        )}
-      </div>
-      {isInWallet ? (
-        <Button onClick={handleSwitch} disabled={isSwitching} size="sm">
-          {isSwitching ? 'Switching…' : 'Switch network'}
-        </Button>
-      ) : (
-        <Button onClick={handleAddToWallet} size="sm">
-          Add to wallet
-        </Button>
+      </span>
+      <button
+        type="button"
+        onClick={action.onClick}
+        disabled={isSwitching}
+        className="font-medium text-foreground underline underline-offset-2 hover:no-underline disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {action.label}
+      </button>
+      {error && (
+        <span className="basis-full text-xs text-red-600 dark:text-red-400">{error}</span>
       )}
     </div>
   );
