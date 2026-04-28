@@ -232,41 +232,43 @@ async function updateNetwork(versions, network) {
             console.error(`  New version ${latestAvagoTag} is available for ${network} avalanchego. Current version is ${currentAvagoVersion}`);
         }
 
-        // Check for Subnet-EVM Docker image updates
-        // Note: ava-labs/subnet-evm is archived; new combined images are published
-        // directly to Docker Hub. We find the latest tag matching the current avalanchego version.
-        const currentSubnetEvmVersion = networkVersions['avaplatform/subnet-evm_avalanchego'] || '';
-        let combinedSubnetEvmAvagoTag = currentSubnetEvmVersion;
+        // Check for Subnet-EVM Docker image updates.
+        // The image avaplatform/subnet-evm:<avalanchego-version> bundles AvalancheGo
+        // and the Subnet-EVM plugin together. The tag matches the AvalancheGo version
+        // (e.g. v1.14.2). The legacy avaplatform/subnet-evm_avalanchego repo with
+        // composite tags (v0.8.0_v1.14.0) is deprecated.
+        const currentSubnetEvmVersion = networkVersions['avaplatform/subnet-evm'] || '';
+        let subnetEvmTag = currentSubnetEvmVersion;
 
         try {
-            const allTags = await fetchAllTags('avaplatform/subnet-evm_avalanchego');
+            const allTags = await fetchAllTags('avaplatform/subnet-evm');
             const avagoVersion = networkVersions['avaplatform/avalanchego'];
 
-            // Find tags matching the current avalanchego version
-            const candidates = allTags.filter(name => name.endsWith(`_${avagoVersion}`));
-            if (candidates.length > 0) {
-                // Sort by the subnet-evm semver prefix descending to get the latest
-                candidates.sort((a, b) => {
-                    const as = a.split('_')[0] || '';
-                    const bs = b.split('_')[0] || '';
-                    return compareSemver(bs, as);
-                });
-                combinedSubnetEvmAvagoTag = candidates[0];
+            // Prefer an exact match on the AvalancheGo version
+            if (allTags.includes(avagoVersion)) {
+                subnetEvmTag = avagoVersion;
             } else {
-                // No tag for this avalanchego version yet — keep current version to avoid mismatched pairs
-                console.warn(`  No Docker tag found for avalanchego ${avagoVersion}. Keeping current: ${currentSubnetEvmVersion}.`);
+                // Fall back to the latest stable v*.*.*  (no -fuji / -rc / build hashes)
+                const stable = allTags.filter(name => /^v\d+\.\d+\.\d+$/.test(name));
+                if (stable.length > 0) {
+                    stable.sort((a, b) => compareSemver(b, a));
+                    subnetEvmTag = stable[0];
+                    console.warn(`  No avaplatform/subnet-evm tag found for ${avagoVersion}. Falling back to latest stable: ${subnetEvmTag}.`);
+                } else {
+                    console.warn(`  No stable avaplatform/subnet-evm tags found. Keeping current: ${currentSubnetEvmVersion}.`);
+                }
             }
         } catch (_) {
             // If Docker Hub listing fails, keep the current version
         }
 
-        const subnetEvmStatus = combinedSubnetEvmAvagoTag === currentSubnetEvmVersion ? '(same as before)' : '(new)';
-        console.log(`  subnet-evm_avalanchego: ${combinedSubnetEvmAvagoTag} ${subnetEvmStatus}`);
+        const subnetEvmStatus = subnetEvmTag === currentSubnetEvmVersion ? '(same as before)' : '(new)';
+        console.log(`  subnet-evm: ${subnetEvmTag} ${subnetEvmStatus}`);
 
-        if (combinedSubnetEvmAvagoTag && combinedSubnetEvmAvagoTag !== currentSubnetEvmVersion) {
-            networkVersions['avaplatform/subnet-evm_avalanchego'] = combinedSubnetEvmAvagoTag;
+        if (subnetEvmTag && subnetEvmTag !== currentSubnetEvmVersion) {
+            networkVersions['avaplatform/subnet-evm'] = subnetEvmTag;
             hasChanges = true;
-            console.error(`  New version ${combinedSubnetEvmAvagoTag} is available for ${network} subnet-evm_avalanchego. Current version is ${currentSubnetEvmVersion}`);
+            console.error(`  New version ${subnetEvmTag} is available for ${network} subnet-evm. Current version is ${currentSubnetEvmVersion}`);
         }
     } catch (error) {
         console.warn(`  Warning for ${network} node versions:`, error.message);

@@ -25,7 +25,7 @@ import { Button } from '@/components/toolbox/components/Button';
 const getDockerComposePsOutput = (
   versions: any,
 ) => `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
-avago         avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}  "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
+avago         avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}                     "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
 backend       blockscout/blockscout:6.10.1                       "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
 bc_frontend   ghcr.io/blockscout/frontend:v1.37.4                "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
 caddy         caddy:latest                                       "caddy run --config …"   caddy         1 minute ago   Up 1 minute   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
@@ -229,7 +229,7 @@ services:
   const avalancheGoService = config.includeAvago
     ? `
   avago:
-    image: avaplatform/subnet-evm_avalanchego:${config.versions['avaplatform/subnet-evm_avalanchego']}
+    image: avaplatform/subnet-evm:${config.versions['avaplatform/subnet-evm']}
     container_name: avago
     restart: always
     ports:
