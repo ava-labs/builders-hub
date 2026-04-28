@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import type { MyL1 } from '@/app/api/console/my-l1s/route';
+import type { MyL1 } from '@/lib/console/my-l1s';
 
 export type { MyL1 };
 
