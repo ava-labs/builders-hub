@@ -44,7 +44,21 @@ function Overview() {
   const converter = useEERCDeployment('converter');
   const deployment = standalone.deployment ?? converter.deployment;
 
-  const balance = useEERCBalance(converter.deployment, 'converter', converter.deployment?.supportedTokens?.[0]);
+  // Pick the matching deployment + mode for the balance read so the Journey
+  // card's "deposit" step green-lights against whichever mode the user
+  // actually has deployed:
+  //   - Fuji canonical → both deployments exist + share a Registrar; we
+  //     prefer converter because /deposit + /withdraw are converter-only
+  //     flows, and the Journey's deposit step links to those routes.
+  //   - Custom L1 (converter only) → uses converter, same as Fuji.
+  //   - Custom L1 (standalone only) → falls back to standalone so the
+  //     identity loaded by `useEERCBalance(loadIdentity → registrar)`
+  //     matches what `useEERCRegistration(deployment)` registered against.
+  //   - No deployment → undefined; balance hook short-circuits to null.
+  const balanceDeployment = converter.deployment ?? standalone.deployment;
+  const balanceMode: 'standalone' | 'converter' = converter.deployment ? 'converter' : 'standalone';
+  const balanceToken = balanceMode === 'converter' ? converter.deployment?.supportedTokens?.[0] : undefined;
+  const balance = useEERCBalance(balanceDeployment, balanceMode, balanceToken);
 
   // Registration status comes from `useEERCRegistration`, which calls
   // `Registrar.getUserPublicKey` against the chain — so the Journey card
