@@ -10,7 +10,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CombinedL1 } from '../_lib/types';
 
 interface QuickAction {
@@ -26,7 +26,6 @@ export function QuickActionsCard({ l1 }: { l1: CombinedL1 }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Quick Actions</CardTitle>
-        <CardDescription>Common tasks for managing your L1</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -82,10 +81,6 @@ export function WalletOnlyActions({ l1 }: { l1: CombinedL1 }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Quick Actions</CardTitle>
-        <CardDescription>
-          This L1 was added to your wallet directly (not via Quick L1). Manage it through these
-          tools.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

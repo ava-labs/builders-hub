@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, Check, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CombinedL1 } from '../_lib/types';
 import { setupSummary } from '../_lib/setup-steps';
 
@@ -74,7 +74,6 @@ export function SetupProgressCard({
             {done}/{steps.length} · {pct}%
           </span>
         </div>
-        <CardDescription>Complete these steps to fully configure your L1</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-4">
