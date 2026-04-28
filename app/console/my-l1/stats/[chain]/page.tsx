@@ -271,6 +271,20 @@ function buildChartPoints(blocks: BlockSummary[]): ChartPoint[] {
   return points;
 }
 
+// Per-metric color palette. Distinct colors so the four charts read as a
+// dashboard, not a wall of identical lines. Each color picked for high
+// contrast against both the light (white) and dark (zinc-900) card
+// backgrounds. Avalanche red anchors the brand.
+const CHART_COLORS = {
+  blockTime: '#3B82F6',     // blue-500 — neutral, readable
+  txCount: '#E84142',       // Avalanche red — primary brand
+  gasUtilization: '#F59E0B', // amber-500 — "hot" semantic for utilization
+  baseFee: '#10B981',       // emerald-500 — "fee/economy"
+} as const;
+
+const GRID_STROKE = '#71717a';      // zinc-500 — visible on both themes at 25% opacity
+const AXIS_TICK_COLOR = '#71717a';  // same — readable axis labels in both themes
+
 function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
   const points = useMemo(() => buildChartPoints(blocks), [blocks]);
   const hasBaseFee = points.some((p) => p.baseFeeGwei !== null);
@@ -280,6 +294,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
     ? (points.reduce((s, p) => s + p.blockTime, 0) / points.length).toFixed(2)
     : '—';
   const totalTx = points.reduce((s, p) => s + p.txCount, 0);
+  const maxTx = points.reduce((m, p) => Math.max(m, p.txCount), 0);
   const avgUtilization = points.length
     ? (points.reduce((s, p) => s + p.gasUtilization, 0) / points.length).toFixed(2)
     : '—';
@@ -297,47 +312,93 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
         icon={Timer}
         title="Block time"
         subtitle={`Avg ${avgBlockTime}s · ${points.length} samples`}
+        accent={CHART_COLORS.blockTime}
       >
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-            <XAxis dataKey="block" tick={{ fontSize: 10 }} />
+        <ResponsiveContainer width="100%" height={260}>
+          <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+            <defs>
+              <linearGradient id="grad-blockTime" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CHART_COLORS.blockTime} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={CHART_COLORS.blockTime} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
+            <XAxis
+              dataKey="block"
+              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+            />
             <YAxis
-              tick={{ fontSize: 10 }}
-              label={{ value: 's', angle: 0, position: 'insideTopLeft', fontSize: 10 }}
+              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              tickFormatter={(v: number) => `${v}s`}
+              width={40}
             />
             <Tooltip
-              cursor={{ stroke: 'hsl(var(--border))' }}
-              labelFormatter={(label) => `Block #${label}`}
-              formatter={(value) => [`${Number(value)}s`, 'Block time']}
+              content={<ChartTooltip
+                color={CHART_COLORS.blockTime}
+                formatValue={(v) => `${Number(v)}s`}
+                seriesName="Block time"
+              />}
+              cursor={{ stroke: CHART_COLORS.blockTime, strokeOpacity: 0.4, strokeDasharray: '3 3' }}
             />
-            <Line
+            <Area
               type="monotone"
               dataKey="blockTime"
-              stroke="hsl(var(--primary))"
-              strokeWidth={2}
+              stroke={CHART_COLORS.blockTime}
+              strokeWidth={2.25}
+              fill="url(#grad-blockTime)"
               dot={false}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: '#ffffff' }}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </ChartCard>
 
       <ChartCard
         icon={Blocks}
         title="Transactions per block"
-        subtitle={`${totalTx} tx in window`}
+        subtitle={`${totalTx} tx · max ${maxTx} per block`}
+        accent={CHART_COLORS.txCount}
       >
-        <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-            <XAxis dataKey="block" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip
-              cursor={{ fill: 'hsl(var(--accent))', opacity: 0.1 }}
-              labelFormatter={(label) => `Block #${label}`}
-              formatter={(value) => [String(value), 'Transactions']}
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+            <defs>
+              <linearGradient id="grad-txCount" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CHART_COLORS.txCount} stopOpacity={1} />
+                <stop offset="100%" stopColor={CHART_COLORS.txCount} stopOpacity={0.7} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
+            <XAxis
+              dataKey="block"
+              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
             />
-            <Bar dataKey="txCount" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
+            <YAxis
+              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              allowDecimals={false}
+              width={32}
+            />
+            <Tooltip
+              content={<ChartTooltip
+                color={CHART_COLORS.txCount}
+                formatValue={(v) => String(v)}
+                seriesName="Transactions"
+              />}
+              cursor={{ fill: CHART_COLORS.txCount, fillOpacity: 0.08 }}
+            />
+            <Bar
+              dataKey="txCount"
+              fill="url(#grad-txCount)"
+              radius={[3, 3, 0, 0]}
+              minPointSize={2}
+            />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -345,29 +406,48 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
       <ChartCard
         icon={Fuel}
         title="Gas utilization"
-        subtitle={`Avg ${avgUtilization}% of limit`}
+        subtitle={`Avg ${avgUtilization}% of block limit`}
+        accent={CHART_COLORS.gasUtilization}
       >
-        <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-            <XAxis dataKey="block" tick={{ fontSize: 10 }} />
+        <ResponsiveContainer width="100%" height={260}>
+          <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+            <defs>
+              <linearGradient id="grad-gasUtil" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CHART_COLORS.gasUtilization} stopOpacity={0.45} />
+                <stop offset="100%" stopColor={CHART_COLORS.gasUtilization} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
+            <XAxis
+              dataKey="block"
+              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+            />
             <YAxis
               domain={[0, 100]}
-              tick={{ fontSize: 10 }}
-              label={{ value: '%', angle: 0, position: 'insideTopLeft', fontSize: 10 }}
+              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              tickFormatter={(v: number) => `${v}%`}
+              width={40}
             />
             <Tooltip
-              cursor={{ stroke: 'hsl(var(--border))' }}
-              labelFormatter={(label) => `Block #${label}`}
-              formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Utilization']}
+              content={<ChartTooltip
+                color={CHART_COLORS.gasUtilization}
+                formatValue={(v) => `${Number(v).toFixed(2)}%`}
+                seriesName="Utilization"
+              />}
+              cursor={{ stroke: CHART_COLORS.gasUtilization, strokeOpacity: 0.4, strokeDasharray: '3 3' }}
             />
             <Area
               type="monotone"
               dataKey="gasUtilization"
-              stroke="hsl(var(--primary))"
-              fill="hsl(var(--primary))"
-              fillOpacity={0.15}
-              strokeWidth={2}
+              stroke={CHART_COLORS.gasUtilization}
+              strokeWidth={2.25}
+              fill="url(#grad-gasUtil)"
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: '#ffffff' }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -378,29 +458,51 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
           icon={Fuel}
           title="Base fee"
           subtitle={`Avg ${avgBaseFee} Gwei (EIP-1559)`}
+          accent={CHART_COLORS.baseFee}
         >
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-              <XAxis dataKey="block" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip
-                cursor={{ stroke: 'hsl(var(--border))' }}
-                labelFormatter={(label) => `Block #${label}`}
-                formatter={(value) =>
-                  value === null || value === undefined
-                    ? ['—', 'Base fee']
-                    : [`${Number(value).toFixed(3)} Gwei`, 'Base fee']
-                }
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+              <defs>
+                <linearGradient id="grad-baseFee" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_COLORS.baseFee} stopOpacity={0.4} />
+                  <stop offset="100%" stopColor={CHART_COLORS.baseFee} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
+              <XAxis
+                dataKey="block"
+                tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+                tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+                axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
               />
-              <Line
+              <YAxis
+                tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+                tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+                axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+                tickFormatter={(v: number) => `${v.toFixed(2)}`}
+                width={48}
+              />
+              <Tooltip
+                content={<ChartTooltip
+                  color={CHART_COLORS.baseFee}
+                  formatValue={(v) =>
+                    v === null || v === undefined ? '—' : `${Number(v).toFixed(3)} Gwei`
+                  }
+                  seriesName="Base fee"
+                />}
+                cursor={{ stroke: CHART_COLORS.baseFee, strokeOpacity: 0.4, strokeDasharray: '3 3' }}
+              />
+              <Area
                 type="monotone"
                 dataKey="baseFeeGwei"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
+                stroke={CHART_COLORS.baseFee}
+                strokeWidth={2.25}
+                fill="url(#grad-baseFee)"
                 dot={false}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                connectNulls
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
       ) : (
@@ -418,22 +520,69 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
   );
 }
 
+// Custom Recharts tooltip — solid background so it reads cleanly over any
+// chart/page combo, with a coloured pill matching the series accent so the
+// user can tell at a glance which chart they're hovering.
+function ChartTooltip({
+  active,
+  payload,
+  label,
+  color,
+  formatValue,
+  seriesName,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number | string | null }>;
+  label?: number | string;
+  color: string;
+  formatValue: (v: number | string | null | undefined) => string;
+  seriesName: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const value = payload[0]?.value;
+  return (
+    <div className="rounded-md border border-border bg-popover/95 backdrop-blur shadow-lg px-3 py-2 text-xs">
+      <div className="font-medium text-foreground mb-1">Block #{label}</div>
+      <div className="flex items-center gap-2">
+        <span
+          className="inline-block w-2 h-2 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <span className="text-muted-foreground">{seriesName}</span>
+        <span className="ml-auto font-mono text-foreground">{formatValue(value)}</span>
+      </div>
+    </div>
+  );
+}
+
 function ChartCard({
   icon: Icon,
   title,
   subtitle,
+  accent,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   title: string;
   subtitle: string;
+  accent?: string;
   children: React.ReactNode;
 }) {
   return (
-    <Card>
+    <Card className="overflow-hidden relative">
+      {accent && (
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-1"
+          style={{ backgroundColor: accent }}
+        />
+      )}
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <Icon className="w-4 h-4 text-muted-foreground" />
+          <Icon
+            className="w-4 h-4"
+            style={accent ? { color: accent } : { color: 'var(--muted-foreground)' }}
+          />
           {title}
         </CardTitle>
         <CardDescription>{subtitle}</CardDescription>
