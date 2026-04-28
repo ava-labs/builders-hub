@@ -787,7 +787,6 @@ function StatsGrid({
           label="Active validators"
           value={String(validators.count)}
           subValue={`Subnet ${l1.subnetId.slice(0, 6)}…`}
-          accent={STAT_ACCENTS.txCount}
         />
       );
     }
@@ -803,7 +802,6 @@ function StatsGrid({
               ? `${active} active · expires ${formatRelativeFromNow(l1.expiresAt)}`
               : `${active} active`
           }
-          accent={STAT_ACCENTS.managed}
         />
       );
     }
@@ -819,27 +817,14 @@ function StatsGrid({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard
-        icon={Blocks}
-        label="Latest block"
-        value={blockValue}
-        subValue={blockSub}
-        accent={STAT_ACCENTS.blockTime}
-      />
+      <StatCard icon={Blocks} label="Latest block" value={blockValue} subValue={blockSub} />
       <StatCard
         icon={Timer}
         label="Block time"
         value={blockTimeValue}
         subValue={blockTimeValue === '—' ? 'Unavailable' : 'Last interval'}
-        accent={STAT_ACCENTS.blockTime}
       />
-      <StatCard
-        icon={Fuel}
-        label="Gas price"
-        value={gasValue}
-        subValue="From eth_gasPrice"
-        accent={STAT_ACCENTS.gasPrice}
-      />
+      <StatCard icon={Fuel} label="Gas price" value={gasValue} subValue="From eth_gasPrice" />
       {fourthCard}
     </div>
   );
@@ -863,52 +848,27 @@ function formatGasPrice(eth: string): string {
   return `${num.toFixed(6)} AVAX`;
 }
 
-// Per-stat accent colors — shared with the per-L1 stats charts so the
-// dashboard's quick-glance cards use the same color language as the full
-// chart view. Each stat picks the colour of the chart it expands into.
-const STAT_ACCENTS = {
-  blockTime: '#3B82F6',    // blue (block time / latest block)
-  txCount: '#E84142',      // Avalanche red (tx, validators)
-  gasPrice: '#F59E0B',     // amber (gas)
-  managed: '#10B981',      // emerald (managed nodes / fleet)
-} as const;
-
+// Clean neutral StatCard — the dashboard's at-a-glance cards rely on
+// typography + icons for differentiation, not color. The brand accent is
+// reserved for the chart page (where it actually carries data) so the
+// dashboard reads as a quiet hub instead of a noisy color wheel.
 function StatCard({
   icon: Icon,
   label,
   value,
   subValue,
-  accent,
 }: {
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   subValue?: string;
-  accent?: string;
 }) {
   return (
-    <Card className="py-4 overflow-hidden relative">
-      {accent && (
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-0 w-1"
-          style={{ backgroundColor: accent }}
-        />
-      )}
+    <Card className="py-4">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <div
-            className="p-2 rounded-lg"
-            style={
-              accent
-                ? { backgroundColor: `${accent}1a` /* ~10% alpha */ }
-                : { backgroundColor: 'var(--muted)' }
-            }
-          >
-            <Icon
-              className="w-5 h-5"
-              style={accent ? { color: accent } : { color: 'var(--muted-foreground)' }}
-            />
+          <div className="p-2 rounded-lg bg-muted">
+            <Icon className="w-5 h-5 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground">{label}</p>
