@@ -56,7 +56,17 @@ export function useEERCBalance(
   const [identity, setIdentity] = useState<EERCIdentitySecret | null>(null);
 
   useEffect(() => {
-    if (!address || !deployment) return;
+    if (!address || !deployment) {
+      setIdentity(null);
+      setState({
+        decryptedCents: null,
+        formatted: null,
+        raw: null,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
     setIdentity(loadIdentity(address, deployment.registrar));
   }, [address, deployment]);
 
@@ -67,6 +77,8 @@ export function useEERCBalance(
       return;
     }
 
+    const currentIdentity = loadIdentity(address, deployment.registrar);
+    setIdentity(currentIdentity);
     setState((s) => ({ ...s, isLoading: true, error: null }));
 
     try {
@@ -96,10 +108,10 @@ export function useEERCBalance(
       const allZero = asStruct.balancePCT.every((x) => x === 0n);
 
       let decryptedCents: bigint | null = null;
-      if (!allZero && identity) {
+      if (!allZero && currentIdentity) {
         try {
           decryptedCents = Poseidon.decryptAmountPCT(
-            identity.decryptionKey,
+            currentIdentity.decryptionKey,
             asStruct.balancePCT.map((x) => x.toString()),
           );
         } catch (err) {
@@ -125,7 +137,7 @@ export function useEERCBalance(
         error: err instanceof Error ? err.message : 'Failed to read balance',
       }));
     }
-  }, [address, deployment, publicClient, mode, token, identity]);
+  }, [address, deployment, publicClient, mode, token]);
 
   useEffect(() => {
     refresh();

@@ -52,11 +52,20 @@ function BalanceHistory() {
 
   const deployment = activeMode === 'standalone' ? standalone.deployment : converter.deployment;
   const tokens = deployment?.supportedTokens ?? [];
+  const tokenKey = tokens.map((t) => t.address.toLowerCase()).join(',');
   const [token, setToken] = useState<ERC20Meta | undefined>(tokens[0]);
 
   React.useEffect(() => {
-    if (activeMode === 'converter' && !token && tokens[0]) setToken(tokens[0]);
-  }, [activeMode, token, tokens]);
+    if (activeMode !== 'converter') return;
+    const firstToken = tokens[0];
+    if (!firstToken) {
+      if (token !== undefined) setToken(undefined);
+      return;
+    }
+    const tokenStillSupported =
+      token !== undefined && tokens.some((t) => t.address.toLowerCase() === token.address.toLowerCase());
+    if (!tokenStillSupported) setToken(firstToken);
+  }, [activeMode, token, tokens, tokenKey]);
 
   const balance = useEERCBalance(deployment, activeMode ?? 'converter', token);
   const [showRaw, setShowRaw] = useState(false);

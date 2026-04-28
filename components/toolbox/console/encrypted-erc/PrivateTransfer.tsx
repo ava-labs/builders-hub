@@ -57,11 +57,20 @@ function PrivateTransfer() {
 
   const deployment = mode === 'standalone' ? standalone.deployment : converter.deployment;
   const supportedTokens = deployment?.supportedTokens ?? [];
+  const tokenKey = supportedTokens.map((t) => t.address.toLowerCase()).join(',');
   const [token, setToken] = useState<ERC20Meta | undefined>(supportedTokens[0]);
 
   React.useEffect(() => {
-    if (mode === 'converter' && !token && supportedTokens[0]) setToken(supportedTokens[0]);
-  }, [mode, token, supportedTokens]);
+    if (mode !== 'converter') return;
+    const firstToken = supportedTokens[0];
+    if (!firstToken) {
+      if (token !== undefined) setToken(undefined);
+      return;
+    }
+    const tokenStillSupported =
+      token !== undefined && supportedTokens.some((t) => t.address.toLowerCase() === token.address.toLowerCase());
+    if (!tokenStillSupported) setToken(firstToken);
+  }, [mode, token, supportedTokens, tokenKey]);
 
   const balance = useEERCBalance(deployment, mode ?? 'converter', token);
   const aud = useEERCAuditorAndTokenId(deployment, mode === 'converter' ? token?.address : undefined);
