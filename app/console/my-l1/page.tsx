@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Activity,
+  ArrowRight,
   ArrowUpDown,
   BarChart3,
   Blocks,
   Check,
   ChevronRight,
-  Circle,
   CheckCircle2,
   Copy,
   Clock,
@@ -18,17 +18,20 @@ import {
   Layers,
   MessagesSquare,
   RefreshCw,
+  Server,
   Settings,
+  Sparkles,
   Timer,
   Trash2,
   Users,
   Wallet,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
@@ -561,21 +564,21 @@ function L1Details({
   // metrics so the page doesn't pretend to know more than it does.
   const health = useL1Health(l1.rpcUrl, l1.evmChainId);
   const validators = useL1ValidatorCount(l1.subnetId, l1.isTestnet);
+  const isManaged = l1.source === 'managed';
+  const isComplete = isManaged && setupSummary(l1).pct === 100;
 
   return (
     <div className="space-y-6">
       <DetailHeader l1={l1} />
       <WalletNetworkBanner l1={l1} />
+      {isManaged && !isComplete && <NextActionBar l1={l1} />}
       <StatsGrid l1={l1} health={health} validators={validators} />
-      {l1.source === 'managed' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <SetupProgressCard l1={l1} />
-          <QuickActionsCard l1={l1} />
-        </div>
-      )}
+      {isManaged &&
+        (isComplete ? <SetupCompleteBadge /> : <SetupProgressCard l1={l1} fullWidth />)}
+      {isManaged && <QuickActionsCard l1={l1} />}
       {l1.source === 'wallet' && <WalletOnlyActions l1={l1} />}
       <NetworkDetailsCard l1={l1} />
-      {l1.source === 'managed' && l1.nodes && l1.nodes.length > 0 && (
+      {isManaged && l1.nodes && l1.nodes.length > 0 && (
         <NodeListCard l1={l1} userActiveTotal={userActiveNodeTotal} onRefetch={onRefetch} />
       )}
     </div>
@@ -819,8 +822,24 @@ function StatsGrid({
   // card prefers Active validators (Glacier) over managed-node count, since
   // active validators is the universally-meaningful signal across L1s and
   // the managed-node count is already visible in the header subtitle.
+  const blockHeight = health.blockNumber !== null ? health.blockNumber.toString() : null;
+  const blockValueText = blockHeight !== null ? `#${blockHeight}` : health.isLoading ? '…' : '—';
+  // Wrap the block height in a keyed motion.span so the value pulses on every
+  // RPC tick — the user sees the chain breathe instead of a static number.
+  // Using `key={blockHeight}` forces remount → re-animate.
   const blockValue =
-    health.blockNumber !== null ? `#${health.blockNumber.toString()}` : health.isLoading ? '…' : '—';
+    blockHeight !== null ? (
+      <motion.span
+        key={blockHeight}
+        initial={{ opacity: 0.55, y: -2 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+      >
+        {blockValueText}
+      </motion.span>
+    ) : (
+      blockValueText
+    );
   const blockSub =
     health.blockAgeSec !== null
       ? `${health.blockAgeSec}s ago`
@@ -874,8 +893,14 @@ function StatsGrid({
   })();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard icon={Blocks} label="Latest block" value={blockValue} subValue={blockSub} />
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatCard
+        icon={Blocks}
+        label="Latest block"
+        value={blockValue}
+        valueTitle={blockValueText}
+        subValue={blockSub}
+      />
       <StatCard
         icon={Timer}
         label="Block time"
@@ -915,11 +940,15 @@ function StatCard({
   label,
   value,
   subValue,
+  valueTitle,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: string;
+  value: React.ReactNode;
   subValue?: string;
+  /** Optional `title` attribute used when `value` is a ReactNode and we still
+   *  want a hover tooltip with the full string. */
+  valueTitle?: string;
 }) {
   return (
     <Card className="py-4">
@@ -930,7 +959,10 @@ function StatCard({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="text-lg font-semibold text-foreground truncate" title={value}>
+            <p
+              className="text-lg font-semibold text-foreground truncate tabular-nums"
+              title={valueTitle ?? (typeof value === 'string' ? value : undefined)}
+            >
               {value}
             </p>
             {subValue && <p className="text-xs text-muted-foreground truncate">{subValue}</p>}
@@ -941,82 +973,201 @@ function StatCard({
   );
 }
 
-function SetupProgressCard({ l1 }: { l1: CombinedL1 }) {
-  // Steps are driven by what we actually know:
-  //   1. L1 created               → true if we've got a managed entry
-  //   2. Managed node provisioned → at least one active node
-  //   3. Validator Manager        → wallet's L1ListItem has the address set
-  //   4. ICM (Teleporter Registry)→ wallet's L1ListItem has the address set
-  //   5. Token bridge             → wrappedTokenAddress set
-  // All metadata-driven checks come from the wallet L1ListItem, populated by
-  // Quick L1 success or manual chain-add. Missing wallet entries fall back
-  // to "unknown / not deployed".
+// Setup steps + completion summary — single source of truth shared between
+// SetupProgressCard (the full checklist) and NextActionBar (the inline CTA
+// above the stats grid). Both views need to agree on what "the next step" is.
+type SetupStep = {
+  key: string;
+  label: string;
+  shortLabel: string;
+  ctaLabel: string;
+  completed: boolean;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+function getSetupSteps(l1: CombinedL1): SetupStep[] {
   const hasNode = (l1.nodes ?? []).some((n) => n.status === 'active');
   const hasValidatorManager = !!l1.validatorManagerAddress;
   const hasIcm = !!l1.teleporterRegistryAddress;
   const hasBridge = !!l1.wrappedTokenAddress;
 
-  const steps = [
-    { label: 'L1 created', completed: true, href: '/console/create-l1' },
+  return [
     {
+      key: 'created',
+      label: 'L1 created',
+      shortLabel: 'L1 created',
+      ctaLabel: 'Create L1',
+      completed: true,
+      href: '/console/create-l1',
+      icon: Layers,
+    },
+    {
+      key: 'node',
       label: 'Managed node provisioned',
+      shortLabel: 'Provision a managed node',
+      ctaLabel: 'Provision a node',
       completed: hasNode,
       href: '/console/testnet-infra/nodes',
+      icon: Server,
     },
     {
+      key: 'vm',
       label: 'Validator Manager configured',
+      shortLabel: 'Configure Validator Manager',
+      ctaLabel: 'Configure',
       completed: hasValidatorManager,
       href: '/console/permissioned-l1s/validator-manager-setup',
+      icon: Settings,
     },
     {
+      key: 'icm',
       label: 'Interchain Messaging (ICM)',
+      shortLabel: 'Set up Interchain Messaging',
+      ctaLabel: 'Set up ICM',
       completed: hasIcm,
       href: '/console/icm/setup',
+      icon: MessagesSquare,
     },
     {
+      key: 'bridge',
       label: 'Token Bridge',
+      shortLabel: 'Set up the token bridge',
+      ctaLabel: 'Set up bridge',
       completed: hasBridge,
       href: '/console/ictt/setup',
+      icon: ArrowUpDown,
     },
   ];
+}
+
+function setupSummary(l1: CombinedL1): {
+  steps: SetupStep[];
+  done: number;
+  pct: number;
+  nextStep: SetupStep | null;
+} {
+  const steps = getSetupSteps(l1);
   const done = steps.filter((s) => s.completed).length;
   const pct = Math.round((done / steps.length) * 100);
+  const nextStep = steps.find((s) => !s.completed) ?? null;
+  return { steps, done, pct, nextStep };
+}
+
+// Inline "next step" hero — surfaces the single most important action a user
+// can take right now. Hidden when the L1 is fully configured (the
+// SetupCompleteBadge takes its place). The whole row is one Link so there's
+// only one focus target / tap target.
+function NextActionBar({ l1 }: { l1: CombinedL1 }) {
+  const { nextStep, done, steps } = setupSummary(l1);
+  if (!nextStep) return null;
+  const Icon = nextStep.icon;
+  return (
+    <Link
+      href={nextStep.href}
+      className="group flex items-center gap-4 rounded-xl border bg-card hover:bg-accent/30 transition-colors px-4 py-3.5"
+    >
+      <div className="shrink-0 w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+        <Icon className="w-5 h-5 text-foreground" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+          Next step · {done}/{steps.length} complete
+        </p>
+        <p className="text-base font-semibold text-foreground truncate">{nextStep.shortLabel}</p>
+      </div>
+      <span className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-foreground group-hover:translate-x-0.5 transition-transform">
+        {nextStep.ctaLabel}
+        <ArrowRight className="w-4 h-4" />
+      </span>
+    </Link>
+  );
+}
+
+// Slim "all done" pill that takes the place of the SetupProgressCard once
+// every step is completed. Avoids the noisy 5-row checklist when there's
+// nothing left to act on.
+function SetupCompleteBadge() {
+  return (
+    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/30 text-sm">
+      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+      <span className="font-medium text-emerald-900 dark:text-emerald-200">L1 fully configured</span>
+      <span className="text-emerald-800/70 dark:text-emerald-200/60 hidden sm:inline">
+        All 5 setup steps complete.
+      </span>
+    </div>
+  );
+}
+
+function SetupProgressCard({ l1, fullWidth = false }: { l1: CombinedL1; fullWidth?: boolean }) {
+  const { steps, done, pct } = setupSummary(l1);
 
   return (
-    <Card className="lg:col-span-1">
+    <Card className={cn(fullWidth ? '' : 'lg:col-span-1')}>
       <CardHeader>
-        <CardTitle className="text-lg">Setup Progress</CardTitle>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-500" />
+            Setup progress
+          </CardTitle>
+          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
+            {done}/{steps.length} · {pct}%
+          </span>
+        </div>
         <CardDescription>Complete these steps to fully configure your L1</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-4">
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{pct}%</span>
-          </div>
-          <Progress value={pct} className="h-2" />
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-4">
+          <motion.div
+            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+          />
         </div>
-        <div className="space-y-1">
-          {steps.map((s) => (
-            <Link key={s.label} href={s.href} className="group">
-              <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors">
-                {s.completed ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                ) : (
-                  <Circle className="w-5 h-5 text-muted-foreground/50" />
-                )}
-                <span
-                  className={`flex-1 text-sm ${
-                    s.completed ? 'text-muted-foreground' : 'text-foreground font-medium'
-                  }`}
-                >
-                  {s.label}
-                </span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </Link>
-          ))}
-        </div>
+        <ol
+          className={cn(
+            'space-y-1',
+            fullWidth && 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 space-y-0',
+          )}
+        >
+          {steps.map((s, i) => {
+            const nextUp = !s.completed && i === done;
+            return (
+              <li key={s.key}>
+                <Link href={s.href} className="group block">
+                  <div className="flex items-center gap-3 rounded-lg px-2 py-1.5 -mx-2 hover:bg-muted/50 transition-colors">
+                    <div
+                      className={cn(
+                        'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium shrink-0',
+                        s.completed
+                          ? 'bg-emerald-500 text-white'
+                          : nextUp
+                            ? 'bg-foreground text-background'
+                            : 'bg-muted text-muted-foreground',
+                      )}
+                    >
+                      {s.completed ? <Check className="w-3 h-3" /> : i + 1}
+                    </div>
+                    <span
+                      className={cn(
+                        'flex-1 text-sm truncate',
+                        s.completed
+                          ? 'text-muted-foreground'
+                          : nextUp
+                            ? 'text-foreground font-medium'
+                            : 'text-muted-foreground',
+                      )}
+                    >
+                      {s.label}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
       </CardContent>
     </Card>
   );
@@ -1024,13 +1175,13 @@ function SetupProgressCard({ l1 }: { l1: CombinedL1 }) {
 
 function QuickActionsCard({ l1 }: { l1: CombinedL1 }) {
   return (
-    <Card className="lg:col-span-2">
+    <Card>
       <CardHeader>
         <CardTitle className="text-lg">Quick Actions</CardTitle>
         <CardDescription>Common tasks for managing your L1</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {buildQuickActions(l1).map((a) => (
             <QuickActionTile key={a.title} action={a} />
           ))}
