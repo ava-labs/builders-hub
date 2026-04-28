@@ -177,16 +177,17 @@ function DashboardBody() {
 
   const selectedL1 = useMemo<CombinedL1 | null>(() => {
     if (combinedL1s.length === 0) return null;
+    const firstActive = combinedL1s.find((l) => l.status === 'active');
     if (selectedChainParam) {
       const match = combinedL1s.find(
         (l) => String(l.evmChainId) === selectedChainParam || l.subnetId === selectedChainParam,
       );
-      if (match) return match;
+      if (match && (match.status === 'active' || !firstActive)) return match;
     }
     // Default to the first ACTIVE L1 — falling back to the very first
     // entry only when nothing is alive (in which case the page renders the
     // NoActiveL1sNote and the Past L1s section instead of a detail view).
-    return combinedL1s.find((l) => l.status === 'active') ?? combinedL1s[0];
+    return firstActive ?? combinedL1s[0];
   }, [combinedL1s, selectedChainParam]);
 
   // If the selected L1 fell off the list (e.g. expired), point the URL at the
