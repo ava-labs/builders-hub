@@ -7,7 +7,7 @@ topics: [AI Agents, Identity, Payments, X402, Avalanche L1, Stablecoins]
 comments: true
 ---
 
-AI agents are officially in production – booking flights, spinning up compute, negotiating API calls – but one question keeps surfacing: who authorized that?
+AI agents are officially in production – booking flights, spinning up compute, executing API calls – but one question keeps surfacing: **who authorized that**?
 
 Traditionally, auth systems are designed for humans. You log in, get a session token, and go on your merry way. But AI agents aren't human. They're constantly on, can spawn sub-agents, spend money on your behalf, and more – all autonomously. Traditional auth systems just aren't cut out.
 
@@ -19,17 +19,23 @@ Kite Passport provides the necessary infrastructure from scratch, and this post 
 
 Kite Passport thrives on a three-tiered identity architecture, where each tier has a distinct authority scope:
 
-**1. User (Root Authority)**
-The source-of-truth: your wallet. It never participates in transactions directly and is used to cryptographically derive all downstream identities. The User layer anchors the chain of delegated authority.
+1. **User (Root Authority)**
 
-**2. Agent (Delegated Authority)**
-Each AI agent gets its own deterministic onchain address, derived from the first layer using BIP-32 hierarchical deterministic key (HDK) derivation. Anyone can confirm that an agent address belongs to a given user wallet, but the agent can't reconstruct the parent key. This means we can prove an agent's relationship to its human principal without giving the agent any elevated access.
+   The source-of-truth: your wallet. It never participates in transactions directly and is used to cryptographically derive all downstream identities. The User layer anchors the chain of delegated authority.
 
-> 💡 **What Is an HDK Architecture?**
-> An HDK architecture essentially acts as an account manager – it maintains many derived keys from one protected root key or phrase and enables the authentication of a user and/or agent.
+2. **Agent (Delegated Authority)**
 
-**3. Session (Ephemeral Authority)**
-When an agent needs to perform a specific task (e.g., booking a flight), it receives a Session key that's precisely scoped for that task: who it's valid for, exact spending amounts, etc. Unlike agents' onchain addresses, Sessions are randomly generated (not derived). They also expire automatically after use or on timeout and become cryptographically useless once their scope is exhausted.
+   Each AI agent gets its own deterministic onchain address, derived from the first layer using BIP-32 hierarchical deterministic key (HDK) derivation. Anyone can confirm that an agent address belongs to a given user wallet, but the agent can't reconstruct the parent key. This means we can prove an agent's relationship to its human principal without giving the agent any elevated access.
+
+   <div style={{ background: 'var(--color-fd-secondary)', padding: '1rem 1.25rem', borderRadius: '0.5rem', margin: '1rem 0' }}>
+     **What Is an HDK Architecture?**
+
+     An HDK architecture essentially acts as an account manager – it maintains many derived keys from one protected root key or phrase and enables the authentication of a user and/or agent.
+   </div>
+
+3. **Session (Ephemeral Authority)**
+
+   When an agent needs to perform a specific task (e.g., booking a flight), it receives a Session key that's precisely scoped for that task: who it's valid for, exact spending amounts, etc. Unlike agents' onchain addresses, Sessions are randomly generated (not derived). They also expire automatically after use or on timeout and become cryptographically useless once their scope is exhausted.
 
 **TL;DR:** An agent **never** needs access to the user's root key, a Session never needs the full capabilities of its parent agent, and compromise at any layer is contained.
 
@@ -46,19 +52,25 @@ A Kite Passport isn't just an identifying document — it gives verifiers the in
 
 ### The Trust Chain
 
-Each link in the chain is verifiable and scopes authority downward (never upward).
+<div style={{ background: 'var(--color-fd-secondary)', padding: '1rem 1.25rem', borderRadius: '0.5rem', margin: '1rem 0' }}>
+  Human credential → User wallet → Agent passport → Session key → Transaction
+
+  Each link in the chain is verifiable and scopes authority downward (never upward).
+</div>
 
 ---
 
 ## Delegations
 
-Just because an agent has a passport doesn't mean it can go off and spend freely. Its action relies on two primitives: Sessions (discussed previously) and Delegations.
+Just because an agent has a passport doesn't mean it can go off and spend freely. Its action relies on two primitives: Sessions (discussed previously) and **Delegations**.
 
 While a Session is essentially a budget declaration, a Delegation is a specific, signed payment intent linked to a parent Session.
 
-Where a Session says *"you are allowed to spend up to $500 on a flight ticket within the next hour,"* a Delegation says *"spend exactly $350 on this specific route from this specific airline, right now."*
+<div style={{ background: 'var(--color-fd-secondary)', padding: '1rem 1.25rem', borderRadius: '0.5rem', margin: '1rem 0' }}>
+  Where a Session says "you are allowed to spend up to \$500 on a flight ticket within the next hour," a Delegation says "spend exactly \$350 on this specific route from this specific airline, right now."
+</div>
 
-> **Note:** Sub-delegation is allowed, meaning an agent can further delegate to a specialized sub-agent, whose authority is bound by both the original session and the parent delegation.
+**Note:** Sub-delegation is allowed, meaning an agent can further delegate to a specialized sub-agent, whose authority is bound by both the original session and the parent delegation.
 
 ---
 
@@ -75,14 +87,14 @@ Users are represented onchain through smart contract accounts versus externally 
 
 ### 2. The X402 Protocol
 
-Kite is natively supported by X402, an open HTTP-native payment standard. The flow works by repurposing the HTTP 402 Payment Required status code as a machine-readable payment demand. When an agent hits a paywalled API endpoint:
+**Kite is natively supported by X402, an open HTTP-native payment standard.** The flow works by repurposing the HTTP `402 Payment Required` status code as a machine-readable payment demand. When an agent hits a paywalled API endpoint:
 
 1. The server returns `402` with a structured payment requirements header specifying the amount, accepted tokens, and settlement address.
 2. The agent (via its session key) constructs and signs an `X-Payment` header containing the authorization.
 3. The agent retries the request with the signed header.
 4. The server verifies the payment authorization, settles onchain, and returns the resource.
 
-This is designed to be stateless – the payment authorization is self-contained in the HTTP request.
+This is designed to be stateless. The payment authorization is self-contained in the HTTP request.
 
 ### 3. Agent Payment Protocol (APP)
 
@@ -122,7 +134,7 @@ When a service provider receives a request from an agent, it can verify:
 
 What the service provider **cannot** learn from this verification alone is which specific human backs this agent. The cryptographic proof is structured to be one-way – it asserts membership in the set of "verified humans" without identifying the specific member.
 
-This is the **selective disclosure** property: an agent can prove relevant facts about its user (they're a verified human, they have sufficient backing, and they've been vouched for) without revealing the user's identity.
+**This is the selective disclosure property:** an agent can prove relevant facts about its user (they're a verified human, they have sufficient backing, and they've been vouched for) without revealing the user's identity.
 
 For use cases where full attribution is required (like compliance or regulated transactions), the passport supports disclosure of additional identity claims, but this is opt-in per session, not the default.
 
