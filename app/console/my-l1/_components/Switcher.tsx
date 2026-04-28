@@ -107,7 +107,12 @@ function SwitcherSection({
           return (
             <button
               key={key}
+              type="button"
               onClick={() => onSelect(l1)}
+              aria-pressed={isActive}
+              aria-label={`${l1.chainName} (chain ${l1.evmChainId ?? 'unknown'})${
+                walletIsHere ? ' — wallet currently on this L1' : ''
+              }${isActive ? ' — selected' : ''}`}
               className={`group flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all w-full sm:w-auto ${
                 isActive
                   ? 'border-primary bg-primary/10 text-foreground'
@@ -118,6 +123,7 @@ function SwitcherSection({
                 <span
                   className="relative flex w-2 h-2"
                   title="Your wallet is currently on this L1"
+                  aria-hidden="true"
                 >
                   <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
@@ -147,8 +153,11 @@ function ExpiryPill({ expiresAt }: { expiresAt: string }) {
   const ms = new Date(expiresAt).getTime() - now;
   if (ms <= 0) {
     return (
-      <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-[10px] text-red-700 dark:text-red-400">
-        <Clock className="w-2.5 h-2.5" />
+      <span
+        className="ml-1 inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-[10px] text-red-700 dark:text-red-400"
+        aria-label="Managed nodes expired"
+      >
+        <Clock className="w-2.5 h-2.5" aria-hidden="true" />
         expired
       </span>
     );
@@ -157,13 +166,18 @@ function ExpiryPill({ expiresAt }: { expiresAt: string }) {
   const days = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
   const label = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+  const verbose =
+    days > 0 ? `Expires in ${days} day${days === 1 ? '' : 's'} ${hours} hour${hours === 1 ? '' : 's'}` : `Expires in ${hours} hour${hours === 1 ? '' : 's'}`;
   const tone =
     totalHours < 6
       ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
       : 'bg-muted text-muted-foreground';
   return (
-    <span className={`ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] ${tone}`}>
-      <Clock className="w-2.5 h-2.5" />
+    <span
+      className={`ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] ${tone}`}
+      aria-label={verbose}
+    >
+      <Clock className="w-2.5 h-2.5" aria-hidden="true" />
       {label}
     </span>
   );

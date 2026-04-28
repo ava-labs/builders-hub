@@ -25,7 +25,9 @@ export function StatsGrid({
   const blockValueText = blockHeight !== null ? `#${blockHeight}` : health.isLoading ? '…' : '—';
   // Wrap the block height in a keyed motion.span so the value pulses on every
   // RPC tick — the user sees the chain breathe instead of a static number.
-  // Using `key={blockHeight}` forces remount → re-animate.
+  // Using `key={blockHeight}` forces remount → re-animate. `prefers-reduced-
+  // motion` users see the same final value without the entrance animation
+  // because framer-motion respects the OS-level setting by default.
   const blockValue =
     blockHeight !== null ? (
       <motion.span

@@ -19,9 +19,13 @@ export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
   return (
     <Link
       href={nextStep.href}
+      aria-label={`Next setup step: ${nextStep.shortLabel}. ${done} of ${steps.length} complete.`}
       className="group flex items-center gap-4 rounded-xl border bg-card hover:bg-accent/30 transition-colors px-4 py-3.5"
     >
-      <div className="shrink-0 w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+      <div
+        className="shrink-0 w-10 h-10 rounded-lg bg-muted flex items-center justify-center"
+        aria-hidden="true"
+      >
         <Icon className="w-5 h-5 text-foreground" />
       </div>
       <div className="flex-1 min-w-0">
@@ -30,7 +34,10 @@ export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
         </p>
         <p className="text-base font-semibold text-foreground truncate">{nextStep.shortLabel}</p>
       </div>
-      <span className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-foreground group-hover:translate-x-0.5 transition-transform">
+      <span
+        className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-foreground group-hover:translate-x-0.5 transition-transform"
+        aria-hidden="true"
+      >
         {nextStep.ctaLabel}
         <ArrowRight className="w-4 h-4" />
       </span>
