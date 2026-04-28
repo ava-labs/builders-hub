@@ -10,7 +10,6 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CombinedL1 } from '../_lib/types';
 
 interface QuickAction {
@@ -21,21 +20,33 @@ interface QuickAction {
   external?: boolean;
 }
 
-export function QuickActionsCard({ l1 }: { l1: CombinedL1 }) {
+// Section heading + tile grid rendered without a Card shell. Wrapping six
+// rectangular tiles inside another rectangular Card just stacks borders
+// inside borders; the heading + bare grid reads cleaner and lets the tiles
+// breathe.
+function QuickActionsSection({
+  heading = 'Quick actions',
+  actions,
+}: {
+  heading?: string;
+  actions: QuickAction[];
+}) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Quick Actions</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {buildQuickActions(l1).map((a) => (
-            <QuickActionTile key={a.title} action={a} />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <section>
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+        {heading}
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {actions.map((a) => (
+          <QuickActionTile key={a.title} action={a} />
+        ))}
+      </div>
+    </section>
   );
+}
+
+export function QuickActionsCard({ l1 }: { l1: CombinedL1 }) {
+  return <QuickActionsSection actions={buildQuickActions(l1)} />;
 }
 
 // Reduced detail view for wallet-only L1s — no managed-node fleet to show, so
@@ -77,20 +88,7 @@ export function WalletOnlyActions({ l1 }: { l1: CombinedL1 }) {
     faucetAction(l1),
   ];
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Quick Actions</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {actions.map((a) => (
-            <QuickActionTile key={a.title} action={a} />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
+  return <QuickActionsSection actions={actions} />;
 }
 
 function buildQuickActions(l1: CombinedL1): QuickAction[] {
