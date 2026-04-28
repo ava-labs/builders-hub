@@ -346,7 +346,6 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
         icon={Timer}
         title="Block time"
         subtitle={`Avg ${avgBlockTime}s · ${points.length} samples`}
-        accent={CHART_ACCENT}
       >
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -395,7 +394,6 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
         icon={Blocks}
         title="Transactions per block"
         subtitle={`${totalTx} tx · max ${maxTx} per block`}
-        accent={CHART_ACCENT}
       >
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -441,7 +439,6 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
         icon={Fuel}
         title="Gas utilization"
         subtitle={`Avg ${avgUtilization}% of block limit`}
-        accent={CHART_ACCENT}
       >
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -492,7 +489,6 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
           icon={Fuel}
           title="Base fee"
           subtitle={`Avg ${avgBaseFee} Gwei (EIP-1559)`}
-          accent={CHART_ACCENT}
         >
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -589,10 +585,9 @@ function ChartTooltip({
   );
 }
 
-// Quiet card chrome — icon at muted-foreground, no colored border. Only the
-// chart line/area inside carries the brand accent so the data itself draws
-// the eye. Accepts a no-op `accent` prop for backwards compatibility with
-// callers; ignored to keep the page monochromatic.
+// Quiet card chrome — icon at muted-foreground, no colored border. Only
+// the chart line/area inside carries the brand accent so the data itself
+// draws the eye.
 function ChartCard({
   icon: Icon,
   title,
@@ -602,7 +597,6 @@ function ChartCard({
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   subtitle: string;
-  accent?: string;
   children: React.ReactNode;
 }) {
   return (
