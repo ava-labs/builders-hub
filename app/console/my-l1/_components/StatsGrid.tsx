@@ -60,7 +60,7 @@ export function StatsGrid({
   const fourthCard = (() => {
     if (validators.count !== null) {
       return (
-        <StatCard
+        <StatCell
           icon={Users}
           label="Active validators"
           value={String(validators.count)}
@@ -71,7 +71,7 @@ export function StatsGrid({
     if (l1.source === 'managed' && l1.nodes) {
       const active = l1.nodes.filter((n) => n.status === 'active').length;
       return (
-        <StatCard
+        <StatCell
           icon={Users}
           label="Managed nodes"
           value={String(l1.nodes.length)}
@@ -84,7 +84,7 @@ export function StatsGrid({
       );
     }
     return (
-      <StatCard
+      <StatCell
         icon={Wallet}
         label="EVM chain ID"
         value={l1.evmChainId !== null ? String(l1.evmChainId) : '—'}
@@ -93,32 +93,39 @@ export function StatsGrid({
     );
   })();
 
+  // Single connected unit instead of 4 detached cards. On desktop the four
+  // cells share one rounded card with vertical dividers; on mobile (<md)
+  // each cell stays full-width with horizontal dividers so the icons line up
+  // and don't squish.
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard
-        icon={Blocks}
-        label="Latest block"
-        value={blockValue}
-        valueTitle={blockValueText}
-        subValue={blockSub}
-      />
-      <StatCard
-        icon={Timer}
-        label="Block time"
-        value={blockTimeValue}
-        subValue={blockTimeValue === '—' ? 'Unavailable' : 'Last interval'}
-      />
-      <StatCard icon={Fuel} label="Gas price" value={gasValue} subValue="From eth_gasPrice" />
-      {fourthCard}
-    </div>
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border">
+          <StatCell
+            icon={Blocks}
+            label="Latest block"
+            value={blockValue}
+            valueTitle={blockValueText}
+            subValue={blockSub}
+          />
+          <StatCell
+            icon={Timer}
+            label="Block time"
+            value={blockTimeValue}
+            subValue={blockTimeValue === '—' ? 'Unavailable' : 'Last interval'}
+          />
+          <StatCell icon={Fuel} label="Gas price" value={gasValue} subValue="From eth_gasPrice" />
+          {fourthCard}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-// Clean neutral StatCard — the dashboard's at-a-glance cards rely on
-// typography + icons for differentiation, not color. The brand accent is
-// reserved for the chart page (where it actually carries data) so the
-// dashboard reads as a quiet hub instead of a noisy color wheel.
-function StatCard({
+// Clean neutral cell rendered inside the shared StatsGrid card. Drops the
+// per-card border + hover-lift in favor of a single unified surface — feels
+// more curated than 4 boxes floating side by side.
+function StatCell({
   icon: Icon,
   label,
   value,
@@ -134,24 +141,22 @@ function StatCard({
   valueTitle?: string;
 }) {
   return (
-    <Card className="py-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-foreground/20">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-muted">
-            <Icon className="w-5 h-5 text-muted-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p
-              className="text-lg font-semibold text-foreground truncate tabular-nums"
-              title={valueTitle ?? (typeof value === 'string' ? value : undefined)}
-            >
-              {value}
-            </p>
-            {subValue && <p className="text-xs text-muted-foreground truncate">{subValue}</p>}
-          </div>
+    <div className="px-4 py-4 transition-colors hover:bg-accent/40">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-muted shrink-0">
+          <Icon className="w-5 h-5 text-muted-foreground" />
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p
+            className="text-lg font-semibold text-foreground truncate tabular-nums"
+            title={valueTitle ?? (typeof value === 'string' ? value : undefined)}
+          >
+            {value}
+          </p>
+          {subValue && <p className="text-xs text-muted-foreground truncate">{subValue}</p>}
+        </div>
+      </div>
+    </div>
   );
 }
