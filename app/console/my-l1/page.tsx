@@ -52,6 +52,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { useModalTrigger } from '@/components/toolbox/hooks/useModal';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
+import { toast } from '@/lib/toast';
 
 // C-Chain (Fuji + Mainnet) lives in the wallet's l1List as a sentinel for
 // the primary network; it's not an L1 in this dashboard's sense, so we strip
@@ -1275,9 +1276,12 @@ function ProvisionNodeButton({
         throw new Error(msg);
       }
       setSuccess(true);
+      toast.success('Node provisioned', 'A fresh 3-day-TTL node is being added to this L1.');
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to provision node');
+      const msg = err instanceof Error ? err.message : 'Failed to provision node';
+      setError(msg);
+      toast.error('Could not provision node', msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -1331,9 +1335,12 @@ function DeleteNodeButton({
         const json = await res.json().catch(() => null);
         throw new Error(json?.message ?? json?.error ?? `HTTP ${res.status}`);
       }
+      toast.success('Node removed', 'A slot has been freed against your 3-node cap.');
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove node');
+      const msg = err instanceof Error ? err.message : 'Failed to remove node';
+      setError(msg);
+      toast.error('Could not remove node', msg);
     } finally {
       setIsSubmitting(false);
     }
