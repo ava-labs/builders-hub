@@ -17,6 +17,7 @@ import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId'
 import { useEERCTransfer } from '@/hooks/eerc/useEERCTransfer';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
 import { EERCToolShell } from './shared/EERCToolShell';
+import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { ERC20Meta, Hex } from '@/lib/eerc/types';
 
@@ -75,6 +76,7 @@ function PrivateTransfer() {
   const balance = useEERCBalance(deployment, mode ?? 'converter', token);
   const aud = useEERCAuditorAndTokenId(deployment, mode === 'converter' ? token?.address : undefined);
   const tr = useEERCTransfer(deployment);
+  const activeChainId = mode === 'standalone' ? standalone.chainId : converter.chainId;
 
   const [recipient, setRecipient] = useState('');
   const [amountText, setAmountText] = useState('');
@@ -216,14 +218,9 @@ function PrivateTransfer() {
         {tr.error && <div className="text-[11px] text-red-600 dark:text-red-400">{tr.error}</div>}
         {tr.status === 'success' && tr.txHash && (
           <div className="text-[11px]">
-            <a
-              href={`https://testnet.snowtrace.io/tx/${tr.txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline text-emerald-600 dark:text-emerald-400"
-            >
+            <EERCTxLink chainId={activeChainId} txHash={tr.txHash}>
               Transfer confirmed — {tr.txHash.slice(0, 10)}...
-            </a>
+            </EERCTxLink>
           </div>
         )}
 

@@ -11,6 +11,7 @@ import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useEERCDeposit } from '@/hooks/eerc/useEERCDeposit';
 import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
+import { EERCTxLink } from '../shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 
 /**
@@ -186,14 +187,9 @@ export default function DepositStep() {
                 {dep.error && <div className="mt-2 text-[11px] text-red-600 dark:text-red-400">{dep.error}</div>}
                 {dep.status === 'success' && dep.txHash && (
                   <div className="mt-2 text-[11px]">
-                    <a
-                      href={`https://testnet.snowtrace.io/tx/${dep.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline text-emerald-600 dark:text-emerald-400"
-                    >
+                    <EERCTxLink chainId={converter.chainId} txHash={dep.txHash}>
                       Deposited — {dep.txHash.slice(0, 10)}...
-                    </a>
+                    </EERCTxLink>
                   </div>
                 )}
 

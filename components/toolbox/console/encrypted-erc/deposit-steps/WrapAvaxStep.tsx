@@ -9,6 +9,7 @@ import { RawInput } from '@/components/toolbox/components/Input';
 import { useWrappedNativeToken } from '@/components/toolbox/hooks/useWrappedNativeToken';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { EERCToolShell } from '../shared/EERCToolShell';
+import { EERCTxLink } from '../shared/EERCTxLink';
 import { WAVAX_SOURCES } from '@/lib/eerc/contractSources';
 
 type Mode = 'wrap' | 'unwrap';
@@ -195,14 +196,9 @@ export default function WrapAvaxStep() {
             {error && <div className="mt-2 text-[11px] text-red-600 dark:text-red-400">{error}</div>}
             {txHash && (
               <div className="mt-2 text-[11px]">
-                <a
-                  href={`https://testnet.snowtrace.io/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline text-emerald-600 dark:text-emerald-400"
-                >
+                <EERCTxLink chainId={converter.chainId} txHash={txHash}>
                   {mode === 'wrap' ? 'Wrapped' : 'Unwrapped'} — {txHash.slice(0, 10)}...
-                </a>
+                </EERCTxLink>
               </div>
             )}
             {hasWavax && mode === 'wrap' && (

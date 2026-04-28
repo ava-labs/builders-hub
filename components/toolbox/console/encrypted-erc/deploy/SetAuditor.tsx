@@ -16,6 +16,7 @@ import EncryptedERCArtifact from '@/contracts/encrypted-erc/compiled/EncryptedER
 import RegistrarArtifact from '@/contracts/encrypted-erc/compiled/Registrar.json';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { EERCToolShell } from '../shared/EERCToolShell';
+import { EERCTxLink } from '../shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { EERCDeployment, Hex } from '@/lib/eerc/types';
 
@@ -35,11 +36,11 @@ type Mode = 'standalone' | 'converter';
 function SetAuditor() {
   const standalone = useEERCDeployment('standalone');
   const converter = useEERCDeployment('converter');
-  const deployments: { mode: Mode; deployment: EERCDeployment }[] = [];
+  const deployments: { mode: Mode; deployment: EERCDeployment; chainId: number }[] = [];
   if (standalone.isReady && standalone.deployment)
-    deployments.push({ mode: 'standalone', deployment: standalone.deployment });
+    deployments.push({ mode: 'standalone', deployment: standalone.deployment, chainId: standalone.chainId });
   if (converter.isReady && converter.deployment)
-    deployments.push({ mode: 'converter', deployment: converter.deployment });
+    deployments.push({ mode: 'converter', deployment: converter.deployment, chainId: converter.chainId });
 
   if (deployments.length === 0) {
     return (
@@ -62,8 +63,8 @@ function SetAuditor() {
         },
       ]}
     >
-      {deployments.map(({ mode, deployment }) => (
-        <DeploymentCard key={deployment.encryptedERC} mode={mode} deployment={deployment} />
+      {deployments.map(({ mode, deployment, chainId }) => (
+        <DeploymentCard key={deployment.encryptedERC} mode={mode} deployment={deployment} chainId={chainId} />
       ))}
       <details className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 p-3 text-xs">
         <summary className="cursor-pointer font-medium text-zinc-800 dark:text-zinc-200">
@@ -86,7 +87,7 @@ function SetAuditor() {
   );
 }
 
-function DeploymentCard({ mode, deployment }: { mode: Mode; deployment: EERCDeployment }) {
+function DeploymentCard({ mode, deployment, chainId }: { mode: Mode; deployment: EERCDeployment; chainId: number }) {
   const { address: myAddress } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
@@ -213,14 +214,9 @@ function DeploymentCard({ mode, deployment }: { mode: Mode; deployment: EERCDepl
       {error && <div className="text-[11px] text-red-600 dark:text-red-400">{error}</div>}
       {txHash && (
         <div className="text-[11px]">
-          <a
-            href={`https://testnet.snowtrace.io/tx/${txHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline text-emerald-600 dark:text-emerald-400"
-          >
+          <EERCTxLink chainId={chainId} txHash={txHash}>
             Auditor set — {txHash.slice(0, 10)}...
-          </a>
+          </EERCTxLink>
         </div>
       )}
 

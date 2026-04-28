@@ -12,6 +12,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useAuditorEvents } from '@/hooks/eerc/useAuditorEvents';
 import { EERCToolShell } from './shared/EERCToolShell';
+import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { EERCDeployment } from '@/lib/eerc/types';
 
@@ -31,10 +32,11 @@ type Mode = 'standalone' | 'converter';
 function AuditorView() {
   const standalone = useEERCDeployment('standalone');
   const converter = useEERCDeployment('converter');
-  const options: { mode: Mode; deployment: EERCDeployment }[] = [];
+  const options: { mode: Mode; deployment: EERCDeployment; chainId: number }[] = [];
   if (standalone.isReady && standalone.deployment)
-    options.push({ mode: 'standalone', deployment: standalone.deployment });
-  if (converter.isReady && converter.deployment) options.push({ mode: 'converter', deployment: converter.deployment });
+    options.push({ mode: 'standalone', deployment: standalone.deployment, chainId: standalone.chainId });
+  if (converter.isReady && converter.deployment)
+    options.push({ mode: 'converter', deployment: converter.deployment, chainId: converter.chainId });
 
   const [selected, setSelected] = useState<number>(0);
   const active = options[selected];
@@ -78,12 +80,12 @@ function AuditorView() {
           ))}
         </div>
       )}
-      {active && <AuditorPanel deployment={active.deployment} />}
+      {active && <AuditorPanel deployment={active.deployment} chainId={active.chainId} />}
     </EERCToolShell>
   );
 }
 
-function AuditorPanel({ deployment }: { deployment: EERCDeployment }) {
+function AuditorPanel({ deployment, chainId }: { deployment: EERCDeployment; chainId: number }) {
   const { address } = useAccount();
   const ev = useAuditorEvents(deployment);
   const [keyInput, setKeyInput] = useState('');
@@ -190,14 +192,13 @@ function AuditorPanel({ deployment }: { deployment: EERCDeployment }) {
                     {e.amountFormatted ?? (ev.decryptionKey ? <span className="text-zinc-400">wrong key</span> : '—')}
                   </td>
                   <td className="px-3 py-2">
-                    <a
-                      href={`https://testnet.snowtrace.io/tx/${e.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <EERCTxLink
+                      chainId={chainId}
+                      txHash={e.txHash}
                       className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 underline font-mono"
                     >
                       {e.txHash.slice(0, 10)}…
-                    </a>
+                    </EERCTxLink>
                   </td>
                 </tr>
               ))}

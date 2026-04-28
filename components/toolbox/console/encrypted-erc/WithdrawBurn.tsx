@@ -16,6 +16,7 @@ import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId'
 import { useEERCWithdraw } from '@/hooks/eerc/useEERCWithdraw';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
 import { EERCToolShell } from './shared/EERCToolShell';
+import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import type { ERC20Meta } from '@/lib/eerc/types';
 
@@ -140,14 +141,9 @@ function WithdrawBurn() {
         {wd.error && <div className="text-[11px] text-red-600 dark:text-red-400">{wd.error}</div>}
         {wd.status === 'success' && wd.txHash && (
           <div className="text-[11px]">
-            <a
-              href={`https://testnet.snowtrace.io/tx/${wd.txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline text-emerald-600 dark:text-emerald-400"
-            >
+            <EERCTxLink chainId={converter.chainId} txHash={wd.txHash}>
               Withdrawn — {wd.txHash.slice(0, 10)}...
-            </a>
+            </EERCTxLink>
           </div>
         )}
 

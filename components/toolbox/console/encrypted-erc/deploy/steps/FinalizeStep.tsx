@@ -7,8 +7,10 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import { Check, BookOpen, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
 import { useEERCDeployStore } from '@/components/toolbox/stores/eercDeployStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useEERCRegistration } from '@/hooks/eerc/useEERCRegistration';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
+import { EERCTxLink } from '../../shared/EERCTxLink';
 import { REGISTRAR_SOURCES, ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
 import EncryptedERCArtifact from '@/contracts/encrypted-erc/compiled/EncryptedERC.json';
 import type { EERCDeployment, Hex } from '@/lib/eerc/types';
@@ -28,6 +30,7 @@ export default function FinalizeStep() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
+  const chainId = useWalletStore((state) => state.walletChainId);
 
   const fakeDeployment: EERCDeployment | undefined = useMemo(() => {
     if (!s.encryptedERCAddress || !s.registrarAddress) return undefined;
@@ -143,14 +146,9 @@ export default function FinalizeStep() {
             {auditorDone ? (
               <div className="text-[11px] text-zinc-600 dark:text-zinc-400">
                 Auditor set —{' '}
-                <a
-                  href={`https://testnet.snowtrace.io/tx/${auditorTxHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
+                <EERCTxLink chainId={chainId} txHash={auditorTxHash!} className="underline">
                   {auditorTxHash!.slice(0, 10)}...
-                </a>
+                </EERCTxLink>
               </div>
             ) : (
               <Button variant="primary" onClick={setSelfAsAuditor} loading={settingAuditor} disabled={!registerDone}>
