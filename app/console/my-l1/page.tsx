@@ -449,6 +449,11 @@ function SwitcherSection({
   selected: CombinedL1 | null;
   onSelect: (l1: CombinedL1) => void;
 }) {
+  // The wallet's current chain — used to render a small "Wallet here"
+  // pulsing dot on the matching pill so users can see which L1 their
+  // signer is pointed at without leaving the dashboard.
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+
   return (
     <div className="space-y-2">
       <div>
@@ -465,6 +470,7 @@ function SwitcherSection({
             (selected.evmChainId === l1.evmChainId && selected.evmChainId !== null
               ? true
               : selected.subnetId === l1.subnetId);
+          const walletIsHere = l1.evmChainId !== null && walletChainId === l1.evmChainId;
           return (
             <button
               key={key}
@@ -475,6 +481,15 @@ function SwitcherSection({
                   : 'border-border bg-card hover:border-foreground/30 text-muted-foreground hover:text-foreground'
               }`}
             >
+              {walletIsHere && (
+                <span
+                  className="relative flex w-2 h-2"
+                  title="Your wallet is currently on this L1"
+                >
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+              )}
               <span className="font-medium">{l1.chainName}</span>
               <span className="text-xs opacity-60">
                 {l1.evmChainId ?? l1.subnetId.slice(0, 6)}
