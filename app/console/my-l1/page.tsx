@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CheckRequirements } from '@/components/toolbox/components/CheckRequirements';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { useMyL1s, type MyL1 } from '@/hooks/useMyL1s';
 import { useL1Health, type L1HealthState } from '@/hooks/useL1Health';
@@ -96,7 +97,12 @@ type CombinedL1 = {
 
 function MyL1DashboardInner() {
   return (
-    <CheckRequirements toolRequirements={[WalletRequirementsConfigKey.WalletConnected]}>
+    <CheckRequirements
+      toolRequirements={[
+        WalletRequirementsConfigKey.WalletConnected,
+        AccountRequirementsConfigKey.UserLoggedIn,
+      ]}
+    >
       <DashboardBody />
     </CheckRequirements>
   );
