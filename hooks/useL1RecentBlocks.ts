@@ -153,10 +153,36 @@ export function useL1RecentBlocks(
       }
     };
 
+    // Visibility-aware poll: skip when the tab is hidden so a backgrounded
+    // dashboard doesn't fan out 60–240 RPC calls per cycle while the user
+    // is in another tab. On visibility return, fire one immediate catch-up
+    // poll so the chart isn't stale when the user comes back.
+    const isHidden = () =>
+      typeof document !== 'undefined' && document.visibilityState === 'hidden';
+
+    const guardedPoll = () => {
+      if (isHidden()) return;
+      void incrementalPoll();
+    };
+
+    const onVisibilityChange = () => {
+      if (!isHidden() && latestSeenRef.current !== null) {
+        // Tab just became visible — catch up immediately. The next interval
+        // tick continues normally afterwards.
+        void incrementalPoll();
+      }
+    };
+
     initialLoad();
-    pollHandle = setInterval(incrementalPoll, POLL_INTERVAL_MS);
+    pollHandle = setInterval(guardedPoll, POLL_INTERVAL_MS);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
     return () => {
       if (pollHandle) clearInterval(pollHandle);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
     };
   }, [rpcUrl, count, tick]);
 

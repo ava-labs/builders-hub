@@ -75,19 +75,27 @@ export function useMyL1s(): UseMyL1sState {
   // flow without forcing a manual Refresh click. Fires on both
   // visibilitychange (tab activation) and focus (window-level focus return
   // from another desktop app, where visibilitychange may not fire).
+  //
+  // Tab return commonly triggers BOTH listeners back-to-back; we debounce
+  // by 1s so we issue exactly one refetch per wake event instead of two.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const onWake = () => {
-      if (document.visibilityState === 'visible') {
-        setReloadTick((n) => n + 1);
-      }
+    const WAKE_DEBOUNCE_MS = 1000;
+    let lastWakeAt = 0;
+    const wake = () => {
+      const now = Date.now();
+      if (now - lastWakeAt < WAKE_DEBOUNCE_MS) return;
+      lastWakeAt = now;
+      setReloadTick((n) => n + 1);
     };
-    const onFocus = () => setReloadTick((n) => n + 1);
-    document.addEventListener('visibilitychange', onWake);
-    window.addEventListener('focus', onFocus);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') wake();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', wake);
     return () => {
-      document.removeEventListener('visibilitychange', onWake);
-      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', wake);
     };
   }, []);
 
