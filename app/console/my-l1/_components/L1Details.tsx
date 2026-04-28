@@ -30,7 +30,7 @@ export function L1Details({
 
   return (
     <div className="space-y-6">
-      <DetailHeader l1={l1} />
+      <DetailHeader l1={l1} health={health} />
       {isManaged && !isComplete && <NextActionBar l1={l1} />}
       <StatsGrid l1={l1} health={health} validators={validators} />
       {isManaged &&

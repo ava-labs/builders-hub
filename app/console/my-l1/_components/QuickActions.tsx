@@ -85,14 +85,15 @@ export function WalletOnlyActions({ l1 }: { l1: CombinedL1 }) {
       description: 'Enable token transfers.',
       href: '/console/ictt/setup',
     },
-    faucetAction(l1),
   ];
+  const faucet = faucetAction(l1);
+  if (faucet) actions.push(faucet);
 
   return <QuickActionsSection actions={actions} />;
 }
 
 function buildQuickActions(l1: CombinedL1): QuickAction[] {
-  return [
+  const actions: QuickAction[] = [
     {
       icon: Users,
       title: 'Add Validator',
@@ -123,15 +124,22 @@ function buildQuickActions(l1: CombinedL1): QuickAction[] {
       description: 'Configure gas, fees, and permissions.',
       href: '/console/l1-tokenomics/fee-manager',
     },
-    faucetAction(l1),
   ];
+  const faucet = faucetAction(l1);
+  if (faucet) actions.push(faucet);
+  return actions;
 }
 
 // Pick the right faucet target based on what the L1's wallet metadata
 // advertises: external URL takes precedence (well-known L1s like Echo /
-// Dispatch / Dexalot point at Core's testnet faucet); otherwise the
-// in-console faucet flow handles managed Builder Hub testnets.
-function faucetAction(l1: CombinedL1): QuickAction {
+// Dispatch / Dexalot point at Core's testnet faucet); otherwise a managed
+// Builder Hub testnet flag tells us to use the in-console faucet.
+//
+// For a custom user-deployed L1 with neither flag set, the in-console
+// faucet drops AVAX to the user's address on the C-Chain — that doesn't
+// help the user get the L1's native token on the L1 itself, so we omit
+// the action entirely instead of pointing at the wrong faucet.
+function faucetAction(l1: CombinedL1): QuickAction | null {
   if (l1.externalFaucetUrl) {
     return {
       icon: Wallet,
@@ -141,12 +149,15 @@ function faucetAction(l1: CombinedL1): QuickAction {
       external: true,
     };
   }
-  return {
-    icon: Wallet,
-    title: 'Get Test Tokens',
-    description: 'Request tokens from the in-console faucet.',
-    href: '/console/primary-network/faucet',
-  };
+  if (l1.hasBuilderHubFaucet) {
+    return {
+      icon: Wallet,
+      title: 'Get Test Tokens',
+      description: 'Request tokens from the in-console faucet.',
+      href: '/console/primary-network/faucet',
+    };
+  }
+  return null;
 }
 
 function QuickActionTile({ action }: { action: QuickAction }) {

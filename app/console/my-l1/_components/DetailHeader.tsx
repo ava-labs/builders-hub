@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
 import { toast } from '@/lib/toast';
+import type { L1HealthState } from '@/hooks/useL1Health';
 import type { CombinedL1 } from '../_lib/types';
 import { WalletNetworkAction } from './WalletNetworkAction';
 
-export function DetailHeader({ l1 }: { l1: CombinedL1 }) {
+export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1HealthState }) {
   const nodeCount = l1.nodes?.length ?? 0;
   // Show wallet balance only when the wallet is currently connected to this
   // L1 — otherwise the cached number in the store may be from a different
@@ -30,6 +31,11 @@ export function DetailHeader({ l1 }: { l1: CombinedL1 }) {
   const initial = l1.chainName?.charAt(0).toUpperCase() ?? '?';
   const fallbackTint = pickFallbackTint(l1.subnetId);
 
+  // "Live" pulse dot next to the chain name when the RPC is producing fresh
+  // blocks. We deliberately skip 'degraded' and 'stale' here — a misleading
+  // green dot on a half-frozen chain is worse than no dot.
+  const isLive = health?.status === 'healthy';
+
   return (
     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
       <div className="flex items-center gap-3.5 min-w-0">
@@ -40,29 +46,44 @@ export function DetailHeader({ l1 }: { l1: CombinedL1 }) {
           fallbackTint={fallbackTint}
         />
         <div className="min-w-0">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground truncate">
-            {l1.chainName}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Chain ID: {l1.evmChainId ?? '—'} · {l1.isTestnet ? 'Testnet' : 'Mainnet'}
-            {l1.source === 'managed' && (
-              <>
-                {' · '}
-                {nodeCount} managed node{nodeCount === 1 ? '' : 's'}
-              </>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground truncate">
+              {l1.chainName}
+            </h2>
+            {isLive && (
+              <span
+                className="relative flex w-2 h-2 shrink-0"
+                title="Chain is producing fresh blocks"
+                aria-label="Chain healthy"
+              >
+                <span
+                  className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping"
+                  aria-hidden="true"
+                />
+                <span
+                  className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"
+                  aria-hidden="true"
+                />
+              </span>
             )}
-            {l1.source === 'wallet' && ' · Added to wallet'}
-            {l1.coinName && (
-              <>
-                {' · '}
-                {l1.coinName}
-              </>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+            {l1.evmChainId !== null && <MetaPill>Chain {l1.evmChainId}</MetaPill>}
+            <MetaPill tone={l1.isTestnet ? 'testnet' : 'mainnet'}>
+              {l1.isTestnet ? 'Testnet' : 'Mainnet'}
+            </MetaPill>
+            {l1.source === 'managed' && nodeCount > 0 && (
+              <MetaPill>
+                {nodeCount} {nodeCount === 1 ? 'node' : 'nodes'}
+              </MetaPill>
             )}
-          </p>
+            {l1.source === 'wallet' && <MetaPill>Wallet</MetaPill>}
+            {l1.coinName && <MetaPill>{l1.coinName}</MetaPill>}
+          </div>
           {isWalletOnThisL1 && balance !== null && (
-            <p className="text-sm text-foreground mt-1">
-              <span className="text-muted-foreground">Your balance:</span>{' '}
-              <span className="font-mono">
+            <p className="text-sm text-foreground mt-1.5">
+              <span className="text-muted-foreground">Balance:</span>{' '}
+              <span className="font-mono tabular-nums">
                 {balance.toFixed(4)} {l1.coinName ?? ''}
               </span>
             </p>
@@ -127,6 +148,33 @@ function CopyChainConfigButton({ l1 }: { l1: CombinedL1 }) {
       {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
       Copy Config
     </Button>
+  );
+}
+
+// Compact metadata chip — replaces the old dot-separated "Chain ID: 836504 ·
+// Testnet · Wallet" text line. Each fact gets its own pill so the eye can
+// scan them faster, and Testnet/Mainnet picks up an accent color (amber for
+// testnet, emerald for mainnet) matching the conventional "warning vs.
+// production" palette used elsewhere in the console.
+function MetaPill({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: 'testnet' | 'mainnet';
+}) {
+  const toneClass =
+    tone === 'testnet'
+      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+      : tone === 'mainnet'
+        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+        : 'bg-muted text-muted-foreground border-border';
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${toneClass}`}
+    >
+      {children}
+    </span>
   );
 }
 
