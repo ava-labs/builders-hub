@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Blocks, Fuel, Timer, Users, Wallet } from 'lucide-react';
+import { Blocks, Fuel, Users, Wallet } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { L1HealthState } from '@/hooks/useL1Health';
 import type { L1ValidatorCountState } from '@/hooks/useL1ValidatorCount';
@@ -41,15 +41,19 @@ export function StatsGrid({
     ) : (
       blockValueText
     );
-  const blockSub =
+  const blockAge =
     health.blockAgeSec !== null
       ? `${health.blockAgeSec}s ago`
       : health.status === 'offline'
         ? 'RPC unreachable'
-        : 'Pinging…';
+        : 'Pinging...';
 
   const blockTimeValue =
     health.blockTimeSec !== null ? `${health.blockTimeSec}s` : health.isLoading ? '…' : '—';
+  const blockSub =
+    blockTimeValue === '—'
+      ? blockAge
+      : `${blockAge} · ${blockTimeValue} interval`;
 
   const gasValue = health.gasPriceEth !== null ? formatGasPrice(health.gasPriceEth) : '—';
 
@@ -93,26 +97,16 @@ export function StatsGrid({
     );
   })();
 
-  // Single connected unit instead of 4 detached cards. On desktop the four
-  // cells share one rounded card with vertical dividers; on mobile (<md)
-  // each cell stays full-width with horizontal dividers so the icons line up
-  // and don't squish.
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden py-0 shadow-none">
       <CardContent className="p-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border">
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
           <StatCell
             icon={Blocks}
-            label="Latest block"
+            label="Block"
             value={blockValue}
             valueTitle={blockValueText}
             subValue={blockSub}
-          />
-          <StatCell
-            icon={Timer}
-            label="Block time"
-            value={blockTimeValue}
-            subValue={blockTimeValue === '—' ? 'Unavailable' : 'Last interval'}
           />
           <StatCell icon={Fuel} label="Gas price" value={gasValue} subValue="From eth_gasPrice" />
           {fourthCard}
@@ -141,15 +135,15 @@ function StatCell({
   valueTitle?: string;
 }) {
   return (
-    <div className="px-4 py-4 transition-colors hover:bg-accent/40">
+    <div className="px-3.5 py-3 transition-colors hover:bg-accent/30">
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-muted shrink-0">
-          <Icon className="w-5 h-5 text-muted-foreground" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted shrink-0">
+          <Icon className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
           <p
-            className="text-lg font-semibold text-foreground truncate tabular-nums"
+            className="text-base font-semibold text-foreground truncate tabular-nums"
             title={valueTitle ?? (typeof value === 'string' ? value : undefined)}
           >
             {value}

@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useL1Health } from '@/hooks/useL1Health';
 import { useL1ValidatorCount } from '@/hooks/useL1ValidatorCount';
 import type { CombinedL1 } from '../_lib/types';
@@ -26,21 +27,60 @@ export function L1Details({
   const health = useL1Health(l1.rpcUrl, l1.evmChainId);
   const validators = useL1ValidatorCount(l1.subnetId, l1.isTestnet);
   const isManaged = l1.source === 'managed';
-  const isComplete = isManaged && setupSummary(l1).pct === 100;
+  const setup = isManaged ? setupSummary(l1) : null;
+  const isComplete = setup?.pct === 100;
 
   return (
-    <div className="space-y-6">
-      <DetailHeader l1={l1} health={health} />
-      {isManaged && !isComplete && <NextActionBar l1={l1} />}
-      <StatsGrid l1={l1} health={health} validators={validators} />
+    <div className="space-y-5">
+      <section className="space-y-4">
+        <DetailHeader l1={l1} health={health} />
+        {isManaged && !isComplete && <NextActionBar l1={l1} />}
+      </section>
+
+      <DashboardSection title="Health">
+        <StatsGrid l1={l1} health={health} validators={validators} />
+      </DashboardSection>
+
       {isManaged &&
-        (isComplete ? <SetupCompleteBadge /> : <SetupProgressCard l1={l1} fullWidth />)}
-      {isManaged && <QuickActionsCard l1={l1} />}
-      {l1.source === 'wallet' && <WalletOnlyActions l1={l1} />}
-      <NetworkDetailsCard l1={l1} />
+        (isComplete ? (
+          <SetupCompleteBadge />
+        ) : (
+          <DashboardSection title="Setup progress">
+            <SetupProgressCard l1={l1} fullWidth />
+          </DashboardSection>
+        ))}
+
       {isManaged && l1.nodes && l1.nodes.length > 0 && (
-        <NodeListCard l1={l1} userActiveTotal={userActiveNodeTotal} onRefetch={onRefetch} />
+        <DashboardSection title="Node fleet">
+          <NodeListCard l1={l1} userActiveTotal={userActiveNodeTotal} onRefetch={onRefetch} />
+        </DashboardSection>
       )}
+
+      <DashboardSection title="Tools">
+        {isManaged && <QuickActionsCard l1={l1} />}
+        {l1.source === 'wallet' && <WalletOnlyActions l1={l1} />}
+      </DashboardSection>
+
+      <NetworkDetailsCard l1={l1} />
     </div>
+  );
+}
+
+function DashboardSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h2>
+      </div>
+      {children}
+    </section>
   );
 }

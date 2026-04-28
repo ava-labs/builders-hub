@@ -25,23 +25,16 @@ interface QuickAction {
 // inside borders; the heading + bare grid reads cleaner and lets the tiles
 // breathe.
 function QuickActionsSection({
-  heading = 'Quick actions',
   actions,
 }: {
-  heading?: string;
   actions: QuickAction[];
 }) {
   return (
-    <section>
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-        {heading}
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {actions.map((a) => (
-          <QuickActionTile key={a.title} action={a} />
-        ))}
-      </div>
-    </section>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+      {actions.map((a) => (
+        <QuickActionTile key={a.title} action={a} />
+      ))}
+    </div>
   );
 }
 
@@ -101,18 +94,6 @@ function buildQuickActions(l1: CombinedL1): QuickAction[] {
       href: '/console/permissioned-l1s/add-validator',
     },
     {
-      icon: ArrowUpDown,
-      title: 'Setup Bridge',
-      description: 'Enable token transfers to other chains.',
-      href: '/console/ictt/setup',
-    },
-    {
-      icon: MessagesSquare,
-      title: 'Configure ICM',
-      description: 'Set up cross-chain messaging.',
-      href: '/console/icm/setup',
-    },
-    {
       icon: BarChart3,
       title: 'Validator Set',
       description: 'View the current validator set.',
@@ -125,6 +106,22 @@ function buildQuickActions(l1: CombinedL1): QuickAction[] {
       href: '/console/l1-tokenomics/fee-manager',
     },
   ];
+  if (l1.teleporterRegistryAddress) {
+    actions.push({
+      icon: MessagesSquare,
+      title: 'ICM',
+      description: 'Manage cross-chain messaging.',
+      href: '/console/icm/setup',
+    });
+  }
+  if (l1.wrappedTokenAddress) {
+    actions.push({
+      icon: ArrowUpDown,
+      title: 'Token Bridge',
+      description: 'Manage token transfers.',
+      href: '/console/ictt/setup',
+    });
+  }
   const faucet = faucetAction(l1);
   if (faucet) actions.push(faucet);
   return actions;
@@ -162,13 +159,13 @@ function faucetAction(l1: CombinedL1): QuickAction | null {
 
 function QuickActionTile({ action }: { action: QuickAction }) {
   const Body = (
-    <div className="p-4 rounded-lg border bg-card hover:bg-accent/40 hover:border-foreground/20 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 h-full">
+    <div className="rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 hover:border-foreground/20 hover:shadow-sm transition-all duration-200 h-full">
       <div className="flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-muted group-hover:bg-foreground/[0.08] transition-colors">
+        <div className="p-1.5 rounded-md bg-muted group-hover:bg-foreground/[0.08] transition-colors">
           <action.icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
         </div>
         <div className="flex-1">
-          <h4 className="font-medium text-foreground text-sm mb-1">{action.title}</h4>
+          <h4 className="font-medium text-foreground text-sm">{action.title}</h4>
           <p className="text-xs text-muted-foreground">{action.description}</p>
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all mt-1" />
