@@ -116,6 +116,19 @@ function DashboardBody() {
   const { l1s: managedL1s, isLoading, error, refetch } = useMyL1s();
   const walletL1s = useL1List();
 
+  // Total active managed nodes across the user's account — drives the
+  // "X/3 total" hint and disables the Provision button when at cap. Sum
+  // is computed locally from the existing useMyL1s payload so we don't
+  // need a separate /api/managed-testnet-nodes fetch.
+  const userActiveNodeTotal = useMemo(
+    () =>
+      managedL1s.reduce(
+        (acc, l) => acc + (l.nodes?.filter((n) => n.status === 'active').length ?? 0),
+        0,
+      ),
+    [managedL1s],
+  );
+
   // Index wallet entries by chainId so managed entries can borrow their
   // metadata fields (validator manager address, teleporter registry, etc.).
   const walletByChainId = useMemo(() => {
@@ -230,7 +243,11 @@ function DashboardBody() {
             onRefresh={refetch}
           />
           {selectedL1 && selectedL1.status === 'active' && (
-            <L1Details l1={selectedL1} onRefetch={refetch} />
+            <L1Details
+              l1={selectedL1}
+              userActiveNodeTotal={userActiveNodeTotal}
+              onRefetch={refetch}
+            />
           )}
         </>
       ) : (
@@ -506,7 +523,15 @@ function ExpiryPill({ expiresAt }: { expiresAt: string }) {
 // ---------------------------------------------------------------------------
 // L1 Details
 // ---------------------------------------------------------------------------
-function L1Details({ l1, onRefetch }: { l1: CombinedL1; onRefetch: () => void }) {
+function L1Details({
+  l1,
+  userActiveNodeTotal,
+  onRefetch,
+}: {
+  l1: CombinedL1;
+  userActiveNodeTotal: number;
+  onRefetch: () => void;
+}) {
   // Live RPC probe — block height, age, gas price refreshed every 30s. Not
   // surfaced as a coloured "degraded/live" pill anywhere; just descriptive
   // metrics so the page doesn't pretend to know more than it does.
@@ -527,7 +552,7 @@ function L1Details({ l1, onRefetch }: { l1: CombinedL1; onRefetch: () => void })
       {l1.source === 'wallet' && <WalletOnlyActions l1={l1} />}
       <NetworkDetailsCard l1={l1} />
       {l1.source === 'managed' && l1.nodes && l1.nodes.length > 0 && (
-        <NodeListCard l1={l1} onRefetch={onRefetch} />
+        <NodeListCard l1={l1} userActiveTotal={userActiveNodeTotal} onRefetch={onRefetch} />
       )}
     </div>
   );
@@ -1134,14 +1159,21 @@ function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
   );
 }
 
-function NodeListCard({ l1, onRefetch }: { l1: CombinedL1; onRefetch: () => void }) {
+function NodeListCard({
+  l1,
+  userActiveTotal,
+  onRefetch,
+}: {
+  l1: CombinedL1;
+  userActiveTotal: number;
+  onRefetch: () => void;
+}) {
   const nodes = l1.nodes ?? [];
   const activeCount = nodes.filter((n) => n.status === 'active').length;
-  const userActiveTotal = useUserActiveNodeCount();
   // Builder Hub enforces a per-user cap of 3 active nodes across all L1s.
   // Disable the provision button proactively when the user is at that limit
   // so they don't hit a 429 mid-click.
-  const atUserCap = userActiveTotal !== null && userActiveTotal >= 3;
+  const atUserCap = userActiveTotal >= 3;
 
   return (
     <Card>
@@ -1195,8 +1227,7 @@ function NodeListCard({ l1, onRefetch }: { l1: CombinedL1; onRefetch: () => void
             <ChevronRight className="w-4 h-4 ml-1" />
           </Link>
           <span className="text-xs text-muted-foreground">
-            {activeCount} active on this L1
-            {userActiveTotal !== null && ` · ${userActiveTotal}/3 total across your account`}
+            {activeCount} active on this L1 · {userActiveTotal}/3 total across your account
           </span>
         </div>
       </CardContent>
@@ -1353,27 +1384,6 @@ function DeleteNodeButton({
   );
 }
 
-// Read the user's total active managed-node count across all L1s. Single
-// shared fetch; cached in memory until the page unmounts. Refetches when
-// the page is refreshed.
-function useUserActiveNodeCount(): number | null {
-  const [count, setCount] = useState<number | null>(null);
-  useEffect(() => {
-    const ac = new AbortController();
-    fetch('/api/managed-testnet-nodes', { credentials: 'include', signal: ac.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        if (!json) return;
-        const total = typeof json.total === 'number' ? json.total : Array.isArray(json.nodes) ? json.nodes.length : null;
-        setCount(total);
-      })
-      .catch(() => {
-        /* swallow — disabled-state safety check, not critical */
-      });
-    return () => ac.abort();
-  }, []);
-  return count;
-}
 
 // ---------------------------------------------------------------------------
 // Empty / error / skeleton states
