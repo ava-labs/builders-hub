@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { Activity, Check, Copy } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
@@ -94,12 +93,6 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
         {/* Primary action when the wallet isn't on this L1. Renders nothing
             otherwise — replaces the old full-width banner. */}
         <WalletNetworkAction l1={l1} />
-        <Link href={`/console/my-l1/stats/${l1.evmChainId ?? l1.subnetId}`}>
-          <Button variant="outline" size="sm">
-            <Activity className="w-4 h-4 mr-2" />
-            View Stats
-          </Button>
-        </Link>
         <ExplorerMenu
           evmChainId={l1.evmChainId}
           isTestnet={l1.isTestnet}

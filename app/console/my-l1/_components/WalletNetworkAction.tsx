@@ -11,9 +11,9 @@ import { toast } from '@/lib/toast';
 import type { CombinedL1 } from '../_lib/types';
 
 // Inline header action that replaces the old full-width "Wallet on a different
-// chain…" banner. Lives next to View Stats / Open Explorer in DetailHeader so
-// the user can switch networks without losing a vertical row to a banner that
-// just states the obvious.
+// chain…" banner. Lives next to Open Explorer in DetailHeader so the user
+// can switch networks without losing a vertical row to a banner that just
+// states the obvious.
 //
 // Three states:
 //   - wallet IS on this L1     → returns null (no UI)
