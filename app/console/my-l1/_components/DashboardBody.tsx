@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMyL1s } from '@/hooks/useMyL1s';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
@@ -173,13 +173,34 @@ export function DashboardBody() {
         onRefresh={refetch}
         isRefreshing={isLoading}
       />
-      {selectedL1 && selectedL1.status === 'active' && (
-        <L1Details
-          l1={selectedL1}
-          userActiveNodeTotal={userActiveNodeTotal}
-          onRefetch={refetch}
-        />
-      )}
+      {/* mode="wait" so the previous L1's cascade exits cleanly before the
+          newly-selected L1 mounts in. Keyed by chainId/subnetId so picking
+          a different L1 actually remounts (and re-fires the inner section
+          cascade) — without the key, only props change and the new chain
+          would pop in without animation. `initial={false}` skips the
+          initial mount fade since the parent motion.div already handles
+          the page-level skeleton-to-content fade. */}
+      <AnimatePresence mode="wait" initial={false}>
+        {selectedL1 && selectedL1.status === 'active' && (
+          <motion.div
+            key={
+              selectedL1.evmChainId !== null
+                ? `chain:${selectedL1.evmChainId}`
+                : `subnet:${selectedL1.subnetId}`
+            }
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          >
+            <L1Details
+              l1={selectedL1}
+              userActiveNodeTotal={userActiveNodeTotal}
+              onRefetch={refetch}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
