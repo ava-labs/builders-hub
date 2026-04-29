@@ -133,7 +133,10 @@ function SwitcherSection({
                   title="Your wallet is currently on this L1"
                   aria-hidden="true"
                 >
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping" />
+                  {/* Slowed the default `animate-ping` (1s → 2.4s) and dropped
+                      the ring opacity (0.75 → 0.4) so the indicator reads as
+                      a passive breath instead of an alert. */}
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40 animate-ping [animation-duration:2.4s]" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                 </span>
               )}
