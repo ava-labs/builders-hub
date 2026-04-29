@@ -127,6 +127,12 @@ function AddChainModalInner() {
       setValue('chainId', '');
       setValue('chainName', '');
       setValue('logoUrl', '');
+      // Seed isTestnet from the caller's authoritative flag so the
+      // DetectedChainCard badge reflects the known network even before
+      // Glacier responds, and stays correct if Glacier later disagrees.
+      if (options?.isTestnet !== undefined) {
+        setValue('isTestnet', options.isTestnet);
+      }
 
       if (!rpcUrl) {
         setIsFetchingChainData(false);
@@ -153,7 +159,10 @@ function AddChainModalInner() {
         const blockchainInfo = await getBlockchainInfo(avalancheChainId);
         setValue('subnetId', blockchainInfo.subnetId);
         setValue('chainName', blockchainInfo.blockchainName || '');
-        setValue('isTestnet', blockchainInfo.isTestnet);
+        // Caller-supplied isTestnet wins — Glacier silently falls back to
+        // mainnet on a 404, which mislabels brand-new testnet L1s that
+        // haven't been indexed yet.
+        setValue('isTestnet', options?.isTestnet !== undefined ? options.isTestnet : blockchainInfo.isTestnet);
         setValue('wrappedTokenAddress', '');
 
         const subnetInfo = await getSubnetInfo(blockchainInfo.subnetId);
