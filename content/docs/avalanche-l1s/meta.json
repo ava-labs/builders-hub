@@ -11,7 +11,7 @@
     "---Overview---",
     "index",
     "validator-manager/contract",
-     "---Network Upgrades---",
+    "---Network Upgrades---",
     "...upgrade",
     "---EVM Configuration---",
     "...evm-configuration/evm-l1-customization",
@@ -24,6 +24,8 @@
     "manage-vm-binaries",
     "golang-vms",
     "rust-vms",
-    "timestamp-vm"
+    "timestamp-vm",
+    "---Maintenance---",
+    "...maintain"
   ]
 }
