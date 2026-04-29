@@ -70,7 +70,7 @@ export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
           : `Next setup step: ${nextStep.shortLabel}. ${done} of ${steps.length} complete.`
       }
       aria-busy={isSwitching}
-      className="group flex items-center gap-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] hover:bg-amber-500/[0.1] transition-colors px-4 py-3.5"
+      className="group flex items-center gap-4 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.08] to-amber-500/[0.04] hover:from-amber-500/[0.12] hover:to-amber-500/[0.06] transition-colors px-4 py-3.5"
     >
       <div
         className="shrink-0 w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center"
