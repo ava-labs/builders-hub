@@ -165,7 +165,10 @@ export const getL1ListStore = (isTestnet: boolean) => {
       testnetStoreSingleton = create(
         persist(
           combine(l1ListInitialStateFuji, (set, get) => ({
-            addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
+            // Force isTestnet=true so the testnet store invariant holds even
+            // when callers pass a wrong/stale flag (e.g. Glacier's mainnet
+            // fallback for a brand-new Fuji L1).
+            addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, { ...l1, isTestnet: true }] })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             setNativeCurrencyInfo: (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
               set((state) => ({
@@ -202,7 +205,8 @@ export const getL1ListStore = (isTestnet: boolean) => {
       mainnetStoreSingleton = create(
         persist(
           combine(l1ListInitialStateMainnet, (set, get) => ({
-            addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
+            // Force isTestnet=false to keep the mainnet store invariant.
+            addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, { ...l1, isTestnet: false }] })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             setNativeCurrencyInfo: (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
               set((state) => ({
