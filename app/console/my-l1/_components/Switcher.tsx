@@ -132,10 +132,10 @@ function SwitcherSection({
               aria-label={`${l1.chainName} (chain ${l1.evmChainId ?? 'unknown'})${
                 walletIsHere ? ' — wallet currently on this L1' : ''
               }${isActive ? ' — selected' : ''}`}
-              className={`group flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all w-full sm:w-auto ${
+              className={`group flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all duration-150 w-full sm:w-auto ${
                 isActive
                   ? 'border-primary bg-primary/10 text-foreground'
-                  : 'border-border bg-card hover:border-foreground/30 text-muted-foreground hover:text-foreground'
+                  : 'border-border bg-card hover:border-foreground/30 hover:-translate-y-px hover:shadow-sm text-muted-foreground hover:text-foreground'
               }`}
             >
               {walletIsHere && (

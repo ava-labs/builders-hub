@@ -274,7 +274,7 @@ function SetupStatusPill({ l1 }: { l1: CombinedL1 }) {
               ? `Configuration ${done} of ${steps.length} complete. Next step: ${nextStep.shortLabel}. Click to view checklist.`
               : `Configuration ${done} of ${steps.length} complete. Click to view checklist.`
           }
-          className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+          className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 hover:border-amber-500/60 hover:shadow-sm transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
         >
           <span>
             {done}/{steps.length} configured
