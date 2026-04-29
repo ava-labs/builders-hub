@@ -245,7 +245,16 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
   const handleAddToWallet = async () => {
     setAddingToWallet(true);
     try {
-      await addChain({ rpcUrl: result.rpcUrl, allowLookup: false });
+      await addChain({
+        rpcUrl: result.rpcUrl,
+        allowLookup: false,
+        // Quick L1 deploys are pinned to a known network at request time;
+        // use that as the authoritative isTestnet flag so the resulting
+        // L1ListItem matches reality even if Glacier hasn't indexed the
+        // brand-new chain yet (in which case it would otherwise fall back
+        // to mainnet and mislabel the chain in the dashboard).
+        isTestnet: job.request.network === 'fuji',
+      });
     } finally {
       setAddingToWallet(false);
     }
