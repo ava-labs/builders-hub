@@ -42,7 +42,15 @@ export function L1Details({
     >
       <motion.section className="space-y-4" variants={sectionItem}>
         <DetailHeader l1={l1} health={health} />
-        {!isComplete && <NextActionBar l1={l1} />}
+        {/* Setup status sits directly under the header — the badge when the
+            L1 is fully configured (an "all good" affirmation) and the
+            NextActionBar with its CTA when it isn't. Keeps the most
+            important "what should I do next?" surface above the fold. */}
+        {isComplete ? (
+          <SetupCompleteBadge stepCount={setup.steps.length} />
+        ) : (
+          <NextActionBar l1={l1} />
+        )}
       </motion.section>
 
       {/* Reference data the user copies most (RPC URL, subnet/blockchain/EVM
@@ -60,11 +68,10 @@ export function L1Details({
         <LiveCharts l1={l1} />
       </motion.div>
 
-      {isComplete ? (
-        <motion.div variants={sectionItem}>
-          <SetupCompleteBadge stepCount={setup.steps.length} />
-        </motion.div>
-      ) : (
+      {/* The full setup checklist only renders below the charts when there's
+          something to act on. Once complete, the top-of-page badge is the
+          only setup affordance — no need to repeat it down here. */}
+      {!isComplete && (
         <DashboardSection title="Setup progress">
           <SetupProgressCard l1={l1} fullWidth />
         </DashboardSection>
