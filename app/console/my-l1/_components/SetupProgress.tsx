@@ -48,13 +48,13 @@ export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
 // Slim "all done" pill that takes the place of the SetupProgressCard once
 // every step is completed. Avoids the noisy 5-row checklist when there's
 // nothing left to act on.
-export function SetupCompleteBadge() {
+export function SetupCompleteBadge({ stepCount }: { stepCount: number }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/30 text-sm">
       <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
       <span className="font-medium text-emerald-900 dark:text-emerald-200">L1 fully configured</span>
       <span className="text-emerald-800/70 dark:text-emerald-200/60 hidden sm:inline">
-        All 5 setup steps complete.
+        All {stepCount} setup steps complete.
       </span>
     </div>
   );

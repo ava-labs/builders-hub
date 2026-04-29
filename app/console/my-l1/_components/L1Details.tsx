@@ -30,8 +30,8 @@ export function L1Details({
   const health = useL1Health(l1.rpcUrl, l1.evmChainId);
   const validators = useL1ValidatorCount(l1.subnetId, l1.isTestnet);
   const isManaged = l1.source === 'managed';
-  const setup = isManaged ? setupSummary(l1) : null;
-  const isComplete = setup?.pct === 100;
+  const setup = setupSummary(l1);
+  const isComplete = setup.pct === 100;
 
   return (
     <motion.div
@@ -42,7 +42,7 @@ export function L1Details({
     >
       <motion.section className="space-y-4" variants={sectionItem}>
         <DetailHeader l1={l1} health={health} />
-        {isManaged && !isComplete && <NextActionBar l1={l1} />}
+        {!isComplete && <NextActionBar l1={l1} />}
       </motion.section>
 
       {/* Reference data the user copies most (RPC URL, subnet/blockchain/EVM
@@ -60,16 +60,15 @@ export function L1Details({
         <LiveCharts l1={l1} />
       </motion.div>
 
-      {isManaged &&
-        (isComplete ? (
-          <motion.div variants={sectionItem}>
-            <SetupCompleteBadge />
-          </motion.div>
-        ) : (
-          <DashboardSection title="Setup progress">
-            <SetupProgressCard l1={l1} fullWidth />
-          </DashboardSection>
-        ))}
+      {isComplete ? (
+        <motion.div variants={sectionItem}>
+          <SetupCompleteBadge stepCount={setup.steps.length} />
+        </motion.div>
+      ) : (
+        <DashboardSection title="Setup progress">
+          <SetupProgressCard l1={l1} fullWidth />
+        </DashboardSection>
+      )}
 
       {isManaged && l1.nodes && l1.nodes.length > 0 && (
         <DashboardSection title="Node fleet">

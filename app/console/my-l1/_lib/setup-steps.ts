@@ -26,7 +26,7 @@ export function getSetupSteps(l1: CombinedL1): SetupStep[] {
   const hasIcm = !!l1.teleporterRegistryAddress;
   const hasBridge = !!l1.wrappedTokenAddress;
 
-  return [
+  const steps: SetupStep[] = [
     {
       key: 'created',
       label: 'L1 created',
@@ -36,7 +36,14 @@ export function getSetupSteps(l1: CombinedL1): SetupStep[] {
       href: '/console/create-l1',
       icon: Layers,
     },
-    {
+  ];
+
+  // The "provision a managed node" step is only meaningful for L1s that
+  // Builder Hub manages. Wallet-added L1s run on whatever infra the owner
+  // chose, so dropping the step keeps their checklist accurate (4 items
+  // they can actually act on, not 5 with one that doesn't apply).
+  if (l1.source === 'managed') {
+    steps.push({
       key: 'node',
       label: 'Managed node provisioned',
       shortLabel: 'Provision a managed node',
@@ -44,7 +51,10 @@ export function getSetupSteps(l1: CombinedL1): SetupStep[] {
       completed: hasNode,
       href: '/console/testnet-infra/nodes',
       icon: Server,
-    },
+    });
+  }
+
+  steps.push(
     {
       key: 'vm',
       label: 'Validator Manager configured',
@@ -72,7 +82,9 @@ export function getSetupSteps(l1: CombinedL1): SetupStep[] {
       href: '/console/ictt/setup',
       icon: ArrowUpDown,
     },
-  ];
+  );
+
+  return steps;
 }
 
 export function setupSummary(l1: CombinedL1): {
