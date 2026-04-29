@@ -46,6 +46,9 @@ const RANGE_OPTIONS = [
 
 interface ChartPoint {
   block: number;
+  /** Unix seconds (block.timestamp). Carried through so the tooltip can
+   *  show when the block was mined, not just its height. */
+  timestamp: number;
   blockTime: number;
   txCount: number;
   gasUtilization: number;
@@ -67,6 +70,7 @@ function buildChartPoints(blocks: BlockSummary[]): ChartPoint[] {
       cur.baseFeePerGas !== null ? Number(cur.baseFeePerGas) / 1e9 : null;
     points.push({
       block: Number(cur.number),
+      timestamp: Number(cur.timestamp),
       blockTime,
       txCount: cur.txCount,
       gasUtilization: utilizationPct,
@@ -415,7 +419,9 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
 
 // Custom Recharts tooltip — solid background so it reads cleanly over any
 // chart/page combo, with a coloured pill matching the series accent so the
-// user can tell at a glance which chart they're hovering.
+// user can tell at a glance which chart they're hovering. Also surfaces the
+// block timestamp (mined time) so users can correlate hover blocks with
+// real-world events without cross-referencing the explorer.
 function ChartTooltip({
   active,
   payload,
@@ -425,7 +431,9 @@ function ChartTooltip({
   seriesName,
 }: {
   active?: boolean;
-  payload?: Array<{ value: number | string | null }>;
+  // Recharts gives us `payload[0].payload` — the full data point — so we
+  // can pull the timestamp without bolting on a second prop on every chart.
+  payload?: Array<{ value: number | string | null; payload?: ChartPoint }>;
   label?: number | string;
   color: string;
   formatValue: (v: number | string | null | undefined) => string;
@@ -433,9 +441,27 @@ function ChartTooltip({
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const value = payload[0]?.value;
+  const ts = payload[0]?.payload?.timestamp;
+  // Locale-aware short date + HH:MM:SS — readable for fresh blocks (where
+  // hovering across a window typically spans minutes) and still useful when
+  // the user pans into older history. `undefined` locale falls back to the
+  // browser's locale automatically.
+  const dateLabel = typeof ts === 'number' && Number.isFinite(ts)
+    ? new Date(ts * 1000).toLocaleString(undefined, {
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
+    : null;
   return (
     <div className="rounded-md border border-border bg-popover/95 backdrop-blur shadow-lg px-3 py-2 text-xs">
-      <div className="font-medium text-foreground mb-1">Block #{label}</div>
+      <div className="font-medium text-foreground">Block #{label}</div>
+      {dateLabel && (
+        <div className="text-[10px] text-muted-foreground tabular-nums mb-1">{dateLabel}</div>
+      )}
       <div className="flex items-center gap-2">
         <span
           className="inline-block w-2 h-2 rounded-full"
