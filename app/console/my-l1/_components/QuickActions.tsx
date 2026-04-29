@@ -175,13 +175,19 @@ function QuickActionTile({ action }: { action: QuickAction }) {
 
   if (action.external) {
     return (
-      <a href={action.href} target="_blank" rel="noopener noreferrer" className="group block">
+      <a
+        href={action.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group block"
+        aria-label={`${action.title} (opens in a new tab)`}
+      >
         {Body}
       </a>
     );
   }
   return (
-    <Link href={action.href} className="group block">
+    <Link href={action.href} className="group block" aria-label={action.title}>
       {Body}
     </Link>
   );

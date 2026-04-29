@@ -42,6 +42,9 @@ export function StatsGrid({
         initial={{ opacity: 0.55, y: -2 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label={`Latest block ${blockValueText}`}
       >
         {blockValueText}
       </motion.span>

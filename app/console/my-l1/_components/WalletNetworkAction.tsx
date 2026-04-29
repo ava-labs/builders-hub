@@ -64,12 +64,14 @@ export function WalletNetworkAction({ l1 }: { l1: CombinedL1 }) {
   };
 
   if (isInWallet) {
+    const switchLabel = `Switch wallet to ${l1.chainName} (chain ${l1.evmChainId}) so you can sign here.`;
     return (
       <Button
         onClick={handleSwitch}
         disabled={isSwitching}
         size="sm"
-        title={`Switch wallet to ${l1.chainName} (chain ${l1.evmChainId}) so you can sign here.`}
+        title={switchLabel}
+        aria-label={switchLabel}
       >
         <ArrowLeftRight className="w-4 h-4 mr-2" />
         {isSwitching ? 'Switching…' : 'Switch Wallet'}
@@ -77,11 +79,13 @@ export function WalletNetworkAction({ l1 }: { l1: CombinedL1 }) {
     );
   }
 
+  const addLabel = `Add ${l1.chainName} (chain ${l1.evmChainId}) to your wallet.`;
   return (
     <Button
       onClick={handleAddToWallet}
       size="sm"
-      title={`Add ${l1.chainName} (chain ${l1.evmChainId}) to your wallet.`}
+      title={addLabel}
+      aria-label={addLabel}
     >
       <Wallet className="w-4 h-4 mr-2" />
       Add to Wallet

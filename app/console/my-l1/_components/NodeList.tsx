@@ -156,6 +156,11 @@ function ProvisionNodeButton({
         onClick={handleClick}
         disabled={disabled || isSubmitting}
         title={disabledReason}
+        aria-label={
+          disabledReason
+            ? `Provision another node — ${disabledReason}`
+            : 'Provision another node'
+        }
       >
         {isSubmitting ? 'Provisioning…' : success ? 'Provisioned' : 'Provision another node'}
       </Button>
