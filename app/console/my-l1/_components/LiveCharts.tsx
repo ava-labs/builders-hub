@@ -236,6 +236,10 @@ function RangeSelector({
       </span>
       {RANGE_OPTIONS.map((opt) => {
         const isActive = value === opt.count;
+        // Time hint is computed but not rendered inline — surfaced only on
+        // hover via the `title` attribute so the pill stays compact and
+        // readable. The (i) tooltip beside the section title still shows
+        // the active window's full time span.
         const hint =
           avgBlockTimeSec !== null
             ? formatDurationShort(opt.count * avgBlockTimeSec)
@@ -246,22 +250,13 @@ function RangeSelector({
             type="button"
             onClick={() => onChange(opt.count)}
             title={hint ? `${opt.label} blocks · ~${hint}` : `${opt.label} blocks`}
-            className={`px-2 py-1 rounded-md transition-colors cursor-pointer flex items-baseline gap-1 ${
+            className={`px-2 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer tabular-nums ${
               isActive
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="text-xs font-medium tabular-nums">{opt.label}</span>
-            {hint && (
-              <span
-                className={`text-[10px] tabular-nums ${
-                  isActive ? 'text-muted-foreground' : 'opacity-60'
-                }`}
-              >
-                ~{hint}
-              </span>
-            )}
+            {opt.label}
           </button>
         );
       })}
@@ -305,38 +300,26 @@ function ChartsSkeleton() {
   );
 }
 
-// Shared X-axis renderer driven by the section-level toggle. In `block`
-// mode the axis is the EVM block number (best for "what happened at block
-// 5417946"). In `time` mode it's the Unix timestamp formatted as HH:MM:SS
-// (best for "what was the chain doing around 3pm"). The recharts `syncId`
-// on each chart container does the cross-chart cursor mirror in either
-// mode because every chart uses the same dataKey.
-function TimeOrBlockAxis({ xAxisMode }: { xAxisMode: XAxisMode }) {
-  return (
-    <XAxis
-      dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
-      // For timestamp mode, narrow the type since `tickFormatter` runs on
-      // numbers either way. Falls back to a no-op for block mode so the
-      // raw integer renders as-is.
-      tickFormatter={
-        xAxisMode === 'time'
-          ? (v: number) =>
-              new Date(v * 1000).toLocaleTimeString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-              })
-          : undefined
-      }
-      // Same axis space, different label density — fewer ticks for time
-      // since "HH:MM:SS" is wider than a 7-digit block number.
-      minTickGap={xAxisMode === 'time' ? 60 : 24}
-      tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-      tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-      axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-    />
-  );
+// Common X-axis tick styling shared across all four charts. Inlined into
+// each `<XAxis>` rather than wrapped in a custom component because Recharts
+// uses runtime child-type reflection on the chart container to find its
+// axes — wrapping `<XAxis>` in any non-recharts component makes Recharts
+// blind to it and the axis disappears.
+const X_AXIS_TICK_PROPS = {
+  tick: { fontSize: 10, fill: AXIS_TICK_COLOR },
+  tickLine: { stroke: GRID_STROKE, strokeOpacity: 0.4 },
+  axisLine: { stroke: GRID_STROKE, strokeOpacity: 0.4 },
+} as const;
+
+// Format a Unix-second timestamp as locale-aware HH:MM:SS for X-axis ticks
+// when the section toggle is set to `time` mode.
+function formatTimeTick(v: number): string {
+  return new Date(v * 1000).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
 }
 
 function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: XAxisMode }) {
@@ -376,7 +359,12 @@ function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: 
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
-            <TimeOrBlockAxis xAxisMode={xAxisMode} />
+            <XAxis
+              dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
+              tickFormatter={xAxisMode === 'time' ? formatTimeTick : undefined}
+              minTickGap={xAxisMode === 'time' ? 60 : 24}
+              {...X_AXIS_TICK_PROPS}
+            />
             <YAxis
               tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
               tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
@@ -421,7 +409,12 @@ function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: 
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
-            <TimeOrBlockAxis xAxisMode={xAxisMode} />
+            <XAxis
+              dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
+              tickFormatter={xAxisMode === 'time' ? formatTimeTick : undefined}
+              minTickGap={xAxisMode === 'time' ? 60 : 24}
+              {...X_AXIS_TICK_PROPS}
+            />
             <YAxis
               tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
               tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
@@ -463,7 +456,12 @@ function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: 
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
-            <TimeOrBlockAxis xAxisMode={xAxisMode} />
+            <XAxis
+              dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
+              tickFormatter={xAxisMode === 'time' ? formatTimeTick : undefined}
+              minTickGap={xAxisMode === 'time' ? 60 : 24}
+              {...X_AXIS_TICK_PROPS}
+            />
             <YAxis
               domain={[0, 100]}
               tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
@@ -506,7 +504,12 @@ function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: 
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
-              <TimeOrBlockAxis xAxisMode={xAxisMode} />
+              <XAxis
+                dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
+                tickFormatter={xAxisMode === 'time' ? formatTimeTick : undefined}
+                minTickGap={xAxisMode === 'time' ? 60 : 24}
+                {...X_AXIS_TICK_PROPS}
+              />
               <YAxis
                 tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
                 tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
