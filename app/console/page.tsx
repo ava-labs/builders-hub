@@ -340,6 +340,28 @@ function ConsoleDashboard() {
           animation: chevronBounce 0.7s ease-in-out;
         }
 
+        /* OS-level reduce-motion preference. Framer-motion variants respect
+           this automatically — these raw CSS keyframes/transitions don't
+           unless we silence them explicitly. */
+        @media (prefers-reduced-motion: reduce) {
+          .group:hover .bell-jingle,
+          .group:hover .chevron-bounce {
+            animation: none !important;
+          }
+          /* Inline cardPulse styles on bento cards — substring match is the
+             only stable hook since those are set per-element via style={}. */
+          [style*="cardPulse"] {
+            animation: none !important;
+          }
+          .layers-fan path,
+          .faucet-gleam,
+          .avax-split path,
+          .dash-panels rect,
+          .arrows-zip g {
+            transition: none !important;
+          }
+        }
+
       `}</style>
       {/* Grid background */}
       <div
