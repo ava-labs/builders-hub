@@ -1,14 +1,19 @@
 "use client"
 
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/content-design/theme-observer"
 import { Toaster as Sonner, ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  // Use the project's MutationObserver-based theme hook (returns
+  // 'light' | 'dark') instead of next-themes — the latter isn't actually
+  // wired into the layout and would resolve to undefined → Sonner's
+  // 'system' fallback, which detects OS preference and could mismatch
+  // the site's chosen theme.
+  const theme = useTheme()
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme}
       className="toaster group"
       style={
         {
