@@ -72,6 +72,20 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
             )}
             {l1.source === 'wallet' && <MetaPill>Wallet</MetaPill>}
             {l1.coinName && <MetaPill>{l1.coinName}</MetaPill>}
+            {/* Explicit positive signal that the wallet is on this chain.
+                Without it the only cue was the absence of the "Switch
+                Wallet" button in the actions row — easy to miss. */}
+            {isWalletOnThisL1 && (
+              <MetaPill tone="walletActive">
+                <span className="flex items-center gap-1">
+                  <span className="relative flex w-1.5 h-1.5" aria-hidden="true">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40 animate-ping [animation-duration:2.4s]" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                  </span>
+                  Wallet active
+                </span>
+              </MetaPill>
+            )}
             <SetupStatusPill l1={l1} />
           </div>
           {isWalletOnThisL1 && balance !== null && (
@@ -288,14 +302,16 @@ function MetaPill({
   tone,
 }: {
   children: React.ReactNode;
-  tone?: 'testnet' | 'mainnet';
+  tone?: 'testnet' | 'mainnet' | 'walletActive';
 }) {
   const toneClass =
     tone === 'testnet'
       ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
       : tone === 'mainnet'
         ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
-        : 'bg-muted text-muted-foreground border-border';
+        : tone === 'walletActive'
+          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+          : 'bg-muted text-muted-foreground border-border';
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${toneClass}`}
