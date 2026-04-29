@@ -4,22 +4,7 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { ReportIssueButton } from '@/components/console/report-issue-button';
 import { EditOnGitHubButton } from '@/components/console/edit-on-github-button';
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: 'spring' as const, stiffness: 200, damping: 24 },
-  },
-};
+import { sectionContainer, sectionItem } from '@/components/console/motion';
 
 interface ContainerProps {
   title: string;
@@ -37,8 +22,8 @@ interface ContainerProps {
  */
 export function Container({ title, children, description, githubUrl }: ContainerProps) {
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible">
-      <motion.div variants={itemVariants}>
+    <motion.div variants={sectionContainer} initial="hidden" animate="visible">
+      <motion.div variants={sectionItem}>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-6 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex flex-col gap-1.5 min-w-0">
             <h1 className="text-2xl font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -61,7 +46,7 @@ export function Container({ title, children, description, githubUrl }: Container
           </div>
         </div>
       </motion.div>
-      <motion.div className="space-y-6 mt-6" variants={itemVariants}>
+      <motion.div className="space-y-6 mt-6" variants={sectionItem}>
         {children}
       </motion.div>
     </motion.div>

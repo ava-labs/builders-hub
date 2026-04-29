@@ -10,22 +10,7 @@ import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completio
 import { getFlowMetadata, type FlowMetadata } from "@/components/console/console-flows";
 import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
 import { ChainGate } from "@/components/toolbox/components/ChainGate";
-
-const flowContainerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
-  },
-};
-
-const flowItemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 200, damping: 24 },
-  },
-};
+import { sectionContainer, sectionItem } from "@/components/console/motion";
 
 /**
  * Chain requirement for a step. StepFlow checks the wallet's active chain
@@ -251,11 +236,11 @@ export default function StepFlow({
   return (
     <motion.div
       className={className}
-      variants={flowContainerVariants}
+      variants={sectionContainer}
       initial="hidden"
       animate="visible"
     >
-      <motion.nav className={compact ? "mb-3" : "mb-6"} variants={flowItemVariants}>
+      <motion.nav className={compact ? "mb-3" : "mb-6"} variants={sectionItem}>
         <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
           {steps.map((s, stepIdx) => {
             const isDoneStep = stepIdx < currentIndex;
@@ -351,7 +336,7 @@ export default function StepFlow({
         </ol>
       </motion.nav>
 
-      <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={flowItemVariants}>
+      <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={sectionItem}>
         <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
           <StepErrorBoundary>
             <ChainGate requiredChain={currentStep.requiredChain}>

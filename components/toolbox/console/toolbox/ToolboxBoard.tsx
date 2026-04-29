@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { ChevronRight, ExternalLink, Search, Star, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFavoriteTools } from '@/hooks/useFavoriteTools';
+import { boardContainer, boardItem } from '@/components/console/motion';
 import { TOOLS, CATEGORY_ORDER, type ToolCard } from './tools';
 
 // Star control rendered absolutely in the top-right of every toolbox tile.
@@ -74,23 +75,6 @@ function StarButton({
   );
 }
 
-// Framer variants — staggered children entrance matching console homepage.
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.04, delayChildren: 0.08 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: 'spring' as const, stiffness: 240, damping: 22 },
-  },
-};
-
 const STARRED_TILE_PATTERN: CSSProperties = {
   backgroundImage:
     'repeating-linear-gradient(135deg, rgba(113, 113, 122, 0.14) 0px, rgba(113, 113, 122, 0.14) 1px, transparent 1px, transparent 8px)',
@@ -120,7 +104,7 @@ function ToolTile({
   const Icon = tool.icon;
 
   const card = (
-    <motion.div variants={itemVariants} className="h-full">
+    <motion.div variants={boardItem} className="h-full">
       <motion.div
         whileHover={{ y: -2 }}
         transition={{ type: 'spring' as const, stiffness: 400, damping: 25 }}
@@ -244,7 +228,7 @@ function FeaturedTile({
   const scheme = DEFAULT_SCHEME;
 
   const content = (
-    <motion.div variants={itemVariants} className="h-full">
+    <motion.div variants={boardItem} className="h-full">
       <motion.div
         whileHover={{ y: -2 }}
         transition={{ type: 'spring' as const, stiffness: 400, damping: 25 }}
@@ -402,7 +386,7 @@ export default function ToolboxBoard() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400">No tools match &ldquo;{search}&rdquo;</p>
           </div>
         ) : (
-          <motion.div className="space-y-10" variants={containerVariants} initial="hidden" animate="visible">
+          <motion.div className="space-y-10" variants={boardContainer} initial="hidden" animate="visible">
             {grouped.map(({ category, tools }) => {
               // Keep the same hierarchy during search. If the category's
               // featured tool is part of the filtered result, it stays large

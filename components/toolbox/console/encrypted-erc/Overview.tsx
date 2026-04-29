@@ -24,19 +24,7 @@ import { useEERCRegistration } from '@/hooks/eerc/useEERCRegistration';
 import { listKnownChains } from '@/lib/eerc/deployments';
 import { loadIdentity } from '@/lib/eerc/identity';
 import { cn } from '@/lib/utils';
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.05, delayChildren: 0.08 } },
-};
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: 'spring' as const, stiffness: 240, damping: 22 },
-  },
-};
+import { boardContainer, boardItem } from '@/components/console/motion';
 
 function Overview() {
   const { address } = useAccount();
@@ -238,30 +226,25 @@ function Overview() {
         }}
       />
 
-      <motion.div
-        className="relative max-w-6xl mx-auto"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3" variants={itemVariants}>
+      <motion.div className="relative max-w-6xl mx-auto" variants={boardContainer} initial="hidden" animate="visible">
+        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3" variants={boardItem}>
           {/* ROW 1: Hero (6 cols) */}
           <HeroCard address={address} isRegistered={isRegistered} hasIdentity={hasIdentity} />
         </motion.div>
 
-        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3" variants={containerVariants}>
+        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3" variants={boardContainer}>
           {/* ROW 2: Journey (4) + Canonical Deployment (2) */}
-          <motion.div className="md:col-span-4" variants={itemVariants}>
+          <motion.div className="md:col-span-4" variants={boardItem}>
             <JourneyCard stepsDone={stepsDone} />
           </motion.div>
-          <motion.div className="md:col-span-2" variants={itemVariants}>
+          <motion.div className="md:col-span-2" variants={boardItem}>
             <CanonicalDeploymentCard known={known} />
           </motion.div>
         </motion.div>
 
         {/* ROW 3: Bubble-nav for every sub-tool that used to live in the sidebar. */}
-        <motion.div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-3" variants={containerVariants}>
-          <motion.div variants={itemVariants}>
+        <motion.div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-3" variants={boardContainer}>
+          <motion.div variants={boardItem}>
             <ActionTile
               href="/console/encrypted-erc/register"
               accent="emerald"
@@ -271,7 +254,7 @@ function Overview() {
               status={stepsDone.has('register') ? 'done' : stepsDone.has('connect') ? 'next' : undefined}
             />
           </motion.div>
-          <motion.div variants={itemVariants}>
+          <motion.div variants={boardItem}>
             <ActionTile
               href="/console/encrypted-erc/deposit"
               accent="blue"
@@ -281,7 +264,7 @@ function Overview() {
               status={stepsDone.has('deposit') ? 'done' : stepsDone.has('register') ? 'next' : undefined}
             />
           </motion.div>
-          <motion.div variants={itemVariants}>
+          <motion.div variants={boardItem}>
             <ActionTile
               href="/console/encrypted-erc/transfer"
               accent="violet"
@@ -291,7 +274,7 @@ function Overview() {
               status={stepsDone.has('deposit') ? 'available' : undefined}
             />
           </motion.div>
-          <motion.div variants={itemVariants}>
+          <motion.div variants={boardItem}>
             <ActionTile
               href="/console/encrypted-erc/withdraw"
               accent="rose"
@@ -301,7 +284,7 @@ function Overview() {
               status={stepsDone.has('deposit') ? 'available' : undefined}
             />
           </motion.div>
-          <motion.div variants={itemVariants}>
+          <motion.div variants={boardItem}>
             <ActionTile
               href="/console/encrypted-erc/balance"
               accent="amber"
@@ -311,7 +294,7 @@ function Overview() {
               status={stepsDone.has('deposit') ? 'available' : undefined}
             />
           </motion.div>
-          <motion.div variants={itemVariants}>
+          <motion.div variants={boardItem}>
             <ActionTile
               href="/console/encrypted-erc/auditor"
               accent="emerald"
@@ -321,7 +304,7 @@ function Overview() {
               status={stepsDone.has('register') ? 'available' : undefined}
             />
           </motion.div>
-          <motion.div variants={itemVariants}>
+          <motion.div variants={boardItem}>
             <ActionTile
               href="/console/encrypted-erc/deploy/auditor"
               accent="violet"
@@ -334,21 +317,21 @@ function Overview() {
         </motion.div>
 
         {/* ROW 4: Compare (3) + Concept (3) */}
-        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3" variants={containerVariants}>
-          <motion.div className="md:col-span-3" variants={itemVariants}>
+        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3" variants={boardContainer}>
+          <motion.div className="md:col-span-3" variants={boardItem}>
             <CompareCard />
           </motion.div>
-          <motion.div className="md:col-span-3" variants={itemVariants}>
+          <motion.div className="md:col-span-3" variants={boardItem}>
             <ConceptCard />
           </motion.div>
         </motion.div>
 
         {/* ROW 5: Compliance context + deploy-your-own */}
-        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3" variants={containerVariants}>
-          <motion.div className="md:col-span-3" variants={itemVariants}>
+        <motion.div className="grid grid-cols-1 md:grid-cols-6 gap-3" variants={boardContainer}>
+          <motion.div className="md:col-span-3" variants={boardItem}>
             <AuditorCard />
           </motion.div>
-          <motion.div className="md:col-span-3" variants={itemVariants}>
+          <motion.div className="md:col-span-3" variants={boardItem}>
             <DeployYourOwnCard />
           </motion.div>
         </motion.div>
@@ -377,7 +360,7 @@ function HeroCard({
   const ctaLabel = !address ? 'Connect wallet' : !isRegistered ? 'Register to start' : 'Deposit & encrypt';
 
   return (
-    <motion.div className="md:col-span-6 p-px" variants={itemVariants}>
+    <motion.div className="md:col-span-6 p-px" variants={boardItem}>
       <div
         className="group relative h-full rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 overflow-hidden transition-all duration-200 hover:border-zinc-600"
         style={{

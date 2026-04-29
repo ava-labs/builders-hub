@@ -19,6 +19,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { EcosystemMarquee } from "@/components/console/ecosystem-marquee";
 import { AlphaSequence } from "@/components/console/alpha-sequence";
+import { boardContainer, boardItem } from "@/components/console/motion";
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -65,22 +66,6 @@ function RedirectIfNewUser() {
   );
 }
 
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 200, damping: 20 },
-  },
-};
-
 function BentoCard({
   href,
   className = "",
@@ -95,7 +80,7 @@ function BentoCard({
   const router = useRouter();
 
   return (
-    <motion.div variants={itemVariants}>
+    <motion.div variants={boardItem}>
       <div
         onClick={() => router.push(href)}
         className="block h-full cursor-pointer"
@@ -393,12 +378,12 @@ function ConsoleDashboard() {
         {/* Bento Grid */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-6"
-          variants={containerVariants}
+          variants={boardContainer}
           initial="hidden"
           animate="visible"
         >
           {/* Row 1: Create L1 (4) + Faucet (2) */}
-          <motion.div className="md:col-span-4 p-px" variants={itemVariants}>
+          <motion.div className="md:col-span-4 p-px" variants={boardItem}>
             <Link href="/console/create-l1" className="block h-full">
               <motion.div
                 whileHover={{ y: -2 }}
@@ -504,7 +489,7 @@ function ConsoleDashboard() {
           </div>
 
           {/* Row 3: Platform CLI (4) + Cross-Chain (2) */}
-          <motion.div variants={itemVariants} className="md:col-span-4">
+          <motion.div variants={boardItem} className="md:col-span-4">
             <div className="h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col justify-center gap-4">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
@@ -528,7 +513,7 @@ function ConsoleDashboard() {
               <CliCopyBlock />
             </div>
           </motion.div>
-          <motion.div variants={itemVariants} className="md:col-span-2">
+          <motion.div variants={boardItem} className="md:col-span-2">
             <CrossChainCard />
           </motion.div>
         </motion.div>
