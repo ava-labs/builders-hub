@@ -65,7 +65,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
           >
             <SiteHeader />
             <div
-              className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto"
+              className="flex flex-1 flex-col gap-4 p-4 md:p-8 overflow-y-auto"
               style={{ height: `calc(${viewportHeight} - var(--header-height) - 1rem)` }}
             >
               <StepErrorBoundary fallbackMessage="Something went wrong rendering this page. The console sidebar is still available — try navigating to a different tool.">
