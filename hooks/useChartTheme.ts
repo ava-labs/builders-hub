@@ -1,8 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTheme as useSiteTheme } from 'next-themes';
 
-export type ChartTheme = 'light' | 'dark' | 'rich';
+// User-facing chart-theme choice.
+//   `auto`        → follow the Builder Hub site's light/dark mode (default).
+//   `light/dark`  → force a flat surface regardless of site theme.
+//   `rich`        → elevated dark surface (Image Studio look) regardless of site theme.
+export type ChartTheme = 'auto' | 'light' | 'dark' | 'rich';
+
+// The actual rendered look. `auto` resolves to one of these at hook time;
+// the rest of the codebase only ever sees a concrete style.
+type ResolvedChartTheme = Exclude<ChartTheme, 'auto'>;
 
 export interface ChartThemeStyles {
   /** Tailwind classes applied to each chart card. Includes background,
@@ -17,7 +26,7 @@ export interface ChartThemeStyles {
   activeDotStroke: string;
 }
 
-export const CHART_THEME_STYLES: Record<ChartTheme, ChartThemeStyles> = {
+export const CHART_THEME_STYLES: Record<ResolvedChartTheme, ChartThemeStyles> = {
   light: {
     cardClass:
       'bg-zinc-50 border border-zinc-200 text-zinc-950 rounded-xl shadow-sm shadow-black/[0.03]',
@@ -44,31 +53,39 @@ export const CHART_THEME_STYLES: Record<ChartTheme, ChartThemeStyles> = {
 const STORAGE_KEY = 'console:my-l1:chart-theme';
 const THEME_CHANGED_EVENT = 'console:my-l1:chart-theme-changed';
 
-const VALID_THEMES: ReadonlySet<ChartTheme> = new Set(['light', 'dark', 'rich']);
+const VALID_THEMES: ReadonlySet<ChartTheme> = new Set(['auto', 'light', 'dark', 'rich']);
 
 function isValidTheme(value: unknown): value is ChartTheme {
   return typeof value === 'string' && VALID_THEMES.has(value as ChartTheme);
 }
 
 export interface UseChartTheme {
+  /** The user's preference (`auto` by default). */
   theme: ChartTheme;
+  /** The currently-rendered theme — `auto` resolved against the site theme. */
+  resolvedTheme: ResolvedChartTheme;
   styles: ChartThemeStyles;
   setTheme: (theme: ChartTheme) => void;
   isHydrated: boolean;
 }
 
 /**
- * localStorage-backed chart-card theme selector. Independent from the app's
- * light/dark mode — users may want elevated "rich" cards on a dark page,
- * or pure light cards on a dark page when capturing screenshots for a
- * light-themed deck. Default is `rich` to match the Image Studio look the
- * dashboard adopts by default.
+ * localStorage-backed chart-card theme selector that follows the Builder Hub
+ * site theme by default, with optional manual overrides.
  *
- * Storage shape: a single string — one of 'light' | 'dark' | 'rich'.
- * Anything else → fall back to 'rich'.
+ * Resolution:
+ *   - `auto` (default): site light → `light`; site dark → `rich` (the
+ *     elevated dark surface that matches the rest of the dashboard chrome).
+ *   - `light` / `dark` / `rich`: override the site theme entirely. Useful
+ *     when capturing chart screenshots for a deck whose theme differs from
+ *     the user's current site preference.
+ *
+ * Storage shape: a single string — one of 'auto' | 'light' | 'dark' | 'rich'.
+ * Legacy values are accepted; anything else falls back to 'auto'.
  */
 export function useChartTheme(): UseChartTheme {
-  const [theme, setThemeState] = useState<ChartTheme>('rich');
+  const { resolvedTheme: siteResolvedTheme } = useSiteTheme();
+  const [theme, setThemeState] = useState<ChartTheme>('auto');
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -110,9 +127,21 @@ export function useChartTheme(): UseChartTheme {
     }, 0);
   }, []);
 
+  // Resolve `auto` against next-themes. Site dark prefers `rich` (the
+  // elevated surface that matches the dashboard chrome) over `dark` (a
+  // flatter near-black) since `rich` is what the rest of the dashboard
+  // already uses; flipping to flat dark cards on dark mode looked off.
+  const resolved: ResolvedChartTheme =
+    theme === 'auto'
+      ? siteResolvedTheme === 'light'
+        ? 'light'
+        : 'rich'
+      : theme;
+
   return {
     theme,
-    styles: CHART_THEME_STYLES[theme],
+    resolvedTheme: resolved,
+    styles: CHART_THEME_STYLES[resolved],
     setTheme,
     isHydrated,
   };

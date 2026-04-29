@@ -1,6 +1,6 @@
 'use client';
 
-import { Moon, Sparkles, Sun } from 'lucide-react';
+import { Monitor, Moon, Sparkles, Sun } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -21,11 +21,17 @@ type ThemeOption = {
   icon: typeof Sun;
 };
 
-// Mirrors the Image Studio export-theme triplet so dashboard chrome and
-// exported screenshots stay visually parallel. "Rich" is the elevated
-// dark-zinc-900 surface (default); the other two force a pure light /
-// pure dark look regardless of the app's overall theme.
+// `Auto` is the default — chart cards mirror the Builder Hub site's
+// light/dark mode. The other three are escape hatches for users who
+// want a fixed look regardless of site theme (most useful when capturing
+// screenshots for a deck whose theme differs from their current setting).
 const THEME_OPTIONS: ThemeOption[] = [
+  {
+    id: 'auto',
+    label: 'Auto',
+    description: 'Match site theme',
+    icon: Monitor,
+  },
   {
     id: 'light',
     label: 'Light',
@@ -48,7 +54,7 @@ const THEME_OPTIONS: ThemeOption[] = [
 
 export function ChartThemePicker() {
   const { theme, setTheme, isHydrated } = useChartTheme();
-  const active = THEME_OPTIONS.find((opt) => opt.id === theme) ?? THEME_OPTIONS[2];
+  const active = THEME_OPTIONS.find((opt) => opt.id === theme) ?? THEME_OPTIONS[0];
   const ActiveIcon = active.icon;
 
   return (
