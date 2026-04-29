@@ -1,8 +1,10 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import { useL1Health } from '@/hooks/useL1Health';
 import { useL1ValidatorCount } from '@/hooks/useL1ValidatorCount';
+import { sectionContainer, sectionItem } from '@/components/console/motion';
 import type { CombinedL1 } from '../_lib/types';
 import { setupSummary } from '../_lib/setup-steps';
 import { DetailHeader } from './DetailHeader';
@@ -32,26 +34,37 @@ export function L1Details({
   const isComplete = setup?.pct === 100;
 
   return (
-    <div className="space-y-5">
-      <section className="space-y-4">
+    <motion.div
+      className="space-y-5"
+      variants={sectionContainer}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.section className="space-y-4" variants={sectionItem}>
         <DetailHeader l1={l1} health={health} />
         {isManaged && !isComplete && <NextActionBar l1={l1} />}
-      </section>
+      </motion.section>
 
       {/* Reference data the user copies most (RPC URL, subnet/blockchain/EVM
           chain IDs) lives right under the header so it's reachable in one
           click. Stays collapsed by default to keep visual weight on Health. */}
-      <NetworkDetailsCard l1={l1} />
+      <motion.div variants={sectionItem}>
+        <NetworkDetailsCard l1={l1} />
+      </motion.div>
 
       <DashboardSection title="Health">
         <StatsGrid l1={l1} health={health} validators={validators} />
       </DashboardSection>
 
-      <LiveCharts l1={l1} />
+      <motion.div variants={sectionItem}>
+        <LiveCharts l1={l1} />
+      </motion.div>
 
       {isManaged &&
         (isComplete ? (
-          <SetupCompleteBadge />
+          <motion.div variants={sectionItem}>
+            <SetupCompleteBadge />
+          </motion.div>
         ) : (
           <DashboardSection title="Setup progress">
             <SetupProgressCard l1={l1} fullWidth />
@@ -68,7 +81,7 @@ export function L1Details({
         {isManaged && <QuickActionsCard l1={l1} />}
         {l1.source === 'wallet' && <WalletOnlyActions l1={l1} />}
       </DashboardSection>
-    </div>
+    </motion.div>
   );
 }
 
@@ -80,13 +93,13 @@ function DashboardSection({
   children: ReactNode;
 }) {
   return (
-    <section className="space-y-3">
+    <motion.section className="space-y-3" variants={sectionItem}>
       <div>
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
         </h2>
       </div>
       {children}
-    </section>
+    </motion.section>
   );
 }
