@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, ChevronRight, Loader2, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, ListChecks, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -113,7 +113,7 @@ export function SetupProgressCard({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-500" />
+            <ListChecks className="w-4 h-4 text-amber-500" />
             Setup progress
           </CardTitle>
           <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
@@ -124,7 +124,7 @@ export function SetupProgressCard({
       <CardContent>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-4">
           <motion.div
-            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+            className="h-full bg-gradient-to-r from-amber-500 to-amber-400"
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
             transition={{ type: 'spring', stiffness: 80, damping: 18 }}
