@@ -137,12 +137,15 @@ function ProvisionNodeButton({
         throw new Error(msg);
       }
       setSuccess(true);
-      toast.success('Node provisioned', 'A fresh 3-day-TTL node is being added to this L1.');
+      toast.success('Node provisioning…', undefined, { id: `provision:${subnetId}` });
       onSuccess();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to provision node';
       setError(msg);
-      toast.error('Could not provision node', msg);
+      toast.error('Could not provision node', msg, {
+        id: `provision:${subnetId}`,
+        action: { label: 'Retry', onClick: () => void handleClick() },
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -201,12 +204,15 @@ function DeleteNodeButton({
         const json = await res.json().catch(() => null);
         throw new Error(json?.message ?? json?.error ?? `HTTP ${res.status}`);
       }
-      toast.success('Node removed', 'A slot has been freed against your 3-node cap.');
+      toast.success('Node removed', undefined, { id: `remove-node:${nodeDbId}` });
       onSuccess();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to remove node';
       setError(msg);
-      toast.error('Could not remove node', msg);
+      toast.error('Could not remove node', msg, {
+        id: `remove-node:${nodeDbId}`,
+        action: { label: 'Retry', onClick: () => void handleDelete() },
+      });
     } finally {
       setIsSubmitting(false);
     }

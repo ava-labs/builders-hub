@@ -142,12 +142,16 @@ function CopyChainConfigButton({ l1 }: { l1: CombinedL1 }) {
     try {
       await navigator.clipboard.writeText(JSON.stringify(config, null, 2));
       setCopied(true);
-      toast.success('Chain config copied', 'Paste into Hardhat / Foundry / your wallet config.');
+      // Same id across rapid clicks — replaces the previous toast
+      // instead of stacking. Tighter copy too: paste-target hint
+      // belongs in the (i) tooltip on the button, not a toast.
+      toast.success('Chain config copied', undefined, { id: 'copy-chain-config' });
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
       toast.error(
         'Could not copy',
         err instanceof Error ? err.message : 'Clipboard unavailable',
+        { id: 'copy-chain-config' },
       );
     }
   };

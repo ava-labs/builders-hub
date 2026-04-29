@@ -39,10 +39,15 @@ export function WalletNetworkAction({ l1 }: { l1: CombinedL1 }) {
     setIsSwitching(true);
     try {
       await safelySwitch(l1.evmChainId, l1.isTestnet);
-      toast.success(`Switched to ${l1.chainName}`, `Wallet now on chain ${l1.evmChainId}.`);
+      toast.success(`Wallet on ${l1.chainName}`, undefined, {
+        id: `wallet-switch:${l1.evmChainId}`,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to switch network';
-      toast.error('Network switch failed', msg);
+      toast.error('Network switch failed', msg, {
+        id: `wallet-switch:${l1.evmChainId}`,
+        action: { label: 'Retry', onClick: () => void handleSwitch() },
+      });
     } finally {
       setIsSwitching(false);
     }
@@ -59,6 +64,10 @@ export function WalletNetworkAction({ l1 }: { l1: CombinedL1 }) {
       toast.error(
         'Could not add chain',
         err instanceof Error ? err.message : 'Failed to open Add Chain dialog',
+        {
+          id: `wallet-add:${l1.evmChainId}`,
+          action: { label: 'Retry', onClick: () => void handleAddToWallet() },
+        },
       );
     }
   };

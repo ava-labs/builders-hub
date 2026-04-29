@@ -42,13 +42,23 @@ export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
   const handleClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!needsSwitch || isSwitching || l1.evmChainId === null) return;
     e.preventDefault();
+    await runSwitchAndNavigate();
+  };
+
+  // Extracted so the error-toast Retry action can re-fire the same flow
+  // without us needing access to the click event.
+  const runSwitchAndNavigate = async () => {
+    if (l1.evmChainId === null || !nextStep) return;
     setIsSwitching(true);
     try {
       await safelySwitch(l1.evmChainId, l1.isTestnet);
       router.push(nextStep.href);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to switch network';
-      toast.error('Network switch failed', msg);
+      toast.error('Network switch failed', msg, {
+        id: `setup-switch:${l1.evmChainId}`,
+        action: { label: 'Retry', onClick: () => void runSwitchAndNavigate() },
+      });
     } finally {
       setIsSwitching(false);
     }
