@@ -1,6 +1,11 @@
 'use client';
 
 import { Check, ChevronRight, Copy } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import type { CombinedL1 } from '../_lib/types';
 
@@ -8,8 +13,9 @@ import type { CombinedL1 } from '../_lib/types';
 // reference data the user looks up once per session — not on-glance content.
 // Rendering them in a full Card with a 3-col grid of break-all monospace
 // strings ate ~140px of vertical space and zigzagged into 4-line wraps on
-// mobile. Collapsing them into a native <details> element keeps them one
-// click away without dominating the dashboard.
+// mobile. Wrapping them in a Radix Collapsible keeps them one click away
+// without dominating the dashboard, and animates the height transition
+// smoothly (the previous native `<details>` element snap-opened).
 export function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
   const { copiedId, copyToClipboard } = useCopyToClipboard();
 
@@ -23,19 +29,25 @@ export function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
   }
 
   return (
-    <details className="group rounded-xl border bg-card">
-      <summary className="cursor-pointer list-none flex items-center gap-2 px-4 py-3 text-sm hover:bg-accent/30 transition-colors">
-        <ChevronRight
-          className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-90"
-          aria-hidden="true"
-        />
-        <span className="font-medium text-foreground">Network identifiers</span>
-        <span className="text-muted-foreground hidden sm:inline">
-          RPC URL, Subnet ID, Blockchain ID{l1.evmChainId !== null ? ', EVM Chain ID' : ''}
-        </span>
-      </summary>
-      <div className="border-t border-border px-4 pt-4 pb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <Collapsible className="rounded-xl border bg-card overflow-hidden">
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="group w-full cursor-pointer flex items-center gap-2 px-4 py-3 text-sm hover:bg-accent/30 transition-colors text-left [&[data-state=open]_.disclosure-chevron]:rotate-90"
+        >
+          <ChevronRight
+            className="disclosure-chevron w-4 h-4 text-muted-foreground transition-transform"
+            aria-hidden="true"
+          />
+          <span className="font-medium text-foreground">Network identifiers</span>
+          <span className="text-muted-foreground hidden sm:inline">
+            RPC URL, Subnet ID, Blockchain ID{l1.evmChainId !== null ? ', EVM Chain ID' : ''}
+          </span>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+        <div className="border-t border-border px-4 pt-4 pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {items.map((item) => {
             const isCopied = copiedId === item.id;
             return (
@@ -82,8 +94,9 @@ export function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
               </div>
             );
           })}
+          </div>
         </div>
-      </div>
-    </details>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

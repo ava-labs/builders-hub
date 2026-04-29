@@ -1588,3 +1588,22 @@ html.embed-mode #nd-toc {
     scroll-behavior: auto !important;
   }
 }
+
+/* Radix Collapsible animations. The primitive exposes the natural
+   content height as a CSS variable; we animate from 0 to that and back
+   so disclosures expand smoothly instead of snapping. Used by
+   `<CollapsibleContent>` consumers like the my-l1 NetworkDetailsCard. */
+@keyframes collapsible-down {
+  from { height: 0; }
+  to { height: var(--radix-collapsible-content-height); }
+}
+@keyframes collapsible-up {
+  from { height: var(--radix-collapsible-content-height); }
+  to { height: 0; }
+}
+.animate-collapsible-down {
+  animation: collapsible-down 220ms cubic-bezier(0.21, 0.47, 0.32, 0.98);
+}
+.animate-collapsible-up {
+  animation: collapsible-up 200ms cubic-bezier(0.21, 0.47, 0.32, 0.98);
+}
