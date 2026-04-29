@@ -38,6 +38,11 @@ export function L1Details({
         {isManaged && !isComplete && <NextActionBar l1={l1} />}
       </section>
 
+      {/* Reference data the user copies most (RPC URL, subnet/blockchain/EVM
+          chain IDs) lives right under the header so it's reachable in one
+          click. Stays collapsed by default to keep visual weight on Health. */}
+      <NetworkDetailsCard l1={l1} />
+
       <DashboardSection title="Health">
         <StatsGrid l1={l1} health={health} validators={validators} />
       </DashboardSection>
@@ -65,8 +70,6 @@ export function L1Details({
         {isManaged && <QuickActionsCard l1={l1} />}
         {l1.source === 'wallet' && <WalletOnlyActions l1={l1} />}
       </DashboardSection>
-
-      <NetworkDetailsCard l1={l1} />
     </div>
   );
 }
