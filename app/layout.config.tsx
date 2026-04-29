@@ -468,6 +468,30 @@ export const grantsMenu: LinkItemType = {
       },
     },
     {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={'/images/call-for-research-2.jpeg'}
+              alt='Call For Research Proposals'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
+      },
+      icon: <BookOpen />,
+      text: 'Call for Research Proposals',
+      description:
+        'Submit your proposal for academic research on the economics of cryptoassets and decentralized networks. Up to $50,000 in research grants.',
+      url: '/grants/avalanche-research-proposals',
+    },
+    {
       icon: <Snowflake />,
       text: 'Blizzard Fund',
       description:

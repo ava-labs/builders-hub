@@ -15,6 +15,13 @@ const programs = [
     image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png",
   },
   {
+    title: "Call for Research Proposals",
+    description: "Submit academic research on the economics of cryptoassets and decentralized networks. Up to $50,000 in research grants.",
+    href: "/grants/avalanche-research-proposals",
+    external: false,
+    image: "/images/call-for-research-1.jpeg",
+  },
+  {
     title: "Team1 Mini Grants",
     description: "Supporting early stage Avalanche projects with capital, mentorship, and guidance.",
     href: "https://grants.team1.network/",
