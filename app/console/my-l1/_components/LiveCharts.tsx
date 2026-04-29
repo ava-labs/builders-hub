@@ -439,6 +439,11 @@ function ChartsGrid({
     : '—';
   const totalTx = points.reduce((s, p) => s + p.txCount, 0);
   const maxTx = points.reduce((m, p) => Math.max(m, p.txCount), 0);
+  // Brand-new / idle L1s have all-zero tx counts. The bar chart renders
+  // as a flat line of zero bars which reads as "broken", not "idle" — we
+  // swap it for an empty-state at the same height so the grid layout
+  // doesn't jump as soon as the first transaction lands.
+  const isQuietWindow = points.length > 0 && totalTx === 0;
   const avgUtilization = points.length
     ? (points.reduce((s, p) => s + p.gasUtilization, 0) / points.length).toFixed(2)
     : '—';
@@ -505,9 +510,21 @@ function ChartsGrid({
       <ChartCard
         icon={Blocks}
         title="Transactions per block"
-        subtitle={`${totalTx} tx · max ${maxTx} per block`}
+        subtitle={
+          isQuietWindow
+            ? 'No activity in this window yet'
+            : `${totalTx} tx · max ${maxTx} per block`
+        }
         themeStyles={themeStyles}
       >
+        {isQuietWindow ? (
+          <ChartEmptyState
+            icon={Blocks}
+            height={260}
+            title="No transactions yet"
+            description="Send a transaction to this L1 — it'll show up here as soon as the next block lands."
+          />
+        ) : (
         <ResponsiveContainer width="100%" height={260}>
           <BarChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
             <defs>
@@ -547,6 +564,7 @@ function ChartsGrid({
             />
           </BarChart>
         </ResponsiveContainer>
+        )}
       </ChartCard>
 
       <ChartCard
@@ -726,6 +744,35 @@ function ChartTooltip({
         <span className="text-muted-foreground">{seriesName}</span>
         <span className="ml-auto font-mono text-foreground">{formatValue(value)}</span>
       </div>
+    </div>
+  );
+}
+
+// Quiet card chrome — icon at muted-foreground, no colored border. Only
+// Centered empty-state rendered inside a chart card when the underlying
+// data is genuinely empty (vs. just loading). Matches the chart canvas
+// height so the card layout doesn't jump when data starts flowing.
+function ChartEmptyState({
+  icon: Icon,
+  height,
+  title,
+  description,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  height: number;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-2 px-6 text-center"
+      style={{ height: `${height}px` }}
+    >
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/40 text-muted-foreground/70">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </div>
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      <p className="max-w-xs text-xs text-muted-foreground leading-relaxed">{description}</p>
     </div>
   );
 }
