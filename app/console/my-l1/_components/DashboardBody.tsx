@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMyL1s } from '@/hooks/useMyL1s';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useLoadedOnce } from '@/components/console/loaded-once';
 import {
   C_CHAIN_IDS,
@@ -21,6 +22,7 @@ export function DashboardBody() {
   const searchParams = useSearchParams();
   const { l1s: managedL1s, isLoading, error, refetch } = useMyL1s();
   const walletL1s = useL1List();
+  const walletChainId = useWalletStore((s) => s.walletChainId);
   const { sawLoading } = useLoadedOnce(isLoading);
 
   // Total active managed nodes across the user's account — drives the
@@ -84,17 +86,31 @@ export function DashboardBody() {
   const selectedL1 = useMemo<CombinedL1 | null>(() => {
     if (combinedL1s.length === 0) return null;
     const firstActive = combinedL1s.find((l) => l.status === 'active');
+    // Priority 1 — explicit URL param. Wins over wallet so refresh / back /
+    // direct-link behavior is stable, and the user's manual switcher click
+    // (which writes the URL) sticks even if their wallet is on another L1.
     if (selectedChainParam) {
       const match = combinedL1s.find(
         (l) => String(l.evmChainId) === selectedChainParam || l.subnetId === selectedChainParam,
       );
       if (match && (match.status === 'active' || !firstActive)) return match;
     }
-    // Default to the first ACTIVE L1 — falling back to the very first
-    // entry only when nothing is alive (in which case the page renders
-    // the EmptyState instead of a detail view).
+    // Priority 2 — wallet-connected L1. If the user's wallet is on one of
+    // their dashboard L1s, drop them on it directly. Skips C-Chain (and
+    // any other chain not in the dashboard) since those don't appear in
+    // the switcher. walletChainId === 0 means the wallet store hasn't
+    // hydrated yet — fall through to the first-active default.
+    if (walletChainId !== 0) {
+      const walletMatch = combinedL1s.find(
+        (l) => l.evmChainId === walletChainId && l.status === 'active',
+      );
+      if (walletMatch) return walletMatch;
+    }
+    // Priority 3 — first ACTIVE L1. Falling back to the very first entry
+    // only when nothing is alive (in which case the page renders the
+    // EmptyState instead of a detail view).
     return firstActive ?? combinedL1s[0];
-  }, [combinedL1s, selectedChainParam]);
+  }, [combinedL1s, selectedChainParam, walletChainId]);
 
   // If the selected L1 fell off the list (e.g. expired), point the URL at the
   // current first entry instead of leaving the user on a stale URL.
