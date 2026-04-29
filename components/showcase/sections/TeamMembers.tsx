@@ -31,7 +31,7 @@ export default function TeamMembers({ members, projectName, badges }: Props) {
               <TooltipTrigger asChild>
                 <div className="flex flex-col justify-center items-center gap-4  hover:scale-105 transition-transform duration-200">
                   <Image
-                    src={member.user.image ?? ''}
+                    src={member.user.image || "/wolfie/wolfie-hack.png"}
                     alt={member.user.user_name ?? ''}
                     width={150}
                     height={150}

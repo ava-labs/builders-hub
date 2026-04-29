@@ -23,7 +23,6 @@ export type Props = {
 
 export function ProjectCard({ project, isFromProfile = false }: Props) {
   const router = useRouter();
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [isAssignBadgeOpen, setIsAssignBadgeOpen] = useState(false);
 
   // Memoize computed values to prevent unnecessary recalculations
@@ -65,7 +64,7 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
   };
 
   const handleCardClick = useCallback((e: React.MouseEvent) => {
-    if (confirmOpen || isAssignBadgeOpen) return;
+    if (isAssignBadgeOpen) return;
     const isInteractive = (e.target as HTMLElement).closest(
       '[data-interactive="true"]'
     );
@@ -81,7 +80,7 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
     } else {
       router.push(`/showcase/${project.id}`);
     }
-  }, [confirmOpen, isAssignBadgeOpen, router, project.id, isFromProfile]);
+  }, [isAssignBadgeOpen, router, project.id]);
   return (
     <Card
       className="group relative w-full h-[420px] flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 cursor-pointer hover:shadow-lg"
@@ -101,8 +100,6 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
           <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-lg p-1">
             <ProjectOptions
               project={project}
-              confirmOpen={confirmOpen}
-              setConfirmOpen={setConfirmOpen}
               isAssignBadgeOpen={isAssignBadgeOpen}
               setIsAssignBadgeOpen={setIsAssignBadgeOpen}
               isFromProfile={isFromProfile}
