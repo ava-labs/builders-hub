@@ -78,6 +78,7 @@ export const menuSections: NavSection[] = [
     href: '/grants',
     items: [
 { text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
+      { text: 'Call for Research Proposals', href: '/grants/avalanche-research-proposals' },
       { text: 'Blizzard Fund', href: 'https://www.blizzard.fund/', external: true },
     ],
   },

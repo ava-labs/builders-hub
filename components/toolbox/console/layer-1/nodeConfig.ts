@@ -515,7 +515,7 @@ export const generateDockerCommand = (
     '-v ~/.avalanchego:/root/.avalanchego',
     '-e AVAGO_CONFIG_FILE=/root/.avalanchego/configs/node.json',
     `-e VM_ID=${vmId}`,
-    `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`,
+    `avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}`,
   ];
 
   return chunks

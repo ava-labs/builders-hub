@@ -398,6 +398,29 @@ model OAuthCode {
 
   @@index([expires_at])
 }
+model ResearchProposalApplication {
+  id                          String   @id @default(uuid())
+  submitted_by_user_id        String
+  email                       String
+  lead_full_name              String
+  affiliation                 String
+  proposal_title              String
+  primary_research_area       String
+  primary_research_area_other String?
+  budget_usd                  Int
+  proposal_url                String
+  lead_cv_url                 String
+  co_investigators            String?
+  co_investigator_cvs_url     String?
+  exclusivity_agreement       Boolean  @default(false)
+  created_at                  DateTime @default(now()) @db.Timestamptz(3)
+  updated_at                  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([created_at])
+  @@index([email])
+  @@index([primary_research_area])
+  @@index([submitted_by_user_id])
+}
 
 model ValidatorAlert {
   id                String              @id @default(uuid())

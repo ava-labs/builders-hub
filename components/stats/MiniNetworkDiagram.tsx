@@ -436,9 +436,17 @@ export default function MiniNetworkDiagram({
     if (!ctx) return;
 
     let time = 0;
+    let lastFrameTime = performance.now();
 
     const draw = () => {
-      time += 0.01;
+      // Frame-rate-independent timing. dtFrames = how many 60Hz frames worth
+      // of motion to advance this tick. Capped so a backgrounded tab doesn't
+      // teleport on resume.
+      const now = performance.now();
+      const dtFrames = Math.min((now - lastFrameTime) / (1000 / 60), 6);
+      lastFrameTime = now;
+
+      time += 0.01 * dtFrames;
 
       // Reset transform and scale for HiDPI/Retina displays
       // This ensures we draw in CSS pixel coordinates but render at device resolution
@@ -450,7 +458,7 @@ export default function MiniNetworkDiagram({
       const isHovering = hoveredNodeRef.current !== null;
 
       if (!isHovering && autoRotate) {
-        deltaRotation = autoRotateSpeed * 0.01;
+        deltaRotation = autoRotateSpeed * 0.01 * dtFrames;
       }
 
       rotationRef.current += deltaRotation;
@@ -458,7 +466,7 @@ export default function MiniNetworkDiagram({
 
       // Update particles
       particlesRef.current.forEach(particle => {
-        particle.progress += particle.speed;
+        particle.progress += particle.speed * dtFrames;
         if (particle.progress > 1) particle.progress = 0;
       });
 
