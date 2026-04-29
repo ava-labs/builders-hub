@@ -10,7 +10,7 @@ import { setupSummary } from '../_lib/setup-steps';
 import { DetailHeader } from './DetailHeader';
 import { StatsGrid } from './StatsGrid';
 import { LiveCharts } from './LiveCharts';
-import { NextActionBar, SetupCompleteBadge, SetupProgressCard } from './SetupProgress';
+import { NextActionBar } from './SetupProgress';
 import { QuickActionsCard, WalletOnlyActions } from './QuickActions';
 import { NetworkDetailsCard } from './NetworkDetailsCard';
 import { NodeListCard } from './NodeList';
@@ -41,16 +41,13 @@ export function L1Details({
       animate="visible"
     >
       <motion.section className="space-y-4" variants={sectionItem}>
+        {/* Setup status now lives inline as a pill in the header's meta row
+            (Configured / Configuration missing N/M with an inline progress
+            bar; clicking the missing pill opens a popover with the full
+            checklist). The NextActionBar still surfaces the most urgent
+            single step as a prominent CTA when there's something to do. */}
         <DetailHeader l1={l1} health={health} />
-        {/* Setup status sits directly under the header — the badge when the
-            L1 is fully configured (an "all good" affirmation) and the
-            NextActionBar with its CTA when it isn't. Keeps the most
-            important "what should I do next?" surface above the fold. */}
-        {isComplete ? (
-          <SetupCompleteBadge stepCount={setup.steps.length} />
-        ) : (
-          <NextActionBar l1={l1} />
-        )}
+        {!isComplete && <NextActionBar l1={l1} />}
       </motion.section>
 
       {/* Reference data the user copies most (RPC URL, subnet/blockchain/EVM
@@ -67,15 +64,6 @@ export function L1Details({
       <motion.div variants={sectionItem}>
         <LiveCharts l1={l1} />
       </motion.div>
-
-      {/* The full setup checklist only renders below the charts when there's
-          something to act on. Once complete, the top-of-page badge is the
-          only setup affordance — no need to repeat it down here. */}
-      {!isComplete && (
-        <DashboardSection title="Setup progress">
-          <SetupProgressCard l1={l1} fullWidth />
-        </DashboardSection>
-      )}
 
       {isManaged && l1.nodes && l1.nodes.length > 0 && (
         <DashboardSection title="Node fleet">

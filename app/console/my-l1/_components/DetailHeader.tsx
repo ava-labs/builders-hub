@@ -5,6 +5,7 @@ import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -13,7 +14,9 @@ import {
 import { toast } from '@/lib/toast';
 import type { L1HealthState, L1HealthStatus } from '@/hooks/useL1Health';
 import type { CombinedL1 } from '../_lib/types';
+import { setupSummary } from '../_lib/setup-steps';
 import { WalletNetworkAction } from './WalletNetworkAction';
+import { SetupProgressCard } from './SetupProgress';
 
 export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1HealthState }) {
   const nodeCount = l1.nodes?.length ?? 0;
@@ -69,6 +72,7 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
             )}
             {l1.source === 'wallet' && <MetaPill>Wallet</MetaPill>}
             {l1.coinName && <MetaPill>{l1.coinName}</MetaPill>}
+            <SetupStatusPill l1={l1} />
           </div>
           {isWalletOnThisL1 && balance !== null && (
             <p className="text-sm text-foreground mt-1.5">
@@ -217,6 +221,61 @@ function formatBlockAge(seconds: number): string {
   if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
   if (seconds < 86_400) return `${Math.round(seconds / 3600)}h`;
   return `${Math.round(seconds / 86_400)}d`;
+}
+
+// Setup status pill rendered inline in the meta row. Replaces the old
+// SetupCompleteBadge / SetupProgressCard that took a full row at the top
+// of the page. When complete it's a flat green "Fully configured" pill;
+// when not complete it's an amber popover trigger with an inline
+// progress bar — clicking it surfaces the full checklist without claiming
+// permanent vertical space on the dashboard.
+function SetupStatusPill({ l1 }: { l1: CombinedL1 }) {
+  const { steps, done, pct, nextStep } = setupSummary(l1);
+  const isComplete = pct === 100;
+
+  if (isComplete) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300"
+        aria-label="L1 fully configured"
+      >
+        <Check className="w-3 h-3" aria-hidden="true" />
+        Fully configured
+      </span>
+    );
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={
+            nextStep
+              ? `Configuration ${done} of ${steps.length} complete. Next step: ${nextStep.shortLabel}. Click to view checklist.`
+              : `Configuration ${done} of ${steps.length} complete. Click to view checklist.`
+          }
+          className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+        >
+          <span>
+            {done}/{steps.length} configured
+          </span>
+          <span
+            className="block h-1 w-12 rounded-full bg-amber-500/20 overflow-hidden"
+            aria-hidden="true"
+          >
+            <span
+              className="block h-full bg-amber-500 transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[min(420px,90vw)] p-0 border-0 shadow-lg">
+        <SetupProgressCard l1={l1} />
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 // Compact metadata chip — replaces the old dot-separated "Chain ID: 836504 ·
