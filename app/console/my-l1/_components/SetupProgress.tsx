@@ -148,7 +148,7 @@ export function SetupProgressCard({
                         s.completed
                           ? 'bg-emerald-500 text-white'
                           : nextUp
-                            ? 'bg-foreground text-background'
+                            ? 'bg-amber-500 text-white'
                             : 'bg-muted text-muted-foreground',
                       )}
                     >

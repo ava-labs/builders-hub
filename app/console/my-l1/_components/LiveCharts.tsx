@@ -510,7 +510,7 @@ function ChartsGrid({
               strokeWidth={2.25}
               fill={`url(#${gradId('blockTime')})`}
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -620,7 +620,7 @@ function ChartsGrid({
               strokeWidth={2.25}
               fill={`url(#${gradId('gasUtil')})`}
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -673,7 +673,7 @@ function ChartsGrid({
                 strokeWidth={2.25}
                 fill={`url(#${gradId('baseFee')})`}
                 dot={false}
-                activeDot={{ r: 4, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
                 connectNulls
               />
             </AreaChart>
