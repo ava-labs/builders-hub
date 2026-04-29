@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Play, Square, Activity, Fuel, Blocks, Clock, AlertCircle } from 'lucide-react';
 import { BlockWatcher, BlockInfo } from './blockWatcher';
 import { Button } from '@/components/toolbox/components/Button';
 import { RPCURLInput } from '@/components/toolbox/components/RPCURLInput';
+import { sectionContainer, sectionItem } from '@/components/console/motion';
 
 interface BucketedData {
   transactions: number;
@@ -284,17 +286,20 @@ export default function PerformanceMonitor() {
   })();
 
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" variants={sectionContainer} initial="hidden" animate="visible">
       {/* Header */}
-      <div>
+      <motion.div variants={sectionItem}>
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">EVM Chain Performance Monitor</h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
           Monitor blockchain performance metrics in real-time. Enter any EVM RPC URL to start.
         </p>
-      </div>
+      </motion.div>
 
       {/* Configuration */}
-      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
+      <motion.div
+        className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4"
+        variants={sectionItem}
+      >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-1">
             <RPCURLInput label="EVM RPC URL" value={rpcUrl} onChange={setRpcUrl} disabled={isMonitoring} />
@@ -344,35 +349,41 @@ export default function PerformanceMonitor() {
             Stop
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Chain Info */}
       {gasLimit && (
-        <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
+        <motion.div
+          className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4"
+          variants={sectionItem}
+        >
           <div className="flex items-center gap-2 text-sm">
             <Fuel className="h-4 w-4 text-zinc-500" />
             <span className="text-zinc-600 dark:text-zinc-300">
               Gas Limit: <strong>{(gasLimit / 1_000_000).toFixed(1)}M</strong> per block
             </span>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Error Display */}
       {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 rounded-lg">
+        <motion.div
+          className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 rounded-lg"
+          variants={sectionItem}
+        >
           <div className="flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-red-700 dark:text-red-300">
               <strong>Error:</strong> {error}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Charts */}
       {chartData.length > 0 && (
-        <div className="space-y-6">
+        <motion.div className="space-y-6" variants={sectionItem}>
           {/* Transactions Per Second Chart */}
           <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
             <div className="flex items-center justify-between mb-4">
@@ -597,20 +608,23 @@ export default function PerformanceMonitor() {
               </table>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Empty State */}
       {!isMonitoring && chartData.length === 0 && (
-        <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-8 text-center">
+        <motion.div
+          className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-8 text-center"
+          variants={sectionItem}
+        >
           <Activity className="h-12 w-12 mx-auto text-zinc-300 dark:text-zinc-600 mb-4" />
           <h3 className="text-lg font-medium text-zinc-700 dark:text-zinc-300 mb-2">Ready to Monitor</h3>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
             Enter any EVM RPC URL (e.g., https://api.avax.network/ext/bc/C/rpc) and click "Start Monitoring" to track
             real-time performance.
           </p>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
