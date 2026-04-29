@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMyL1s } from '@/hooks/useMyL1s';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { useLoadedOnce } from '@/components/console/loaded-once';
 import {
   C_CHAIN_IDS,
   metadataFromWalletItem,
@@ -19,6 +21,7 @@ export function DashboardBody() {
   const searchParams = useSearchParams();
   const { l1s: managedL1s, isLoading, error, refetch } = useMyL1s();
   const walletL1s = useL1List();
+  const { sawLoading } = useLoadedOnce(isLoading);
 
   // Total active managed nodes across the user's account — drives the
   // "X/3 total" hint and disables the Provision button when at cap. Sum
@@ -138,7 +141,12 @@ export function DashboardBody() {
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={sawLoading ? { opacity: 0 } : false}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
       <SwitcherBar
         l1s={activeL1s}
         selected={selectedL1?.status === 'active' ? selectedL1 : null}
@@ -152,6 +160,6 @@ export function DashboardBody() {
           onRefetch={refetch}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
