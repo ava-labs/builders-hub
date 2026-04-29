@@ -16,7 +16,6 @@ import { Blocks, Clock, Fuel, Hash, Info, Pause, Play, RefreshCw, Timer } from '
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -30,6 +29,7 @@ import type { ChartPalette } from '@/lib/console/palettes';
 import { useL1RecentBlocks, type BlockSummary } from '@/hooks/useL1RecentBlocks';
 import { cn } from '@/lib/utils';
 import type { CombinedL1 } from '../_lib/types';
+import { ChartsSkeleton } from './charts/skeleton';
 
 // All four charts share this syncId so Recharts mirrors the hover cursor
 // across siblings — moving over one chart's block highlights the same
@@ -344,24 +344,6 @@ function formatDurationShort(seconds: number): string {
   }
   const d = seconds / 86_400;
   return d < 10 ? `${d.toFixed(1)}d` : `${Math.round(d)}d`;
-}
-
-function ChartsSkeleton({ themeStyles }: { themeStyles: ChartThemeStyles }) {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <Card key={i} className={themeStyles.cardClass}>
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-48 mt-1" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-48" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
 }
 
 // Build a Unix-second tick formatter whose granularity matches the actual
