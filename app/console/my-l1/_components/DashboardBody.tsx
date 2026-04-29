@@ -113,7 +113,10 @@ export function DashboardBody() {
       const next = new URLSearchParams(searchParams.toString());
       const target = l1.evmChainId !== null ? String(l1.evmChainId) : l1.subnetId;
       next.set('chain', target);
-      router.replace(`/console/my-l1?${next.toString()}`);
+      // scroll: false so switching L1s while scrolled to (e.g.) Node fleet
+      // doesn't yank the page back to the top — the user is still browsing
+      // the same dashboard surface, just looking at a different chain.
+      router.replace(`/console/my-l1?${next.toString()}`, { scroll: false });
     },
     [router, searchParams],
   );
