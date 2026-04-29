@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Blocks, Clock, Fuel, Hash, Info, RefreshCw, Timer } from 'lucide-react';
+import { Blocks, Clock, Fuel, Hash, Info, Pause, Play, RefreshCw, Timer } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,7 +91,8 @@ type XAxisMode = 'block' | 'time';
 export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
   const [windowSize, setWindowSize] = useState<number>(60);
   const [xAxisMode, setXAxisMode] = useState<XAxisMode>('block');
-  const recent = useL1RecentBlocks(l1.rpcUrl, windowSize);
+  const [paused, setPaused] = useState(false);
+  const recent = useL1RecentBlocks(l1.rpcUrl, windowSize, paused);
   const { palette } = useChartPalette();
   const { styles: themeStyles } = useChartTheme();
 
@@ -116,7 +117,8 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
     avgBlockTimeSec !== null
       ? ` (~${formatDurationShort(windowSize * avgBlockTimeSec)} of history)`
       : '';
-  const description = `Live charts derived from this L1's RPC. Window: latest ${recent.blocks.length} of ${windowSize} blocks${windowSpanLabel} · refreshing every 15s.`;
+  const refreshLabel = paused ? 'paused — click ▶ to resume' : 'refreshing every 15s';
+  const description = `Live charts derived from this L1's RPC. Window: latest ${recent.blocks.length} of ${windowSize} blocks${windowSpanLabel} · ${refreshLabel}.`;
 
   return (
     <section className="space-y-3">
@@ -137,6 +139,31 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs">
               {description}
+            </TooltipContent>
+          </UITooltip>
+          <UITooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setPaused((p) => !p)}
+                aria-label={paused ? 'Resume live updates' : 'Pause live updates'}
+                aria-pressed={paused}
+                className={cn(
+                  'inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                  paused
+                    ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                    : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent/40',
+                )}
+              >
+                {paused ? (
+                  <Play className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <Pause className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {paused ? 'Resume live updates' : 'Pause live updates'}
             </TooltipContent>
           </UITooltip>
         </div>

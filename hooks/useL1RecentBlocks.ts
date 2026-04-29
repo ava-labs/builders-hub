@@ -68,6 +68,7 @@ export function trimToCount<T>(blocks: T[], count: number): T[] {
 export function useL1RecentBlocks(
   rpcUrl: string | undefined,
   count: number = DEFAULT_COUNT,
+  paused: boolean = false,
 ): L1RecentBlocksState {
   const [blocks, setBlocks] = useState<BlockSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,6 +80,15 @@ export function useL1RecentBlocks(
   // Reset on rpcUrl/count change via the cleanup → effect re-run cycle.
   const latestSeenRef = useRef<bigint | null>(null);
   const blocksRef = useRef<BlockSummary[]>([]);
+  // `paused` lives in a ref so toggling it doesn't tear down the polling
+  // effect (which would refetch the entire window unnecessarily). The
+  // interval keeps firing every 15s; while paused, guardedPoll just
+  // bails out — when the user unpauses, the next tick (≤15s later)
+  // catches up.
+  const pausedRef = useRef(paused);
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     if (!rpcUrl) {
@@ -183,14 +193,15 @@ export function useL1RecentBlocks(
       typeof document !== 'undefined' && document.visibilityState === 'hidden';
 
     const guardedPoll = () => {
-      if (isHidden()) return;
+      if (isHidden() || pausedRef.current) return;
       void incrementalPoll();
     };
 
     const onVisibilityChange = () => {
-      if (!isHidden() && latestSeenRef.current !== null) {
+      if (!isHidden() && !pausedRef.current && latestSeenRef.current !== null) {
         // Tab just became visible — catch up immediately. The next interval
-        // tick continues normally afterwards.
+        // tick continues normally afterwards. Skip when paused so the user
+        // doesn't lose the frozen frame they're inspecting.
         void incrementalPoll();
       }
     };
