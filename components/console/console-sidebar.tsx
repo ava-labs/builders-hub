@@ -541,6 +541,92 @@ function NavMenuItem({
   );
 }
 
+// Search-result row variant. Same body as NavMenuItem, plus a trailing star
+// button when the result corresponds to a pinnable tool — so users can pin
+// from search without first navigating to the toolbox grid. Mandatory tools
+// render the star as filled+disabled to communicate "already in your
+// sidebar" without offering an unpin path.
+function SearchResultMenuItem({
+  item,
+  pathname,
+  isPinnable,
+  isUserStarred,
+  isMandatory,
+  onTogglePin,
+}: {
+  item: NavItem;
+  pathname: string;
+  isPinnable: boolean;
+  isUserStarred: boolean;
+  isMandatory: boolean;
+  onTogglePin: (path: string) => void;
+}) {
+  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+  const isComingSoon = item.comingSoon;
+  const isExternal = item.url.startsWith("https://");
+  const tourAttr = TOUR_DATA_ATTRS[item.url];
+  const showStar = isPinnable && !isComingSoon && !isExternal;
+  const isPinned = isUserStarred || isMandatory;
+
+  const handlePinClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isMandatory) return;
+    onTogglePin(item.url);
+  };
+
+  const starTitle = isMandatory
+    ? `${item.title} is already in the sidebar by default`
+    : isUserStarred
+      ? `Unpin ${item.title} from sidebar`
+      : `Pin ${item.title} to sidebar`;
+
+  if (!showStar) {
+    return <NavMenuItem item={item} pathname={pathname} />;
+  }
+
+  return (
+    <SidebarMenuItem data-tour={tourAttr}>
+      <div
+        className={cn(
+          "group/searchresult flex min-h-9 items-center gap-1 rounded-md pr-1 text-sidebar-foreground/70 transition-colors",
+          "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          isActive && "bg-sidebar-accent text-sidebar-foreground"
+        )}
+      >
+        <Link
+          href={item.url}
+          className="flex min-w-0 flex-1 px-2 py-1.5 text-sm"
+        >
+          <span className="truncate">{item.title}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={handlePinClick}
+          disabled={isMandatory}
+          title={starTitle}
+          aria-label={starTitle}
+          aria-pressed={isPinned}
+          className={cn(
+            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            isPinned
+              ? "text-amber-500 opacity-100"
+              : "text-sidebar-foreground/40 opacity-0 hover:text-sidebar-foreground group-hover/searchresult:opacity-100 focus-visible:opacity-100",
+            isMandatory && "cursor-not-allowed opacity-60",
+            !isMandatory && "hover:bg-sidebar-accent"
+          )}
+        >
+          <Star
+            className="h-3.5 w-3.5"
+            fill={isPinned ? "currentColor" : "none"}
+            strokeWidth={isPinned ? 1.5 : 2}
+          />
+        </button>
+      </div>
+    </SidebarMenuItem>
+  );
+}
+
 export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const pathname = usePathname();
   const sidebarState = useSidebarState(["primary-network"]);
@@ -560,8 +646,22 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const {
     userStarred,
     isHydrated: favoritesHydrated,
+    isUserStarred,
+    isMandatory: isMandatoryTool,
     toggle: toggleFavoriteTool,
   } = useFavoriteTools();
+
+  // Set of every toolbox tool path — used by search results to decide
+  // whether a hit is "pinnable" (i.e., backed by a real tool) and should
+  // surface the star toggle. Pure-navigation hits (e.g. "Console" home)
+  // don't pin meaningfully so they get no star.
+  const toolPaths = React.useMemo(
+    () =>
+      new Set(
+        ALL_CONSOLE_TOOLS.filter((t) => !t.external).map((t) => t.path),
+      ),
+    [],
+  );
 
   const starredGroup = React.useMemo<NavGroup | null>(() => {
     if (!favoritesHydrated || userStarred.length === 0) return null;
@@ -715,10 +815,16 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
                             </div>
                           )}
                           {group.items.map((item) => (
-                            <NavMenuItem
+                            <SearchResultMenuItem
                               key={item.url}
                               item={item}
                               pathname={pathname}
+                              isPinnable={
+                                toolPaths.has(item.url) || isMandatoryTool(item.url)
+                              }
+                              isUserStarred={isUserStarred(item.url)}
+                              isMandatory={isMandatoryTool(item.url)}
+                              onTogglePin={toggleFavoriteTool}
                             />
                           ))}
                         </React.Fragment>
