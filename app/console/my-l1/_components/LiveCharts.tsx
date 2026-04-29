@@ -236,28 +236,34 @@ function RangeSelector({
       </span>
       {RANGE_OPTIONS.map((opt) => {
         const isActive = value === opt.count;
-        // Time hint is computed but not rendered inline — surfaced only on
-        // hover via the `title` attribute so the pill stays compact and
-        // readable. The (i) tooltip beside the section title still shows
-        // the active window's full time span.
+        // Time hint is computed but not rendered inline — surfaced via
+        // a radix tooltip (instant, theme-styled) instead of the native
+        // `title` attribute (~500ms delay, OS-styled). Pill stays compact;
+        // the (i) tooltip beside the section title still surfaces the
+        // active window's full time span for at-a-glance context.
         const hint =
           avgBlockTimeSec !== null
             ? formatDurationShort(opt.count * avgBlockTimeSec)
             : null;
+        const tooltipLabel = hint ? `${opt.label} blocks · ~${hint}` : `${opt.label} blocks`;
         return (
-          <button
-            key={opt.count}
-            type="button"
-            onClick={() => onChange(opt.count)}
-            title={hint ? `${opt.label} blocks · ~${hint}` : `${opt.label} blocks`}
-            className={`px-2 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer tabular-nums ${
-              isActive
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {opt.label}
-          </button>
+          <UITooltip key={opt.count}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onChange(opt.count)}
+                aria-label={tooltipLabel}
+                className={`px-2 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer tabular-nums ${
+                  isActive
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {opt.label}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
+          </UITooltip>
         );
       })}
     </div>
