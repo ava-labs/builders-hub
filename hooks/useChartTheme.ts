@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTheme as useSiteTheme } from 'next-themes';
+import { useTheme as useSiteTheme } from '@/components/content-design/theme-observer';
 
 // User-facing chart-theme choice.
 //   `auto`        → follow the Builder Hub site's light/dark mode (default).
@@ -52,6 +52,13 @@ export const CHART_THEME_STYLES: Record<ResolvedChartTheme, ChartThemeStyles> = 
 
 const STORAGE_KEY = 'console:my-l1:chart-theme';
 const THEME_CHANGED_EVENT = 'console:my-l1:chart-theme-changed';
+// Bumped once when the default flipped from `rich` to `auto`. On first
+// sync after the bump we flip any user who was sitting on the old
+// `rich` default to `auto` so they get the follow-site-theme behaviour
+// without having to discover the picker. Users who actively pick a
+// theme afterwards keep their pick (the migration only runs once).
+const MIGRATION_KEY = 'console:my-l1:chart-theme:migrated';
+const CURRENT_MIGRATION_VERSION = '2026-04-29-auto-default';
 
 const VALID_THEMES: ReadonlySet<ChartTheme> = new Set(['auto', 'light', 'dark', 'rich']);
 
@@ -84,7 +91,12 @@ export interface UseChartTheme {
  * Legacy values are accepted; anything else falls back to 'auto'.
  */
 export function useChartTheme(): UseChartTheme {
-  const { resolvedTheme: siteResolvedTheme } = useSiteTheme();
+  // The project doesn't wrap the app in next-themes — it uses its own
+  // MutationObserver-based ThemeProvider that returns 'light' | 'dark'
+  // by watching the `dark` class on <html>. Using next-themes here gave
+  // `undefined` on every render, which silently fell through to 'rich'
+  // and made `auto` look identical to the old default in light mode.
+  const siteTheme = useSiteTheme();
   const [theme, setThemeState] = useState<ChartTheme>('auto');
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -92,6 +104,21 @@ export function useChartTheme(): UseChartTheme {
     if (typeof window === 'undefined') return;
     const sync = () => {
       try {
+        // One-shot migration. Pre-`auto`, every user defaulted to `rich`
+        // and most never opened the picker — leaving them on a forced
+        // dark surface even when their site theme is light. Flip those
+        // users to `auto` once. The migration version key isolates this
+        // from any future migration.
+        const migrationDone =
+          window.localStorage.getItem(MIGRATION_KEY) === CURRENT_MIGRATION_VERSION;
+        if (!migrationDone) {
+          const previous = window.localStorage.getItem(STORAGE_KEY);
+          if (previous === 'rich') {
+            window.localStorage.setItem(STORAGE_KEY, 'auto');
+          }
+          window.localStorage.setItem(MIGRATION_KEY, CURRENT_MIGRATION_VERSION);
+        }
+
         const stored = window.localStorage.getItem(STORAGE_KEY);
         if (isValidTheme(stored)) {
           setThemeState(stored);
@@ -127,16 +154,11 @@ export function useChartTheme(): UseChartTheme {
     }, 0);
   }, []);
 
-  // Resolve `auto` against next-themes. Site dark prefers `rich` (the
-  // elevated surface that matches the dashboard chrome) over `dark` (a
-  // flatter near-black) since `rich` is what the rest of the dashboard
-  // already uses; flipping to flat dark cards on dark mode looked off.
+  // `auto` mirrors the site theme one-to-one: light → light, dark → dark.
+  // The `rich` preset stays available as a manual override via the picker
+  // for users who want the elevated dark surface regardless of site theme.
   const resolved: ResolvedChartTheme =
-    theme === 'auto'
-      ? siteResolvedTheme === 'light'
-        ? 'light'
-        : 'rich'
-      : theme;
+    theme === 'auto' ? (siteTheme === 'light' ? 'light' : 'dark') : theme;
 
   return {
     theme,
