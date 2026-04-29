@@ -63,7 +63,7 @@ export function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
                   }
                 }}
                 aria-label={`Copy ${item.label}`}
-                className="p-3 rounded-lg border border-border bg-background/40 group/item cursor-pointer hover:border-foreground/30 hover:bg-background/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="p-3 rounded-lg border border-border bg-background/40 group/item cursor-pointer hover:border-foreground/30 hover:bg-background/70 hover:-translate-y-px hover:shadow-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5">
                   {item.label}

@@ -159,7 +159,10 @@ function faucetAction(l1: CombinedL1): QuickAction | null {
 
 function QuickActionTile({ action }: { action: QuickAction }) {
   const Body = (
-    <div className="rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 hover:border-foreground/20 hover:shadow-sm transition-all duration-200 h-full">
+    // Tiny -1px lift on hover unifies the interactive-card affordance
+    // across the dashboard (Setup checklist rows, NetworkDetailsCard
+    // items, and Tools tiles all read the same way).
+    <div className="rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 hover:border-foreground/20 hover:shadow-sm hover:-translate-y-px transition-all duration-150 h-full">
       <div className="flex items-start gap-3">
         <div className="p-1.5 rounded-md bg-muted group-hover:bg-foreground/[0.08] transition-colors">
           <action.icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
