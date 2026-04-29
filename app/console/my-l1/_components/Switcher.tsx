@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Clock, Layers, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { boardContainer, boardItem } from '@/components/console/motion';
 import type { CombinedL1 } from '../_lib/types';
 
 export function SwitcherBar({
@@ -95,7 +97,12 @@ function SwitcherSection({
           row turns into 3 stacked half-rows that read worse than a list.
           Above sm we keep the natural flex-wrap so dense rows of L1s pack
           tightly on the wider switcher. */}
-      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+      <motion.div
+        className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap"
+        variants={boardContainer}
+        initial="hidden"
+        animate="visible"
+      >
         {l1s.map((l1) => {
           const key = l1.evmChainId !== null ? `chain:${l1.evmChainId}` : `subnet:${l1.subnetId}`;
           const isActive =
@@ -105,8 +112,9 @@ function SwitcherSection({
               : selected.subnetId === l1.subnetId);
           const walletIsHere = l1.evmChainId !== null && walletChainId === l1.evmChainId;
           return (
-            <button
+            <motion.button
               key={key}
+              variants={boardItem}
               type="button"
               onClick={() => onSelect(l1)}
               aria-pressed={isActive}
@@ -134,10 +142,10 @@ function SwitcherSection({
                 {l1.evmChainId ?? l1.subnetId.slice(0, 6)}
               </span>
               {l1.source === 'managed' && l1.expiresAt && <ExpiryPill expiresAt={l1.expiresAt} />}
-            </button>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { ChevronRight, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { boardContainer, boardItem } from '@/components/console/motion';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,10 +60,16 @@ export function NodeListCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <motion.div
+          className="space-y-2"
+          variants={boardContainer}
+          initial="hidden"
+          animate="visible"
+        >
           {nodes.map((n) => (
-            <div
+            <motion.div
               key={n.id}
+              variants={boardItem}
               className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 rounded-lg border bg-card"
             >
               <div className="min-w-0">
@@ -77,9 +85,9 @@ export function NodeListCard({
                   <DeleteNodeButton nodeDbId={n.id} nodeId={n.nodeId} onSuccess={onRefetch} />
                 )}
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
         <div className="mt-4 pt-3 border-t flex items-center justify-between gap-3 flex-wrap">
           <Link
             href="/console/testnet-infra/nodes"
