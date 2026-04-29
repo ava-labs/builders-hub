@@ -2,10 +2,12 @@
 
 import { useSession } from 'next-auth/react';
 import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import type { ConsoleLog } from '@/types/console-log';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { sectionContainer, sectionItem } from '@/components/console/motion';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
@@ -163,8 +165,13 @@ export default function ConsoleHistoryPage() {
   const shortAddr = (s: string) => (s.length > 14 ? `${s.slice(0, 8)}...${s.slice(-6)}` : s);
 
   return (
-    <div className="mx-auto max-w-3xl py-8 px-4">
-      <div className="flex items-center justify-between mb-6">
+    <motion.div
+      className="mx-auto max-w-3xl py-8 px-4"
+      variants={sectionContainer}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div className="flex items-center justify-between mb-6" variants={sectionItem}>
         <h1 className="text-xl font-semibold">History</h1>
         {(fullHistory.length > 0 || storeItems.length > 0 || txHistory.length > 0) && (
           <Button variant="ghost" size="sm" onClick={handleExport}>
@@ -172,16 +179,16 @@ export default function ConsoleHistoryPage() {
             Export
           </Button>
         )}
-      </div>
+      </motion.div>
 
-      <div className="relative max-w-sm mb-6">
+      <motion.div className="relative max-w-sm mb-6" variants={sectionItem}>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
         <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-8 text-sm" />
-      </div>
+      </motion.div>
 
       {/* Current session activity (from notification panel) */}
       {panelNotifications.length > 0 && (
-        <section className="mb-8">
+        <motion.section className="mb-8" variants={sectionItem}>
           <div className="flex items-center gap-2 mb-3">
             <Clock className="h-3.5 w-3.5 text-zinc-400" />
             <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">This Session</h2>
@@ -206,12 +213,12 @@ export default function ConsoleHistoryPage() {
               </div>
             ))}
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* Local transaction history (from txHistoryStore — persisted in localStorage) */}
       {filteredTxHistory.length > 0 && (
-        <section className="mb-8">
+        <motion.section className="mb-8" variants={sectionItem}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
@@ -304,11 +311,11 @@ export default function ConsoleHistoryPage() {
               );
             })}
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* Server-side activity log (logged-in users) */}
-      <section className="mb-8">
+      <motion.section className="mb-8" variants={sectionItem}>
         <div className="flex items-center gap-2 mb-3">
           <Clock className="h-3.5 w-3.5 text-zinc-400" />
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Activity Log</h2>
@@ -389,11 +396,11 @@ export default function ConsoleHistoryPage() {
             })}
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* Console configuration (store-based) */}
       {filteredStoreItems.length > 0 && (
-        <section>
+        <motion.section variants={sectionItem}>
           <div className="flex items-center gap-2 mb-3">
             <Database className="h-3.5 w-3.5 text-zinc-400" />
             <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Active Configuration</h2>
@@ -432,8 +439,8 @@ export default function ConsoleHistoryPage() {
               );
             })}
           </div>
-        </section>
+        </motion.section>
       )}
-    </div>
+    </motion.div>
   );
 }
