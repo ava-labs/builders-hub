@@ -47,9 +47,7 @@ export function L1Details({
         <StatsGrid l1={l1} health={health} validators={validators} />
       </DashboardSection>
 
-      <DashboardSection title="Live activity">
-        <LiveCharts l1={l1} />
-      </DashboardSection>
+      <LiveCharts l1={l1} />
 
       {isManaged &&
         (isComplete ? (

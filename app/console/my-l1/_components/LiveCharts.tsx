@@ -12,12 +12,22 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Blocks, Fuel, Timer } from 'lucide-react';
+import { Blocks, Fuel, Info, Timer } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useL1RecentBlocks, type BlockSummary } from '@/hooks/useL1RecentBlocks';
 import type { CombinedL1 } from '../_lib/types';
+
+// All four charts share this syncId so Recharts mirrors the hover cursor
+// across siblings — moving over one chart's block highlights the same
+// block on every other chart at the same time.
+const SYNC_ID = 'my-l1-livecharts';
 
 // Single-accent palette. Charts are differentiated by title, icon, and
 // chart-type (line/bar/area) — not color. Using one brand-aligned accent
@@ -69,14 +79,33 @@ function buildChartPoints(blocks: BlockSummary[]): ChartPoint[] {
 export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
   const [windowSize, setWindowSize] = useState<number>(60);
   const recent = useL1RecentBlocks(l1.rpcUrl, windowSize);
+  // Description that used to live in a paragraph above the charts. Now
+  // surfaces in a small (i) tooltip beside the section title so it stops
+  // eating a vertical row of pixels.
+  const description = `Live charts derived from this L1's RPC. Window: latest ${recent.blocks.length} of ${windowSize} blocks · refreshing every 15s.`;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <p className="text-xs text-muted-foreground">
-          Live charts derived from this L1&apos;s RPC. Window: latest {recent.blocks.length} of{' '}
-          {windowSize} blocks · refreshing every 15s.
-        </p>
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Live activity
+          </h2>
+          <UITooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label="About live activity"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-accent/40 transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+              >
+                <Info className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              {description}
+            </TooltipContent>
+          </UITooltip>
+        </div>
         <RangeSelector value={windowSize} onChange={setWindowSize} />
       </div>
       {recent.error && recent.blocks.length === 0 ? (
@@ -99,7 +128,7 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
       ) : (
         <ChartsGrid blocks={recent.blocks} />
       )}
-    </div>
+    </section>
   );
 }
 
@@ -178,7 +207,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
         subtitle={`Avg ${avgBlockTime}s · ${points.length} samples`}
       >
         <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+          <AreaChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
             <defs>
               <linearGradient id="grad-blockTime" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={CHART_ACCENT} stopOpacity={0.2} />
@@ -228,7 +257,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
         subtitle={`${totalTx} tx · max ${maxTx} per block`}
       >
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+          <BarChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
             <defs>
               <linearGradient id="grad-txCount" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={CHART_ACCENT} stopOpacity={0.9} />
@@ -275,7 +304,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
         subtitle={`Avg ${avgUtilization}% of block limit`}
       >
         <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+          <AreaChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
             <defs>
               <linearGradient id="grad-gasUtil" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={CHART_ACCENT} stopOpacity={0.2} />
@@ -323,7 +352,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
       {hasBaseFee ? (
         <ChartCard icon={Fuel} title="Base fee" subtitle={`Avg ${avgBaseFee} Gwei (EIP-1559)`}>
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+            <AreaChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
               <defs>
                 <linearGradient id="grad-baseFee" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={CHART_ACCENT} stopOpacity={0.2} />
