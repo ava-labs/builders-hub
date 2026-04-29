@@ -22,7 +22,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { PalettePicker } from '@/components/console/PalettePicker';
+import { ChartThemePicker } from '@/components/console/ChartThemePicker';
 import { useChartPalette } from '@/hooks/useChartPalette';
+import { useChartTheme, type ChartThemeStyles } from '@/hooks/useChartTheme';
 import type { ChartPalette } from '@/lib/console/palettes';
 import { useL1RecentBlocks, type BlockSummary } from '@/hooks/useL1RecentBlocks';
 import { cn } from '@/lib/utils';
@@ -35,17 +37,10 @@ const SYNC_ID = 'my-l1-livecharts';
 
 // Charts are differentiated by title, icon, and chart-type (line/bar/area)
 // — not color. The active accent comes from `useChartPalette` so users
-// can repaint the dashboard from the section header. Defaults to Avalanche
-// red so existing users see no visual change.
-const GRID_STROKE = '#71717a'; // zinc-500 — visible on both themes at low opacity
-const AXIS_TICK_COLOR = '#a1a1aa'; // zinc-400 — readable on the rich (zinc-900) chart card
-
-// Rich chart-card treatment, ported from `components/stats/image-export`'s
-// `rich` theme variant. Slightly elevated dark surface in dark mode, gentle
-// off-white in light mode; soft border + inner highlight gives the cards
-// the same elevated feel as the Image Studio export preview.
-const RICH_CARD_CLASS =
-  'bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/50 rounded-xl shadow-sm shadow-black/[0.03] dark:shadow-black/40 ring-1 ring-inset ring-white/[0.02]';
+// can repaint the dashboard from the section header. Card surface,
+// axis-tick color, and grid-line color come from `useChartTheme` (light
+// / dark / rich) so users can override the chart chrome independently
+// from the page theme.
 
 const RANGE_OPTIONS = [
   { count: 30, label: '30' },
@@ -97,6 +92,7 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
   const [xAxisMode, setXAxisMode] = useState<XAxisMode>('block');
   const recent = useL1RecentBlocks(l1.rpcUrl, windowSize);
   const { palette } = useChartPalette();
+  const { styles: themeStyles } = useChartTheme();
 
   // Average block time observed in the current window. Drives the time
   // hint on each range option ("60 ~2m" vs "60 ~3h") so users can pick a
@@ -145,6 +141,7 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
         </div>
         <div className="flex items-center gap-2">
           <PalettePicker />
+          <ChartThemePicker />
           <XAxisModeToggle value={xAxisMode} onChange={setXAxisMode} />
           <RangeSelector
             value={windowSize}
@@ -154,7 +151,7 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
         </div>
       </div>
       {recent.error && recent.blocks.length === 0 ? (
-        <Card className={RICH_CARD_CLASS}>
+        <Card className={themeStyles.cardClass}>
           <CardHeader>
             <CardTitle>RPC unreachable</CardTitle>
             <CardDescription>
@@ -169,9 +166,14 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
           </CardContent>
         </Card>
       ) : !recent.hasLoadedOnce ? (
-        <ChartsSkeleton />
+        <ChartsSkeleton themeStyles={themeStyles} />
       ) : (
-        <ChartsGrid blocks={recent.blocks} xAxisMode={xAxisMode} palette={palette} />
+        <ChartsGrid
+          blocks={recent.blocks}
+          xAxisMode={xAxisMode}
+          palette={palette}
+          themeStyles={themeStyles}
+        />
       )}
     </section>
   );
@@ -300,11 +302,11 @@ function formatDurationShort(seconds: number): string {
   return d < 10 ? `${d.toFixed(1)}d` : `${Math.round(d)}d`;
 }
 
-function ChartsSkeleton() {
+function ChartsSkeleton({ themeStyles }: { themeStyles: ChartThemeStyles }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <Card key={i} className={RICH_CARD_CLASS}>
+        <Card key={i} className={themeStyles.cardClass}>
           <CardHeader>
             <Skeleton className="h-5 w-32" />
             <Skeleton className="h-4 w-48 mt-1" />
@@ -317,17 +319,6 @@ function ChartsSkeleton() {
     </div>
   );
 }
-
-// Common X-axis tick styling shared across all four charts. Inlined into
-// each `<XAxis>` rather than wrapped in a custom component because Recharts
-// uses runtime child-type reflection on the chart container to find its
-// axes — wrapping `<XAxis>` in any non-recharts component makes Recharts
-// blind to it and the axis disappears.
-const X_AXIS_TICK_PROPS = {
-  tick: { fontSize: 10, fill: AXIS_TICK_COLOR },
-  tickLine: { stroke: GRID_STROKE, strokeOpacity: 0.4 },
-  axisLine: { stroke: GRID_STROKE, strokeOpacity: 0.4 },
-} as const;
 
 // Build a Unix-second tick formatter whose granularity matches the actual
 // time span of the chart window. The hover tooltip always carries
@@ -373,10 +364,12 @@ function ChartsGrid({
   blocks,
   xAxisMode,
   palette,
+  themeStyles,
 }: {
   blocks: BlockSummary[];
   xAxisMode: XAxisMode;
   palette: ChartPalette;
+  themeStyles: ChartThemeStyles;
 }) {
   const points = useMemo(() => buildChartPoints(blocks), [blocks]);
   const hasBaseFee = points.some((p) => p.baseFeeGwei !== null);
@@ -390,6 +383,17 @@ function ChartsGrid({
   // to avoid Recharts caching gradients between palette switches.
   const gradId = (suffix: string) =>
     `grad-${suffix}-${palette.name.toLowerCase()}`;
+
+  // Common axis chrome shared by every chart. Inlined into each
+  // `<XAxis>`/`<YAxis>` rather than wrapped in a custom component because
+  // Recharts uses runtime child-type reflection on the chart container to
+  // find its axes — wrapping in a non-recharts component makes Recharts
+  // blind to them and they disappear.
+  const axisStyleProps = {
+    tick: { fontSize: 10, fill: themeStyles.axisTickColor },
+    tickLine: { stroke: themeStyles.gridStroke, strokeOpacity: 0.4 },
+    axisLine: { stroke: themeStyles.gridStroke, strokeOpacity: 0.4 },
+  };
 
   // Total span of the visible window (last - first timestamp). Drives the
   // adaptive X-axis tick formatter — wider spans show only the day, narrow
@@ -435,6 +439,7 @@ function ChartsGrid({
         icon={Timer}
         title="Block time"
         subtitle={`Avg ${avgBlockTime}s · ${points.length} samples`}
+        themeStyles={themeStyles}
       >
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -444,17 +449,15 @@ function ChartsGrid({
                 <stop offset="100%" stopColor={accent} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
+            <CartesianGrid strokeDasharray="3 3" stroke={themeStyles.gridStroke} strokeOpacity={0.25} />
             <XAxis
               dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
               tickFormatter={xAxisMode === 'time' ? timeTickFormatter : undefined}
               minTickGap={xAxisMode === 'time' ? timeMinTickGap : 24}
-              {...X_AXIS_TICK_PROPS}
+              {...axisStyleProps}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              {...axisStyleProps}
               tickFormatter={(v: number) => `${v}s`}
               width={40}
             />
@@ -475,7 +478,7 @@ function ChartsGrid({
               strokeWidth={2.25}
               fill={`url(#${gradId('blockTime')})`}
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -485,6 +488,7 @@ function ChartsGrid({
         icon={Blocks}
         title="Transactions per block"
         subtitle={`${totalTx} tx · max ${maxTx} per block`}
+        themeStyles={themeStyles}
       >
         <ResponsiveContainer width="100%" height={260}>
           <BarChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -494,17 +498,15 @@ function ChartsGrid({
                 <stop offset="100%" stopColor={accent} stopOpacity={0.5} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
+            <CartesianGrid strokeDasharray="3 3" stroke={themeStyles.gridStroke} strokeOpacity={0.25} />
             <XAxis
               dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
               tickFormatter={xAxisMode === 'time' ? timeTickFormatter : undefined}
               minTickGap={xAxisMode === 'time' ? timeMinTickGap : 24}
-              {...X_AXIS_TICK_PROPS}
+              {...axisStyleProps}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              {...axisStyleProps}
               allowDecimals={false}
               width={32}
             />
@@ -532,6 +534,7 @@ function ChartsGrid({
         icon={Fuel}
         title="Gas utilization"
         subtitle={`Avg ${avgUtilization}% of block limit`}
+        themeStyles={themeStyles}
       >
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -541,18 +544,16 @@ function ChartsGrid({
                 <stop offset="100%" stopColor={accent} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
+            <CartesianGrid strokeDasharray="3 3" stroke={themeStyles.gridStroke} strokeOpacity={0.25} />
             <XAxis
               dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
               tickFormatter={xAxisMode === 'time' ? timeTickFormatter : undefined}
               minTickGap={xAxisMode === 'time' ? timeMinTickGap : 24}
-              {...X_AXIS_TICK_PROPS}
+              {...axisStyleProps}
             />
             <YAxis
               domain={[0, 100]}
-              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+              {...axisStyleProps}
               tickFormatter={(v: number) => `${v}%`}
               width={40}
             />
@@ -573,14 +574,19 @@ function ChartsGrid({
               strokeWidth={2.25}
               fill={`url(#${gradId('gasUtil')})`}
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
             />
           </AreaChart>
         </ResponsiveContainer>
       </ChartCard>
 
       {hasBaseFee ? (
-        <ChartCard icon={Fuel} title="Base fee" subtitle={`Avg ${avgBaseFee} Gwei (EIP-1559)`}>
+        <ChartCard
+          icon={Fuel}
+          title="Base fee"
+          subtitle={`Avg ${avgBaseFee} Gwei (EIP-1559)`}
+          themeStyles={themeStyles}
+        >
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart syncId={SYNC_ID} data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
               <defs>
@@ -589,17 +595,15 @@ function ChartsGrid({
                   <stop offset="100%" stopColor={accent} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
+              <CartesianGrid strokeDasharray="3 3" stroke={themeStyles.gridStroke} strokeOpacity={0.25} />
               <XAxis
                 dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
                 tickFormatter={xAxisMode === 'time' ? timeTickFormatter : undefined}
                 minTickGap={xAxisMode === 'time' ? timeMinTickGap : 24}
-                {...X_AXIS_TICK_PROPS}
+                {...axisStyleProps}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-                tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-                axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+                {...axisStyleProps}
                 tickFormatter={(v: number) => `${v.toFixed(2)}`}
                 width={48}
               />
@@ -622,14 +626,14 @@ function ChartsGrid({
                 strokeWidth={2.25}
                 fill={`url(#${gradId('baseFee')})`}
                 dot={false}
-                activeDot={{ r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: themeStyles.activeDotStroke }}
                 connectNulls
               />
             </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
       ) : (
-        <Card className={RICH_CARD_CLASS}>
+        <Card className={themeStyles.cardClass}>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Fuel className="w-4 h-4 text-muted-foreground" />
@@ -708,22 +712,24 @@ function ChartTooltip({
 
 // Quiet card chrome — icon at muted-foreground, no colored border. Only
 // the chart line/area inside carries the brand accent so the data itself
-// draws the eye. Card surface uses the Image-Studio "rich" treatment so
-// the live charts read as elevated, premium-feeling panels rather than
-// flat blocks against the page background.
+// draws the eye. Card surface comes from the theme picker (light / dark
+// / rich) so users can flip between elevated, premium feel and pure
+// light/dark cards independently from the page theme.
 function ChartCard({
   icon: Icon,
   title,
   subtitle,
+  themeStyles,
   children,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   subtitle: string;
+  themeStyles: ChartThemeStyles;
   children: React.ReactNode;
 }) {
   return (
-    <Card className={cn(RICH_CARD_CLASS, 'overflow-hidden')}>
+    <Card className={cn(themeStyles.cardClass, 'overflow-hidden')}>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Icon className="w-4 h-4 text-muted-foreground" />
