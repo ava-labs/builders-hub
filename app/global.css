@@ -1571,3 +1571,20 @@ html.embed-mode #nd-toc {
   background-color: #2f2f3353;
   border-radius: 5px;
 }
+
+/* Honor the OS-level "Reduce Motion" preference site-wide. Framer-motion
+   variants already respect this, but raw CSS @keyframes, Tailwind
+   `transition-*` utilities, and any third-party animation will keep
+   firing without this rule. Set to a near-instant duration rather than 0
+   so transitions still trigger their `transitionend` events (some libs
+   rely on those firing). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
