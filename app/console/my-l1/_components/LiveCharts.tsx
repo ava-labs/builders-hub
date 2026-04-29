@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Blocks, Fuel, Info, Timer } from 'lucide-react';
+import { Blocks, Clock, Fuel, Hash, Info, Timer } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -80,8 +80,11 @@ function buildChartPoints(blocks: BlockSummary[]): ChartPoint[] {
   return points;
 }
 
+type XAxisMode = 'block' | 'time';
+
 export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
   const [windowSize, setWindowSize] = useState<number>(60);
+  const [xAxisMode, setXAxisMode] = useState<XAxisMode>('block');
   const recent = useL1RecentBlocks(l1.rpcUrl, windowSize);
 
   // Average block time observed in the current window. Drives the time
@@ -129,11 +132,14 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
             </TooltipContent>
           </UITooltip>
         </div>
-        <RangeSelector
-          value={windowSize}
-          onChange={setWindowSize}
-          avgBlockTimeSec={avgBlockTimeSec}
-        />
+        <div className="flex items-center gap-2">
+          <XAxisModeToggle value={xAxisMode} onChange={setXAxisMode} />
+          <RangeSelector
+            value={windowSize}
+            onChange={setWindowSize}
+            avgBlockTimeSec={avgBlockTimeSec}
+          />
+        </div>
       </div>
       {recent.error && recent.blocks.length === 0 ? (
         <Card>
@@ -153,9 +159,55 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
       ) : !recent.hasLoadedOnce ? (
         <ChartsSkeleton />
       ) : (
-        <ChartsGrid blocks={recent.blocks} />
+        <ChartsGrid blocks={recent.blocks} xAxisMode={xAxisMode} />
       )}
     </section>
+  );
+}
+
+// Two-state toggle: render the X-axis as block numbers (default — best for
+// debugging "what happened at block 5417946") or as wall-clock time (best
+// for "what was the chain doing around 3pm"). The hover tooltip surfaces
+// both pieces of info regardless of the toggle, so switching here only
+// changes the axis labels — no information is hidden.
+function XAxisModeToggle({
+  value,
+  onChange,
+}: {
+  value: XAxisMode;
+  onChange: (mode: XAxisMode) => void;
+}) {
+  const options: Array<{ mode: XAxisMode; label: string; icon: typeof Hash }> = [
+    { mode: 'block', label: 'Block', icon: Hash },
+    { mode: 'time', label: 'Time', icon: Clock },
+  ];
+  return (
+    <div className="inline-flex items-center gap-0.5 rounded-lg border bg-muted/30 p-0.5">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground px-2">
+        X-axis
+      </span>
+      {options.map((opt) => {
+        const Icon = opt.icon;
+        const isActive = value === opt.mode;
+        return (
+          <button
+            key={opt.mode}
+            type="button"
+            onClick={() => onChange(opt.mode)}
+            aria-pressed={isActive}
+            title={`Show X-axis as ${opt.label.toLowerCase()}`}
+            className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+              isActive
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Icon className="h-3 w-3" aria-hidden="true" />
+            <span>{opt.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -253,7 +305,41 @@ function ChartsSkeleton() {
   );
 }
 
-function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
+// Shared X-axis renderer driven by the section-level toggle. In `block`
+// mode the axis is the EVM block number (best for "what happened at block
+// 5417946"). In `time` mode it's the Unix timestamp formatted as HH:MM:SS
+// (best for "what was the chain doing around 3pm"). The recharts `syncId`
+// on each chart container does the cross-chart cursor mirror in either
+// mode because every chart uses the same dataKey.
+function TimeOrBlockAxis({ xAxisMode }: { xAxisMode: XAxisMode }) {
+  return (
+    <XAxis
+      dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
+      // For timestamp mode, narrow the type since `tickFormatter` runs on
+      // numbers either way. Falls back to a no-op for block mode so the
+      // raw integer renders as-is.
+      tickFormatter={
+        xAxisMode === 'time'
+          ? (v: number) =>
+              new Date(v * 1000).toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+              })
+          : undefined
+      }
+      // Same axis space, different label density — fewer ticks for time
+      // since "HH:MM:SS" is wider than a 7-digit block number.
+      minTickGap={xAxisMode === 'time' ? 60 : 24}
+      tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
+      tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+      axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
+    />
+  );
+}
+
+function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: XAxisMode }) {
   const points = useMemo(() => buildChartPoints(blocks), [blocks]);
   const hasBaseFee = points.some((p) => p.baseFeeGwei !== null);
 
@@ -290,12 +376,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
-            <XAxis
-              dataKey="block"
-              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-            />
+            <TimeOrBlockAxis xAxisMode={xAxisMode} />
             <YAxis
               tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
               tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
@@ -340,12 +421,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
-            <XAxis
-              dataKey="block"
-              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-            />
+            <TimeOrBlockAxis xAxisMode={xAxisMode} />
             <YAxis
               tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
               tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
@@ -387,12 +463,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
-            <XAxis
-              dataKey="block"
-              tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-              tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-              axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-            />
+            <TimeOrBlockAxis xAxisMode={xAxisMode} />
             <YAxis
               domain={[0, 100]}
               tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
@@ -435,12 +506,7 @@ function ChartsGrid({ blocks }: { blocks: BlockSummary[] }) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
-              <XAxis
-                dataKey="block"
-                tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
-                tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-                axisLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
-              />
+              <TimeOrBlockAxis xAxisMode={xAxisMode} />
               <YAxis
                 tick={{ fontSize: 10, fill: AXIS_TICK_COLOR }}
                 tickLine={{ stroke: GRID_STROKE, strokeOpacity: 0.4 }}
@@ -512,7 +578,13 @@ function ChartTooltip({
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const value = payload[0]?.value;
-  const ts = payload[0]?.payload?.timestamp;
+  // Read block + timestamp from the data point itself rather than from
+  // the axis `label` — that way the tooltip is invariant to which dataKey
+  // the X-axis is using (block-mode vs. time-mode toggle in the section
+  // header). Both pieces of info show up regardless.
+  const point = payload[0]?.payload;
+  const blockNum = point?.block ?? label;
+  const ts = point?.timestamp;
   // Locale-aware short date + HH:MM:SS — readable for fresh blocks (where
   // hovering across a window typically spans minutes) and still useful when
   // the user pans into older history. `undefined` locale falls back to the
@@ -529,7 +601,7 @@ function ChartTooltip({
     : null;
   return (
     <div className="rounded-md border border-border bg-popover/95 backdrop-blur shadow-lg px-3 py-2 text-xs">
-      <div className="font-medium text-foreground">Block #{label}</div>
+      <div className="font-medium text-foreground">Block #{blockNum}</div>
       {dateLabel && (
         <div className="text-[10px] text-muted-foreground tabular-nums mb-1">{dateLabel}</div>
       )}
