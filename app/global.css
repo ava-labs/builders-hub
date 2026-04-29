@@ -1589,6 +1589,15 @@ html.embed-mode #nd-toc {
   }
 }
 
+/* Subtle 1px highlight at the top of every shadcn Card in dark mode.
+   Differentiates cards from the page background (both are near-black
+   zinc shades with only ~10 steps between them) by suggesting the card
+   catches a hint of light from above. Kept invisible in light mode
+   since light cards already separate from the page via shadow. */
+.dark [data-slot="card"] {
+  box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.04);
+}
+
 /* Radix Collapsible animations. The primitive exposes the natural
    content height as a CSS variable; we animate from 0 to that and back
    so disclosures expand smoothly instead of snapping. Used by
