@@ -460,6 +460,7 @@ function ChartsGrid({
             />
             <YAxis
               {...axisStyleProps}
+              domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.1)]}
               tickFormatter={(v: number) => `${v}s`}
               width={40}
             />
@@ -509,6 +510,7 @@ function ChartsGrid({
             />
             <YAxis
               {...axisStyleProps}
+              domain={[0, (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.1))]}
               allowDecimals={false}
               width={32}
             />
@@ -606,6 +608,7 @@ function ChartsGrid({
               />
               <YAxis
                 {...axisStyleProps}
+                domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.1)]}
                 tickFormatter={(v: number) => `${v.toFixed(2)}`}
                 width={48}
               />
