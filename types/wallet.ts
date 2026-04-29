@@ -3,6 +3,14 @@ export interface AddChainOptions {
     coinName?: string;
     chainName?: string;
     allowLookup?: boolean;
+    /**
+     * Authoritative testnet/mainnet flag from the caller. When set, the
+     * AddChainModal uses this instead of Glacier's response for the
+     * `isTestnet` field on the resulting L1ListItem. Quick L1 sets this
+     * because it knows which network it deployed to; Glacier may not yet
+     * have the chain indexed.
+     */
+    isTestnet?: boolean;
 }
 
 export interface ChainData {
