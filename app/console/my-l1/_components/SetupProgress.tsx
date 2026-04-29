@@ -1,10 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, CheckCircle2, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
+import { toast } from '@/lib/toast';
 import type { CombinedL1 } from '../_lib/types';
 import { setupSummary } from '../_lib/setup-steps';
 
@@ -12,14 +17,59 @@ import { setupSummary } from '../_lib/setup-steps';
 // can take right now. Hidden when the L1 is fully configured (the
 // SetupCompleteBadge takes its place). The whole row is one Link so there's
 // only one focus target / tap target.
+//
+// When the connected wallet isn't on this L1's chain, the click handler
+// triggers the wallet switch first, then navigates. The destination setup
+// pages (e.g. /console/icm/setup) need the wallet on the right chain to
+// sign the deploy tx — having the user click → switch → click again was
+// the friction point flagged in the screenshot review.
 export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
   const { nextStep, done, steps } = setupSummary(l1);
+  const router = useRouter();
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const { safelySwitch } = useWalletSwitch();
+  const [isSwitching, setIsSwitching] = useState(false);
+
   if (!nextStep) return null;
   const Icon = nextStep.icon;
+
+  // Skip the switch gate when we don't know the chain id yet (wallet store
+  // still hydrating → walletChainId === 0) or when the L1 has no EVM chain
+  // (we can't switch to it).
+  const needsSwitch =
+    l1.evmChainId !== null && walletChainId !== 0 && walletChainId !== l1.evmChainId;
+
+  const handleClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!needsSwitch || isSwitching || l1.evmChainId === null) return;
+    e.preventDefault();
+    setIsSwitching(true);
+    try {
+      await safelySwitch(l1.evmChainId, l1.isTestnet);
+      router.push(nextStep.href);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to switch network';
+      toast.error('Network switch failed', msg);
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
+  const ctaLabel = isSwitching
+    ? 'Switching…'
+    : needsSwitch
+      ? `Switch & ${nextStep.ctaLabel.toLowerCase()}`
+      : nextStep.ctaLabel;
+
   return (
     <Link
       href={nextStep.href}
-      aria-label={`Next setup step: ${nextStep.shortLabel}. ${done} of ${steps.length} complete.`}
+      onClick={handleClick}
+      aria-label={
+        needsSwitch
+          ? `Switch wallet to ${l1.chainName} and start: ${nextStep.shortLabel}. ${done} of ${steps.length} complete.`
+          : `Next setup step: ${nextStep.shortLabel}. ${done} of ${steps.length} complete.`
+      }
+      aria-busy={isSwitching}
       className="group flex items-center gap-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] hover:bg-amber-500/[0.1] transition-colors px-4 py-3.5"
     >
       <div
@@ -38,8 +88,12 @@ export function NextActionBar({ l1 }: { l1: CombinedL1 }) {
         className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-foreground group-hover:translate-x-0.5 transition-transform"
         aria-hidden="true"
       >
-        {nextStep.ctaLabel}
-        <ArrowRight className="w-4 h-4" />
+        {ctaLabel}
+        {isSwitching ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <ArrowRight className="w-4 h-4" />
+        )}
       </span>
     </Link>
   );
