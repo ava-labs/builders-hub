@@ -366,15 +366,32 @@ function ChainLogo({
   );
 }
 
-// Tiny stable hash → pick one of 5 muted tints for the fallback avatar.
+// Tiny stable hash → pick one of 5 tinted gradients for the fallback avatar.
 // Different L1s read as different swatches without us spending design
-// energy on per-chain branding.
+// energy on per-chain branding. The diagonal gradient (top-left → bottom-
+// right) gives the disc a hint of depth so it doesn't read as a flat
+// monochrome circle.
 const FALLBACK_TINTS = [
-  { bg: 'bg-rose-500/10 dark:bg-rose-500/15', text: 'text-rose-700 dark:text-rose-300' },
-  { bg: 'bg-emerald-500/10 dark:bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-300' },
-  { bg: 'bg-sky-500/10 dark:bg-sky-500/15', text: 'text-sky-700 dark:text-sky-300' },
-  { bg: 'bg-amber-500/10 dark:bg-amber-500/15', text: 'text-amber-700 dark:text-amber-300' },
-  { bg: 'bg-violet-500/10 dark:bg-violet-500/15', text: 'text-violet-700 dark:text-violet-300' },
+  {
+    bg: 'bg-gradient-to-br from-rose-500/15 to-rose-500/[0.04] dark:from-rose-500/20 dark:to-rose-500/[0.06]',
+    text: 'text-rose-700 dark:text-rose-300',
+  },
+  {
+    bg: 'bg-gradient-to-br from-emerald-500/15 to-emerald-500/[0.04] dark:from-emerald-500/20 dark:to-emerald-500/[0.06]',
+    text: 'text-emerald-700 dark:text-emerald-300',
+  },
+  {
+    bg: 'bg-gradient-to-br from-sky-500/15 to-sky-500/[0.04] dark:from-sky-500/20 dark:to-sky-500/[0.06]',
+    text: 'text-sky-700 dark:text-sky-300',
+  },
+  {
+    bg: 'bg-gradient-to-br from-amber-500/15 to-amber-500/[0.04] dark:from-amber-500/20 dark:to-amber-500/[0.06]',
+    text: 'text-amber-700 dark:text-amber-300',
+  },
+  {
+    bg: 'bg-gradient-to-br from-violet-500/15 to-violet-500/[0.04] dark:from-violet-500/20 dark:to-violet-500/[0.06]',
+    text: 'text-violet-700 dark:text-violet-300',
+  },
 ];
 
 function pickFallbackTint(seed: string): (typeof FALLBACK_TINTS)[number] {
