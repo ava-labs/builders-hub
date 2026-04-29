@@ -317,20 +317,70 @@ const X_AXIS_TICK_PROPS = {
   axisLine: { stroke: GRID_STROKE, strokeOpacity: 0.4 },
 } as const;
 
-// Format a Unix-second timestamp as locale-aware HH:MM:SS for X-axis ticks
-// when the section toggle is set to `time` mode.
-function formatTimeTick(v: number): string {
-  return new Date(v * 1000).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
+// Build a Unix-second tick formatter whose granularity matches the actual
+// time span of the chart window. The hover tooltip always carries
+// "MMM DD, HH:MM:SS", so the axis itself only needs to surface the level
+// of detail that actually changes between adjacent ticks — showing
+// `HH:MM:SS` across a 4-day window just repeats meaningless seconds.
+//
+//   span > 24h  → "DD MMM HH:MM"  (e.g. "28 Apr 12:00") — keeps both
+//                                  day-level orientation and hour-of-day
+//                                  precision so consecutive ticks within
+//                                  the same day stay distinguishable.
+//   span > 1h   → "HH:MM"          (e.g. "10:11")
+//   span ≤ 1h   → "HH:MM:SS"       (e.g. "10:11:16")
+function makeTimeTickFormatter(spanSec: number): (v: number) => string {
+  if (spanSec > 86_400) {
+    return (v) =>
+      new Date(v * 1000).toLocaleString(undefined, {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+  }
+  if (spanSec > 3600) {
+    return (v) =>
+      new Date(v * 1000).toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+  }
+  return (v) =>
+    new Date(v * 1000).toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
 }
 
 function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: XAxisMode }) {
   const points = useMemo(() => buildChartPoints(blocks), [blocks]);
   const hasBaseFee = points.some((p) => p.baseFeeGwei !== null);
+
+  // Total span of the visible window (last - first timestamp). Drives the
+  // adaptive X-axis tick formatter — wider spans show only the day, narrow
+  // spans show seconds. Recomputed only when points change.
+  const windowSpanSec = useMemo(() => {
+    if (points.length < 2) return 0;
+    const first = points[0].timestamp;
+    const last = points[points.length - 1].timestamp;
+    return Math.max(0, last - first);
+  }, [points]);
+
+  // Factory output is a stable reference per span so Recharts doesn't
+  // thrash over identity changes between renders within the same window.
+  const timeTickFormatter = useMemo(
+    () => makeTimeTickFormatter(windowSpanSec),
+    [windowSpanSec],
+  );
+
+  // "28 Apr 12:00" is wider than either pure date or pure time labels, so
+  // give it more breathing room to avoid collisions on narrow viewports.
+  const timeMinTickGap = windowSpanSec > 86_400 ? 110 : 60;
 
   // Aggregate stats: averages over the window for the card sub-titles.
   const avgBlockTime = points.length
@@ -367,8 +417,8 @@ function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: 
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
             <XAxis
               dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
-              tickFormatter={xAxisMode === 'time' ? formatTimeTick : undefined}
-              minTickGap={xAxisMode === 'time' ? 60 : 24}
+              tickFormatter={xAxisMode === 'time' ? timeTickFormatter : undefined}
+              minTickGap={xAxisMode === 'time' ? timeMinTickGap : 24}
               {...X_AXIS_TICK_PROPS}
             />
             <YAxis
@@ -417,8 +467,8 @@ function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: 
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
             <XAxis
               dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
-              tickFormatter={xAxisMode === 'time' ? formatTimeTick : undefined}
-              minTickGap={xAxisMode === 'time' ? 60 : 24}
+              tickFormatter={xAxisMode === 'time' ? timeTickFormatter : undefined}
+              minTickGap={xAxisMode === 'time' ? timeMinTickGap : 24}
               {...X_AXIS_TICK_PROPS}
             />
             <YAxis
@@ -464,8 +514,8 @@ function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: 
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
             <XAxis
               dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
-              tickFormatter={xAxisMode === 'time' ? formatTimeTick : undefined}
-              minTickGap={xAxisMode === 'time' ? 60 : 24}
+              tickFormatter={xAxisMode === 'time' ? timeTickFormatter : undefined}
+              minTickGap={xAxisMode === 'time' ? timeMinTickGap : 24}
               {...X_AXIS_TICK_PROPS}
             />
             <YAxis
@@ -512,8 +562,8 @@ function ChartsGrid({ blocks, xAxisMode }: { blocks: BlockSummary[]; xAxisMode: 
               <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} strokeOpacity={0.25} />
               <XAxis
                 dataKey={xAxisMode === 'time' ? 'timestamp' : 'block'}
-                tickFormatter={xAxisMode === 'time' ? formatTimeTick : undefined}
-                minTickGap={xAxisMode === 'time' ? 60 : 24}
+                tickFormatter={xAxisMode === 'time' ? timeTickFormatter : undefined}
+                minTickGap={xAxisMode === 'time' ? timeMinTickGap : 24}
                 {...X_AXIS_TICK_PROPS}
               />
               <YAxis
