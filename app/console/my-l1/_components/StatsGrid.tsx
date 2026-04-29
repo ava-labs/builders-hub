@@ -32,16 +32,18 @@ export function StatsGrid({
   const blockValueText = blockHeight !== null ? `#${blockHeight}` : '—';
   // Wrap the block height in a keyed motion.span so the value pulses on every
   // RPC tick — the user sees the chain breathe instead of a static number.
-  // Using `key={blockHeight}` forces remount → re-animate. `prefers-reduced-
-  // motion` users see the same final value without the entrance animation
-  // because framer-motion respects the OS-level setting by default.
+  // Using `key={blockHeight}` forces remount → re-animate. The pulse is kept
+  // intentionally subtle (no y translate, opacity barely dips to 0.85) so a
+  // user staring at the dashboard for minutes doesn't feel constant flicker.
+  // `prefers-reduced-motion` users see the same final value without the
+  // entrance animation because framer-motion respects the OS-level setting.
   const blockValue =
     blockHeight !== null ? (
       <motion.span
         key={blockHeight}
-        initial={{ opacity: 0.55, y: -2 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
+        initial={{ opacity: 0.85 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
         aria-live="polite"
         aria-atomic="true"
         aria-label={`Latest block ${blockValueText}`}
