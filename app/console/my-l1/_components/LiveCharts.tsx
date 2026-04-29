@@ -12,8 +12,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Blocks, Clock, Fuel, Hash, Info, Timer } from 'lucide-react';
+import { Blocks, Clock, Fuel, Hash, Info, RefreshCw, Timer } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -159,10 +160,24 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
               spun down.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <p className="text-xs text-red-600 dark:text-red-400 font-mono break-all">
               {recent.error}
             </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={recent.refresh}
+              disabled={recent.isLoading}
+              aria-label="Retry fetching recent blocks"
+            >
+              <RefreshCw
+                className={cn('w-3.5 h-3.5 mr-2', recent.isLoading && 'animate-spin')}
+                aria-hidden="true"
+              />
+              {recent.isLoading ? 'Retrying…' : 'Retry'}
+            </Button>
           </CardContent>
         </Card>
       ) : !recent.hasLoadedOnce ? (
