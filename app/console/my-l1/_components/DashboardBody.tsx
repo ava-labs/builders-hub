@@ -171,6 +171,7 @@ export function DashboardBody() {
         selected={selectedL1?.status === 'active' ? selectedL1 : null}
         onSelect={onSelect}
         onRefresh={refetch}
+        isRefreshing={isLoading}
       />
       {selectedL1 && selectedL1.status === 'active' && (
         <L1Details

@@ -7,6 +7,7 @@ import { Clock, Layers, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { boardContainer, boardItem } from '@/components/console/motion';
+import { cn } from '@/lib/utils';
 import type { CombinedL1 } from '../_lib/types';
 
 export function SwitcherBar({
@@ -14,11 +15,15 @@ export function SwitcherBar({
   selected,
   onSelect,
   onRefresh,
+  isRefreshing,
 }: {
   l1s: CombinedL1[];
   selected: CombinedL1 | null;
   onSelect: (l1: CombinedL1) => void;
   onRefresh: () => void;
+  /** Drives the spinner + disabled state on the Refresh button so the
+   *  click feedback is visible. Driven by `useMyL1s().isLoading`. */
+  isRefreshing: boolean;
 }) {
   const managed = l1s.filter((l) => l.source === 'managed');
   const wallet = l1s.filter((l) => l.source === 'wallet');
@@ -37,9 +42,15 @@ export function SwitcherBar({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            aria-label={isRefreshing ? 'Refreshing L1 list' : 'Refresh L1 list'}
+          >
+            <RefreshCw className={cn('w-4 h-4 mr-2', isRefreshing && 'animate-spin')} />
+            {isRefreshing ? 'Refreshing…' : 'Refresh'}
           </Button>
           <Link href="/console/create-l1">
             <Button size="sm">
