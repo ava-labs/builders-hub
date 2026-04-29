@@ -80,7 +80,9 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 shrink-0">
+      {/* min-h-10 (40px) on mobile keeps the row buttons inside touch-target
+          range without enlarging them on desktop where they pack tighter. */}
+      <div className="flex flex-wrap gap-2 shrink-0 [&>*]:min-h-10 md:[&>*]:min-h-0">
         {/* Primary action when the wallet isn't on this L1. Renders nothing
             otherwise — replaces the old full-width banner. */}
         <WalletNetworkAction l1={l1} />
