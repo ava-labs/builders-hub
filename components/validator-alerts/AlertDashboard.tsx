@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { boardContainer, boardItem } from '@/components/console/motion';
 import {
   AlertTriangle,
   Bell,
@@ -214,9 +216,17 @@ export function AlertDashboard() {
   const userEmail = session?.user?.email ?? '';
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <motion.div
+      className="space-y-6 max-w-4xl mx-auto"
+      variants={boardContainer}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <motion.div
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        variants={boardItem}
+      >
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Validator Alerts</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -227,19 +237,21 @@ export function AlertDashboard() {
           <BulkImportDialog userEmail={userEmail} onAdd={handleAdd} />
           <AddValidatorDialog userEmail={userEmail} onAdd={handleAdd} />
         </div>
-      </div>
+      </motion.div>
 
       {/* Empty state */}
       {alerts.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-12">
-            <Server className="h-12 w-12 text-muted-foreground" />
-            <h3 className="text-lg font-medium">No validators registered</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-md">
-              Add your first validator to start receiving uptime, version, and stake expiry alerts.
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div variants={boardItem}>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-4 py-12">
+              <Server className="h-12 w-12 text-muted-foreground" />
+              <h3 className="text-lg font-medium">No validators registered</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                Add your first validator to start receiving uptime, version, and stake expiry alerts.
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Alert cards */}
@@ -249,7 +261,8 @@ export function AlertDashboard() {
         const validator = validatorData.get(alert.node_id);
         const isL1 = alert.subnet_id !== 'primary';
         return (
-          <Card key={alert.id} className="overflow-hidden">
+          <motion.div key={alert.id} variants={boardItem}>
+          <Card className="overflow-hidden">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -431,8 +444,9 @@ export function AlertDashboard() {
               )}
             </CardContent>
           </Card>
+          </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }
