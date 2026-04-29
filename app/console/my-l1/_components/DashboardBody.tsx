@@ -12,8 +12,7 @@ import {
 } from '../_lib/types';
 import { SwitcherBar } from './Switcher';
 import { L1Details } from './L1Details';
-import { PastL1sSection } from './PastL1s';
-import { EmptyState, ErrorState, HeaderSkeleton, NoActiveL1sNote } from './states';
+import { EmptyState, ErrorState, HeaderSkeleton } from './states';
 
 export function DashboardBody() {
   const router = useRouter();
@@ -89,8 +88,8 @@ export function DashboardBody() {
       if (match && (match.status === 'active' || !firstActive)) return match;
     }
     // Default to the first ACTIVE L1 — falling back to the very first
-    // entry only when nothing is alive (in which case the page renders the
-    // NoActiveL1sNote and the Past L1s section instead of a detail view).
+    // entry only when nothing is alive (in which case the page renders
+    // the EmptyState instead of a detail view).
     return firstActive ?? combinedL1s[0];
   }, [combinedL1s, selectedChainParam]);
 
@@ -117,11 +116,10 @@ export function DashboardBody() {
   );
 
   // Active L1s drive the switcher + detail view. Expired managed entries are
-  // surfaced separately at the bottom so users can find a past chain
-  // without confusing the live-data UI. Keep these hooks above every early
-  // return so the dashboard has a stable hook order across loading states.
+  // filtered out entirely — the dashboard only surfaces live chains.
+  // Keep this hook above every early return so the dashboard has a stable
+  // hook order across loading states.
   const activeL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'active'), [combinedL1s]);
-  const expiredL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'expired'), [combinedL1s]);
 
   if (isLoading && combinedL1s.length === 0) {
     return (
@@ -135,32 +133,25 @@ export function DashboardBody() {
     return <ErrorState message={error} onRetry={refetch} />;
   }
 
-  if (activeL1s.length === 0 && expiredL1s.length === 0) {
+  if (activeL1s.length === 0) {
     return <EmptyState />;
   }
 
   return (
     <div className="space-y-6">
-      {activeL1s.length > 0 ? (
-        <>
-          <SwitcherBar
-            l1s={activeL1s}
-            selected={selectedL1?.status === 'active' ? selectedL1 : null}
-            onSelect={onSelect}
-            onRefresh={refetch}
-          />
-          {selectedL1 && selectedL1.status === 'active' && (
-            <L1Details
-              l1={selectedL1}
-              userActiveNodeTotal={userActiveNodeTotal}
-              onRefetch={refetch}
-            />
-          )}
-        </>
-      ) : (
-        <NoActiveL1sNote onRefresh={refetch} />
+      <SwitcherBar
+        l1s={activeL1s}
+        selected={selectedL1?.status === 'active' ? selectedL1 : null}
+        onSelect={onSelect}
+        onRefresh={refetch}
+      />
+      {selectedL1 && selectedL1.status === 'active' && (
+        <L1Details
+          l1={selectedL1}
+          userActiveNodeTotal={userActiveNodeTotal}
+          onRefetch={refetch}
+        />
       )}
-      {expiredL1s.length > 0 && <PastL1sSection l1s={expiredL1s} />}
     </div>
   );
 }
