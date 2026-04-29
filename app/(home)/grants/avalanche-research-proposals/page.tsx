@@ -197,15 +197,56 @@ export default function ResearchProposalForm() {
           </span>
         </div>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
-            Research Proposal Submission
-          </h1>
-          <p className="mt-2 text-lg text-muted-foreground">
-            The Economics of Cryptoassets and Decentralized Networks
+        <div className="mb-8 space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
+              Research Proposal Submission
+            </h1>
+            <p className="mt-2 text-lg text-muted-foreground">
+              The Economics of Cryptoassets and Decentralized Networks
+            </p>
+          </div>
+
+          <p className="text-muted-foreground">
+            The Avalanche Foundation is funding original academic research on the economics of decentralised networks. We are offering grants of up to ${MAX_BUDGET_USD.toLocaleString()} USD across two interconnected areas.
           </p>
-          <p className="mt-4 text-muted-foreground">
-            Submit your proposal for original, rigorous academic inquiry into the economics of cryptoassets and decentralized networks. Maximum grant award is ${MAX_BUDGET_USD.toLocaleString()} USD.
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">What We Are Looking For</h2>
+
+            <div>
+              <h3 className="font-semibold text-foreground">Area 1: Cryptoasset Pricing and Valuation</h3>
+              <p className="mt-2 text-muted-foreground">
+                Cryptoassets do not fit neatly into existing asset pricing frameworks. They exhibit characteristics of currencies, equity-like claims on network revenues, and access tokens to utility and services simultaneously — especially the native assets of proof-of-stake blockchains.
+              </p>
+              <p className="mt-2 text-muted-foreground">
+                We are seeking research that develops and tests frameworks for understanding how value accrues in these systems, with particular attention to protocol-level design choices and their long-term implications. Topics of interest include theoretical models of cryptoasset valuation, the role of monetary policy and token emission schedules in determining asset prices and expected returns, how network adoption and usage relate to fundamental value, and novel approaches to value accrual that extend beyond network usage alone.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-foreground">Area 2: Validator Economics and Network Security</h3>
+              <p className="mt-2 text-muted-foreground">
+                Proof-of-stake networks depend on well-designed economic incentives to maintain security and consensus. Research in this area should examine how validator incentive systems are structured, measured, and optimised.
+              </p>
+              <p className="mt-2 text-muted-foreground">
+                We are particularly interested in work that explores optimal staking ratios, the economics of opportunity cost and required returns for validators, metrics for assessing validator set health and decentralisation, and non-inflation-based reward mechanisms that support sustainable long-term outcomes.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-foreground">Who Should Apply</h2>
+            <p className="text-muted-foreground">
+              This call is open to academic researchers and independent scholars in economics, finance, computer science, engineering, and related disciplines. Proposals are assessed on relevance, methodological rigour, novelty, feasibility, and researcher qualifications.
+            </p>
+            <p className="text-muted-foreground">
+              Proposals should be no longer than 10 pages and must include a clear research question, proposed methodology, expected contributions, timeline, budget justification, and researcher CVs.
+            </p>
+          </div>
+
+          <p className="rounded-lg border border-border bg-secondary/40 px-4 py-3 text-sm font-medium text-foreground">
+            Deadline: Monday, June 1st, 2026.
           </p>
         </div>
 
