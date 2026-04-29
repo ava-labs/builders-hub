@@ -83,10 +83,29 @@ function buildChartPoints(blocks: BlockSummary[]): ChartPoint[] {
 export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
   const [windowSize, setWindowSize] = useState<number>(60);
   const recent = useL1RecentBlocks(l1.rpcUrl, windowSize);
+
+  // Average block time observed in the current window. Drives the time
+  // hint on each range option ("60 ~2m" vs "60 ~3h") so users can pick a
+  // window in time-units they care about rather than guessing how many
+  // blocks their chain produces per minute. null until we have ≥2 blocks.
+  const avgBlockTimeSec = useMemo(() => {
+    const blocks = recent.blocks;
+    if (blocks.length < 2) return null;
+    const sorted = [...blocks].sort((a, b) => Number(a.number - b.number));
+    const totalSpan = Number(sorted[sorted.length - 1].timestamp - sorted[0].timestamp);
+    const samples = sorted.length - 1;
+    if (samples <= 0 || totalSpan <= 0) return null;
+    return totalSpan / samples;
+  }, [recent.blocks]);
+
   // Description that used to live in a paragraph above the charts. Now
   // surfaces in a small (i) tooltip beside the section title so it stops
   // eating a vertical row of pixels.
-  const description = `Live charts derived from this L1's RPC. Window: latest ${recent.blocks.length} of ${windowSize} blocks · refreshing every 15s.`;
+  const windowSpanLabel =
+    avgBlockTimeSec !== null
+      ? ` (~${formatDurationShort(windowSize * avgBlockTimeSec)} of history)`
+      : '';
+  const description = `Live charts derived from this L1's RPC. Window: latest ${recent.blocks.length} of ${windowSize} blocks${windowSpanLabel} · refreshing every 15s.`;
 
   return (
     <section className="space-y-3">
@@ -110,7 +129,11 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
             </TooltipContent>
           </UITooltip>
         </div>
-        <RangeSelector value={windowSize} onChange={setWindowSize} />
+        <RangeSelector
+          value={windowSize}
+          onChange={setWindowSize}
+          avgBlockTimeSec={avgBlockTimeSec}
+        />
       </div>
       {recent.error && recent.blocks.length === 0 ? (
         <Card>
@@ -140,28 +163,76 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
 // noticeably costlier on first load (parallel RPC fan-out), but the
 // incremental poll keeps subsequent refresh traffic constant regardless
 // of window size — so users can leave it on 240 without penalty.
-function RangeSelector({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+//
+// Each option renders a derived time hint ("~2m", "~3h") computed from
+// the window's observed average block time so the picker is meaningful
+// regardless of whether the chain produces a block every 100ms or every
+// 3 minutes. The hint hides until we have enough samples to compute it.
+function RangeSelector({
+  value,
+  onChange,
+  avgBlockTimeSec,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  avgBlockTimeSec: number | null;
+}) {
   return (
     <div className="inline-flex items-center gap-0.5 rounded-lg border bg-muted/30 p-0.5">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground px-2">
         Blocks
       </span>
-      {RANGE_OPTIONS.map((opt) => (
-        <button
-          key={opt.count}
-          type="button"
-          onClick={() => onChange(opt.count)}
-          className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-            value === opt.count
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
+      {RANGE_OPTIONS.map((opt) => {
+        const isActive = value === opt.count;
+        const hint =
+          avgBlockTimeSec !== null
+            ? formatDurationShort(opt.count * avgBlockTimeSec)
+            : null;
+        return (
+          <button
+            key={opt.count}
+            type="button"
+            onClick={() => onChange(opt.count)}
+            title={hint ? `${opt.label} blocks · ~${hint}` : `${opt.label} blocks`}
+            className={`px-2 py-1 rounded-md transition-colors cursor-pointer flex items-baseline gap-1 ${
+              isActive
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="text-xs font-medium tabular-nums">{opt.label}</span>
+            {hint && (
+              <span
+                className={`text-[10px] tabular-nums ${
+                  isActive ? 'text-muted-foreground' : 'opacity-60'
+                }`}
+              >
+                ~{hint}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
+}
+
+// Compact human-readable duration formatter. Stays single-line + ≤4 chars
+// for typical values so it fits in the range pills without wrapping.
+//   < 60s     → "Ns"
+//   < 60m     → "Nm"
+//   < 24h     → "Nh" (one decimal when under 10h, integer otherwise)
+//   ≥ 24h     → "Nd"
+function formatDurationShort(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '—';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  if (seconds < 86_400) {
+    const h = seconds / 3600;
+    return h < 10 ? `${h.toFixed(1)}h` : `${Math.round(h)}h`;
+  }
+  const d = seconds / 86_400;
+  return d < 10 ? `${d.toFixed(1)}d` : `${Math.round(d)}d`;
 }
 
 function ChartsSkeleton() {
