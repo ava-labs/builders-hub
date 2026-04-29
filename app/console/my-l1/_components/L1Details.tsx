@@ -7,6 +7,7 @@ import type { CombinedL1 } from '../_lib/types';
 import { setupSummary } from '../_lib/setup-steps';
 import { DetailHeader } from './DetailHeader';
 import { StatsGrid } from './StatsGrid';
+import { LiveCharts } from './LiveCharts';
 import { NextActionBar, SetupCompleteBadge, SetupProgressCard } from './SetupProgress';
 import { QuickActionsCard, WalletOnlyActions } from './QuickActions';
 import { NetworkDetailsCard } from './NetworkDetailsCard';
@@ -39,6 +40,10 @@ export function L1Details({
 
       <DashboardSection title="Health">
         <StatsGrid l1={l1} health={health} validators={validators} />
+      </DashboardSection>
+
+      <DashboardSection title="Live activity">
+        <LiveCharts l1={l1} />
       </DashboardSection>
 
       {isManaged &&
