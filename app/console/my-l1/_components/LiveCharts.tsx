@@ -197,28 +197,30 @@ function XAxisModeToggle({
   ];
   return (
     <div className="inline-flex items-center gap-0.5 rounded-lg border bg-muted/30 p-0.5">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground px-2">
-        X-axis
-      </span>
       {options.map((opt) => {
         const Icon = opt.icon;
         const isActive = value === opt.mode;
+        const tooltipLabel = `Show X-axis as ${opt.label.toLowerCase()}`;
         return (
-          <button
-            key={opt.mode}
-            type="button"
-            onClick={() => onChange(opt.mode)}
-            aria-pressed={isActive}
-            title={`Show X-axis as ${opt.label.toLowerCase()}`}
-            className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-              isActive
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Icon className="h-3 w-3" aria-hidden="true" />
-            <span>{opt.label}</span>
-          </button>
+          <UITooltip key={opt.mode}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onChange(opt.mode)}
+                aria-pressed={isActive}
+                aria-label={tooltipLabel}
+                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                  isActive
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-3 w-3" aria-hidden="true" />
+                <span>{opt.label}</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
+          </UITooltip>
         );
       })}
     </div>
