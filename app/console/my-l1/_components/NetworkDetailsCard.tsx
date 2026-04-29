@@ -36,36 +36,52 @@ export function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
       </summary>
       <div className="border-t border-border px-4 pt-4 pb-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="p-3 rounded-lg border border-border bg-background/40 group/item hover:border-foreground/20 transition-colors"
-            >
-              <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5">
-                {item.label}
-              </p>
-              <div className="flex items-start gap-2">
-                <code
-                  className="text-sm font-mono text-foreground flex-1 break-all leading-relaxed"
-                  title={item.value}
-                >
-                  {item.value}
-                </code>
-                <button
-                  onClick={() => copyToClipboard(item.value, item.id)}
-                  className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0 text-muted-foreground hover:text-foreground"
-                  title={`Copy ${item.label}`}
-                  aria-label={`Copy ${item.label}`}
-                >
-                  {copiedId === item.id ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                </button>
+          {items.map((item) => {
+            const isCopied = copiedId === item.id;
+            return (
+              <div
+                key={item.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => copyToClipboard(item.value, item.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    copyToClipboard(item.value, item.id);
+                  }
+                }}
+                aria-label={`Copy ${item.label}`}
+                className="p-3 rounded-lg border border-border bg-background/40 group/item cursor-pointer hover:border-foreground/30 hover:bg-background/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5">
+                  {item.label}
+                </p>
+                <div className="flex items-start gap-2">
+                  {/* Click on the value itself does NOT trigger copy — leaves
+                      the user free to click-and-drag to select a substring
+                      (e.g. just the chain ID portion of a longer URL). */}
+                  <code
+                    className="text-sm font-mono text-foreground flex-1 break-all leading-relaxed cursor-text"
+                    title={item.value}
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    {item.value}
+                  </code>
+                  <span
+                    className="p-1.5 shrink-0 text-muted-foreground group-hover/item:text-foreground transition-colors"
+                    aria-hidden="true"
+                  >
+                    {isCopied ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </details>
