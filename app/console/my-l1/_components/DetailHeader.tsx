@@ -5,8 +5,13 @@ import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from '@/lib/toast';
-import type { L1HealthState } from '@/hooks/useL1Health';
+import type { L1HealthState, L1HealthStatus } from '@/hooks/useL1Health';
 import type { CombinedL1 } from '../_lib/types';
 import { WalletNetworkAction } from './WalletNetworkAction';
 
@@ -30,10 +35,11 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
   const initial = l1.chainName?.charAt(0).toUpperCase() ?? '?';
   const fallbackTint = pickFallbackTint(l1.subnetId);
 
-  // "Live" pulse dot next to the chain name when the RPC is producing fresh
-  // blocks. We deliberately skip 'degraded' and 'stale' here — a misleading
-  // green dot on a half-frozen chain is worse than no dot.
-  const isLive = health?.status === 'healthy';
+  // Status pulse dot next to the chain name. Reflects every state the
+  // health hook can report — green when fresh, amber when blocks are
+  // lagging (≤10 min), red when the chain has gone dark or the RPC is
+  // unreachable. Hidden only when health hasn't sampled yet (`unknown`).
+  const status = health?.status;
 
   return (
     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
@@ -49,22 +55,7 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
             <h2 className="text-2xl font-semibold tracking-tight text-foreground truncate">
               {l1.chainName}
             </h2>
-            {isLive && (
-              <span
-                className="relative flex w-2 h-2 shrink-0"
-                title="Chain is producing fresh blocks"
-                aria-label="Chain healthy"
-              >
-                <span
-                  className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping"
-                  aria-hidden="true"
-                />
-                <span
-                  className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"
-                  aria-hidden="true"
-                />
-              </span>
-            )}
+            <HealthPulse status={status} blockAgeSec={health?.blockAgeSec ?? null} />
           </div>
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
             {l1.evmChainId !== null && <MetaPill>Chain {l1.evmChainId}</MetaPill>}
@@ -142,6 +133,88 @@ function CopyChainConfigButton({ l1 }: { l1: CombinedL1 }) {
       Copy Config
     </Button>
   );
+}
+
+// Status pulse dot rendered next to the chain name. Mirrors every state
+// the `useL1Health` hook can return — emerald for fresh, amber for
+// lagging (>2 min since last block), red for stale (>10 min) or RPC
+// errors. The hover tooltip explains what each color means and surfaces
+// the actual block-age figure when available.
+function HealthPulse({
+  status,
+  blockAgeSec,
+}: {
+  status: L1HealthStatus | undefined;
+  blockAgeSec: number | null;
+}) {
+  if (!status || status === 'unknown') return null;
+
+  const config = HEALTH_PULSE_CONFIG[status];
+  const ageLabel = blockAgeSec !== null ? formatBlockAge(blockAgeSec) : null;
+  // Compose the hover hint by joining the static description with a live
+  // block-age suffix when we have one. "Chain healthy · last block 12s ago"
+  // reads cleaner than two separate lines.
+  const tooltipLabel = ageLabel ? `${config.description} · last block ${ageLabel} ago` : config.description;
+
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild>
+        <span
+          className="relative flex w-2 h-2 shrink-0 cursor-help"
+          aria-label={tooltipLabel}
+          role="status"
+        >
+          {config.animatePing && (
+            <span
+              className={`absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping ${config.dotClass}`}
+              aria-hidden="true"
+            />
+          )}
+          <span
+            className={`relative inline-flex rounded-full h-2 w-2 ${config.dotClass}`}
+            aria-hidden="true"
+          />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{tooltipLabel}</TooltipContent>
+    </UITooltip>
+  );
+}
+
+const HEALTH_PULSE_CONFIG: Record<
+  Exclude<L1HealthStatus, 'unknown'>,
+  { dotClass: string; animatePing: boolean; description: string }
+> = {
+  healthy: {
+    dotClass: 'bg-emerald-500',
+    animatePing: true,
+    description: 'Chain healthy — producing fresh blocks',
+  },
+  degraded: {
+    dotClass: 'bg-amber-500',
+    animatePing: true,
+    description: 'Chain lagging — last block over 2 minutes ago',
+  },
+  stale: {
+    dotClass: 'bg-red-500',
+    animatePing: false,
+    description: 'Chain stale — no new blocks for 10+ minutes',
+  },
+  offline: {
+    dotClass: 'bg-red-500',
+    animatePing: false,
+    description: 'RPC unreachable or chain ID mismatch',
+  },
+};
+
+// Compact human-readable block-age formatter. Tooltip-only, so it can stay
+// minimal — "12s", "3m", "2h", "1d" — without a unit-of-time word.
+function formatBlockAge(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  if (seconds < 86_400) return `${Math.round(seconds / 3600)}h`;
+  return `${Math.round(seconds / 86_400)}d`;
 }
 
 // Compact metadata chip — replaces the old dot-separated "Chain ID: 836504 ·
