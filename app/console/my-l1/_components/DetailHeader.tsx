@@ -70,7 +70,12 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
                 {nodeCount} {nodeCount === 1 ? 'node' : 'nodes'}
               </MetaPill>
             )}
-            {l1.source === 'wallet' && <MetaPill>Wallet</MetaPill>}
+            {/* Source pill hides when wallet is active here — the
+                "Wallet active" pill below already implies the L1 is
+                in the user's wallet, so showing both reads as repetition. */}
+            {l1.source === 'wallet' && !isWalletOnThisL1 && (
+              <MetaPill>Wallet</MetaPill>
+            )}
             {l1.coinName && <MetaPill>{l1.coinName}</MetaPill>}
             {/* Explicit positive signal that the wallet is on this chain.
                 Without it the only cue was the absence of the "Switch
