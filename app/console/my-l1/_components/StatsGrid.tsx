@@ -3,10 +3,17 @@
 import { motion } from 'framer-motion';
 import { Blocks, Fuel, Users, Wallet } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { L1HealthState } from '@/hooks/useL1Health';
 import type { L1ValidatorCountState } from '@/hooks/useL1ValidatorCount';
 import type { CombinedL1 } from '../_lib/types';
 import { formatGasPrice, formatRelativeFromNow } from '../_lib/format';
+
+// Inline shimmer for stat values during the very first load. Sized to roughly
+// the final text so the cell's height doesn't jump when data lands.
+function StatSkeleton({ width = 'w-16' }: { width?: string }) {
+  return <Skeleton className={`inline-block h-5 ${width} align-middle`} />;
+}
 
 export function StatsGrid({
   l1,
@@ -22,7 +29,7 @@ export function StatsGrid({
   // active validators is the universally-meaningful signal across L1s and
   // the managed-node count is already visible in the header subtitle.
   const blockHeight = health.blockNumber !== null ? health.blockNumber.toString() : null;
-  const blockValueText = blockHeight !== null ? `#${blockHeight}` : health.isLoading ? '…' : '—';
+  const blockValueText = blockHeight !== null ? `#${blockHeight}` : '—';
   // Wrap the block height in a keyed motion.span so the value pulses on every
   // RPC tick — the user sees the chain breathe instead of a static number.
   // Using `key={blockHeight}` forces remount → re-animate. `prefers-reduced-
@@ -38,6 +45,8 @@ export function StatsGrid({
       >
         {blockValueText}
       </motion.span>
+    ) : health.isLoading ? (
+      <StatSkeleton width="w-20" />
     ) : (
       blockValueText
     );
@@ -49,13 +58,18 @@ export function StatsGrid({
         : 'Pinging...';
 
   const blockTimeValue =
-    health.blockTimeSec !== null ? `${health.blockTimeSec}s` : health.isLoading ? '…' : '—';
+    health.blockTimeSec !== null ? `${health.blockTimeSec}s` : '—';
   const blockSub =
     blockTimeValue === '—'
       ? blockAge
       : `${blockAge} · ${blockTimeValue} interval`;
 
-  const gasValue = health.gasPriceEth !== null ? formatGasPrice(health.gasPriceEth) : '—';
+  const gasValue: React.ReactNode =
+    health.gasPriceEth !== null
+      ? formatGasPrice(health.gasPriceEth)
+      : health.isLoading
+        ? <StatSkeleton width="w-14" />
+        : '—';
 
   // Validator count from Glacier when available, fall back to managed-node
   // count for managed L1s (still useful when Glacier hasn't indexed the
@@ -142,12 +156,14 @@ function StatCell({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-          <p
+          {/* div, not p — Skeleton renders as a div and div-in-p is invalid
+              HTML; the wrapping element here is just for typography styling. */}
+          <div
             className="text-base font-semibold text-foreground truncate tabular-nums"
             title={valueTitle ?? (typeof value === 'string' ? value : undefined)}
           >
             {value}
-          </p>
+          </div>
           {subValue && <p className="text-xs text-muted-foreground truncate">{subValue}</p>}
         </div>
       </div>
