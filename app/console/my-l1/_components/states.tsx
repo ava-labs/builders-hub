@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Layers, RefreshCw, Wallet } from 'lucide-react';
+import { Layers, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useModalTrigger } from '@/components/toolbox/hooks/useModal';
@@ -85,29 +85,3 @@ export function HeaderSkeleton() {
   );
 }
 
-export function NoActiveL1sNote({ onRefresh }: { onRefresh: () => void }) {
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">My L1 Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            No active L1s right now — your past chains are listed below for reference.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
-          <Link href="/console/create-l1">
-            <Button size="sm">
-              <Layers className="w-4 h-4 mr-2" />
-              Create L1
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
