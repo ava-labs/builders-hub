@@ -3,19 +3,23 @@
   "version": "0.0.0",
   "private": true,
   "resolutions": {
-    "katex": "0.16.35",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "axios": "^1.15.0",
     "fast-xml-parser": ">=5.5.9",
-    "@shikijs/types": "3.23.0"
+    "katex": "0.16.35",
+    "@shikijs/types": "3.23.0",
+    "next": "^16.2.3"
   },
   "scripts": {
     "build": "tsc --noEmit && next build",
     "dev": "next dev --turbopack",
-    "build:remote": "tsx ./utils/remote-content.mts && tsx ./scripts/generate-api-reference.mts && tsx ./scripts/enrich-chains.mts && tsx ./scripts/index-repos.mts",
+    "build:remote": "tsx ./utils/remote-content.mts && tsx ./scripts/generate-api-reference.mts && tsx ./scripts/enrich-chains.mts --prune && tsx ./scripts/index-repos.mts",
     "update-index": "tsx ./utils/update-index.ts",
     "start": "pnpm build:remote && next build && next start",
     "generate:event-signatures": "tsx ./scripts/generate-event-signatures.mts",
     "generate:course": "tsx ./scripts/generate-course.mts",
     "enrich:chains": "tsx ./scripts/enrich-chains.mts",
+    "enrich:chains:prune": "tsx ./scripts/enrich-chains.mts --prune",
     "index-repos": "tsx ./scripts/index-repos.mts",
     "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts",
     "postbuild": "tsx ./utils/update-index.ts",
@@ -43,8 +47,8 @@
     "@mdx-js/react": "^3.1.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@next-auth/prisma-adapter": "^1.0.7",
-    "@next/mdx": "^15.5.3",
-    "@next/third-parties": "^15.5.3",
+    "@next/mdx": "^16.2.3",
+    "@next/third-parties": "^16.2.3",
     "@noble/bls12-381": "^1.4.0",
     "@noble/curves": "^2.0.0",
     "@noble/hashes": "1.8.0",
@@ -95,6 +99,7 @@
     "@x402/fetch": "^2.5.0",
     "ai": "^6.0.33",
     "algoliasearch": "^5.39.0",
+    "autocannon": "^8.0.0",
     "axios": "^1.15.0",
     "boring-name-generator": "^1.0.3",
     "canvas-confetti": "^1.9.4",
@@ -165,7 +170,7 @@
     "troika-three-text": "^0.52.4",
     "tsx": "^4.20.5",
     "twoslash": "^0.3.4",
-    "uuid": "^11.1.0",
+    "uuid": "^14.0.0",
     "vaul": "^1.1.2",
     "viem": "^2.37.6",
     "vitest": "^2.1.9",
@@ -190,7 +195,7 @@
     "eslint": "^9.39.4",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.10",
     "prettier": "^3.8.2",
     "prisma": "^6.16.1",
     "tailwindcss": "^4.1.13",
@@ -198,5 +203,6 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.58.1"
   },
+
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

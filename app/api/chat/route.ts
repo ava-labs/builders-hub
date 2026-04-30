@@ -134,24 +134,29 @@ async function getValidUrls(): Promise<string[]> {
 }
 
 // Use MCP server for better search quality — calls the handler directly (no HTTP round-trip)
+// Parses formatSearchResults output: numbered list `1. [Title](https://build.avax.network/path) (source[, chunk N])`
 async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
   try {
     const toolResult = await docsTools.handlers.docs_search({ query, limit: 10 });
     const text = toolResult.content?.[0]?.text || '';
 
     const results: Array<{ url: string; title: string; description?: string; source: string }> = [];
-    const lines = text.split('\n').filter((l: string) => l.startsWith('- ['));
+    const seenUrls = new Set<string>();
+    const itemRegex = /^\d+\.\s+\[(.+?)\]\(https:\/\/build\.avax\.network(.+?)\)\s+\(([^,)]+)(?:,[^)]*)?\)/gm;
 
-    for (const line of lines) {
-      const match = line.match(/- \[(.+?)\]\(https:\/\/build\.avax\.network(.+?)\) \((.+?)\)(?:\n\s+(.+))?/);
-      if (match) {
-        results.push({
-          title: match[1],
-          url: match[2],
-          source: match[3],
-          description: match[4]
-        });
-      }
+    let match: RegExpExecArray | null;
+    while ((match = itemRegex.exec(text)) !== null) {
+      const url = match[2];
+      // Per-page dedup at the chat layer (the MCP handler already caps at 2 chunks/page,
+      // but chat only needs one entry per URL since it fetches the full page).
+      if (seenUrls.has(url)) continue;
+      seenUrls.add(url);
+
+      results.push({
+        title: match[1],
+        url,
+        source: match[3].trim(),
+      });
     }
 
     console.log(`MCP search found ${results.length} results for "${query}"`);
@@ -592,11 +597,24 @@ export async function POST(req: Request) {
     },
     tools: {
       github_search_code: tool({
-        description: 'Search for code in Avalanche repositories (avalanchego, icm-services, builders-hub). Use this to find functions, types, implementations, or understand how Avalanche works internally. Returns file paths and code snippets.',
+        description: 'Search for code in core Avalanche repositories including avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Use this to find functions, types, implementations, or understand how Avalanche works internally.',
         inputSchema: z.object({
           query: z.string().describe('Search query - keywords, function names, type names, or concepts'),
-          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub', 'all']).default('all').describe('Which repository to search'),
-          language: z.enum(['go', 'solidity', 'typescript', 'any']).default('any').describe('Filter by programming language'),
+          repo: z.enum([
+            'avalanchego',
+            'subnet-evm',
+            'coreth',
+            'avalanche-cli',
+            'platform-cli',
+            'icm-services',
+            'avalanche-network-runner',
+            'icm-contracts',
+            'hypersdk',
+            'libevm',
+            'builders-hub',
+            'all',
+          ]).default('all').describe('Which repository to search'),
+          language: z.enum(['go', 'solidity', 'typescript', 'javascript', 'python', 'rust', 'shell', 'markdown', 'yaml', 'json', 'any']).default('any').describe('Filter by programming language'),
         }),
         execute: async (input) => {
           const { query, repo, language } = input;
@@ -611,15 +629,27 @@ export async function POST(req: Request) {
       }),
 
       github_get_file: tool({
-        description: 'Read the contents of a specific file from avalanchego, icm-services, or builders-hub. Use this after searching to read the full code of a relevant file.',
+        description: 'Read the contents of a specific file from a covered Avalanche repository. Use this after searching to read the full code of a relevant file.',
         inputSchema: z.object({
-          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub']).describe('Repository name'),
+          repo: z.enum([
+            'avalanchego',
+            'subnet-evm',
+            'coreth',
+            'avalanche-cli',
+            'platform-cli',
+            'icm-services',
+            'avalanche-network-runner',
+            'icm-contracts',
+            'hypersdk',
+            'libevm',
+            'builders-hub',
+          ]).describe('Repository name'),
           path: z.string().describe('File path within the repository (e.g., "vms/platformvm/block/builder.go")'),
         }),
         execute: async (input) => {
           const { repo, path } = input;
           try {
-            const toolResult = await githubTools.handlers.github_get_file({ repo, path, owner: 'ava-labs' });
+            const toolResult = await githubTools.handlers.github_get_file({ repo, path });
             const text = toolResult.content?.[0]?.text;
             if (!text) return { error: 'No result' };
             const data = JSON.parse(text);
@@ -634,6 +664,90 @@ export async function POST(req: Request) {
             return data;
           } catch (error) {
             return { error: 'Failed to fetch file', details: String(error) };
+          }
+        },
+      }),
+
+      cli_lookup_command: tool({
+        description:
+          'Look up Avalanche CLI, Platform CLI, or tmpnet command guidance from the docs. Use this when the user asks about a specific CLI command, flag, or task (e.g. "how do I add a validator with avalanche-cli?"). Returns cited command references.',
+        inputSchema: z.object({
+          query: z.string().describe('Command, flag, or task to look up'),
+          cli: z
+            .enum(['avalanche-cli', 'platform-cli', 'tmpnet', 'all'])
+            .default('all')
+            .describe('Which CLI surface to search'),
+          limit: z.number().int().min(1).max(20).default(8).describe('Max results (default 8)'),
+        }),
+        execute: async (input) => {
+          try {
+            const result = await docsTools.handlers.cli_lookup_command(input as Record<string, unknown>);
+            return { text: result.content?.[0]?.text || '', isError: !!result.isError };
+          } catch (error) {
+            return { error: 'cli_lookup_command failed', details: String(error) };
+          }
+        },
+      }),
+
+      rpc_lookup_method: tool({
+        description:
+          'Look up Avalanche RPC methods and API guides across C-Chain, P-Chain, X-Chain, Subnet-EVM, and node RPC docs. Use this for any RPC method question (e.g. "how do I call platform.getCurrentValidators?").',
+        inputSchema: z.object({
+          query: z.string().describe('RPC method, namespace, or task to look up'),
+          chain: z
+            .enum(['p-chain', 'c-chain', 'x-chain', 'subnet-evm', 'other', 'all'])
+            .default('all')
+            .describe('Which chain RPC docs to search'),
+          limit: z.number().int().min(1).max(20).default(8).describe('Max results (default 8)'),
+        }),
+        execute: async (input) => {
+          try {
+            const result = await docsTools.handlers.rpc_lookup_method(input as Record<string, unknown>);
+            return { text: result.content?.[0]?.text || '', isError: !!result.isError };
+          } catch (error) {
+            return { error: 'rpc_lookup_method failed', details: String(error) };
+          }
+        },
+      }),
+
+      acp_lookup: tool({
+        description:
+          'Look up an Avalanche Community Proposal (ACP) by number, title, or topic. When the user supplies an ACP number, this returns the structured record — title, status (Activated/Implementable/Proposed/Stale/Withdrawn), track, authors, replaces/superseded-by/updates cross-references — plus matching docs excerpts. Use this for any ACP-specific question.',
+        inputSchema: z.object({
+          query: z.string().optional().describe('ACP title, topic, or keyword'),
+          number: z.number().int().positive().optional().describe('ACP number, if known'),
+          limit: z.number().int().min(1).max(20).default(8).describe('Max results (default 8)'),
+        }),
+        execute: async (input) => {
+          try {
+            const result = await docsTools.handlers.acp_lookup(input as Record<string, unknown>);
+            return { text: result.content?.[0]?.text || '', isError: !!result.isError };
+          } catch (error) {
+            return { error: 'acp_lookup failed', details: String(error) };
+          }
+        },
+      }),
+
+      acp_list: tool({
+        description:
+          'List Avalanche Community Proposals with structured fields, optionally filtered by status (Activated, Implementable, Proposed, Stale, Withdrawn) or track (Standards, Best Practices, Meta, Subnet). Use this for "which ACPs are activated?" / "show me all standards-track ACPs" / similar discovery questions.',
+        inputSchema: z.object({
+          status: z
+            .enum(['Proposed', 'Implementable', 'Activated', 'Stale', 'Withdrawn', 'Unknown'])
+            .optional()
+            .describe('Filter by ACP status'),
+          track: z
+            .enum(['Standards', 'Best Practices', 'Meta', 'Subnet'])
+            .optional()
+            .describe('Filter by ACP track'),
+          limit: z.number().int().min(1).max(100).default(50).describe('Max ACPs (default 50)'),
+        }),
+        execute: async (input) => {
+          try {
+            const result = await docsTools.handlers.acp_list(input as Record<string, unknown>);
+            return { text: result.content?.[0]?.text || '', isError: !!result.isError };
+          } catch (error) {
+            return { error: 'acp_list failed', details: String(error) };
           }
         },
       }),
@@ -733,7 +847,11 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - **metrics_lookup**: For stats questions (active accounts, TPS, validators, etc.), call \`metrics_lookup\` first to get numbers, then \`render_component("OverviewStats")\` to show visually. For burns → \`render_component("LiveBlockBurns")\`, ICM traffic → \`render_component("ICMFlowDiagram")\`, ICTT → \`render_component("ICTTDashboard")\`.
 - **YouTube**: Embed with \`render_component("YouTubeEmbed", { videoId, title })\`. Never paste bare YouTube links.
 - **blockchain_lookup_***: For tx hashes, addresses, validators, subnets, chains. Follow up on \`_lookupHints\` in results.
-- **github_search_code / github_get_file**: Search avalanchego, icm-services, builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
+- **github_search_code / github_get_file**: Search core Avalanche repos: avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
+- **cli_lookup_command**: For any Avalanche CLI / Platform CLI / tmpnet question (commands, flags, workflows). Faster and more accurate than generic docs search.
+- **rpc_lookup_method**: For any RPC method / namespace question across C-Chain, P-Chain, X-Chain, Subnet-EVM, or node APIs.
+- **acp_lookup**: For any ACP-specific question. Pass \`number\` when known to get the structured record (status, track, authors, cross-references). Otherwise pass \`query\`.
+- **acp_list**: For ACP discovery (e.g. "what ACPs are activated?", "list all standards-track ACPs"). Filter by \`status\` and/or \`track\`.
 - **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
 - **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
 

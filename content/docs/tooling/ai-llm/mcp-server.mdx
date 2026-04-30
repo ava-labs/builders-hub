@@ -1,34 +1,67 @@
 ---
 title: MCP Server
-description: Search and retrieve Avalanche documentation dynamically via Model Context Protocol
+description: Search Avalanche docs, code, RPCs, CLI commands, ACPs, and public network data via Model Context Protocol
 ---
 
-The [Model Context Protocol](https://modelcontextprotocol.io/) server enables AI systems to search and retrieve documentation dynamically.
+The Avalanche MCP server gives AI clients a read-only interface to Builders Hub knowledge and public Avalanche tooling context.
 
 **Endpoint:** `https://build.avax.network/api/mcp`
 
-## Tools
+## Scope
 
-| Tool | Purpose |
-| :--- | :------ |
-| `avalanche_docs_search` | Search docs by query with optional source filter |
-| `avalanche_docs_fetch` | Get a specific page by URL path |
-| `avalanche_docs_list_sections` | List all sections with page counts |
+| Surface | Tools |
+| :--- | :--- |
+| Documentation | `docs_search`, `docs_fetch`, `docs_list_sections` |
+| Task lookup | `cli_lookup_command`, `rpc_lookup_method`, `acp_lookup`, `acp_list` |
+| GitHub | `github_search_code`, `github_get_file`, `github_list_repositories` |
+| Public blockchain lookup | `blockchain_get_native_balance`, `blockchain_get_contract_info`, `blockchain_lookup_*` |
+| P-Chain RPC | `platform_get_*` |
+| Info API | `info_get_*`, `info_is_bootstrapped`, `info_peers`, `info_acps` |
+
+`docs_search` searches body-level chunks across documentation, academy courses, integrations, and blog posts. Results include source URLs, chunk numbers, and matching excerpts.
+
+The older `avalanche_docs_search`, `avalanche_docs_fetch`, and `avalanche_docs_list_sections` names remain available as compatibility aliases. Prefer the shorter canonical names for new clients.
+
+## GitHub Coverage
+
+The GitHub tools cover these repositories:
+
+- `ava-labs/avalanchego`
+- `ava-labs/subnet-evm`
+- `ava-labs/coreth`
+- `ava-labs/avalanche-cli`
+- `ava-labs/platform-cli`
+- `ava-labs/icm-services`
+- `ava-labs/avalanche-network-runner`
+- `ava-labs/icm-contracts`
+- `ava-labs/hypersdk`
+- `ava-labs/libevm`
+- `ava-labs/builders-hub`
+
+## Resources
+
+| Resource | Purpose |
+| :--- | :--- |
+| `docs://index` | All documentation pages |
+| `academy://index` | Academy pages |
+| `integrations://index` | Integration pages |
+| `blog://index` | Blog posts |
+| `rpcs://index` | RPC method and API docs |
+| `cli://index` | Avalanche CLI, Platform CLI, and tmpnet docs |
+| `acps://index` | ACP docs |
 
 ## Claude Code Setup
 
-Add the MCP server to your project:
-
 ```bash
-claude mcp add avalanche-docs --transport http https://build.avax.network/api/mcp
+claude mcp add avalanche-mcp --transport http https://build.avax.network/api/mcp
 ```
 
-Or add to your `.claude/settings.json`:
+Or add it to `.claude/settings.json`:
 
 ```json
 {
   "mcpServers": {
-    "avalanche-docs": {
+    "avalanche-mcp": {
       "transport": {
         "type": "http",
         "url": "https://build.avax.network/api/mcp"
@@ -40,12 +73,12 @@ Or add to your `.claude/settings.json`:
 
 ## Claude Desktop Setup
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "avalanche-docs": {
+    "avalanche-mcp": {
       "transport": {
         "type": "http",
         "url": "https://build.avax.network/api/mcp"
@@ -55,36 +88,9 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-## JSON-RPC Protocol
+## JSON-RPC Examples
 
-The MCP server uses JSON-RPC 2.0 for communication:
-
-```bash
-curl -X POST https://build.avax.network/api/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"avalanche_docs_search","arguments":{"query":"create L1","limit":5}}}'
-```
-
-**Response format:**
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": "[{\"title\":\"Create an L1\",\"url\":\"/docs/avalanche-l1s/create\",\"description\":\"...\",\"score\":45}]"
-      }
-    ]
-  }
-}
-```
-
-## Search Examples
-
-**Search all documentation:**
+Search docs:
 
 ```bash
 curl -X POST https://build.avax.network/api/mcp \
@@ -94,19 +100,18 @@ curl -X POST https://build.avax.network/api/mcp \
     "id": 1,
     "method": "tools/call",
     "params": {
-      "name": "avalanche_docs_search",
+      "name": "docs_search",
       "arguments": {
-        "query": "smart contracts",
-        "limit": 10
+        "query": "create an L1 with a custom precompile",
+        "limit": 5
       }
     }
   }'
 ```
 
-**Filter by source:**
+Look up a CLI task:
 
 ```bash
-# Search only academy content
 curl -X POST https://build.avax.network/api/mcp \
   -H "Content-Type: application/json" \
   -d '{
@@ -114,17 +119,16 @@ curl -X POST https://build.avax.network/api/mcp \
     "id": 2,
     "method": "tools/call",
     "params": {
-      "name": "avalanche_docs_search",
+      "name": "cli_lookup_command",
       "arguments": {
-        "query": "blockchain basics",
-        "source": "academy",
-        "limit": 5
+        "query": "add validator",
+        "cli": "avalanche-cli"
       }
     }
   }'
 ```
 
-**Fetch specific page:**
+Look up an RPC method:
 
 ```bash
 curl -X POST https://build.avax.network/api/mcp \
@@ -134,10 +138,81 @@ curl -X POST https://build.avax.network/api/mcp \
     "id": 3,
     "method": "tools/call",
     "params": {
-      "name": "avalanche_docs_fetch",
+      "name": "rpc_lookup_method",
       "arguments": {
-        "url": "/docs/primary-network/overview"
+        "query": "platform_getCurrentValidators",
+        "chain": "p-chain"
       }
     }
   }'
+```
+
+Look up a specific ACP and list activated standards-track ACPs:
+
+```bash
+# Structured lookup of ACP-77 with full table fields
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "tools/call",
+    "params": {
+      "name": "acp_lookup",
+      "arguments": { "number": 77 }
+    }
+  }'
+
+# All Activated ACPs on the Standards track
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "tools/call",
+    "params": {
+      "name": "acp_list",
+      "arguments": { "status": "Activated", "track": "Standards" }
+    }
+  }'
+```
+
+Search code:
+
+```bash
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "tools/call",
+    "params": {
+      "name": "github_search_code",
+      "arguments": {
+        "query": "TransformSubnetTx",
+        "repo": "avalanchego",
+        "language": "go"
+      }
+    }
+  }'
+```
+
+List server tools:
+
+```bash
+curl -X POST https://build.avax.network/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":7,"method":"tools/list"}'
+```
+
+## Safety Boundary
+
+The hosted MCP server is read-only. It does not execute local shell commands, run Avalanche CLI commands, modify node state, or access private files. Local/operator execution is tracked separately in the public roadmap issue: [ava-labs/builders-hub#4070](https://github.com/ava-labs/builders-hub/issues/4070).
+
+For AvaCloud and Chainkit API surfaces, use companion MCP servers alongside this hosted server:
+
+```bash
+claude mcp add avalanche-mcp --transport http https://build.avax.network/api/mcp
+claude mcp add avalanche-chainkit --command "npx -y @avalanche-sdk/chainkit mcp-server"
+claude mcp add avalanche-avacloud --command "npx -y @avalabs/avacloud-sdk mcp-server --apikey $AVACLOUD_API_KEY"
 ```

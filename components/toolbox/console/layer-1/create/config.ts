@@ -163,7 +163,7 @@ export const generateDockerCommand = (
   if (isPrimaryNetwork) {
     chunks.push(`avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`);
   } else {
-    chunks.push(`avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`);
+    chunks.push(`avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}`);
   }
 
   return chunks

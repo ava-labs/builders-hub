@@ -1,4 +1,5 @@
 import { TransactionLifecycle } from "@/components/sae/TransactionLifecycle";
+import { FirewoodPage } from "@/components/firewood/FirewoodPage";
 import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
@@ -98,6 +99,7 @@ export default async function Page(props: {
             ),
             StateGrowthChart,
             TransactionLifecycle,
+            FirewoodPage,
             AddNetworkButtonInline,
             File,
             Folder,

@@ -11,9 +11,9 @@ import { docsResources } from '@/lib/mcp/resources';
 
 const server = new MCPServer({
   name: 'avalanche-mcp',
-  version: '2.0.0',
+  version: '2.1.0',
   protocolVersion: '2024-11-05',
-  description: 'Unified MCP server for Avalanche — docs, blockchain, GitHub, P-Chain, and Info API',
+  description: 'Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, GitHub code search, blockchain lookups, P-Chain, and Info API',
 });
 
 server.registerToolDomain(docsTools);
@@ -46,7 +46,7 @@ function createSSEResponse(data: unknown, eventId?: string): Response {
 }
 
 // ---------------------------------------------------------------------------
-// GET — server info + capabilities, or 405 for Streamable HTTP polling
+// GET - server info + capabilities, or 405 for Streamable HTTP polling
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
@@ -100,6 +100,16 @@ export async function POST(request: NextRequest) {
     return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
   }
 
+  // Reject oversized request bodies before parsing JSON.
+  const contentLength = Number(request.headers.get('content-length') || '0');
+  const MAX_BODY_BYTES = 256 * 1024; // 256 KB
+  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Request body too large' } },
+      { status: 413, headers: getCORSHeaders(origin) }
+    );
+  }
+
   try {
     const body = await request.json();
     const useSSE = wantsSSE(request);
@@ -121,7 +131,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(result, { headers: allHeaders });
-  } catch {
+  } catch (err) {
+    console.error('[mcp] failed to parse JSON-RPC request body', err);
     const errorResponse = { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } };
     const corsHeaders = getCORSHeaders(origin);
     const rateLimitHeaders = await getRateLimitHeaders(request);
