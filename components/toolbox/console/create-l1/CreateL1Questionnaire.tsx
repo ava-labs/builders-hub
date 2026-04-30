@@ -223,13 +223,7 @@ export default function CreateL1Questionnaire() {
   // Convert-existing flow was dropped — the questionnaire only creates new L1s now.
   const startingPoint: StartingPoint = 'new';
   const [validatorType, setValidatorTypeRaw] = useState<ValidatorType>('poa');
-  const [vmLocation, setVmLocation] = useState<VMLocation>('l1');
-
-  // Auto-switch VM location to recommended when validator type changes
-  const setValidatorType = useCallback((v: ValidatorType) => {
-    setValidatorTypeRaw(v);
-    setVmLocation(v === 'pos-erc20' ? 'c-chain' : 'l1');
-  }, []);
+  const [vmLocationRaw, setVmLocationRaw] = useState<VMLocation>('l1');
   const [multisig, setMultisig] = useState(false);
   // Advanced flow defaults to Docker — users who opted into Advanced are
   // typically running their own infra. Managed remains the Basic flow's
@@ -237,15 +231,63 @@ export default function CreateL1Questionnaire() {
   const [hosting, setHosting] = useState<HostingOption>('docker');
   const [interoperability, setInteroperability] = useState(true);
 
-  // Multisig only for PoA + C-Chain. Hosting and interop always shown
-  // now that convert-existing is gone (both were gated on startingPoint='new').
+  // VM-location setter that enforces the Warp-required-on-L1 invariant.
+  // When the Validator Manager lives on the L1, it has to issue Warp
+  // messages back to the P-Chain to register validator add/remove/weight
+  // changes — that's only possible if the Warp precompile is in genesis
+  // (i.e. interoperability=true). Auto-flipping interop on saves the
+  // user a confusing "you can't do that" prompt later. The reverse
+  // (l1→c-chain) deliberately doesn't change interop: the user may
+  // legitimately want it on for ICM/bridges even with a C-Chain manager.
+  const setVmLocation = useCallback((v: VMLocation) => {
+    setVmLocationRaw(v);
+    if (v === 'l1') setInteroperability(true);
+  }, []);
+  const vmLocation = vmLocationRaw;
+
+  // Auto-switch VM location to recommended when validator type changes.
+  // Reuses the guarded setter so the interop invariant kicks in on the
+  // l1 branch automatically.
+  const setValidatorType = useCallback(
+    (v: ValidatorType) => {
+      setValidatorTypeRaw(v);
+      setVmLocation(v === 'pos-erc20' ? 'c-chain' : 'l1');
+    },
+    [setVmLocation],
+  );
+
+  // Constraint cascade: hide questions whose answers are forced by an
+  // upstream choice. Asking "where should the manager live?" when the
+  // chosen validator type only allows one answer is busywork; the user
+  // sees the locked-in result on the Review screen instead.
+  //
+  //   - PoS-Native validators stake the L1's *own* native token, so the
+  //     staking manager has to live on the L1 (it needs nativeMinter
+  //     authority — only available from L1-native code). That forces
+  //     vmLocation = 'l1', which in turn forces interop = true (the
+  //     manager has to Warp-message the P-Chain on validator changes).
+  //     Skip Q2 + Q3.
+  //   - PoA / PoS-ERC20 with vmLocation === 'l1': Warp is required for
+  //     P-Chain messaging. Skip Q3.
+  //   - Multisig (Q4) was already conditional on poa + c-chain.
+  const isPosNative = validatorType === 'pos-native';
+  const showVmLocationQ = !isPosNative;
+  const showInteropQ = vmLocation !== 'l1';
   const showMultisigQ = validatorType === 'poa' && vmLocation === 'c-chain';
   const showHostingQ = true;
-  const showInteropQ = true;
 
-  // Dynamic question count — base 2 (validator + vm location) plus any
-  // conditional questions that are currently applicable.
-  const totalQuestions = 2 + (showMultisigQ ? 1 : 0) + (showInteropQ ? 1 : 0) + (showHostingQ ? 1 : 0);
+  // Sequential indices of each question, with `null` marking "not in the
+  // flow this round". Render guards and Continue/Back use these directly,
+  // so adding/removing a conditional question is a one-line edit here
+  // rather than a search-and-replace across the JSX.
+  const idxQ1 = 0;
+  const idxQ2 = showVmLocationQ ? 1 : null;
+  const idxQ3 = showInteropQ ? 1 + (showVmLocationQ ? 1 : 0) : null;
+  const idxQ4 = showMultisigQ ? 1 + (showVmLocationQ ? 1 : 0) + (showInteropQ ? 1 : 0) : null;
+  const idxQ5 = 1 + (showVmLocationQ ? 1 : 0) + (showInteropQ ? 1 : 0) + (showMultisigQ ? 1 : 0);
+
+  const totalQuestions =
+    1 + (showVmLocationQ ? 1 : 0) + (showInteropQ ? 1 : 0) + (showMultisigQ ? 1 : 0) + (showHostingQ ? 1 : 0);
 
   const previewAnswers: QuestionnaireAnswers = useMemo(
     () => ({
@@ -475,7 +517,7 @@ export default function CreateL1Questionnaire() {
       <div className="flex-1 relative">
         <AnimatePresence mode="wait" custom={direction}>
           {/* Q1: Validator management type */}
-          {questionIndex === 0 && (
+          {questionIndex === idxQ1 && (
             <motion.div
               key="q-validator"
               custom={direction}
@@ -529,8 +571,9 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q2: VM location */}
-          {questionIndex === 1 && (
+          {/* Q2: VM location — skipped when validatorType === 'pos-native'
+              because the staking manager has to live on the L1. */}
+          {idxQ2 !== null && questionIndex === idxQ2 && (
             <motion.div
               key="q-vm"
               custom={direction}
@@ -578,8 +621,11 @@ export default function CreateL1Questionnaire() {
             </motion.div>
           )}
 
-          {/* Q3: Interoperability */}
-          {showInteropQ && questionIndex === 2 && !isReview && (
+          {/* Q3: Interoperability — only shown when vmLocation === 'c-chain'.
+              On-L1 Validator Managers force Warp on (the manager has to
+              Warp-message the P-Chain on validator changes), so the
+              question would have only one valid answer; we skip it. */}
+          {idxQ3 !== null && questionIndex === idxQ3 && !isReview && (
             <motion.div
               key="q-interop"
               custom={direction}
@@ -628,7 +674,7 @@ export default function CreateL1Questionnaire() {
           )}
 
           {/* Q4: Ownership (only for PoA + C-Chain) */}
-          {questionIndex === (showInteropQ ? 3 : 2) && showMultisigQ && (
+          {idxQ4 !== null && questionIndex === idxQ4 && (
             <motion.div
               key="q3"
               custom={direction}
@@ -680,7 +726,7 @@ export default function CreateL1Questionnaire() {
           )}
 
           {/* Q5 (index depends on which earlier questions are shown): Hosting */}
-          {showHostingQ && questionIndex === 2 + (showInteropQ ? 1 : 0) + (showMultisigQ ? 1 : 0) && !isReview && (
+          {showHostingQ && questionIndex === idxQ5 && !isReview && (
             <motion.div
               key="q-hosting"
               custom={direction}
