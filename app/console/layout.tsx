@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { ConsoleSidebar } from "../../components/console/console-sidebar";
@@ -38,6 +38,21 @@ function ConsolePageTransition({ children }: { children: ReactNode }) {
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
   useRetroactiveConsoleBadges();
+
+  // Lock body overflow while the console layout is mounted. The console
+  // owns its own scroll container (the inner `overflow-y-auto` div) so any
+  // body-level scroll is redundant — and was actually showing as a second
+  // scrollbar to the right of the inner one when the document height
+  // computed slightly higher than the viewport (banner + navbar + content
+  // calc that didn't quite zero out). Restore the previous overflow on
+  // unmount so non-console pages aren't affected.
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, []);
 
   // The main navbar is h-14 (3.5rem). All height calcs subtract it alongside the banner.
   const viewportHeight = "calc(100vh - 3.5rem - var(--fd-banner-height,0px))";
