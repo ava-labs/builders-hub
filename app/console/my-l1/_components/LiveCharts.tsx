@@ -117,8 +117,7 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
     avgBlockTimeSec !== null
       ? ` (~${formatDurationShort(windowSize * avgBlockTimeSec)} of history)`
       : '';
-  const refreshLabel = paused ? 'paused — click ▶ to resume' : 'refreshing every 15s';
-  const description = `Live charts derived from this L1's RPC. Window: latest ${recent.blocks.length} of ${windowSize} blocks${windowSpanLabel} · ${refreshLabel}.`;
+  const refreshLabel = paused ? 'Paused — click ▶ to resume' : 'Refreshing every 15s';
 
   return (
     <section className="space-y-3">
@@ -137,8 +136,22 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
                 <Info className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              {description}
+            <TooltipContent side="bottom" className="max-w-xs py-2 space-y-1.5">
+              <p className="text-[11px] leading-snug">
+                Live charts derived from this L1&apos;s RPC.
+              </p>
+              <div className="text-[11px] leading-snug space-y-0.5 opacity-90">
+                <p>
+                  <span className="opacity-60">Window:</span>{' '}
+                  <span className="tabular-nums">
+                    {recent.blocks.length}/{windowSize} blocks{windowSpanLabel}
+                  </span>
+                </p>
+                <p>
+                  <span className="opacity-60">Status:</span>{' '}
+                  <span>{refreshLabel}</span>
+                </p>
+              </div>
             </TooltipContent>
           </UITooltip>
           <UITooltip>
