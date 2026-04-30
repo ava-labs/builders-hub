@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, Coins, Loader2, Shield, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Coins, Loader2, Shield, Sparkles } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useStartDeployment } from '@/hooks/useQuickL1Deploy';
 import { DEFAULT_PRECOMPILES, type PrecompileConfig, type ValidatorMode } from '@/lib/quick-l1/types';
@@ -266,11 +266,6 @@ export default function BasicSetupForm() {
               onValidatorModeChange={setValidatorMode}
               walletAddress={walletEVMAddress}
             />
-            <IncludedCard
-              interopEnabled={precompiles.interoperability}
-              relayerEnabled={enableManagedRelayer}
-              validatorMode={validatorMode}
-            />
           </div>
 
           {/* Right: precompile toggles + managed-relayer opt-in + CTA.
@@ -311,12 +306,12 @@ export default function BasicSetupForm() {
                 className={cn(
                   'group relative w-full inline-flex items-center justify-center gap-3 rounded-xl px-6 py-3.5 text-base font-semibold transition-colors',
                   canSubmit && !submitting
-                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed',
                 )}
                 style={
                   canSubmit && !submitting
-                    ? { boxShadow: '0 4px 14px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)' }
+                    ? { boxShadow: '0 4px 14px rgba(37,99,235,0.25), 0 1px 3px rgba(37,99,235,0.15)' }
                     : undefined
                 }
               >
@@ -510,101 +505,6 @@ function ValidatorTypeOption({
       </span>
       <span className="text-[10.5px] leading-snug text-zinc-500 dark:text-zinc-400">{subtitle}</span>
     </button>
-  );
-}
-
-/**
- * "Included" card — dynamic checklist of what the user's current choices
- * will produce. Items light up as toggles flip on the right: turning on
- * Interoperability reveals the cross-chain bridge line; turning on the
- * managed relayer reveals the MockUSDC bridge line.
- *
- * Serves two purposes:
- *   - Reassurance: users see exactly what happens when they hit "Create
- *     Chain", which reduces the pre-click hesitation.
- *   - Layout balance: gives the left column a second card so it has the
- *     same card-count as the right (2 on 2), and heights naturally match.
- */
-function IncludedCard({
-  interopEnabled,
-  relayerEnabled,
-  validatorMode,
-}: {
-  interopEnabled: boolean;
-  relayerEnabled: boolean;
-  validatorMode: ValidatorMode;
-}) {
-  // Under erc20-pos the orchestrator deploys an additional
-  // ERC20TokenStakingManager that owns the core ValidatorManager, plus
-  // a fresh ExampleERC20 + reward calculator on C-Chain.
-  const isPoS = validatorMode.type === 'erc20-pos';
-  const items: Array<{ label: string; sub: string; enabled: boolean }> = [
-    { label: 'Subnet on P-Chain', sub: 'Registered + owned by your address', enabled: true },
-    { label: 'Genesis + precompiles', sub: 'Built from your selections on the right', enabled: true },
-    { label: 'Managed validator node', sub: 'Provisioned on Fuji and joined to the L1', enabled: true },
-    {
-      label: isPoS ? 'Validator + Staking Manager' : 'Validator Manager',
-      sub: isPoS ? 'Both deployed on C-Chain' : 'Deployed on C-Chain',
-      enabled: true,
-    },
-    {
-      label: 'Example ERC20 staking token',
-      sub: 'Plus a reward calculator — both on Fuji C-Chain',
-      enabled: isPoS,
-    },
-    { label: 'ICM messaging', sub: 'Warp + Teleporter for cross-chain calls', enabled: interopEnabled },
-    { label: 'MockUSDC bridge', sub: 'Managed relayer + 10 MockUSDC to you', enabled: relayerEnabled },
-  ].filter((item) => item.label !== 'Example ERC20 staking token' || isPoS);
-
-  return (
-    // Explicit motion props so this card never depends on inherited
-    // variant cascade from the form's outer motion.div — that
-    // inheritance can stall when the surrounding tree gains/loses
-    // motion descendants mid-flight (e.g. toggling PoS).
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 240, damping: 24, delay: 0.05 }}
-      className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
-    >
-      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900 flex items-center justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Included</h3>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-            What this deploy will create for you.
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-500 shrink-0">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-          Fuji
-        </span>
-      </div>
-      <ul className="px-3.5 py-2 space-y-1.5">
-        {items.map((item) => (
-          <li
-            key={item.label}
-            className={cn('flex items-start gap-2 py-0.5 transition-opacity', !item.enabled && 'opacity-40')}
-          >
-            <span
-              className={cn(
-                'shrink-0 mt-[3px] flex h-3.5 w-3.5 items-center justify-center rounded-full transition-colors',
-                item.enabled
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600',
-              )}
-            >
-              <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
-            </span>
-            <div className="min-w-0">
-              <div className="text-[12.5px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
-                {item.label}
-              </div>
-              <div className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug mt-0.5">{item.sub}</div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </motion.div>
   );
 }
 
