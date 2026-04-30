@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Clock, Layers, RefreshCw } from 'lucide-react';
+import { Check, Clock, Layers, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { boardContainer, boardItem } from '@/components/console/motion';
@@ -32,6 +32,27 @@ export function SwitcherBar({
   // already shows ("X managed · Y wallet").
   const showSectionTitles = managed.length > 0 && wallet.length > 0;
 
+  // "Data arrived" feedback after a user-initiated refresh. We only flag
+  // user-initiated runs (via a ref set on click) so the very first
+  // page-load fetch — which also flips isRefreshing true→false — doesn't
+  // flash the success indicator unsolicited.
+  const [recentlyRefreshed, setRecentlyRefreshed] = useState(false);
+  const userInitiatedRef = useRef(false);
+
+  useEffect(() => {
+    if (userInitiatedRef.current && !isRefreshing) {
+      userInitiatedRef.current = false;
+      setRecentlyRefreshed(true);
+      const t = setTimeout(() => setRecentlyRefreshed(false), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [isRefreshing]);
+
+  const handleRefresh = () => {
+    userInitiatedRef.current = true;
+    onRefresh();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -45,12 +66,26 @@ export function SwitcherBar({
           <Button
             variant="outline"
             size="sm"
-            onClick={onRefresh}
+            onClick={handleRefresh}
             disabled={isRefreshing}
-            aria-label={isRefreshing ? 'Refreshing L1 list' : 'Refresh L1 list'}
+            aria-label={
+              isRefreshing
+                ? 'Refreshing L1 list'
+                : recentlyRefreshed
+                  ? 'L1 list updated'
+                  : 'Refresh L1 list'
+            }
           >
-            <RefreshCw className={cn('w-4 h-4 mr-2', isRefreshing && 'animate-spin')} />
-            {isRefreshing ? 'Refreshing…' : 'Refresh'}
+            {recentlyRefreshed && !isRefreshing ? (
+              <Check className="w-4 h-4 mr-2 text-emerald-500" />
+            ) : (
+              <RefreshCw className={cn('w-4 h-4 mr-2', isRefreshing && 'animate-spin')} />
+            )}
+            {isRefreshing
+              ? 'Refreshing…'
+              : recentlyRefreshed
+                ? 'Updated'
+                : 'Refresh'}
           </Button>
           <Link href="/console/create-l1">
             <Button size="sm">
