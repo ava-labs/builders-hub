@@ -9,7 +9,17 @@ import { loadIdentity, type EERCIdentitySecret } from '@/lib/eerc/identity';
 import type { EERCDeployment, ERC20Meta, Hex } from '@/lib/eerc/types';
 
 type RawEGCT = readonly [readonly [bigint, bigint], readonly [bigint, bigint]]; // (c1, c2)
-type RawAmountPCT = readonly [readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint], bigint]; // (pct[7], index)
+
+/**
+ * Each amountPCT entry is the Solidity struct `{ pct: uint256[7], index: uint256 }`.
+ * viem returns named-field structs as objects (with the named keys) rather
+ * than tuples, so we type accordingly. Destructuring as a tuple
+ * (`for (const [pct] of …)`) throws `is not iterable` at runtime.
+ */
+interface RawAmountPCT {
+  pct: readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint];
+  index: bigint;
+}
 
 /** Raw shape returned by the contract's `balanceOfStandalone` / `getBalanceFromTokenAddress`. */
 interface RawBalance {
@@ -143,13 +153,16 @@ export function useEERCBalance(
         }
 
         // Component 2: amountPCTs[] — incoming deposits/transfers since the
-        // last outgoing op. Each entry is `(pct[7], txIndex)`; we only need
-        // the pct[7] portion. Sum every entry that successfully decrypts.
-        for (const [pctArr] of asStruct.amountPCTs) {
+        // last outgoing op. Each entry is the struct `{ pct: uint256[7],
+        // index: uint256 }`; viem returns it as a named-field object, not
+        // a tuple, so access via `.pct` (a tuple-style destructure throws
+        // "is not iterable" at runtime). We only need the pct portion;
+        // sum every entry that successfully decrypts.
+        for (const entry of asStruct.amountPCTs) {
           try {
             total += Poseidon.decryptAmountPCT(
               currentIdentity.decryptionKey,
-              pctArr.map((x) => x.toString()),
+              entry.pct.map((x) => x.toString()),
             );
             anyDecryptSucceeded = true;
           } catch {
