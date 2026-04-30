@@ -82,7 +82,7 @@ function Overview() {
   const known = listKnownChains();
 
   return (
-    <div className="relative -m-8 p-8">
+    <div className="relative -m-4 md:-m-8 p-4 md:p-8">
       <style jsx global>{`
         /* Encrypted-ERC specific animations */
         @keyframes encFlicker {

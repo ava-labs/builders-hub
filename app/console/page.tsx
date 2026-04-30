@@ -244,7 +244,7 @@ function ConsoleDashboard() {
   ];
 
   return (
-    <div className="relative -m-8 p-8" style={{ minHeight: "calc(100vh - var(--header-height, 3rem))" }}>
+    <div className="relative -m-4 md:-m-8 p-4 md:p-8" style={{ minHeight: "calc(100vh - var(--header-height, 3rem))" }}>
       <style jsx global>{`
         @keyframes cardPulse {
           0%, 100% { outline-color: transparent; }

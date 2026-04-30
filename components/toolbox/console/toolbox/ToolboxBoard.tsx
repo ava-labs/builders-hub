@@ -330,7 +330,7 @@ export default function ToolboxBoard() {
   }, [filtered]);
 
   return (
-    <div className="relative -m-8 p-8" style={{ minHeight: 'calc(100vh - var(--header-height, 3rem))' }}>
+    <div className="relative -m-4 md:-m-8 p-4 md:p-8" style={{ minHeight: 'calc(100vh - var(--header-height, 3rem))' }}>
       {/* Grid background — matches the console homepage */}
       <div
         className="absolute inset-0 opacity-[0.4] dark:opacity-[0.15] pointer-events-none"
