@@ -273,10 +273,7 @@ export async function getCChainOverview(): Promise<ChainOverviewStats> {
 
 // --- Recent Transactions ---
 
-export async function getProtocolRecentTransactions(
-  addresses: string[],
-  limit: number = 100
-): Promise<{
+export type RecentTransaction = {
   hash: string;
   blockNumber: number;
   from: string;
@@ -284,7 +281,12 @@ export async function getProtocolRecentTransactions(
   gasUsed: number;
   gasPrice: number;
   blockTime: string;
-}[]> {
+};
+
+export async function getProtocolRecentTransactions(
+  addresses: string[],
+  limit: number = 100
+): Promise<RecentTransaction[]> {
   if (addresses.length === 0) return [];
 
   const addressFilter = buildAddressFilter(addresses);
@@ -328,10 +330,12 @@ export async function getProtocolRecentTransactions(
 
 // --- Monthly Activity ---
 
+export type MonthlyActivity = { month: string; txCount: number; gasUsed: number; avaxBurned: number };
+
 export async function getProtocolMonthlyActivity(
   addresses: string[],
   months: number = 12
-): Promise<{ month: string; txCount: number; gasUsed: number; avaxBurned: number }[]> {
+): Promise<MonthlyActivity[]> {
   if (addresses.length === 0) return [];
 
   const addressFilter = buildAddressFilter(addresses);
