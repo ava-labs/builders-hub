@@ -109,6 +109,22 @@ export function StatsGrid({
         />
       );
     }
+    // Glacier returned an error (5xx, network failure, etc). Surface it
+    // explicitly instead of silently falling through to EVM chain ID —
+    // a "—" with no context reads as "0 / not applicable", which would
+    // mislead the user into thinking the chain is healthy with no
+    // validators rather than "we can't tell right now."
+    if (validators.error) {
+      return (
+        <StatCell
+          icon={Users}
+          label="Active validators"
+          value={<span className="text-muted-foreground">—</span>}
+          subValue="Glacier unavailable"
+          valueTitle={validators.error}
+        />
+      );
+    }
     if (l1.source === 'managed' && l1.nodes) {
       const active = l1.nodes.filter((n) => n.status === 'active').length;
       return (
