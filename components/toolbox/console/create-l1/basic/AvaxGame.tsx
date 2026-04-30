@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import { Bird, Footprints, Orbit, Shuffle, Trees } from 'lucide-react';
+import { ArrowUp, Bird, Footprints, Orbit, Shuffle, Train, Trees } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// The four mini-games are entertainment shown during the 3-minute Quick L1
+// The mini-games are entertainment shown during the 3-minute Quick L1
 // deploy wait — no point shipping their ~1.8k lines of canvas-game logic in
 // the initial bundle that every visitor of /console/create-l1/basic loads.
 // `next/dynamic` defers the chunk until the user actually renders the game,
@@ -38,9 +38,17 @@ const AvaxSpin = dynamic(() => import('./AvaxSpin').then((m) => m.AvaxSpin), {
   ssr: false,
   loading: GameLoading,
 });
+const AvaxJumper = dynamic(() => import('./AvaxJumper').then((m) => m.AvaxJumper), {
+  ssr: false,
+  loading: GameLoading,
+});
+const AvaxDasher = dynamic(() => import('./AvaxDasher').then((m) => m.AvaxDasher), {
+  ssr: false,
+  loading: GameLoading,
+});
 
 /**
- * Shell that picks one of the four "play while you wait" games on mount
+ * Shell that picks one of the "play while you wait" games on mount
  * and lets the user swap via a small exit button in each game. Clicking
  * "Swap" brings up the selection screen, which offers direct picks plus
  * a "Random" button.
@@ -53,10 +61,10 @@ const AvaxSpin = dynamic(() => import('./AvaxSpin').then((m) => m.AvaxSpin), {
 const WIDTH = 280;
 const HEIGHT = 500;
 
-type GameKind = 'runner' | 'flappy' | 'slope' | 'spin';
+type GameKind = 'runner' | 'flappy' | 'slope' | 'spin' | 'jumper' | 'dasher';
 type ShellState = GameKind | 'select';
 
-const GAME_KINDS: GameKind[] = ['runner', 'flappy', 'slope', 'spin'];
+const GAME_KINDS: GameKind[] = ['runner', 'flappy', 'slope', 'spin', 'jumper', 'dasher'];
 
 type GameMeta = {
   label: string;
@@ -69,6 +77,8 @@ const GAME_META: Record<GameKind, GameMeta> = {
   flappy: { label: 'Flap', blurb: 'Thread the pipes', Icon: Bird },
   slope: { label: 'Ski', blurb: 'Dodge trees', Icon: Trees },
   spin: { label: 'Orbit', blurb: 'Spin to the gap', Icon: Orbit },
+  jumper: { label: 'Jump', blurb: 'Climb platforms', Icon: ArrowUp },
+  dasher: { label: 'Dash', blurb: 'Switch lanes', Icon: Train },
 };
 
 function pickRandomKind(exclude?: GameKind): GameKind {
@@ -98,6 +108,8 @@ export function AvaxGame({ className }: { className?: string }) {
       {kind === 'flappy' && <AvaxFlapper onExit={back} />}
       {kind === 'slope' && <AvaxSlope onExit={back} />}
       {kind === 'spin' && <AvaxSpin onExit={back} />}
+      {kind === 'jumper' && <AvaxJumper onExit={back} />}
+      {kind === 'dasher' && <AvaxDasher onExit={back} />}
     </div>
   );
 }
@@ -124,7 +136,7 @@ function GameSelect({ onPick }: { onPick: (kind: GameKind) => void }) {
           <span>Random</span>
         </button>
       </div>
-      {/* 2×2 grid sized for the portrait canvas — 4 side-by-side
+      {/* 2-column grid sized for the portrait canvas — 4 side-by-side
           cards would overflow 280px width, and a single-column list
           would waste the vertical room. Cards deliberately roomier
           (p-3, w-[118px]) than the old 100px versions since we now
