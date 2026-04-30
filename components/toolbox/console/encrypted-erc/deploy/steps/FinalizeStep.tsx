@@ -9,6 +9,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { useEERCDeployStore } from '@/components/toolbox/stores/eercDeployStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useEERCRegistration } from '@/hooks/eerc/useEERCRegistration';
+import { useEERCNotifiedWrite } from '@/hooks/eerc/useEERCNotifiedWrite';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { EERCTxLink } from '../../shared/EERCTxLink';
 import { REGISTRAR_SOURCES, ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
@@ -31,6 +32,7 @@ export default function FinalizeStep() {
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
   const chainId = useWalletStore((state) => state.walletChainId);
+  const notifiedWrite = useEERCNotifiedWrite();
 
   const fakeDeployment: EERCDeployment | undefined = useMemo(() => {
     if (!s.encryptedERCAddress || !s.registrarAddress) return undefined;
@@ -62,12 +64,15 @@ export default function FinalizeStep() {
     setSettingAuditor(true);
     s.setGlobalError(null);
     try {
-      const hash = (await (walletClient as any).writeContract({
-        address: s.encryptedERCAddress as Hex,
-        abi: EncryptedERCArtifact.abi,
-        functionName: 'setAuditorPublicKey',
-        args: [address],
-      })) as Hex;
+      const hash = await notifiedWrite(
+        {
+          address: s.encryptedERCAddress as Hex,
+          abi: EncryptedERCArtifact.abi,
+          functionName: 'setAuditorPublicKey',
+          args: [address],
+        },
+        'Set encrypted-ERC auditor (deploy finalize)',
+      );
       await publicClient.waitForTransactionReceipt({ hash });
       setAuditorTxHash(hash);
       s.setLastTxHash(hash);

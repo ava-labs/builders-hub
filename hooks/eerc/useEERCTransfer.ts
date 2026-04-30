@@ -3,8 +3,10 @@
 import { useCallback, useState } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { useEERCNotifiedWrite } from './useEERCNotifiedWrite';
 import RegistrarArtifact from '@/contracts/encrypted-erc/compiled/Registrar.json';
 import { transferPrivate, type FlatEncryptedBalance } from '@/lib/eerc/operations/transfer';
+import { Scalar } from '@/lib/eerc/crypto/scalar';
 import { loadIdentity } from '@/lib/eerc/identity';
 import type { BJPoint } from '@/lib/eerc/crypto/babyjub';
 import type { EERCDeployment, ERC20Meta, Hex } from '@/lib/eerc/types';
@@ -34,6 +36,7 @@ export function useEERCTransfer(deployment: EERCDeployment | undefined): UseEERC
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
+  const notifiedWrite = useEERCNotifiedWrite();
 
   const [status, setStatus] = useState<TransferStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,8 @@ export function useEERCTransfer(deployment: EERCDeployment | undefined): UseEERC
         }
 
         setStatus('proving');
+        const human = Scalar.parseEERCBalance(amountCents);
+        const recipientShort = `${to.slice(0, 6)}…${to.slice(-4)}`;
         const result = await transferPrivate({
           deployment,
           senderAddress: address as Hex,
@@ -78,14 +83,7 @@ export function useEERCTransfer(deployment: EERCDeployment | undefined): UseEERC
           tokenId,
           writeContract: async (args) => {
             setStatus('submitting');
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const h = await (walletClient as any).writeContract({
-              address: args.address,
-              abi: args.abi,
-              functionName: args.functionName,
-              args: args.args,
-            });
-            return h as Hex;
+            return await notifiedWrite(args, `Encrypted transfer ${human} → ${recipientShort}`);
           },
         });
 

@@ -15,6 +15,7 @@ import { Input } from '@/components/toolbox/components/Input';
 import EncryptedERCArtifact from '@/contracts/encrypted-erc/compiled/EncryptedERC.json';
 import RegistrarArtifact from '@/contracts/encrypted-erc/compiled/Registrar.json';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
+import { useEERCNotifiedWrite } from '@/hooks/eerc/useEERCNotifiedWrite';
 import { EERCToolShell } from '../shared/EERCToolShell';
 import { EERCTxLink } from '../shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
@@ -91,6 +92,7 @@ function DeploymentCard({ mode, deployment, chainId }: { mode: Mode; deployment:
   const { address: myAddress } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
+  const notifiedWrite = useEERCNotifiedWrite();
 
   const [currentAuditor, setCurrentAuditor] = useState<Hex | null>(null);
   const [candidate, setCandidate] = useState<string>(myAddress ?? '');
@@ -159,14 +161,17 @@ function DeploymentCard({ mode, deployment, chainId }: { mode: Mode; deployment:
     setTxHash(null);
     setSubmitting(true);
     try {
-      const hash = await (walletClient as any).writeContract({
-        address: deployment.encryptedERC,
-        abi: EncryptedERCArtifact.abi,
-        functionName: 'setAuditorPublicKey',
-        args: [candidate as Hex],
-      });
-      setTxHash(hash as Hex);
-      await publicClient.waitForTransactionReceipt({ hash: hash as Hex });
+      const hash = await notifiedWrite(
+        {
+          address: deployment.encryptedERC,
+          abi: EncryptedERCArtifact.abi,
+          functionName: 'setAuditorPublicKey',
+          args: [candidate as Hex],
+        },
+        'Set encrypted-ERC auditor',
+      );
+      setTxHash(hash);
+      await publicClient.waitForTransactionReceipt({ hash });
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set auditor');

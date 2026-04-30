@@ -2,7 +2,9 @@
 
 import { useCallback, useState } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
+import { formatUnits } from 'viem';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { useEERCNotifiedWrite } from './useEERCNotifiedWrite';
 import { depositToEERC, ERC20_MINIMAL_ABI, computeDepositCents } from '@/lib/eerc/operations/deposit';
 import { loadIdentity } from '@/lib/eerc/identity';
 import type { EERCDeployment, ERC20Meta, Hex } from '@/lib/eerc/types';
@@ -28,6 +30,7 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
+  const notifiedWrite = useEERCNotifiedWrite();
 
   const [status, setStatus] = useState<DepositStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -66,25 +69,31 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
 
       try {
         setStatus('approving');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const approveHash = await (walletClient as any).writeContract({
-          address: token.address,
-          abi: ERC20_MINIMAL_ABI,
-          functionName: 'approve',
-          args: [deployment.encryptedERC, amountWei],
-        });
+        // Routes the ERC20 approval through the notified-write helper so
+        // the console toast + tx-history row fire alongside every other
+        // modern toolbox action. Replaces a raw walletClient.writeContract
+        // that submitted silently to the user.
+        const approveHash = await notifiedWrite(
+          {
+            address: token.address,
+            abi: ERC20_MINIMAL_ABI as unknown as unknown[],
+            functionName: 'approve',
+            args: [deployment.encryptedERC, amountWei],
+          },
+          `Approve ${token.symbol} for encrypted-ERC`,
+        );
         setStatus('confirming');
         await publicClient.waitForTransactionReceipt({ hash: approveHash });
         await refreshAllowance();
         setStatus('idle');
-        return approveHash as Hex;
+        return approveHash;
       } catch (err) {
         setStatus('error');
         setError(err instanceof Error ? err.message : 'Approval failed');
         return null;
       }
     },
-    [address, deployment, token, walletClient, publicClient, refreshAllowance],
+    [address, deployment, token, walletClient, publicClient, refreshAllowance, notifiedWrite],
   );
 
   const deposit = useCallback(
@@ -106,21 +115,13 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
         }
 
         setStatus('depositing');
+        const human = formatUnits(amountWei, token.decimals);
         const result = await depositToEERC({
           deployment,
           token,
           amountWei,
           userPublicKey: identity.publicKey,
-          writeContract: async (args) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const h = await (walletClient as any).writeContract({
-              address: args.address,
-              abi: args.abi,
-              functionName: args.functionName,
-              args: args.args,
-            });
-            return h as Hex;
-          },
+          writeContract: (args) => notifiedWrite(args, `Deposit ${human} ${token.symbol} to encrypted-ERC`),
         });
 
         setLastCents(result.cents);
@@ -138,7 +139,7 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
         return null;
       }
     },
-    [address, deployment, token, walletClient, publicClient, refreshAllowance],
+    [address, deployment, token, walletClient, publicClient, refreshAllowance, notifiedWrite],
   );
 
   return { status, error, txHash, lastCents, lastDustWei, currentAllowance, refreshAllowance, approve, deposit, preview };

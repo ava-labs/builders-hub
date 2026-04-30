@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { useEERCNotifiedWrite } from './useEERCNotifiedWrite';
 import { registerOnChain } from '@/lib/eerc/register';
 import {
   loadIdentity,
@@ -53,6 +54,7 @@ export function useEERCRegistration(deployment: EERCDeployment | undefined): Use
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
+  const notifiedWrite = useEERCNotifiedWrite();
 
   const [status, setStatus] = useState<RegistrationStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -121,13 +123,10 @@ export function useEERCRegistration(deployment: EERCDeployment | undefined): Use
         args: unknown[];
       }) => {
         setStatus('submitting');
-        const hash = await wc.writeContract({
-          address: args.address,
-          abi: args.abi,
-          functionName: args.functionName,
-          args: args.args,
-        });
-        return hash as Hex;
+        // Routes the registrar `register()` tx through the canonical
+        // notified-write helper so it shows up in the console toast +
+        // tx history alongside every other modern toolbox action.
+        return await notifiedWrite(args, 'Register encrypted-ERC identity');
       };
 
       const result = await registerOnChain({
