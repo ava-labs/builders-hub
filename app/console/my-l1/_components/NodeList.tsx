@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Server, Trash2 } from 'lucide-react';
+import { ChevronRight, Server, ShieldCheck, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,22 +20,74 @@ import {
 import { toast } from '@/lib/toast';
 import type { CombinedL1 } from '../_lib/types';
 import { formatRelativeFromNow } from '../_lib/format';
+import type { L1ValidatorSetState } from '@/hooks/useL1ValidatorSet';
+import { getAddValidatorPath, type ValidatorManagerKind } from '../_lib/validator-manager-routing';
+
+type ManagedNode = NonNullable<CombinedL1['nodes']>[number];
+type NodeRole = 'validator' | 'rpc' | 'detecting' | 'unknown';
 
 export function NodeListCard({
   l1,
   userActiveTotal,
   onRefetch,
+  validators,
+  validatorManagerKind,
 }: {
   l1: CombinedL1;
   userActiveTotal: number;
   onRefetch: () => void;
+  validators: L1ValidatorSetState;
+  validatorManagerKind: ValidatorManagerKind | null;
 }) {
   const nodes = l1.nodes ?? [];
   const activeCount = nodes.filter((n) => n.status === 'active').length;
+  const validatorNodeIds = new Set(validators.nodeIds);
   // Builder Hub enforces a per-user cap of 3 active nodes across all L1s.
   // Disable the provision button proactively when the user is at that limit
   // so they don't hit a 429 mid-click.
   const atUserCap = userActiveTotal >= 3;
+
+  const roleForNode = (nodeId: string): NodeRole => {
+    if (validators.isLoading) return 'detecting';
+    if (validators.error) return 'unknown';
+    return validatorNodeIds.has(nodeId) ? 'validator' : 'rpc';
+  };
+
+  const renderNode = (node: ManagedNode) => {
+    const role = roleForNode(node.nodeId);
+
+    return (
+      <div
+        key={node.id}
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 rounded-lg border bg-card"
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="text-xs font-mono text-foreground break-all">{node.nodeId}</code>
+            <NodeRoleBadge role={role} />
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Created {new Date(node.createdAt).toLocaleString()} · {formatRelativeFromNow(node.expiresAt)}{' '}
+            remaining
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge variant={node.status === 'active' ? 'default' : 'secondary'}>{node.status}</Badge>
+          {node.status === 'active' && role === 'rpc' && (
+            <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Convert this node into a validator">
+              <Link href={getAddValidatorPath(validatorManagerKind, l1, { nodeId: node.nodeId })}>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="sr-only">Convert this node into a validator</span>
+              </Link>
+            </Button>
+          )}
+          {node.status === 'active' && (
+            <DeleteNodeButton nodeDbId={node.id} nodeId={node.nodeId} onSuccess={onRefetch} />
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card>
@@ -75,26 +127,7 @@ export function NodeListCard({
           </div>
         ) : (
           <div className="space-y-2">
-            {nodes.map((n) => (
-              <div
-                key={n.id}
-                className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 rounded-lg border bg-card"
-              >
-                <div className="min-w-0">
-                  <code className="text-xs font-mono text-foreground break-all">{n.nodeId}</code>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Created {new Date(n.createdAt).toLocaleString()} · {formatRelativeFromNow(n.expiresAt)}{' '}
-                    remaining
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={n.status === 'active' ? 'default' : 'secondary'}>{n.status}</Badge>
-                  {n.status === 'active' && (
-                    <DeleteNodeButton nodeDbId={n.id} nodeId={n.nodeId} onSuccess={onRefetch} />
-                  )}
-                </div>
-              </div>
-            ))}
+            {nodes.map(renderNode)}
           </div>
         )}
         <div className="mt-4 pt-3 border-t flex items-center justify-between gap-3 flex-wrap">
@@ -111,6 +144,35 @@ export function NodeListCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function NodeRoleBadge({ role }: { role: NodeRole }) {
+  if (role === 'validator') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+        Validator
+      </span>
+    );
+  }
+  if (role === 'rpc') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        RPC node
+      </span>
+    );
+  }
+  if (role === 'detecting') {
+    return (
+      <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        Detecting…
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+      Unknown role
+    </span>
   );
 }
 

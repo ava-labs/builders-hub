@@ -13,12 +13,22 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from '@/lib/toast';
 import type { L1HealthState, L1HealthStatus } from '@/hooks/useL1Health';
-import type { CombinedL1 } from '../_lib/types';
+import { isPrimaryNetwork, type CombinedL1 } from '../_lib/types';
 import { setupSummary } from '../_lib/setup-steps';
+import { validatorManagerKindLabel } from '../_lib/validator-manager-routing';
+import type { L1ValidatorManagerInfo } from '../_lib/useL1ValidatorManager';
 import { WalletNetworkAction } from './WalletNetworkAction';
 import { SetupProgressCard } from './SetupProgress';
 
-export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1HealthState }) {
+export function DetailHeader({
+  l1,
+  health,
+  validatorManager,
+}: {
+  l1: CombinedL1;
+  health?: L1HealthState;
+  validatorManager?: L1ValidatorManagerInfo;
+}) {
   const nodeCount = l1.nodes?.length ?? 0;
   // Show wallet balance only when the wallet is currently connected to this
   // L1 — otherwise the cached number in the store may be from a different
@@ -91,8 +101,13 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
             {/* Source pill hides when wallet is active here — the
                 "Wallet active" pill below already implies the L1 is
                 in the user's wallet, so showing both reads as repetition. */}
-            {l1.source === 'wallet' && !isWalletOnThisL1 && (
+            {l1.source === 'wallet' && !isWalletOnThisL1 && !isPrimaryNetwork(l1) && (
               <MetaPill>Wallet</MetaPill>
+            )}
+            {validatorManager?.kind && (
+              <MetaPill tone={validatorManager.kind === 'poa' ? 'subtleAmber' : 'subtleEmerald'}>
+                {validatorManagerKindLabel(validatorManager.kind)}
+              </MetaPill>
             )}
             {l1.coinName && <MetaPill>{l1.coinName}</MetaPill>}
             {/* Explicit positive signal that the wallet is on this chain.
@@ -109,7 +124,7 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
                 </span>
               </MetaPill>
             )}
-            <SetupStatusPill l1={l1} />
+            {!isPrimaryNetwork(l1) && <SetupStatusPill l1={l1} />}
           </div>
           {isWalletOnThisL1 && balance !== null && (
             <p className="text-sm text-foreground mt-1.5">
@@ -337,7 +352,7 @@ function MetaPill({
   tone,
 }: {
   children: React.ReactNode;
-  tone?: 'testnet' | 'mainnet' | 'walletActive';
+  tone?: 'testnet' | 'mainnet' | 'walletActive' | 'subtleAmber' | 'subtleEmerald';
 }) {
   const toneClass =
     tone === 'testnet'
@@ -346,7 +361,11 @@ function MetaPill({
         ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
         : tone === 'walletActive'
           ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-          : 'bg-muted text-muted-foreground border-border';
+          : tone === 'subtleAmber'
+            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+            : tone === 'subtleEmerald'
+              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+              : 'bg-muted text-muted-foreground border-border';
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${toneClass}`}

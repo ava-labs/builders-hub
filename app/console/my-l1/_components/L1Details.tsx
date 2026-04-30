@@ -3,17 +3,20 @@
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useL1Health } from '@/hooks/useL1Health';
-import { useL1ValidatorCount } from '@/hooks/useL1ValidatorCount';
+import { useL1ValidatorSet } from '@/hooks/useL1ValidatorSet';
+import { useL1ActivePrecompiles } from '@/hooks/useL1ActivePrecompiles';
 import { sectionContainer, sectionItem } from '@/components/console/motion';
-import type { CombinedL1 } from '../_lib/types';
+import { isPrimaryNetwork, type CombinedL1 } from '../_lib/types';
 import { setupSummary } from '../_lib/setup-steps';
+import { useL1ValidatorManager } from '../_lib/useL1ValidatorManager';
 import { DetailHeader } from './DetailHeader';
 import { StatsGrid } from './StatsGrid';
 import { LiveCharts } from './LiveCharts';
 import { NextActionBar } from './SetupProgress';
-import { QuickActionsCard, WalletOnlyActions } from './QuickActions';
+import { PrimaryNetworkActions, QuickActionsCard, WalletOnlyActions } from './QuickActions';
 import { NetworkDetailsCard } from './NetworkDetailsCard';
 import { NodeListCard } from './NodeList';
+import { PrecompilesSection } from './PrecompilesSection';
 
 export function L1Details({
   l1,
@@ -28,7 +31,12 @@ export function L1Details({
   // surfaced as a coloured "degraded/live" pill anywhere; just descriptive
   // metrics so the page doesn't pretend to know more than it does.
   const health = useL1Health(l1.rpcUrl, l1.evmChainId);
-  const validators = useL1ValidatorCount(l1.subnetId, l1.isTestnet);
+  const validators = useL1ValidatorSet(l1.subnetId, l1.isTestnet);
+  const validatorManager = useL1ValidatorManager(l1);
+  // C-Chain runs coreth (not subnet-EVM) and won't expose
+  // eth_getActiveRulesAt — skip the Precompiles section entirely.
+  const isPrimary = isPrimaryNetwork(l1);
+  const precompiles = useL1ActivePrecompiles(l1.rpcUrl, !isPrimary);
   const isManaged = l1.source === 'managed';
   const setup = setupSummary(l1);
   const isComplete = setup.pct === 100;
@@ -46,15 +54,15 @@ export function L1Details({
             bar; clicking the missing pill opens a popover with the full
             checklist). The NextActionBar still surfaces the most urgent
             single step as a prominent CTA when there's something to do. */}
-        <DetailHeader l1={l1} health={health} />
-        {!isComplete && <NextActionBar l1={l1} />}
+        <DetailHeader l1={l1} health={health} validatorManager={validatorManager} />
+        {!isPrimary && !isComplete && <NextActionBar l1={l1} />}
       </motion.section>
 
       {/* Reference data the user copies most (RPC URL, subnet/blockchain/EVM
           chain IDs) lives right under the header so it's reachable in one
           click. Stays collapsed by default to keep visual weight on Health. */}
       <motion.div variants={sectionItem}>
-        <NetworkDetailsCard l1={l1} />
+        <NetworkDetailsCard l1={l1} validatorManager={validatorManager} />
       </motion.div>
 
       <DashboardSection title="Health">
@@ -71,14 +79,31 @@ export function L1Details({
         // that case so the user clearly sees the L1 is dark, rather than
         // the whole section silently disappearing.
         <DashboardSection title="Node fleet">
-          <NodeListCard l1={l1} userActiveTotal={userActiveNodeTotal} onRefetch={onRefetch} />
+          <NodeListCard
+            l1={l1}
+            userActiveTotal={userActiveNodeTotal}
+            onRefetch={onRefetch}
+            validators={validators}
+            validatorManagerKind={validatorManager.kind}
+          />
         </DashboardSection>
       )}
 
       <DashboardSection title="Tools">
-        {isManaged && <QuickActionsCard l1={l1} />}
-        {l1.source === 'wallet' && <WalletOnlyActions l1={l1} />}
+        {isPrimary ? (
+          <PrimaryNetworkActions l1={l1} />
+        ) : isManaged ? (
+          <QuickActionsCard l1={l1} validatorManagerKind={validatorManager.kind} />
+        ) : (
+          <WalletOnlyActions l1={l1} validatorManagerKind={validatorManager.kind} />
+        )}
       </DashboardSection>
+
+      {!isPrimary && (
+        <DashboardSection title="Precompiles">
+          <PrecompilesSection l1={l1} state={precompiles} />
+        </DashboardSection>
+      )}
     </motion.div>
   );
 }

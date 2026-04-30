@@ -8,7 +8,6 @@ import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListSt
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useLoadedOnce } from '@/components/console/loaded-once';
 import {
-  C_CHAIN_IDS,
   metadataFromWalletItem,
   walletItemToCombined,
   type CombinedL1,
@@ -23,6 +22,7 @@ export function DashboardBody() {
   const { l1s: managedL1s, isLoading, error, refetch } = useMyL1s();
   const walletL1s = useL1List();
   const walletChainId = useWalletStore((s) => s.walletChainId);
+  const isWalletTestnet = useWalletStore((s) => s.isTestnet);
   const { sawLoading } = useLoadedOnce(isLoading);
 
   // Total active managed nodes across the user's account — drives the
@@ -40,10 +40,12 @@ export function DashboardBody() {
 
   // Index wallet entries by chainId so managed entries can borrow their
   // metadata fields (validator manager address, teleporter registry, etc.).
+  // C-Chain (subnetId === primary network) flows through the same path as
+  // any other wallet entry — it just renders with no setup checklist /
+  // precompile section / node fleet, gated by `isPrimaryNetwork`.
   const walletByChainId = useMemo(() => {
     const map = new Map<number, L1ListItem>();
     walletL1s.forEach((w: L1ListItem) => {
-      if (C_CHAIN_IDS.has(w.evmChainId)) return;
       map.set(w.evmChainId, w);
     });
     return map;
@@ -70,14 +72,16 @@ export function DashboardBody() {
     });
 
     walletL1s.forEach((w: L1ListItem) => {
-      if (C_CHAIN_IDS.has(w.evmChainId)) return;
       const key = byKey(w);
       if (byChainId.has(key)) return;
       byChainId.set(key, walletItemToCombined(w));
     });
 
-    return Array.from(byChainId.values());
-  }, [managedL1s, walletL1s, walletByChainId]);
+    const userL1s = Array.from(byChainId.values());
+    return walletChainId === 0
+      ? userL1s
+      : userL1s.filter((l1) => l1.isTestnet === isWalletTestnet);
+  }, [managedL1s, walletL1s, walletByChainId, walletChainId, isWalletTestnet]);
 
   // URL-driven selection so refresh + back button work, and so wallet network
   // switches don't change which L1 the dashboard is viewing.

@@ -1,16 +1,27 @@
 import type { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import type { MyL1 } from '@/hooks/useMyL1s';
 
-// C-Chain (Fuji + Mainnet) lives in the wallet's l1List as a sentinel for
-// the primary network; it's not an L1 in this dashboard's sense, so we strip
-// it before merging with managed entries.
-export const C_CHAIN_IDS = new Set([43113, 43114]);
+export const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
+
+/** True for the Avalanche Primary Network (C-Chain in this dashboard's
+ *  context — the wallet store seeds Fuji + Mainnet C-Chain entries with
+ *  this subnet ID). Used to gate sections that don't apply to the Primary
+ *  Network: Setup Progress, Precompiles, managed-node fleet, VMC type
+ *  detection. C-Chain renders as a normal wallet entry otherwise. */
+export function isPrimaryNetwork(l1: { subnetId: string }): boolean {
+  return l1.subnetId === PRIMARY_NETWORK_SUBNET_ID;
+}
 
 // Combined view across both sources: server-backed NodeRegistration rows
 // (managed) and the wallet's local l1ListStore (wallet-only). Managed
 // entries take precedence on collision but get enriched with the wallet's
 // L1ListItem metadata when available (validator manager, teleporter, etc.)
 // so Setup Progress can reflect what's actually deployed.
+//
+// C-Chain entries (Fuji + Mainnet) come through as `source: 'wallet'`
+// since they're seeded into l1ListStore by default; they're identified
+// downstream via `isPrimaryNetwork(l1)` rather than a separate source
+// variant — keeps the visual treatment uniform with other wallet L1s.
 export type CombinedL1 = {
   source: 'managed' | 'wallet';
   /** 'active' for live L1s; 'expired' for spun-down managed entries that
@@ -32,6 +43,7 @@ export type CombinedL1 = {
   // L1ListItem-derived metadata (populated by Quick L1 success or manual
   // Add Chain). Used to drive Setup Progress checks + display niceties.
   validatorManagerAddress?: string;
+  validatorManagerBlockchainId?: string;
   teleporterRegistryAddress?: string;
   wrappedTokenAddress?: string;
   coinName?: string;
@@ -62,6 +74,7 @@ export function metadataFromWalletItem(w: L1ListItem) {
   const optional = (v: string | undefined) => (v && v.length > 0 ? v : undefined);
   return {
     validatorManagerAddress: optional(w.validatorManagerAddress),
+    validatorManagerBlockchainId: optional(w.validatorManagerBlockchainId),
     teleporterRegistryAddress: optional(w.wellKnownTeleporterRegistryAddress),
     wrappedTokenAddress: optional(w.wrappedTokenAddress),
     coinName: w.coinName,
@@ -71,3 +84,4 @@ export function metadataFromWalletItem(w: L1ListItem) {
     externalFaucetUrl: optional(w.externalFaucetUrl),
   };
 }
+

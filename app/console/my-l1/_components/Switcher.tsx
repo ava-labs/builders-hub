@@ -29,7 +29,8 @@ export function SwitcherBar({
   const wallet = l1s.filter((l) => l.source === 'wallet');
   // Section titles only render when both kinds of L1 exist — there's no
   // reason to caption a single list with the same words the page subtitle
-  // already shows ("X managed · Y wallet").
+  // already shows ("X managed · Y wallet"). C-Chain is included in the
+  // wallet section since it flows through the wallet store.
   const showSectionTitles = managed.length > 0 && wallet.length > 0;
 
   // "Data arrived" feedback after a user-initiated refresh. We only flag

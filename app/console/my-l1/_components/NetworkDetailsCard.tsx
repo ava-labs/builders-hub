@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/collapsible';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import type { CombinedL1 } from '../_lib/types';
+import type { L1ValidatorManagerInfo } from '../_lib/useL1ValidatorManager';
 
 // Network identifiers (RPC URL, Subnet ID, Blockchain ID, EVM Chain ID) are
 // reference data the user looks up once per session — not on-glance content.
@@ -16,7 +17,13 @@ import type { CombinedL1 } from '../_lib/types';
 // mobile. Wrapping them in a Radix Collapsible keeps them one click away
 // without dominating the dashboard, and animates the height transition
 // smoothly (the previous native `<details>` element snap-opened).
-export function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
+export function NetworkDetailsCard({
+  l1,
+  validatorManager,
+}: {
+  l1: CombinedL1;
+  validatorManager?: L1ValidatorManagerInfo;
+}) {
   const { copiedId, copyToClipboard } = useCopyToClipboard();
 
   const items: Array<{ label: string; value: string; id: string }> = [
@@ -24,6 +31,18 @@ export function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
     { label: 'Subnet ID', value: l1.subnetId, id: 'subnet-id' },
     { label: 'Blockchain ID', value: l1.blockchainId, id: 'blockchain-id' },
   ];
+  const validatorManagerAddress = validatorManager?.address ?? l1.validatorManagerAddress;
+  const validatorManagerBlockchainId = validatorManager?.blockchainId ?? l1.validatorManagerBlockchainId;
+  if (validatorManagerAddress) {
+    items.push({ label: 'Validator Manager', value: validatorManagerAddress, id: 'validator-manager' });
+  }
+  if (validatorManagerBlockchainId) {
+    items.push({
+      label: 'Validator Manager Blockchain',
+      value: validatorManagerBlockchainId,
+      id: 'validator-manager-blockchain',
+    });
+  }
   if (l1.evmChainId !== null) {
     items.push({ label: 'EVM Chain ID', value: String(l1.evmChainId), id: 'evm-chain-id' });
   }
@@ -41,7 +60,7 @@ export function NetworkDetailsCard({ l1 }: { l1: CombinedL1 }) {
           />
           <span className="font-medium text-foreground">Network identifiers</span>
           <span className="text-muted-foreground hidden sm:inline">
-            RPC URL, Subnet ID, Blockchain ID{l1.evmChainId !== null ? ', EVM Chain ID' : ''}
+            {items.map((item) => item.label).join(', ')}
           </span>
         </button>
       </CollapsibleTrigger>

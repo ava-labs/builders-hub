@@ -11,6 +11,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { CombinedL1 } from '../_lib/types';
+import { getAddValidatorPath, type ValidatorManagerKind } from '../_lib/validator-manager-routing';
 
 interface QuickAction {
   icon: React.ComponentType<{ className?: string }>;
@@ -38,21 +39,33 @@ function QuickActionsSection({
   );
 }
 
-export function QuickActionsCard({ l1 }: { l1: CombinedL1 }) {
-  return <QuickActionsSection actions={buildQuickActions(l1)} />;
+export function QuickActionsCard({
+  l1,
+  validatorManagerKind,
+}: {
+  l1: CombinedL1;
+  validatorManagerKind?: ValidatorManagerKind | null;
+}) {
+  return <QuickActionsSection actions={buildQuickActions(l1, validatorManagerKind ?? null)} />;
 }
 
 // Reduced detail view for wallet-only L1s — no managed-node fleet to show, so
 // surface the most useful next-step actions instead. Reuses the same
 // QuickActionTile as managed L1s for consistency; faucet target picks
 // external URL (Echo / Dispatch / Dexalot, etc.) when set.
-export function WalletOnlyActions({ l1 }: { l1: CombinedL1 }) {
+export function WalletOnlyActions({
+  l1,
+  validatorManagerKind,
+}: {
+  l1: CombinedL1;
+  validatorManagerKind?: ValidatorManagerKind | null;
+}) {
   const actions: QuickAction[] = [
     {
       icon: Users,
       title: 'Add Validator',
       description: 'Register a new validator.',
-      href: '/console/permissioned-l1s/add-validator',
+      href: getAddValidatorPath(validatorManagerKind ?? null, l1),
     },
     {
       icon: BarChart3,
@@ -85,13 +98,39 @@ export function WalletOnlyActions({ l1 }: { l1: CombinedL1 }) {
   return <QuickActionsSection actions={actions} />;
 }
 
-function buildQuickActions(l1: CombinedL1): QuickAction[] {
+export function PrimaryNetworkActions({ l1 }: { l1: CombinedL1 }) {
+  const actions: QuickAction[] = [
+    {
+      icon: Wallet,
+      title: l1.isTestnet ? 'Get Test AVAX' : 'C/P-Chain Bridge',
+      description: l1.isTestnet ? 'Request Fuji AVAX for development.' : 'Transfer AVAX between C-Chain and P-Chain.',
+      href: l1.isTestnet ? '/console/primary-network/faucet' : '/console/primary-network/c-p-bridge',
+    },
+    {
+      icon: BarChart3,
+      title: 'Validator Lookup',
+      description: 'Search Primary Network validators.',
+      href: '/console/primary-network/validator-lookup',
+    },
+    {
+      icon: Settings,
+      title: 'Node Setup',
+      description: 'Run an AvalancheGo node.',
+      href: '/console/primary-network/node-setup',
+    },
+  ];
+  const faucet = faucetAction(l1);
+  if (l1.isTestnet && faucet?.external) actions.push(faucet);
+  return <QuickActionsSection actions={actions} />;
+}
+
+function buildQuickActions(l1: CombinedL1, validatorManagerKind: ValidatorManagerKind | null): QuickAction[] {
   const actions: QuickAction[] = [
     {
       icon: Users,
       title: 'Add Validator',
       description: 'Register a new validator to your L1.',
-      href: '/console/permissioned-l1s/add-validator',
+      href: getAddValidatorPath(validatorManagerKind, l1),
     },
     {
       icon: BarChart3,

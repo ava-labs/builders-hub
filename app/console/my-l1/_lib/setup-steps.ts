@@ -5,7 +5,7 @@ import {
   Server,
   Settings,
 } from 'lucide-react';
-import type { CombinedL1 } from './types';
+import { isPrimaryNetwork, type CombinedL1 } from './types';
 
 // Setup steps + completion summary — single source of truth shared between
 // SetupProgressCard (the full checklist) and NextActionBar (the inline CTA
@@ -21,6 +21,10 @@ export type SetupStep = {
 };
 
 export function getSetupSteps(l1: CombinedL1): SetupStep[] {
+  // C-Chain (Primary Network) has no per-L1 setup checklist — it renders as
+  // a wallet entry but skips Setup, Precompiles, and Node fleet sections.
+  if (isPrimaryNetwork(l1)) return [];
+
   const hasNode = (l1.nodes ?? []).some((n) => n.status === 'active');
   const hasValidatorManager = !!l1.validatorManagerAddress;
   const hasIcm = !!l1.teleporterRegistryAddress;
@@ -94,6 +98,7 @@ export function setupSummary(l1: CombinedL1): {
   nextStep: SetupStep | null;
 } {
   const steps = getSetupSteps(l1);
+  if (steps.length === 0) return { steps, done: 0, pct: 100, nextStep: null };
   const done = steps.filter((s) => s.completed).length;
   const pct = Math.round((done / steps.length) * 100);
   const nextStep = steps.find((s) => !s.completed) ?? null;
