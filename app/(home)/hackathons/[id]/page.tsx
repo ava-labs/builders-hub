@@ -95,12 +95,12 @@ export default async function HackathonPage({
     { name: "Prizes & Tracks", ref: "tracks" },
     { name: "Resources", ref: "resources" },
     { name: "Schedule", ref: "schedule" },
-    { name: "Submission", ref: "submission" },
+    ...(isRegistered ? [{ name: "Submission", ref: "submission" }] : []),
     { name: "Mentors & Judges", ref: "speakers" },
     { name: "Partners", ref: "sponsors" },
   ];
 
-  if (!hackathon) redirect("/hackathons");
+  if (!hackathon) redirect("/events");
   const hacakthonCreator = await getUserById(hackathon.created_by);
 
   return (
@@ -171,7 +171,7 @@ export default async function HackathonPage({
                 calendarId: hackathon.google_calendar_id,
               } : undefined}
             />
-            <Submission hackathon={hackathon} />
+            <Submission hackathon={hackathon} isRegistered={isRegistered} utm={utm as string} />
             {hackathon.content.speakers && hackathon.content.speakers.length > 0 && (
               <MentorsJudges hackathon={hackathon} />
             )}

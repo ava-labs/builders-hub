@@ -220,9 +220,17 @@ export const consoleTools: ConsoleTool[] = [
     title: 'Native Staking Manager Setup',
     url: '/console/permissionless-l1s/native-staking-manager-setup',
     category: 'Permissionless L1s',
-    description: 'Set up staking for permissionless L1 validators',
-    keywords: ['staking', 'manager', 'permissionless', 'pos', 'proof-of-stake', 'validator'],
-    componentName: 'StakingManagerSetup',
+    description: 'Set up native token staking for permissionless L1 validators',
+    keywords: ['staking', 'manager', 'permissionless', 'pos', 'proof-of-stake', 'validator', 'native'],
+    componentName: 'NativeStakingManagerSetup',
+  },
+  {
+    title: 'ERC20 Staking Manager Setup',
+    url: '/console/permissionless-l1s/erc20-staking-manager-setup',
+    category: 'Permissionless L1s',
+    description: 'Set up ERC20 token staking for permissionless L1 validators',
+    keywords: ['staking', 'manager', 'permissionless', 'pos', 'proof-of-stake', 'validator', 'erc20', 'token'],
+    componentName: 'ERC20StakingManagerSetup',
   },
 
   // Interchain Messaging

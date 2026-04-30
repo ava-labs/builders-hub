@@ -126,15 +126,15 @@ export function ProtocolSpotlight({ protocols }: ProtocolSpotlightProps) {
 
       {/* Stats card */}
       <div className="bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h4 className="text-lg font-bold text-zinc-900 dark:text-white">{selected.protocol}</h4>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="min-w-0">
+            <h4 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white truncate">{selected.protocol}</h4>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
               {catLabel}
             </span>
           </div>
           <span
-            className={`inline-flex items-center gap-1 text-lg font-bold px-2.5 py-1 rounded-md ${getDeltaBgClass(selected.delta)}`}
+            className={`inline-flex items-center gap-1 text-base sm:text-lg font-bold px-2 sm:px-2.5 py-1 rounded-md flex-shrink-0 ${getDeltaBgClass(selected.delta)}`}
           >
             {selected.delta >= 0 ? (
               <ArrowUpRight className="w-4 h-4" />
@@ -146,7 +146,7 @@ export function ProtocolSpotlight({ protocols }: ProtocolSpotlightProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-md bg-orange-500/10 flex items-center justify-center flex-shrink-0">
               <Flame className="w-4 h-4 text-orange-400" />

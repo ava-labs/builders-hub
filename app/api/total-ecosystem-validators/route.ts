@@ -1,0 +1,318 @@
+import { NextResponse } from 'next/server';
+import l1ChainsData from "@/constants/l1-chains.json";
+import {
+  TimeSeriesDataPoint,
+  TimeSeriesMetric,
+  STATS_CONFIG,
+  getTimestampsFromTimeRange,
+  createTimeSeriesMetric,
+} from "@/types/stats";
+
+export const dynamic = 'force-dynamic';
+
+const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
+const MAX_CONCURRENT_REQUESTS = 10;
+const REQUEST_TIMEOUT_MS = 15000;
+const METRICS_API_BASE_URL = process.env.METRICS_API_URL || 'https://metrics.avax.network';
+
+const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
+
+const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
+
+interface L1ChainRecord {
+  subnetId?: string;
+  isTestnet?: boolean;
+  isActive?: boolean;
+}
+
+interface MetricsValidatorCountPoint {
+  timestamp: number;
+  value: number | string;
+}
+
+interface MetricsValidatorCountResponse {
+  results?: MetricsValidatorCountPoint[];
+  nextPageToken?: string;
+}
+
+interface TotalEcosystemValidatorsResponse {
+  total_validator_seats: TimeSeriesMetric;
+  l1_validator_seats: TimeSeriesMetric;
+  primary_network_validator_count: TimeSeriesMetric;
+  subnets_included: number;
+  last_updated: number;
+}
+
+const cachedData = new Map<string, { data: TotalEcosystemValidatorsResponse; timestamp: number }>();
+const revalidatingKeys = new Set<string>();
+const pendingRequests = new Map<string, Promise<TotalEcosystemValidatorsResponse | null>>();
+
+function getActiveMainnetSubnetIds(): string[] {
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const chain of l1ChainsData as L1ChainRecord[]) {
+    if (chain.isTestnet === true) continue;
+    if (chain.isActive === false) continue;
+    if (!chain.subnetId || chain.subnetId === 'N/A') continue;
+    if (chain.subnetId === PRIMARY_NETWORK_SUBNET_ID) continue;
+    if (seen.has(chain.subnetId)) continue;
+    seen.add(chain.subnetId);
+    ids.push(chain.subnetId);
+  }
+  return ids;
+}
+
+async function fetchWithTimeout(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+      next: { revalidate: 0 },
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchValidatorCountSeries(
+  subnetId: string | undefined,
+  startTimestamp: number,
+  endTimestamp: number,
+  pageSize: number,
+  fetchAllPages: boolean,
+): Promise<TimeSeriesDataPoint[] | null> {
+  try {
+    const rlToken = getRlToken();
+    const all: MetricsValidatorCountPoint[] = [];
+    let nextPageToken: string | undefined;
+
+    do {
+      const url = new URL('/v2/networks/mainnet/metrics/validatorCount', METRICS_API_BASE_URL);
+      url.searchParams.set('startTimestamp', String(startTimestamp));
+      url.searchParams.set('endTimestamp', String(endTimestamp));
+      url.searchParams.set('pageSize', String(pageSize));
+      if (subnetId) url.searchParams.set('subnetId', subnetId);
+      if (nextPageToken) url.searchParams.set('pageToken', nextPageToken);
+      if (rlToken) url.searchParams.set('rltoken', rlToken);
+
+      const response = await fetchWithTimeout(url.toString());
+      if (!response.ok) {
+        console.warn(
+          `[total-ecosystem-validators] Metrics API returned ${response.status} for subnet ${subnetId ?? 'primary'}.`,
+        );
+        return null;
+      }
+
+      const page = (await response.json()) as MetricsValidatorCountResponse;
+      if (Array.isArray(page.results)) {
+        all.push(...page.results);
+      }
+
+      nextPageToken = fetchAllPages ? page.nextPageToken : undefined;
+      if (!fetchAllPages) break;
+    } while (nextPageToken);
+
+    return all
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((r) => ({
+        timestamp: r.timestamp,
+        value: r.value || 0,
+        date: new Date(r.timestamp * 1000).toISOString().split('T')[0],
+      }));
+  } catch (error) {
+    console.warn(`[total-ecosystem-validators] Failed for subnet ${subnetId ?? 'primary'}:`, error);
+    return null;
+  }
+}
+
+async function processInBatches<T, R>(
+  items: T[],
+  processor: (item: T) => Promise<R>,
+  batchSize: number,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(processor));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+function sumSeriesByDate(seriesList: TimeSeriesDataPoint[][]): TimeSeriesDataPoint[] {
+  const totals = new Map<string, { timestamp: number; value: number }>();
+  for (const series of seriesList) {
+    for (const point of series) {
+      const numeric = typeof point.value === 'string' ? parseFloat(point.value) : point.value;
+      if (!Number.isFinite(numeric)) continue;
+      const existing = totals.get(point.date);
+      if (existing) {
+        existing.value += numeric;
+      } else {
+        totals.set(point.date, { timestamp: point.timestamp, value: numeric });
+      }
+    }
+  }
+  return Array.from(totals.entries())
+    .map(([date, { timestamp, value }]) => ({ date, timestamp, value }))
+    .sort((a, b) => b.timestamp - a.timestamp);
+}
+
+async function fetchFreshDataInternal(timeRange: string): Promise<TotalEcosystemValidatorsResponse | null> {
+  try {
+    const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES]
+      || STATS_CONFIG.TIME_RANGES['30d'];
+    const { pageSize, fetchAllPages } = config;
+    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
+
+    const subnetIds = getActiveMainnetSubnetIds();
+
+    const [primarySeries, l1SeriesList] = await Promise.all([
+      fetchValidatorCountSeries(undefined, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+      processInBatches(
+        subnetIds,
+        (subnetId) =>
+          fetchValidatorCountSeries(subnetId, startTimestamp, endTimestamp, pageSize, fetchAllPages),
+        MAX_CONCURRENT_REQUESTS,
+      ),
+    ]);
+
+    if (primarySeries === null) {
+      console.warn('[total-ecosystem-validators] Primary Network fetch failed; falling back to cache.');
+      return null;
+    }
+    const failedL1Index = l1SeriesList.findIndex((s) => s === null);
+    if (failedL1Index !== -1) {
+      console.warn(
+        `[total-ecosystem-validators] L1 fetch failed for subnet ${subnetIds[failedL1Index]}; falling back to cache.`,
+      );
+      return null;
+    }
+
+    const l1Totals = sumSeriesByDate(l1SeriesList as TimeSeriesDataPoint[][]);
+    const grandTotals = sumSeriesByDate([primarySeries, l1Totals]);
+
+    return {
+      total_validator_seats: createTimeSeriesMetric(grandTotals),
+      l1_validator_seats: createTimeSeriesMetric(l1Totals),
+      primary_network_validator_count: createTimeSeriesMetric(primarySeries),
+      subnets_included: subnetIds.length,
+      last_updated: Date.now(),
+    };
+  } catch (error) {
+    console.error('[total-ecosystem-validators] fetchFreshData failed:', error);
+    return null;
+  }
+}
+
+function createResponse(
+  data: TotalEcosystemValidatorsResponse | { error: string },
+  meta: { source: string; timeRange?: string; cacheAge?: number; fetchTime?: number },
+  status = 200,
+) {
+  const headers: Record<string, string> = {
+    'Cache-Control': CACHE_CONTROL_HEADER,
+    'X-Data-Source': meta.source,
+  };
+  if (meta.timeRange) headers['X-Time-Range'] = meta.timeRange;
+  if (meta.cacheAge !== undefined) headers['X-Cache-Age'] = `${Math.round(meta.cacheAge / 1000)}s`;
+  if (meta.fetchTime !== undefined) headers['X-Fetch-Time'] = `${meta.fetchTime}ms`;
+  return NextResponse.json(data, { status, headers });
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const timeRange = searchParams.get('timeRange') || 'all';
+
+    if (searchParams.get('clearCache') === 'true') {
+      cachedData.clear();
+      revalidatingKeys.clear();
+    }
+
+    const cached = cachedData.get(timeRange);
+    const cacheAge = cached ? Date.now() - cached.timestamp : Infinity;
+    const isCacheValid = cacheAge < STATS_CONFIG.CACHE.LONG_DURATION;
+    const isCacheStale = cached && !isCacheValid;
+
+    if (isCacheStale && cached) {
+      if (!revalidatingKeys.has(timeRange)) {
+        revalidatingKeys.add(timeRange);
+        (async () => {
+          try {
+            const freshData = await fetchFreshDataInternal(timeRange);
+            if (freshData) {
+              cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
+            }
+          } finally {
+            revalidatingKeys.delete(timeRange);
+          }
+        })();
+      }
+      return createResponse(cached.data, { source: 'stale-while-revalidate', timeRange, cacheAge });
+    }
+
+    if (isCacheValid && cached) {
+      return createResponse(cached.data, { source: 'cache', timeRange, cacheAge });
+    }
+
+    const pendingKey = `total-${timeRange}`;
+    let pendingPromise = pendingRequests.get(pendingKey);
+    if (!pendingPromise) {
+      pendingPromise = fetchFreshDataInternal(timeRange);
+      pendingRequests.set(pendingKey, pendingPromise);
+      pendingPromise.finally(() => pendingRequests.delete(pendingKey));
+    }
+
+    const startTime = Date.now();
+    const freshData = await pendingPromise;
+
+    if (!freshData) {
+      const fallbackCached = cached ?? cachedData.get(timeRange);
+      if (fallbackCached) {
+        return createResponse(
+          fallbackCached.data,
+          {
+            source: 'error-fallback-cache',
+            timeRange,
+            cacheAge: Date.now() - fallbackCached.timestamp,
+          },
+          206,
+        );
+      }
+      return createResponse(
+        { error: 'Failed to fetch total ecosystem validator stats' },
+        { source: 'error' },
+        500,
+      );
+    }
+
+    cachedData.set(timeRange, { data: freshData, timestamp: Date.now() });
+    const fetchTime = Date.now() - startTime;
+    return createResponse(freshData, { source: 'fresh', timeRange, fetchTime });
+  } catch (error) {
+    console.error('[GET /api/total-ecosystem-validators] Unhandled error:', error);
+    const { searchParams } = new URL(request.url);
+    const timeRange = searchParams.get('timeRange') || 'all';
+    const cached = cachedData.get(timeRange);
+    if (cached) {
+      return createResponse(
+        cached.data,
+        {
+          source: 'error-fallback-cache',
+          timeRange,
+          cacheAge: Date.now() - cached.timestamp,
+        },
+        206,
+      );
+    }
+    return createResponse(
+      { error: 'Failed to fetch total ecosystem validator stats' },
+      { source: 'error' },
+      500,
+    );
+  }
+}

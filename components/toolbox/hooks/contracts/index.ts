@@ -15,3 +15,14 @@ export * from './precompiles';
 
 // Utilities
 export * from './utilities';
+
+// Error parsing
+export { parseContractError } from './parseContractError';
+export { parsePChainError } from './parsePChainError';
+
+// Base hook for contract interactions
+export { useContractActions } from './useContractActions';
+export type { ContractActions, WriteOptions } from './useContractActions';
+
+// Shared types
+export * from './types';

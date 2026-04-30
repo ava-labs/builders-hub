@@ -11,12 +11,12 @@ title: ICM Contract Addresses
 
 
 
-1. Using [Nick's method](https://yamenmerhi.medium.com/nicks-method-ethereum-keyless-execution-168a6659479c#), `TeleporterMessenger` deploys at a universal address across all chains, varying with each ICM contracts Major release. **Compatibility exists only between same versions of `TeleporterMessenger` instances.** See [ICM Contract Deployment](https://github.com/ava-labs/teleporter/blob/main/utils/contract-deployment/README.md) and [Deploy ICM Contracts to a Subnet](https://github.com/ava-labs/teleporter/tree/main?tab=readme-ov-file#deploy-teleporter-to-a-subnet) for more details.
+1. Using [Nick's method](https://yamenmerhi.medium.com/nicks-method-ethereum-keyless-execution-168a6659479c#), `TeleporterMessenger` deploys at a universal address across all chains, varying with each ICM contracts Major release. **Compatibility exists only between same versions of `TeleporterMessenger` instances.** See [ICM Contract Deployment](https://github.com/ava-labs/icm-services/blob/main/utils/contract-deployment/README.md) and [Deploy ICM Contracts to a Subnet](https://github.com/ava-labs/icm-services/tree/main?tab=readme-ov-file#deploy-teleporter-to-a-subnet) for more details.
 
-2. `TeleporterRegistry` can be deployed to any address. See [Deploy TeleporterRegistry to a Subnet](https://github.com/ava-labs/teleporter/blob/main/README.md#deploy-teleporter-to-a-subnet) for details. The table above enumerates the canonical registry addresses on the Mainnet and Fuji C-Chains.
+2. `TeleporterRegistry` can be deployed to any address. See [Deploy TeleporterRegistry to a Subnet](https://github.com/ava-labs/icm-services/blob/main/README.md#deploy-teleporter-to-a-subnet) for details. The table above enumerates the canonical registry addresses on the Mainnet and Fuji C-Chains.
 
 ## A Note on Versioning
 
 Release versions follow the [semver](https://semver.org/) convention of incompatible Major releases. A new Major version is released whenever the `TeleporterMessenger` bytecode is changed, and a new version of `TeleporterMessenger` is meant to be deployed.
 
-Due to the use of Nick's method to deploy the contract to the same address on all chains (see [ICM Contract Deployment](https://github.com/ava-labs/teleporter/blob/main/utils/contract-deployment/README.md) for details), this also means that new release versions would result in different ICM contract addresses. Minor and Patch versions may pertain to contract changes that do not change the `TeleporterMessenger` bytecode, or to changes in the test frameworks, and will only be included in tags.
+Due to the use of Nick's method to deploy the contract to the same address on all chains (see [ICM Contract Deployment](https://github.com/ava-labs/icm-services/blob/main/utils/contract-deployment/README.md) for details), this also means that new release versions would result in different ICM contract addresses. Minor and Patch versions may pertain to contract changes that do not change the `TeleporterMessenger` bytecode, or to changes in the test frameworks, and will only be included in tags.

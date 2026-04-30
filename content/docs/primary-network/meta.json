@@ -11,6 +11,7 @@
     "---C-Chain---",
     "coreth-architecture",
     "streaming-async-execution",
+    "firewood",
     "verify-contract",
     "---P-Chain---",
     "platformvm-architecture",

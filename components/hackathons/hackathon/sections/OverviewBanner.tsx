@@ -82,7 +82,7 @@ export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered,
         <div className={isPreview ? "m-0 pointer-events-auto w-full hidden xl:block" : "pointer-events-auto w-full mb-12 hidden xl:block"}>
           {isTopMost ? (
             <Button asChild variant="secondary" className="w-full bg-red-500 border-none text-zinc-100 rounded-md">
-              <Link href={customRedirectUrl || `/hackathons/${id}`}>
+              <Link href={customRedirectUrl || `/events/${id}`}>
                 {t(lang, "overview.learnMore")}
               </Link>
             </Button>

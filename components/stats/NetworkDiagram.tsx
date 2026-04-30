@@ -697,9 +697,17 @@ export default function NetworkDiagram({
     canvas.height = dimensions.height * dpr;
 
     let time = 0;
+    let lastFrameTime = performance.now();
 
     const draw = () => {
-      time += 0.008;
+      // Frame-rate-independent timing. dtFrames = how many 60Hz frames worth
+      // of motion to advance this tick. Capped so a backgrounded tab doesn't
+      // teleport on resume.
+      const now = performance.now();
+      const dtFrames = Math.min((now - lastFrameTime) / (1000 / 60), 6);
+      lastFrameTime = now;
+
+      time += 0.008 * dtFrames;
 
       simulatePhysics(nodesRef.current, dimensions.width, dimensions.height, isMobile);
 
@@ -722,7 +730,7 @@ export default function NetworkDiagram({
 
       // Update particle positions
       particlesRef.current.forEach(particle => {
-        particle.progress += particle.speed;
+        particle.progress += particle.speed * dtFrames;
         if (particle.progress > 1) {
           particle.progress = 0;
         }

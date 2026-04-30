@@ -9,14 +9,16 @@ import {
 } from "@/components/ui/form";
 
 import { useFormContext } from "react-hook-form";
-import { RegisterFormValues } from "./RegistrationForm"; 
+import { RegisterFormValues } from "./RegistrationForm";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EventsLang, t } from "@/lib/events/i18n";
 
 interface RegisterFormStep3Props {
   isOnlineHackathon: boolean;
+  lang?: EventsLang;
 }
 
-export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props) {
+export function RegisterFormStep3({ isOnlineHackathon, lang = "en" }: RegisterFormStep3Props) {
   const form = useFormContext<RegisterFormValues>();
 
   return (
@@ -24,9 +26,14 @@ export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props)
       {/* Step 3: Terms & Agreements */}
    
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground">Step 3: Terms & Agreements</h3>
-        <p className="text-zinc-400">Review and agree to the terms to complete your registration. For information about our privacy practices and commitment to protecting your privacy, please review our <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline"> Avalanche Privacy Policy. </a></p>
-        <div className="w-full h-px bg-zinc-300 mt-2" /> 
+        <h3 className="text-lg font-semibold text-foreground">{t(lang, "reg.step3.title")}</h3>
+        <p className="text-zinc-400">
+          {t(lang, "reg.step3.subtitle")}{" "}
+          <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+            {t(lang, "reg.step3.privacyLink")}
+          </a>
+        </p>
+        <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
       <div className="space-y-6">
 
@@ -45,10 +52,13 @@ export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props)
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>
-                  I have read and agree to the Event Participation <a href="https://assets.website-files.com/602e8e4411398ca20cfcafd3/63fe6be7e0d14da8cbdb9984_Avalanche%20Events%20Participation%20Terms%20and%20Conditions%20(Final_28Feb2023).docx.pdf" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Terms and Conditions.</a> *
+                  {t(lang, "reg.step3.terms.label")}{" "}
+                  <a href="https://assets.website-files.com/602e8e4411398ca20cfcafd3/63fe6be7e0d14da8cbdb9984_Avalanche%20Events%20Participation%20Terms%20and%20Conditions%20(Final_28Feb2023).docx.pdf" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                    {t(lang, "reg.step3.terms.link")}
+                  </a> *
                 </FormLabel>
                 <FormMessage className="text-zinc-400">
-                  You must agree to participate in any Builder Hub events. Event Terms and Conditions.
+                  {t(lang, "reg.step3.terms.hint")}
                 </FormMessage>
               </div>
             </FormItem>
@@ -68,9 +78,9 @@ export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props)
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>I wish to stay informed about Avalanche news and events.</FormLabel>
+                <FormLabel>{t(lang, "reg.step3.newsletter.label")}</FormLabel>
                 <FormMessage className="text-zinc-400">
-                  Subscribe to newsletters and promotional materials. You can opt out anytime.
+                  {t(lang, "reg.step3.newsletter.hint")}
                 </FormMessage>
               </div>
             </FormItem>
@@ -92,9 +102,9 @@ export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props)
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel>I agree not to bring any of the following prohibited items. *</FormLabel>
+                  <FormLabel>{t(lang, "reg.step3.prohibited.label")}</FormLabel>
                   <FormMessage className="text-zinc-400">
-                    Review the list of restricted items before attending in-person events.
+                    {t(lang, "reg.step3.prohibited.hint")}
                   </FormMessage>
                 </div>
               </FormItem>

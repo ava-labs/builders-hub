@@ -14,9 +14,9 @@ import dynamic from "next/dynamic";
 import { Fragment } from "react";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { pathToBreadcrumb } from "./breadcrumbs-mapping";
-import { History, HelpCircle, Gamepad2, Book, MessageCircle } from "lucide-react";
+import { HelpCircle, Gamepad2, Book, MessageCircle } from "lucide-react";
 import Link from "next/link";
-import { NotificationCenter } from "./notification-center";
+import { ConsoleNotificationPanel } from "./notification-panel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 
-const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/testnet-mainnet-switch").then(m => m.TestnetMainnetSwitch), { ssr: false });
+const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/TestnetMainnetSwitch").then(m => m.TestnetMainnetSwitch), { ssr: false });
 const WalletPChain = dynamic(() => import("@/components/toolbox/components/console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
 const EvmNetworkWallet = dynamic(() => import("@/components/toolbox/components/console-header/evm-network-wallet/index").then(m => m.EvmNetworkWallet), { ssr: false });
 
@@ -84,14 +84,7 @@ export function SiteHeader() {
             orientation="vertical"
             className="h-4!"
           />
-          <Link href="/console/history">
-            <Button variant="ghost" size="icon" title="Transaction History">
-              <History className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div data-tour="notifications">
-            <NotificationCenter />
-          </div>
+          <ConsoleNotificationPanel />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" title="Help & Resources">

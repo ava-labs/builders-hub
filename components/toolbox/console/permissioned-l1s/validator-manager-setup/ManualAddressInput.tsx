@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { isAddress } from "viem";
+import { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { isAddress } from 'viem';
 
 interface ManualAddressInputProps {
   value: string;
@@ -17,11 +17,11 @@ export function ManualAddressInput({ value, onChange, label }: ManualAddressInpu
 
   const handleChange = (input: string) => {
     setLocalValue(input);
-    if (input === "" || isAddress(input)) {
+    if (input === '' || isAddress(input)) {
       setError(null);
       onChange(input);
     } else {
-      setError("Invalid Ethereum address");
+      setError('Invalid Ethereum address');
     }
   };
 
@@ -46,9 +46,7 @@ export function ManualAddressInput({ value, onChange, label }: ManualAddressInpu
             aria-label={label}
             className="mt-2 w-full px-3 py-2 text-xs font-mono rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500/20"
           />
-          {error && (
-            <p className="mt-1 text-xs text-red-500">{error}</p>
-          )}
+          {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </>
       )}
     </div>

@@ -59,7 +59,7 @@ export function useL1Dashboard(): L1DashboardData {
   const [isLoading, setIsLoading] = useState(false);
 
   // Determine if connected
-  const isConnected = Boolean(walletEVMAddress && walletEVMAddress !== "");
+  const isConnected = Boolean(walletEVMAddress);
 
   // Check if connected to C-Chain
   const isConnectedToCChain = walletChainId === C_CHAIN_FUJI || walletChainId === C_CHAIN_MAINNET;

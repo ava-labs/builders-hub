@@ -20,6 +20,31 @@ export async function proxy(req: NextRequest) {
     return new Response(null, { status: 204 });
   }
 
+  // Content negotiation: serve markdown when Accept: text/markdown is requested
+  const contentPrefixes = ['/docs/', '/academy/', '/blog/', '/integrations/'];
+  const isContentPath = contentPrefixes.some(prefix => pathname.startsWith(prefix));
+  const acceptHeader = req.headers.get('accept') || '';
+  const wantsMarkdown = acceptHeader.includes('text/markdown');
+
+  // Protected academy sub-paths must NOT skip auth
+  const protectedAcademySuffixes = ['/get-certificate', '/certificate'];
+  const isProtectedAcademyPath = pathname.startsWith('/academy/') &&
+    protectedAcademySuffixes.some(suffix => pathname.endsWith(suffix));
+
+  if (wantsMarkdown && isContentPath && !isProtectedAcademyPath) {
+    const apiUrl = new URL(`/api/raw${pathname}`, req.url);
+    const rewriteResponse = NextResponse.rewrite(apiUrl);
+    rewriteResponse.headers.set('Vary', 'Accept');
+    return rewriteResponse;
+  }
+
+  // For content paths without markdown request, add Vary header and pass through
+  if (isContentPath && !isProtectedAcademyPath) {
+    const contentResponse = NextResponse.next();
+    contentResponse.headers.set('Vary', 'Accept');
+    return contentResponse;
+  }
+
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuthenticated = !!token;
   const isLoginPage = pathname === "/login";
@@ -30,6 +55,8 @@ export async function proxy(req: NextRequest) {
   const protectedPaths = [
     "/hackathons/registration-form",
     "/hackathons/project-submission",
+    "/events/registration-form",
+    "/events/project-submission",
     "/showcase",
     "/send-notifications",
     "/profile",
@@ -54,13 +81,13 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(new URL("/", req.url));
 
     if (isShowCase && !custom_attributes.includes('showcase'))
-      return NextResponse.redirect(new URL("/hackathons", req.url))
+      return NextResponse.redirect(new URL("/events", req.url))
 
     if (isSendNotifications && !(custom_attributes.includes('devrel') || custom_attributes.includes('notify_event')))
       return NextResponse.redirect(new URL("/", req.url))
 
-    // Protect hackathons/edit route - only team1-admin and hackathonCreator can access
-    if (pathname.startsWith("/hackathons/edit")) {
+    // Protect hackathons/edit and events/edit routes - only team1-admin and hackathonCreator can access
+    if (pathname.startsWith("/hackathons/edit") || pathname.startsWith("/events/edit")) {
       const hasRequiredPermissions = custom_attributes.includes("team1-admin") ||
                                    custom_attributes.includes("hackathonCreator")  ||
                                    custom_attributes.includes("devrel");
@@ -93,9 +120,13 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
+    // Auth-protected paths
     "/hackathons/registration-form/:path*",
     "/hackathons/project-submission/:path*",
     "/hackathons/edit/:path*",
+    "/events/registration-form/:path*",
+    "/events/project-submission/:path*",
+    "/events/edit/:path*",
     "/showcase/:path*",
     "/send-notifications/:path*",
     "/login/:path*",
@@ -104,5 +135,10 @@ export const config = {
     "/academy/:path*/certificate",
     "/console/utilities/data-api-keys",
     "/grants/:path+",
+    // Content paths for Accept: text/markdown negotiation
+    "/docs/:path*",
+    "/academy/:path*",
+    "/blog/:path*",
+    "/integrations/:path*",
   ],
 };

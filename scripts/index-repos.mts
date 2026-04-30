@@ -121,11 +121,8 @@ interface RepoIndex {
 // GitHub Fetching
 // ============================================================================
 
-// Note: ava-labs org requires fine-grained PATs, so we use unauthenticated access
-// for public repos. Rate limit is 60 req/hour vs 5000 with auth.
 const octokit = new Octokit({
-  // Only use token if it's a fine-grained PAT (starts with github_pat_)
-  auth: process.env.GITHUB_TOKEN?.startsWith('github_pat_') ? process.env.GITHUB_TOKEN : undefined,
+  auth: process.env.GITHUB_TOKEN || undefined,
 });
 
 async function getRepoTree(owner: string, repo: string, branch: string): Promise<string[]> {
@@ -511,14 +508,15 @@ async function main() {
   console.log('🔍 DeepWiki-style Repository Indexer');
   console.log('====================================\n');
 
-  // Check for required env vars
-  if (!process.env.GITHUB_TOKEN) {
-    console.error('❌ GITHUB_TOKEN environment variable required');
-    process.exit(1);
-  }
-  if (!process.env.OPENAI_API_KEY) {
-    console.error('❌ OPENAI_API_KEY environment variable required');
-    process.exit(1);
+  // Check for required env vars — skip gracefully if missing
+  if (!process.env.GITHUB_TOKEN || !process.env.OPENAI_API_KEY) {
+    const missing = [
+      !process.env.GITHUB_TOKEN && 'GITHUB_TOKEN',
+      !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY',
+    ].filter(Boolean).join(', ');
+    console.warn(`⚠️  Skipping repo indexing — missing env vars: ${missing}`);
+    console.warn('   Existing embeddings (if any) will be used at runtime.');
+    return;
   }
 
   const outputDir = path.join(process.cwd(), 'public', 'embeddings');
@@ -554,8 +552,12 @@ async function main() {
         chunkCount: index.chunkCount,
         indexedAt: index.indexedAt,
       });
-    } catch (error) {
-      console.error(`\n❌ Failed to index ${repoConfig.owner}/${repoConfig.name}:`, error);
+    } catch (error: any) {
+      if (error?.status === 403 || error?.message?.includes('rate limit')) {
+        console.warn(`\n⚠️  Rate limited indexing ${repoConfig.owner}/${repoConfig.name} — skipping. Existing embeddings will be used.`);
+      } else {
+        console.error(`\n❌ Failed to index ${repoConfig.owner}/${repoConfig.name}:`, error);
+      }
     }
   }
 

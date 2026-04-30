@@ -104,7 +104,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
                     className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(`/hackathons/${hackathon.id}`, '_blank');
+                      window.open(`/events/${hackathon.id}`, '_blank');
                     }}
                   >
                     <ExternalLink size={12} />
@@ -1001,7 +1001,7 @@ const HackathonsEdit = () => {
     setLoadingHackathons(true);
     try {
       const response = await axios.get(
-        `/api/hackathons`,
+        `/api/hackathons?joined_only=true`,
         {
           headers: {
             id: session?.user?.id,

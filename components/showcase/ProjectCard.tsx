@@ -76,7 +76,7 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
       const isBuildGames = project.hackaton_id === "249d2911-7931-4aa0-a696-37d8370b79f9";
       router.push(isBuildGames
         ? `/build-games/submit?stage=1`
-        : `/hackathons/project-submission?project=${project.id}`
+        : `/events/project-submission?project=${project.id}`
       );
     } else {
       router.push(`/showcase/${project.id}`);

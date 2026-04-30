@@ -625,6 +625,16 @@ const config = {
         permanent: false,
       },
       {
+        source: '/grants/infrabuidl',
+        destination: '/grants',
+        permanent: true,
+      },
+      {
+        source: '/grants/infrabuidlai',
+        destination: '/grants',
+        permanent: true,
+      },
+      {
         source: '/codebase',
         destination: '/grants',
         permanent: true,
@@ -2058,7 +2068,43 @@ const config = {
         ],
         destination: "/academy/entrepreneur",
         permanent: true,
-      }
+      },
+      // Hackathons → Events migration
+      {
+        source: '/hackathons/registration-form',
+        destination: '/events/registration-form',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/project-submission',
+        destination: '/events/project-submission',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/new',
+        destination: '/events/new',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/edit',
+        destination: '/events/edit',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/:id/admin-panel',
+        destination: '/events/:id/admin-panel',
+        permanent: true,
+      },
+      {
+        source: '/hackathons/:id',
+        destination: '/events/:id',
+        permanent: true,
+      },
+      {
+        source: '/hackathons',
+        destination: '/events',
+        permanent: true,
+      },
     ];
   },
   async headers() {
@@ -2107,6 +2153,11 @@ const config = {
   },
   async rewrites() {
     return [
+      // Root section .md URLs (e.g., /docs.md -> section index)
+      { source: '/docs.md', destination: '/api/raw/docs' },
+      { source: '/academy.md', destination: '/api/raw/academy' },
+      { source: '/blog.md', destination: '/api/raw/blog' },
+      { source: '/integrations.md', destination: '/api/raw/integrations' },
       // Rewrite .md requests to serve raw markdown content
       {
         source: '/docs/:path*.md',

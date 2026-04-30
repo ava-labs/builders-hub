@@ -11,8 +11,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
-import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles } from "lucide-react";
+import {
+  calculateMovingAverage,
+  getMAConfig,
+  timeSeriesMetricToChartData,
+} from "@/utils/chart-utils";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles, Monitor } from "lucide-react";
 import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
@@ -30,6 +34,8 @@ import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { ValidatorChartCard } from "@/components/stats/ValidatorChartCard";
+import { ValidatorPieCard } from "@/components/stats/ValidatorPieCard";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -130,6 +136,17 @@ export default function ChainMetricsPage({
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [primaryValidatorMetric, setPrimaryValidatorMetric] = useState<any>(null);
+  const [totalValidatorSeats, setTotalValidatorSeats] = useState<any>(null);
+  const [subnetValidatorStats, setSubnetValidatorStats] = useState<
+    { id: string; name: string; nodes: number; isL1: boolean }[] | null
+  >(null);
+  const [validatorsLoading, setValidatorsLoading] = useState(false);
+  const [totalSeatsLoading, setTotalSeatsLoading] = useState(false);
+  const [validatorChartPeriod, setValidatorChartPeriod] = useState<
+    "D" | "W" | "M" | "Q" | "Y"
+  >("D");
 
   // Cache for "all chains" data - fetched once and reused for filtering
   const [cachedAllData, setCachedAllData] = useState<CChainMetrics | null>(
@@ -449,6 +466,63 @@ export default function ChainMetricsPage({
     selectedChainIds.size,
     excludedChainIds.join(","),
   ]);
+
+  useEffect(() => {
+    if (!isAllChainsView) return;
+    let cancelled = false;
+    setValidatorsLoading(true);
+
+    Promise.allSettled([
+      fetch("/api/primary-network-stats?timeRange=all").then((r) =>
+        r.ok ? r.json() : null,
+      ),
+      fetch("/api/validator-stats?network=mainnet").then((r) =>
+        r.ok ? r.json() : null,
+      ),
+    ])
+      .then(([primaryResult, subnetsResult]) => {
+        if (cancelled) return;
+        if (primaryResult.status === "fulfilled" && primaryResult.value?.validator_count) {
+          setPrimaryValidatorMetric(primaryResult.value.validator_count);
+        }
+        if (subnetsResult.status === "fulfilled" && Array.isArray(subnetsResult.value)) {
+          setSubnetValidatorStats(
+            subnetsResult.value.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              nodes: Object.values(s.byClientVersion ?? {}).reduce(
+                (sum: number, v: any) => sum + (v?.nodes ?? 0),
+                0,
+              ),
+              isL1: Boolean(s.isL1),
+            })),
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setValidatorsLoading(false);
+      });
+
+    setTotalSeatsLoading(true);
+    fetch("/api/total-ecosystem-validators?timeRange=all")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.total_validator_seats) {
+          setTotalValidatorSeats(data.total_validator_seats);
+        }
+      })
+      .catch((err) =>
+        console.error("Error fetching total ecosystem validators:", err),
+      )
+      .finally(() => {
+        if (!cancelled) setTotalSeatsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAllChainsView]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -849,6 +923,7 @@ export default function ChainMetricsPage({
       color: themeColor,
       chartType: "bar" as const,
       isCurrency: true,
+      showMovingAverage: true,
     },
     {
       title: "Avg Gas Price",
@@ -924,6 +999,9 @@ export default function ChainMetricsPage({
     },
     { id: "fees", label: "Fees", metricKeys: ["feesPaid", "avgGasPrice", "maxGasPrice"] },
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
+    ...(isAllChainsView
+      ? [{ id: "validators", label: "Validators", metricKeys: [] as string[] }]
+      : []),
   ];
 
   // export all metrics as csv
@@ -1991,7 +2069,7 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
-                      showMovingAverage={config.showMovingAverage || config.metricKey === "feesPaid"}
+                      showMovingAverage={config.showMovingAverage}
                       chainId={chainId}
                       chainName={chainName}
                       allChartConfigs={chartConfigs.map((c) => ({
@@ -2059,6 +2137,77 @@ export default function ChainMetricsPage({
                 })}
               </div>
             </section>
+
+            {isAllChainsView && (
+              <section className="space-y-4 sm:space-y-6">
+                <div className="space-y-2">
+                  <LinkableHeading
+                    as="h2"
+                    id="validators"
+                    className="text-lg sm:text-2xl font-medium text-left"
+                  >
+                    Validators
+                  </LinkableHeading>
+                  <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                    Validator distribution across the Avalanche ecosystem
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  {primaryValidatorMetric?.data?.length &&
+                  totalValidatorSeats?.data?.length ? (
+                    <ValidatorChartCard
+                      config={{
+                        title: "Avalanche Ecosystem Validator Count",
+                        description:
+                          "Validator seats across the Primary Network and sovereign L1s",
+                        metricKey: "validator_count",
+                        color: themeColor,
+                        chartType: "bar",
+                        icon: Monitor,
+                      }}
+                      rawData={timeSeriesMetricToChartData(primaryValidatorMetric, {
+                        excludeToday: true,
+                      })}
+                      period={validatorChartPeriod}
+                      currentValue={totalValidatorSeats.current_value}
+                      onPeriodChange={setValidatorChartPeriod}
+                      formatTooltipValue={(value) =>
+                        `${formatNumber(Math.round(value))} Validator Seats`
+                      }
+                      formatYAxisValue={formatNumber}
+                      overlayData={timeSeriesMetricToChartData(totalValidatorSeats, {
+                        excludeToday: true,
+                      })}
+                      overlayLabel="Total Validator Seats (Primary + L1s)"
+                      overlayColor="#3B82F6"
+                      overlayStartDate="2024-12-16"
+                      referenceLineDate="2024-12-16"
+                      referenceLineLabel="ACP-77 (Etna)"
+                      descriptionNote="Before the Etna upgrade every L1 validator was also a Primary Network validator, so total ecosystem seats only diverge from the Primary Network count after this point."
+                      primaryAsLine
+                    />
+                  ) : (
+                    <ValidatorChartPlaceholder
+                      title="Avalanche Ecosystem Validator Count"
+                      description="Validator seats across the Primary Network and sovereign L1s"
+                      color={themeColor}
+                      loading={validatorsLoading || totalSeatsLoading}
+                    />
+                  )}
+                  <ValidatorPieCard
+                    primaryNetworkCount={
+                      primaryValidatorMetric?.current_value != null
+                        ? typeof primaryValidatorMetric.current_value === "string"
+                          ? parseFloat(primaryValidatorMetric.current_value)
+                          : primaryValidatorMetric.current_value
+                        : null
+                    }
+                    subnetStats={subnetValidatorStats}
+                    loading={validatorsLoading}
+                  />
+                </div>
+              </section>
+            )}
           </>
         )}
       </div>
@@ -2075,6 +2224,42 @@ export default function ChainMetricsPage({
         <StatsBubbleNav />
       )}
     </div>
+  );
+}
+
+function ValidatorChartPlaceholder({
+  title,
+  description,
+  color,
+  loading,
+}: {
+  title: string;
+  description: string;
+  color: string;
+  loading: boolean;
+}) {
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div
+            className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+            style={{ backgroundColor: `${color}20` }}
+          >
+            <Monitor className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-normal">{title}</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+              {description}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-[440px] text-sm text-muted-foreground">
+          {loading ? "Loading…" : "Validator data unavailable."}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -2122,6 +2307,14 @@ function ChartCard({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const [showImageStudio, setShowImageStudio] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Screenshot handler for downloading chart as image
   const handleScreenshot = async () => {
@@ -2405,10 +2598,33 @@ function ChartCard({
     return result;
   }, [displayData, aggregatedCumulativeData, aggregatedSecondaryData]);
 
+  // Compute 30DMA current value for feesPaid-like charts with moving average
+  const maCurrentValue = useMemo(() => {
+    if (!showMovingAverage || !aggregatedData || aggregatedData.length === 0) return null;
+    const last = aggregatedData[aggregatedData.length - 1];
+    return (last as any).ma !== undefined ? (last as any).ma : null;
+  }, [showMovingAverage, aggregatedData]);
+
   // Calculate percentage change based on brush selection
+  // For charts with moving average, compare MA values instead of raw values
   const dynamicChange = useMemo(() => {
     if (!displayData || displayData.length < 2) {
       return { change: 0, isPositive: true };
+    }
+
+    if (showMovingAverage) {
+      // Compare current MA to MA from one window-period ago
+      const lastMA = (displayData[displayData.length - 1] as any).ma;
+      // Find the point ~window periods back
+      const compareIdx = Math.max(0, displayData.length - 1 - maConfig.window);
+      const compareMA = (displayData[compareIdx] as any).ma;
+      if (lastMA !== undefined && compareMA !== undefined && compareMA > 0) {
+        const changePercentage = ((lastMA - compareMA) / compareMA) * 100;
+        return {
+          change: Math.abs(changePercentage),
+          isPositive: changePercentage >= 0,
+        };
+      }
     }
 
     const firstValue = displayData[0].value;
@@ -2424,17 +2640,31 @@ function ChartCard({
       change: Math.abs(changePercentage),
       isPositive: changePercentage >= 0,
     };
-  }, [displayData]);
+  }, [displayData, showMovingAverage, maConfig.window]);
 
   const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
 
   // Formatter for the brush slider - uses total data range
   const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
 
+  // Responsive chart margins
+  const chartMargin = isMobile
+    ? { top: 5, right: 10, left: 0, bottom: 0 }
+    : { top: 10, right: 40, left: 15, bottom: 0 };
+  const dualChartMargin = isMobile
+    ? { top: 5, right: 10, left: 0, bottom: 0 }
+    : { top: 10, right: 15, left: 15, bottom: 0 };
+
   // Generate custom ticks aligned to meaningful boundaries
+  // On mobile, show fewer ticks to prevent label overlap
   const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
+    const ticks = generateXAxisTicks(displayData, brushRangeDays, "day");
+    if (isMobile && ticks && ticks.length > 3) {
+      const step = Math.ceil(ticks.length / 3);
+      return ticks.filter((_, i) => i % step === 0);
+    }
+    return ticks;
+  }, [displayData, brushRangeDays, isMobile]);
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") {
@@ -2630,7 +2860,7 @@ function ChartCard({
           </div>
         </div>
 
-        <div className="px-5 pt-6 pb-6">
+        <div className="px-2 sm:px-5 pt-4 sm:pt-6 pb-4 sm:pb-6">
           {/* Check if period is supported */}
           {!allowedPeriods.includes(period) ? (
             <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground gap-2">
@@ -2684,6 +2914,11 @@ function ChartCard({
                         ? parseFloat(secondaryCurrentValue)
                         : secondaryCurrentValue
                     )}
+                  </div>
+                ) : showMovingAverage && maCurrentValue !== null ? (
+                  <div className="text-md sm:text-base font-mono break-all">
+                    <span>{formatTooltipValue(maCurrentValue)}</span>
+                    <span className="text-xs text-muted-foreground ml-1.5">{maConfig.label}</span>
                   </div>
                 ) : (
                   <div className="text-md sm:text-base font-mono break-all">
@@ -2809,7 +3044,7 @@ function ChartCard({
 
               <ChartWatermark className="mb-6">
                 {displayData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={isMobile ? 260 : 400}>
                     {config.chartType === "bar" &&
                     (config.metricKey === "txCount" ||
                       config.metricKey === "activeAddresses" ||
@@ -2817,7 +3052,7 @@ function ChartCard({
                       config.metricKey === "deployers") ? (
                       <ComposedChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 15, left: 15, bottom: 0 }}
+                        margin={dualChartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -2830,6 +3065,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -2919,7 +3155,7 @@ function ChartCard({
                     ) : config.chartType === "bar" && showMovingAverage ? (
                       <ComposedChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -2932,6 +3168,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -2994,7 +3231,7 @@ function ChartCard({
                     ) : config.chartType === "bar" ? (
                       <BarChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -3007,6 +3244,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -3050,7 +3288,7 @@ function ChartCard({
                     ) : config.chartType === "area" ? (
                       <AreaChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <defs>
                           <linearGradient
@@ -3083,6 +3321,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -3125,10 +3364,10 @@ function ChartCard({
                           strokeWidth={1}
                         />
                       </AreaChart>
-                    ) : config.chartType === "dual" ? (
+                    ) : config.chartType === "dual" ? ( /* dual: avg/max stacked bars */
                       <BarChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -3141,6 +3380,7 @@ function ChartCard({
                           className="text-xs text-gray-600 dark:text-gray-400"
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
+                            fontSize: isMobile ? 10 : 12,
                           }}
                           ticks={xAxisTicks}
                           interval={0}
@@ -3214,7 +3454,7 @@ function ChartCard({
                     ) : (
                       <LineChart
                         data={displayDataWithCumulative}
-                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                        margin={chartMargin}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -3276,7 +3516,7 @@ function ChartCard({
                     )}
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  <div className="h-[260px] sm:h-[400px] flex items-center justify-center text-muted-foreground">
                     Loading chart data...
                   </div>
                 )}

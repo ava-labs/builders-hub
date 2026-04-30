@@ -34,7 +34,7 @@ export const UserNotRegistered = ({
     setIsOpen(true);
     setTimeout(() => {
       router.push(
-        `/hackathons/registration-form?hackathon=${hackathonId}&utm=invitation-link`
+        `/events/registration-form?event=${hackathonId}&utm=invitation-link`
       );
     }, 4000);
   };

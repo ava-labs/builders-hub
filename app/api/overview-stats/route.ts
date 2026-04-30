@@ -45,6 +45,9 @@ interface OverviewMetrics {
     totalMarketCap: number;
     totalValidators: number;
     activeChains: number;
+    // Active L1s from P-Chain (source of truth). Falls back to enriched chain
+    // count if P-Chain is unreachable.
+    activeL1Count: number;
   };
   timeRange: TimeRangeKey;
   last_updated: number;
@@ -315,7 +318,16 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
 
     const metrics: OverviewMetrics = {
       chains: chainMetrics,
-      aggregated: { ...aggregated, totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange },
+      aggregated: {
+        ...aggregated,
+        totalTps: aggregated.totalTxCount / TIME_RANGE_CONFIG[timeRange].secondsInRange,
+        // Headline count is the same set the table renders below — every
+        // mainnet entry from l1-chains.json with isActive !== false. The
+        // l1-chains.json catalog itself is seeded by P-Chain at build time
+        // via scripts/enrich-chains.mts, so this number transitively reflects
+        // P-Chain truth without a runtime P-Chain dependency.
+        activeL1Count: chainMetrics.length,
+      },
       timeRange,
       last_updated: Date.now()
     };
