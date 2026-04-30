@@ -302,12 +302,20 @@ function SetupStatusPill({ l1 }: { l1: CombinedL1 }) {
             {done}/{steps.length} configured
           </span>
           <span
-            className="block h-1 w-12 rounded-full bg-amber-500/20 overflow-hidden"
+            className="relative block h-1 w-12 rounded-full bg-amber-500/20 overflow-hidden"
             aria-hidden="true"
           >
             <span
               className="block h-full bg-amber-500 transition-all"
               style={{ width: `${pct}%` }}
+            />
+            {/* Slow shimmer pass — subtle reminder that this is actionable. */}
+            <span
+              className="absolute inset-0 animate-shimmer-sweep"
+              style={{
+                background:
+                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+              }}
             />
           </span>
         </button>

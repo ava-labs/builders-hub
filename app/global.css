@@ -1598,6 +1598,18 @@ html.embed-mode #nd-toc {
   box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.04);
 }
 
+/* Slow shimmer pass for inline progress bars that need a subtle "still
+   needs attention" hint. A diagonal highlight sweeps across once every
+   3 seconds, just enough to catch peripheral vision without becoming
+   loud. Used on the my-l1 SetupStatusPill's inline progress bar. */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(200%); }
+}
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 3s ease-in-out infinite;
+}
+
 /* Radix Collapsible animations. The primitive exposes the natural
    content height as a CSS variable; we animate from 0 to that and back
    so disclosures expand smoothly instead of snapping. Used by
