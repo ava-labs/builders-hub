@@ -20,6 +20,8 @@ export type L1ListItem = {
   subnetId: string;
   wrappedTokenAddress: string;
   validatorManagerAddress: string;
+  /** Blockchain ID where the Validator Manager contract is deployed. */
+  validatorManagerBlockchainId?: string;
   rewardCalculatorAddress?: string;
   logoUrl: string;
   wellKnownTeleporterRegistryAddress?: string;
@@ -71,6 +73,7 @@ const l1ListInitialStateFuji = {
       subnetId: 'i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK',
       wrappedTokenAddress: '0xc85a1b7876eabbacf1d6551c58e0759788cf8d02',
       validatorManagerAddress: '0x0646263a231b4fde6f62d4de63e18df7e6ad94d6',
+      validatorManagerBlockchainId: '98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp',
       logoUrl:
         'https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png',
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',

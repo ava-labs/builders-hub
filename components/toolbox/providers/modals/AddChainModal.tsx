@@ -43,6 +43,7 @@ interface AddChainFormData {
   subnetId: string;
   wrappedTokenAddress: string;
   validatorManagerAddress: string;
+  validatorManagerBlockchainId: string;
   logoUrl: string;
   isTestnet: boolean;
 }
@@ -87,6 +88,7 @@ function AddChainModalInner() {
       subnetId: '',
       wrappedTokenAddress: '',
       validatorManagerAddress: '',
+      validatorManagerBlockchainId: '',
       logoUrl: '',
       isTestnet: false,
     },
@@ -167,6 +169,7 @@ function AddChainModalInner() {
 
         const subnetInfo = await getSubnetInfo(blockchainInfo.subnetId);
         setValue('validatorManagerAddress', subnetInfo.l1ValidatorManagerDetails?.contractAddress || '');
+        setValue('validatorManagerBlockchainId', subnetInfo.l1ValidatorManagerDetails?.blockchainId || '');
 
         try {
           const chainDetails = await getChainDetails(String(ethereumChainId));
@@ -260,6 +263,7 @@ function AddChainModalInner() {
         subnetId: data.subnetId,
         wrappedTokenAddress: data.wrappedTokenAddress,
         validatorManagerAddress: data.validatorManagerAddress,
+        validatorManagerBlockchainId: data.validatorManagerBlockchainId || undefined,
         logoUrl: data.logoUrl,
       };
 

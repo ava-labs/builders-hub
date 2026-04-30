@@ -23,6 +23,7 @@ export interface ChainData {
     subnetId: string;
     wrappedTokenAddress: string;
     validatorManagerAddress: string;
+    validatorManagerBlockchainId?: string;
     logoUrl: string;
     wellKnownTeleporterRegistryAddress?: string;
 }
