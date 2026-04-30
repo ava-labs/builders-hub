@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Blocks, Fuel, Users, Wallet } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +13,47 @@ import { formatGasPrice, formatRelativeFromNow } from '../_lib/format';
 // the final text so the cell's height doesn't jump when data lands.
 function StatSkeleton({ width = 'w-16' }: { width?: string }) {
   return <Skeleton className={`inline-block h-5 ${width} align-middle`} />;
+}
+
+// Single-digit slot with an odometer-style roll on change. Old digit slides
+// up and out as the new digit slides in from below. Non-digit characters
+// (e.g. the leading `#`) bypass the animation and render statically.
+//
+// Implementation note: the invisible "0" inside the overflow-hidden wrapper
+// reserves intrinsic width (works with `tabular-nums` which guarantees all
+// digit glyphs are the same width). The animating motion.span is absolutely
+// positioned over it, so the layout doesn't jitter as digits enter/exit.
+function RollingChar({ char }: { char: string }) {
+  if (!/^\d$/.test(char)) {
+    return <span>{char}</span>;
+  }
+  return (
+    <span className="relative inline-block overflow-hidden align-bottom leading-none">
+      <span className="invisible">0</span>
+      <AnimatePresence initial={false}>
+        <motion.span
+          key={char}
+          className="absolute inset-0 leading-none"
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '-100%' }}
+          transition={{ duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] }}
+        >
+          {char}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
+function RollingNumber({ value }: { value: string }) {
+  return (
+    <span className="inline-flex tabular-nums">
+      {value.split('').map((char, i) => (
+        <RollingChar key={i} char={char} />
+      ))}
+    </span>
+  );
 }
 
 export function StatsGrid({
@@ -30,26 +71,17 @@ export function StatsGrid({
   // the managed-node count is already visible in the header subtitle.
   const blockHeight = health.blockNumber !== null ? health.blockNumber.toString() : null;
   const blockValueText = blockHeight !== null ? `#${blockHeight}` : '—';
-  // Wrap the block height in a keyed motion.span so the value pulses on every
-  // RPC tick — the user sees the chain breathe instead of a static number.
-  // Using `key={blockHeight}` forces remount → re-animate. The pulse is kept
-  // intentionally subtle (no y translate, opacity barely dips to 0.85) so a
-  // user staring at the dashboard for minutes doesn't feel constant flicker.
-  // `prefers-reduced-motion` users see the same final value without the
-  // entrance animation because framer-motion respects the OS-level setting.
+  // Render the block height as an odometer: each digit position animates
+  // independently when its value changes, so the user sees the chain
+  // ticking forward digit-by-digit instead of a single fade-pulse on the
+  // whole number. `prefers-reduced-motion` users see the same final value
+  // without the per-digit slide because framer-motion respects the
+  // OS-level setting.
   const blockValue =
     blockHeight !== null ? (
-      <motion.span
-        key={blockHeight}
-        initial={{ opacity: 0.85 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        aria-live="polite"
-        aria-atomic="true"
-        aria-label={`Latest block ${blockValueText}`}
-      >
-        {blockValueText}
-      </motion.span>
+      <span aria-live="polite" aria-atomic="true" aria-label={`Latest block ${blockValueText}`}>
+        <RollingNumber value={blockValueText} />
+      </span>
     ) : health.isLoading ? (
       <StatSkeleton width="w-20" />
     ) : (
