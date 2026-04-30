@@ -26,11 +26,21 @@ export function NetworkDetailsCard({
 }) {
   const { copiedId, copyToClipboard } = useCopyToClipboard();
 
+  // Order chosen to keep the 2-col grid tidy:
+  //   row 1: RPC URL          | Subnet ID
+  //   row 2: Blockchain ID    | EVM Chain ID
+  //   row 3: Validator Manager| Validator Manager Blockchain (when present)
+  // EVM Chain ID stays paired with Blockchain ID so the two on-chain
+  // identifiers sit on the same line; the optional VMC pair drops onto
+  // its own row underneath.
   const items: Array<{ label: string; value: string; id: string }> = [
     { label: 'RPC URL', value: l1.rpcUrl, id: 'rpc-url' },
     { label: 'Subnet ID', value: l1.subnetId, id: 'subnet-id' },
     { label: 'Blockchain ID', value: l1.blockchainId, id: 'blockchain-id' },
   ];
+  if (l1.evmChainId !== null) {
+    items.push({ label: 'EVM Chain ID', value: String(l1.evmChainId), id: 'evm-chain-id' });
+  }
   const validatorManagerAddress = validatorManager?.address ?? l1.validatorManagerAddress;
   const validatorManagerBlockchainId = validatorManager?.blockchainId ?? l1.validatorManagerBlockchainId;
   if (validatorManagerAddress) {
@@ -42,9 +52,6 @@ export function NetworkDetailsCard({
       value: validatorManagerBlockchainId,
       id: 'validator-manager-blockchain',
     });
-  }
-  if (l1.evmChainId !== null) {
-    items.push({ label: 'EVM Chain ID', value: String(l1.evmChainId), id: 'evm-chain-id' });
   }
 
   return (
