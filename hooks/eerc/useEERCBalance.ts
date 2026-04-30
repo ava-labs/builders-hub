@@ -98,15 +98,30 @@ export function useEERCBalance(
         functionName: mode === 'standalone' ? 'balanceOfStandalone' : 'getBalanceFromTokenAddress',
         args: mode === 'standalone' ? [address] : [address, token!.address],
       })) as readonly [
-        { c1: readonly [bigint, bigint]; c2: readonly [bigint, bigint] },
+        { c1: { x: bigint; y: bigint } | readonly [bigint, bigint]; c2: { x: bigint; y: bigint } | readonly [bigint, bigint] },
         bigint,
         readonly RawAmountPCT[],
         readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint],
         bigint,
       ];
 
+      // Normalize the EG ciphertext points from viem's named-field shape
+      // (`{x, y}`) to the tuple shape (`[x, y]`) every consumer in the
+      // codebase expects (`balance.raw.eGCT.c1[0]`). The Solidity ABI
+      // declares each Point as a struct with named fields, so viem
+      // returns nested points as objects. Fall back to tuple shape on
+      // older viem responses just in case.
+      const normalizePoint = (p: { x: bigint; y: bigint } | readonly [bigint, bigint]): readonly [bigint, bigint] => {
+        if (Array.isArray(p)) return [(p as readonly bigint[])[0]!, (p as readonly bigint[])[1]!];
+        const obj = p as { x: bigint; y: bigint };
+        return [obj.x, obj.y];
+      };
+
       const asStruct: RawBalance = {
-        eGCT: raw[0],
+        eGCT: {
+          c1: normalizePoint(raw[0].c1),
+          c2: normalizePoint(raw[0].c2),
+        },
         nonce: raw[1],
         amountPCTs: raw[2],
         balancePCT: raw[3],
