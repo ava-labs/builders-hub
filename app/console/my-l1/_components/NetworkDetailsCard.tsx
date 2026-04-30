@@ -29,11 +29,22 @@ export function NetworkDetailsCard({
   // Order chosen to keep the 2-col grid tidy:
   //   row 1: RPC URL          | Subnet ID
   //   row 2: Blockchain ID    | EVM Chain ID
-  //   row 3: Validator Manager| Validator Manager Blockchain (when present)
+  //   row 3: Validator Manager| Validator Manager Blockchain
   // EVM Chain ID stays paired with Blockchain ID so the two on-chain
-  // identifiers sit on the same line; the optional VMC pair drops onto
-  // its own row underneath.
-  const items: Array<{ label: string; value: string; id: string }> = [
+  // identifiers sit on the same line; the VMC pair drops onto its own
+  // row underneath.
+  type Item = {
+    label: string;
+    value: string;
+    id: string;
+    /** When true, the cell is read-only — no copy affordance, muted
+     *  text — and reads as "we know this slot exists, it just has no
+     *  value yet." Used for VMC rows on managed L1s where the contract
+     *  hasn't been deployed yet but the user can configure it via the
+     *  prominent banner above. */
+    placeholder?: boolean;
+  };
+  const items: Item[] = [
     { label: 'RPC URL', value: l1.rpcUrl, id: 'rpc-url' },
     { label: 'Subnet ID', value: l1.subnetId, id: 'subnet-id' },
     { label: 'Blockchain ID', value: l1.blockchainId, id: 'blockchain-id' },
@@ -43,14 +54,36 @@ export function NetworkDetailsCard({
   }
   const validatorManagerAddress = validatorManager?.address ?? l1.validatorManagerAddress;
   const validatorManagerBlockchainId = validatorManager?.blockchainId ?? l1.validatorManagerBlockchainId;
+  // For managed L1s the dashboard knows it's an L1 even before the VMC
+  // is deployed (the setup checklist above has "Configure Validator
+  // Manager" as one of the steps). Show placeholder rows so the user
+  // knows the slots exist and that completing setup will populate them.
+  // For wallet-only L1s we keep the previous behavior: hide the rows
+  // when missing — absence becomes the "this is just a subnet, not an
+  // L1" signal that OS-1 leaned on.
+  const isManaged = l1.source === 'managed';
   if (validatorManagerAddress) {
     items.push({ label: 'Validator Manager', value: validatorManagerAddress, id: 'validator-manager' });
+  } else if (isManaged) {
+    items.push({
+      label: 'Validator Manager',
+      value: 'Not deployed yet. Run the Configure Validator Manager step from the banner above to populate this address.',
+      id: 'validator-manager',
+      placeholder: true,
+    });
   }
   if (validatorManagerBlockchainId) {
     items.push({
       label: 'Validator Manager Blockchain',
       value: validatorManagerBlockchainId,
       id: 'validator-manager-blockchain',
+    });
+  } else if (isManaged) {
+    items.push({
+      label: 'Validator Manager Blockchain',
+      value: 'Auto-detected once the Validator Manager contract is deployed.',
+      id: 'validator-manager-blockchain',
+      placeholder: true,
     });
   }
 
@@ -76,6 +109,19 @@ export function NetworkDetailsCard({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {items.map((item) => {
             const isCopied = copiedId === item.id;
+            if (item.placeholder) {
+              return (
+                <div
+                  key={item.id}
+                  className="p-3 rounded-lg border border-dashed border-border bg-background/20"
+                >
+                  <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5">
+                    {item.label}
+                  </p>
+                  <p className="text-sm text-muted-foreground italic leading-relaxed">{item.value}</p>
+                </div>
+              );
+            }
             return (
               <div
                 key={item.id}
