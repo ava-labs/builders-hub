@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { BookOpen, GraduationCap } from 'lucide-react';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 import { EERC_COMMIT } from '@/lib/eerc/contractSources';
+import { EERCStepNav } from './EERCStepNav';
 
 interface FooterLink {
   label: string;
@@ -50,51 +51,57 @@ export function EERCToolShell({ contracts, children, footerLinks, height = 540 }
   const links = [defaultAcademyLink, ...(footerLinks ?? [])];
 
   return (
-    <ContractDeployViewer contracts={contracts}>
-      <div
-        className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
-        style={{ height }}
-      >
-        <div className="flex-1 overflow-auto p-5 space-y-4">{children}</div>
+    <>
+      {/* Persistent step-nav across every eERC tool page. Highlights the
+          current page and surfaces Done/Ready/Next status for the rest
+          so users can jump anywhere without trekking back to Overview. */}
+      <EERCStepNav />
+      <ContractDeployViewer contracts={contracts}>
+        <div
+          className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
+          style={{ height }}
+        >
+          <div className="flex-1 overflow-auto p-5 space-y-4">{children}</div>
 
-        <div className="shrink-0 px-5 py-4 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
-              {links.map((l) =>
-                l.internal ? (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    {l.icon ?? <BookOpen className="w-3.5 h-3.5" />}
-                    {l.label}
-                  </Link>
-                ) : (
-                  <a
-                    key={l.href}
-                    href={l.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    {l.icon ?? <BookOpen className="w-3.5 h-3.5" />}
-                    {l.label}
-                  </a>
-                ),
-              )}
+          <div className="shrink-0 px-5 py-4 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                {links.map((l) =>
+                  l.internal ? (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                      {l.icon ?? <BookOpen className="w-3.5 h-3.5" />}
+                      {l.label}
+                    </Link>
+                  ) : (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                      {l.icon ?? <BookOpen className="w-3.5 h-3.5" />}
+                      {l.label}
+                    </a>
+                  ),
+                )}
+              </div>
+              <a
+                href={`https://github.com/ava-labs/EncryptedERC/tree/${EERC_COMMIT}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors whitespace-nowrap"
+              >
+                @{EERC_COMMIT.slice(0, 7)}
+              </a>
             </div>
-            <a
-              href={`https://github.com/ava-labs/EncryptedERC/tree/${EERC_COMMIT}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors whitespace-nowrap"
-            >
-              @{EERC_COMMIT.slice(0, 7)}
-            </a>
           </div>
         </div>
-      </div>
-    </ContractDeployViewer>
+      </ContractDeployViewer>
+    </>
   );
 }

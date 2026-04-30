@@ -229,13 +229,18 @@ function PrivateTransfer() {
           loading={busy}
           disabled={!canSubmit}
           onClick={() => {
+            // `== null` (loose) catches BOTH null and undefined — the
+            // strict `=== null` form leaked an undefined `tokenId` /
+            // `auditorPublicKey` into transferPrivate, which then tried
+            // to coerce them via BigInt() and threw "Cannot convert
+            // undefined to a BigInt" with no useful surface in the UI.
             if (
               !canSubmit ||
-              encBalance === null ||
-              amountCents === null ||
-              balance.decryptedCents === null ||
-              aud.auditorPublicKey === null ||
-              aud.tokenId === null
+              encBalance == null ||
+              amountCents == null ||
+              balance.decryptedCents == null ||
+              aud.auditorPublicKey == null ||
+              aud.tokenId == null
             )
               return;
             tr.transfer({

@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import Register from '@/components/toolbox/console/encrypted-erc/Register';
 
 export default function Page() {
-  redirect('/console/encrypted-erc/register/derive-and-register');
+  return <Register />;
 }
