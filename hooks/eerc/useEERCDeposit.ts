@@ -16,7 +16,9 @@ export interface UseEERCDepositState {
   lastCents: bigint | null;
   lastDustWei: bigint | null;
   currentAllowance: bigint | null;
-  /** Human-readable dust warning, or null when the conversion is clean. */
+  refreshAllowance: () => Promise<bigint | null>;
+  approve: (amountWei: bigint) => Promise<Hex | null>;
+  /** Submit the encrypted deposit. Requires allowance to already cover amountWei. */
   deposit: (amountWei: bigint) => Promise<Hex | null>;
   /** Compute expected cents + dust for a given wei input without submitting. */
   preview: (amountWei: bigint) => ReturnType<typeof computeDepositCents>;
@@ -42,6 +44,49 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
     [deployment, token],
   );
 
+  const refreshAllowance = useCallback(async (): Promise<bigint | null> => {
+    if (!address || !deployment || !token || !publicClient) return null;
+    const allowance = (await publicClient.readContract({
+      address: token.address,
+      abi: ERC20_MINIMAL_ABI,
+      functionName: 'allowance',
+      args: [address, deployment.encryptedERC],
+    })) as bigint;
+    setCurrentAllowance(allowance);
+    return allowance;
+  }, [address, deployment, token, publicClient]);
+
+  const approve = useCallback(
+    async (amountWei: bigint): Promise<Hex | null> => {
+      if (!address || !deployment || !token || !walletClient || !publicClient) {
+        throw new Error('Wallet not connected or deployment/token not resolved');
+      }
+      setError(null);
+      setTxHash(null);
+
+      try {
+        setStatus('approving');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const approveHash = await (walletClient as any).writeContract({
+          address: token.address,
+          abi: ERC20_MINIMAL_ABI,
+          functionName: 'approve',
+          args: [deployment.encryptedERC, amountWei],
+        });
+        setStatus('confirming');
+        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        await refreshAllowance();
+        setStatus('idle');
+        return approveHash as Hex;
+      } catch (err) {
+        setStatus('error');
+        setError(err instanceof Error ? err.message : 'Approval failed');
+        return null;
+      }
+    },
+    [address, deployment, token, walletClient, publicClient, refreshAllowance],
+  );
+
   const deposit = useCallback(
     async (amountWei: bigint): Promise<Hex | null> => {
       if (!address || !deployment || !token || !walletClient || !publicClient) {
@@ -54,32 +99,12 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
       setTxHash(null);
 
       try {
-        // 1. Check the ERC20 allowance. Approve if insufficient — one extra tx
-        //    the user will have to sign, but avoids the deposit reverting on
-        //    the chain side.
         setStatus('checking-allowance');
-        const allowance = (await publicClient.readContract({
-          address: token.address,
-          abi: ERC20_MINIMAL_ABI,
-          functionName: 'allowance',
-          args: [address, deployment.encryptedERC],
-        })) as bigint;
-        setCurrentAllowance(allowance);
-
-        if (allowance < amountWei) {
-          setStatus('approving');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const approveHash = await (walletClient as any).writeContract({
-            address: token.address,
-            abi: ERC20_MINIMAL_ABI,
-            functionName: 'approve',
-            args: [deployment.encryptedERC, amountWei],
-          });
-          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        const allowance = await refreshAllowance();
+        if (allowance !== null && allowance < amountWei) {
+          throw new Error('Approve WAVAX before depositing.');
         }
 
-        // 2. Submit the deposit — no ZK proof needed, just the PCT of the
-        //    parsed amount.
         setStatus('depositing');
         const result = await depositToEERC({
           deployment,
@@ -113,8 +138,8 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
         return null;
       }
     },
-    [address, deployment, token, walletClient, publicClient],
+    [address, deployment, token, walletClient, publicClient, refreshAllowance],
   );
 
-  return { status, error, txHash, lastCents, lastDustWei, currentAllowance, deposit, preview };
+  return { status, error, txHash, lastCents, lastDustWei, currentAllowance, refreshAllowance, approve, deposit, preview };
 }

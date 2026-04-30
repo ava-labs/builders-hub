@@ -72,6 +72,17 @@ export default function DepositStep() {
     wavaxBalance !== null &&
     depositWei <= wavaxBalance &&
     aud.isAuditorSet;
+  const hasAllowance = depositWei !== null && dep.currentAllowance !== null && dep.currentAllowance >= depositWei;
+  const canApprove =
+    depositWei !== null && depositWei > 0n && wavaxBalance !== null && depositWei <= wavaxBalance && !hasAllowance;
+
+  useEffect(() => {
+    if (depositWei !== null && depositWei > 0n) {
+      dep.refreshAllowance().catch(() => {
+        /* surfaced when the user tries to submit */
+      });
+    }
+  }, [depositWei, dep.refreshAllowance]);
 
   if (!deployment || !token) {
     return (
@@ -194,25 +205,52 @@ export default function DepositStep() {
                 )}
 
                 <div className="mt-3">
-                  <Button
-                    variant="primary"
-                    loading={busy}
-                    disabled={!canSubmit}
-                    onClick={() => {
-                      if (depositWei !== null)
-                        dep.deposit(depositWei).catch(() => {
-                          /* surfaced via dep.error */
-                        });
-                    }}
-                  >
-                    {dep.status === 'approving'
-                      ? 'Approving WAVAX...'
-                      : dep.status === 'depositing'
+                  <p className="mb-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                    {depositWei === null || depositWei <= 0n
+                      ? 'Enter an amount to see the next transaction.'
+                      : dep.currentAllowance === null
+                        ? 'Checking WAVAX allowance...'
+                        : hasAllowance
+                          ? 'Allowance is ready. The next transaction deposits into EncryptedERC.'
+                          : 'Approval required first. The deposit transaction appears after approval confirms.'}
+                  </p>
+                  {!hasAllowance ? (
+                    <Button
+                      variant="primary"
+                      loading={dep.status === 'approving' || dep.status === 'confirming'}
+                      disabled={!canApprove || busy}
+                      onClick={() => {
+                        if (depositWei !== null)
+                          dep.approve(depositWei).catch(() => {
+                            /* surfaced via dep.error */
+                          });
+                      }}
+                    >
+                      {dep.status === 'approving'
+                        ? 'Approving WAVAX...'
+                        : dep.status === 'confirming'
+                          ? 'Confirming approval...'
+                          : 'Approve WAVAX'}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      loading={dep.status === 'depositing' || dep.status === 'confirming'}
+                      disabled={!canSubmit || busy}
+                      onClick={() => {
+                        if (depositWei !== null)
+                          dep.deposit(depositWei).catch(() => {
+                            /* surfaced via dep.error */
+                          });
+                      }}
+                    >
+                      {dep.status === 'depositing'
                         ? 'Depositing...'
                         : dep.status === 'confirming'
-                          ? 'Confirming...'
+                          ? 'Confirming deposit...'
                           : 'Deposit'}
-                  </Button>
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

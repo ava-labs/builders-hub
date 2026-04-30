@@ -82,6 +82,8 @@ type StepFlowProps = {
    * Custom actions for the completion modal footer
    */
   completionActions?: FlowCompletionAction[];
+  /** Label for the final-step action. Defaults to "Finish". */
+  finishLabel?: string;
   /**
    * When provided, navigate via callback instead of URL <Link>.
    * Enables in-memory step navigation for inline chat rendering.
@@ -104,6 +106,7 @@ export default function StepFlow({
   transactionHash,
   explorerUrl,
   completionActions,
+  finishLabel = "Finish",
   onNavigate,
   compact,
 }: StepFlowProps) {
@@ -130,7 +133,10 @@ export default function StepFlow({
       setIsCompletionModalOpen(true);
     } else {
       // Fallback: navigate to console home if no modal configured.
-      if (onFinish) onFinish();
+      if (onFinish) {
+        onFinish();
+        return;
+      }
       router.push("/console");
     }
   }, [onFinish, onNavigate, showCompletionModal, flowMetadata, router]);
@@ -403,9 +409,9 @@ export default function StepFlow({
                 type="button"
                 onClick={handleFinish}
                 className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
-              >
-                Finish
-              </button>
+                >
+                  {finishLabel}
+                </button>
             ) : (
               nextLink && (
                 onNavigate ? (

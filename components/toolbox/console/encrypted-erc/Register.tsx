@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
-import { ArrowRight, Check, Key, BookOpen } from 'lucide-react';
+import { Check, Key, BookOpen } from 'lucide-react';
 import {
   withConsoleToolMetadata,
   type ConsoleToolMetadata,
@@ -27,7 +27,11 @@ const metadata: ConsoleToolMetadata = {
   toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
 };
 
-function Register() {
+// Named export — used by step-flow consumers (steps.ts) so they consume the
+// raw component WITHOUT the metadata wrapper, which would otherwise stack a
+// second <Container> + a duplicate <CheckRequirements> on top of the
+// step-flow chrome.
+export function Register() {
   const { address } = useAccount();
   // Both modes share the same Registrar on Fuji, so either deployment resolves to
   // the correct one — prefer standalone, fall back to converter for custom L1s.
@@ -271,18 +275,6 @@ function RegisteredPanel({
           )}
         </div>
       </div>
-      <Link
-        href="/console/encrypted-erc/deposit"
-        className="group flex items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 px-4 py-3 transition-colors"
-      >
-        <div>
-          <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Continue to Deposit / Mint</div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">
-            Wrap AVAX and deposit it as encrypted balance to start using private transfers.
-          </div>
-        </div>
-        <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
-      </Link>
     </div>
   );
 }
