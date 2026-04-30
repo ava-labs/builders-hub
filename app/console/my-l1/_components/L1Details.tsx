@@ -65,7 +65,11 @@ export function L1Details({
         <LiveCharts l1={l1} />
       </motion.div>
 
-      {isManaged && l1.nodes && l1.nodes.length > 0 && (
+      {isManaged && (
+        // Always render for managed L1s — even when the node array is empty
+        // (e.g. nodes expired). The card itself renders an empty state in
+        // that case so the user clearly sees the L1 is dark, rather than
+        // the whole section silently disappearing.
         <DashboardSection title="Node fleet">
           <NodeListCard l1={l1} userActiveTotal={userActiveNodeTotal} onRefetch={onRefetch} />
         </DashboardSection>

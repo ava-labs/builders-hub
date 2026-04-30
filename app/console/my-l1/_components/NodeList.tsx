@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronRight, Server, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,28 +58,45 @@ export function NodeListCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          {nodes.map((n) => (
-            <div
-              key={n.id}
-              className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 rounded-lg border bg-card"
-            >
-              <div className="min-w-0">
-                <code className="text-xs font-mono text-foreground break-all">{n.nodeId}</code>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Created {new Date(n.createdAt).toLocaleString()} · {formatRelativeFromNow(n.expiresAt)}{' '}
-                  remaining
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Badge variant={n.status === 'active' ? 'default' : 'secondary'}>{n.status}</Badge>
-                {n.status === 'active' && (
-                  <DeleteNodeButton nodeDbId={n.id} nodeId={n.nodeId} onSuccess={onRefetch} />
-                )}
-              </div>
+        {nodes.length === 0 ? (
+          // Empty state for managed L1s with no provisioned nodes — surfaces
+          // the "your L1 is dark" reality directly instead of hiding the
+          // entire Node fleet section. The Provision button is already in
+          // the header for the click target.
+          <div className="flex flex-col items-center justify-center text-center py-8 px-4 rounded-lg border border-dashed border-border bg-muted/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground mb-3">
+              <Server className="h-5 w-5" aria-hidden="true" />
             </div>
-          ))}
-        </div>
+            <p className="text-sm font-medium text-foreground">No active managed nodes</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+              Your L1 won&apos;t respond to RPC calls until at least one node is running. Provision
+              one above to bring it back online.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {nodes.map((n) => (
+              <div
+                key={n.id}
+                className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 rounded-lg border bg-card"
+              >
+                <div className="min-w-0">
+                  <code className="text-xs font-mono text-foreground break-all">{n.nodeId}</code>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Created {new Date(n.createdAt).toLocaleString()} · {formatRelativeFromNow(n.expiresAt)}{' '}
+                    remaining
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant={n.status === 'active' ? 'default' : 'secondary'}>{n.status}</Badge>
+                  {n.status === 'active' && (
+                    <DeleteNodeButton nodeDbId={n.id} nodeId={n.nodeId} onSuccess={onRefetch} />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mt-4 pt-3 border-t flex items-center justify-between gap-3 flex-wrap">
           <Link
             href="/console/testnet-infra/nodes"
