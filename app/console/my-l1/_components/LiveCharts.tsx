@@ -121,8 +121,8 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-x-3 gap-y-2 flex-wrap">
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
             Live activity
           </h2>
