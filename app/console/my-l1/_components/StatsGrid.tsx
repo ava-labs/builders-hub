@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { L1HealthState } from '@/hooks/useL1Health';
 import type { L1ValidatorCountState } from '@/hooks/useL1ValidatorCount';
 import type { CombinedL1 } from '../_lib/types';
-import { formatGasPrice, formatRelativeFromNow } from '../_lib/format';
+import { formatDurationCompact, formatGasPrice, formatRelativeFromNow } from '../_lib/format';
 
 // Inline shimmer for stat values during the very first load. Sized to roughly
 // the final text so the cell's height doesn't jump when data lands.
@@ -62,13 +62,13 @@ export function StatsGrid({
     );
   const blockAge =
     health.blockAgeSec !== null
-      ? `${health.blockAgeSec}s ago`
+      ? `${formatDurationCompact(health.blockAgeSec)} ago`
       : health.status === 'offline'
         ? 'RPC unreachable'
         : 'Pinging...';
 
   const blockTimeValue =
-    health.blockTimeSec !== null ? `${health.blockTimeSec}s` : '—';
+    health.blockTimeSec !== null ? formatDurationCompact(health.blockTimeSec) : '—';
   const blockSub =
     blockTimeValue === '—'
       ? blockAge
