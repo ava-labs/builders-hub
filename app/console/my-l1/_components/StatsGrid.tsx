@@ -86,6 +86,19 @@ export function StatsGrid({
   // subnet yet), or the raw EVM chain ID for wallet-only entries on Glacier
   // misses.
   const fourthCard = (() => {
+    // While Glacier is responding, keep the cell labelled "Active
+    // validators" and shimmer the value — avoids the awkward swap from
+    // "EVM chain ID" → "Active validators" when the query returns.
+    if (validators.isLoading && validators.count === null) {
+      return (
+        <StatCell
+          icon={Users}
+          label="Active validators"
+          value={<StatSkeleton width="w-8" />}
+          subValue="Querying validators…"
+        />
+      );
+    }
     if (validators.count !== null) {
       return (
         <StatCell
@@ -116,7 +129,7 @@ export function StatsGrid({
         icon={Wallet}
         label="EVM chain ID"
         value={l1.evmChainId !== null ? String(l1.evmChainId) : '—'}
-        subValue={validators.isLoading ? 'Loading validators…' : 'Added to wallet'}
+        subValue="Added to wallet"
       />
     );
   })();
