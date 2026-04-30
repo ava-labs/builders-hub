@@ -105,7 +105,7 @@ export function DetailHeader({
               <MetaPill>Wallet</MetaPill>
             )}
             {validatorManager?.kind && (
-              <MetaPill tone={validatorManager.kind === 'poa' ? 'subtleAmber' : 'subtleEmerald'}>
+              <MetaPill tone={validatorManager.kind === 'poa' ? 'kindPoa' : 'kindPos'}>
                 {validatorManagerKindLabel(validatorManager.kind)}
               </MetaPill>
             )}
@@ -344,15 +344,32 @@ function SetupStatusPill({ l1 }: { l1: CombinedL1 }) {
 
 // Compact metadata chip — replaces the old dot-separated "Chain ID: 836504 ·
 // Testnet · Wallet" text line. Each fact gets its own pill so the eye can
-// scan them faster, and Testnet/Mainnet picks up an accent color (amber for
-// testnet, emerald for mainnet) matching the conventional "warning vs.
-// production" palette used elsewhere in the console.
+// scan them faster.
+//
+// Tone palette is split between two layers so they don't fight each other:
+//
+//   STATUS tones — communicate health / config state. Amber = needs
+//   attention, emerald = OK / complete / live. These overlap with the
+//   "Configuration missing N/M" pill, the wallet-active dot, and the
+//   testnet/mainnet treatment so they're consistent across the dashboard.
+//     - testnet     → amber  (production warning)
+//     - mainnet     → emerald (production OK)
+//     - walletActive→ emerald (wallet live here)
+//
+//   KIND tones — categorical labels. The validator-manager-type pill
+//   (PoA vs PoS) describes what the L1 IS, not how it's doing — so it
+//   uses cool/cold hues that don't read as "warning" or "success."
+//     - kindPoa → sky    (administrative, by-permission validator set)
+//     - kindPos → violet (stake-based validator set, native or ERC-20)
+//
+// Resist adding more amber/emerald tones: every new one of those steals
+// signal from the status layer. Reach for sky/violet/cyan/fuchsia first.
 function MetaPill({
   children,
   tone,
 }: {
   children: React.ReactNode;
-  tone?: 'testnet' | 'mainnet' | 'walletActive' | 'subtleAmber' | 'subtleEmerald';
+  tone?: 'testnet' | 'mainnet' | 'walletActive' | 'kindPoa' | 'kindPos';
 }) {
   const toneClass =
     tone === 'testnet'
@@ -361,10 +378,10 @@ function MetaPill({
         ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
         : tone === 'walletActive'
           ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-          : tone === 'subtleAmber'
-            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
-            : tone === 'subtleEmerald'
-              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+          : tone === 'kindPoa'
+            ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20'
+            : tone === 'kindPos'
+              ? 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20'
               : 'bg-muted text-muted-foreground border-border';
   return (
     <span
