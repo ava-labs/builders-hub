@@ -57,9 +57,14 @@ export function SwitcherBar({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My L1 Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            {managed.length} Builder Hub-managed · {wallet.length} added to wallet
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">My L1 Dashboard</h1>
+          {/* Counts in foreground weight, labels muted. Cheap visual
+              hierarchy: the eye lands on the numbers first, then reads
+              context. */}
+          <p className="text-sm text-muted-foreground tabular-nums">
+            <span className="font-semibold text-foreground">{managed.length}</span> managed
+            <span className="text-foreground/30 mx-1.5">·</span>
+            <span className="font-semibold text-foreground">{wallet.length}</span> in wallet
           </p>
         </div>
         <div className="flex gap-2">
@@ -187,7 +192,7 @@ function SwitcherSection({
                 </span>
               )}
               <span className="font-medium">{l1.chainName}</span>
-              <span className="text-xs opacity-60">
+              <span className="text-[10px] font-mono tabular-nums text-muted-foreground/80 group-hover:text-muted-foreground transition-colors">
                 {l1.evmChainId ?? l1.subnetId.slice(0, 6)}
               </span>
               {l1.source === 'managed' && l1.expiresAt && <ExpiryPill expiresAt={l1.expiresAt} />}
