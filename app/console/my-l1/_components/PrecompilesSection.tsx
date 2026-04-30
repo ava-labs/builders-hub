@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, CircleOff, Coins, MessagesSquare, ShieldCheck, ShieldUser, SlidersVertical } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleOff, Coins, MessagesSquare, ShieldCheck, ShieldUser, SlidersVertical } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isPrimaryNetwork, type CombinedL1 } from '../_lib/types';
 import type { L1PrecompileKey, UseL1ActivePrecompilesState } from '@/hooks/useL1ActivePrecompiles';
@@ -71,12 +71,35 @@ export function PrecompilesSection({
   // the section but we double-guard here for direct consumers.
   if (isPrimaryNetwork(l1)) return null;
 
-  if (state.isLoading && !state.precompiles) {
+  if (state.isLoading && !state.precompiles && state.rpcSupportsRulesQuery) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-lg" />
         ))}
+      </div>
+    );
+  }
+
+  // The RPC didn't recognise `eth_getActiveRulesAt` — common on older
+  // subnet-EVM versions and most non-Avalanche EVM RPCs. Without that
+  // method we can't tell the *real* state of any precompile, so render
+  // an explicit "unknown" surface instead of a wall of "Off" tiles
+  // that would falsely imply the L1 has no precompiles enabled.
+  if (!state.rpcSupportsRulesQuery) {
+    return (
+      <div className="rounded-lg border border-dashed border-amber-300/60 dark:border-amber-700/50 bg-amber-50/40 dark:bg-amber-900/10 px-4 py-3 flex items-start gap-3">
+        <div className="shrink-0 mt-0.5 p-1.5 rounded-md bg-amber-100 dark:bg-amber-900/40">
+          <AlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">Precompile state unavailable from this RPC</p>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            This L1&apos;s RPC endpoint does not expose <code className="font-mono text-[11px]">eth_getActiveRulesAt</code>,
+            so the dashboard can&apos;t verify which precompiles are enabled. Check the genesis configuration, or upgrade the
+            node software to a recent subnet-EVM version (≥ <code className="font-mono text-[11px]">v0.6.10</code>).
+          </p>
+        </div>
       </div>
     );
   }
