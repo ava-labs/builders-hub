@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useFavoriteTools } from "@/hooks/useFavoriteTools";
+import { useSubStepSearchToggle } from "@/hooks/useSubStepSearchToggle";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { cn } from "@/lib/utils";
 import { TOOLS as ALL_CONSOLE_TOOLS } from "@/components/toolbox/console/toolbox/tools";
@@ -73,6 +74,13 @@ interface NavItem {
   icon: LucideIcon;
   comingSoon?: boolean;
   sourceCategory?: string;
+  /** Optional override for the row's accessible name. Used by sub-step
+   *  search results so screen readers hear the parent flow context. */
+  ariaLabel?: string;
+  /** When set, the search-result row renders this above the title in
+   *  small muted text — mirrors the toolbox grid's "Parent › Step" layout
+   *  so the sidebar reads the same way. */
+  parentName?: string;
 }
 
 interface CollapsibleSubGroup {
@@ -93,6 +101,11 @@ interface NavGroup {
 
 interface SearchableNavItem extends NavItem {
   category: string;
+  /** Optional override for the row's accessible name. Used for sub-step
+   *  results so screen readers hear "Sub-step under <parent>: <step>"
+   *  instead of just the step name (which is often ambiguous out of
+   *  context — "Initialize Manager" doesn't say what flow it belongs to). */
+  ariaLabel?: string;
 }
 
 // Helper to check if item is a collapsible subgroup
@@ -532,7 +545,7 @@ function NavMenuItem({
             <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-50" />
           </a>
         ) : (
-          <Link href={item.url}>
+          <Link href={item.url} aria-label={item.ariaLabel}>
             <span>{item.title}</span>
           </Link>
         )}
@@ -596,8 +609,14 @@ function SearchResultMenuItem({
       >
         <Link
           href={item.url}
-          className="flex min-w-0 flex-1 px-2 py-1.5 text-sm"
+          aria-label={item.ariaLabel}
+          className="flex min-w-0 flex-1 flex-col px-2 py-1.5 text-sm"
         >
+          {item.parentName && (
+            <span className="truncate text-[10px] leading-tight text-sidebar-foreground/45">
+              {item.parentName} ›
+            </span>
+          )}
           <span className="truncate">{item.title}</span>
         </Link>
         <button
@@ -650,6 +669,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
     isMandatory: isMandatoryTool,
     toggle: toggleFavoriteTool,
   } = useFavoriteTools();
+  const { includeSubSteps } = useSubStepSearchToggle();
 
   // Set of every toolbox tool path — used by search results to decide
   // whether a hit is "pinnable" (i.e., backed by a real tool) and should
@@ -734,12 +754,36 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
         icon: tool.icon,
         category: `Toolbox › ${tool.category}`,
       });
+      if (includeSubSteps) {
+        (tool.subSteps ?? []).forEach((step) => {
+          push({
+            title: step.name,
+            url: step.path,
+            icon: tool.icon,
+            // Two-tier category so sub-steps group with their parent's
+            // top-level tools under the same header (avoids interleaved
+            // duplicate headers when a category has both top-level tools
+            // and sub-steps matching the search).
+            category: `Toolbox › ${tool.category}`,
+            // Parent flow rendered inline above the step name — matches
+            // the toolbox board's `Add Validator › Initiate Validator
+            // Registration` layout so both surfaces read identically.
+            parentName: tool.name,
+            ariaLabel: `Sub-step of ${tool.name}: ${step.name}`,
+          });
+        });
+      }
     });
 
     return items;
-  }, [navGroups]);
+  }, [navGroups, includeSubSteps]);
 
-  // Filter items based on search query
+  // Filter items based on search query — title-only match keeps results
+  // tight and predictable. Searching "convert" returns only items whose
+  // visible name contains "convert" (Convert to L1, Format Converter, Unit
+  // Converter), not anything whose description happens to mention
+  // "encrypted" or "permissioned." Sub-step entries match on their step
+  // name alone, which is exactly what users mean when they search for one.
   const filteredItems = React.useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();

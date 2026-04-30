@@ -3,10 +3,12 @@
 import { useState, useMemo, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ChevronRight, ExternalLink, Search, Star, X } from 'lucide-react';
+import { ChevronRight, ExternalLink, Layers, Search, Star, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFavoriteTools } from '@/hooks/useFavoriteTools';
+import { useSubStepSearchToggle } from '@/hooks/useSubStepSearchToggle';
 import { boardContainer, boardItem } from '@/components/console/motion';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TOOLS, CATEGORY_ORDER, type ToolCard } from './tools';
 
 // Star control rendered absolutely in the top-right of every toolbox tile.
@@ -301,20 +303,55 @@ function FeaturedTile({
 // Main
 // ---------------------------------------------------------------------------
 
+type SubStepResult = {
+  parent: ToolCard;
+  name: string;
+  path: string;
+  description?: string;
+};
+
 export default function ToolboxBoard() {
   const [search, setSearch] = useState('');
   const { isStarred, isMandatory, toggle } = useFavoriteTools();
+  const { includeSubSteps, toggle: toggleSubSteps } = useSubStepSearchToggle();
 
+  // Match on the visible name only. Searching "convert" should return
+  // Convert to L1 / Format Converter / Unit Converter — not every tool
+  // whose description happens to contain "encrypted" or "deploy". Tight
+  // matches > broad matches for a tool catalog.
   const filtered = useMemo(() => {
     if (!search.trim()) return TOOLS;
     const q = search.toLowerCase();
-    return TOOLS.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q),
-    );
+    return TOOLS.filter((t) => t.name.toLowerCase().includes(q));
   }, [search]);
+
+  const filteredSubSteps = useMemo<SubStepResult[]>(() => {
+    if (!includeSubSteps || !search.trim()) return [];
+    const q = search.toLowerCase();
+    return TOOLS.flatMap((tool) => (tool.subSteps ?? []).map((step) => ({ parent: tool, ...step }))).filter((step) =>
+      step.name.toLowerCase().includes(q),
+    );
+  }, [includeSubSteps, search]);
+
+  // Bucket sub-step results by their parent's category so the Sub-steps
+  // section reads with the same Permissioned / Permissionless / etc.
+  // structure as the top-level grid above. Without this, sub-steps from
+  // unrelated flows pile into a single grid and the user has to read
+  // every "Add Validator › …" / "Stake › …" prefix to find their category.
+  const groupedSubSteps = useMemo(() => {
+    if (filteredSubSteps.length === 0) return [];
+    const map = new Map<string, SubStepResult[]>();
+    for (const step of filteredSubSteps) {
+      const cat = step.parent.category;
+      const existing = map.get(cat) ?? [];
+      existing.push(step);
+      map.set(cat, existing);
+    }
+    return CATEGORY_ORDER.filter((c) => map.has(c)).map((c) => ({
+      category: c,
+      steps: map.get(c)!,
+    }));
+  }, [filteredSubSteps]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, ToolCard[]>();
@@ -356,29 +393,63 @@ export default function ToolboxBoard() {
             <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">Every Console tool in one place.</p>
           </div>
 
-          <div className="relative w-full sm:w-80">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search tools..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm pl-9 pr-9 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-zinc-600/40 focus:border-zinc-500 dark:focus:border-zinc-500 transition-colors"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="relative flex-1 sm:w-80">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search tools..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm pl-9 pr-9 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-400/40 dark:focus:ring-zinc-600/40 focus:border-zinc-500 dark:focus:border-zinc-500 transition-colors"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {/* Inline filter chip — sits on the same row as the search input
+                so it reads as a search refinement, not a separate control.
+                Full label on desktop so the affordance is self-explanatory;
+                icon-only on narrow screens to keep the row compact. Radix
+                tooltip carries a fuller explanation on hover. */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={toggleSubSteps}
+                  aria-pressed={includeSubSteps}
+                  aria-label={
+                    includeSubSteps ? 'Hide sub-steps from search results' : 'Include sub-steps in search results'
+                  }
+                  className={cn(
+                    'inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-colors',
+                    includeSubSteps
+                      ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                      : 'border-zinc-300 bg-white/80 text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:border-zinc-600',
+                  )}
+                >
+                  <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">Include sub-steps</span>
+                  <span className="sm:hidden">Sub-steps</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                {includeSubSteps
+                  ? 'Sub-steps are included. Search will surface individual steps inside multi-step flows (e.g. “Convert to L1” step inside Create L1).'
+                  : 'Search inside multi-step flows. Lets you find a single step (e.g. “Initialize Validator Set”) without going through the parent flow.'}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </motion.div>
 
         {/* Results */}
-        {grouped.length === 0 ? (
+        {grouped.length === 0 && filteredSubSteps.length === 0 ? (
           <div className="py-24 text-center">
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800 mb-4">
               <Search className="h-5 w-5 text-zinc-400" />
@@ -386,7 +457,11 @@ export default function ToolboxBoard() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400">No tools match &ldquo;{search}&rdquo;</p>
           </div>
         ) : (
-          <motion.div className="space-y-10" variants={boardContainer} initial="hidden" animate="visible">
+          // `initial={false}` skips the hidden→visible transform on first
+          // mount. Without this, a hydration mismatch under React 18 strict
+          // mode left tiles stuck at the `hidden` opacity:0 state and the
+          // toolbox rendered empty even though grouping produced rows.
+          <motion.div className="space-y-10" variants={boardContainer} initial={false} animate="visible">
             {grouped.map(({ category, tools }) => {
               // Keep the same hierarchy during search. If the category's
               // featured tool is part of the filtered result, it stays large
@@ -441,17 +516,78 @@ export default function ToolboxBoard() {
                 </section>
               );
             })}
+            {groupedSubSteps.length > 0 && (
+              <section>
+                {/* Top-level Sub-steps banner — total count, plus a bold
+                    visual break from the Tools sections above. */}
+                <div className="mb-5 flex items-center gap-3">
+                  <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">Sub-steps</h2>
+                  <div className="h-px flex-1 bg-zinc-200/80 dark:bg-zinc-800" />
+                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
+                    {filteredSubSteps.length} {filteredSubSteps.length === 1 ? 'step' : 'steps'}
+                  </span>
+                </div>
+                {/* One nested block per category — same hierarchy as the
+                    top-level grid so users can pattern-match between the
+                    two halves of the page. */}
+                <div className="space-y-7">
+                  {groupedSubSteps.map(({ category, steps }) => (
+                    <div key={category}>
+                      <div className="mb-3 flex items-center gap-3 pl-3">
+                        <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                          {category}
+                        </h3>
+                        <div className="h-px flex-1 bg-zinc-200/60 dark:bg-zinc-800/70" />
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 tabular-nums">
+                          {steps.length} {steps.length === 1 ? 'step' : 'steps'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {steps.map((step) => (
+                          <SubStepTile key={step.path} step={step} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </motion.div>
         )}
 
         {/* Footer count */}
-        {grouped.length > 0 && (
+        {grouped.length > 0 || filteredSubSteps.length > 0 ? (
           <div className="mt-12 text-center text-xs text-zinc-400 dark:text-zinc-500">
-            {filtered.length} {filtered.length === 1 ? 'tool' : 'tools'} across {grouped.length}{' '}
+            {filtered.length + filteredSubSteps.length}{' '}
+            {filtered.length + filteredSubSteps.length === 1 ? 'result' : 'results'} across {grouped.length}{' '}
             {grouped.length === 1 ? 'category' : 'categories'}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function SubStepTile({ step }: { step: SubStepResult }) {
+  const Icon = step.parent.icon;
+  return (
+    <Link href={step.path} className="group block h-full">
+      <motion.div variants={boardItem} className="h-full">
+        <div className="h-full rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm px-3 py-2.5 hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-px hover:shadow-sm transition-all duration-150">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+              <Icon className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">{step.parent.name} ›</p>
+              <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{step.name}</h3>
+              {step.description && (
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">{step.description}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </Link>
   );
 }
