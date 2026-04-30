@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { AllowlistComponent } from '@/components/toolbox/components/AllowListComponents';
@@ -15,7 +14,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from '../../components/WithConsoleToolMetadata';
-import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { useContractActions } from '@/components/toolbox/hooks/contracts/useContractActions';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { PrecompileCodeViewer } from '@/components/console/precompile-code-viewer';
 import { PrecompileCard, StateRow, StateGroup } from '@/components/toolbox/components/PrecompileCard';
@@ -43,8 +42,6 @@ const metadata: ConsoleToolMetadata = {
 
 function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { walletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
 
   const [activeTab, setActiveTab] = useState<TabId>('view');
 
@@ -59,6 +56,12 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
 
   const [role, setRole] = useState<PrecompileRole | null>(null);
   const [roleRefreshKey, setRoleRefreshKey] = useState(0);
+
+  // Routes every Reward Manager write (allowFeeRecipients, disableRewards,
+  // setRewardAddress) through the canonical write path. Each tab's
+  // notification name is set when calling `actions.write` below so the
+  // toast / history row reflects the specific action.
+  const actions = useContractActions(DEFAULT_REWARD_MANAGER_ADDRESS, rewardManagerAbi.abi);
 
   const refreshState = async () => {
     setIsReadingState(true);
@@ -89,24 +92,28 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     refreshState();
   }, []);
 
-  const writeContract = async (functionName: string, args?: any[]) => {
+  // Per-action notification labels. Keyed by function name so each
+  // call to `runWrite` carries a human-readable description into the
+  // console toast + tx history.
+  const NOTIFICATION_LABELS: Record<string, string> = {
+    allowFeeRecipients: 'Allow fee recipients',
+    disableRewards: 'Disable rewards',
+    setRewardAddress: 'Set reward address',
+  };
+
+  const runWrite = async (functionName: string, args?: readonly unknown[]) => {
     setIsProcessing(true);
     setTxError(null);
     setTxHash(null);
 
     try {
-      if (!walletClient.account) throw new Error('Connect your wallet first');
-
-      const hash = await walletClient.writeContract({
-        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-        abi: rewardManagerAbi.abi,
+      const hash = await actions.write(
         functionName,
-        args,
-        account: walletClient.account,
-        chain: viemChain,
-      });
+        args ?? [],
+        NOTIFICATION_LABELS[functionName] ?? `Reward Manager: ${functionName}`,
+      );
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === 'success') {
         setTxHash(hash);
@@ -130,11 +137,11 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     }
   };
 
-  const handleAllowFeeRecipients = () => writeContract('allowFeeRecipients');
-  const handleDisableRewards = () => writeContract('disableRewards');
+  const handleAllowFeeRecipients = () => runWrite('allowFeeRecipients');
+  const handleDisableRewards = () => runWrite('disableRewards');
   const handleSetRewardAddress = () => {
     if (!rewardAddress) return;
-    writeContract('setRewardAddress', [rewardAddress as `0x${string}`]);
+    runWrite('setRewardAddress', [rewardAddress as `0x${string}`]);
   };
 
   const hasPermission = role !== null && role >= 1;

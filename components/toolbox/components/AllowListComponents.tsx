@@ -2,12 +2,11 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useWalletStore } from '../stores/walletStore';
-import { useViemChainStore } from '../stores/toolboxStore';
 import { Button } from './Button';
 import { EVMAddressInput } from './EVMAddressInput';
 import { ResultField } from './ResultField';
 import allowListAbi from '../../../contracts/precompiles/AllowList.json';
-import { useConnectedWallet } from '../contexts/ConnectedWalletContext';
+import { useContractActions } from '../hooks/contracts/useContractActions';
 import { cn } from '../lib/utils';
 import { Shield, Search, UserPlus, UserMinus, ChevronDown } from 'lucide-react';
 
@@ -127,14 +126,22 @@ function SetRoleForm({
   onFunctionChange,
   defaultAddress,
 }: SetRoleFormProps) {
-  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
-  const { walletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
+  const { publicClient, walletEVMAddress } = useWalletStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [address, setAddress] = useState<string>(defaultAddress || '');
   const [role, setRole] = useState<RoleKey>('enabled');
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Routes the role-set tx through the canonical write path so it
+  // pre-flight simulates, fires the console toast, and lands a row in
+  // the tx-history store the same way every other modern toolbox
+  // contract action does. Because every consumer of AllowlistComponent /
+  // AllowlistRoleManager flows through this form, fixing it here covers
+  // DeployerAllowlist, TransactionAllowlist, FeeManager (allowlist tab),
+  // RewardManager (allowlist tab), and EnableStakingManagerMinting in
+  // a single edit.
+  const actions = useContractActions(precompileAddress, abi);
 
   useEffect(() => {
     if (defaultAddress && !address) {
@@ -149,17 +156,14 @@ function SetRoleForm({
 
     try {
       const functionName = ROLES[role].function;
-      const hash = await walletClient.writeContract({
-        address: precompileAddress as `0x${string}`,
-        abi: abi,
-        functionName,
-        args: [address],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-        gas: BigInt(1_000_000),
+      const hash = await actions.write(functionName, [address], `Set ${ROLES[role].label} role on ${precompileType}`, {
+        gas: 1_000_000n,
       });
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      // Local receipt wait — the toast tracks status independently, but
+      // we still need to know when the chain is settled before calling
+      // onSuccess (which typically refreshes role badges / tables).
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === 'success') {
         setTxHash(hash);
@@ -167,19 +171,12 @@ function SetRoleForm({
       } else {
         setError('Transaction failed');
       }
-    } catch (error) {
-      console.error('Setting role failed:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
-          setError(
-            `Failed to connect to the network. Please ensure you are connected to the correct L1 chain (Current Chain ID: ${walletChainId})`,
-          );
-        } else {
-          setError(error.message);
-        }
-      } else {
-        setError('An unknown error occurred');
-      }
+    } catch (err) {
+      // useContractActions already runs the message through
+      // parseContractError; surface the message verbatim instead of
+      // re-wrapping. Fall back to a generic line if we somehow got a
+      // non-Error throw.
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsProcessing(false);
     }

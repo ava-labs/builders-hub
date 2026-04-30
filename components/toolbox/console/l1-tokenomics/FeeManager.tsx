@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { ResultField } from '@/components/toolbox/components/ResultField';
@@ -15,7 +14,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from '../../components/WithConsoleToolMetadata';
-import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { useContractActions } from '@/components/toolbox/hooks/contracts/useContractActions';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { PrecompileCodeViewer } from '@/components/console/precompile-code-viewer';
 import { PrecompileCard, StateGroup, StateRow } from '@/components/toolbox/components/PrecompileCard';
@@ -67,8 +66,6 @@ function formatGwei(wei: string) {
 
 function FeeManager({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { walletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
 
   const [activeTab, setActiveTab] = useState<Tab>('view');
   const [config, setConfig] = useState<FeeConfig>(DEFAULT_CONFIG);
@@ -82,6 +79,13 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
 
   const [role, setRole] = useState<PrecompileRole | null>(null);
   const [roleRefreshKey, setRoleRefreshKey] = useState(0);
+
+  // Routes the setFeeConfig tx through the canonical write path so it
+  // pre-flight simulates, fires the console toast, and lands a row in
+  // the tx-history store. Replaces the previous raw
+  // walletClient.writeContract path that was invisible to the console
+  // history panel.
+  const actions = useContractActions(DEFAULT_FEE_MANAGER_ADDRESS, feeManagerAbi.abi);
 
   const handleGetFeeConfig = async () => {
     setIsReadingConfig(true);
@@ -132,11 +136,9 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
     setTxHash(null);
 
     try {
-      const hash = await walletClient.writeContract({
-        address: DEFAULT_FEE_MANAGER_ADDRESS as `0x${string}`,
-        abi: feeManagerAbi.abi,
-        functionName: 'setFeeConfig',
-        args: [
+      const hash = await actions.write(
+        'setFeeConfig',
+        [
           BigInt(config.gasLimit),
           BigInt(config.targetBlockRate),
           BigInt(config.minBaseFee),
@@ -146,11 +148,12 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
           BigInt(config.maxBlockGasCost),
           BigInt(config.blockGasCostStep),
         ],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-      });
+        'Update L1 fee config',
+      );
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      // Local receipt wait — we still need to know when the chain
+      // settled so we can refresh the on-chain config and role badge.
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === 'success') {
         setTxHash(hash);
@@ -173,7 +176,7 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const hasPermission = role !== null && role >= 1;
-  const canSetFeeConfig = Boolean(walletEVMAddress && walletClient && !isSettingConfig && hasPermission);
+  const canSetFeeConfig = Boolean(walletEVMAddress && actions.isReady && !isSettingConfig && hasPermission);
 
   return (
     <CheckPrecompile configKey="feeManagerConfig" precompileName="Fee Manager">

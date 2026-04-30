@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { parseEther, formatEther } from 'viem';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { ResultField } from '@/components/toolbox/components/ResultField';
@@ -17,7 +16,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from '../../components/WithConsoleToolMetadata';
-import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { useContractActions } from '@/components/toolbox/hooks/contracts/useContractActions';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { PrecompileCodeViewer } from '@/components/console/precompile-code-viewer';
 import { PrecompileCard } from '@/components/toolbox/components/PrecompileCard';
@@ -36,8 +35,6 @@ const metadata: ConsoleToolMetadata = {
 
 function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { walletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
   const [amount, setAmount] = useState<string>('');
   const [recipient, setRecipient] = useState<string>('');
   const [isMinting, setIsMinting] = useState(false);
@@ -45,6 +42,13 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const [txError, setTxError] = useState<string | null>(null);
   const [role, setRole] = useState<PrecompileRole | null>(null);
   const [roleRefreshKey, setRoleRefreshKey] = useState(0);
+
+  // Routes the mint tx through the canonical write path so it pre-
+  // flight simulates, fires the console toast, and lands a row in the
+  // tx-history store — same way every other modern toolbox contract
+  // action does. Replaces the previous raw walletClient.writeContract
+  // path that was invisible to the console history panel.
+  const actions = useContractActions(DEFAULT_NATIVE_MINTER_ADDRESS, nativeMinterAbi.abi);
 
   const handleMint = async () => {
     setIsMinting(true);
@@ -55,16 +59,16 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
       // parseEther handles decimals safely — BigInt(amount) would throw on "1.5".
       const amountInWei = parseEther(amount);
 
-      const hash = await walletClient.writeContract({
-        address: DEFAULT_NATIVE_MINTER_ADDRESS as `0x${string}`,
-        abi: nativeMinterAbi.abi,
-        functionName: 'mintNativeCoin',
-        args: [recipient as `0x${string}`, amountInWei],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-      });
+      const hash = await actions.write(
+        'mintNativeCoin',
+        [recipient as `0x${string}`, amountInWei],
+        `Mint ${amount} native to ${recipient.slice(0, 6)}…${recipient.slice(-4)}`,
+      );
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      // Local receipt wait — the hook's toast tracks status, but we
+      // still need to know when the chain settled before refreshing
+      // role state and firing onSuccess.
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === 'success') {
         setTxHash(hash);
@@ -76,8 +80,11 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
         );
       }
     } catch (err) {
+      // useContractActions already runs the message through
+      // parseContractError (and adds a debug-trace tail on Fuji), so
+      // we just surface the message verbatim — adding the role hint
+      // for the common revert case.
       const msg = err instanceof Error ? err.message : 'Mint failed';
-      // Pre-flight reverts surface here — make the role hint explicit.
       if (msg.toLowerCase().includes('revert') || msg.toLowerCase().includes('not allowed')) {
         setTxError(
           `${msg}\n\nThis usually means your wallet lacks the Enabled/Manager/Admin role on the Native Minter allowlist.`,
@@ -93,7 +100,7 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const isValidAmount = amount && Number(amount) > 0;
   const hasPermission = role !== null && role >= 1;
   const canMint = Boolean(
-    recipient && isValidAmount && walletEVMAddress && walletClient && !isMinting && hasPermission,
+    recipient && isValidAmount && walletEVMAddress && actions.isReady && !isMinting && hasPermission,
   );
 
   // Show preview of mint amount in human-readable form.
