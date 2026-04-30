@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Check, ChevronDown, Copy, ExternalLink, Layers, Link2, Server, Wallet } from 'lucide-react';
+import { Check, ChevronDown, Coins, Copy, ExternalLink, Layers, Link2, Server, Wallet } from 'lucide-react';
 import type { Address } from 'viem';
 import type { DeploymentJob } from '@/lib/quick-l1/types';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
@@ -330,7 +330,8 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
       {/* Recap grid — single column on tablet, two-column only at xl+
           (≥1280px) because narrower cards force tight line-wrapping on
           address values. Single-column at 1024px keeps each value on
-          one readable line. */}
+          one readable line. Two-column kicks in whenever there's a
+          second card to show (interop or staking). */}
       <motion.div
         initial="hidden"
         animate="visible"
@@ -338,7 +339,7 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
           hidden: {},
           visible: { transition: { staggerChildren: 0.05, delayChildren: 0.22 } },
         }}
-        className={cn('grid gap-4', result.interop ? 'xl:grid-cols-2' : 'grid-cols-1')}
+        className={cn('grid gap-4', result.interop || result.staking ? 'xl:grid-cols-2' : 'grid-cols-1')}
       >
         <RecapCard
           title="Chain details"
@@ -373,6 +374,36 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
             </>
           }
         />
+
+        {result.staking && (
+          <RecapCard
+            title="ERC20 Proof of Stake"
+            subtitle="Anyone holding the staking token can validate your L1"
+            icon={<Coins className="h-4 w-4" />}
+            primaryRows={
+              <>
+                <DetailRow
+                  label="Staking token"
+                  value={result.staking.stakingTokenAddress}
+                  chain="c-chain"
+                  href={cChainAddressUrl(result.staking.stakingTokenAddress, network)}
+                />
+                <DetailRow
+                  label="Staking Manager"
+                  value={result.staking.stakingManagerAddress}
+                  chain="c-chain"
+                  href={cChainAddressUrl(result.staking.stakingManagerAddress, network)}
+                />
+                <DetailRow
+                  label="Reward Calculator"
+                  value={result.staking.rewardCalculatorAddress}
+                  chain="c-chain"
+                  href={cChainAddressUrl(result.staking.rewardCalculatorAddress, network)}
+                />
+              </>
+            }
+          />
+        )}
 
         {result.interop && (
           <RecapCard
@@ -677,11 +708,19 @@ function chainName(chain: Chain): string {
 
 function DetailRow({
   label,
+  subtitle,
   value,
   chain,
   href,
 }: {
   label: string;
+  /**
+   * Optional small subtitle rendered next to the label (same row).
+   * Used to nuance an otherwise-identical row — e.g. flagging a
+   * user-supplied staking token as "Verified mintable" so the recap
+   * tells the truth about which path the orchestrator took.
+   */
+  subtitle?: string;
   value: string;
   chain?: Chain;
   /** When set, the value renders as an external link to a block explorer. */
@@ -711,6 +750,11 @@ function DetailRow({
           <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
             {chain ? `${label} · ${chainName(chain)}` : label}
           </span>
+          {subtitle && (
+            <span className="text-[10px] font-medium normal-case tracking-normal text-emerald-600 dark:text-emerald-400 shrink-0">
+              · {subtitle}
+            </span>
+          )}
         </div>
         <div className="shrink-0 flex items-center gap-0.5">
           {href && (

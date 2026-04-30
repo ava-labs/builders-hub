@@ -2,10 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import type { Erc20TokenBalance } from "@avalanche-sdk/chainkit/models/components";
 
-// Initialize Avalanche SDK
-const avalanche = new Avalanche({
-  network: "mainnet",
-});
+// Glacier requires the SDK to be instantiated with a `network` *before*
+// it'll return ERC20 balances for that network's chains. Our chainId
+// path-param tells us which side of the network split we're on, so we
+// pick the right SDK on a per-request basis. 43113 = Fuji C-Chain;
+// every other Avalanche-side chain we currently expose is mainnet.
+//
+// (We hold both instances at module scope so cold-starts only build them
+// once. They're stateless and safe to share across concurrent requests.)
+const mainnetSdk = new Avalanche({ network: "mainnet" });
+const fujiSdk = new Avalanche({ network: "fuji" });
+
+const FUJI_C_CHAIN_ID = '43113';
+
+function sdkForChain(chainId: string): Avalanche {
+  return chainId === FUJI_C_CHAIN_ID ? fujiSdk : mainnetSdk;
+}
 
 interface Erc20Balance {
   contractAddress: string;
@@ -41,7 +53,10 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
     }
 
-    // Fetch ERC20 balances - returns a PageIterator
+    // Fetch ERC20 balances - returns a PageIterator. Switches between
+    // the mainnet and Fuji SDK based on chainId so testnet flows (e.g.
+    // the Quick L1 Basic Setup PoS picker) get real balance data.
+    const avalanche = sdkForChain(chainId);
     const iterator = await avalanche.data.evm.address.balances.listErc20({
       address: address,
       chainId: chainId,

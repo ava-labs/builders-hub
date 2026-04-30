@@ -12,9 +12,10 @@
 export type DeploymentStep =
   | 'creating-subnet'
   | 'deploying-validator-manager'
-  | 'initializing-manager'
   | 'reserving-relayer'
   | 'creating-chain'
+  | 'configuring-erc20-pos'
+  | 'initializing-manager'
   | 'provisioning-node'
   | 'attaching-relayer'
   | 'converting-to-l1'
@@ -57,9 +58,10 @@ export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
 export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'creating-subnet',
   'deploying-validator-manager',
-  'initializing-manager',
   'reserving-relayer',
   'creating-chain',
+  'configuring-erc20-pos',
+  'initializing-manager',
   'provisioning-node',
   'attaching-relayer',
   'converting-to-l1',
@@ -93,6 +95,14 @@ export const MANAGED_RELAYER_ONLY_STEPS: readonly DeploymentStep[] = [
 /** @deprecated Use MANAGED_RELAYER_ONLY_STEPS. Kept as alias for one cycle. */
 export const INTEROP_ONLY_STEPS = MANAGED_RELAYER_ONLY_STEPS;
 
+/**
+ * Subset of steps that only run when `validatorMode.type === 'erc20-pos'`.
+ * The orchestrator drops these from the pipeline otherwise; the
+ * frontend should hide them from the progress UI so PoA deploys don't
+ * pretend they're running steps that never fire.
+ */
+export const ERC20_POS_ONLY_STEPS: readonly DeploymentStep[] = ['configuring-erc20-pos'];
+
 /** Human-readable label for each step (shown in the UI). */
 export const STEP_LABEL: Record<DeploymentStep, string> = {
   'creating-subnet': 'Creating Subnet',
@@ -100,6 +110,7 @@ export const STEP_LABEL: Record<DeploymentStep, string> = {
   'initializing-manager': 'Initializing Validator Manager',
   'reserving-relayer': 'Reserving ICM Relayer',
   'creating-chain': 'Creating Chain',
+  'configuring-erc20-pos': 'Configuring ERC20 PoS (C-Chain)',
   'provisioning-node': 'Provisioning Validator Node',
   'attaching-relayer': 'Booting ICM Relayer (parallel)',
   'converting-to-l1': 'Converting Subnet to L1',
@@ -145,6 +156,48 @@ export const DEFAULT_PRECOMPILES: Required<PrecompileConfig> = {
 };
 
 /**
+ * Validator management style for the deployed L1.
+ *
+ * - `poa`: Validator Manager is owner-controlled (an allowlist). The
+ *   `ownerEvmAddress` is the sole authority that can add/remove
+ *   validators. Default — smallest setup cliff for first-time builders.
+ * - `erc20-pos`: A Staking Manager wraps the Validator Manager so
+ *   anyone holding the staking token can validate. The orchestrator
+ *   deploys a fresh ExampleERC20 staking token, ExampleRewardCalculator,
+ *   and ERC20TokenStakingManager on Fuji C-Chain — users do *not*
+ *   bring their own ERC20. The deployed addresses come back in
+ *   `DeploymentResult.staking`.
+ *
+ * Native PoS (validators stake the L1's own native token) is *not*
+ * exposed by the Basic Setup flow — it requires a token-economics
+ * conversation that doesn't fit a one-click form. Power users pick it
+ * via Advanced Setup.
+ */
+export interface PoAValidatorMode {
+  type: 'poa';
+}
+
+/**
+ * ERC20-backed PoS configuration. All knobs optional — the Railway
+ * service falls back to the upstream icm-contracts test defaults
+ * (rewardBasisPoints=10, min stake=0.01 token, max stake=10 token,
+ * etc.) when omitted. Stake amounts are base-unit decimal strings to
+ * dodge JSON-number precision loss for very large 18-decimal values.
+ */
+export interface Erc20PoSValidatorMode {
+  type: 'erc20-pos';
+  rewardBasisPoints?: number;
+  minimumStakeAmount?: string;
+  maximumStakeAmount?: string;
+  minimumStakeDurationSeconds?: number;
+  minimumDelegationFeeBips?: number;
+  maximumStakeMultiplier?: number;
+  weightToValueFactor?: string;
+}
+
+export type ValidatorMode = PoAValidatorMode | Erc20PoSValidatorMode;
+
+/**
  * Input payload from the intake form — POSTed to /api/quick-l1/deploy.
  */
 export interface DeployRequest {
@@ -156,6 +209,12 @@ export interface DeployRequest {
   ownerPChainAddress?: string;
   /** Network — only 'fuji' supported in MVP. */
   network: 'fuji';
+  /**
+   * Validator-set control model. Defaults to `{ type: 'poa' }`
+   * server-side when omitted so older clients keep working without
+   * changes.
+   */
+  validatorMode?: ValidatorMode;
   /** Optional precompile overrides — merged with DEFAULT_PRECOMPILES. */
   precompiles?: PrecompileConfig;
   /**
@@ -256,10 +315,26 @@ export interface DeploymentResult {
   /** NodeID of the provisioned validator (for display). */
   nodeId: string;
   /**
+   * ERC20-PoS artifacts on Fuji C-Chain. Populated only when
+   * `request.validatorMode.type === 'erc20-pos'`. All three contracts
+   * are deployed by the orchestrator — users don't bring their own.
+   */
+  staking?: Erc20PoSResult;
+  /**
    * ICM/ICTT artifacts — only populated when `interoperability` is on.
    * `undefined` means the feature was disabled for this deploy.
    */
   interop?: InteropResult;
+}
+
+export interface Erc20PoSResult {
+  type: 'erc20-pos';
+  /** Example ERC20 staking token deployed on Fuji C-Chain. */
+  stakingTokenAddress: `0x${string}`;
+  /** Example reward calculator deployed on Fuji C-Chain. */
+  rewardCalculatorAddress: `0x${string}`;
+  /** ERC20TokenStakingManager deployed on Fuji C-Chain, wrapping the core ValidatorManager. */
+  stakingManagerAddress: `0x${string}`;
 }
 
 export interface InteropResult {

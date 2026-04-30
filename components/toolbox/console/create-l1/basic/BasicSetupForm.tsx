@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Coins, Loader2, Shield, Sparkles } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useStartDeployment } from '@/hooks/useQuickL1Deploy';
-import { DEFAULT_PRECOMPILES, type PrecompileConfig } from '@/lib/quick-l1/types';
+import { DEFAULT_PRECOMPILES, type PrecompileConfig, type ValidatorMode } from '@/lib/quick-l1/types';
 import { cn } from '@/lib/utils';
+import StakingPreviewCard from './StakingPreviewCard';
 
 /**
  * Basic Setup intake form.
@@ -95,6 +96,14 @@ export default function BasicSetupForm() {
   const [chainName, setChainName] = useState('');
   const [ownerAddress, setOwnerAddress] = useState<string>('');
   const [ownerTouched, setOwnerTouched] = useState(false);
+  // Validator management — `poa` by default. PoS in Quick L1 is
+  // ERC20-only on Fuji C-Chain. Users *can* now bring their own
+  // staking token (see `stakingTokenAddress` below) — when unset, the
+  // orchestrator deploys a fresh ExampleERC20 as before. Staking
+  // economics (reward bp, min/max stake, etc.) still default
+  // server-side to the icm-contracts test values for the one-click
+  // flow.
+  const [validatorMode, setValidatorMode] = useState<ValidatorMode>({ type: 'poa' });
   const [precompiles, setPrecompiles] = useState<Required<PrecompileConfig>>(DEFAULT_PRECOMPILES);
   // Managed ICM relayer + MockUSDC bridge — opt-in, off by default so
   // the common path (baseline L1 deploy) stays ~30s. Enabling it costs
@@ -154,6 +163,9 @@ export default function BasicSetupForm() {
     setChainName((prev) => (prev ? prev : generateChainName()));
   }, []);
 
+  // Submit gate: chain name + valid owner address. PoS no longer needs
+  // an extra address validation here because the staking token is
+  // deployed by the orchestrator (not chosen by the user).
   const canSubmit = chainName.trim().length >= 2 && /^0x[a-fA-F0-9]{40}$/.test(ownerAddress);
 
   async function handleSubmit(e?: React.FormEvent) {
@@ -175,6 +187,7 @@ export default function BasicSetupForm() {
       tokenSymbol,
       ownerEvmAddress: ownerAddress as `0x${string}`,
       network: 'fuji',
+      validatorMode,
       precompiles,
       // Safety: if Warp got toggled off at the last instant, strip the
       // relayer flag before sending. Orchestrator also rejects, but
@@ -236,9 +249,10 @@ export default function BasicSetupForm() {
           }}
           className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5 lg:gap-6"
         >
-          {/* Left: 2-card stack (Chain details + Included) to match the
-              right's 2-card stack (Precompiles + Managed Relayer). Equal
-              card counts + equal spacing = naturally balanced columns. */}
+          {/* Left: chain identity (with inline staking preview when
+              PoS) + Included. Keeping the wallet token preview *inside*
+              ChainDetailsCard puts it directly under the toggle that
+              triggered it — zero scroll required to see balances. */}
           <div className="space-y-4">
             <ChainDetailsCard
               chainName={chainName}
@@ -248,8 +262,15 @@ export default function BasicSetupForm() {
                 setOwnerTouched(true);
                 setOwnerAddress(v);
               }}
+              validatorMode={validatorMode}
+              onValidatorModeChange={setValidatorMode}
+              walletAddress={walletEVMAddress}
             />
-            <IncludedCard interopEnabled={precompiles.interoperability} relayerEnabled={enableManagedRelayer} />
+            <IncludedCard
+              interopEnabled={precompiles.interoperability}
+              relayerEnabled={enableManagedRelayer}
+              validatorMode={validatorMode}
+            />
           </div>
 
           {/* Right: precompile toggles + managed-relayer opt-in + CTA.
@@ -337,12 +358,28 @@ function ChainDetailsCard({
   setChainName,
   ownerAddress,
   onOwnerChange,
+  validatorMode,
+  onValidatorModeChange,
+  walletAddress,
 }: {
   chainName: string;
   setChainName: (v: string) => void;
   ownerAddress: string;
   onOwnerChange: (v: string) => void;
+  validatorMode: ValidatorMode;
+  onValidatorModeChange: (v: ValidatorMode) => void;
+  walletAddress: string;
 }) {
+  // Owner field hint shifts with the validator mode — under PoA the
+  // owner literally controls the membership allowlist, while under
+  // erc20-pos they retain emergency pause/upgrade authority over the
+  // staking manager but day-to-day membership is permissionless.
+  // Mode-aware copy keeps the user's mental model honest.
+  const ownerHint =
+    validatorMode.type === 'poa'
+      ? 'Receives 1M initial tokens and controls the validator allowlist.'
+      : 'Receives 1M initial tokens and retains emergency control of the Staking Manager.';
+
   return (
     <motion.div
       variants={{
@@ -354,7 +391,7 @@ function ChainDetailsCard({
       <div className="px-5 py-3 border-b border-zinc-100 dark:border-zinc-900">
         <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Chain details</h3>
         <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-          Name your L1 and pick the address that owns it.
+          Name your L1, pick how validators join, and choose the owner.
         </p>
       </div>
 
@@ -367,9 +404,16 @@ function ChainDetailsCard({
           placeholder="My Awesome L1"
           maxLength={32}
         />
+        <ValidatorTypeToggle value={validatorMode} onChange={onValidatorModeChange} />
+        {/* Inline wallet preview, surfaced right below the PoS toggle so
+            the user sees their Fuji C-Chain ERC20 balances at the
+            moment of decision — not buried in a sibling card below the
+            scroll fold. The card is fully self-contained (its own
+            fetch + states) so wiring is a single component drop. */}
+        {validatorMode.type === 'erc20-pos' && <StakingPreviewCard walletAddress={walletAddress} />}
         <BigField
           label="Owner address"
-          hint="Receives 1M initial tokens and owns the Validator Manager."
+          hint={ownerHint}
           value={ownerAddress}
           onChange={onOwnerChange}
           placeholder="0x…"
@@ -377,6 +421,95 @@ function ChainDetailsCard({
         />
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * Segmented toggle for PoA vs ERC20-PoS validator management. Sized to
+ * live inside ChainDetailsCard between the chain name and owner fields
+ * so the choice reads as a top-level decision shaping the rest of the
+ * card's behaviour.
+ *
+ * Locked to two options because Quick L1 only supports ERC20-PoS on
+ * Fuji C-Chain — Native PoS lives in the Advanced flow.
+ *
+ * Picking PoS resets the mode object to a bare `{ type: 'erc20-pos' }`
+ * so the orchestrator falls back to the icm-contracts test defaults
+ * (reward bp, min/max stake, etc.). Surface those knobs in the
+ * Advanced flow if/when builders want them.
+ */
+function ValidatorTypeToggle({ value, onChange }: { value: ValidatorMode; onChange: (v: ValidatorMode) => void }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator management</label>
+        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+          Switch later
+        </span>
+      </div>
+      <div
+        role="tablist"
+        aria-label="Validator management type"
+        className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/60"
+      >
+        <ValidatorTypeOption
+          active={value.type === 'poa'}
+          onClick={() => onChange({ type: 'poa' })}
+          icon={<Shield className="h-3.5 w-3.5" />}
+          title="Proof of Authority"
+          subtitle="Owner-controlled allowlist"
+        />
+        <ValidatorTypeOption
+          active={value.type === 'erc20-pos'}
+          onClick={() => onChange({ type: 'erc20-pos' })}
+          icon={<Coins className="h-3.5 w-3.5" />}
+          title="Proof of Stake"
+          subtitle="ERC20 staking on Fuji C-Chain"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ValidatorTypeOption({
+  active,
+  onClick,
+  icon,
+  title,
+  subtitle,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        'relative flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg text-left transition-all duration-200',
+        active
+          ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-zinc-100'
+          : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100',
+      )}
+    >
+      <span className="flex items-center gap-1.5">
+        <span
+          className={cn(
+            'flex h-5 w-5 items-center justify-center rounded-md',
+            active ? 'bg-primary/10 text-primary' : 'bg-zinc-200/60 dark:bg-zinc-700/60',
+          )}
+        >
+          {icon}
+        </span>
+        <span className="text-[12.5px] font-semibold leading-tight">{title}</span>
+      </span>
+      <span className="text-[10.5px] leading-snug text-zinc-500 dark:text-zinc-400">{subtitle}</span>
+    </button>
   );
 }
 
@@ -392,22 +525,46 @@ function ChainDetailsCard({
  *   - Layout balance: gives the left column a second card so it has the
  *     same card-count as the right (2 on 2), and heights naturally match.
  */
-function IncludedCard({ interopEnabled, relayerEnabled }: { interopEnabled: boolean; relayerEnabled: boolean }) {
+function IncludedCard({
+  interopEnabled,
+  relayerEnabled,
+  validatorMode,
+}: {
+  interopEnabled: boolean;
+  relayerEnabled: boolean;
+  validatorMode: ValidatorMode;
+}) {
+  // Under erc20-pos the orchestrator deploys an additional
+  // ERC20TokenStakingManager that owns the core ValidatorManager, plus
+  // a fresh ExampleERC20 + reward calculator on C-Chain.
+  const isPoS = validatorMode.type === 'erc20-pos';
   const items: Array<{ label: string; sub: string; enabled: boolean }> = [
     { label: 'Subnet on P-Chain', sub: 'Registered + owned by your address', enabled: true },
     { label: 'Genesis + precompiles', sub: 'Built from your selections on the right', enabled: true },
     { label: 'Managed validator node', sub: 'Provisioned on Fuji and joined to the L1', enabled: true },
-    { label: 'Validator Manager', sub: 'Deployed on C-Chain', enabled: true },
+    {
+      label: isPoS ? 'Validator + Staking Manager' : 'Validator Manager',
+      sub: isPoS ? 'Both deployed on C-Chain' : 'Deployed on C-Chain',
+      enabled: true,
+    },
+    {
+      label: 'Example ERC20 staking token',
+      sub: 'Plus a reward calculator — both on Fuji C-Chain',
+      enabled: isPoS,
+    },
     { label: 'ICM messaging', sub: 'Warp + Teleporter for cross-chain calls', enabled: interopEnabled },
     { label: 'MockUSDC bridge', sub: 'Managed relayer + 10 MockUSDC to you', enabled: relayerEnabled },
-  ];
+  ].filter((item) => item.label !== 'Example ERC20 staking token' || isPoS);
 
   return (
+    // Explicit motion props so this card never depends on inherited
+    // variant cascade from the form's outer motion.div — that
+    // inheritance can stall when the surrounding tree gains/loses
+    // motion descendants mid-flight (e.g. toggling PoS).
     <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 10 },
-        visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
-      }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 240, damping: 24, delay: 0.05 }}
       className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
     >
       <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900 flex items-center justify-between gap-2">

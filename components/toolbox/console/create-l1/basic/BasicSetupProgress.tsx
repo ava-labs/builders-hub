@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useDeploymentStatus } from '@/hooks/useQuickL1Deploy';
 import {
   DEPLOYMENT_STEPS,
+  ERC20_POS_ONLY_STEPS,
   MANAGED_RELAYER_ONLY_STEPS,
   STEP_LABEL,
   type DeploymentStep,
@@ -37,18 +38,22 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
   const router = useRouter();
   const { job, error } = useDeploymentStatus(jobId);
 
-  // Only show steps the orchestrator will actually run. The managed-
-  // relayer bundle (reserving-relayer, deploying-icm-registry,
-  // token-remote, relayer boot, bridging MockUSDC, …) is conditional
-  // on the user opting into `enableManagedRelayer`, *not* on the Warp
-  // precompile. A user can have Interop on for on-chain messaging but
-  // skip the managed relayer — in that case the registry/remote/bridge
-  // steps never run, and showing them in the timeline would be a lie.
+  // Only show steps the orchestrator will actually run. Two conditional
+  // bundles to filter out:
+  //   - MANAGED_RELAYER_ONLY_STEPS: gated on `enableManagedRelayer`,
+  //     not on the Warp precompile alone (a user can have interop on
+  //     for on-chain messaging but skip the managed relayer).
+  //   - ERC20_POS_ONLY_STEPS: gated on `validatorMode.type === 'erc20-pos'`.
+  //     PoA deploys never deploy the staking ERC20/reward calc/staking
+  //     manager, so showing `configuring-erc20-pos` would be a lie.
   const visibleSteps = useMemo<readonly DeploymentStep[]>(() => {
     const managedRelayerOn = job?.request.enableManagedRelayer ?? false;
-    return managedRelayerOn
-      ? DEPLOYMENT_STEPS
-      : DEPLOYMENT_STEPS.filter((s) => !MANAGED_RELAYER_ONLY_STEPS.includes(s));
+    const erc20PosOn = job?.request.validatorMode?.type === 'erc20-pos';
+    return DEPLOYMENT_STEPS.filter((s) => {
+      if (!managedRelayerOn && MANAGED_RELAYER_ONLY_STEPS.includes(s)) return false;
+      if (!erc20PosOn && ERC20_POS_ONLY_STEPS.includes(s)) return false;
+      return true;
+    });
   }, [job]);
 
   // Defer to the recap screen once the job finishes. Confetti lives there.

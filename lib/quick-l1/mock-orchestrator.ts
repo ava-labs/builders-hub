@@ -16,10 +16,11 @@ import type {
   DeploymentJob,
   DeploymentStep,
   DeploymentResult,
+  Erc20PoSResult,
   InteropResult,
   TxRecord,
 } from './types';
-import { DEPLOYMENT_STEPS, MANAGED_RELAYER_ONLY_STEPS } from './types';
+import { DEPLOYMENT_STEPS, ERC20_POS_ONLY_STEPS, MANAGED_RELAYER_ONLY_STEPS } from './types';
 
 /**
  * Per-step delay in ms. Tuned to feel real without making demos tedious —
@@ -32,6 +33,10 @@ const STEP_DELAYS_MS: Record<DeploymentStep, number> = {
   'initializing-manager': 2000,
   'reserving-relayer': 800,
   'creating-chain': 2500,
+  // ~4 contract deploys + an initialize() call — slightly longer than
+  // initializing-manager so the timeline feels proportional to the
+  // real backend's `configureErc20PoS` step.
+  'configuring-erc20-pos': 4500,
   'provisioning-node': 3000,
   'attaching-relayer': 600,
   'converting-to-l1': 2500,
@@ -55,6 +60,8 @@ const STEP_DETAIL: Record<DeploymentStep, (job: DeploymentJob) => string> = {
     `Calling initialize() on Validator Manager — owner set to ${job.request.ownerEvmAddress}`,
   'reserving-relayer': () => 'Reserving ICM relayer key for L1 genesis alloc…',
   'creating-chain': () => 'Building genesis and submitting chain creation tx…',
+  'configuring-erc20-pos': () =>
+    'Deploying ExampleERC20 + reward calculator + ERC20TokenStakingManager on C-Chain…',
   'provisioning-node': () => 'Requesting a managed validator node on Fuji…',
   'attaching-relayer': () =>
     'Attaching chain configs + booting ICM relayer container in the background…',
@@ -116,6 +123,13 @@ function makeTxsForStep(step: DeploymentStep, network: 'fuji' | 'mainnet'): TxRe
       return []; // Upstream HTTP call — no on-chain tx.
     case 'creating-chain':
       return [{ hash: fakePChainTxId(), chain: 'p-chain', network, label: 'CreateChainTx', timestamp: now }];
+    case 'configuring-erc20-pos':
+      return [
+        { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'ExampleERC20 deploy', timestamp: now },
+        { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'ExampleRewardCalculator deploy', timestamp: now },
+        { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'ERC20TokenStakingManager deploy', timestamp: now },
+        { hash: fakeEvmTxHash(), chain: 'c-chain', network, label: 'StakingManager.initialize()', timestamp: now },
+      ];
     case 'provisioning-node':
       return []; // Managed-node HTTP call — no on-chain tx.
     case 'attaching-relayer':
@@ -158,7 +172,7 @@ function mockResult(req: DeployRequest): DeploymentResult {
   const subnetId = `mock${Math.random().toString(36).slice(2, 14)}subnet`;
   const blockchainId = `mock${Math.random().toString(36).slice(2, 14)}chain`;
   const nodeId = `NodeID-${Math.random().toString(36).slice(2, 10).toUpperCase()}Mock`;
-  const base: DeploymentResult = {
+  let result: DeploymentResult = {
     subnetId,
     blockchainId,
     evmChainId,
@@ -166,17 +180,33 @@ function mockResult(req: DeployRequest): DeploymentResult {
     validatorManagerAddress: fakeEvmAddress(),
     nodeId,
   };
+  // ERC20-PoS artifacts: emitted when the request opts in. Mirrors what
+  // the real `configureErc20PoS` step produces — three freshly-deployed
+  // contracts on Fuji C-Chain.
+  if (req.validatorMode?.type === 'erc20-pos') {
+    const staking: Erc20PoSResult = {
+      type: 'erc20-pos',
+      stakingTokenAddress: fakeEvmAddress(),
+      rewardCalculatorAddress: fakeEvmAddress(),
+      stakingManagerAddress: fakeEvmAddress(),
+    };
+    result = { ...result, staking };
+  }
+  // Managed-relayer + ICTT artifacts: emitted only when the relayer
+  // bundle is on. Independent of the staking mode.
   const managedRelayerOn = req.enableManagedRelayer ?? false;
-  if (!managedRelayerOn) return base;
-  const interop: InteropResult = {
-    relayerAddress: fakeEvmAddress(),
-    mockUsdcAddress: fakeEvmAddress(),
-    tokenHomeAddress: fakeEvmAddress(),
-    icmRegistryAddress: fakeEvmAddress(),
-    tokenRemoteAddress: fakeEvmAddress(),
-    bridgedAmount: (100n * 10n ** 18n).toString(),
-  };
-  return { ...base, interop };
+  if (managedRelayerOn) {
+    const interop: InteropResult = {
+      relayerAddress: fakeEvmAddress(),
+      mockUsdcAddress: fakeEvmAddress(),
+      tokenHomeAddress: fakeEvmAddress(),
+      icmRegistryAddress: fakeEvmAddress(),
+      tokenRemoteAddress: fakeEvmAddress(),
+      bridgedAmount: (100n * 10n ** 18n).toString(),
+    };
+    result = { ...result, interop };
+  }
+  return result;
 }
 
 /**
@@ -187,13 +217,20 @@ function mockResult(req: DeployRequest): DeploymentResult {
 function runMockLifecycle(jobId: string) {
   const initialJob = jobs.get(jobId);
   if (!initialJob) return;
-  // Mirror the real orchestrator: drop relayer-only steps when the
-  // user hasn't opted in to the managed relayer. Warp/ICM precompile
-  // in genesis is independent and doesn't affect step progression.
+  // Mirror the real orchestrator's pipeline assembly: drop the
+  // managed-relayer bundle when the user hasn't opted in, and drop
+  // the erc20-pos config step when the validator mode is plain PoA.
+  // These two filters are independent — a managed-relayer + PoA
+  // deploy keeps interop steps but skips configuring-erc20-pos, while
+  // a relayerless erc20-pos deploy keeps the staking step but skips
+  // the relayer bundle.
   const managedRelayerOn = initialJob.request.enableManagedRelayer ?? false;
-  const steps: DeploymentStep[] = managedRelayerOn
-    ? [...DEPLOYMENT_STEPS]
-    : DEPLOYMENT_STEPS.filter((s) => !MANAGED_RELAYER_ONLY_STEPS.includes(s));
+  const erc20PosOn = initialJob.request.validatorMode?.type === 'erc20-pos';
+  const steps: DeploymentStep[] = DEPLOYMENT_STEPS.filter((s) => {
+    if (!managedRelayerOn && MANAGED_RELAYER_ONLY_STEPS.includes(s)) return false;
+    if (!erc20PosOn && ERC20_POS_ONLY_STEPS.includes(s)) return false;
+    return true;
+  });
 
   const advance = (stepIdx: number) => {
     const job = jobs.get(jobId);

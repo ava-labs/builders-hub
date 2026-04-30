@@ -47,6 +47,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<DeployRes
     return NextResponse.json({ error: 'Only Fuji network is supported in the MVP' }, { status: 400 });
   }
 
+  // Validate the validatorMode shape before forwarding. The backend's
+  // zod schema rejects unknown discriminators, but catching it here
+  // gives the client a 400 without spending a round-trip on the
+  // Railway service.
+  //
+  // Note: nested fields on validatorMode (e.g. stakingTokenAddress for
+  // erc20-pos) pass through to the backend untouched — zod handles the
+  // 0x regex validation server-side. We deliberately don't re-validate
+  // those here so the proxy stays a thin shape-check layer.
+  const validatorMode = clientBody.validatorMode ?? { type: 'poa' as const };
+  if (validatorMode.type !== 'poa' && validatorMode.type !== 'erc20-pos') {
+    return NextResponse.json(
+      { error: 'validatorMode.type must be "poa" or "erc20-pos"' },
+      { status: 400 },
+    );
+  }
+
   // Strip any client-supplied userId and inject the server-verified one.
   const body: DeployRequest = {
     chainName: clientBody.chainName,
@@ -54,6 +71,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<DeployRes
     ownerEvmAddress: clientBody.ownerEvmAddress,
     ownerPChainAddress: clientBody.ownerPChainAddress,
     network: 'fuji',
+    validatorMode,
     precompiles: clientBody.precompiles,
     enableManagedRelayer: clientBody.enableManagedRelayer ?? false,
     userId,
