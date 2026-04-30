@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -31,6 +31,24 @@ export function DetailHeader({ l1, health }: { l1: CombinedL1; health?: L1Health
       : null,
   );
   const isWalletOnThisL1 = l1.evmChainId !== null && walletChainId === l1.evmChainId;
+  const updateL1Balance = useWalletStore((s) => s.updateL1Balance);
+
+  // Poll the L1 balance every 15s while the wallet is on this chain so
+  // the displayed number stays in sync with on-chain reality. Without
+  // this, the wallet store only refreshes balances on explicit user
+  // actions (e.g. after a TX through the toolbox), so a user that
+  // spends ALOT in another tab sees a stale figure on the dashboard.
+  // The balance service debounces internally so the trailing-edge
+  // refresh from the previous interval doesn't pile up.
+  useEffect(() => {
+    if (!isWalletOnThisL1 || l1.evmChainId === null) return;
+    const chainIdStr = String(l1.evmChainId);
+    void updateL1Balance(chainIdStr);
+    const id = setInterval(() => {
+      void updateL1Balance(chainIdStr);
+    }, 15_000);
+    return () => clearInterval(id);
+  }, [isWalletOnThisL1, l1.evmChainId, updateL1Balance]);
 
   // First letter of chain name, used as a fallback avatar when no logoUrl.
   // Stable hash of subnetId picks one of a few neutral hues so different
