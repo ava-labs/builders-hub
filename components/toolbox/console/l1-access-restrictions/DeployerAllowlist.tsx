@@ -11,9 +11,10 @@ import {
 } from '../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { PrecompileCodeViewer } from '@/components/console/precompile-code-viewer';
-import { FileCode } from 'lucide-react';
+import { PrecompileCard } from '@/components/toolbox/components/PrecompileCard';
+import type { PrecompileRole } from '@/components/toolbox/components/PrecompileRoleBadge';
+import { FileCode, AlertTriangle } from 'lucide-react';
 
-// Default Deployer AllowList address
 const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS = '0x0200000000000000000000000000000000000000';
 
 const metadata: ConsoleToolMetadata = {
@@ -25,35 +26,63 @@ const metadata: ConsoleToolMetadata = {
 
 function DeployerAllowlist({ onSuccess }: BaseConsoleToolProps) {
   const [highlightFunction, setHighlightFunction] = useState<string>('setEnabled');
+  const [role, setRole] = useState<PrecompileRole | null>(null);
+  const [roleRefreshKey, setRoleRefreshKey] = useState(0);
 
-  const handleFunctionChange = (fn: string) => {
-    setHighlightFunction(fn);
-  };
+  // To grant Enabled/None roles you need Manager or Admin (≥2). To grant Admin you need Admin (=2).
+  // We surface a warning at None.
+  const hasManagerOrAbove = role !== null && (role === 2 || role === 3);
 
   return (
     <CheckPrecompile configKey="contractDeployerAllowListConfig" precompileName="Deployer Allowlist">
       <PrecompileCodeViewer precompileName="ContractDeployerAllowList" highlightFunction={highlightFunction}>
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
-              <FileCode className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        <PrecompileCard
+          icon={FileCode}
+          iconWrapperClass="bg-indigo-100 dark:bg-indigo-900/30"
+          iconClass="text-indigo-600 dark:text-indigo-400"
+          title="Contract Deployment Permissions"
+          subtitle="Grant or revoke smart-contract deployment rights for any address"
+          precompileAddress={DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS}
+          minimumRole={2}
+          roleRefreshKey={roleRefreshKey}
+          onRoleChange={setRole}
+        >
+          {role === 0 && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50">
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-red-700 dark:text-red-300">
+                Your wallet has no role on the Deployer Allowlist. Only existing Admin/Manager addresses can grant or
+                revoke roles — your transactions will revert.
+              </div>
             </div>
-            <div>
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Contract Deployment Permissions</h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Manage which addresses can deploy smart contracts
-              </p>
+          )}
+          {role === 1 && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-700 dark:text-amber-300">
+                You have <span className="font-semibold">Enabled</span> role — you can deploy contracts but cannot
+                manage other addresses' roles. Manager or Admin role is required to grant/revoke roles.
+              </div>
             </div>
-          </div>
+          )}
 
           <AllowlistRoleManager
             precompileAddress={DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS}
             precompileType="Deployer"
-            onSuccess={onSuccess}
-            onFunctionChange={handleFunctionChange}
+            onSuccess={() => {
+              setRoleRefreshKey((k) => k + 1);
+              onSuccess?.();
+            }}
+            onFunctionChange={setHighlightFunction}
           />
-        </div>
+
+          {!hasManagerOrAbove && role !== 0 && role !== null && (
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Setting a role requires at least <span className="font-medium">Manager</span> permission on this
+              allowlist.
+            </p>
+          )}
+        </PrecompileCard>
       </PrecompileCodeViewer>
     </CheckPrecompile>
   );
