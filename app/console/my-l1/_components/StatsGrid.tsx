@@ -15,47 +15,6 @@ function StatSkeleton({ width = 'w-16' }: { width?: string }) {
   return <Skeleton className={`inline-block h-5 ${width} align-middle`} />;
 }
 
-// Single-digit slot with an odometer-style roll on change. Old digit slides
-// up and out as the new digit slides in from below. Non-digit characters
-// (e.g. the leading `#`) bypass the animation and render statically.
-//
-// Implementation note: the invisible "0" inside the overflow-hidden wrapper
-// reserves intrinsic width (works with `tabular-nums` which guarantees all
-// digit glyphs are the same width). The animating motion.span is absolutely
-// positioned over it, so the layout doesn't jitter as digits enter/exit.
-function RollingChar({ char }: { char: string }) {
-  if (!/^\d$/.test(char)) {
-    return <span>{char}</span>;
-  }
-  return (
-    <span className="relative inline-block overflow-hidden align-bottom leading-none">
-      <span className="invisible">0</span>
-      <AnimatePresence initial={false}>
-        <motion.span
-          key={char}
-          className="absolute inset-0 leading-none"
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '-100%' }}
-          transition={{ duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] }}
-        >
-          {char}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  );
-}
-
-function RollingNumber({ value }: { value: string }) {
-  return (
-    <span className="inline-flex tabular-nums">
-      {value.split('').map((char, i) => (
-        <RollingChar key={i} char={char} />
-      ))}
-    </span>
-  );
-}
-
 export function StatsGrid({
   l1,
   health,
@@ -71,17 +30,31 @@ export function StatsGrid({
   // the managed-node count is already visible in the header subtitle.
   const blockHeight = health.blockNumber !== null ? health.blockNumber.toString() : null;
   const blockValueText = blockHeight !== null ? `#${blockHeight}` : '—';
-  // Render the block height as an odometer: each digit position animates
-  // independently when its value changes, so the user sees the chain
-  // ticking forward digit-by-digit instead of a single fade-pulse on the
-  // whole number. `prefers-reduced-motion` users see the same final value
-  // without the per-digit slide because framer-motion respects the
-  // OS-level setting.
+  // Whole-number "tick up" on each RPC update: the new value enters from
+  // below with a subtle fade, the old value exits upward and fades. Reads
+  // like a scrolling ticker without the per-digit baseline-alignment
+  // problems that plagued the literal odometer (each digit needs its own
+  // clipping container, and the clip + line-height + baseline interaction
+  // breaks alignment with the leading `#` in subtle ways). `popLayout`
+  // lifts the exiting element out of flow so the new one drops into the
+  // same slot without a horizontal shift.
   const blockValue =
     blockHeight !== null ? (
-      <span aria-live="polite" aria-atomic="true" aria-label={`Latest block ${blockValueText}`}>
-        <RollingNumber value={blockValueText} />
-      </span>
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={blockHeight}
+          initial={{ y: 6, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -6, opacity: 0 }}
+          transition={{ duration: 0.25, ease: [0.21, 0.47, 0.32, 0.98] }}
+          className="inline-block"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label={`Latest block ${blockValueText}`}
+        >
+          {blockValueText}
+        </motion.span>
+      </AnimatePresence>
     ) : health.isLoading ? (
       <StatSkeleton width="w-20" />
     ) : (
