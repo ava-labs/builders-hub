@@ -166,6 +166,15 @@ export function LiveCharts({ l1 }: { l1: CombinedL1 }) {
               {paused ? 'Resume live updates' : 'Pause live updates'}
             </TooltipContent>
           </UITooltip>
+          {/* Visible "Paused" indicator — without it, the only cue that
+              the data is frozen is the Pause→Play icon swap on the
+              button, which is easy to miss after the user clicks away. */}
+          {paused && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+              <span className="h-1 w-1 rounded-full bg-amber-500" aria-hidden="true" />
+              Paused
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <PalettePicker />
