@@ -373,7 +373,7 @@ function ChainDetailsCard({
   const ownerHint =
     validatorMode.type === 'poa'
       ? 'Receives 1M initial tokens and controls the validator allowlist.'
-      : 'Receives 1M initial tokens and retains emergency control of the Staking Manager.';
+      : 'Receives 1M initial tokens. Validator membership is governed by the Staking Manager, not this address.';
 
   return (
     <motion.div
