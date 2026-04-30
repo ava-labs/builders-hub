@@ -58,10 +58,11 @@ whether this is the all-registered-validators-inactive case. Do not treat node
 restarts as a recovery step: restarting validators does not change the P-Chain
 height referenced by the last accepted L1 block.
 
-If enough active validator weight is still online, blocks should continue to be
-built as long as there is traffic. In that case, investigate connectivity,
-subnet tracking, mempool, or other consensus issues instead of using the
-recovery path below.
+If any active L1 validator weight is still present at the stuck P-Chain height,
+this is not the all-registered-validators-balance-exhausted recovery case. At
+least one registered validator is still eligible to propose, so investigate
+connectivity, subnet tracking, mempool, or other consensus issues instead of
+using the recovery path below.
 
 ## Why the Halt Occurs
 
@@ -109,9 +110,9 @@ block.
      }'
    ```
 
-   If this returns active validator weight for the L1, this guide is probably
-   not the right diagnosis. With enough active validator weight online, block
-   production should continue when there is traffic.
+   If this returns any active validator weight for the L1, this guide is not the
+   right diagnosis. At least one registered validator is still eligible at the
+   stuck P-Chain height, so the halt has a different cause.
 
 2. Check the current registered L1 validators and their balances:
 
@@ -126,7 +127,8 @@ block.
      }'
    ```
 
-   For each `validationID`, confirm the current remaining balance:
+   Confirm the current remaining balance for the validators you plan to bring
+   back online:
 
    ```bash
    avalanche validator getBalance \
@@ -135,7 +137,9 @@ block.
    ```
 
    You can also query `platform.getL1Validator` for each `validationID` and
-   inspect the `balance` field.
+   inspect the `balance` field. Before attempting recovery, top up validators
+   representing at least 80% of the L1's stake weight so the validator set can
+   resume block production once the stuck P-Chain reference advances.
 
 ## Pre-Recovery Checklist
 
@@ -143,8 +147,8 @@ Before attempting any recovery, confirm all of the following:
 
 - `platform.getValidatorsAt` returns no active L1 validator weight at the
   P-Chain height referenced by the last accepted L1 block.
-- Every registered `validationID` that should participate after recovery has a
-  current P-Chain balance greater than zero.
+- Validators representing at least 80% of the L1's stake weight have been
+  topped up and have current P-Chain balance greater than zero.
 - Do not rely on restarts alone; restarting validators does not change the
   P-Chain height referenced by the last accepted L1 block.
 - Do not rely on top-ups alone; top-ups reactivate validators at the current
@@ -177,6 +181,13 @@ coordinated all validator operators and external integrators, paused bridge
 contracts and integrations that read L1 state, taken full backups of every
 validator's `~/.avalanchego` directory, and tested on a mirrored environment if
 feasible.
+</Callout>
+
+<Callout type="info" title="Testnet Recovery Choice">
+For a halted testnet or development L1, recreating the L1 is usually the more
+straightforward path if the existing chain state can be discarded. Use this
+recovery path for testnet only when the current state must be preserved to
+continue testing.
 </Callout>
 
 AvalancheGo PR
