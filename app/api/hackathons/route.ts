@@ -84,8 +84,8 @@ export const POST = withAuthRole('devrel', async (req: NextRequest, context: any
     console.error('Error POST /api/hackathons:', error.message);
     const wrappedError = error as Error;
     return NextResponse.json(
-      { error: wrappedError },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
+      { error: wrappedError.message ?? 'An error occurred' },
+      { status: wrappedError.cause === 'ValidationError' ? 400 : 500 }
     );
   }
 });

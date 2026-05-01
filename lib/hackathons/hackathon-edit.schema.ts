@@ -50,7 +50,7 @@ const submitFieldSchema = z.discriminatedUnion("type", [
 ]);
 
 const stageSchema = z.object({
-  label: z.string().max(120),
+  label: z.string().trim().min(1).max(120),
   date: z.string().max(64),
   deadline: z.string().max(64),
   component: z.unknown().optional(),
@@ -131,9 +131,9 @@ export const hackathonEditSchema = z.object({
     stages: z.array(stageSchema).max(12).optional().default([]),
   }),
   latest: z.object({
-    start_date: z.string().max(64),
-    end_date: z.string().max(64),
-    timezone: z.string().max(100),
+    start_date: z.string().trim().min(1).max(64),
+    end_date: z.string().trim().min(1).max(64),
+    timezone: z.string().trim().min(1).max(100),
     banner: urlOrEmptySchema,
     icon: z.string(),
     small_banner: urlOrEmptySchema,
