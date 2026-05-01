@@ -176,8 +176,11 @@ const ValidationErrorModal = ({
         </div>
 
         <div
-          className="flex-1 min-h-0 overflow-y-auto space-y-5"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+          className="flex-1 min-h-0 overflow-y-auto space-y-5 pr-2"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgb(209 213 219) transparent',
+          } as React.CSSProperties}
         >
           {Object.entries(grouped).map(([section, sectionIssues]) => (
             <div key={section}>
@@ -1605,7 +1608,9 @@ const HackathonsEdit = () => {
     let targetRef: React.RefObject<HTMLDivElement | null> | null = null;
     let stepKey: 'step1' | 'step2' | 'step3' | 'step4' | 'step5' | 'step6' | 'step7' = 'step1';
 
-    if (section === 'Basic Info' || path.startsWith('main.') || path === 'cohostsEmails') {
+    if (section === 'Participants & Prizes') {
+      collapsedKey = 'about'; targetRef = step4Ref; stepKey = 'step4';
+    } else if (section === 'Basic Info' || path.startsWith('main.') || path === 'cohostsEmails') {
       collapsedKey = 'main'; targetRef = step1Ref; stepKey = 'step1';
     } else if (section === 'Stages' || path.startsWith('content.stages.')) {
       collapsedKey = 'stages'; targetRef = step2Ref; stepKey = 'step2';
@@ -1613,10 +1618,10 @@ const HackathonsEdit = () => {
       collapsedKey = 'images'; targetRef = step3Ref; stepKey = 'step3';
     } else if (section === 'Track Text' || path === 'content.tracks_text') {
       collapsedKey = 'trackText'; targetRef = step5Ref; stepKey = 'step5';
-    } else if (section.startsWith('Content') || path.startsWith('content.')) {
-      collapsedKey = 'content'; targetRef = step6Ref; stepKey = 'step6';
     } else if (section === 'Last Details') {
       collapsedKey = 'last'; targetRef = step7Ref; stepKey = 'step7';
+    } else if (section.startsWith('Content') || path.startsWith('content.')) {
+      collapsedKey = 'content'; targetRef = step6Ref; stepKey = 'step6';
     }
 
     if (collapsedKey) setCollapsed(prev => ({ ...prev, [collapsedKey!]: false }));
@@ -2352,8 +2357,15 @@ const HackathonsEdit = () => {
                         if (collapsed.main) {
                           setCollapsed((prev) => ({ ...prev, main: false }));
                         }
-                        step1Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         setActiveStep('step1');
+                        requestAnimationFrame(() => {
+                          const container = leftPanelRef.current;
+                          const el = step1Ref.current;
+                          if (!container || !el) return;
+                          const containerRect = container.getBoundingClientRect();
+                          const elRect = el.getBoundingClientRect();
+                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                        });
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step1'
                         ? 'bg-red-600 text-white border-red-500'
@@ -2365,11 +2377,18 @@ const HackathonsEdit = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        if (collapsed.images) {
-                          setCollapsed((prev) => ({ ...prev, images: false }));
+                        if (collapsed.stages) {
+                          setCollapsed((prev) => ({ ...prev, stages: false }));
                         }
-                        step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         setActiveStep('step2');
+                        requestAnimationFrame(() => {
+                          const container = leftPanelRef.current;
+                          const el = step2Ref.current;
+                          if (!container || !el) return;
+                          const containerRect = container.getBoundingClientRect();
+                          const elRect = el.getBoundingClientRect();
+                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                        });
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step2'
                         ? 'bg-red-600 text-white border-red-500'
@@ -2384,8 +2403,15 @@ const HackathonsEdit = () => {
                         if (collapsed.images) {
                           setCollapsed((prev) => ({ ...prev, images: false }));
                         }
-                        step3Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         setActiveStep('step3');
+                        requestAnimationFrame(() => {
+                          const container = leftPanelRef.current;
+                          const el = step3Ref.current;
+                          if (!container || !el) return;
+                          const containerRect = container.getBoundingClientRect();
+                          const elRect = el.getBoundingClientRect();
+                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                        });
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step3'
                         ? 'bg-red-600 text-white border-red-500'
@@ -2400,8 +2426,15 @@ const HackathonsEdit = () => {
                         if (collapsed.about) {
                           setCollapsed((prev) => ({ ...prev, about: false }));
                         }
-                        step4Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         setActiveStep('step4');
+                        requestAnimationFrame(() => {
+                          const container = leftPanelRef.current;
+                          const el = step4Ref.current;
+                          if (!container || !el) return;
+                          const containerRect = container.getBoundingClientRect();
+                          const elRect = el.getBoundingClientRect();
+                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                        });
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step4'
                         ? 'bg-red-600 text-white border-red-500'
@@ -2417,8 +2450,15 @@ const HackathonsEdit = () => {
                           if (collapsed.trackText) {
                             setCollapsed((prev) => ({ ...prev, trackText: false }));
                           }
-                          step5Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                           setActiveStep('step5');
+                          requestAnimationFrame(() => {
+                            const container = leftPanelRef.current;
+                            const el = step5Ref.current;
+                            if (!container || !el) return;
+                            const containerRect = container.getBoundingClientRect();
+                            const elRect = el.getBoundingClientRect();
+                            container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                          });
                         }}
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step5'
                           ? 'bg-red-600 text-white border-red-500'
@@ -2434,8 +2474,15 @@ const HackathonsEdit = () => {
                         if (collapsed.content) {
                           setCollapsed((prev) => ({ ...prev, content: false }));
                         }
-                        step6Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         setActiveStep('step6');
+                        requestAnimationFrame(() => {
+                          const container = leftPanelRef.current;
+                          const el = step6Ref.current;
+                          if (!container || !el) return;
+                          const containerRect = container.getBoundingClientRect();
+                          const elRect = el.getBoundingClientRect();
+                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                        });
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step6'
                         ? 'bg-red-600 text-white border-red-500'
@@ -2450,8 +2497,15 @@ const HackathonsEdit = () => {
                         if (collapsed.last) {
                           setCollapsed((prev) => ({ ...prev, last: false }));
                         }
-                        step7Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         setActiveStep('step7');
+                        requestAnimationFrame(() => {
+                          const container = leftPanelRef.current;
+                          const el = step7Ref.current;
+                          if (!container || !el) return;
+                          const containerRect = container.getBoundingClientRect();
+                          const elRect = el.getBoundingClientRect();
+                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                        });
                       }}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step7'
                         ? 'bg-red-600 text-white border-red-500'

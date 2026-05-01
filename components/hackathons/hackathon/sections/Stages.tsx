@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Upload } from "lucide-react";
 import StageSubmitPageContent from '@/components/hackathons/project-submission/stages/submit-form/page-content'
+import { renderStageIcon } from '@/components/hackathons/edit/stages/IconPicker'
 
 type StageStatus = "completed" | "current" | "upcoming";
 
@@ -445,9 +446,11 @@ function CardsComponent({ stage }: { stage: HackathonStage }): JSX.Element | nul
           <div className="absolute inset-0 bg-gradient-to-br from-[#d66666]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
 
           <div className="relative">
-            {/* <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-lg bg-[#d66666]/10 border border-[#d66666]/20">
-              {renderIcon(item.icon)}
-            </div> */}
+            {item.icon && (
+              <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-lg bg-[#d66666]/10 border border-[#d66666]/20 text-[#d66666]">
+                {renderStageIcon(item.icon, 22)}
+              </div>
+            )}
 
             <h3 className="mb-3 text-lg font-medium text-zinc-900 dark:text-white">{item.title}</h3>
 
@@ -486,9 +489,11 @@ function TagsComponent({ stage }: { stage: HackathonStage }): JSX.Element | null
         <div className="space-y-6">
           {items.map((item: StageTagItem, index: number): JSX.Element => (
             <div key={`${item.title}-${index}`} className="flex gap-4 items-start">
-              {/* <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#d66666]/20 border border-[#d66666]/30 flex items-center justify-center">
-                {renderIcon(item.icon, "small")}
-              </div> */}
+              {item.icon && (
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#d66666]/20 border border-[#d66666]/30 flex items-center justify-center text-[#d66666]">
+                  {renderStageIcon(item.icon, 18)}
+                </div>
+              )}
 
               <div className="flex-1">
                 <h4 className="text-[17px] text-zinc-900 dark:text-white mb-2">{item.title}</h4>

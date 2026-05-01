@@ -15,6 +15,20 @@ import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import StagesSection from './hackathon/sections/StagesSection';
 
+const DEFAULT_BANNER = "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png";
+
+/** Returns the URL if it is a valid http/https/data URL, otherwise returns the fallback. */
+function safeImageUrl(value: string | undefined | null, fallback: string): string {
+  if (!value) return fallback;
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'data:') return value;
+  } catch {
+    // not a valid URL
+  }
+  return fallback;
+}
+
 // Simple client-compatible Submission component for preview
 const SubmissionPreview = ({ hackathon }: { hackathon: any }) => {
   return (
@@ -128,11 +142,10 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
     if (scrollTarget && previewRef.current) {
       const targetElement = previewRef.current.querySelector(`#${scrollTarget}`);
       if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-          inline: 'nearest'
-        });
+        const containerRect = previewRef.current.getBoundingClientRect();
+        const elementRect = targetElement.getBoundingClientRect();
+        const offset = elementRect.top - containerRect.top + previewRef.current.scrollTop;
+        previewRef.current.scrollTo({ top: offset, behavior: 'smooth' });
       }
     }
   }, [scrollTarget]);
@@ -144,7 +157,7 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
     location: hackathonData.location || 'Online',
     total_prizes: hackathonData.total_prizes || 0,
     tags: hackathonData.tags || [],
-    banner: hackathonData.banner || "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png",
+    banner: safeImageUrl(hackathonData.banner, DEFAULT_BANNER),
     participants: hackathonData.participants || 0,
     organizers: hackathonData.organizers || '',
     small_banner: '',

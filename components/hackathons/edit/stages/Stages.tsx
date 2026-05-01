@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import * as AccordionPrimitive from '@radix-ui/react-accordion'
+import { ChevronDownIcon } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,6 +28,7 @@ import {
   SubmitFormField,
   SubmitFormFieldType,
 } from '@/types/hackathon-stage'
+import RemoveButton from './RemoveButton'
 
 export enum StageComponentType {
   Cards = 'cards',
@@ -44,6 +46,7 @@ type HackathonsEditStagesProps = {
 type StageFormProps = {
   stage: HackathonStage
   index: number
+  language: 'en' | 'es'
   onStageFieldChange: (
     index: number,
     field: keyof Pick<HackathonStage, 'label' | 'date' | 'deadline'>,
@@ -373,17 +376,28 @@ export default function HackathonsEditStages({
           key={`stage-${index}`}
           type="single"
           collapsible
-          className="w-full rounded-md border px-4"
+          className="w-full rounded-md border px-4 py-0.5"
         >
           <AccordionItem value={`item-${index}`}>
-            <AccordionTrigger>
-              {stage.label?.trim() ? stage.label : `Stage ${index + 1}`}
-            </AccordionTrigger>
+            <AccordionPrimitive.Header className="flex">
+              <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
+                <span>{stage.label?.trim() ? stage.label : `Stage ${index + 1}`}</span>
+                <div className="flex items-center gap-2">
+                  <ChevronDownIcon className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
+                  <RemoveButton
+                    onRemove={() => removeStage(index)}
+                    tooltipLabel="Delete stage"
+                    size={18}
+                  />
+                </div>
+              </AccordionPrimitive.Trigger>
+            </AccordionPrimitive.Header>
 
             <AccordionContent>
               <StageForm
                 stage={stage}
                 index={index}
+                language={language}
                 onStageFieldChange={updateStageField}
                 onStageComponentTypeChange={updateStageComponentType}
                 onStageComponentChange={updateStageComponent}
@@ -407,6 +421,7 @@ export default function HackathonsEditStages({
 function StageForm({
   stage,
   index,
+  language,
   onStageFieldChange,
   onStageComponentTypeChange,
   onStageComponentChange,
@@ -419,6 +434,19 @@ function StageForm({
   setActivePreviewTab,
   onRemove,
 }: StageFormProps): React.JSX.Element {
+  const validateDates = (): { error: string | null } => {
+    if (stage.date && stage.deadline) {
+      const startDate = new Date(stage.date)
+      const endDate = new Date(stage.deadline)
+      if (endDate < startDate) {
+        return { error: t[language].stageEndDateBeforeStartDate }
+      }
+    }
+    return { error: null }
+  }
+
+  const dateValidation = validateDates()
+
   return (
     <div className="space-y-4 pt-2">
       <div className="space-y-2">
@@ -435,7 +463,7 @@ function StageForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`stage-date-${index}`}>Start date</Label>
+        <Label htmlFor={`stage-date-${index}`}>{t[language].stageStartDateLabel}</Label>
         <Input
           id={`stage-date-${index}`}
           type="date"
@@ -447,7 +475,7 @@ function StageForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`stage-deadline-${index}`}>End date</Label>
+        <Label htmlFor={`stage-deadline-${index}`}>{t[language].stageEndDateLabel}</Label>
         <Input
           id={`stage-deadline-${index}`}
           type="date"
@@ -456,13 +484,19 @@ function StageForm({
             onStageFieldChange(index, 'deadline', event.target.value)
           }
         />
+        {dateValidation.error && (
+          <p className="text-sm text-red-500">{dateValidation.error}</p>
+        )}
       </div>
 
       <Divider />
-      <h1 className="text-lg font-bold">Component</h1>
+      <div>
+        <h1 className="text-lg font-bold">{t[language].stageContentSection}</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">{t[language].stageContentSectionHelp}</p>
+      </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`stage-type-${index}`}>Type</Label>
+        <Label htmlFor={`stage-type-${index}`}>{t[language].stageDisplayFormat}</Label>
         <select
           id={`stage-type-${index}`}
           className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -475,9 +509,16 @@ function StageForm({
           }
         >
           <option value="">Select type</option>
-          <option value={StageComponentType.Cards}>Cards</option>
-          <option value={StageComponentType.Tags}>Tags</option>
+          <option value={StageComponentType.Cards}>{t[language].stageCardsLabel}</option>
+          <option value={StageComponentType.Tags}>{t[language].stageTagsLabel}</option>
         </select>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {stage.component?.type === StageComponentType.Cards
+            ? t[language].stageCardsDescription
+            : stage.component?.type === StageComponentType.Tags
+              ? t[language].stageTagsDescription
+              : ''}
+        </p>
       </div>
 
       {stage.component?.type === StageComponentType.Cards && (
@@ -509,16 +550,6 @@ function StageForm({
         setSelectedStageForm={setSelectedStageForm}
         setActivePreviewTab={setActivePreviewTab}
       />
-
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          variant="destructive"
-          onClick={() => onRemove(index)}
-        >
-          Remove stage
-        </Button>
-      </div>
     </div>
   )
 }

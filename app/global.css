@@ -470,6 +470,40 @@ svg.lucide.lucide-folder-open {
   background: #2a3f85;
 }
 
+/* Validation error modal scrollbar - light theme */
+div[style*="scrollbarWidth: 'thin'"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+div[style*="scrollbarWidth: 'thin'"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+div[style*="scrollbarWidth: 'thin'"]::-webkit-scrollbar-thumb {
+  background: rgb(209 213 219);
+  border-radius: 3px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+div[style*="scrollbarWidth: 'thin'"]::-webkit-scrollbar-thumb:hover {
+  background: rgb(161 161 170);
+  background-clip: content-box;
+}
+
+/* Validation error modal scrollbar - dark theme */
+.dark div[style*="scrollbarWidth: 'thin'"]::-webkit-scrollbar-thumb {
+  background: rgb(63 63 70);
+  border-radius: 3px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.dark div[style*="scrollbarWidth: 'thin'"]::-webkit-scrollbar-thumb:hover {
+  background: rgb(82 82 91);
+  background-clip: content-box;
+}
+
 @media screen and (max-width: 768px) {
   #comment-box {
     max-height: 250px;

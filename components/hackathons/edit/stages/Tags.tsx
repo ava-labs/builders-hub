@@ -1,16 +1,19 @@
 'use client'
 
 import React from 'react'
+import * as AccordionPrimitive from '@radix-ui/react-accordion'
+import { ChevronDownIcon } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { HackathonStage, TagItem, TagsComponent } from '@/types/hackathon-stage'
+import IconPicker from './IconPicker'
+import RemoveButton from './RemoveButton'
 
 type StageTagsFormProps = {
   component: TagsComponent
@@ -91,7 +94,7 @@ export default function StageTagsForm({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor={`tags-title-${index}`}>Title</Label>
+        <Label htmlFor={`tags-title-${index}`}>Title of detailed list</Label>
         <Input
           id={`tags-title-${index}`}
           type="text"
@@ -103,7 +106,7 @@ export default function StageTagsForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`tags-description-${index}`}>Description</Label>
+        <Label htmlFor={`tags-description-${index}`}>Description of detailed list</Label>
         <Input
           id={`tags-description-${index}`}
           type="text"
@@ -119,7 +122,7 @@ export default function StageTagsForm({
         className="bg-green-600 hover:bg-green-700 text-white"
         onClick={addTag}
       >
-        Add tag
+        Add item
       </Button>
 
       {component.tags.map((tag: TagItem, tagIndex: number) => (
@@ -130,21 +133,27 @@ export default function StageTagsForm({
           className="w-full rounded-md border px-4"
         >
           <AccordionItem value={`tag-item-${tagIndex}`}>
-            <AccordionTrigger>
-              {tag.title?.trim() ? tag.title : `Tag ${tagIndex + 1}`}
-            </AccordionTrigger>
+            <AccordionPrimitive.Header className="flex">
+              <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
+                <span>{tag.title?.trim() ? tag.title : `Item ${tagIndex + 1}`}</span>
+                <div className="flex items-center gap-2">
+                  <ChevronDownIcon className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
+                  <RemoveButton
+                    onRemove={() => removeTag(tagIndex)}
+                    tooltipLabel="Delete item"
+                    size={18}
+                  />
+                </div>
+              </AccordionPrimitive.Trigger>
+            </AccordionPrimitive.Header>
 
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor={`tag-icon-${index}-${tagIndex}`}>Icon</Label>
-                  <Input
-                    id={`tag-icon-${index}-${tagIndex}`}
-                    type="text"
+                  <IconPicker
+                    label="Icon"
                     value={tag.icon}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      updateTagField(tagIndex, 'icon', event.target.value)
-                    }
+                    onChange={(key) => updateTagField(tagIndex, 'icon', key)}
                   />
                 </div>
 
@@ -172,16 +181,6 @@ export default function StageTagsForm({
                       updateTagField(tagIndex, 'description', event.target.value)
                     }
                   />
-                </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => removeTag(tagIndex)}
-                  >
-                    Remove tag
-                  </Button>
                 </div>
               </div>
             </AccordionContent>
