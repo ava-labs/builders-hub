@@ -163,10 +163,27 @@ export default function BasicSetupForm() {
     setChainName((prev) => (prev ? prev : generateChainName()));
   }, []);
 
-  // Submit gate: chain name + valid owner address. PoS no longer needs
-  // an extra address validation here because the staking token is
+  // Chain name validation mirrors avalanchego's CreateChainTx rule
+  // (vms/platformvm/txs/create_chain_tx.go): ASCII letters, digits, and
+  // spaces only — no `_`, `-`, `.`, emoji, accents. Reject up front so
+  // the user sees the issue immediately instead of failing mid-deploy
+  // with a confusing P-Chain error. Returns null when the value is
+  // acceptable, otherwise a one-line message for the field.
+  const chainNameTrimmed = chainName.trim();
+  const chainNameError: string | null = (() => {
+    if (chainNameTrimmed.length === 0) return null; // don't shout on empty
+    if (chainNameTrimmed.length < 2) return 'At least 2 characters';
+    if (chainNameTrimmed.length > 32) return 'At most 32 characters';
+    if (!/^[a-zA-Z0-9 ]+$/.test(chainNameTrimmed)) {
+      return 'Only letters, digits, and spaces — no _, -, ., or emoji';
+    }
+    return null;
+  })();
+
+  // Submit gate: valid chain name + valid owner address. PoS no longer
+  // needs an extra address validation here because the staking token is
   // deployed by the orchestrator (not chosen by the user).
-  const canSubmit = chainName.trim().length >= 2 && /^0x[a-fA-F0-9]{40}$/.test(ownerAddress);
+  const canSubmit = chainNameTrimmed.length >= 2 && chainNameError === null && /^0x[a-fA-F0-9]{40}$/.test(ownerAddress);
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
@@ -257,6 +274,7 @@ export default function BasicSetupForm() {
             <ChainDetailsCard
               chainName={chainName}
               setChainName={setChainName}
+              chainNameError={chainNameError}
               ownerAddress={ownerAddress}
               onOwnerChange={(v) => {
                 setOwnerTouched(true);
@@ -351,6 +369,7 @@ export default function BasicSetupForm() {
 function ChainDetailsCard({
   chainName,
   setChainName,
+  chainNameError,
   ownerAddress,
   onOwnerChange,
   validatorMode,
@@ -359,6 +378,7 @@ function ChainDetailsCard({
 }: {
   chainName: string;
   setChainName: (v: string) => void;
+  chainNameError: string | null;
   ownerAddress: string;
   onOwnerChange: (v: string) => void;
   validatorMode: ValidatorMode;
@@ -393,11 +413,12 @@ function ChainDetailsCard({
       <div className="px-5 py-5 space-y-5 flex-1">
         <BigField
           label="Chain name"
-          hint="Registered on the Avalanche P-Chain. 2–32 characters."
+          hint="Registered on the Avalanche P-Chain. 2–32 characters. Letters, digits, and spaces only."
           value={chainName}
           onChange={setChainName}
           placeholder="My Awesome L1"
           maxLength={32}
+          error={chainNameError}
         />
         <ValidatorTypeToggle value={validatorMode} onChange={onValidatorModeChange} />
         {/* Inline wallet preview, surfaced right below the PoS toggle so
@@ -521,6 +542,7 @@ function BigField({
   placeholder,
   maxLength,
   mono,
+  error,
 }: {
   label: string;
   hint?: string;
@@ -529,6 +551,8 @@ function BigField({
   placeholder?: string;
   maxLength?: number;
   mono?: boolean;
+  /** Inline validation message. Replaces the hint when present and switches the input border red. */
+  error?: string | null;
 }) {
   return (
     <motion.div
@@ -549,17 +573,24 @@ function BigField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
+        aria-invalid={error ? true : undefined}
         className={cn(
-          'w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900',
+          'w-full rounded-xl border bg-white dark:bg-zinc-900',
           'px-4 py-3.5 text-[15px] text-zinc-900 dark:text-zinc-100',
           'placeholder:text-zinc-400 dark:placeholder:text-zinc-600',
           'transition-all duration-200',
-          'focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-4 focus:ring-zinc-900/5 dark:focus:ring-white/5',
-          'hover:border-zinc-300 dark:hover:border-zinc-700',
+          'focus:outline-none focus:ring-4',
           mono && 'font-mono',
+          error
+            ? 'border-red-400 dark:border-red-500 focus:border-red-500 focus:ring-red-500/10'
+            : 'border-zinc-200 dark:border-zinc-800 focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-zinc-900/5 dark:focus:ring-white/5 hover:border-zinc-300 dark:hover:border-zinc-700',
         )}
       />
-      {hint && <p className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>}
+      {error ? (
+        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+      ) : (
+        hint && <p className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
+      )}
     </motion.div>
   );
 }

@@ -43,6 +43,24 @@ export async function POST(request: NextRequest): Promise<NextResponse<DeployRes
       { status: 400 },
     );
   }
+  // Mirror avalanchego's CreateChainTx rule (vms/platformvm/txs/create_chain_tx.go):
+  // ASCII letters, digits, and spaces only — no `_`, `-`, `.`, emoji, accents.
+  // Catching this here avoids a round trip to the Railway service
+  // (which also re-validates) and gives the user a faster 400.
+  const trimmedChainName = clientBody.chainName.trim();
+  if (
+    trimmedChainName.length < 1 ||
+    trimmedChainName.length > 64 ||
+    !/^[a-zA-Z0-9 ]+$/.test(trimmedChainName)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          'chainName must be 1-64 characters and contain only ASCII letters, digits, and spaces (no _, -, ., emoji, or accents)',
+      },
+      { status: 400 },
+    );
+  }
   if (clientBody.network !== 'fuji') {
     return NextResponse.json({ error: 'Only Fuji network is supported in the MVP' }, { status: 400 });
   }
@@ -66,7 +84,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<DeployRes
 
   // Strip any client-supplied userId and inject the server-verified one.
   const body: DeployRequest = {
-    chainName: clientBody.chainName,
+    chainName: trimmedChainName,
     tokenSymbol: clientBody.tokenSymbol,
     ownerEvmAddress: clientBody.ownerEvmAddress,
     ownerPChainAddress: clientBody.ownerPChainAddress,
