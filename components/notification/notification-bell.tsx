@@ -8,9 +8,9 @@ import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@radix-ui
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
-import DOMPurify from "isomorphic-dompurify";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { sanitizeHtml } from "@/utils/sanitizeMarkdown";
 
 export type DbNotification = {
   id: number;
@@ -262,7 +262,7 @@ export function NotificationAccordionItem(
                   {notification.content}
                 </ReactMarkdown>;
               case "text/html": {
-                const sanitizedHtml: string = DOMPurify.sanitize(notification.content);
+                const sanitizedHtml: string = sanitizeHtml(notification.content);
 
                 return (
                   <div

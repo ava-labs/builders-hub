@@ -129,7 +129,6 @@
     "i18n-iso-countries": "^7.14.0",
     "idb": "^8.0.3",
     "input-otp": "^1.4.2",
-    "isomorphic-dompurify": "^3.0.0-rc.2",
     "jsonwebtoken": "^9.0.3",
     "jszip": "^3.10.1",
     "katex": "0.16.35",
