@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { ShieldCheck, UserCheck } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
@@ -34,12 +33,17 @@ type Step = {
   isActive: (pathname: string) => boolean;
 };
 
+// Titles are kept to a single short word per pill so every card gets the
+// same single-line height in the 7-col grid — "Balance & History" used
+// to wrap on the narrow xl-breakpoint columns and threw the row off,
+// which read as the active card "changing shape." Subtitles also kept
+// short so they fit on one truncated line.
 const STEPS: Step[] = [
   {
     key: 'register',
     href: '/console/encrypted-erc/register',
     title: 'Register',
-    subtitle: 'One wallet sig → BJJ identity',
+    subtitle: 'Sign + publish key',
     accent: 'emerald',
     Icon: KeyAnim,
     isActive: (p) => p.startsWith('/console/encrypted-erc/register'),
@@ -48,7 +52,7 @@ const STEPS: Step[] = [
     key: 'deposit',
     href: '/console/encrypted-erc/deposit',
     title: 'Deposit',
-    subtitle: 'Wrap an ERC20 → encrypted',
+    subtitle: 'Wrap to encrypted',
     accent: 'blue',
     Icon: ArrowDownAnim,
     isActive: (p) => p.startsWith('/console/encrypted-erc/deposit'),
@@ -56,8 +60,8 @@ const STEPS: Step[] = [
   {
     key: 'transfer',
     href: '/console/encrypted-erc/transfer',
-    title: 'Private Transfer',
-    subtitle: 'ZK proof, hidden amount',
+    title: 'Transfer',
+    subtitle: 'Send privately',
     accent: 'violet',
     Icon: SendAnim,
     isActive: (p) => p.startsWith('/console/encrypted-erc/transfer'),
@@ -66,7 +70,7 @@ const STEPS: Step[] = [
     key: 'withdraw',
     href: '/console/encrypted-erc/withdraw',
     title: 'Withdraw',
-    subtitle: 'Burn encrypted → ERC20 out',
+    subtitle: 'Burn to public',
     accent: 'rose',
     Icon: ArrowUpAnim,
     isActive: (p) => p.startsWith('/console/encrypted-erc/withdraw'),
@@ -74,8 +78,8 @@ const STEPS: Step[] = [
   {
     key: 'balance',
     href: '/console/encrypted-erc/balance',
-    title: 'Balance & History',
-    subtitle: 'Decrypt + view raw ciphertext',
+    title: 'Balance',
+    subtitle: 'Decrypt your balance',
     accent: 'amber',
     Icon: EyeAnim,
     isActive: (p) => p.startsWith('/console/encrypted-erc/balance'),
@@ -83,8 +87,8 @@ const STEPS: Step[] = [
   {
     key: 'auditor',
     href: '/console/encrypted-erc/auditor',
-    title: 'Auditor View',
-    subtitle: 'Decrypt compliance events',
+    title: 'Auditor',
+    subtitle: 'Compliance decrypt',
     accent: 'emerald',
     Icon: ShieldCheck,
     isActive: (p) => p.startsWith('/console/encrypted-erc/auditor'),
@@ -93,7 +97,7 @@ const STEPS: Step[] = [
     key: 'set-auditor',
     href: '/console/encrypted-erc/deploy/auditor',
     title: 'Set Auditor',
-    subtitle: 'Designate auditor BJJ key',
+    subtitle: 'Designate auditor',
     accent: 'violet',
     Icon: UserCheck,
     isActive: (p) => p.startsWith('/console/encrypted-erc/deploy/auditor'),
@@ -251,23 +255,27 @@ function StepCard({ step, active, status }: { step: Step; active: boolean; statu
   const { Icon } = step;
   const statusMeta = status ? STATUS_STYLES[status] : null;
 
-  // Tightened version of Overview's ActionTile: p-3 (vs p-4), 8x8 icon
-  // tile (vs 9x9), text-[12px] title (vs text-sm), one-line subtitle.
-  // Active card uses a stronger zinc border + subtly elevated bg —
-  // chromatic-silent so the corner status badges stay the only signal
-  // colour.
-  const wrapperClass = cn(
-    'group relative h-full rounded-xl border p-3 transition-colors duration-200',
-    active
-      ? 'border-zinc-400 dark:border-zinc-500 bg-zinc-50 dark:bg-zinc-800/80'
-      : 'border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm hover:border-zinc-300 dark:hover:border-zinc-700',
-  );
-
-  const content = (
-    <motion.div
-      whileHover={active ? undefined : { y: -1 }}
-      transition={{ type: 'spring' as const, stiffness: 420, damping: 26 }}
-      className={wrapperClass}
+  // Both active and inactive render through the SAME <Link> element, so
+  // the grid item is the same DOM type and the cell measures identically
+  // in either state. We just block the navigation when active (no point
+  // in re-firing the same page load) and toggle border colour. Earlier
+  // versions used <div> for active vs <Link> for inactive, which made
+  // CSS Grid auto-track sizing land on subtly different intrinsic widths
+  // for some cells — this is the fix for the "active title truncates to
+  // 'B…'" papercut.
+  return (
+    <Link
+      href={step.href}
+      aria-label={`Go to ${step.title}`}
+      aria-current={active ? 'page' : undefined}
+      onClick={active ? (e) => e.preventDefault() : undefined}
+      tabIndex={active ? -1 : undefined}
+      className={cn(
+        'group relative block h-full rounded-lg border px-2.5 py-2 transition-all duration-200 hover:-translate-y-px',
+        active
+          ? 'cursor-default border-zinc-400 dark:border-zinc-500 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm hover:translate-y-0'
+          : 'border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm hover:border-zinc-300 dark:hover:border-zinc-700',
+      )}
       style={{
         boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.03)',
       }}
@@ -275,38 +283,36 @@ function StepCard({ step, active, status }: { step: Step; active: boolean; statu
       {statusMeta && (
         <span
           className={cn(
-            'absolute right-2 top-2 rounded-full border px-1.5 py-0.5 text-[9px] font-medium leading-none',
+            'absolute right-1.5 top-1.5 rounded-full border px-1.5 py-0.5 text-[9px] font-medium leading-none',
             statusMeta.className,
           )}
         >
           {statusMeta.label}
         </span>
       )}
-      <div
-        className={cn(
-          'w-8 h-8 rounded-lg flex items-center justify-center mb-2 transition-colors',
-          active ? 'bg-zinc-200 dark:bg-zinc-700' : cn('bg-zinc-100 dark:bg-zinc-800', ACCENT_BG[step.accent]),
-        )}
-      >
-        <span className={cn('[&_svg]:w-3.5 [&_svg]:h-3.5', ACCENT_ICON[step.accent])}>
-          <Icon />
-        </span>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          className={cn(
+            'shrink-0 w-7 h-7 rounded-md flex items-center justify-center transition-colors',
+            'bg-zinc-100 dark:bg-zinc-800',
+            ACCENT_BG[step.accent],
+          )}
+        >
+          <span className={cn('[&_svg]:w-3.5 [&_svg]:h-3.5', ACCENT_ICON[step.accent])}>
+            <Icon />
+          </span>
+        </div>
+        {/* pr-10 reserves a fixed lane for the corner status badge so
+            the title never has to fight it for horizontal space. The
+            value is hand-tuned to the badge width (≈42px including
+            border + padding) at the smallest sensible font. */}
+        <div className="min-w-0 flex-1 pr-10">
+          <h3 className="text-[12px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight truncate">
+            {step.title}
+          </h3>
+          <p className="mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug truncate">{step.subtitle}</p>
+        </div>
       </div>
-      <h3 className="text-[12px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">{step.title}</h3>
-      <p className="mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug truncate">{step.subtitle}</p>
-    </motion.div>
-  );
-
-  if (active) {
-    return (
-      <div aria-current="page" className="block h-full">
-        {content}
-      </div>
-    );
-  }
-  return (
-    <Link href={step.href} aria-label={`Go to ${step.title}`} className="block h-full">
-      {content}
     </Link>
   );
 }
