@@ -59,11 +59,6 @@ export default function DepositStep() {
     }
   }
   const preview = depositWei !== null ? dep.preview(depositWei) : { cents: 0n, dustWei: 0n };
-  const busy =
-    dep.status === 'checking-allowance' ||
-    dep.status === 'approving' ||
-    dep.status === 'depositing' ||
-    dep.status === 'confirming';
   const done = dep.status === 'success';
 
   const canSubmit =
@@ -76,6 +71,16 @@ export default function DepositStep() {
   const hasAllowance = depositWei !== null && dep.currentAllowance !== null && dep.currentAllowance >= depositWei;
   const canApprove =
     depositWei !== null && depositWei > 0n && wavaxBalance !== null && depositWei <= wavaxBalance && !hasAllowance;
+
+  // The deposit hook reuses `confirming` for both wallet-side phases, so
+  // we partition it by `hasAllowance` to know which button is the one
+  // actively waiting on chain. While `approving` is true *both* buttons
+  // show a spinner — the row reads as one in-flight 1→2 sequence rather
+  // than the deposit step looking idle while step 1 is mid-confirmation.
+  const approving = dep.status === 'approving' || (dep.status === 'confirming' && !hasAllowance);
+  const depositing = dep.status === 'depositing' || (dep.status === 'confirming' && hasAllowance);
+  const checkingAllowance = dep.status === 'checking-allowance';
+  const busy = approving || depositing || checkingAllowance;
 
   useEffect(() => {
     if (depositWei !== null && depositWei > 0n) {
@@ -213,20 +218,29 @@ export default function DepositStep() {
                   )}
 
                   <div className="mt-3">
+                    {/* Two-step button row. Both buttons are always
+                        visible so the user sees the full sequence up
+                        front; the Deposit button stays disabled until
+                        `hasAllowance` is true so it's clear the approve
+                        step has to land first. Mirrors the same
+                        approve-then-action pattern we use on the
+                        staking flows (`InitiateValidatorRegistration`,
+                        `InitiateDelegation`). */}
                     <p className="mb-2 text-[11px] text-zinc-500 dark:text-zinc-400">
                       {depositWei === null || depositWei <= 0n
-                        ? 'Enter an amount to see the next transaction.'
+                        ? 'Enter an amount to see the two transactions.'
                         : dep.currentAllowance === null
                           ? 'Checking WAVAX allowance...'
                           : hasAllowance
-                            ? 'Allowance is ready. The next transaction deposits into EncryptedERC.'
-                            : 'Approval required first. The deposit transaction appears after approval confirms.'}
+                            ? 'Step 1 done — the deposit transaction is ready to sign.'
+                            : 'Step 1: approve WAVAX. Step 2 unlocks once the approval confirms on-chain.'}
                     </p>
-                    {!hasAllowance ? (
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button
-                        variant="primary"
-                        loading={dep.status === 'approving' || dep.status === 'confirming'}
-                        disabled={!canApprove || busy}
+                        variant={hasAllowance ? 'secondary' : 'primary'}
+                        loading={approving}
+                        loadingText={dep.status === 'approving' ? 'Approving WAVAX...' : 'Confirming approval...'}
+                        disabled={hasAllowance || !canApprove || busy}
                         onClick={() => {
                           if (depositWei !== null)
                             dep.approve(depositWei).catch(() => {
@@ -234,17 +248,22 @@ export default function DepositStep() {
                             });
                         }}
                       >
-                        {dep.status === 'approving'
-                          ? 'Approving WAVAX...'
-                          : dep.status === 'confirming'
-                            ? 'Confirming approval...'
-                            : 'Approve WAVAX'}
+                        {hasAllowance ? `Approved (${amount || '0'} WAVAX)` : `1. Approve ${amount || '0'} WAVAX`}
                       </Button>
-                    ) : (
                       <Button
                         variant="primary"
-                        loading={dep.status === 'depositing' || dep.status === 'confirming'}
-                        disabled={!canSubmit || busy}
+                        // Deposit button spins during approve too — same
+                        // sequence, the user shouldn't see step 2 sit idle
+                        // while step 1 is pending in the wallet/chain.
+                        loading={approving || depositing}
+                        loadingText={
+                          approving
+                            ? 'Waiting for approval...'
+                            : dep.status === 'depositing'
+                              ? 'Depositing...'
+                              : 'Confirming deposit...'
+                        }
+                        disabled={!hasAllowance || !canSubmit || busy}
                         onClick={() => {
                           if (depositWei !== null)
                             dep.deposit(depositWei).catch(() => {
@@ -252,13 +271,9 @@ export default function DepositStep() {
                             });
                         }}
                       >
-                        {dep.status === 'depositing'
-                          ? 'Depositing...'
-                          : dep.status === 'confirming'
-                            ? 'Confirming deposit...'
-                            : 'Deposit'}
+                        2. Deposit
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
