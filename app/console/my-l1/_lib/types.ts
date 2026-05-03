@@ -51,6 +51,10 @@ export type CombinedL1 = {
   explorerUrl?: string;
   hasBuilderHubFaucet?: boolean;
   externalFaucetUrl?: string;
+  /** Stringified genesis JSON when known. Carried over from the wallet
+   *  L1ListItem so Copy Genesis on the detail header can serve it without
+   *  going back to the store. */
+  genesisData?: string;
 };
 
 export function walletItemToCombined(w: L1ListItem): CombinedL1 {
@@ -82,6 +86,7 @@ export function metadataFromWalletItem(w: L1ListItem) {
     explorerUrl: optional(w.explorerUrl),
     hasBuilderHubFaucet: w.hasBuilderHubFaucet,
     externalFaucetUrl: optional(w.externalFaucetUrl),
+    genesisData: optional(w.genesisData),
   };
 }
 
