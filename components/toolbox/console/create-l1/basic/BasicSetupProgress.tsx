@@ -61,11 +61,19 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
     return <BasicSetupComplete job={job} />;
   }
 
-  const completedCount = Math.min(
-    job?.completedSteps.filter((s) => visibleSteps.includes(s)).length ?? 0,
-    visibleSteps.length,
-  );
-  const currentStep = job?.currentStep ?? visibleSteps[0];
+  const completedSet = useMemo(() => new Set(job?.completedSteps ?? []), [job?.completedSteps]);
+  const completedCount = Math.min(visibleSteps.filter((s) => completedSet.has(s)).length, visibleSteps.length);
+  // The orchestrator runs Phase A2 (deployValidatorManager,
+  // provisioning-node, reserving-relayer) in parallel, so steps
+  // complete out of declaration order — `job.currentStep` flickers
+  // among them as each one's startStep call lands. Pick the leftmost
+  // not-yet-completed visible step instead. This advances smoothly
+  // left-to-right and never appears to "jump back" on parallel finishes.
+  // Falls back to job.currentStep if every visible step is in
+  // completedSet but the job hasn't reached `complete` yet (shouldn't
+  // happen, but the fallback keeps the UI from rendering empty).
+  const firstIncomplete = visibleSteps.find((s) => !completedSet.has(s));
+  const currentStep: DeploymentStep | undefined = firstIncomplete ?? job?.currentStep ?? visibleSteps[0];
   const currentIdx = Math.max(
     0,
     visibleSteps.findIndex((s) => s === currentStep),

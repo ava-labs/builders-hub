@@ -55,14 +55,21 @@ export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
  * invariants that make this ordering safe (L1 RPC readiness guard +
  * WS proxy buffering + late signing).
  */
+// Visual + canonical order. Mirrors quick-l1's DEPLOYMENT_STEPS, which
+// reflects the orchestrator's actual phase flow so the progress UI's
+// "first incomplete step" advances left-to-right even though Phase A2
+// (deployValidatorManager / provisioning-node / reserving-relayer)
+// runs concurrently. Out-of-order completion within a phase is
+// invisible — completed dots light up and the active marker points
+// at the leftmost not-yet-completed step.
 export const DEPLOYMENT_STEPS: DeploymentStep[] = [
   'creating-subnet',
   'deploying-validator-manager',
+  'provisioning-node',
   'reserving-relayer',
   'creating-chain',
   'configuring-erc20-pos',
   'initializing-manager',
-  'provisioning-node',
   'attaching-relayer',
   'converting-to-l1',
   'initializing-validator-set',
