@@ -35,6 +35,11 @@ export type L1ListItem = {
     symbol: string;
     decimals: number;
   };
+  /** Stringified genesis JSON used when creating this L1, when known.
+   *  Populated by the create-L1 wizard or by the Add Chain modal's
+   *  optional paste field. Absent for older entries and for imported
+   *  external chains where the user did not have the genesis. */
+  genesisData?: string;
 };
 
 const l1ListInitialStateFuji = {

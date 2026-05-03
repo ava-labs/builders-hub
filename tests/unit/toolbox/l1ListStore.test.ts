@@ -44,3 +44,56 @@ describe('l1ListStore.addL1 isTestnet invariant', () => {
     expect(added!.isTestnet).toBe(false);
   });
 });
+
+describe('l1ListStore — genesisData field', () => {
+  const genesisSeedWith: L1ListItem = {
+    id: 'genesis-test-id-1',
+    name: 'Test L1 With Genesis',
+    rpcUrl: 'https://example/rpc',
+    evmChainId: 9_999_011,
+    coinName: 'TST',
+    isTestnet: true,
+    subnetId: 'sub-genesis-1',
+    wrappedTokenAddress: '',
+    validatorManagerAddress: '',
+    logoUrl: '',
+    genesisData: '{"config":{"chainId":9999011}}',
+  };
+  const genesisSeedWithout: L1ListItem = {
+    id: 'genesis-test-id-2',
+    name: 'Older L1 No Genesis',
+    rpcUrl: 'https://example/rpc2',
+    evmChainId: 9_999_012,
+    coinName: 'TST2',
+    isTestnet: true,
+    subnetId: 'sub-genesis-2',
+    wrappedTokenAddress: '',
+    validatorManagerAddress: '',
+    logoUrl: '',
+  };
+
+  afterEach(() => {
+    const testnet = getL1ListStore(true);
+    testnet.setState((s: { l1List: L1ListItem[] }) => ({
+      l1List: s.l1List.filter((l) => l.id !== genesisSeedWith.id && l.id !== genesisSeedWithout.id),
+    }));
+  });
+
+  it('persists genesisData when an L1 is added', () => {
+    const store = getL1ListStore(true);
+    store.getState().addL1(genesisSeedWith);
+    const persisted = store
+      .getState()
+      .l1List.find((l: L1ListItem) => l.id === genesisSeedWith.id);
+    expect(persisted?.genesisData).toBe('{"config":{"chainId":9999011}}');
+  });
+
+  it('treats missing genesisData as undefined (back-compat)', () => {
+    const store = getL1ListStore(true);
+    store.getState().addL1(genesisSeedWithout);
+    const persisted = store
+      .getState()
+      .l1List.find((l: L1ListItem) => l.id === genesisSeedWithout.id);
+    expect(persisted?.genesisData).toBeUndefined();
+  });
+});
