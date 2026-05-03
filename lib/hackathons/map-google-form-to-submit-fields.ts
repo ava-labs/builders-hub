@@ -95,7 +95,6 @@ export function mapGoogleFormToSubmitFields(form: GoogleFormsGetResponse): {
       f.label = title
       f.description = description
       f.required = required
-      f.rows = 4
       fields.push(f)
       continue
     }

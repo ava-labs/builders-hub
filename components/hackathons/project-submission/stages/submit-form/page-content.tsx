@@ -116,11 +116,6 @@ export default function StageSubmitPageContent({
         const textField: TextStagesSubmitFormField =
           field as TextStagesSubmitFormField
 
-        const rows: number =
-          typeof textField.rows === 'number' && textField.rows > 1
-            ? textField.rows
-            : 1
-
         return (
           <FormField
             key={textField.id}
@@ -136,24 +131,13 @@ export default function StageSubmitPageContent({
                 </FormLabel>
                 <FormDescription className={fieldDescriptionClassName}>{textField.description}</FormDescription>
                 <FormControl>
-                  {rows > 1 ? (
-                    <Textarea
-                      value={(rhfField.value as string) ?? ''}
-                      onChange={rhfField.onChange}
-                      placeholder={textField.placeholder}
-                      rows={rows}
-                      maxLength={textField.maxCharacters ?? undefined}
-                      className={`min-h-[120px] resize-none ${inputClassName}`}
-                    />
-                  ) : (
-                    <Input
-                      value={(rhfField.value as string) ?? ''}
-                      onChange={rhfField.onChange}
-                      placeholder={textField.placeholder}
-                      maxLength={textField.maxCharacters ?? undefined}
-                      className={inputClassName}
-                    />
-                  )}
+                  <Input
+                    value={(rhfField.value as string) ?? ''}
+                    onChange={rhfField.onChange}
+                    placeholder={textField.placeholder}
+                    maxLength={textField.maxCharacters ?? undefined}
+                    className={inputClassName}
+                  />
                 </FormControl>
               </FormItem>
             )}

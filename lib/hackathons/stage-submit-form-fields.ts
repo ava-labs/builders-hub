@@ -15,7 +15,6 @@ export function createTextStagesSubmitFormField(
     placeholder: '',
     description: '',
     maxCharacters: null,
-    rows: null,
     required: false,
   }
 }

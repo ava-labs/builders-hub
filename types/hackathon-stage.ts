@@ -9,7 +9,7 @@ export type HackathonStage = {
 export type StageComponent = CardComponent | TagsComponent;
 
 export type CardComponent = {
-  type: "cards";
+  type: 'cards';
   cards: {
     icon: string;
     title: string;
@@ -18,7 +18,7 @@ export type CardComponent = {
 };
 
 export type TagsComponent = {
-  type: "tags";
+  type: 'tags';
   title: string;
   description: string;
   tags: TagItem[];
@@ -31,44 +31,42 @@ export type TagItem = {
 };
 
 export enum SubmitFormFieldType {
-  Text = "text",
-  Link = "link",
-  Chips = "chips",
+  Text = 'text',
+  Link = 'link',
+  Chips = 'chips',
 }
 
 export type TextStagesSubmitFormField = {
-  id: string
-  type: SubmitFormFieldType.Text
-  label: string
-  placeholder: string
-  description: string
-  required: boolean
-  maxCharacters: number | null
-  rows: number | null
-}
+  id: string;
+  type: SubmitFormFieldType.Text;
+  label: string;
+  placeholder: string;
+  description: string;
+  required: boolean;
+  maxCharacters: number | null;
+};
 
 export type LinkStagesSubmitFormField = {
   id: string;
   type: SubmitFormFieldType.Link;
   label: string;
   placeholder: string;
-  description: string
+  description: string;
   required: boolean;
 };
 
 export type ChipsStagesSubmitFormField = {
-  id: string
-  type: SubmitFormFieldType.Chips
-  label: string
-  description: string
-  required: boolean
-  chips: string[]
-}
+  id: string;
+  type: SubmitFormFieldType.Chips;
+  label: string;
+  description: string;
+  required: boolean;
+  chips: string[];
+};
 
-export type SubmitFormField =
-  | TextStagesSubmitFormField
-  | LinkStagesSubmitFormField
-  | ChipsStagesSubmitFormField;
+export type SubmitFormField = (TextStagesSubmitFormField | LinkStagesSubmitFormField | ChipsStagesSubmitFormField) & {
+  projectColumnName?: string;
+};
 
 export type StageSubmitForm = {
   fields: SubmitFormField[];

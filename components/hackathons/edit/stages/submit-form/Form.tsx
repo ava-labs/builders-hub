@@ -26,6 +26,7 @@ import {
   SubmitFormFieldType,
   TextStagesSubmitFormField as TextStagesSubmitFormFieldType,
 } from '@/types/hackathon-stage'
+import { BASE_SUBMIT_FORM_FIELDS, BaseSubmitFormFieldKey } from './fields/base-fields'
 
 type StageSubmitFormProps = {
   stageIndex: number
@@ -57,6 +58,18 @@ function replaceSubmitFormFieldType(
       return createLinkStagesSubmitFormField(currentField.id)
     case SubmitFormFieldType.Chips:
       return createChipsStagesSubmitFormField(currentField.id)
+  }
+}
+
+function replaceSubmitFormFieldWithBaseField(
+  currentField: SubmitFormField,
+  baseFieldKey: BaseSubmitFormFieldKey
+): SubmitFormField {
+  const baseField: SubmitFormField = BASE_SUBMIT_FORM_FIELDS[baseFieldKey].field
+
+  return {
+    ...baseField,
+    id: currentField.id,
   }
 }
 
@@ -140,10 +153,40 @@ export default function StageSubmitForm({
 
               <AccordionContent>
                 <div className="space-y-4 pt-2">
+
                   <div className="space-y-2">
-                    <Label htmlFor={`submit-field-type-${field.id}`}>Type</Label>
+                    <Label htmlFor={`submit-field-type-${field.id}`}>Use predefined field</Label>
                     <select
-                      id={`submit-field-type-${field.id}`}
+                      id={`submit-base-field-${field.id}`}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={field.projectColumnName ?? ''}
+                      onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                        const baseFieldKey: BaseSubmitFormFieldKey =
+                          event.target.value as BaseSubmitFormFieldKey
+
+                        onUpdateField(
+                          stageIndex,
+                          fieldIndex,
+                          replaceSubmitFormFieldWithBaseField(field, baseFieldKey)
+                        )
+                      }}
+                    >
+                      <option value="" disabled>
+                        Select a predefined field
+                      </option>
+
+                      {Object.entries(BASE_SUBMIT_FORM_FIELDS).map(([key, config]) => (
+                        <option key={key} value={key}>
+                          {config.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`submit-base-field-${field.id}`}>Or create custom field by type</Label>
+                    <select
+                      id={`submit-base-field-${field.id}`}
                       className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       value={field.type}
                       onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
@@ -162,6 +205,7 @@ export default function StageSubmitForm({
                       <option value={SubmitFormFieldType.Chips}>Chips</option>
                     </select>
                   </div>
+
 
                   {field.type === SubmitFormFieldType.Text && (
                     <TextStagesSubmitFormField

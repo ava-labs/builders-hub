@@ -29,6 +29,7 @@ import {
   SubmitFormFieldType,
 } from '@/types/hackathon-stage'
 import RemoveButton from './RemoveButton'
+import { BASE_SUBMIT_FORM_FIELDS } from './submit-form/fields/base-fields'
 
 export enum StageComponentType {
   Cards = 'cards',
@@ -149,7 +150,6 @@ export default function HackathonsEditStages({
 
   const syncStagesToParent = (updatedStages: HackathonStage[]): void => {
     setStages(updatedStages)
-    console.log('Updated stages:', updatedStages)
 
     setFormDataContent({
       ...formDataContent,
@@ -360,6 +360,30 @@ export default function HackathonsEditStages({
 
     syncStagesToParent(updatedStages)
   }
+  useEffect(() => {
+    if (stages.length === 0) {
+      setFormDataContent({
+        ...formDataContent,
+        stages: [
+          {
+            label: 'First stage',
+            date: '',
+            deadline: '',
+            component: undefined,
+            submitForm: {
+              fields: [BASE_SUBMIT_FORM_FIELDS.projectName.field],
+            },
+          }
+        ],
+      } as IDataContent)
+    }
+    if (stages.length > 0 && !stages[0].submitForm?.fields.find((field) => field.projectColumnName === 'projectName')) {
+      setFormDataContent({
+        ...formDataContent,
+        stages: [{ ...stages[0], submitForm: { ...stages[0].submitForm, fields: [BASE_SUBMIT_FORM_FIELDS.projectName.field, ...(stages[0].submitForm?.fields ?? [])] } }, ...stages.slice(1)]
+      })
+    }
+  }, [stages])
 
   return (
     <div className="space-y-4">
