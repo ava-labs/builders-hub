@@ -2,35 +2,36 @@
 
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { useL1Health } from '@/hooks/useL1Health';
+import type { L1HealthState } from '@/hooks/useL1Health';
 import { useL1ValidatorSet } from '@/hooks/useL1ValidatorSet';
 import { useL1ActivePrecompiles } from '@/hooks/useL1ActivePrecompiles';
 import { sectionContainer, sectionItem } from '@/components/console/motion';
 import { isPrimaryNetwork, type CombinedL1 } from '../_lib/types';
 import { setupSummary } from '../_lib/setup-steps';
 import { useL1ValidatorManager } from '../_lib/useL1ValidatorManager';
-import { DetailHeader } from './DetailHeader';
 import { StatsGrid } from './StatsGrid';
 import { LiveCharts } from './LiveCharts';
 import { NextActionBar } from './SetupProgress';
+import { SetupStatusPill } from './SetupStatusPill';
 import { PrimaryNetworkActions, QuickActionsCard, WalletOnlyActions } from './QuickActions';
 import { NetworkDetailsCard } from './NetworkDetailsCard';
 import { NodeListCard } from './NodeList';
 import { PrecompilesSection } from './PrecompilesSection';
 
+// `health` is threaded in from `DashboardBody` so the page only owns one
+// `useL1Health` subscription — both the HeroCard pulse dot and the StatsGrid
+// below read the same probe instead of each mounting their own poll.
 export function L1Details({
   l1,
+  health,
   userActiveNodeTotal,
   onRefetch,
 }: {
   l1: CombinedL1;
+  health: L1HealthState;
   userActiveNodeTotal: number;
   onRefetch: () => void;
 }) {
-  // Live RPC probe — block height, age, gas price refreshed every 30s. Not
-  // surfaced as a coloured "degraded/live" pill anywhere; just descriptive
-  // metrics so the page doesn't pretend to know more than it does.
-  const health = useL1Health(l1.rpcUrl, l1.evmChainId);
   const validators = useL1ValidatorSet(l1.subnetId, l1.isTestnet);
   const validatorManager = useL1ValidatorManager(l1);
   // C-Chain runs coreth (not subnet-EVM) and won't expose
@@ -48,18 +49,23 @@ export function L1Details({
       initial="hidden"
       animate="visible"
     >
-      <motion.section className="space-y-4" variants={sectionItem}>
-        {/* Setup status now lives inline as a pill in the header's meta row
-            (Configured / Configuration missing N/M with an inline progress
-            bar; clicking the missing pill opens a popover with the full
-            checklist). The NextActionBar still surfaces the most urgent
-            single step as a prominent CTA when there's something to do. */}
-        <DetailHeader l1={l1} health={health} validatorManager={validatorManager} />
-        {!isPrimary && !isComplete && <NextActionBar l1={l1} />}
-      </motion.section>
+      {/* HeroCard above already owns chain identity, balance, and primary
+          actions. The "needs attention" CTA + setup status badge stay just
+          above NetworkDetailsCard so the urgent next step is visible the
+          moment the user finishes scanning the hero. */}
+      {!isPrimary && !isComplete && (
+        <motion.div variants={sectionItem} className="flex flex-wrap items-start gap-3">
+          <div className="flex-1 min-w-[260px]">
+            <NextActionBar l1={l1} />
+          </div>
+          <div className="shrink-0 self-center">
+            <SetupStatusPill l1={l1} />
+          </div>
+        </motion.div>
+      )}
 
       {/* Reference data the user copies most (RPC URL, subnet/blockchain/EVM
-          chain IDs) lives right under the header so it's reachable in one
+          chain IDs) lives right under the hero so it's reachable in one
           click. Stays collapsed by default to keep visual weight on Health. */}
       <motion.div variants={sectionItem}>
         <NetworkDetailsCard l1={l1} validatorManager={validatorManager} />

@@ -15,7 +15,7 @@ import { setupSummary } from '../_lib/setup-steps';
 
 // Inline "next step" hero — surfaces the single most important action a user
 // can take right now. Hidden when the L1 is fully configured (the green
-// "Fully configured" pill in DetailHeader's meta row takes its place).
+// "Fully configured" SetupStatusPill takes its place).
 // The whole row is one Link so there's only one focus target / tap target.
 //
 // When the connected wallet isn't on this L1's chain, the click handler

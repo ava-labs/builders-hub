@@ -7,12 +7,14 @@ import { useMyL1s } from '@/hooks/useMyL1s';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useLoadedOnce } from '@/components/console/loaded-once';
+import { useL1Health } from '@/hooks/useL1Health';
 import {
   metadataFromWalletItem,
   walletItemToCombined,
   type CombinedL1,
 } from '../_lib/types';
-import { SwitcherBar } from './Switcher';
+import { HeroCard } from './HeroCard';
+import { SwitchChainRail } from './SwitchChainRail';
 import { L1Details } from './L1Details';
 import { EmptyState, ErrorState, HeaderSkeleton } from './states';
 
@@ -147,6 +149,13 @@ export function DashboardBody() {
   // hook order across loading states.
   const activeL1s = useMemo(() => combinedL1s.filter((l) => l.status === 'active'), [combinedL1s]);
 
+  // Single shared health probe — both the HeroCard pulse dot and the
+  // L1Details StatsGrid read from this one subscription instead of each
+  // mounting their own `useL1Health` (which would double the RPC poll).
+  // Safe to call unconditionally; the hook returns `unknown` status when
+  // `rpcUrl` is undefined.
+  const health = useL1Health(selectedL1?.rpcUrl, selectedL1?.evmChainId ?? null);
+
   if (isLoading && combinedL1s.length === 0) {
     return (
       <div className="space-y-6">
@@ -170,13 +179,6 @@ export function DashboardBody() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
     >
-      <SwitcherBar
-        l1s={activeL1s}
-        selected={selectedL1?.status === 'active' ? selectedL1 : null}
-        onSelect={onSelect}
-        onRefresh={refetch}
-        isRefreshing={isLoading}
-      />
       {/* mode="wait" so the previous L1's cascade exits cleanly before the
           newly-selected L1 mounts in. Keyed by chainId/subnetId so picking
           a different L1 actually remounts (and re-fires the inner section
@@ -196,9 +198,22 @@ export function DashboardBody() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="space-y-5"
           >
+            <HeroCard
+              l1={selectedL1}
+              health={health}
+              onRefresh={refetch}
+              isRefreshing={isLoading}
+            />
+            <SwitchChainRail
+              l1s={activeL1s}
+              selected={selectedL1}
+              onSelect={onSelect}
+            />
             <L1Details
               l1={selectedL1}
+              health={health}
               userActiveNodeTotal={userActiveNodeTotal}
               onRefetch={refetch}
             />
