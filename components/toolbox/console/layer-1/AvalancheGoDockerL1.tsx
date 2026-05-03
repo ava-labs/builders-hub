@@ -75,6 +75,7 @@ function AvalanchegoDockerInner({
   // Autofill subnet ID from the create-chain store when we arrive via the
   // Create L1 flow. Prop wins over store (callers can override explicitly).
   const createChainSubnetId = useCreateChainStore()((state) => state.subnetId);
+  const createChainGenesisData = useCreateChainStore()((state) => state.genesisData);
   const initialSubnetId = defaultSubnetId ?? createChainSubnetId ?? '';
 
   // ── Wallet / network sync ─────────────────────────────────────
@@ -1334,6 +1335,7 @@ ls -la ~/avalanche-backup/staking/`}
                             wrappedTokenAddress: '',
                             validatorManagerAddress: '',
                             logoUrl: '',
+                            genesisData: createChainGenesisData?.trim() || undefined,
                           });
                         }
                       }
