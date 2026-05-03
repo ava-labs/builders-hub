@@ -348,6 +348,14 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
           primaryRows={
             <>
               <DetailRow label="RPC URL" value={result.rpcUrl} />
+              {result.explorer && (
+                // Per-L1 block explorer at <8-char-slug>.firn.gg, served
+                // by the managed-testnet-nodes platform's firn indexer.
+                // Shareable for the same 3-day window as the validator
+                // node, populated only when managed-nodes accepted the
+                // assignment with explorer enabled (default-on).
+                <DetailRow label="Block Explorer" value={result.explorer.url} href={result.explorer.url} />
+              )}
               <DetailRow label="EVM Chain ID" value={String(result.evmChainId)} />
               <DetailRow
                 label="Validator Manager"
@@ -480,6 +488,22 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
           Open in Explorer
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
+        {/* Public-facing block explorer for the L1 — shareable URL
+            distinct from /console/explorer (which is the developer
+            tooling view). Only renders when managed-testnet-nodes
+            accepted the assignment and populated the explorer field.
+            Same 3-day TTL as the validator node. */}
+        {result.explorer && (
+          <a
+            href={result.explorer.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-primary hover:underline"
+          >
+            Public Block Explorer
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        )}
         <a
           href="/console/testnet-infra/nodes"
           className="inline-flex items-center gap-1.5 text-primary hover:underline"

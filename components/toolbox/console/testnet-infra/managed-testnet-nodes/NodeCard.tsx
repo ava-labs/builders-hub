@@ -187,6 +187,22 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
               <Pre>{node.rpc_url}</Pre>
             </CodeBlock>
           </div>
+
+          {/* Per-L1 firn block explorer — the slug is the lowercased
+              first 8 chars of blockchainID (matches the structural
+              regex in firn-explorer's middleware). Same 3-day TTL as
+              the node assignment. Computed client-side because the
+              managed-nodes API doesn't expose it directly; deriving
+              from blockchain_id keeps backend + frontend in lockstep
+              without an extra round-trip. */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-28 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+              Explorer
+            </span>
+            <CodeBlock lang="json" allowCopy={true}>
+              <Pre>{`https://${node.blockchain_id.toLowerCase().slice(0, 8)}.firn.gg`}</Pre>
+            </CodeBlock>
+          </div>
         </div>
 
         {/* info.getNodeID API Response */}

@@ -325,6 +325,22 @@ export interface DeploymentResult {
    * `undefined` means the feature was disabled for this deploy.
    */
   interop?: InteropResult;
+  /**
+   * Per-L1 firn block explorer at `<slug>.firn.gg` — populated when
+   * the managed-testnet-nodes service is reachable and the slot node
+   * accepted the assignment. Same 3-day TTL as the node assignment;
+   * after expiry the URL serves a "tenant not found" page until a
+   * redeploy creates a new (likely identical, since slug is derived
+   * from blockchainID) tenant entry.
+   */
+  explorer?: ExplorerResult;
+}
+
+export interface ExplorerResult {
+  /** Public URL — share this with the team for the 3-day window. */
+  url: string;
+  /** Lowercased first 8 chars of the L1's blockchainID. */
+  slug: string;
 }
 
 export interface Erc20PoSResult {
