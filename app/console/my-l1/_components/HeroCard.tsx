@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
 import { Check, Copy, Layers, RefreshCw } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip as UITooltip,
@@ -18,59 +19,83 @@ import type { L1HealthState, L1HealthStatus } from '@/hooks/useL1Health';
 import type { CombinedL1 } from '../_lib/types';
 import { WalletNetworkAction } from './WalletNetworkAction';
 
-// Tint palette for the chain logo fallback + radial glow accent. Each entry
-// pairs a logo background (used when the chain has no logoUrl) with three
-// raw rgba/hex stops we feed straight into `background: radial-gradient(...)`
-// inline. Tailwind v4 ships a different gradient-variable API than v3, so
-// composing `from-X to-transparent` no longer reliably hydrates
-// `--tw-gradient-stops` for our custom `bg-gradient-radial` utility — going
-// inline sidesteps that entirely. Same trick the existing
-// `states.tsx:38` `radial-gradient(...)` already uses in this folder.
+// Each tint stores three triplets:
+//   - `rgb`         the brand-strength chain colour, used by every layer
+//                   on dark backgrounds where additive light on near-black
+//                   produces deep saturation regardless.
+//   - `rgbSoft`     a brighter complement for the secondary glow on dark.
+//   - `rgbDeep`     a *darker* shade of the same hue (~700-shade Tailwind).
+//                   Used by the left-side atmosphere wash on light
+//                   backgrounds: red-500 at α 0.4 over white reads as
+//                   pastel pink, but red-700 at the same alpha lands as
+//                   visible coral. Same hue, more pigment, less powder.
 type Tint = {
   logo: string;
-  haloColor: string; // bright halo behind the logo
-  primaryColor: string; // upper-left ambient bloom
-  secondaryColor: string; // bottom-right counter-glow
+  rgb: string;
+  rgbSoft: string;
+  rgbDeep: string;
   initial: string;
 };
 
 const FALLBACK_TINTS: readonly Tint[] = [
-  {
-    logo: 'bg-rose-500',
-    haloColor: 'rgba(244, 63, 94, 0.55)',
-    primaryColor: 'rgba(244, 63, 94, 0.32)',
-    secondaryColor: 'rgba(251, 113, 133, 0.18)',
-    initial: 'text-white',
-  },
-  {
-    logo: 'bg-emerald-500',
-    haloColor: 'rgba(16, 185, 129, 0.55)',
-    primaryColor: 'rgba(16, 185, 129, 0.32)',
-    secondaryColor: 'rgba(52, 211, 153, 0.18)',
-    initial: 'text-white',
-  },
-  {
-    logo: 'bg-sky-500',
-    haloColor: 'rgba(14, 165, 233, 0.55)',
-    primaryColor: 'rgba(14, 165, 233, 0.32)',
-    secondaryColor: 'rgba(56, 189, 248, 0.18)',
-    initial: 'text-white',
-  },
-  {
-    logo: 'bg-amber-500',
-    haloColor: 'rgba(245, 158, 11, 0.55)',
-    primaryColor: 'rgba(245, 158, 11, 0.32)',
-    secondaryColor: 'rgba(251, 191, 36, 0.18)',
-    initial: 'text-white',
-  },
-  {
-    logo: 'bg-violet-500',
-    haloColor: 'rgba(139, 92, 246, 0.55)',
-    primaryColor: 'rgba(139, 92, 246, 0.32)',
-    secondaryColor: 'rgba(167, 139, 250, 0.18)',
-    initial: 'text-white',
-  },
+  { logo: 'bg-rose-500',    rgb: '244, 63, 94',   rgbSoft: '251, 113, 133', rgbDeep: '159, 18, 57',  initial: 'text-white' },
+  { logo: 'bg-emerald-500', rgb: '16, 185, 129',  rgbSoft: '52, 211, 153',  rgbDeep: '4, 120, 87',   initial: 'text-white' },
+  { logo: 'bg-sky-500',     rgb: '14, 165, 233',  rgbSoft: '56, 189, 248',  rgbDeep: '3, 105, 161',  initial: 'text-white' },
+  { logo: 'bg-amber-500',   rgb: '245, 158, 11',  rgbSoft: '251, 191, 36',  rgbDeep: '180, 83, 9',   initial: 'text-white' },
+  { logo: 'bg-violet-500',  rgb: '139, 92, 246',  rgbSoft: '167, 139, 250', rgbDeep: '91, 33, 182',  initial: 'text-white' },
 ] as const;
+
+// Per-mode alpha targets for each gradient layer.
+//
+// Dark mode wears the full decorative stack (rotating conic, drift,
+// glows, shimmer); additive light on near-black gives deep saturation
+// regardless of how many layers stack. Light mode mirrors the *spatial*
+// design (left-heavy chain colour, right-side silver highlight) rather
+// than dimming dark's alphas. Colour concentrates on the left half
+// using `rgbDeep` so the wash lands as coral on white instead of
+// pastel pink — alpha alone can't bridge the gap because tints over
+// white compound into stain past ~α 0.20. We feed gradient strings
+// straight into inline `background:` because Tailwind v4 doesn't
+// hydrate `--tw-gradient-stops` for our custom `bg-gradient-radial`.
+// Both modes run the SAME layer stack — rotating conic, primary glow,
+// secondary counter-glow, aurora drift, breathing halo, shimmer pass,
+// cursor spotlight. The only difference is alpha + which colour
+// triplet they pull from the tint:
+//
+//   - Dark uses `rgb` (vivid, e.g. rose-500) at higher alphas; additive
+//     light on near-black yields deep saturation regardless of stacking.
+//   - Light uses `rgbDeep` (the 700-shade, e.g. rose-700) at lower
+//     alphas + `mix-blend-multiply`; this is the only combination that
+//     produces visible coral over white instead of pastel pink.
+//
+// Light keeps two extra layers that dark doesn't need: the 2px top
+// stripe (Vercel/Stripe-style category indicator) and a chain-tinted
+// drop shadow. Those carry the "premium identity" cues that a dark
+// surface delivers naturally through the deep colour wells.
+const ALPHAS = {
+  dark: {
+    halo: 0.55,
+    primary: 0.32,
+    secondarySoft: 0.18,
+    drift: 0.32,
+    conicHalo: 0.60,
+    conicPrimary: 0.40,
+    shimmer: 0.40,
+    topStripe: 0,
+    coloredShadow: 0,
+  },
+  light: {
+    halo: 0.28,
+    primary: 0.35,
+    secondarySoft: 0.10,
+    drift: 0.08,
+    conicHalo: 0.55,
+    conicPrimary: 0.40,
+    shimmer: 0.30,
+    topStripe: 0.55,
+    coloredShadow: 0.22,
+  },
+} as const;
 
 // Known-chain overrides so each L1 picks up the colour of its actual logo
 // rather than a hash-of-subnetId roulette. Falls through to the hash-based
@@ -128,12 +153,94 @@ export function HeroCard({
     return () => clearInterval(interval);
   }, [isWalletOnThisL1, l1.evmChainId, updateL1Balance]);
 
+  // Cursor-tracked specular highlight. We push the pointer's local position
+  // into MotionValues so framer-motion writes the gradient `background`
+  // directly to the DOM without re-rendering React on every mousemove.
+  // `cursorActive` toggles the overlay's opacity via a CSS transition so the
+  // spotlight fades cleanly on enter/leave instead of snapping in/out.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const cursorX = useMotionValue(50);
+  const cursorY = useMotionValue(50);
+  const [cursorActive, setCursorActive] = useState(false);
+
+  // Theme-aware gradient strings. We can't use Tailwind's `dark:` modifier
+  // here because the colours are dynamic per chain — so resolve the theme
+  // up-front and pre-compose every rgba string with the right alpha.
+  // `mounted` guards against hydration mismatch: `next-themes` returns
+  // undefined on the first render, so we default to dark and switch when
+  // the client confirms the resolved theme.
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const isLight = mounted && resolvedTheme === 'light';
+
+  // Pre-compose gradient strings. Most layers exist in both modes but
+  // pull their alpha from the right side of `ALPHAS`. The chain-colour
+  // triplet swaps too: dark uses `rgb` (vivid), light uses `rgbDeep`
+  // (a darker shade of the same hue) so layered washes land as coral on
+  // white instead of pastel pink.
+  // Single source for "which rgb triplet does light use" / "which alpha
+  // values" — keeps the per-layer composition lines below tight.
+  const palette = isLight ? ALPHAS.light : ALPHAS.dark;
+  const layerRgb = isLight ? tint.rgbDeep : tint.rgb;
+  // Secondary uses a softer complement on dark (rgbSoft, lighter than
+  // primary) but the deeper shade on light (rgbDeep, since lighter
+  // would just disappear against white).
+  const secondaryRgb = isLight ? tint.rgbDeep : tint.rgbSoft;
+
+  const haloColor = `rgba(${layerRgb}, ${palette.halo})`;
+  const primaryColor = `rgba(${layerRgb}, ${palette.primary})`;
+  const secondaryColor = `rgba(${secondaryRgb}, ${palette.secondarySoft})`;
+  const driftColor = `rgba(${layerRgb}, ${palette.drift})`;
+  const conicHalo = `rgba(${layerRgb}, ${palette.conicHalo})`;
+  const conicPrimary = `rgba(${layerRgb}, ${palette.conicPrimary})`;
+  const shimmerAlpha = palette.shimmer;
+
+  // Light-only chrome: the 2px top stripe + chain-tinted drop shadow.
+  // These carry the "premium identity" cues that the dark surface
+  // delivers naturally through the deep colour wells.
+  const lightTopStripeColor = `rgba(${tint.rgbDeep}, ${ALPHAS.light.topStripe})`;
+  const lightShadowColor = `rgba(${tint.rgbDeep}, ${ALPHAS.light.coloredShadow})`;
+
+  const cursorAlpha = isLight ? 0.18 : 0.12;
+  const cursorBackground = useMotionTemplate`radial-gradient(320px circle at ${cursorX}% ${cursorY}%, rgba(${
+    isLight ? '120, 113, 108' : '255, 255, 255'
+  }, ${cursorAlpha}), transparent 65%)`;
+
+  // Light-mode drop shadow: a soft chain-tinted bloom underneath the
+  // card so it reads as "lit by the chain" from below, plus a faint dark
+  // shadow for grounding. Built as an inline `boxShadow` because the
+  // colour is dynamic per chain. Hover state inflates both stops.
+  const lightShadowRest = `0 4px 18px -6px ${lightShadowColor}, 0 2px 8px -2px rgba(0, 0, 0, 0.06), inset 0 1px 0 0 rgba(0, 0, 0, 0.04)`;
+  const lightShadowHover = `0 12px 32px -8px ${lightShadowColor}, 0 6px 16px -4px rgba(0, 0, 0, 0.10), inset 0 1px 0 0 rgba(0, 0, 0, 0.06)`;
+
+  const handlePointerMove = (e: ReactMouseEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    cursorX.set(((e.clientX - rect.left) / rect.width) * 100);
+    cursorY.set(((e.clientY - rect.top) / rect.height) * 100);
+  };
+
   return (
     <motion.div
+      ref={containerRef}
+      onMouseMove={handlePointerMove}
+      onMouseEnter={() => setCursorActive(true)}
+      onMouseLeave={() => setCursorActive(false)}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="relative overflow-hidden rounded-2xl bg-card"
+      // Border + theme-tuned shadow give the card depth in both modes.
+      // Light mode runs the inline `boxShadow` below (carries a tinted
+      // bloom keyed to the chain colour); dark mode falls back to the
+      // Tailwind class shadow. Shadow eases up on hover via `cursorActive`
+      // — we already track it for the spotlight, so reusing avoids a
+      // second hover state.
+      className="relative overflow-hidden rounded-2xl border border-border bg-card transition-shadow duration-300 dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.20),inset_0_1px_0_0_rgba(255,255,255,0.05)] dark:hover:shadow-[0_12px_36px_-8px_rgba(0,0,0,0.40),inset_0_1px_0_0_rgba(255,255,255,0.08)]"
+      style={isLight ? { boxShadow: cursorActive ? lightShadowHover : lightShadowRest } : undefined}
     >
       {/* Layer order (back → front), all painted before the content layer
           which carries `z-10`:
@@ -156,78 +263,120 @@ export function HeroCard({
           We use inline `background: radial/conic-gradient(...)` because
           Tailwind v4's gradient utilities don't hydrate
           `--tw-gradient-stops` for our custom `bg-gradient-radial`. */}
+      {/* Rotating conic gradient — runs in BOTH modes. The inner mask
+          below covers everything except a 1px ring around the card edge,
+          so the conic only ever shows up there. That spatial isolation
+          is what lets us include this layer in light mode without
+          compounding with the corner washes. */}
       <motion.div
         aria-hidden="true"
         animate={{ rotate: 360 }}
         transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
         className="pointer-events-none absolute -inset-[100%] motion-reduce:!hidden"
         style={{
-          background: `conic-gradient(from 0deg, transparent 0deg, ${tint.haloColor} 30deg, transparent 90deg, transparent 210deg, ${tint.primaryColor} 270deg, transparent 330deg, transparent 360deg)`,
+          background: `conic-gradient(from 0deg, transparent 0deg, ${conicHalo} 30deg, transparent 90deg, transparent 210deg, ${conicPrimary} 270deg, transparent 330deg, transparent 360deg)`,
         }}
       />
-      {/* Static fallback ring for users with reduced motion — same colours
-          as the rotating layer, no spin. Only visible when the rotating
-          layer is hidden by `motion-reduce:!hidden`. */}
+      {/* Static fallback ring for users with reduced motion — same
+          colours as the rotating layer, no spin. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 hidden motion-reduce:block opacity-60"
         style={{
-          background: `linear-gradient(135deg, ${tint.haloColor} 0%, transparent 50%, ${tint.primaryColor} 100%)`,
+          background: `linear-gradient(135deg, ${conicHalo} 0%, transparent 50%, ${conicPrimary} 100%)`,
         }}
       />
+      {/* Inner mask — `bg-card` is theme-aware (white in light, near-
+          black in dark) so this single element works in both modes. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-[1px] rounded-[15px] bg-card"
       />
 
+      {/* Aurora drift — runs in both modes. Multiply blend on light
+          (subtractive: tints white toward coral); screen on dark
+          (additive: tints near-black toward bright red). */}
       <motion.div
         aria-hidden="true"
         animate={{ x: ['-12%', '18%', '-12%'], y: ['-8%', '14%', '-8%'] }}
         transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
-        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full blur-3xl mix-blend-screen motion-reduce:!translate-x-[-50%] motion-reduce:!translate-y-[-50%] motion-reduce:!transform-none"
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full blur-3xl mix-blend-multiply dark:mix-blend-screen motion-reduce:!translate-x-[-50%] motion-reduce:!translate-y-[-50%] motion-reduce:!transform-none"
         style={{
-          background: `radial-gradient(circle, ${tint.primaryColor} 0%, transparent 60%)`,
+          background: `radial-gradient(circle, ${driftColor} 0%, transparent 60%)`,
         }}
       />
+
+      {/* Light-only chrome: 2px chain-coloured top stripe. The stripe is
+          a Vercel/Stripe-style "category indicator" — premium identity
+          cue without painting the surface. Sits above all the gradient
+          layers so it always reads, even on chains where the primary
+          glow is concentrated lower. */}
+      {isLight && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
+          style={{
+            background: `linear-gradient(90deg, transparent 0%, ${lightTopStripeColor} 20%, ${lightTopStripeColor} 80%, transparent 100%)`,
+          }}
+        />
+      )}
+
+      {/* Breathing halo behind the logo — rendered in both modes, with
+          theme-tuned alpha. Carries the only motion in light mode, so the
+          card has a quiet life rather than feeling static. */}
       <motion.div
         initial={{ opacity: 0.65, scale: 0.96 }}
         animate={{ opacity: [0.6, 0.95, 0.6], scale: [0.96, 1.05, 0.96] }}
         transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
         className="pointer-events-none absolute top-[60px] left-[60px] w-[280px] h-[280px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl motion-reduce:!scale-100 motion-reduce:opacity-70"
         style={{
-          background: `radial-gradient(circle, ${tint.haloColor} 0%, transparent 70%)`,
-        }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -top-24 -left-16 w-[460px] h-[460px] rounded-full blur-3xl"
-        style={{
-          background: `radial-gradient(circle, ${tint.primaryColor} 0%, transparent 65%)`,
-        }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-24 -right-20 w-[360px] h-[360px] rounded-full blur-3xl"
-        style={{
-          background: `radial-gradient(circle, ${tint.secondaryColor} 0%, transparent 65%)`,
+          background: `radial-gradient(circle, ${haloColor} 0%, transparent 70%)`,
         }}
         aria-hidden="true"
       />
 
-      {/* Diagonal shimmer pass — once every ~9s a 30%-wide highlight crosses
-          the card from upper-left to bottom-right. Mirrors the way premium
-          cards in Vercel/Linear use a single subtle reflection cue
-          instead of busy continuous motion. `mix-blend-screen` keeps it
-          additive so the highlight rides on top of the underlying glow
-          rather than washing it out. */}
+      {/* Static primary + secondary glows — both modes. Multiply blend
+          on light renders the chain colour as visible coral; screen on
+          dark renders it as deep red on near-black. `rgbDeep` lets the
+          light tints land at the right saturation. */}
+      <div
+        className="pointer-events-none absolute -top-24 -left-16 w-[460px] h-[460px] rounded-full blur-3xl mix-blend-multiply dark:mix-blend-screen"
+        style={{
+          background: `radial-gradient(circle, ${primaryColor} 0%, transparent 65%)`,
+        }}
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-24 -right-20 w-[360px] h-[360px] rounded-full blur-3xl mix-blend-multiply dark:mix-blend-screen"
+        style={{
+          background: `radial-gradient(circle, ${secondaryColor} 0%, transparent 65%)`,
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Diagonal shimmer pass — once every ~9s a 30%-wide highlight
+          crosses the card from upper-left to bottom-right. White at low
+          alpha; `screen` on dark, `overlay` on light so the highlight
+          catches against the underlying glow instead of disappearing
+          into the white surface. */}
       <motion.div
         aria-hidden="true"
         animate={{ x: ['-150%', '150%'] }}
         transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', repeatDelay: 4 }}
-        className="pointer-events-none absolute inset-y-0 w-[35%] -skew-x-12 mix-blend-screen opacity-40 motion-reduce:!hidden"
+        className="pointer-events-none absolute inset-y-0 w-[35%] -skew-x-12 mix-blend-overlay dark:mix-blend-screen motion-reduce:!hidden"
         style={{
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.10) 50%, transparent)',
+          background: `linear-gradient(90deg, transparent, rgba(255, 255, 255, ${shimmerAlpha * 0.5}) 50%, transparent)`,
         }}
+      />
+
+      {/* Cursor-tracked specular highlight. Sits on top of every gradient
+          layer so the spotlight reads as a real reflection, not a
+          colour-shifted glow. The opacity transition fades the spotlight
+          on/off cleanly when the pointer enters or leaves the card. */}
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 mix-blend-screen transition-opacity duration-300 motion-reduce:!hidden"
+        style={{ background: cursorBackground, opacity: cursorActive ? 1 : 0 }}
       />
 
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-6 md:gap-8 px-5 py-5 md:px-6 md:py-6 items-center">
