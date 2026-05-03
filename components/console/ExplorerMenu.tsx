@@ -68,14 +68,7 @@ export function ExplorerMenu({
   }
 
   return (
-    // `modal={false}` disables Radix's body scroll lock + scrollbar-gutter
-    // adjustment. With the default (modal=true), opening the menu hides
-    // the body scrollbar and adds a `padding-right` to compensate, which
-    // ends up painting a second scrollbar on whichever ancestor inherits
-    // the scrollable overflow. The Explorer dropdown is just an action
-    // picker, not a critical dialog — non-modal is correct here, and
-    // matches Radix's recommendation for menu/popover-style triggers.
-    <DropdownMenu modal={false}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
           <IconComponent className="w-4 h-4 mr-2" />
