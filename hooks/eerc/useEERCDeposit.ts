@@ -130,6 +130,13 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
 
         setStatus('confirming');
         await publicClient.waitForTransactionReceipt({ hash: result.txHash });
+        // EncryptedERC.deposit() consumes the user's allowance via
+        // transferFrom, so the cached `currentAllowance` is now stale.
+        // Re-read it before exposing the success state — without this,
+        // `hasAllowance` stays true on the consuming UI and the deposit
+        // button would remain enabled even though a follow-up deposit
+        // would now hit `Insufficient allowance` on the contract.
+        await refreshAllowance();
         setStatus('success');
 
         return result.txHash;
