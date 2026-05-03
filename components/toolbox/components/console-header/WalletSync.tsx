@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAccount, useAccountEffect, useChainId, useSwitchChain } from 'wagmi';
 import { avalancheFuji } from 'wagmi/chains';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -23,6 +24,7 @@ export function WalletSync() {
   const { address, connector, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
+  const pathname = usePathname();
 
   /**
    * On a *fresh* wallet connect (user just clicked Connect — not a reload
@@ -34,11 +36,17 @@ export function WalletSync() {
    *
    * If the user rejects the switch we silently let them stay on whatever
    * chain they connected to — mainnet still works for read-only flows.
+   *
+   * Skip the nudge entirely on the ICM Test Connection flow: Echo and
+   * Dispatch are pre-registered destination L1s, and the user lands on
+   * those pages already on the chain they want. Switching them to Fuji
+   * on connect would force an unwanted prompt before the tool UI loads.
    */
   useAccountEffect({
     onConnect({ chainId: connectChainId, isReconnected }) {
       if (isReconnected) return;
       if (connectChainId === avalancheFuji.id) return;
+      if (pathname?.startsWith('/console/icm/test-connection')) return;
       switchChainAsync({ chainId: avalancheFuji.id }).catch(() => {});
     },
   });

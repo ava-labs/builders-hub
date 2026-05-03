@@ -28,7 +28,7 @@ const predeployedDemos: Record<string, string> = {
 const metadata: ConsoleToolMetadata = {
   title: 'Send ICM Message',
   description: "Send a test message between L1s using Avalanche's Inter-Chain Messaging (ICM) protocol",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
@@ -186,6 +186,7 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
   const viemChain = useViemChainStore();
   const [isQuerying, setIsQuerying] = useState(false);
   const [lastReceivedMessage, setLastReceivedMessage] = useState<number>();
+  const [localError, setLocalError] = useState<string | null>(null);
   const { notify } = useConsoleNotifications();
   const [activeStep, _setActiveStep] = useState(0);
 
@@ -229,8 +230,28 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
   }, [destinationChainId]);
 
   async function handleSendMessage() {
+    setLocalError(null);
+
     if (!icmReceiverAddress || !targetToolboxStore.icmReceiverAddress || !destinationBlockchainIDHex || !viemChain) {
       setCriticalError(new Error('Missing required information to send message.'));
+      return;
+    }
+
+    const targetChainId = viemChain.id;
+    try {
+      const currentChainId = await walletClient.getChainId();
+      if (currentChainId !== targetChainId) {
+        try {
+          await walletClient.switchChain({ id: targetChainId });
+        } catch {
+          setLocalError(
+            `Switch your wallet to ${selectedL1?.name ?? `chain ${targetChainId}`} (chain ${targetChainId}) to send the message.`,
+          );
+          return;
+        }
+      }
+    } catch {
+      setLocalError('Could not read the connected wallet chain. Please reconnect and try again.');
       return;
     }
 
@@ -416,6 +437,16 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
               }`}
             >
               {targetToolboxStore.icmReceiverAddress || targetContractError}
+            </div>
+          </div>
+        )}
+
+        {/* Local error (e.g. user rejected wallet chain switch) */}
+        {localError && (
+          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+              <span className="text-xs text-red-700 dark:text-red-300">{localError}</span>
             </div>
           </div>
         )}
