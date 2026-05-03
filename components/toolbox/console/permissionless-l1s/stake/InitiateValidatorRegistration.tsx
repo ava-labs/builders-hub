@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
@@ -80,6 +80,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   const [contractSettings, setContractSettings] = useState<ContractSettings | null>(null);
   // Resolved ERC20 token address — read from the staking manager contract
   const [resolvedErc20Address, setResolvedErc20Address] = useState<string>(erc20TokenAddress || '');
+  const [tokenSymbol, setTokenSymbol] = useState<string | null>(null);
+  const [tokenAllowance, setTokenAllowance] = useState<bigint | null>(null);
+  const [isCheckingAllowance, setIsCheckingAllowance] = useState(false);
 
   const erc20Token = useERC20Token(resolvedErc20Address || null, ExampleERC20.abi);
 
@@ -106,7 +109,19 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
               abi: ERC20TokenStakingManager.abi,
               functionName: 'erc20',
             });
-            if (tokenAddr) setResolvedErc20Address(tokenAddr as string);
+            if (tokenAddr) {
+              setResolvedErc20Address(tokenAddr as string);
+              try {
+                const sym = (await chainPublicClient.readContract({
+                  address: tokenAddr as `0x${string}`,
+                  abi: ExampleERC20.abi,
+                  functionName: 'symbol',
+                })) as string;
+                setTokenSymbol(sym);
+              } catch {
+                // Symbol read is best-effort
+              }
+            }
           } catch {
             // Fallback to prop if erc20() read fails
           }
@@ -147,6 +162,48 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     fetchSettings();
   }, [chainPublicClient, stakingManagerAddress, contractAbi]); // stakeAmount/delegationFeeBips/minStakeDuration intentionally excluded — only pre-fill on first load
 
+  // Read on-chain allowance(owner, spender) directly to keep bigint precision.
+  // Avoid useERC20Token.allowance() because it lossy-stringifies via formatEther.
+  const refreshAllowance = useCallback(async () => {
+    if (!resolvedErc20Address || !walletEVMAddress || !stakingManagerAddress || isNative) {
+      setTokenAllowance(null);
+      return;
+    }
+    if (!chainPublicClient) return;
+    setIsCheckingAllowance(true);
+    try {
+      const allowance = (await chainPublicClient.readContract({
+        address: resolvedErc20Address as `0x${string}`,
+        abi: ExampleERC20.abi,
+        functionName: 'allowance',
+        args: [walletEVMAddress as `0x${string}`, stakingManagerAddress as `0x${string}`],
+      })) as bigint;
+      setTokenAllowance(allowance);
+    } catch (err) {
+      console.error('Failed to read allowance', err);
+      setTokenAllowance(null);
+    } finally {
+      setIsCheckingAllowance(false);
+    }
+  }, [resolvedErc20Address, walletEVMAddress, stakingManagerAddress, chainPublicClient, isNative]);
+
+  useEffect(() => {
+    void refreshAllowance();
+  }, [refreshAllowance]);
+
+  const parsedStakeAmount = useMemo(() => {
+    try {
+      return parseEther(stakeAmount || '0');
+    } catch {
+      return 0n;
+    }
+  }, [stakeAmount]);
+
+  const hasSufficientAllowance = useMemo(
+    () => tokenAllowance !== null && parsedStakeAmount > 0n && tokenAllowance >= parsedStakeAmount,
+    [tokenAllowance, parsedStakeAmount],
+  );
+
   const handleApproveERC20 = async () => {
     if (!resolvedErc20Address || !walletClient || !chainPublicClient || !viemChain) return;
     setIsApproving(true);
@@ -155,6 +212,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       // useERC20Token.approve() calls parseEther internally — pass human-readable amount
       const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, stakeAmount);
       await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+      await refreshAllowance();
     } catch (err: any) {
       setErrorState(`Failed to approve tokens: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -232,6 +290,17 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
+      return;
+    }
+
+    // ERC20 path: ensure on-chain allowance covers the stake amount before
+    // submitting — otherwise the contract revert is opaque.
+    if (!isNative && (tokenAllowance === null || tokenAllowance < parsedStakeAmount)) {
+      setErrorState(
+        `Insufficient allowance. Need ${stakeAmount} ${tokenSymbol ?? 'tokens'}, have ${
+          tokenAllowance !== null ? formatEther(tokenAllowance) : '0'
+        }. Approve first.`,
+      );
       return;
     }
 
@@ -413,11 +482,21 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           <div className="flex gap-2">
             <Button
               onClick={handleApproveERC20}
-              disabled={isApproving || isProcessing || !stakeAmount || hasValidationErrors}
+              disabled={
+                isApproving ||
+                isProcessing ||
+                !stakeAmount ||
+                hasValidationErrors ||
+                isCheckingAllowance ||
+                hasSufficientAllowance ||
+                parsedStakeAmount === 0n
+              }
               loading={isApproving}
               variant="secondary"
             >
-              1. Approve Tokens
+              {hasSufficientAllowance
+                ? `Approved (${stakeAmount} ${tokenSymbol ?? 'tokens'})`
+                : `1. Approve ${stakeAmount || '0'} ${tokenSymbol ?? 'tokens'}`}
             </Button>
             <Button
               onClick={handleInitiateRegistration}
@@ -428,12 +507,13 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
                 !!txHash ||
                 hasValidationErrors ||
                 isPreflightBlocked ||
-                preflight.isLoading
+                preflight.isLoading ||
+                !hasSufficientAllowance
               }
               loading={isProcessing}
               variant="primary"
             >
-              2. Register Validator
+              2. Initiate Validator Registration
             </Button>
           </div>
         ) : (

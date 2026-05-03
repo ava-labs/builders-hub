@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
@@ -60,6 +60,9 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
   const [delegationID, setDelegationID] = useState<string | null>(null);
   const [contractSettings, setContractSettings] = useState<ContractSettings | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [tokenSymbol, setTokenSymbol] = useState<string | null>(null);
+  const [tokenAllowance, setTokenAllowance] = useState<bigint | null>(null);
+  const [isCheckingAllowance, setIsCheckingAllowance] = useState(false);
 
   const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
@@ -100,6 +103,72 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     fetchSettings();
   }, [chainPublicClient, stakingManagerAddress, contractAbi]);
 
+  // Fetch the ERC20 token symbol once we have a resolved address (best-effort).
+  useEffect(() => {
+    if (isNative || !erc20TokenAddress || !chainPublicClient) {
+      setTokenSymbol(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const sym = (await chainPublicClient.readContract({
+          address: erc20TokenAddress as `0x${string}`,
+          abi: ExampleERC20.abi,
+          functionName: 'symbol',
+        })) as string;
+        if (!cancelled) setTokenSymbol(sym);
+      } catch {
+        // Symbol read is best-effort
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [erc20TokenAddress, chainPublicClient, isNative]);
+
+  // Read on-chain allowance(owner, spender) directly to keep bigint precision.
+  // Avoid useERC20Token.allowance() because it lossy-stringifies via formatEther.
+  const refreshAllowance = useCallback(async () => {
+    if (isNative || !erc20TokenAddress || !walletEVMAddress || !stakingManagerAddress) {
+      setTokenAllowance(null);
+      return;
+    }
+    if (!chainPublicClient) return;
+    setIsCheckingAllowance(true);
+    try {
+      const allowance = (await chainPublicClient.readContract({
+        address: erc20TokenAddress as `0x${string}`,
+        abi: ExampleERC20.abi,
+        functionName: 'allowance',
+        args: [walletEVMAddress as `0x${string}`, stakingManagerAddress as `0x${string}`],
+      })) as bigint;
+      setTokenAllowance(allowance);
+    } catch (err) {
+      console.error('Failed to read allowance', err);
+      setTokenAllowance(null);
+    } finally {
+      setIsCheckingAllowance(false);
+    }
+  }, [erc20TokenAddress, walletEVMAddress, stakingManagerAddress, chainPublicClient, isNative]);
+
+  useEffect(() => {
+    void refreshAllowance();
+  }, [refreshAllowance]);
+
+  const parsedDelegationAmount = useMemo(() => {
+    try {
+      return parseEther(delegationAmount || '0');
+    } catch {
+      return 0n;
+    }
+  }, [delegationAmount]);
+
+  const hasSufficientAllowance = useMemo(
+    () => tokenAllowance !== null && parsedDelegationAmount > 0n && tokenAllowance >= parsedDelegationAmount,
+    [tokenAllowance, parsedDelegationAmount],
+  );
+
   const handleApproveERC20 = async () => {
     if (!erc20TokenAddress || !walletClient || !chainPublicClient || !viemChain) {
       setErrorState('ERC20 token address or wallet not available');
@@ -116,6 +185,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
       notify({ type: 'call', name: 'Approve ERC20 for Delegation' }, approvePromise, viemChain ?? undefined);
       const hash = await approvePromise;
       await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+      await refreshAllowance();
 
       setErrorState(null);
     } catch (err: any) {
@@ -157,6 +227,18 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
       onError('Staking Manager address is required.');
+      setIsProcessing(false);
+      return;
+    }
+
+    // ERC20 path: ensure on-chain allowance covers the delegation amount before
+    // submitting — otherwise the contract revert is opaque.
+    if (!isNative && (tokenAllowance === null || tokenAllowance < parsedDelegationAmount)) {
+      const message = `Insufficient allowance. Need ${delegationAmount} ${tokenSymbol ?? 'tokens'}, have ${
+        tokenAllowance !== null ? formatEther(tokenAllowance) : '0'
+      }. Approve first.`;
+      setErrorState(message);
+      onError(message);
       setIsProcessing(false);
       return;
     }
@@ -388,23 +470,34 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
       {!isNative && erc20TokenAddress && (
         <Button
           onClick={handleApproveERC20}
-          disabled={isApproving || isProcessing || !delegationAmount}
+          disabled={
+            isApproving ||
+            isProcessing ||
+            !delegationAmount ||
+            isCheckingAllowance ||
+            hasSufficientAllowance ||
+            parsedDelegationAmount === 0n
+          }
           loading={isApproving}
           variant="secondary"
           className="w-full"
         >
-          Approve {delegationAmount || '0'} Tokens
+          {hasSufficientAllowance
+            ? `Approved (${delegationAmount} ${tokenSymbol ?? 'tokens'})`
+            : `1. Approve ${delegationAmount || '0'} ${tokenSymbol ?? 'tokens'}`}
         </Button>
       )}
 
       <Button
         onClick={handleInitiateDelegation}
-        disabled={isProcessing || isApproving || !delegationAmount || !!txHash}
+        disabled={
+          isProcessing || isApproving || !delegationAmount || !!txHash || (!isNative && !hasSufficientAllowance)
+        }
         loading={isProcessing}
         variant="primary"
         className="w-full"
       >
-        Initiate Delegation
+        {!isNative ? '2. Initiate Delegation' : 'Initiate Delegation'}
       </Button>
 
       {txHash && delegationID && <Success label="Delegation ID" value={delegationID} />}
