@@ -6,6 +6,7 @@ import { BookOpen, GraduationCap } from 'lucide-react';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 import { EERC_COMMIT } from '@/lib/eerc/contractSources';
 import { EERCStepNav } from './EERCStepNav';
+import { EERCKeyframes } from './EERCKeyframes';
 
 interface FooterLink {
   label: string;
@@ -52,6 +53,12 @@ export function EERCToolShell({ contracts, children, footerLinks, height = 540 }
 
   return (
     <>
+      {/* Mount the global EERC keyframe block exactly once. Both the
+          Overview hub page and every leaf tool page share these
+          animation classes (`key-wobble`, `arrow-down`, `eye-blink`,
+          etc.); rendering them here means leaf pages don't ship their
+          own copy. */}
+      <EERCKeyframes />
       {/* Persistent step-nav across every eERC tool page. Highlights the
           current page and surfaces Done/Ready/Next status for the rest
           so users can jump anywhere without trekking back to Overview. */}

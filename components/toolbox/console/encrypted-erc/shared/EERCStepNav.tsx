@@ -10,18 +10,22 @@ import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
 import { useEERCRegistration } from '@/hooks/eerc/useEERCRegistration';
 import { loadIdentity } from '@/lib/eerc/identity';
 import { cn } from '@/lib/utils';
+import { ACCENT_BG, ACCENT_ICON, STATUS_STYLES, type Accent, type StepStatus } from './eerc-step-styles';
 
 /**
- * Persistent cross-tool nav for the Encrypted ERC sub-pages. Same visual
- * language as Overview's row-3 ActionTiles (animated icons, per-step
- * accent colours, Done / Next / Ready status pills) but tightened for
- * a strip that lives at the top of every tool page — smaller padding,
- * one-line subtitle, no trailing chevron, so it doesn't dominate the
- * page chrome the way the full-size version did.
+ * Persistent cross-tool nav for the Encrypted ERC sub-pages. Mounted by
+ * `EERCToolShell` on every leaf page and by `Overview/index.tsx` on the
+ * hub page itself, so the same step rail is always one tap away.
+ *
+ * Accent / status maps and the icon hover keyframes are hoisted out:
+ *   - palette + status pills → `./eerc-step-styles.ts`
+ *   - global keyframes (`key-wobble`, `arrow-down`, `arrow-up`,
+ *     `send-icon`, `eye-blink`, `shield-pulse`) → `./EERCKeyframes.tsx`,
+ *     mounted once at the top of the shell.
+ *
+ * The step icons therefore reuse the same class names as the Overview's
+ * other surfaces — touching one keyframe block updates everything.
  */
-
-type StepStatus = 'done' | 'next' | 'available';
-type Accent = 'emerald' | 'blue' | 'violet' | 'rose' | 'amber';
 
 type Step = {
   key: string;
@@ -104,40 +108,6 @@ const STEPS: Step[] = [
   },
 ];
 
-// Tints for the icon tile, matched to Overview's ActionTile palette so
-// the row reads as the same family across the two surfaces.
-const ACCENT_BG: Record<Accent, string> = {
-  emerald: 'group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/20',
-  blue: 'group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20',
-  violet: 'group-hover:bg-violet-50 dark:group-hover:bg-violet-900/20',
-  rose: 'group-hover:bg-rose-50 dark:group-hover:bg-rose-900/20',
-  amber: 'group-hover:bg-amber-50 dark:group-hover:bg-amber-900/20',
-};
-const ACCENT_ICON: Record<Accent, string> = {
-  emerald: 'text-emerald-600 dark:text-emerald-400',
-  blue: 'text-blue-600 dark:text-blue-400',
-  violet: 'text-violet-600 dark:text-violet-400',
-  rose: 'text-rose-600 dark:text-rose-400',
-  amber: 'text-amber-600 dark:text-amber-400',
-};
-
-const STATUS_STYLES: Record<StepStatus, { label: string; className: string }> = {
-  done: {
-    label: 'Done',
-    className:
-      'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:text-emerald-300',
-  },
-  next: {
-    label: 'Next',
-    className: 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200',
-  },
-  available: {
-    label: 'Ready',
-    className:
-      'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-900/20 dark:text-blue-300',
-  },
-};
-
 function resolveStatus(key: string, stepsDone: Set<string>): StepStatus | undefined {
   if (key === 'register') return stepsDone.has('register') ? 'done' : stepsDone.has('connect') ? 'next' : undefined;
   if (key === 'deposit') return stepsDone.has('deposit') ? 'done' : stepsDone.has('register') ? 'next' : undefined;
@@ -181,73 +151,13 @@ export function EERCStepNav() {
   }, [address, isRegistered, balance.decryptedCents]);
 
   return (
-    <>
-      {/* Local global animations — identical to Overview.tsx so the same
-          icon hover behaviours work whether the user is on the hub page
-          or a leaf tool page. Keyframe names are intentionally shared
-          across both files; styled-jsx merges duplicate global rules. */}
-      <style jsx global>{`
-        .eerc-step-key {
-          transition: transform 0.55s ease-in-out;
-        }
-        .group:hover .eerc-step-key {
-          animation: eercStepKeyWobble 0.55s ease-in-out;
-        }
-        @keyframes eercStepKeyWobble {
-          0%,
-          100% {
-            transform: rotate(0deg);
-          }
-          25% {
-            transform: rotate(-12deg);
-          }
-          75% {
-            transform: rotate(12deg);
-          }
-        }
-        .eerc-step-down {
-          transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .group:hover .eerc-step-down {
-          transform: translateY(2px);
-        }
-        .eerc-step-up {
-          transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .group:hover .eerc-step-up {
-          transform: translateY(-2px);
-        }
-        .eerc-step-send {
-          transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .group:hover .eerc-step-send {
-          transform: translate(2px, -2px);
-        }
-        .eerc-step-eye {
-          transform-origin: center;
-        }
-        @keyframes eercStepEyeBlink {
-          0%,
-          100% {
-            transform: scaleY(1);
-          }
-          45%,
-          50% {
-            transform: scaleY(0.15);
-          }
-        }
-        .group:hover .eerc-step-eye {
-          animation: eercStepEyeBlink 0.6s ease-in-out;
-        }
-      `}</style>
-      <nav aria-label="Encrypted ERC steps" className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2 mb-5">
-        {STEPS.map((step) => {
-          const active = step.isActive(pathname ?? '');
-          const status = resolveStatus(step.key, stepsDone);
-          return <StepCard key={step.key} step={step} active={active} status={status} />;
-        })}
-      </nav>
-    </>
+    <nav aria-label="Encrypted ERC steps" className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2 mb-5">
+      {STEPS.map((step) => {
+        const active = step.isActive(pathname ?? '');
+        const status = resolveStatus(step.key, stepsDone);
+        return <StepCard key={step.key} step={step} active={active} status={status} />;
+      })}
+    </nav>
   );
 }
 
@@ -322,7 +232,7 @@ function StepCard({ step, active, status }: { step: Step; active: boolean; statu
 function KeyAnim() {
   return (
     <svg
-      className="eerc-step-key"
+      className="key-wobble"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -341,7 +251,7 @@ function KeyAnim() {
 function ArrowDownAnim() {
   return (
     <svg
-      className="eerc-step-down"
+      className="arrow-down"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -359,7 +269,7 @@ function ArrowDownAnim() {
 function ArrowUpAnim() {
   return (
     <svg
-      className="eerc-step-up"
+      className="arrow-up"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -377,7 +287,7 @@ function ArrowUpAnim() {
 function SendAnim() {
   return (
     <svg
-      className="eerc-step-send"
+      className="send-icon"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -394,7 +304,8 @@ function SendAnim() {
 function EyeAnim() {
   return (
     <svg
-      className="eerc-step-eye"
+      className="eye-blink"
+      style={{ transformOrigin: 'center' }}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
