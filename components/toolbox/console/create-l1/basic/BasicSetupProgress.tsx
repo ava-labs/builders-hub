@@ -56,12 +56,16 @@ export default function BasicSetupProgress({ jobId }: { jobId: string }) {
     });
   }, [job]);
 
+  // Hook order discipline: the early-return for `status === 'complete'`
+  // below must come AFTER every hook call in this component. completedSet
+  // has to be hoisted here so React sees the same number of hooks on
+  // running → complete transitions.
+  const completedSet = useMemo(() => new Set(job?.completedSteps ?? []), [job?.completedSteps]);
+
   // Defer to the recap screen once the job finishes. Confetti lives there.
   if (job?.status === 'complete' && job.result) {
     return <BasicSetupComplete job={job} />;
   }
-
-  const completedSet = useMemo(() => new Set(job?.completedSteps ?? []), [job?.completedSteps]);
   const completedCount = Math.min(visibleSteps.filter((s) => completedSet.has(s)).length, visibleSteps.length);
   // The orchestrator runs Phase A2 (deployValidatorManager,
   // provisioning-node, reserving-relayer) in parallel, so steps
