@@ -379,7 +379,20 @@ export function HeroCard({
         style={{ background: cursorBackground, opacity: cursorActive ? 1 : 0 }}
       />
 
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-6 md:gap-8 px-5 py-5 md:px-6 md:py-6 items-center">
+      {/* Layout breakpoints:
+          - mobile + sm + md + lg: vertical stack so the long balance
+            number, multi-button action cluster, and identity row each
+            get their own row with breathing room. The three-column
+            layout below was previously kicking in at `md` (768px) and
+            squeezing actions until the Create L1 button clipped off
+            the right edge — see the user-reported responsive bug.
+          - xl (1280px+): three-column row layout with identity left,
+            balance centred, actions right-aligned. Picked `xl` rather
+            than `lg` because the right-side action cluster runs ~500px
+            (refresh + switch + explorer + copy genesis + create L1)
+            and needs at least ~1200px of card width to coexist with a
+            comfortable balance column. */}
+      <div className="relative z-10 grid grid-cols-1 xl:grid-cols-[auto_1fr_auto] gap-5 xl:gap-8 px-5 py-5 xl:px-6 xl:py-6 items-center">
         <HeroIdentity l1={l1} tint={tint} health={health} />
         <HeroBalance balance={balance} coinName={l1.coinName} isOnChain={isWalletOnThisL1} />
         <HeroActions l1={l1} onRefresh={onRefresh} isRefreshing={isRefreshing} />
@@ -540,7 +553,7 @@ function HeroBalance({
   isOnChain: boolean;
 }) {
   return (
-    <div className="text-center order-3 md:order-2">
+    <div className="text-left xl:text-center">
       <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground">
         Balance
       </p>
@@ -571,7 +584,7 @@ function HeroActions({
   isRefreshing: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end gap-2 md:order-3">
+    <div className="flex flex-wrap items-center justify-start xl:justify-end gap-2">
       <Button
         variant="ghost"
         size="icon"
