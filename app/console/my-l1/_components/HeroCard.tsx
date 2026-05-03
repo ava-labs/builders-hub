@@ -19,22 +19,57 @@ import type { CombinedL1 } from '../_lib/types';
 import { WalletNetworkAction } from './WalletNetworkAction';
 
 // Tint palette for the chain logo fallback + radial glow accent. Each entry
-// pairs a logo background (used when the chain has no logoUrl) with a
-// matching radial-gradient stop and a softer secondary stop for richer,
-// layered shading.
+// pairs a logo background (used when the chain has no logoUrl) with three
+// raw rgba/hex stops we feed straight into `background: radial-gradient(...)`
+// inline. Tailwind v4 ships a different gradient-variable API than v3, so
+// composing `from-X to-transparent` no longer reliably hydrates
+// `--tw-gradient-stops` for our custom `bg-gradient-radial` utility — going
+// inline sidesteps that entirely. Same trick the existing
+// `states.tsx:38` `radial-gradient(...)` already uses in this folder.
 type Tint = {
   logo: string;
-  glowPrimary: string;
-  glowSecondary: string;
+  haloColor: string; // bright halo behind the logo
+  primaryColor: string; // upper-left ambient bloom
+  secondaryColor: string; // bottom-right counter-glow
   initial: string;
 };
 
 const FALLBACK_TINTS: readonly Tint[] = [
-  { logo: 'bg-rose-500', glowPrimary: 'from-rose-500/25', glowSecondary: 'from-rose-400/15', initial: 'text-white' },
-  { logo: 'bg-emerald-500', glowPrimary: 'from-emerald-500/25', glowSecondary: 'from-emerald-400/15', initial: 'text-white' },
-  { logo: 'bg-sky-500', glowPrimary: 'from-sky-500/25', glowSecondary: 'from-sky-400/15', initial: 'text-white' },
-  { logo: 'bg-amber-500', glowPrimary: 'from-amber-500/25', glowSecondary: 'from-amber-400/15', initial: 'text-white' },
-  { logo: 'bg-violet-500', glowPrimary: 'from-violet-500/25', glowSecondary: 'from-violet-400/15', initial: 'text-white' },
+  {
+    logo: 'bg-rose-500',
+    haloColor: 'rgba(244, 63, 94, 0.55)',
+    primaryColor: 'rgba(244, 63, 94, 0.32)',
+    secondaryColor: 'rgba(251, 113, 133, 0.18)',
+    initial: 'text-white',
+  },
+  {
+    logo: 'bg-emerald-500',
+    haloColor: 'rgba(16, 185, 129, 0.55)',
+    primaryColor: 'rgba(16, 185, 129, 0.32)',
+    secondaryColor: 'rgba(52, 211, 153, 0.18)',
+    initial: 'text-white',
+  },
+  {
+    logo: 'bg-sky-500',
+    haloColor: 'rgba(14, 165, 233, 0.55)',
+    primaryColor: 'rgba(14, 165, 233, 0.32)',
+    secondaryColor: 'rgba(56, 189, 248, 0.18)',
+    initial: 'text-white',
+  },
+  {
+    logo: 'bg-amber-500',
+    haloColor: 'rgba(245, 158, 11, 0.55)',
+    primaryColor: 'rgba(245, 158, 11, 0.32)',
+    secondaryColor: 'rgba(251, 191, 36, 0.18)',
+    initial: 'text-white',
+  },
+  {
+    logo: 'bg-violet-500',
+    haloColor: 'rgba(139, 92, 246, 0.55)',
+    primaryColor: 'rgba(139, 92, 246, 0.32)',
+    secondaryColor: 'rgba(167, 139, 250, 0.18)',
+    initial: 'text-white',
+  },
 ] as const;
 
 // Known-chain overrides so each L1 picks up the colour of its actual logo
@@ -98,28 +133,104 @@ export function HeroCard({
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="relative overflow-hidden rounded-2xl border border-border bg-card"
+      className="relative overflow-hidden rounded-2xl bg-card"
     >
-      {/* Two-stage radial glow tied to the chain accent. The primary glow
-          anchors the eye in the upper-left near the logo; the secondary one
-          softens the bottom-right so the card doesn't look top-heavy.
-          Together they give the card a subtle "lit by the chain" feel
-          without painting the whole surface. Pure CSS, no canvas. */}
+      {/* Layer order (back → front), all painted before the content layer
+          which carries `z-10`:
+            0. base                — `bg-card` on the parent
+            1. conic border        — slow-rotating conic gradient that shows
+                                     only as a 1px ring along the card edge
+                                     (the inner mask at step 2 covers the
+                                     rest). Premium-grade rotating-bezel cue.
+            2. inner mask          — `bg-card` square inset by 1px, rounded
+                                     to `15px` so it tracks the parent's
+                                     `2xl` radius. Hides the conic except at
+                                     the border.
+            3. aurora drift        — large radial blob that slowly wanders
+                                     diagonally across the card, painting on
+                                     top of the inner mask.
+            4. breathing halo      — tight bright glow centred on the logo
+                                     position, opacity + scale loop.
+            5. primary / secondary — static upper-left + bottom-right washes
+                                     for ambient depth.
+          We use inline `background: radial/conic-gradient(...)` because
+          Tailwind v4's gradient utilities don't hydrate
+          `--tw-gradient-stops` for our custom `bg-gradient-radial`. */}
+      <motion.div
+        aria-hidden="true"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+        className="pointer-events-none absolute -inset-[100%] motion-reduce:!hidden"
+        style={{
+          background: `conic-gradient(from 0deg, transparent 0deg, ${tint.haloColor} 30deg, transparent 90deg, transparent 210deg, ${tint.primaryColor} 270deg, transparent 330deg, transparent 360deg)`,
+        }}
+      />
+      {/* Static fallback ring for users with reduced motion — same colours
+          as the rotating layer, no spin. Only visible when the rotating
+          layer is hidden by `motion-reduce:!hidden`. */}
       <div
-        className={cn(
-          'pointer-events-none absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full blur-3xl bg-gradient-radial to-transparent',
-          tint.glowPrimary,
-        )}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 hidden motion-reduce:block opacity-60"
+        style={{
+          background: `linear-gradient(135deg, ${tint.haloColor} 0%, transparent 50%, ${tint.primaryColor} 100%)`,
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-[1px] rounded-[15px] bg-card"
+      />
+
+      <motion.div
+        aria-hidden="true"
+        animate={{ x: ['-12%', '18%', '-12%'], y: ['-8%', '14%', '-8%'] }}
+        transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full blur-3xl mix-blend-screen motion-reduce:!translate-x-[-50%] motion-reduce:!translate-y-[-50%] motion-reduce:!transform-none"
+        style={{
+          background: `radial-gradient(circle, ${tint.primaryColor} 0%, transparent 60%)`,
+        }}
+      />
+      <motion.div
+        initial={{ opacity: 0.65, scale: 0.96 }}
+        animate={{ opacity: [0.6, 0.95, 0.6], scale: [0.96, 1.05, 0.96] }}
+        transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
+        className="pointer-events-none absolute top-[60px] left-[60px] w-[280px] h-[280px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl motion-reduce:!scale-100 motion-reduce:opacity-70"
+        style={{
+          background: `radial-gradient(circle, ${tint.haloColor} 0%, transparent 70%)`,
+        }}
         aria-hidden="true"
       />
       <div
-        className={cn(
-          'pointer-events-none absolute -bottom-32 -right-24 w-[360px] h-[360px] rounded-full blur-3xl bg-gradient-radial to-transparent',
-          tint.glowSecondary,
-        )}
+        className="pointer-events-none absolute -top-24 -left-16 w-[460px] h-[460px] rounded-full blur-3xl"
+        style={{
+          background: `radial-gradient(circle, ${tint.primaryColor} 0%, transparent 65%)`,
+        }}
         aria-hidden="true"
       />
-      <div className="relative grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-6 md:gap-8 px-5 py-5 md:px-6 md:py-6 items-center">
+      <div
+        className="pointer-events-none absolute -bottom-24 -right-20 w-[360px] h-[360px] rounded-full blur-3xl"
+        style={{
+          background: `radial-gradient(circle, ${tint.secondaryColor} 0%, transparent 65%)`,
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Diagonal shimmer pass — once every ~9s a 30%-wide highlight crosses
+          the card from upper-left to bottom-right. Mirrors the way premium
+          cards in Vercel/Linear use a single subtle reflection cue
+          instead of busy continuous motion. `mix-blend-screen` keeps it
+          additive so the highlight rides on top of the underlying glow
+          rather than washing it out. */}
+      <motion.div
+        aria-hidden="true"
+        animate={{ x: ['-150%', '150%'] }}
+        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', repeatDelay: 4 }}
+        className="pointer-events-none absolute inset-y-0 w-[35%] -skew-x-12 mix-blend-screen opacity-40 motion-reduce:!hidden"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.10) 50%, transparent)',
+        }}
+      />
+
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-6 md:gap-8 px-5 py-5 md:px-6 md:py-6 items-center">
         <HeroIdentity l1={l1} tint={tint} health={health} />
         <HeroBalance balance={balance} coinName={l1.coinName} isOnChain={isWalletOnThisL1} />
         <HeroActions l1={l1} onRefresh={onRefresh} isRefreshing={isRefreshing} />
@@ -284,10 +395,10 @@ function HeroBalance({
       <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground">
         Balance
       </p>
-      <p className="mt-1 text-3xl md:text-5xl font-semibold tracking-tight tabular-nums text-foreground">
+      <p className="mt-1 text-xl md:text-[28px] font-semibold tracking-tight tabular-nums text-foreground leading-tight">
         {isOnChain && balance !== null ? balance.toFixed(4) : '—'}
         {isOnChain && balance !== null && coinName && (
-          <span className="ml-2 text-base md:text-lg font-medium text-muted-foreground">
+          <span className="ml-1.5 text-xs md:text-sm font-medium text-muted-foreground">
             {coinName}
           </span>
         )}
