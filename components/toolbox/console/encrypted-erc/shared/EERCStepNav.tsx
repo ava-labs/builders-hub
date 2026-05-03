@@ -40,14 +40,15 @@ type Step = {
 // Titles are kept to a single short word per pill so every card gets the
 // same single-line height in the 7-col grid — "Balance & History" used
 // to wrap on the narrow xl-breakpoint columns and threw the row off,
-// which read as the active card "changing shape." Subtitles also kept
-// short so they fit on one truncated line.
+// which read as the active card "changing shape." Subtitles are also
+// trimmed to ≤14 chars so the right-side status badge ("Done", "Ready")
+// has room without truncating the explainer mid-word ("Sign + publi…").
 const STEPS: Step[] = [
   {
     key: 'register',
     href: '/console/encrypted-erc/register',
     title: 'Register',
-    subtitle: 'Sign + publish key',
+    subtitle: 'Publish key',
     accent: 'emerald',
     Icon: KeyAnim,
     isActive: (p) => p.startsWith('/console/encrypted-erc/register'),
@@ -56,7 +57,7 @@ const STEPS: Step[] = [
     key: 'deposit',
     href: '/console/encrypted-erc/deposit',
     title: 'Deposit',
-    subtitle: 'Wrap to encrypted',
+    subtitle: 'Wrap balance',
     accent: 'blue',
     Icon: ArrowDownAnim,
     isActive: (p) => p.startsWith('/console/encrypted-erc/deposit'),
@@ -83,7 +84,7 @@ const STEPS: Step[] = [
     key: 'balance',
     href: '/console/encrypted-erc/balance',
     title: 'Balance',
-    subtitle: 'Decrypt your balance',
+    subtitle: 'Decrypt',
     accent: 'amber',
     Icon: EyeAnim,
     isActive: (p) => p.startsWith('/console/encrypted-erc/balance'),
@@ -92,7 +93,7 @@ const STEPS: Step[] = [
     key: 'auditor',
     href: '/console/encrypted-erc/auditor',
     title: 'Auditor',
-    subtitle: 'Compliance decrypt',
+    subtitle: 'Read amounts',
     accent: 'emerald',
     Icon: ShieldCheck,
     isActive: (p) => p.startsWith('/console/encrypted-erc/auditor'),
@@ -101,7 +102,7 @@ const STEPS: Step[] = [
     key: 'set-auditor',
     href: '/console/encrypted-erc/deploy/auditor',
     title: 'Set Auditor',
-    subtitle: 'Designate auditor',
+    subtitle: 'Designate',
     accent: 'violet',
     Icon: UserCheck,
     isActive: (p) => p.startsWith('/console/encrypted-erc/deploy/auditor'),

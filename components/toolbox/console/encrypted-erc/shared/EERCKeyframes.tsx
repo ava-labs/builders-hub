@@ -10,15 +10,9 @@
  * one surface tweaked an easing curve. Consolidating here means there is
  * one place to read, audit, or extend the EERC motion vocabulary.
  *
- * Only the animation classes still referenced by the current EERC code
- * survive the move. Decorative-only ones tied to the (now-deleted)
- * CiphertextStream are dropped — see Task 5.4.
- *
- * The wrapping `prefers-reduced-motion` rule disables every animation for
- * users who have requested it. Hover micro-motions are short enough that
- * scaling/translating still feels intentional, but full keyframe loops
- * (`encFlicker`, `keyWobble`, `eyeBlink`, `shieldPulse`, `twinkle`) become
- * static.
+ * The wrapping `prefers-reduced-motion` rule disables every continuous
+ * loop for users who have requested it. Hover micro-motions are short
+ * enough that scaling/translating still feels intentional.
  */
 export function EERCKeyframes() {
   return (
@@ -36,6 +30,23 @@ export function EERCKeyframes() {
       }
       .cipher-roll {
         animation: ciphertextRoll 12s linear infinite;
+      }
+
+      /* Concentric ring expansion behind the "next" stepper circle.
+         Drawn purely in CSS so the perpetual loop doesn't re-render
+         the React tree. Disabled under reduced-motion. */
+      @keyframes nextPulse {
+        0% {
+          transform: scale(1);
+          opacity: 0.6;
+        }
+        100% {
+          transform: scale(2.2);
+          opacity: 0;
+        }
+      }
+      .next-pulse {
+        animation: nextPulse 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
       }
 
       /* "Live" pulse on chain-connected indicators. */
@@ -132,28 +143,6 @@ export function EERCKeyframes() {
         animation: keyWobble 0.55s ease-in-out;
       }
 
-      /* Sparkle twinkle (Journey card heading). */
-      @keyframes twinkle {
-        0%,
-        100% {
-          opacity: 0.3;
-          transform: scale(0.85);
-        }
-        50% {
-          opacity: 1;
-          transform: scale(1.2);
-        }
-      }
-      .twinkle-a {
-        animation: twinkle 2.4s ease-in-out infinite;
-      }
-      .twinkle-b {
-        animation: twinkle 2.4s ease-in-out 0.8s infinite;
-      }
-      .twinkle-c {
-        animation: twinkle 2.4s ease-in-out 1.6s infinite;
-      }
-
       /* Honor the OS-level reduced-motion preference. We disable the
          continuous loops; one-shot hover transitions (the transition
          rules above) are short enough to feel like a tap rather than
@@ -161,10 +150,8 @@ export function EERCKeyframes() {
          transforms as acceptable. */
       @media (prefers-reduced-motion: reduce) {
         .enc-flicker,
-        .twinkle-a,
-        .twinkle-b,
-        .twinkle-c,
-        .cipher-roll {
+        .cipher-roll,
+        .next-pulse {
           animation: none !important;
         }
         .group:hover .lock-shackle path:nth-child(1),
