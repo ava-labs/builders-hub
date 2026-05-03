@@ -74,6 +74,11 @@ function AddChainModalInner() {
   const { anyChainId, setAnyChainId, error: lookupError, isLookingUp, lookup } = useLookupChain();
   const [inputMode, setInputMode] = useState<InputMode>('rpc');
   const [isFetchingChainData, setIsFetchingChainData] = useState(false);
+  // Optional genesis JSON — pasted by users importing an external L1 they
+  // know the genesis for. When supplied it powers Copy Genesis on the L1
+  // detail page; otherwise that button stays disabled with a tooltip.
+  const [genesisData, setGenesisData] = useState('');
+  const [genesisError, setGenesisError] = useState<string | null>(null);
 
   // Seed defaults from the caller's options on mount. Because this
   // component unmounts on close and remounts on open, useForm picks up
@@ -253,6 +258,23 @@ function AddChainModalInner() {
         return;
       }
 
+      // Optional field — only validate when the user actually pasted something.
+      // Empty / whitespace-only stays absent so back-compat behavior is preserved.
+      const trimmedGenesis = genesisData.trim();
+      let validatedGenesis: string | undefined;
+      if (trimmedGenesis.length > 0) {
+        try {
+          JSON.parse(trimmedGenesis);
+          validatedGenesis = trimmedGenesis;
+          setGenesisError(null);
+        } catch (parseErr) {
+          setGenesisError(parseErr instanceof Error ? `Invalid JSON: ${parseErr.message}` : 'Invalid JSON');
+          return;
+        }
+      } else {
+        setGenesisError(null);
+      }
+
       const chainData: ChainData = {
         id: data.chainId,
         name: data.chainName,
@@ -265,6 +287,7 @@ function AddChainModalInner() {
         validatorManagerAddress: data.validatorManagerAddress,
         validatorManagerBlockchainId: data.validatorManagerBlockchainId || undefined,
         logoUrl: data.logoUrl,
+        genesisData: validatedGenesis,
       };
 
       await addChainDirect(chainData);
@@ -428,6 +451,32 @@ function AddChainModalInner() {
                       )}
                     />
                   </div>
+
+                  {/* Optional genesis paste — collapsed by default so users
+                      who don't have the JSON aren't nagged. When supplied,
+                      powers Copy Genesis on the L1 detail page. */}
+                  <details className="group">
+                    <summary className="cursor-pointer text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 select-none">
+                      Genesis JSON (optional)
+                    </summary>
+                    <div className="mt-2 space-y-1.5">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Paste the chain&apos;s genesis JSON if you have it. Used by Copy Genesis on the L1 detail page.
+                        Leave blank if you don&apos;t have it.
+                      </p>
+                      <textarea
+                        value={genesisData}
+                        onChange={(e) => {
+                          setGenesisData(e.target.value);
+                          if (genesisError) setGenesisError(null);
+                        }}
+                        rows={6}
+                        placeholder='{"config": { "chainId": 9999, ...}}'
+                        className="w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-mono"
+                      />
+                      {genesisError && <p className="text-xs text-red-600 dark:text-red-400">{genesisError}</p>}
+                    </div>
+                  </details>
                 </motion.div>
               ) : null}
             </AnimatePresence>

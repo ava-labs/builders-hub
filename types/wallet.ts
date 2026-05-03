@@ -26,6 +26,9 @@ export interface ChainData {
     validatorManagerBlockchainId?: string;
     logoUrl: string;
     wellKnownTeleporterRegistryAddress?: string;
+    /** Optional stringified genesis JSON. Carried through Add Chain so the
+     *  Copy Genesis button on the L1 detail page can serve it. */
+    genesisData?: string;
 }
 
 export type AddChainResult = 
