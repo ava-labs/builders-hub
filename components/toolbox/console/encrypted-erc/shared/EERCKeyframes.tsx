@@ -23,6 +23,21 @@
 export function EERCKeyframes() {
   return (
     <style jsx global>{`
+      /* Decorative ciphertext rail in the Overview hero. Renders the
+         row block twice and translates by -50% so the seam loops
+         invisibly. Pure cosmetic — disabled under reduced-motion. */
+      @keyframes ciphertextRoll {
+        0% {
+          transform: translateY(0);
+        }
+        100% {
+          transform: translateY(-50%);
+        }
+      }
+      .cipher-roll {
+        animation: ciphertextRoll 12s linear infinite;
+      }
+
       /* "Live" pulse on chain-connected indicators. */
       @keyframes encFlicker {
         0%,
@@ -148,7 +163,8 @@ export function EERCKeyframes() {
         .enc-flicker,
         .twinkle-a,
         .twinkle-b,
-        .twinkle-c {
+        .twinkle-c,
+        .cipher-roll {
           animation: none !important;
         }
         .group:hover .lock-shackle path:nth-child(1),

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { BookOpen, Check, ChevronRight } from 'lucide-react';
@@ -13,11 +13,13 @@ import { boardItem } from '@/components/console/motion';
  * Earlier this card competed for attention with the Journey card and the
  * "Register / Deposit" tile in Row 3 — three CTAs above the fold for the
  * same flow. The new copy keeps a single primary action that flexes with
- * progress (Connect → Register → Deposit), drops the decorative
- * `CiphertextStream` (it was hidden below `md` and the green hero badge
- * already conveys "live"), and replaces the dead `<span>Connect wallet</span>`
- * with a real `useConnectModal()` button so the hero CTA actually works
- * in the disconnected state.
+ * progress (Connect → Register → Deposit) and replaces the dead
+ * `<span>Connect wallet</span>` with a real `useConnectModal()` button so
+ * the hero CTA actually works in the disconnected state.
+ *
+ * The right-edge `CiphertextStream` is kept — it's the page's signature
+ * "encrypted balances are live" cue. Hidden below `md` so it doesn't
+ * orphan the headline on narrow viewports.
  *
  * The "Live on Fuji" pill that used to sit in this card has been removed
  * because `CanonicalDeploymentCard` already shows the chain badge — they
@@ -47,6 +49,15 @@ export function HeroCard({ address, isRegistered, hasIdentity, className }: Hero
           boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)',
         }}
       >
+        {/* Right-edge rolling ciphertext strip. Decorative-only — but it
+            is the visual signature of the page, so we keep it. Narrower
+            than the headline column so the title can breathe; hidden
+            below `md` to avoid orphaning "accountability." on narrow
+            viewports. */}
+        <div className="hidden md:block absolute right-0 top-0 bottom-0 w-[35%] pointer-events-none overflow-hidden mask-fade-left">
+          <CiphertextStream />
+        </div>
+
         <div className="relative flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center shrink-0 transition-colors group-hover:bg-white/[0.14]">
             <svg
@@ -110,7 +121,52 @@ export function HeroCard({ address, isRegistered, hasIdentity, className }: Hero
             </div>
           </div>
         </div>
+
+        <style jsx>{`
+          .mask-fade-left {
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 40%);
+            mask-image: linear-gradient(to right, transparent 0%, black 40%);
+          }
+        `}</style>
       </div>
     </motion.div>
   );
+}
+
+/**
+ * Live-rolling pseudo-random EGCT points. The whole strip is decorative
+ * — `makeFakeEGCTs` uses a deterministic LCG so the visual stays the
+ * same between renders without resorting to actual randomness, and
+ * `cipher-roll` (defined in `EERCKeyframes`) translates the column up
+ * by 50% on a loop. We render the rows twice so the seam is hidden.
+ */
+function CiphertextStream() {
+  const rows = useMemo(() => makeFakeEGCTs(24), []);
+  return (
+    <div className="h-full relative">
+      <div className="cipher-roll font-mono text-[10px] text-emerald-400/70 leading-5 whitespace-nowrap pr-6 pl-4 pt-4">
+        {[...rows, ...rows].map((r, i) => (
+          <div key={i} className="flex gap-3">
+            <span className="text-zinc-600">[{String(i).padStart(2, '0')}]</span>
+            <span>c1.x={r[0]}</span>
+            <span>c1.y={r[1]}</span>
+            <span>c2.x={r[2]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function makeFakeEGCTs(n: number): string[][] {
+  let seed = 0x9e3779b1;
+  const next = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed;
+  };
+  const hex = () =>
+    Array.from({ length: 8 }, () => next().toString(16).padStart(8, '0'))
+      .join('')
+      .slice(0, 8);
+  return Array.from({ length: n }, () => [hex(), hex(), hex(), hex()]);
 }
