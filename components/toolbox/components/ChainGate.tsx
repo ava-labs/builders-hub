@@ -4,8 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, ArrowRight, Wallet } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Button } from '@/components/toolbox/components/Button';
+import { toast } from '@/lib/toast';
 import type { RequiredChain } from '@/components/console/step-flow';
 
 interface ChainGateProps {
@@ -48,19 +50,47 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const setWalletChainId = useWalletStore((s) => s.setWalletChainId);
   const createChainStore = useCreateChainStore()();
+  const walletL1s = useL1List();
   const { addChain, switchChain } = useWallet();
   const [liveChainId, setLiveChainId] = useState<number | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
 
-  // On mount and whenever walletChainId changes, ask the provider for the
-  // real chain. Cheap (one eth_chainId call) and only runs when the gate
-  // is actively rendering — cost is bounded by step navigations.
+  // Re-read the live chain id from the EIP-1193 provider whenever the
+  // store value changes OR the wallet emits chainChanged. The store-only
+  // dependency isn't enough on its own: wagmi ignores chains not in
+  // wagmiConfig, so a custom-L1 switch leaves walletChainId stale and
+  // the effect would never refire — the gate would stay stuck on the
+  // warning even after a successful switch.
   useEffect(() => {
     let cancelled = false;
-    readLiveChainId().then((n) => {
-      if (!cancelled) setLiveChainId(n);
-    });
+
+    const refresh = () => {
+      readLiveChainId().then((n) => {
+        if (!cancelled) setLiveChainId(n);
+      });
+    };
+
+    refresh();
+
+    if (typeof window === 'undefined') {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const providers: Array<{
+      on?: (event: string, listener: (...args: any[]) => void) => void;
+      removeListener?: (event: string, listener: (...args: any[]) => void) => void;
+    }> = [];
+    if ((window as any).avalanche) providers.push((window as any).avalanche);
+    if ((window as any).ethereum && (window as any).ethereum !== (window as any).avalanche) {
+      providers.push((window as any).ethereum);
+    }
+    providers.forEach((p) => p.on?.('chainChanged', refresh));
+
     return () => {
       cancelled = true;
+      providers.forEach((p) => p.removeListener?.('chainChanged', refresh));
     };
   }, [walletChainId]);
 
@@ -108,7 +138,52 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     return <>{children}</>;
   }
 
-  // Wrong chain — show switch prompt
+  // L1 path: only `wallet_switchEthereumChain` for chains the wallet
+  // already knows about. For a freshly-created L1 the wallet has never
+  // seen the chainId, so showing "Switch Network" is a dead end — Core
+  // throws "Unrecognized chain ID" and `safelySwitch` swallows the error
+  // (logs only). We disambiguate via l1ListStore: present in the list
+  // means the user has already added it through the modal at least once.
+  // C-Chain is always seeded into l1ListStore, so this defaults true
+  // there.
+  const isInWallet =
+    requiredChain === 'c-chain' ? true : walletL1s.some((w: L1ListItem) => w.evmChainId === expectedChainId);
+
+  const handleSwitch = async () => {
+    if (expectedChainId === null) return;
+    setIsSwitching(true);
+    try {
+      await switchChain(expectedChainId, isTestnet ?? false);
+      // safelySwitch swallows provider errors, so we can't rely on a
+      // throw to know whether the switch happened. Re-read the live
+      // chain — if it didn't move, surface a toast so the user isn't
+      // left wondering why nothing changed.
+      const live = await readLiveChainId();
+      setLiveChainId(live);
+      if (live !== expectedChainId) {
+        toast.error(
+          'Network switch failed',
+          `Your wallet is still on chain ${live ?? 'unknown'}. Try switching from the wallet UI directly.`,
+          { id: `chain-gate-switch:${expectedChainId}` },
+        );
+      }
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
+  const handleAddToWallet = async () => {
+    // For the create-l1 flow we already know the chain name + EVM id,
+    // so seed the modal with what we have. The user only needs to paste
+    // an RPC URL (which the modal prompts for) — the rest is pre-filled.
+    const isL1Step = requiredChain === 'l1';
+    await addChain({
+      allowLookup: !isL1Step,
+      chainName: isL1Step ? createChainStore?.chainName || undefined : undefined,
+      isTestnet: isTestnet ?? undefined,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div
@@ -123,36 +198,42 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
           </div>
           <div className="flex-1 space-y-3">
             <div>
-              <h3 className="text-base font-semibold text-white">Switch to {chainLabel}</h3>
+              <h3 className="text-base font-semibold text-white">
+                {isInWallet ? `Switch to ${chainLabel}` : `Add ${chainLabel} to your wallet`}
+              </h3>
               <p className="mt-1 text-sm text-zinc-400">
-                This step requires your wallet to be connected to{' '}
-                <span className="text-zinc-200 font-medium">{chainLabel}</span>
-                {requiredChain === 'l1' && ' (Chain ID: ' + expectedChainId + ')'}. You&apos;re currently on a different
-                network.
+                {isInWallet ? (
+                  <>
+                    This step requires your wallet to be connected to{' '}
+                    <span className="text-zinc-200 font-medium">{chainLabel}</span>
+                    {requiredChain === 'l1' && ' (Chain ID: ' + expectedChainId + ')'}. You&apos;re currently on a
+                    different network.
+                  </>
+                ) : (
+                  <>
+                    Your wallet hasn&apos;t added <span className="text-zinc-200 font-medium">{chainLabel}</span>
+                    {requiredChain === 'l1' && ' (Chain ID: ' + expectedChainId + ')'} yet. Add it now to continue.
+                  </>
+                )}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <Button
-                onClick={async () => {
-                  try {
-                    await switchChain(expectedChainId!, isTestnet ?? false);
-                  } catch {
-                    // Switch failed — chain might not be added yet
-                    // Fall through to "Add to Wallet" below
-                  }
-                }}
-                variant="primary"
-                size="sm"
-                icon={<ArrowRight className="h-3.5 w-3.5" />}
-              >
-                Switch Network
-              </Button>
-
-              {requiredChain === 'l1' && (
+              {isInWallet ? (
                 <Button
-                  onClick={() => addChain({ allowLookup: true })}
-                  variant="secondary"
+                  onClick={handleSwitch}
+                  loading={isSwitching}
+                  loadingText="Switching…"
+                  variant="primary"
+                  size="sm"
+                  icon={<ArrowRight className="h-3.5 w-3.5" />}
+                >
+                  Switch Network
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleAddToWallet}
+                  variant="primary"
                   size="sm"
                   icon={<Wallet className="h-3.5 w-3.5" />}
                 >
