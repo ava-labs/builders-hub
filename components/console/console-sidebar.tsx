@@ -51,6 +51,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -651,6 +652,14 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const sidebarState = useSidebarState(["primary-network"]);
   const { isCollapsed, toggleSection } = sidebarState;
 
+  // Rail collapse state (icon mode). When the user shrinks the sidebar to
+  // just the icon rail, the full-width search input no longer fits — swap
+  // it for a search-icon button that re-expands the rail and focuses the
+  // input on click. `useSidebar()` exposes `state` ("expanded"|"collapsed")
+  // and `setOpen` from `components/ui/sidebar.tsx`.
+  const { state: railState, setOpen: setRailOpen } = useSidebar();
+  const isRailCollapsed = railState === "collapsed";
+
   const [searchQuery, setSearchQuery] = React.useState("");
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -810,29 +819,48 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
     <SidebarStateContext.Provider value={sidebarState}>
       <Sidebar {...props} data-tour="sidebar">
         <SidebarHeader className="px-3 pt-3 pb-1">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-sidebar-foreground/40" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="w-full rounded-md border border-sidebar-border bg-sidebar-accent/50 pl-8 pr-8 py-1.5 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/50 focus:outline-none focus:ring-1 focus:ring-sidebar-ring focus:bg-sidebar-accent/70 focus:border-sidebar-ring transition-colors"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  searchInputRef.current?.focus();
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-sidebar-foreground/40 hover:text-sidebar-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+          {isRailCollapsed ? (
+            // Icon-rail mode: the full-width input would clip past the
+            // narrow rail, so we render a single search-icon button that
+            // re-expands the sidebar and focuses the input. The 220ms
+            // delay matches the rail's expansion transition so focus
+            // lands after the input has actually mounted at full width.
+            <button
+              type="button"
+              onClick={() => {
+                setRailOpen(true);
+                setTimeout(() => searchInputRef.current?.focus(), 220);
+              }}
+              aria-label="Open search"
+              className="flex h-9 w-full items-center justify-center rounded-md text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          ) : (
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-sidebar-foreground/40" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="w-full rounded-md border border-sidebar-border bg-sidebar-accent/50 pl-8 pr-8 py-1.5 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/50 focus:outline-none focus:ring-1 focus:ring-sidebar-ring focus:bg-sidebar-accent/70 focus:border-sidebar-ring transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent>

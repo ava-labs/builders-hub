@@ -19,6 +19,7 @@ import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { baseOptions } from "@/app/layout.config";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
+import { CommandPalette } from "@/components/console/command-palette";
 
 function ConsolePageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -88,6 +89,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
               </StepErrorBoundary>
             </div>
           </SidebarInset>
+          <CommandPalette />
         </SidebarProvider>
       </LayoutWrapper>
       <ConsoleBadgeNotification />
