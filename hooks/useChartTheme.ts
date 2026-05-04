@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import { useTheme as useSiteTheme } from '@/components/content-design/theme-observer';
+import { createLocalPref } from '@/lib/console/local-pref';
 
 // User-facing chart-theme choice.
 //   `auto`        → follow the Builder Hub site's light/dark mode (default).
@@ -50,21 +50,19 @@ export const CHART_THEME_STYLES: Record<ResolvedChartTheme, ChartThemeStyles> = 
   },
 };
 
-const STORAGE_KEY = 'console:my-l1:chart-theme';
-const THEME_CHANGED_EVENT = 'console:my-l1:chart-theme-changed';
-// Bumped once when the default flipped from `rich` to `auto`. On first
-// sync after the bump we flip any user who was sitting on the old
-// `rich` default to `auto` so they get the follow-site-theme behaviour
-// without having to discover the picker. Users who actively pick a
-// theme afterwards keep their pick (the migration only runs once).
-const MIGRATION_KEY = 'console:my-l1:chart-theme:migrated';
-const CURRENT_MIGRATION_VERSION = '2026-04-29-auto-default';
-
 const VALID_THEMES: ReadonlySet<ChartTheme> = new Set(['auto', 'light', 'dark', 'rich']);
 
 function isValidTheme(value: unknown): value is ChartTheme {
   return typeof value === 'string' && VALID_THEMES.has(value as ChartTheme);
 }
+
+const themePref = createLocalPref<ChartTheme>({
+  key: 'console:my-l1:chart-theme',
+  changedEvent: 'console:my-l1:chart-theme-changed',
+  defaultValue: 'auto',
+  parse: (raw) => (isValidTheme(raw) ? raw : undefined),
+  serialize: (theme) => theme,
+});
 
 export interface UseChartTheme {
   /** The user's preference (`auto` by default). */
@@ -97,62 +95,14 @@ export function useChartTheme(): UseChartTheme {
   // `undefined` on every render, which silently fell through to 'rich'
   // and made `auto` look identical to the old default in light mode.
   const siteTheme = useSiteTheme();
-  const [theme, setThemeState] = useState<ChartTheme>('auto');
-  const [isHydrated, setIsHydrated] = useState(false);
+  const { value: theme, setValue, isHydrated } = themePref.usePref();
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const sync = () => {
-      try {
-        // One-shot migration. Pre-`auto`, every user defaulted to `rich`
-        // and most never opened the picker — leaving them on a forced
-        // dark surface even when their site theme is light. Flip those
-        // users to `auto` once. The migration version key isolates this
-        // from any future migration.
-        const migrationDone =
-          window.localStorage.getItem(MIGRATION_KEY) === CURRENT_MIGRATION_VERSION;
-        if (!migrationDone) {
-          const previous = window.localStorage.getItem(STORAGE_KEY);
-          if (previous === 'rich') {
-            window.localStorage.setItem(STORAGE_KEY, 'auto');
-          }
-          window.localStorage.setItem(MIGRATION_KEY, CURRENT_MIGRATION_VERSION);
-        }
-
-        const stored = window.localStorage.getItem(STORAGE_KEY);
-        if (isValidTheme(stored)) {
-          setThemeState(stored);
-        }
-      } catch {
-        // localStorage may be disabled — keep the default.
-      }
-    };
-
-    sync();
-    setIsHydrated(true);
-
-    window.addEventListener(THEME_CHANGED_EVENT, sync);
-    window.addEventListener('storage', sync);
-
-    return () => {
-      window.removeEventListener(THEME_CHANGED_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
-
-  const setTheme = useCallback((next: ChartTheme) => {
+  // Reject unknown values at the call site so callers can't poke a
+  // malformed theme into storage.
+  const setTheme = (next: ChartTheme) => {
     if (!isValidTheme(next)) return;
-    setThemeState(next);
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // ignore — UI state still updates even if persistence fails
-    }
-    window.setTimeout(() => {
-      window.dispatchEvent(new Event(THEME_CHANGED_EVENT));
-    }, 0);
-  }, []);
+    setValue(next);
+  };
 
   // `auto` mirrors the site theme one-to-one: light → light, dark → dark.
   // The `rich` preset stays available as a manual override via the picker
