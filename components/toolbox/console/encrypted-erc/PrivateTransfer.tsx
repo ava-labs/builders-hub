@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { isAddress } from 'viem';
 import { BookOpen } from 'lucide-react';
@@ -75,7 +75,15 @@ function PrivateTransfer() {
 
   const balance = useEERCBalance(deployment, mode ?? 'converter', token);
   const aud = useEERCAuditorAndTokenId(deployment, mode === 'converter' ? token?.address : undefined);
-  const tr = useEERCTransfer(deployment);
+  // Reload encrypted balance + auditor state once the transfer confirms.
+  // Both `refresh` callbacks are stable per their hook's useCallback deps,
+  // so this onConfirmed is also stable across renders.
+  const refreshBalance = balance.refresh;
+  const refreshAud = aud.refresh;
+  const onTransferConfirmed = useCallback(async () => {
+    await Promise.all([refreshBalance(), refreshAud()]);
+  }, [refreshBalance, refreshAud]);
+  const tr = useEERCTransfer(deployment, { onConfirmed: onTransferConfirmed });
   const activeChainId = mode === 'standalone' ? standalone.chainId : converter.chainId;
 
   const [recipient, setRecipient] = useState('');

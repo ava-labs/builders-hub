@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 import {
@@ -51,7 +51,14 @@ function WithdrawBurn() {
 
   const balance = useEERCBalance(deployment, 'converter', token);
   const aud = useEERCAuditorAndTokenId(deployment, token?.address);
-  const wd = useEERCWithdraw(deployment);
+  // Reload encrypted balance + auditor state once the withdraw confirms so
+  // the UI doesn't keep showing the pre-withdraw ciphertext.
+  const refreshBalance = balance.refresh;
+  const refreshAud = aud.refresh;
+  const onWithdrawConfirmed = useCallback(async () => {
+    await Promise.all([refreshBalance(), refreshAud()]);
+  }, [refreshBalance, refreshAud]);
+  const wd = useEERCWithdraw(deployment, { onConfirmed: onWithdrawConfirmed });
 
   const [amountText, setAmountText] = useState('');
 
