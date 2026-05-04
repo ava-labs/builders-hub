@@ -66,6 +66,44 @@ function getResetTime(timestamp: number): string {
   return `${localString} (${relativeTime})`;
 }
 
+/**
+ * Check whether a given identifier is within rate-limit bounds without
+ * wrapping a handler. Useful for endpoints whose identifier needs to come
+ * from the request body (parsed inside the handler) rather than headers
+ * or the session, which the request-level wrapper can't see before reading
+ * the body stream.
+ *
+ * Shares the same in-memory `rateLimits` Map as `rateLimit()`, so callers
+ * inherit the same per-instance scope and the same hourly cleanup sweep.
+ */
+export interface CheckRateLimitOptions {
+  windowMs: number;
+  maxRequests: number;
+}
+
+export type CheckRateLimitResult =
+  | { allowed: true }
+  | { allowed: false; resetAt: number };
+
+export function checkRateLimit(
+  identifier: string,
+  options: CheckRateLimitOptions,
+): CheckRateLimitResult {
+  const now = Date.now();
+  const entry = rateLimits.get(identifier);
+  if (!entry || (now - entry.lastRequest) > options.windowMs) {
+    rateLimits.set(identifier, { lastRequest: now, count: 1 });
+    return { allowed: true };
+  }
+  if (entry.count >= options.maxRequests) {
+    return { allowed: false, resetAt: entry.lastRequest + options.windowMs };
+  }
+  entry.count += 1;
+  entry.lastRequest = now;
+  rateLimits.set(identifier, entry);
+  return { allowed: true };
+}
+
 export function rateLimit(handler: Function, options?: Partial<RateLimitOptions>) {
   const opts: RateLimitOptions = { 
     ...DEFAULT_OPTIONS, 
