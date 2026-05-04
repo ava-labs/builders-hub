@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   const controller = new AbortController();
@@ -248,6 +249,20 @@ export async function POST(request: Request) {
         },
         { status: 500 }
       );
+    }
+
+    try {
+      await recordReferralAttributionFromRequest(request, {
+        conversionType: 'build_games_application',
+        conversionResourceId: dbResult.id ?? null,
+        convertedEmail: typeof formData.email === 'string' ? formData.email : null,
+        attribution: (formData.referral_attribution as any) ?? {
+          referralCode: typeof formData.referrer === 'string' ? formData.referrer : null,
+          landingPath: '/build-games/apply',
+        },
+      });
+    } catch (error) {
+      console.error('[Referral] Failed to record Build Games attribution:', error);
     }
 
     return NextResponse.json({ success: true });

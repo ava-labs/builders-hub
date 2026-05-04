@@ -225,7 +225,7 @@ function normalizeUser(user: Partial<User>): User {
   return {
     id: user.id ?? "",
     name: user.name ?? null,
-    email: user.email ?? null,
+    email: user.email ?? "",
     telegram_user: user.telegram_user ?? null,
     image: user.image ?? null,
     authentication_mode: user.authentication_mode ?? null,
@@ -291,7 +291,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
         ...normalizeUser(member.user as Partial<User>),
         id: user?.id ?? "",
         name: user?.name ?? null,
-        email: user?.email ?? null,
+        email: user?.email ?? member.email ?? "",
         telegram_user: user?.telegram_user ?? null,
         image: user?.image ?? null,
         custom_attributes: user?.custom_attributes ?? [],

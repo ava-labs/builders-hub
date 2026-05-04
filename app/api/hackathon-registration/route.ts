@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -145,6 +146,17 @@ export async function POST(request: Request) {
 
     if (!hubspotResponse.ok) {
       throw new Error(`HubSpot API error: ${responseStatus} - ${JSON.stringify(hubspotResult)}`);
+    }
+
+    try {
+      await recordReferralAttributionFromRequest(request, {
+        conversionType: 'hackathon_registration',
+        conversionResourceId: typeof formData.hackathon_id === 'string' ? formData.hackathon_id : null,
+        convertedEmail: typeof formData.email === 'string' ? formData.email : null,
+        attribution: (formData.referral_attribution as any) ?? null,
+      });
+    } catch (error) {
+      console.error('[Referral] Failed to record hackathon HubSpot attribution:', error);
     }
 
     return NextResponse.json({ 

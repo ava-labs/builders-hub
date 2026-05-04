@@ -30,6 +30,7 @@ import ProcessCompletedDialog from "./ProcessCompletedDialog";
 import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { captureEventReferrerFromUrl, getEventReferrer, clearEventReferrer } from "@/lib/referral";
+import { getStoredReferralAttribution } from "@/lib/referrals/client";
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
@@ -302,6 +303,7 @@ export function RegisterForm({
         ...data,
         hackathon_id: hackathon_id,
         utm: effectiveUTM,
+        referral_attribution: getStoredReferralAttribution(),
         interests: data.interests ?? [],
         languages: data.languages ?? [],
         roles: data.roles ?? [],

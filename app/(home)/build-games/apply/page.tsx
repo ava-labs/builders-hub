@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { countries } from "@/constants/countries";
 import { cn } from "@/lib/utils";
 import { getReferrer } from "@/lib/referral";
+import { getStoredReferralAttribution } from "@/lib/referrals/client";
 
 const EMPLOYMENT_ROLES = ["Accounting", "Administrative", "Development", "Communications", "Consulting", "Customer", "Design", "Education", "Engineering", "Entrepreneurship", "Finance", "Health", "Human Resources", "Information Technology", "Legal", "Marketing", "Operations", "Product", "Project Management", "Public Relations", "Quality Assurance", "Real Estate", "Recruiting", "Research", "Sales", "Support", "Retired", "Other"];
 
@@ -296,6 +297,7 @@ export default function BuildGamesApplyForm() {
         body: JSON.stringify({
           ...values,
           referrer: referrer,
+          referral_attribution: getStoredReferralAttribution(),
         }),
       });
 

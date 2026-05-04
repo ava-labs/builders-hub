@@ -3,6 +3,7 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { EvaluateDashboard } from "@/components/evaluate/EvaluateDashboard";
 import type { SubmissionRow, EvaluationData } from "@/components/evaluate/types";
+import { canAccessEvaluationTools } from "@/lib/auth/permissions";
 
 function computeStageProgress(origin: string, data: Record<string, unknown>): number {
   if (origin !== "build_games") return 0;
@@ -25,10 +26,7 @@ export default async function EvaluatePage({
     redirect("/");
   }
 
-  const canAccess =
-    session.user?.custom_attributes?.some(
-      (attr: string) => attr === "devrel" || attr === "judge"
-    ) ?? false;
+  const canAccess = canAccessEvaluationTools(session.user?.custom_attributes);
 
   if (!canAccess) {
     redirect("/");

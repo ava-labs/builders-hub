@@ -41,7 +41,7 @@ model Hackathon {
 model User {
   id                       String                    @id @default(cuid())
   name                     String?
-  email                    String?                   @unique
+  email                    String                    @unique
   image                    String?
   authentication_mode      String?
   integration              String?
@@ -76,6 +76,9 @@ model User {
   oauthCodes               OAuthCode[]
   validatorAlerts          ValidatorAlert[]
   evaluations              Evaluation[]            @relation("Evaluations")
+  referralLinks            ReferralLink[]           @relation("ReferralLinkOwner")
+  referralAttributionsMade ReferralAttribution[]    @relation("ReferralAttributionReferrer")
+  referralAttributions     ReferralAttribution[]    @relation("ReferralAttributionConvertedUser")
 }
 
 model VerificationToken {
@@ -275,6 +278,52 @@ model StatsPlaygroundFavorite {
   @@unique([playground_id, user_id])
   @@index([playground_id])
   @@index([user_id])
+}
+
+model ReferralLink {
+  id              String                @id @default(uuid())
+  code            String                @unique
+  owner_user_id   String
+  target_type     String
+  target_id       String?
+  destination_url String
+  created_at      DateTime              @default(now()) @db.Timestamptz(3)
+  disabled_at     DateTime?             @db.Timestamptz(3)
+  owner           User                  @relation("ReferralLinkOwner", fields: [owner_user_id], references: [id], onDelete: Cascade)
+  attributions    ReferralAttribution[]
+
+  @@index([owner_user_id])
+  @@index([target_type])
+  @@index([created_at])
+}
+
+model ReferralAttribution {
+  id                     String        @id @default(uuid())
+  referral_link_id       String?
+  referrer_user_id       String?
+  converted_user_id      String?
+  converted_email        String?
+  conversion_type        String
+  conversion_resource_id String?
+  source                 String        @default("unknown")
+  utm_source             String?
+  utm_medium             String?
+  utm_campaign           String?
+  utm_content            String?
+  utm_term               String?
+  landing_path           String?
+  created_at             DateTime      @default(now()) @db.Timestamptz(3)
+  referralLink           ReferralLink? @relation(fields: [referral_link_id], references: [id], onDelete: SetNull)
+  referrer               User?         @relation("ReferralAttributionReferrer", fields: [referrer_user_id], references: [id], onDelete: SetNull)
+  convertedUser          User?         @relation("ReferralAttributionConvertedUser", fields: [converted_user_id], references: [id], onDelete: SetNull)
+
+  @@index([referral_link_id])
+  @@index([referrer_user_id])
+  @@index([converted_user_id])
+  @@index([converted_email])
+  @@index([conversion_type])
+  @@index([source])
+  @@index([created_at])
 }
 
 model FaucetClaim {

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
 import { prisma } from '@/prisma/prisma';
 import { syncUserDataToHubSpot } from '@/server/services/hubspotUserData';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 
 /**
  * API endpoint to create a new user after they accept terms.
@@ -67,6 +68,16 @@ export async function POST(req: NextRequest) {
         console.error('[HubSpot UserData] Failed to sync new user:', error);
         // Don't block user creation if HubSpot sync fails
       }
+    }
+
+    try {
+      await recordReferralAttributionFromRequest(req, {
+        conversionType: 'bh_signup',
+        convertedUserId: newUser.id,
+        convertedEmail: newUser.email,
+      });
+    } catch (error) {
+      console.error('[Referral] Failed to record BH signup attribution:', error);
     }
 
     return NextResponse.json({

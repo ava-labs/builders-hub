@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { formSchema } from "@/types/researchProposalForm";
+import { recordReferralAttributionFromRequest } from "@/server/services/referrals";
 
 export async function POST(request: Request) {
   const session = await getAuthSession();
@@ -70,6 +71,17 @@ export async function POST(request: Request) {
         exclusivity_agreement: data.exclusivity_agreement,
       },
     });
+
+    try {
+      await recordReferralAttributionFromRequest(request, {
+        conversionType: "grant_application",
+        conversionResourceId: result.id,
+        convertedUserId: sessionUserId,
+        convertedEmail: sessionEmail,
+      });
+    } catch (error) {
+      console.error("[Referral] Failed to record research proposal attribution:", error);
+    }
 
     return NextResponse.json({ success: true, id: result.id }, { status: 201 });
   } catch (error) {

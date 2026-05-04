@@ -15,11 +15,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { canAccessEvaluationTools } from '@/lib/auth/permissions';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
+  const canAccessBuilderInsights = canAccessEvaluationTools(session?.user?.custom_attributes);
 
   // Dividir el correo por @ para evitar cortes no deseados
   const formattedEmail = useMemo(() => {
@@ -134,9 +136,16 @@ export function UserButton() {
               )
             }
             {
-              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('judge')) && (
+              canAccessBuilderInsights && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/evaluate'>Evaluate Hackathons</Link>
+                </DropdownMenuItem>
+              )
+            }
+            {
+              canAccessBuilderInsights && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/builder-insights'>Builder Insights</Link>
                 </DropdownMenuItem>
               )
             }

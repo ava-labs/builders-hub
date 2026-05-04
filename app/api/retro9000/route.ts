@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -323,6 +324,16 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       );
+    }
+
+    try {
+      await recordReferralAttributionFromRequest(request, {
+        conversionType: 'grant_application',
+        convertedEmail: typeof formData.email === 'string' ? formData.email : null,
+        attribution: (formData.referral_attribution as any) ?? null,
+      });
+    } catch (error) {
+      console.error('[Referral] Failed to record Retro9000 attribution:', error);
     }
 
     return NextResponse.json({ 
