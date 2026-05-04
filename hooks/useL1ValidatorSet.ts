@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { PRIMARY_NETWORK_SUBNET_ID } from '@/app/console/my-l1/_lib/types';
+import { PRIMARY_NETWORK_SUBNET_ID } from '@/lib/console/my-l1/types';
 
 const GLACIER_BASE = 'https://glacier-api.avax.network/v1';
 const POLL_INTERVAL_MS = 60_000;

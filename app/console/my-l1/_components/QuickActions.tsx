@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import type { CombinedL1 } from '../_lib/types';
-import { getAddValidatorPath, type ValidatorManagerKind } from '../_lib/validator-manager-routing';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
+import { getAddValidatorPath, type ValidatorManagerKind } from '@/lib/console/my-l1/validator-manager-routing';
 
 interface QuickAction {
   icon: React.ComponentType<{ className?: string }>;

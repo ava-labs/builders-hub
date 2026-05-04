@@ -28,7 +28,7 @@ import { useChartTheme, type ChartThemeStyles } from '@/hooks/useChartTheme';
 import type { ChartPalette } from '@/lib/console/palettes';
 import { useL1RecentBlocks, type BlockSummary } from '@/hooks/useL1RecentBlocks';
 import { cn } from '@/lib/utils';
-import type { CombinedL1 } from '../_lib/types';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { ChartsSkeleton } from './charts/skeleton';
 
 // All four charts share this syncId so Recharts mirrors the hover cursor

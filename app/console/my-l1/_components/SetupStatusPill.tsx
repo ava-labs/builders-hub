@@ -2,8 +2,8 @@
 
 import { Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { isPrimaryNetwork, type CombinedL1 } from '../_lib/types';
-import { setupSummary } from '../_lib/setup-steps';
+import { isPrimaryNetwork, type CombinedL1 } from '@/lib/console/my-l1/types';
+import { setupSummary } from '@/lib/console/my-l1/setup-steps';
 import { SetupProgressCard } from './SetupProgress';
 
 // Setup status pill rendered next to the NextActionBar above NetworkDetailsCard.

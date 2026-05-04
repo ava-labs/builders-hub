@@ -15,7 +15,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
 import { cn } from '@/lib/utils';
 import type { L1HealthState, L1HealthStatus } from '@/hooks/useL1Health';
-import type { CombinedL1 } from '../_lib/types';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { WalletNetworkAction } from './WalletNetworkAction';
 
 // Each tint stores three triplets:

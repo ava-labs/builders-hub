@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { Layers, MessagesSquare, Server, Settings, ArrowUpDown } from 'lucide-react';
 
-import { formatGasPrice, formatRelativeFromNow } from '@/app/console/my-l1/_lib/format';
+import { formatGasPrice, formatRelativeFromNow } from '@/lib/console/my-l1/format';
 import {
   getSetupSteps,
   setupSummary,
   type SetupStep,
-} from '@/app/console/my-l1/_lib/setup-steps';
+} from '@/lib/console/my-l1/setup-steps';
 import {
   C_CHAIN_IDS,
   metadataFromWalletItem,
   walletItemToCombined,
   type CombinedL1,
-} from '@/app/console/my-l1/_lib/types';
+} from '@/lib/console/my-l1/types';
 import type { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import type { MyL1 } from '@/hooks/useMyL1s';
 

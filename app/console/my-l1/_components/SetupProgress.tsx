@@ -10,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { toast } from '@/lib/toast';
-import type { CombinedL1 } from '../_lib/types';
-import { setupSummary } from '../_lib/setup-steps';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
+import { setupSummary } from '@/lib/console/my-l1/setup-steps';
 
 // Inline "next step" hero — surfaces the single most important action a user
 // can take right now. Hidden when the L1 is fully configured (the green

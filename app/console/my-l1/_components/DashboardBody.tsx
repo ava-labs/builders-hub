@@ -13,8 +13,8 @@ import {
   metadataFromWalletItem,
   walletItemToCombined,
   type CombinedL1,
-} from '../_lib/types';
-import { chainKey, useChainOrder, useHiddenL1s } from '../_lib/chainOrderStore';
+} from '@/lib/console/my-l1/types';
+import { chainKey, useChainOrder, useHiddenL1s } from '@/lib/console/my-l1/chainOrderStore';
 import { HeroCard } from './HeroCard';
 import { SwitchChainRail } from './SwitchChainRail';
 import { L1Details } from './L1Details';

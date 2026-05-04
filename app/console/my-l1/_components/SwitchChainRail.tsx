@@ -23,8 +23,8 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import { isPrimaryNetwork, type CombinedL1 } from '../_lib/types';
-import { chainKey, useChainOrderStore, useHiddenL1s } from '../_lib/chainOrderStore';
+import { isPrimaryNetwork, type CombinedL1 } from '@/lib/console/my-l1/types';
+import { chainKey, useChainOrderStore, useHiddenL1s } from '@/lib/console/my-l1/chainOrderStore';
 
 // Single horizontal row of L1 pills. Two layout modes share the same
 // pill visuals + click/drag/remove semantics:

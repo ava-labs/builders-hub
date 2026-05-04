@@ -18,10 +18,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/lib/toast';
-import type { CombinedL1 } from '../_lib/types';
-import { formatRelativeFromNow } from '../_lib/format';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
+import { formatRelativeFromNow } from '@/lib/console/my-l1/format';
 import type { L1ValidatorSetState } from '@/hooks/useL1ValidatorSet';
-import { getAddValidatorPath, type ValidatorManagerKind } from '../_lib/validator-manager-routing';
+import { getAddValidatorPath, type ValidatorManagerKind } from '@/lib/console/my-l1/validator-manager-routing';
 
 type ManagedNode = NonNullable<CombinedL1['nodes']>[number];
 type NodeRole = 'validator' | 'rpc' | 'detecting' | 'unknown';
