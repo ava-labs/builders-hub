@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
 import { zodResolver } from "@/lib/zodResolver";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { RegisterFormStep3 } from "./RegisterFormStep3";
@@ -75,7 +75,8 @@ export function RegisterForm({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const [isSavingLater, setIsSavingLater] = useState(false);
-  
+  const isAdvancingStepRef = useRef(false);
+
   // Use UTM preservation hook
   const { getPreservedUTMs } = useUTMPreservation();
 
@@ -298,6 +299,12 @@ export function RegisterForm({
     setDataFromLocalStorage();
   }, [hackathon_id]);
 
+  /** Registration only has steps 1–2; clamp if state ever jumps (e.g. double-click before fix). */
+  useEffect(() => {
+    if (step > 2) setStep(2);
+    if (step < 1) setStep(1);
+  }, [step]);
+
   // Reinitialize form when hackathon data is loaded to use correct resolver
   useEffect(() => {
     if (hackathon) {
@@ -330,7 +337,7 @@ export function RegisterForm({
   const onSubmit = async (data: RegisterFormValues) => {
     
     if (step < 2) {
-      setStep(step + 1);
+      setStep((prev) => (prev < 2 ? prev + 1 : prev));
     } else {
       const errors: any = {};
 
@@ -401,6 +408,8 @@ export function RegisterForm({
   };
 
   const onNextStep = async () => {
+    if (step >= 2 || isAdvancingStepRef.current) return;
+
     let fieldsToValidate: (keyof RegisterFormValues)[] = [];
     if (step === 1) {
       fieldsToValidate = [
@@ -482,11 +491,16 @@ export function RegisterForm({
       }
     }
     const isValid = await form.trigger(fieldsToValidate);
-    if (isValid) {
+    if (!isValid) return;
+
+    isAdvancingStepRef.current = true;
+    try {
       if (step === 1) {
         await saveStep1ToProfile();
       }
-      setStep((prev) => prev + 1);
+      setStep((prev) => (prev < 2 ? prev + 1 : prev));
+    } finally {
+      isAdvancingStepRef.current = false;
     }
   };
 
