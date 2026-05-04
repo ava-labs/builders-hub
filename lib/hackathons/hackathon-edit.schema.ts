@@ -18,19 +18,18 @@ const textFieldSchema = z.object({
   id: z.string().min(1),
   type: z.literal(SubmitFormFieldType.Text),
   label: z.string().trim().min(1).max(120),
-  placeholder: z.string().max(240),
-  description: z.string().max(400),
+  placeholder: z.string().max(240).optional(),
+  description: z.string().max(400).optional(),
   required: z.boolean(),
   maxCharacters: z.number().int().positive().max(5000).nullable(),
-  rows: z.number().int().positive().max(20).nullable(),
 });
 
 const linkFieldSchema = z.object({
   id: z.string().min(1),
   type: z.literal(SubmitFormFieldType.Link),
   label: z.string().trim().min(1).max(120),
-  placeholder: z.string().max(240),
-  description: z.string().max(400),
+  placeholder: z.string().max(240).optional(),
+  description: z.string().max(400).optional(),
   required: z.boolean(),
 });
 
@@ -80,7 +79,7 @@ const scheduleSchema = z.object({
   date: z.string().max(64),
   name: z.string().max(50),
   category: z.string().max(30),
-  location: z.string().max(50),
+  location: z.string().max(100),
   description: z.string().max(150),
   duration: z.number().int().min(0).max(500),
 });
@@ -101,9 +100,9 @@ const resourceSchema = z.object({
 
 export const hackathonEditSchema = z.object({
   main: z.object({
-    title: z.string().trim().min(3).max(30),
-    description: z.string().trim().min(10).max(270),
-    location: z.string().trim().min(2).max(50),
+    title: z.string().trim().min(3).max(50),
+    description: z.string().trim().min(10).max(540),
+    location: z.string().trim().min(2).max(100),
     total_prizes: z.number().min(0).max(100_000_000),
     tags: z.array(z.string().max(30)).max(10),
     participants: z.number().min(0).max(1_000_000).optional(),
