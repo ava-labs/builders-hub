@@ -14,6 +14,7 @@ import SelectSubnet from '@/components/toolbox/components/SelectSubnet';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Create Managed Testnet Node',
@@ -27,6 +28,13 @@ function CreateManagedTestnetNodeBase() {
   const { createNode, fetchNodes, nodes } = useManagedTestnetNodes();
   const { addChain } = useWallet();
   const { notify } = useConsoleNotifications();
+  // The create-l1 wizard parks the just-configured chain's metadata
+  // (subnetId + genesis JSON) in this store. When the subnet the user
+  // picks here matches what they're mid-creating, we pass the genesis
+  // through so the resulting wallet entry can power Copy Genesis on the
+  // dashboard without requiring a manual paste.
+  const createChainSubnetId = useCreateChainStore()((s: { subnetId: string }) => s.subnetId);
+  const createChainGenesisData = useCreateChainStore()((s: { genesisData: string }) => s.genesisData);
 
   const [subnetId, setSubnetId] = useState('');
   const [selectedBlockchainId, setSelectedBlockchainId] = useState('');
@@ -100,9 +108,15 @@ function CreateManagedTestnetNodeBase() {
   const handleAddToWallet = async () => {
     if (!createdNode) return;
     setIsConnectingWallet(true);
+    // Only pass genesis when the wizard's subnet matches what the user
+    // selected in step 1 here. Without this guard a stale createChainStore
+    // from a previous flow would seed the modal with mismatched genesis.
+    const matchesWizard = createChainSubnetId.length > 0 && createChainSubnetId === subnetId;
+    const genesisToPass = matchesWizard ? createChainGenesisData?.trim() || undefined : undefined;
     await addChain({
       rpcUrl: createdNode.rpc_url,
       allowLookup: false,
+      genesisData: genesisToPass,
     });
     setIsConnectingWallet(false);
   };

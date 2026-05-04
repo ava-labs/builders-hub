@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMyL1s } from '@/hooks/useMyL1s';
-import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { getL1ListStore, useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useLoadedOnce } from '@/components/console/loaded-once';
 import { useL1Health } from '@/hooks/useL1Health';
@@ -27,7 +28,37 @@ export function DashboardBody() {
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isWalletTestnet = useWalletStore((s) => s.isTestnet);
   const chainOrder = useChainOrder();
+  // The create-l1 wizard parks the in-progress L1's genesis JSON in this
+  // store (set during "Create Chain"). Used below to backfill genesis on
+  // wallet entries that came through the managed-nodes path, which
+  // doesn't currently carry genesis data into l1ListStore.
+  const createChainEvmChainId = useCreateChainStore()((s: { evmChainId: number }) => s.evmChainId);
+  const createChainGenesisData = useCreateChainStore()((s: { genesisData: string }) => s.genesisData);
   const { sawLoading } = useLoadedOnce(isLoading);
+
+  // One-shot backfill: when the create-l1 wizard's in-progress chain
+  // matches a wallet entry that's missing genesis, write the JSON in.
+  // Covers the advanced-mode flow where the managed-node "Add to Wallet"
+  // step calls addChain() without passing genesis, leaving Copy Genesis
+  // hidden in Tools even though the data exists in createChainStore.
+  // Self-limits via the early return on `existingGenesis` — once the
+  // wallet entry has a genesis on file, the effect is a no-op even
+  // though walletL1s changes after the write triggers a re-render.
+  useEffect(() => {
+    if (!createChainEvmChainId) return;
+    const genesis = createChainGenesisData?.trim();
+    if (!genesis) return;
+    const matching = walletL1s.find((w: L1ListItem) => w.evmChainId === createChainEvmChainId);
+    if (!matching) return;
+    const existingGenesis = matching.genesisData?.trim() ?? '';
+    if (existingGenesis.length > 0) return;
+    const store = getL1ListStore(Boolean(isWalletTestnet));
+    store.setState((state: { l1List: L1ListItem[] }) => ({
+      l1List: state.l1List.map((w) =>
+        w.id === matching.id ? { ...w, genesisData: genesis } : w,
+      ),
+    }));
+  }, [createChainEvmChainId, createChainGenesisData, walletL1s, isWalletTestnet]);
 
   // Total active managed nodes across the user's account — drives the
   // "X/3 total" hint and disables the Provision button when at cap. Sum
