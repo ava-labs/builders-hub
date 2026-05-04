@@ -14,7 +14,7 @@ import {
   walletItemToCombined,
   type CombinedL1,
 } from '../_lib/types';
-import { chainKey, useChainOrder } from '../_lib/chainOrderStore';
+import { chainKey, useChainOrder, useHiddenL1s } from '../_lib/chainOrderStore';
 import { HeroCard } from './HeroCard';
 import { SwitchChainRail } from './SwitchChainRail';
 import { L1Details } from './L1Details';
@@ -28,6 +28,7 @@ export function DashboardBody() {
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isWalletTestnet = useWalletStore((s) => s.isTestnet);
   const chainOrder = useChainOrder();
+  const hiddenL1s = useHiddenL1s();
   // The create-l1 wizard parks the in-progress L1's genesis JSON in this
   // store (set during "Create Chain"). Used below to backfill genesis on
   // wallet entries that came through the managed-nodes path, which
@@ -117,13 +118,23 @@ export function DashboardBody() {
       ? userL1s
       : userL1s.filter((l1) => l1.isTestnet === isWalletTestnet);
 
+    // Drop user-hidden entries before the order pass so the rail reflects
+    // the cleanup the user just did. Hide is purely visual — managed L1s
+    // keep running, wallet entries don't go through here (they use
+    // l1ListStore.removeL1). The hidden list lives in chainOrderStore so
+    // it persists across reloads.
+    const hiddenSet = new Set(hiddenL1s);
+    const visible = hiddenSet.size > 0
+      ? filtered.filter((l1) => !hiddenSet.has(chainKey(l1)))
+      : filtered;
+
     // Apply user-saved ordering (set by drag-and-drop in the rail). Items
     // missing from the order list fall through to their natural position
     // at the end — newly-added L1s stay discoverable without auto-mutating
     // the user's saved arrangement.
-    if (chainOrder.length === 0) return filtered;
+    if (chainOrder.length === 0) return visible;
     const orderIndex = new Map(chainOrder.map((k, i) => [k, i]));
-    return [...filtered].sort((a, b) => {
+    return [...visible].sort((a, b) => {
       const ai = orderIndex.get(chainKey(a));
       const bi = orderIndex.get(chainKey(b));
       if (ai === undefined && bi === undefined) return 0;
@@ -131,7 +142,7 @@ export function DashboardBody() {
       if (bi === undefined) return -1;
       return ai - bi;
     });
-  }, [managedL1s, walletL1s, walletByChainId, walletChainId, isWalletTestnet, chainOrder]);
+  }, [managedL1s, walletL1s, walletByChainId, walletChainId, isWalletTestnet, chainOrder, hiddenL1s]);
 
   // URL-driven selection so refresh + back button work, and so wallet network
   // switches don't change which L1 the dashboard is viewing.
@@ -248,16 +259,21 @@ export function DashboardBody() {
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className="space-y-5"
           >
+            {/* Switch Chain rail moved ABOVE the hero card: it's a
+                navigator (which L1 am I looking at?), not detail
+                content. Putting it on top primes selection context
+                before the user reads details, and matches the standard
+                "tabs-above-pane" idiom. */}
+            <SwitchChainRail
+              l1s={activeL1s}
+              selected={selectedL1}
+              onSelect={onSelect}
+            />
             <HeroCard
               l1={selectedL1}
               health={health}
               onRefresh={refetch}
               isRefreshing={isLoading}
-            />
-            <SwitchChainRail
-              l1s={activeL1s}
-              selected={selectedL1}
-              onSelect={onSelect}
             />
             <L1Details
               l1={selectedL1}

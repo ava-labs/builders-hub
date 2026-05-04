@@ -24,17 +24,33 @@ import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1L
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { isPrimaryNetwork, type CombinedL1 } from '../_lib/types';
-import { chainKey, useChainOrderStore } from '../_lib/chainOrderStore';
+import { chainKey, useChainOrderStore, useHiddenL1s } from '../_lib/chainOrderStore';
 
-// Single horizontal scrollable row of L1 pills. Replaces the old two-section
-// SwitcherBar (managed vs wallet) — the source distinction is folded into a
-// pill chip rather than a section header so the row stays compact and the
-// user can pan a long fleet without juggling two grids.
+// Single horizontal row of L1 pills. Two layout modes share the same
+// pill visuals + click/drag/remove semantics:
 //
-// Pills support three interactions:
+//   - Static rail (≤ MARQUEE_THRESHOLD chains): existing flex row with
+//     `overflow-x-auto`, drag-to-reorder, X-to-remove. Identical to the
+//     pre-marquee behaviour so users with a small fleet keep their
+//     familiar UX.
+//   - Marquee mode (> MARQUEE_THRESHOLD): row scrolls itself slowly via
+//     CSS keyframes (`@keyframes marquee` in `app/global.css`). Hovering
+//     the rail pauses the animation; drag pauses too (state-driven).
+//     Doubled content provides a seamless loop, with only the first copy
+//     registered to dnd-kit's SortableContext so each L1 has exactly one
+//     drag source despite appearing twice on screen.
+//
+// Pill interactions in both modes:
 //   - Click           → select the L1
 //   - Drag (≥8px)     → reorder; persisted via chainOrderStore
-//   - X corner button → remove a wallet-only L1, with Undo toast
+//   - X corner button → remove. Wallet L1s drop from `l1ListStore`
+//                        (existing flow); managed L1s are hidden locally
+//                        via `chainOrderStore.hide` (server-backed nodes
+//                        keep running — destructive decommission lives
+//                        in the L1 detail's Managed Nodes card).
+const MARQUEE_THRESHOLD = 5;
+const MARQUEE_DURATION_SECONDS = 60;
+
 export function SwitchChainRail({
   l1s,
   selected,
@@ -47,8 +63,12 @@ export function SwitchChainRail({
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const l1ListStore = useL1ListStore();
   const chainOrderStore = useChainOrderStore();
+  const hiddenL1s = useHiddenL1s();
   const activeRef = useRef<HTMLDivElement>(null);
   const didMountRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const useMarquee = l1s.length > MARQUEE_THRESHOLD;
 
   // PointerSensor's distance constraint is what lets click-to-select still
   // work alongside drag-to-reorder: a drag is only initiated after the
@@ -58,11 +78,13 @@ export function SwitchChainRail({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  // Auto-scroll the active pill into view when selection changes — keeps
-  // the highlighted pill visible after picking from a long list. The first
-  // mount is skipped so the rail doesn't yank itself into a "smooth" scroll
-  // before the user has done anything.
+  // Auto-scroll the active pill into view when selection changes, but
+  // only in static mode — marquee mode already cycles all chains past
+  // the user, and forcing scrollIntoView on a transformed parent fights
+  // the animation. The first mount is skipped so the rail doesn't yank
+  // itself into a "smooth" scroll before the user has done anything.
   useEffect(() => {
+    if (useMarquee) return;
     if (!didMountRef.current) {
       didMountRef.current = true;
       return;
@@ -72,9 +94,11 @@ export function SwitchChainRail({
       block: 'nearest',
       inline: 'nearest',
     });
-  }, [selected?.subnetId, selected?.evmChainId]);
+  }, [selected?.subnetId, selected?.evmChainId, useMarquee]);
 
+  const handleDragStart = () => setIsDragging(true);
   const handleDragEnd = (event: DragEndEvent) => {
+    setIsDragging(false);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const allKeys = l1s.map(chainKey);
@@ -84,12 +108,41 @@ export function SwitchChainRail({
     const newOrder = arrayMove(allKeys, oldIndex, newIndex);
     chainOrderStore.getState().setOrder(newOrder);
   };
+  const handleDragCancel = () => setIsDragging(false);
 
-  // Remove a wallet-only L1 from the persisted list. Snapshot both the
-  // L1ListItem AND the rail's current visible order so Undo restores the
-  // exact pre-removal layout (chain re-appears in its original slot, not
-  // pushed to the end).
+  // Removal branches on source. Managed L1s hide locally (reversible);
+  // wallet L1s drop from `l1ListStore` (the existing pre-marquee path,
+  // preserved verbatim so we don't regress its undo flow).
   const handleRemove = (l1: CombinedL1) => {
+    const key = chainKey(l1);
+    const orderSnapshot = l1s.map(chainKey);
+    const orderStore = chainOrderStore.getState();
+
+    if (l1.source === 'managed') {
+      // Server-backed entries — removing from `l1ListStore` would be
+      // undone on the next `useMyL1s` poll, so we hide locally instead.
+      // The Managed Nodes card in L1 detail still owns the destructive
+      // decommission path (DELETE /api/managed-testnet-nodes/...).
+      orderStore.hide(key);
+      orderStore.setOrder(orderSnapshot.filter((k) => k !== key));
+      toast.success(
+        `Hid ${l1.chainName}`,
+        'It’s still running. To decommission a node, use Managed Nodes below.',
+        {
+          id: `l1-hide:${key}`,
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              chainOrderStore.getState().unhide(key);
+              chainOrderStore.getState().setOrder(orderSnapshot);
+            },
+          },
+        },
+      );
+      return;
+    }
+
+    // Wallet branch — unchanged behaviour from the pre-marquee version.
     if (l1.source !== 'wallet' || l1.evmChainId === null) return;
     const listStore = l1ListStore.getState() as {
       l1List: L1ListItem[];
@@ -99,17 +152,11 @@ export function SwitchChainRail({
     const itemSnapshot = listStore.l1List.find((w) => w.id === l1.blockchainId);
     if (!itemSnapshot) return;
 
-    // Capture the rail order with the removed pill still in place. Setting
-    // this on Undo brings the chain back to its original slot regardless
-    // of where addL1 inserts in the underlying list.
-    const orderSnapshot = l1s.map(chainKey);
-    const orderStore = chainOrderStore.getState();
-
     // Drop the chain from the order store so the rail visibly shifts as
     // soon as the user clicks X — without this the pill would only
     // disappear once `setState` propagated through the wallet list, which
     // can lag a frame behind the explicit order update.
-    orderStore.setOrder(orderSnapshot.filter((k) => k !== chainKey(l1)));
+    orderStore.setOrder(orderSnapshot.filter((k) => k !== key));
     listStore.removeL1(l1.blockchainId);
 
     toast.success(
@@ -120,10 +167,6 @@ export function SwitchChainRail({
         action: {
           label: 'Undo',
           onClick: () => {
-            // Re-add the chain to the wallet list and restore the rail
-            // order from the snapshot captured before removal — that's
-            // what makes the pill snap back in its original slot rather
-            // than at the end where addL1 would otherwise place it.
             l1ListStore.getState().addL1(itemSnapshot);
             chainOrderStore.getState().setOrder(orderSnapshot);
           },
@@ -132,59 +175,230 @@ export function SwitchChainRail({
     );
   };
 
-  if (l1s.length === 0) return null;
+  const handleUnhideAll = () => {
+    chainOrderStore.getState().unhideAll();
+  };
+
+  const showHiddenLink = hiddenL1s.length > 0;
+
+  // Empty rail with nothing hidden → nothing to render. Empty rail with
+  // hidden chains → show the unhide link so the user has a way back.
+  if (l1s.length === 0 && !showHiddenLink) return null;
 
   const sortableIds = l1s.map(chainKey);
+
+  // Marquee animation driver. Inline `animationPlayState` overrides the
+  // CSS `:hover` pause when a drag is in flight, so the user can drop
+  // a pill anywhere along the row without it sliding underneath them.
+  const marqueeStyle: React.CSSProperties | undefined = useMarquee
+    ? {
+        animation: `marquee ${MARQUEE_DURATION_SECONDS}s linear infinite`,
+        animationPlayState: isDragging ? 'paused' : undefined,
+      }
+    : undefined;
+
+  const renderInteractivePill = (l1: CombinedL1, derived: PillState) => (
+    <SortablePill
+      key={chainKey(l1)}
+      id={chainKey(l1)}
+      l1={l1}
+      isActive={derived.isActive}
+      walletIsHere={derived.walletIsHere}
+      isRemovable={derived.isRemovable}
+      activeRef={derived.isActive ? activeRef : undefined}
+      onSelect={() => onSelect(l1)}
+      onRemove={() => handleRemove(l1)}
+    />
+  );
+
+  const renderDuplicatePill = (l1: CombinedL1, derived: PillState) => (
+    <StaticPill
+      key={`${chainKey(l1)}-d`}
+      l1={l1}
+      isActive={derived.isActive}
+      walletIsHere={derived.walletIsHere}
+      isRemovable={derived.isRemovable}
+      onSelect={() => onSelect(l1)}
+      onRemove={() => handleRemove(l1)}
+    />
+  );
+
+  const derive = (l1: CombinedL1): PillState => ({
+    isActive:
+      selected !== null &&
+      (l1.evmChainId !== null
+        ? selected.evmChainId === l1.evmChainId
+        : selected.subnetId === l1.subnetId),
+    walletIsHere: l1.evmChainId !== null && walletChainId === l1.evmChainId,
+    // Drop the wallet-only restriction: managed L1s now route through
+    // `handleRemove`'s hide-locally branch. C-Chain is still gated by
+    // the primary-network check because the wallet store reseeds it on
+    // every page load and even hiding it would be reversed.
+    isRemovable: !isPrimaryNetwork(l1),
+  });
 
   return (
     <div className="space-y-2">
       <h2 className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground px-1">
         Switch Chain
       </h2>
-      {/* `pt-3` (was `py-1`) gives the absolutely-positioned X corner
-          button vertical room — it sits 6px above the pill and would
-          otherwise clip against the rail's content edge. The rail is
-          horizontally scrollable, so y-overflow stays visible. */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
         <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-          {/* Plain div (not motion.div) so dnd-kit's per-pill transforms
-              aren't fighting framer-motion's animated transform during a
-              drag — without this, neighbour pills only shift after drop
-              instead of sliding live as the user reorders. */}
-          <div className="flex gap-2 overflow-x-auto pt-3 pb-1 -mx-1 px-1 [scrollbar-width:thin]">
-            {l1s.map((l1) => {
-              const key = chainKey(l1);
-              const isActive =
-                selected !== null &&
-                (l1.evmChainId !== null
-                  ? selected.evmChainId === l1.evmChainId
-                  : selected.subnetId === l1.subnetId);
-              const walletIsHere =
-                l1.evmChainId !== null && walletChainId === l1.evmChainId;
-              // Only wallet-source, non-primary entries can be removed.
-              // Managed L1s are server-backed (removing the wallet copy
-              // wouldn't make the pill go away) and C-Chain is seeded
-              // into l1ListStore on every load — removing it just replays
-              // on next page mount, so we don't expose the affordance.
-              const isRemovable = l1.source === 'wallet' && !isPrimaryNetwork(l1);
-              return (
-                <SortablePill
-                  key={key}
-                  id={key}
-                  l1={l1}
-                  isActive={isActive}
-                  walletIsHere={walletIsHere}
-                  isRemovable={isRemovable}
-                  activeRef={isActive ? activeRef : undefined}
-                  onSelect={() => onSelect(l1)}
-                  onRemove={() => handleRemove(l1)}
-                />
-              );
-            })}
-          </div>
+          {useMarquee ? (
+            // Marquee mode: container clips the off-screen pills and
+            // hosts edge-fade gradients; the inner row gets the
+            // marquee animation. Doubled content (first copy is the
+            // dnd-kit-registered interactive set, second is a
+            // visual-only duplicate) keeps the loop seamless.
+            <div className="relative overflow-hidden pt-3 pb-1">
+              <div
+                className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 z-10 bg-gradient-to-r from-background to-transparent"
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-10 bg-gradient-to-l from-background to-transparent"
+                aria-hidden="true"
+              />
+              <div
+                className="flex gap-2 w-max hover:[animation-play-state:paused]"
+                style={marqueeStyle}
+              >
+                {l1s.map((l1) => renderInteractivePill(l1, derive(l1)))}
+                {l1s.map((l1) => renderDuplicatePill(l1, derive(l1)))}
+              </div>
+            </div>
+          ) : (
+            // Static mode: existing horizontal flex with overflow scroll.
+            // pt-3 (was py-1) gives the absolutely-positioned X corner
+            // button vertical room — it sits 6px above the pill and
+            // would otherwise clip against the rail's content edge.
+            <div className="flex gap-2 overflow-x-auto pt-3 pb-1 -mx-1 px-1 [scrollbar-width:thin]">
+              {l1s.map((l1) => renderInteractivePill(l1, derive(l1)))}
+            </div>
+          )}
         </SortableContext>
       </DndContext>
+
+      {showHiddenLink && (
+        <div className="px-1">
+          <button
+            type="button"
+            onClick={handleUnhideAll}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors hover:underline underline-offset-2"
+          >
+            Show {hiddenL1s.length} hidden {hiddenL1s.length === 1 ? 'chain' : 'chains'}
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+type PillState = {
+  isActive: boolean;
+  walletIsHere: boolean;
+  isRemovable: boolean;
+};
+
+// Visible pill body — pure presentational. No dnd-kit hooks here, so it
+// can be reused by both the interactive (drag-enabled) wrapper and the
+// duplicate-copy (visual-only) wrapper used in marquee mode.
+function PillContent({
+  l1,
+  isActive,
+  walletIsHere,
+  isRemovable,
+  onSelect,
+  onRemove,
+  ariaHidden = false,
+}: {
+  l1: CombinedL1;
+  isActive: boolean;
+  walletIsHere: boolean;
+  isRemovable: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+  /** True for the marquee duplicate copy — keeps screen readers from
+   *  announcing the chain twice and removes the duplicate from the tab
+   *  order. Pointer interactions (click + X) still work. */
+  ariaHidden?: boolean;
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={isActive}
+        aria-hidden={ariaHidden || undefined}
+        tabIndex={ariaHidden ? -1 : undefined}
+        aria-label={`${l1.chainName} (chain ${l1.evmChainId ?? 'unknown'})${
+          isActive ? ' — selected' : ''
+        }${walletIsHere ? ' — wallet on this chain' : ''}`}
+        className={cn(
+          'group relative flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition-all duration-150',
+          isActive
+            ? 'border-emerald-500/60 bg-emerald-500/5 text-foreground shadow-[0_0_0_1px_rgba(16,185,129,0.15)]'
+            : 'border-border bg-card hover:border-foreground/30 hover:-translate-y-px text-muted-foreground hover:text-foreground',
+        )}
+      >
+        {/* The pulsing dot is reserved for "your wallet is on this
+            chain" — the active selection is communicated by the
+            emerald ring + foreground text alone. Showing the dot on
+            both states made it ambiguous which chain the wallet was
+            actually on when the user clicked through the rail. */}
+        {walletIsHere && (
+          <span
+            className="relative flex w-1.5 h-1.5 shrink-0"
+            title="Your wallet is currently on this L1"
+            aria-hidden="true"
+          >
+            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40 animate-ping [animation-duration:2.4s]" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+          </span>
+        )}
+        <span className="font-medium whitespace-nowrap">{l1.chainName}</span>
+        <span className="text-[11px] font-mono tabular-nums text-muted-foreground/70 group-hover:text-muted-foreground">
+          {l1.evmChainId ?? l1.subnetId.slice(0, 6)}
+        </span>
+        {l1.source === 'managed' && l1.expiresAt && <ExpiryPip expiresAt={l1.expiresAt} />}
+      </button>
+      {/* Removal is a sibling button (not nested) so we don't have
+          invalid HTML and the click event doesn't bubble into the
+          pill's onSelect / dnd listeners. Hidden until the pill is
+          hovered/focused. PointerDown stops dnd-kit from kicking off a
+          drag when the user clicks the X. */}
+      {isRemovable && (
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          aria-hidden={ariaHidden || undefined}
+          tabIndex={ariaHidden ? -1 : undefined}
+          aria-label={`Remove ${l1.chainName} from the rail`}
+          title={`Remove ${l1.chainName}`}
+          className={cn(
+            'absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full',
+            'border border-border bg-background text-muted-foreground',
+            'opacity-0 group-hover/pill:opacity-100 focus-visible:opacity-100',
+            'hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30',
+            'transition-opacity duration-150',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          )}
+        >
+          <X className="h-3 w-3" aria-hidden="true" />
+        </button>
+      )}
+    </>
   );
 }
 
@@ -250,69 +464,48 @@ function SortablePill({
       {...attributes}
       {...listeners}
     >
-      <button
-        type="button"
-        onClick={onSelect}
-        aria-pressed={isActive}
-        aria-label={`${l1.chainName} (chain ${l1.evmChainId ?? 'unknown'})${
-          isActive ? ' — selected' : ''
-        }${walletIsHere ? ' — wallet on this chain' : ''}`}
-        className={cn(
-          'group relative flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition-all duration-150',
-          isActive
-            ? 'border-emerald-500/60 bg-emerald-500/5 text-foreground shadow-[0_0_0_1px_rgba(16,185,129,0.15)]'
-            : 'border-border bg-card hover:border-foreground/30 hover:-translate-y-px text-muted-foreground hover:text-foreground',
-        )}
-      >
-        {/* The pulsing dot is reserved for "your wallet is on this
-            chain" — the active selection is communicated by the
-            emerald ring + foreground text alone. Showing the dot on
-            both states made it ambiguous which chain the wallet was
-            actually on when the user clicked through the rail. */}
-        {walletIsHere && (
-          <span
-            className="relative flex w-1.5 h-1.5 shrink-0"
-            title="Your wallet is currently on this L1"
-            aria-hidden="true"
-          >
-            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40 animate-ping [animation-duration:2.4s]" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-          </span>
-        )}
-        <span className="font-medium whitespace-nowrap">{l1.chainName}</span>
-        <span className="text-[11px] font-mono tabular-nums text-muted-foreground/70 group-hover:text-muted-foreground">
-          {l1.evmChainId ?? l1.subnetId.slice(0, 6)}
-        </span>
-        {l1.source === 'managed' && l1.expiresAt && <ExpiryPip expiresAt={l1.expiresAt} />}
-      </button>
-      {/* Removal is a sibling button (not nested) so we don't have
-          invalid HTML and the click event doesn't bubble into the
-          pill's onSelect / dnd listeners. Hidden until the pill is
-          hovered/focused. PointerDown stops dnd-kit from kicking off a
-          drag when the user clicks the X. */}
-      {isRemovable && (
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          aria-label={`Remove ${l1.chainName} from wallet`}
-          title={`Remove ${l1.chainName} from wallet`}
-          className={cn(
-            'absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full',
-            'border border-border bg-background text-muted-foreground',
-            'opacity-0 group-hover/pill:opacity-100 focus-visible:opacity-100',
-            'hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30',
-            'transition-opacity duration-150',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          )}
-        >
-          <X className="h-3 w-3" aria-hidden="true" />
-        </button>
-      )}
+      <PillContent
+        l1={l1}
+        isActive={isActive}
+        walletIsHere={walletIsHere}
+        isRemovable={isRemovable}
+        onSelect={onSelect}
+        onRemove={onRemove}
+      />
+    </div>
+  );
+}
+
+// Marquee duplicate — same visuals as the interactive copy, but no
+// dnd-kit registration. Drag therefore only works on the first
+// (interactive) set; the duplicate still responds to click-to-select
+// and the X button.
+function StaticPill({
+  l1,
+  isActive,
+  walletIsHere,
+  isRemovable,
+  onSelect,
+  onRemove,
+}: {
+  l1: CombinedL1;
+  isActive: boolean;
+  walletIsHere: boolean;
+  isRemovable: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="group/pill relative shrink-0">
+      <PillContent
+        l1={l1}
+        isActive={isActive}
+        walletIsHere={walletIsHere}
+        isRemovable={isRemovable}
+        onSelect={onSelect}
+        onRemove={onRemove}
+        ariaHidden
+      />
     </div>
   );
 }
