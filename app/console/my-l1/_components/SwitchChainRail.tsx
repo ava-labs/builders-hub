@@ -29,26 +29,46 @@ import { chainKey, useChainOrderStore, useHiddenL1s } from '../_lib/chainOrderSt
 // Single horizontal row of L1 pills. Two layout modes share the same
 // pill visuals + click/drag/remove semantics:
 //
-//   - Static rail (≤ MARQUEE_THRESHOLD chains): existing flex row with
+//   - Static rail (small / short-named fleet): existing flex row with
 //     `overflow-x-auto`, drag-to-reorder, X-to-remove. Identical to the
 //     pre-marquee behaviour so users with a small fleet keep their
 //     familiar UX.
-//   - Marquee mode (> MARQUEE_THRESHOLD): row scrolls itself slowly via
+//   - Marquee mode (overflow detected): row scrolls itself slowly via
 //     CSS keyframes (`@keyframes marquee` in `app/global.css`). Hovering
 //     the rail pauses the animation; drag pauses too (state-driven).
 //     Doubled content provides a seamless loop, with only the first copy
 //     registered to dnd-kit's SortableContext so each L1 has exactly one
 //     drag source despite appearing twice on screen.
 //
+// Mode selection — count threshold AND text-length heuristic:
+//   - `MARQUEE_COUNT_THRESHOLD = 6` matches the empirical "fits on a
+//     1280px viewport" budget: 6 short-name pills fit without horizontal
+//     scroll; 7+ usually overflow. So count > 6 → marquee.
+//   - `MARQUEE_CHAR_THRESHOLD` catches long-named fleets that overflow
+//     before they hit 7 chains (e.g. five "Careful Nakamoto Chain"-style
+//     entries blow past the rail width). Total characters across all
+//     pill names + chain IDs is a cheap, SSR-safe proxy for rendered
+//     width, no measurement pass required.
+// Either condition switches the rail to marquee. Tuning the count or
+// char numbers is a one-line change here.
+//
 // Pill interactions in both modes:
 //   - Click           → select the L1
-//   - Drag (≥8px)     → reorder; persisted via chainOrderStore
+//   - Drag (≥8px)     → reorder; persisted via chainOrderStore. Works
+//                        in both modes — in marquee, hovering pauses the
+//                        animation so the user can grab any pill.
 //   - X corner button → remove. Wallet L1s drop from `l1ListStore`
 //                        (existing flow); managed L1s are hidden locally
 //                        via `chainOrderStore.hide` (server-backed nodes
 //                        keep running — destructive decommission lives
 //                        in the L1 detail's Managed Nodes card).
-const MARQUEE_THRESHOLD = 5;
+const MARQUEE_COUNT_THRESHOLD = 6;
+// Character budget across chain names + chain IDs. ~70 chars matches
+// six "Careful Nakamoto" / "Rebel Werewolf"-length pills before the row
+// starts wrapping at typical sidebar widths. Lower this if "Switch
+// Chain" pills clip on common viewport sizes; raise it if short-named
+// fleets get marqueed unnecessarily.
+const MARQUEE_CHAR_THRESHOLD = 70;
 const MARQUEE_DURATION_SECONDS = 60;
 
 export function SwitchChainRail({
@@ -68,7 +88,16 @@ export function SwitchChainRail({
   const didMountRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const useMarquee = l1s.length > MARQUEE_THRESHOLD;
+  // Marquee kicks in when EITHER too many pills OR the cumulative pill
+  // text is wide enough to overflow at typical viewport widths.
+  // Computing total chars here (not in a memo) is fine — the array is
+  // tiny and the operation is O(n) with a string-length per item.
+  const totalPillChars = l1s.reduce(
+    (acc, l1) => acc + l1.chainName.length + String(l1.evmChainId ?? l1.subnetId.slice(0, 6)).length,
+    0,
+  );
+  const useMarquee =
+    l1s.length > MARQUEE_COUNT_THRESHOLD || totalPillChars > MARQUEE_CHAR_THRESHOLD;
 
   // PointerSensor's distance constraint is what lets click-to-select still
   // work alongside drag-to-reorder: a drag is only initiated after the
