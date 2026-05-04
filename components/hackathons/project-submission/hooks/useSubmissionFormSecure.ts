@@ -43,21 +43,37 @@ const toKeyValueItems = (val: unknown): KeyValueItem[] => {
     items = Object.entries(val as Record<string, unknown>).map(([k, v]) => build(k, v));
   }
 
+  // Keep raw trimmed values for validation (website/socials URL fields only).
+  // Normalizing here hid invalid input like "ribseye.com" behind https:// in the schema.
   return items
     .filter((item) => item.value && item.value.trim().length > 0)
-    .map((item) => ({ key: item.key.trim(), value: normalizeUrl(item.value) }));
+    .map((item) => ({ key: item.key.trim(), value: item.value.trim() }));
 };
 
-/** Shared schema for website/socials: { key, value }[] where value must be a valid URL. */
+const hasExplicitHttpScheme = (value: string): boolean =>
+  /^https?:\/\//i.test(value.trim());
+
+/** Shared schema for website/socials: { key, value }[] where value must be a full http(s) URL. */
 const urlKeyValueArraySchema = z
   .array(z.object({ key: z.string(), value: z.string() }))
   .default([])
   .superRefine((arr, ctx) => {
-    arr.forEach((item, idx) => {
-      if (!isValidHttpUrl(item.value)) {
+    arr.forEach((item) => {
+      const v = item.value.trim();
+      if (!v) return;
+      if (!hasExplicitHttpScheme(v)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Entry ${idx + 1}: please enter a valid URL (e.g. https://example.com)`,
+          message:
+            'Please enter a valid URL (e.g. https://example.com)',
+          path: [],
+        });
+        return;
+      }
+      if (!isValidHttpUrl(v)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Please enter a valid URL (e.g. https://example.com)`,
           path: [],
         });
       }
@@ -200,7 +216,6 @@ export const Step1Schema = BaseFormSchema.pick({
   socials: true,
   hackaton_id: true,
 }).superRefine((data, ctx) => {
-  // Validación condicional para tracks cuando hay hackathon_id
   if (data.hackaton_id) {
     if (!data.tracks || data.tracks.length === 0) {
       ctx.addIssue({
@@ -211,7 +226,6 @@ export const Step1Schema = BaseFormSchema.pick({
     }
   }
   
-  // Validación para other_category si se selecciona "Other (Specify)"
   if (data.categories && data.categories.includes('Other (Specify)')) {
     if (!data.other_category || data.other_category.trim().length < 1) {
       ctx.addIssue({
@@ -242,7 +256,6 @@ export const Step2Schema = BaseFormSchema.pick({
   }
 );
 
-// Full schema with all refinements
 export const FormSchema = BaseFormSchema
   .refine(
     (data) => {
@@ -258,7 +271,6 @@ export const FormSchema = BaseFormSchema
   )
   .refine(
     (data) => {
-      // Si hay hackathon_id, tracks es requerido
       if (data.hackaton_id) {
         return data.tracks && data.tracks.length > 0;
       }
@@ -271,7 +283,6 @@ export const FormSchema = BaseFormSchema
   )
   .refine(
     (data) => {
-      // Si se selecciona "Other (Specify)", other_category es requerido
       if (data.categories && data.categories.includes('Other (Specify)')) {
         return data.other_category && data.other_category.trim().length >= 1;
       }
@@ -584,7 +595,7 @@ export const useSubmissionFormSecure = () => {
             continue;
           }
 
-          obj[finalKey] = trimmedValue;
+          obj[finalKey] = normalizeUrl(trimmedValue);
         }
 
         return Object.keys(obj).length > 0 ? obj : null;
