@@ -25,6 +25,14 @@ export interface MyL1 {
   firstSeenAt: string;
   /** Most recent activity for this L1 - used to sort. */
   lastSeenAt: string;
+  /**
+   * Per-L1 firn block explorer at `<8-char-slug>.firn.gg`. Always set
+   * for managed L1s — slug is just `blockchainId.slice(0,8).toLowerCase()`,
+   * which is the same shape firn-explorer's middleware regex accepts.
+   * The CombinedL1 merge in the dashboard plumbs this through to
+   * DetailHeader's "Open Explorer" button + the wallet-add `blockExplorerUrls`.
+   */
+  explorerUrl: string;
   /** All node registrations for this L1, newest first. */
   nodes: Array<{
     id: string;
@@ -105,6 +113,14 @@ export async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
         Math.max(...group.map((n) => n.created_at.getTime())),
       );
 
+      // firn explorer URL — slug is the lowercased first 8 chars of
+      // the blockchainId, matching firn-explorer's middleware regex.
+      // Same derivation lives in quick-l1's finalizeSlotMetadata; we
+      // duplicate it here so already-provisioned managed L1s (whose
+      // NodeRegistration rows pre-date the explorer field on
+      // DeploymentResult) still get a usable URL on the dashboard.
+      const explorerUrl = `https://${newest.blockchain_id.toLowerCase().slice(0, 8)}.firn.gg`;
+
       return {
         subnetId,
         blockchainId: newest.blockchain_id,
@@ -116,6 +132,7 @@ export async function aggregateL1s(nodes: NodeRow[]): Promise<MyL1[]> {
         expiresAt: new Date(expiresAtMs).toISOString(),
         firstSeenAt: firstSeenAt.toISOString(),
         lastSeenAt: lastSeenAt.toISOString(),
+        explorerUrl,
         nodes: sorted.map((n) => ({
           id: n.id,
           nodeId: n.node_id,
