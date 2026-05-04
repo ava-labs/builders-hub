@@ -16,6 +16,7 @@ import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
 import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId';
 import { useEERCTransfer } from '@/hooks/eerc/useEERCTransfer';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
+import { parseEERCAmount } from '@/lib/eerc/parseAmount';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
@@ -98,13 +99,14 @@ function PrivateTransfer() {
     );
   }
 
-  // Parse amount as cents (eERC decimals = 2).
+  // Parse amount as cents (eERC decimals = 2). String-based parsing
+  // avoids the IEEE-754 precision loss that `Number(amountText) * 100`
+  // would introduce past ~15 significant digits.
   let amountCents: bigint | null = null;
   let parseError: string | null = null;
   if (amountText) {
-    const n = Number(amountText);
-    if (!Number.isFinite(n) || n <= 0) parseError = 'Amount must be positive';
-    else amountCents = BigInt(Math.round(n * 100));
+    amountCents = parseEERCAmount(amountText);
+    if (amountCents === null) parseError = 'Amount must be positive';
   }
   const recipientValid = recipient.length > 0 && isAddress(recipient);
 
