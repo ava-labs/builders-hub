@@ -13,6 +13,7 @@ import {
   walletItemToCombined,
   type CombinedL1,
 } from '../_lib/types';
+import { chainKey, useChainOrder } from '../_lib/chainOrderStore';
 import { HeroCard } from './HeroCard';
 import { SwitchChainRail } from './SwitchChainRail';
 import { L1Details } from './L1Details';
@@ -25,6 +26,7 @@ export function DashboardBody() {
   const walletL1s = useL1List();
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isWalletTestnet = useWalletStore((s) => s.isTestnet);
+  const chainOrder = useChainOrder();
   const { sawLoading } = useLoadedOnce(isLoading);
 
   // Total active managed nodes across the user's account — drives the
@@ -80,10 +82,25 @@ export function DashboardBody() {
     });
 
     const userL1s = Array.from(byChainId.values());
-    return walletChainId === 0
+    const filtered = walletChainId === 0
       ? userL1s
       : userL1s.filter((l1) => l1.isTestnet === isWalletTestnet);
-  }, [managedL1s, walletL1s, walletByChainId, walletChainId, isWalletTestnet]);
+
+    // Apply user-saved ordering (set by drag-and-drop in the rail). Items
+    // missing from the order list fall through to their natural position
+    // at the end — newly-added L1s stay discoverable without auto-mutating
+    // the user's saved arrangement.
+    if (chainOrder.length === 0) return filtered;
+    const orderIndex = new Map(chainOrder.map((k, i) => [k, i]));
+    return [...filtered].sort((a, b) => {
+      const ai = orderIndex.get(chainKey(a));
+      const bi = orderIndex.get(chainKey(b));
+      if (ai === undefined && bi === undefined) return 0;
+      if (ai === undefined) return 1;
+      if (bi === undefined) return -1;
+      return ai - bi;
+    });
+  }, [managedL1s, walletL1s, walletByChainId, walletChainId, isWalletTestnet, chainOrder]);
 
   // URL-driven selection so refresh + back button work, and so wallet network
   // switches don't change which L1 the dashboard is viewing.
