@@ -6,10 +6,17 @@
 // to anchor a Builder Hub URL, return no options so ExplorerMenu can surface
 // the "Setup Explorer" action.
 //
-//   1. Builder Hub Explorer — the in-app `/explorer/{slug}` route. Always
-//      first because it's our own product, opens in the same tab, and works
-//      for any chain the user has provisioned (matches by EVM chain ID
-//      against the wallet's L1ListItem).
+//   0. Firn Explorer — surfaced first whenever the L1 carries a
+//      `*.firn.gg` URL (every managed L1 does, set by
+//      `lib/console/my-l1s.ts`). It's the default for Quick L1 deploys
+//      because the firn indexer is the only explorer that knows about a
+//      brand-new managed L1 the moment it boots.
+//
+//   1. Builder Hub Explorer — the in-app `/explorer/{slug}` route. Falls
+//      to second when Firn is present, otherwise top of the list because
+//      it's our own product, opens in the same tab, and works for any
+//      chain the user has provisioned (matches by EVM chain ID against
+//      the wallet's L1ListItem).
 //
 //   2. Avalanche Subnets — the official Avalanche-team explorer at
 //      subnets[-test].avax.network. For L1s where the wallet's
@@ -23,8 +30,8 @@
 //      For non-C-Chain L1s the trigger lands on the testnet/mainnet home
 //      so the user can search.
 //
-//   4. Either L1 Custom Explorer (when the wallet has a non-Subnets
-//      explorerUrl set — e.g. a project's bespoke explorer like
+//   4. Either L1 Custom Explorer (when the wallet has a non-Subnets,
+//      non-Firn explorerUrl set — e.g. a project's bespoke explorer like
 //      explorer.dexalot.com) OR Avascan for C-Chain/Subnets-backed entries.
 //      Avascan supports L1s and tx/address search across the entire
 //      ecosystem at avascan.info / testnet.avascan.info.
@@ -33,7 +40,7 @@ const C_CHAIN_FUJI = 43113;
 const C_CHAIN_MAINNET = 43114;
 
 export interface ExplorerOption {
-  id: 'builder-hub' | 'subnets' | 'snowtrace' | 'custom' | 'avascan';
+  id: 'firn' | 'builder-hub' | 'subnets' | 'snowtrace' | 'custom' | 'avascan';
   label: string;
   url: string;
   /** Short description for tooltip / menu subtitle. */
@@ -52,9 +59,22 @@ interface ExplorerInputs {
 
 const SUBNETS_HOST_TESTNET = 'subnets-test.avax.network';
 const SUBNETS_HOST_MAINNET = 'subnets.avax.network';
+// Firn-served per-L1 explorers live at `<8-char-slug>.firn.gg`. Detect the
+// host suffix rather than a full hostname so future tld variants (staging,
+// subdomains) still resolve. URL-parse with a try/catch — `customExplorerUrl`
+// can be free-text from older wallet entries.
+const FIRN_HOST_SUFFIX = '.firn.gg';
 
 function isSubnetsUrl(url: string): boolean {
   return url.includes(SUBNETS_HOST_TESTNET) || url.includes(SUBNETS_HOST_MAINNET);
+}
+
+function isFirnUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname.endsWith(FIRN_HOST_SUFFIX);
+  } catch {
+    return false;
+  }
 }
 
 // Map an EVM chain ID to its Builder Hub explorer slug. C-Chain has
@@ -72,6 +92,7 @@ export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
   const { evmChainId, isTestnet, customExplorerUrl } = input;
   const isCChain = evmChainId === C_CHAIN_FUJI || evmChainId === C_CHAIN_MAINNET;
   const customPointsAtSubnets = !!customExplorerUrl && isSubnetsUrl(customExplorerUrl);
+  const customPointsAtFirn = !!customExplorerUrl && isFirnUrl(customExplorerUrl);
 
   // Surface third-party explorers only when they actually point at the
   // user's L1: C-Chain (universally indexed) or a wallet-configured
@@ -90,9 +111,24 @@ export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
 
   const options: ExplorerOption[] = [];
 
-  // 1. Builder Hub Explorer — surface first because it's the in-app option
-  // and the user is already in our product. Works whenever there's an EVM
-  // chain ID; the slug fallback resolves through wallet's L1ListItem.
+  // 0. Firn Explorer — top option when the wallet's explorer URL points
+  // at firn.gg. Quick L1 deploys (and every other managed L1) carry a
+  // `<slug>.firn.gg` URL because the firn indexer is the only one that
+  // knows about a brand-new L1 the instant it boots. Putting it first
+  // means the single-button case (only Firn available) and the dropdown's
+  // top entry both default to Firn rather than a generic "Open Explorer".
+  if (customPointsAtFirn && customExplorerUrl) {
+    options.push({
+      id: 'firn',
+      label: 'Firn Explorer',
+      url: customExplorerUrl,
+      description: 'Per-L1 indexed block explorer',
+    });
+  }
+
+  // 1. Builder Hub Explorer — in-app option, falls to second when Firn is
+  // present. Works whenever there's an EVM chain ID; the slug fallback
+  // resolves through wallet's L1ListItem.
   if (evmChainId !== null) {
     options.push({
       id: 'builder-hub',
@@ -133,9 +169,13 @@ export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
       : 'Routescan-powered third-party explorer',
   });
 
-  // 4. Custom explorer when the wallet has set a non-Subnets URL;
-  // otherwise Avascan for C-Chain or Subnets-backed entries.
-  if (customExplorerUrl && !customPointsAtSubnets) {
+  // 4. Custom explorer when the wallet has set a non-Subnets, non-Firn
+  // URL; otherwise Avascan. Firn URLs are intentionally skipped from the
+  // 'custom' branch so the same chain doesn't get a duplicate generic
+  // "L1 Custom Explorer" entry alongside the labeled Firn one above —
+  // they fall through to Avascan instead, which is still a useful
+  // multichain destination beyond Firn's per-L1 view.
+  if (customExplorerUrl && !customPointsAtSubnets && !customPointsAtFirn) {
     options.push({
       id: 'custom',
       label: 'L1 Custom Explorer',
