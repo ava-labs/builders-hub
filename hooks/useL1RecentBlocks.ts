@@ -77,9 +77,15 @@ export function useL1RecentBlocks(
   const [tick, setTick] = useState(0);
   const requestIdRef = useRef(0);
   // Latest tip known to this hook instance — drives the incremental fetch.
-  // Reset on rpcUrl/count change via the cleanup → effect re-run cycle.
+  // Reset on rpcUrl change via the cleanup → effect re-run cycle, but
+  // explicitly NOT on count change (see prevRpcUrlRef below).
   const latestSeenRef = useRef<bigint | null>(null);
   const blocksRef = useRef<BlockSummary[]>([]);
+  // Tracks the rpcUrl from the previous effect run so we can tell whether
+  // this run was triggered by an rpcUrl change (full reset) or a count
+  // change (window adjust). Without this, a 30 → 240 toggle threw away
+  // 30 already-loaded blocks and triggered a 240-block refetch.
+  const prevRpcUrlRef = useRef<string | undefined>(undefined);
   // `paused` lives in a ref so toggling it doesn't tear down the polling
   // effect (which would refetch the entire window unnecessarily). The
   // interval keeps firing every 15s; while paused, guardedPoll just
@@ -95,6 +101,7 @@ export function useL1RecentBlocks(
       setBlocks([]);
       blocksRef.current = [];
       latestSeenRef.current = null;
+      prevRpcUrlRef.current = undefined;
       setError(null);
       setIsLoading(false);
       return;
@@ -104,11 +111,16 @@ export function useL1RecentBlocks(
     const client = createPublicClient({ transport: http(rpcUrl) });
     let pollHandle: ReturnType<typeof setInterval> | null = null;
 
-    // Reset state for this rpcUrl/count combo. The hasLoadedOnce flag stays
-    // sticky so we don't flash skeletons on every count change after the
-    // first successful load.
-    latestSeenRef.current = null;
-    blocksRef.current = [];
+    // Only nuke state on rpcUrl change — when only `count` changed we want
+    // to keep the existing window and trim/grow it via `adjustWindow()`
+    // below. The hasLoadedOnce flag stays sticky in either case so we
+    // don't flash skeletons on every count change after the first load.
+    const rpcUrlChanged = prevRpcUrlRef.current !== rpcUrl;
+    prevRpcUrlRef.current = rpcUrl;
+    if (rpcUrlChanged) {
+      latestSeenRef.current = null;
+      blocksRef.current = [];
+    }
 
     const initialLoad = async () => {
       setIsLoading(true);
@@ -142,6 +154,62 @@ export function useL1RecentBlocks(
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
         setError(err instanceof Error ? err.message : 'Failed to load recent blocks');
+        setIsLoading(false);
+      }
+    };
+
+    // Adjust the window in-place when only `count` changed. Trims when the
+    // new window is smaller (no fetch); fetches the missing older blocks
+    // and prepends when the new window is larger.
+    const adjustWindow = async () => {
+      const existing = blocksRef.current;
+      if (existing.length >= count) {
+        const trimmed = trimToCount(existing, count);
+        blocksRef.current = trimmed;
+        setBlocks(trimmed);
+        return;
+      }
+      const oldest = existing[0]?.number;
+      if (oldest === undefined) {
+        // Defensive — shouldn't happen because empty `existing` falls into
+        // the initialLoad path below. Bail out instead of fanning a fetch.
+        return;
+      }
+      const need = count - existing.length;
+      const start = oldest >= BigInt(need) ? oldest - BigInt(need) : 0n;
+      const numbers: bigint[] = [];
+      for (let n = start; n < oldest; n++) numbers.push(n);
+      if (numbers.length === 0) {
+        // Already at genesis-block boundary — nothing more to fetch.
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const results = await Promise.allSettled(
+          numbers.map((n) => client.getBlock({ blockNumber: n })),
+        );
+        if (requestId !== requestIdRef.current) return;
+
+        const olderSummaries: BlockSummary[] = [];
+        for (const r of results) {
+          if (r.status !== 'fulfilled') continue;
+          olderSummaries.push(toSummary(r.value));
+        }
+        // Promise.allSettled doesn't guarantee result order — sort the
+        // newly-fetched older blocks by number before prepending.
+        olderSummaries.sort((a, b) =>
+          a.number < b.number ? -1 : a.number > b.number ? 1 : 0,
+        );
+
+        const merged = [...olderSummaries, ...existing];
+        blocksRef.current = merged;
+        setBlocks(merged);
+        setError(null);
+        setIsLoading(false);
+      } catch (err) {
+        if (requestId !== requestIdRef.current) return;
+        setError(err instanceof Error ? err.message : 'Failed to load older blocks');
         setIsLoading(false);
       }
     };
@@ -206,7 +274,14 @@ export function useL1RecentBlocks(
       }
     };
 
-    initialLoad();
+    // Pick the right startup path. After an rpcUrl change (or first mount)
+    // blocksRef is empty and we run the full initial load. After a pure
+    // count change the window already has data — just trim or grow it.
+    if (blocksRef.current.length === 0) {
+      initialLoad();
+    } else {
+      void adjustWindow();
+    }
     pollHandle = setInterval(guardedPoll, POLL_INTERVAL_MS);
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', onVisibilityChange);
