@@ -134,10 +134,14 @@ export function SetupProgressCard({
       <CardContent>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-4">
           <motion.div
-            className="h-full bg-gradient-to-r from-amber-500 to-amber-400"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
+            // Animate via `scaleX` (a transform) instead of `width` so
+            // the browser can keep the bar on the compositor thread —
+            // width changes force a paint on every frame of the spring.
+            className="h-full origin-left bg-gradient-to-r from-amber-500 to-amber-400"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: pct / 100 }}
             transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+            style={{ width: '100%' }}
           />
         </div>
         <ol

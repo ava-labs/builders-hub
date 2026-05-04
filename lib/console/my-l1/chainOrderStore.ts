@@ -94,7 +94,11 @@ export const getChainOrderStore = (isTestnet: boolean) => {
 };
 
 export const useChainOrderStore = () => {
-  const { isTestnet } = useWalletStore();
+  // Narrow the wallet-store selector so this hook only re-runs when the
+  // network flips (testnet ↔ mainnet). Without the selector it would
+  // resubscribe to the entire wallet store and rerun on every balance
+  // tick or chain-id update.
+  const isTestnet = useWalletStore((s) => s.isTestnet);
   return useMemo(() => getChainOrderStore(Boolean(isTestnet)), [isTestnet]);
 };
 

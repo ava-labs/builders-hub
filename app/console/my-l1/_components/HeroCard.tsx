@@ -201,8 +201,18 @@ export function HeroCard({
   // Tinted shadows are explicitly OK per taste-skill ("when a shadow
   // is used, tint it to the background hue") — for a chain-coloured
   // surface, the chain hue *is* the local background.
-  const lightShadowRest = `0 4px 18px -6px ${lightShadowColor}, 0 1px 2px 0 rgba(15,23,42,0.04), 0 8px 22px -8px rgba(15,23,42,0.06), inset 0 1px 0 0 rgba(255,255,255,0.6)`;
-  const lightShadowHover = `0 12px 32px -8px ${lightShadowColor}, 0 2px 4px 0 rgba(15,23,42,0.05), 0 16px 36px -10px rgba(15,23,42,0.10), inset 0 1px 0 0 rgba(255,255,255,0.6)`;
+  // Memoized so the (cheap but noisy) string concatenation doesn't fire
+  // on every motion-driven re-render — `cursorActive` flips fast.
+  const lightShadowRest = useMemo(
+    () =>
+      `0 4px 18px -6px ${lightShadowColor}, 0 1px 2px 0 rgba(15,23,42,0.04), 0 8px 22px -8px rgba(15,23,42,0.06), inset 0 1px 0 0 rgba(255,255,255,0.6)`,
+    [lightShadowColor],
+  );
+  const lightShadowHover = useMemo(
+    () =>
+      `0 12px 32px -8px ${lightShadowColor}, 0 2px 4px 0 rgba(15,23,42,0.05), 0 16px 36px -10px rgba(15,23,42,0.10), inset 0 1px 0 0 rgba(255,255,255,0.6)`,
+    [lightShadowColor],
+  );
 
   const handlePointerMove = (e: ReactMouseEvent<HTMLDivElement>) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -402,6 +412,12 @@ function HeroIdentity({
             src={l1.logoUrl}
             alt={l1.chainName}
             className="w-full h-full object-contain p-1.5 bg-muted"
+            // Hero card sits at the top of every dashboard view, so
+            // `eager` matches the user's expectation of the avatar
+            // appearing the moment the page paints. `decoding="async"`
+            // keeps the decode off the main thread.
+            loading="eager"
+            decoding="async"
             onError={() => setImgFailed(true)}
           />
         ) : (

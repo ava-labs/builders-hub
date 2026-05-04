@@ -2117,6 +2117,20 @@ const config = {
   async headers() {
     return [
       {
+        // Encrypted-ERC zk circuits are large (~30 MB total across the 5
+        // circuits) and content-addressed — we ship them under a path
+        // that already encodes the circuit version (e.g. `transfer.wasm`,
+        // `transfer.zkey`), so a year-long immutable cache is safe and
+        // saves users from re-downloading them on every cold load.
+        source: '/eerc/circuits/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           {
