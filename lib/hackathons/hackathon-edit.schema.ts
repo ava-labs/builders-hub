@@ -5,13 +5,17 @@ const urlOrEmptySchema = z.union([z.url(), z.literal("")]);
 const nullableUrlOrEmptySchema = z.union([z.url(), z.literal(""), z.null()]);
 
 /** File picker preview in editor uses data URLs; union ensures they validate even if z.url() is strict. */
-const speakerPictureSchema = z.union([
-  z.literal(""),
+const imageUrlSchema = z.union([
   z.url(),
   z
     .string()
     .max(2_500_000)
     .refine((s) => s.startsWith("data:image/"), { message: "Invalid picture data URL" }),
+  z
+    .string()
+    .max(2_500_000)
+    .refine((s) => s.startsWith("/temp"), { message: "Invalid picture data URL" }),
+  z.literal(""),
 ]);
 
 const textFieldSchema = z.object({
@@ -37,7 +41,7 @@ const chipsFieldSchema = z.object({
   id: z.string().min(1),
   type: z.literal(SubmitFormFieldType.Chips),
   label: z.string().trim().min(1).max(120),
-  description: z.string().max(400),
+  description: z.string().max(400).optional(),
   required: z.boolean(),
   chips: z.array(z.string().trim().min(1).max(40)).max(20),
 });
@@ -77,10 +81,10 @@ const trackSchema = z.object({
 const scheduleSchema = z.object({
   url: nullableUrlOrEmptySchema,
   date: z.string().max(64),
-  name: z.string().max(50),
+  name: z.string().max(100),
   category: z.string().max(30),
   location: z.string().max(100),
-  description: z.string().max(150),
+  description: z.string().max(500),
   duration: z.number().int().min(0).max(500),
 });
 
@@ -88,7 +92,7 @@ const speakerSchema = z.object({
   // icon: z.string().max(128),
   name: z.string().max(120),
   category: z.string().max(120),
-  picture: speakerPictureSchema,
+  picture: imageUrlSchema,
 });
 
 const resourceSchema = z.object({
@@ -133,9 +137,9 @@ export const hackathonEditSchema = z.object({
     start_date: z.string().trim().min(1).max(64),
     end_date: z.string().trim().min(1).max(64),
     timezone: z.string().trim().min(1).max(100),
-    banner: urlOrEmptySchema,
+    banner: imageUrlSchema,
     icon: z.string(),
-    small_banner: urlOrEmptySchema,
+    small_banner: imageUrlSchema,
     custom_link: nullableUrlOrEmptySchema,
     top_most: z.boolean(),
     event: z.string().max(64),
