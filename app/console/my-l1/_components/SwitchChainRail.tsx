@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Clock, X } from 'lucide-react';
 import {
   DndContext,
@@ -20,7 +19,6 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { boardContainer, boardItem } from '@/components/console/motion';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { toast } from '@/lib/toast';
@@ -149,12 +147,11 @@ export function SwitchChainRail({
           horizontally scrollable, so y-overflow stays visible. */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-          <motion.div
-            variants={boardContainer}
-            initial="hidden"
-            animate="visible"
-            className="flex gap-2 overflow-x-auto pt-3 pb-1 -mx-1 px-1 [scrollbar-width:thin]"
-          >
+          {/* Plain div (not motion.div) so dnd-kit's per-pill transforms
+              aren't fighting framer-motion's animated transform during a
+              drag — without this, neighbour pills only shift after drop
+              instead of sliding live as the user reorders. */}
+          <div className="flex gap-2 overflow-x-auto pt-3 pb-1 -mx-1 px-1 [scrollbar-width:thin]">
             {l1s.map((l1) => {
               const key = chainKey(l1);
               const isActive =
@@ -184,7 +181,7 @@ export function SwitchChainRail({
                 />
               );
             })}
-          </motion.div>
+          </div>
         </SortableContext>
       </DndContext>
     </div>
@@ -214,8 +211,14 @@ function SortablePill({
     id,
   });
 
+  // Clamp y to 0 so the dragged pill stays on the rail axis even when the
+  // user pulls vertically. Without this the original element follows the
+  // cursor on both axes, which lets the user "drop" the pill below the
+  // row — visually broken for a horizontal list.
+  const horizontalTransform = transform ? { ...transform, y: 0 } : null;
+
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Transform.toString(horizontalTransform),
     transition,
     // Drag-during-translate gets a higher z-index so the pill rides over
     // its neighbours instead of being clipped by the next pill's border.
@@ -234,10 +237,9 @@ function SortablePill({
   };
 
   return (
-    <motion.div
+    <div
       ref={setRefs}
       style={style}
-      variants={boardItem}
       // touch-none so dragging on touch devices doesn't scroll the page
       // mid-reorder. cursor-grab signals the drag affordance; flips to
       // grabbing while a drag is in flight.
@@ -311,7 +313,7 @@ function SortablePill({
           <X className="h-3 w-3" aria-hidden="true" />
         </button>
       )}
-    </motion.div>
+    </div>
   );
 }
 
