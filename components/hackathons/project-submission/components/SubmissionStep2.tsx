@@ -20,9 +20,10 @@ import { EventsLang, t } from "@/lib/events/i18n";
 
 
 export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
-  const form =  useFormContext<SubmissionForm>();
+  const form = useFormContext<SubmissionForm>();
   const { state } = useProjectSubmission();
   const hasHackathon = !!state.hackathonId;
+  const isPreexistingIdea = form.watch("is_preexisting_idea");
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
@@ -123,8 +124,10 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
                 <FormControl>
                   <Textarea
                     placeholder={t(lang, "submission.step2.explanation.placeholder")}
-                    className=" h-15 resize-none dark:bg-zinc-950"
+                    className="h-15 resize-none dark:bg-zinc-950 read-only:cursor-not-allowed read-only:opacity-80"
                     {...field}
+                    readOnly={isPreexistingIdea === false}
+                    aria-readonly={isPreexistingIdea === false || undefined}
                   />
                 </FormControl>
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm tracking-[0%] font-aeonik whitespace-pre-line">

@@ -119,9 +119,8 @@ const BaseFormSchema = z.object({
     .max(60, { message: 'Max 60 characters allowed' }),
   short_description: z
     .string()
-    .max(280, { message: 'Max 280 characters allowed' })
-    .optional()
-    .or(z.literal('')),
+    .min(1, { message: 'Short description is required' })
+    .max(280, { message: 'Max 280 characters allowed' }),
   full_description: z
     .string()
     .optional()
