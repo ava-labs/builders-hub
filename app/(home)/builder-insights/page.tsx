@@ -32,7 +32,7 @@ export default async function BuilderInsightsPage() {
   }
 
   const [data, referralLinks, origin] = await Promise.all([
-    getBuilderInsightsData(),
+    getBuilderInsightsData(session.user.id),
     getBuilderInsightsReferralLinks(session.user.id),
     getRequestOrigin(),
   ]);

@@ -1,4 +1,5 @@
 import { randomBytes } from "crypto";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import {
   REFERRAL_COOKIE_NAME,
@@ -94,6 +95,43 @@ function buildDedupeKey({
   ].join("|");
 }
 
+function buildReferralLinkDedupeKey({
+  ownerUserId,
+  targetType,
+  targetId,
+  destinationUrl,
+}: {
+  ownerUserId: string;
+  targetType: ReferralTargetType;
+  targetId: string | null;
+  destinationUrl: string;
+}): string {
+  return [ownerUserId, targetType, targetId ?? "", destinationUrl].join("|");
+}
+
+async function findExistingReferralLink({
+  ownerUserId,
+  targetType,
+  targetId,
+  destinationUrl,
+}: {
+  ownerUserId: string;
+  targetType: ReferralTargetType;
+  targetId: string | null;
+  destinationUrl: string;
+}) {
+  return prisma.referralLink.findFirst({
+    where: {
+      owner_user_id: ownerUserId,
+      target_type: targetType,
+      target_id: targetId,
+      destination_url: destinationUrl,
+      disabled_at: null,
+    },
+    orderBy: { created_at: "asc" },
+  });
+}
+
 function decodeCookieValue(value: string): ReferralAttributionPayload | null {
   try {
     return JSON.parse(decodeURIComponent(value)) as ReferralAttributionPayload;
@@ -128,6 +166,24 @@ export async function createReferralLink({
   destinationUrl?: string | null;
 }) {
   const destination = destinationUrl?.trim() || getDefaultReferralDestination(targetType);
+  const normalizedTargetId = normalizeNullable(targetId);
+  const existingLink = await findExistingReferralLink({
+    ownerUserId,
+    targetType,
+    targetId: normalizedTargetId,
+    destinationUrl: destination,
+  });
+
+  if (existingLink) {
+    return existingLink;
+  }
+
+  const dedupeKey = buildReferralLinkDedupeKey({
+    ownerUserId,
+    targetType,
+    targetId: normalizedTargetId,
+    destinationUrl: destination,
+  });
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const code = randomBytes(8).toString("base64url");
@@ -135,13 +191,27 @@ export async function createReferralLink({
       return await prisma.referralLink.create({
         data: {
           code,
+          dedupe_key: dedupeKey,
           owner_user_id: ownerUserId,
           target_type: targetType,
-          target_id: targetId || null,
+          target_id: normalizedTargetId,
           destination_url: destination,
         },
       });
     } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const existingAfterConflict = await findExistingReferralLink({
+          ownerUserId,
+          targetType,
+          targetId: normalizedTargetId,
+          destinationUrl: destination,
+        });
+
+        if (existingAfterConflict) {
+          return existingAfterConflict;
+        }
+      }
+
       if (attempt === 3) throw error;
     }
   }

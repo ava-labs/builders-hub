@@ -12,10 +12,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Copy, Link2, Loader2, Plus } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { CalendarDays, Copy, Gift, Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -24,8 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { BuilderInsightsData } from "@/server/services/builderInsights";
-import type { ReferralTargetType } from "@/lib/referrals/constants";
+import type { BuilderInsightsData, ReferralTargetPreset } from "@/server/services/builderInsights";
 
 interface ReferralLinkSummary {
   id: string;
@@ -41,13 +40,6 @@ interface BuilderInsightsDashboardProps {
   data: BuilderInsightsData;
   referralLinks: ReferralLinkSummary[];
 }
-
-const TARGET_OPTIONS: Array<{ value: ReferralTargetType; label: string; destination: string }> = [
-  { value: "bh_signup", label: "BH signup", destination: "/profile" },
-  { value: "hackathon_registration", label: "Hackathon registration", destination: "/events/registration-form" },
-  { value: "build_games_application", label: "Build Games application", destination: "/build-games/apply" },
-  { value: "grant_application", label: "Grant application", destination: "/grants" },
-];
 
 function formatNumber(value: number): string {
   return value.toLocaleString();
@@ -85,11 +77,9 @@ export function BuilderInsightsDashboard({
   referralLinks: initialReferralLinks,
 }: BuilderInsightsDashboardProps) {
   const [referralLinks, setReferralLinks] = useState(initialReferralLinks);
-  const [targetType, setTargetType] = useState<ReferralTargetType>("bh_signup");
-  const [targetId, setTargetId] = useState("");
-  const [destinationUrl, setDestinationUrl] = useState("/profile");
-  const [isCreatingLink, setIsCreatingLink] = useState(false);
+  const [creatingTargetKey, setCreatingTargetKey] = useState<string | null>(null);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+  const [qrLinkId, setQrLinkId] = useState<string | null>(null);
 
   const monthlyData = data.monthlySignups;
   const referrerData = data.signupsByReferrer.map((row) => ({
@@ -105,24 +95,47 @@ export function BuilderInsightsDashboard({
   const latestMonthlySignups = monthlyData.length
     ? monthlyData[monthlyData.length - 1].signups
     : 0;
-  const topEvent = useMemo(() => data.eventParticipants[0], [data.eventParticipants]);
+  const targetsByGroup = useMemo(
+    () => ({
+      signup: data.referralTargets.filter((target) => target.group === "signup"),
+      event: data.referralTargets.filter((target) => target.group === "event"),
+      grant: data.referralTargets.filter((target) => target.group === "grant"),
+    }),
+    [data.referralTargets]
+  );
+  const selectedQrLink = referralLinks.find((link) => link.id === qrLinkId) ?? null;
 
-  const handleTargetTypeChange = (value: ReferralTargetType) => {
-    setTargetType(value);
-    const option = TARGET_OPTIONS.find((target) => target.value === value);
-    setDestinationUrl(option?.destination ?? "/profile");
+  const getLatestLinkForTarget = (target: ReferralTargetPreset) =>
+    referralLinks.find(
+      (link) =>
+        link.target_type === target.targetType &&
+        (link.target_id ?? null) === target.targetId &&
+        link.destination_url === target.destinationUrl
+    );
+
+  const handleCopy = async (link: ReferralLinkSummary) => {
+    await navigator.clipboard.writeText(link.shareUrl);
+    setCopiedLinkId(link.id);
+    setTimeout(() => setCopiedLinkId(null), 1600);
   };
 
-  const handleCreateLink = async () => {
-    setIsCreatingLink(true);
+  const handleGenerateAndCopy = async (target: ReferralTargetPreset) => {
+    const existingLink = getLatestLinkForTarget(target);
+    if (existingLink) {
+      await handleCopy(existingLink);
+      setQrLinkId(existingLink.id);
+      return;
+    }
+
+    setCreatingTargetKey(target.key);
     try {
       const response = await fetch("/api/referrals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          targetType,
-          targetId: targetId.trim() || null,
-          destinationUrl: destinationUrl.trim() || null,
+          targetType: target.targetType,
+          targetId: target.targetId,
+          destinationUrl: target.destinationUrl,
         }),
       });
 
@@ -132,16 +145,12 @@ export function BuilderInsightsDashboard({
       }
 
       const link = await response.json();
-      setReferralLinks((current) => [link, ...current].slice(0, 25));
+      setReferralLinks((current) => [link, ...current.filter((item) => item.id !== link.id)].slice(0, 25));
+      setQrLinkId(link.id);
+      await handleCopy(link);
     } finally {
-      setIsCreatingLink(false);
+      setCreatingTargetKey(null);
     }
-  };
-
-  const handleCopy = async (link: ReferralLinkSummary) => {
-    await navigator.clipboard.writeText(link.shareUrl);
-    setCopiedLinkId(link.id);
-    setTimeout(() => setCopiedLinkId(null), 1600);
   };
 
   return (
@@ -156,9 +165,68 @@ export function BuilderInsightsDashboard({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <MetricCard label="Total BH accounts" value={data.totalAccounts} />
-          <MetricCard label="Build Games BH participants" value={data.buildGamesParticipants} />
+          <MetricCard
+            label="Your BH + event signups"
+            value={data.userGeneratedBhAndEventSignups}
+          />
           <MetricCard label="Latest monthly signups" value={latestMonthlySignups} />
         </div>
+
+        <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Referral Link Generator</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <ReferralTargetGroup
+              title="Builder Hub"
+              icon={<UserPlus className="h-4 w-4" />}
+              targets={targetsByGroup.signup}
+              getLatestLinkForTarget={getLatestLinkForTarget}
+              creatingTargetKey={creatingTargetKey}
+              copiedLinkId={copiedLinkId}
+              onGenerateAndCopy={handleGenerateAndCopy}
+            />
+
+            <ReferralTargetGroup
+              title="Active And Upcoming Events"
+              icon={<CalendarDays className="h-4 w-4" />}
+              targets={targetsByGroup.event}
+              emptyLabel="No active or upcoming public events found."
+              getLatestLinkForTarget={getLatestLinkForTarget}
+              creatingTargetKey={creatingTargetKey}
+              copiedLinkId={copiedLinkId}
+              onGenerateAndCopy={handleGenerateAndCopy}
+            />
+
+            <ReferralTargetGroup
+              title="Active Grants"
+              icon={<Gift className="h-4 w-4" />}
+              targets={targetsByGroup.grant}
+              getLatestLinkForTarget={getLatestLinkForTarget}
+              creatingTargetKey={creatingTargetKey}
+              copiedLinkId={copiedLinkId}
+              onGenerateAndCopy={handleGenerateAndCopy}
+            />
+
+            {selectedQrLink && (
+              <div className="grid gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800 md:grid-cols-[auto_1fr_auto] md:items-center">
+                <div className="rounded-md bg-white p-3">
+                  <QRCodeSVG value={selectedQrLink.shareUrl} size={132} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">QR Code</div>
+                  <div className="truncate text-sm text-neutral-600 dark:text-neutral-400">
+                    {selectedQrLink.shareUrl}
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => handleCopy(selectedQrLink)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  {copiedLinkId === selectedQrLink.id ? "Copied" : "Copy link"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ChartCard title="BH Signups By Month">
@@ -309,67 +377,62 @@ export function BuilderInsightsDashboard({
             </CardContent>
           </Card>
         </div>
-
-        <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
-          <CardHeader>
-            <CardTitle className="text-base">Referral Link Generator</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 lg:grid-cols-[220px_1fr_1fr_auto]">
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-neutral-600 dark:text-neutral-400">Target</span>
-              <select
-                value={targetType}
-                onChange={(event) => handleTargetTypeChange(event.target.value as ReferralTargetType)}
-                className="h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm dark:border-neutral-800 dark:bg-neutral-950"
-              >
-                {TARGET_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-neutral-600 dark:text-neutral-400">Destination path</span>
-              <Input value={destinationUrl} onChange={(event) => setDestinationUrl(event.target.value)} />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-neutral-600 dark:text-neutral-400">Target ID optional</span>
-              <Input value={targetId} onChange={(event) => setTargetId(event.target.value)} placeholder="event or program id" />
-            </label>
-            <Button className="self-end" onClick={handleCreateLink} disabled={isCreatingLink}>
-              {isCreatingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-              Create
-            </Button>
-          </CardContent>
-          <CardContent>
-            <div className="grid gap-2">
-              {referralLinks.length ? (
-                referralLinks.map((link) => (
-                  <div
-                    key={link.id}
-                    className="grid gap-2 rounded-md border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800 md:grid-cols-[180px_1fr_auto]"
-                  >
-                    <div className="flex items-center gap-2 font-medium">
-                      <Link2 className="h-4 w-4 text-neutral-500" />
-                      {link.target_type.replaceAll("_", " ")}
-                    </div>
-                    <div className="truncate text-neutral-600 dark:text-neutral-400">{link.shareUrl}</div>
-                    <Button variant="outline" size="sm" onClick={() => handleCopy(link)}>
-                      <Copy className="mr-2 h-4 w-4" />
-                      {copiedLinkId === link.id ? "Copied" : "Copy"}
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-md border border-dashed border-neutral-200 px-3 py-8 text-center text-sm text-neutral-500 dark:border-neutral-800">
-                  No referral links created yet.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
+    </div>
+  );
+}
+
+function ReferralTargetGroup({
+  title,
+  icon,
+  targets,
+  emptyLabel = "No referral targets available.",
+  getLatestLinkForTarget,
+  creatingTargetKey,
+  copiedLinkId,
+  onGenerateAndCopy,
+}: {
+  title: string;
+  icon: ReactNode;
+  targets: ReferralTargetPreset[];
+  emptyLabel?: string;
+  getLatestLinkForTarget: (target: ReferralTargetPreset) => ReferralLinkSummary | undefined;
+  creatingTargetKey: string | null;
+  copiedLinkId: string | null;
+  onGenerateAndCopy: (target: ReferralTargetPreset) => Promise<void>;
+}) {
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+        {icon}
+        {title}
+      </div>
+      {targets.length ? (
+        <div className="flex flex-wrap gap-2">
+          {targets.map((target) => {
+            const existingLink = getLatestLinkForTarget(target);
+            const isCreating = creatingTargetKey === target.key;
+            const isCopied = existingLink ? copiedLinkId === existingLink.id : false;
+
+            return (
+              <Button
+                key={target.key}
+                size="sm"
+                onClick={() => onGenerateAndCopy(target)}
+                disabled={isCreating}
+                title={target.detail}
+              >
+                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isCopied ? "Copied" : target.label}
+              </Button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-md border border-dashed border-neutral-200 px-3 py-6 text-center text-sm text-neutral-500 dark:border-neutral-800">
+          {emptyLabel}
+        </div>
+      )}
     </div>
   );
 }

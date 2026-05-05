@@ -1,5 +1,6 @@
 import { prisma } from "@/prisma/prisma";
 import { listReferralLinksForUser } from "./referrals";
+import type { ReferralTargetType } from "@/lib/referrals/constants";
 
 const BUILD_GAMES_HACKATHON_ID =
   process.env.BUILD_GAMES_HACKATHON_ID ?? "249d2911-7931-4aa0-a696-37d8370b79f9";
@@ -38,14 +39,25 @@ export interface SignupSourcePoint {
   signups: number;
 }
 
+export interface ReferralTargetPreset {
+  key: string;
+  group: "signup" | "event" | "grant";
+  label: string;
+  detail: string;
+  targetType: ReferralTargetType;
+  targetId: string | null;
+  destinationUrl: string;
+}
+
 export interface BuilderInsightsData {
   totalAccounts: number;
-  buildGamesParticipants: number;
+  userGeneratedBhAndEventSignups: number;
   monthlySignups: MonthlySignupPoint[];
   signupsByReferrer: ReferrerSignupPoint[];
   eventParticipants: EventParticipantPoint[];
   topReferrers: TopReferrerRow[];
   signupSources: SignupSourcePoint[];
+  referralTargets: ReferralTargetPreset[];
 }
 
 function toNumber(value: bigint | number | null | undefined): number {
@@ -58,13 +70,41 @@ function formatMonth(value: Date | string): string {
   return date.toISOString().slice(0, 7);
 }
 
-export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
+function getEventStatus(startDate: Date, endDate: Date): string {
+  const now = Date.now();
+  if (startDate.getTime() <= now && endDate.getTime() >= now) return "Active";
+  return "Upcoming";
+}
+
+const ACTIVE_GRANT_TARGETS: ReferralTargetPreset[] = [
+  {
+    key: "grant-avalanche-research-proposals",
+    group: "grant",
+    label: "Call for Research Proposals",
+    detail: "Active grant application",
+    targetType: "grant_application",
+    targetId: "avalanche-research-proposals",
+    destinationUrl: "/grants/avalanche-research-proposals",
+  },
+  {
+    key: "grant-retro9000-returning",
+    group: "grant",
+    label: "Retro9000 Returning",
+    detail: "Active grant application",
+    targetType: "grant_application",
+    targetId: "retro9000-returning",
+    destinationUrl: "/grants/retro9000returning",
+  },
+];
+
+export async function getBuilderInsightsData(currentUserId: string): Promise<BuilderInsightsData> {
   const [
     totalAccounts,
     monthlyRows,
     referrerRows,
     eventParticipantRows,
-    buildGamesParticipantRows,
+    userGeneratedRows,
+    activeEventRows,
     topReferrerRows,
     signupSourceRows,
   ] = await Promise.all([
@@ -90,28 +130,55 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
     prisma.$queryRaw<
       Array<{ eventId: string; event: string; participants: bigint; projects: bigint }>
     >`
-      SELECT h."id" AS "eventId",
-             h."title" AS "event",
-             COUNT(DISTINCT u."id")::bigint AS "participants",
-             COUNT(DISTINCT p."id")::bigint AS "projects"
-      FROM "Hackathon" h
-      INNER JOIN "Project" p ON p."hackaton_id" = h."id"
-      INNER JOIN "Member" m ON m."project_id" = p."id"
-      INNER JOIN "User" u ON u."id" = m."user_id"
-        OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
-      GROUP BY h."id", h."title", h."start_date"
-      HAVING COUNT(DISTINCT u."id") > 0
-      ORDER BY "participants" DESC, h."start_date" DESC
-      LIMIT 25
+      WITH event_participants AS (
+        SELECT h."id" AS "eventId",
+               h."title" AS "event",
+               h."start_date" AS "startDate",
+               COUNT(DISTINCT u."id")::bigint AS "participants",
+               COUNT(DISTINCT p."id")::bigint AS "projects"
+        FROM "Hackathon" h
+        INNER JOIN "Project" p ON p."hackaton_id" = h."id"
+        INNER JOIN "Member" m ON m."project_id" = p."id"
+        INNER JOIN "User" u ON u."id" = m."user_id"
+          OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
+        GROUP BY h."id", h."title", h."start_date"
+        HAVING COUNT(DISTINCT u."id") > 0
+      ),
+      latest_events AS (
+        SELECT *
+        FROM event_participants
+        ORDER BY "startDate" DESC
+        LIMIT 25
+      )
+      SELECT "eventId", "event", "participants", "projects"
+      FROM latest_events
+      ORDER BY "startDate" ASC
     `,
-    prisma.$queryRaw<Array<{ participants: bigint }>>`
-      SELECT COUNT(DISTINCT u."id")::bigint AS "participants"
-      FROM "Project" p
-      INNER JOIN "Member" m ON m."project_id" = p."id"
-      INNER JOIN "User" u ON u."id" = m."user_id"
-        OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
-      WHERE p."hackaton_id" = ${BUILD_GAMES_HACKATHON_ID}
+    prisma.$queryRaw<Array<{ signups: bigint }>>`
+      SELECT COUNT(*)::bigint AS "signups"
+      FROM "ReferralAttribution" attribution
+      WHERE attribution."source" = 'referral'
+        AND attribution."referrer_user_id" = ${currentUserId}
+        AND attribution."conversion_type" IN (
+          'bh_signup',
+          'hackathon_registration',
+          'build_games_application'
+        )
     `,
+    prisma.hackathon.findMany({
+      where: {
+        end_date: { gte: new Date() },
+        OR: [{ is_public: true }, { is_public: null }],
+      },
+      select: {
+        id: true,
+        title: true,
+        start_date: true,
+        end_date: true,
+      },
+      orderBy: [{ start_date: "asc" }],
+      take: 25,
+    }),
     prisma.$queryRaw<
       Array<{
         referrerId: string;
@@ -164,17 +231,32 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
     projects: toNumber(row.projects),
   }));
 
-  const buildGamesParticipants = toNumber(buildGamesParticipantRows[0]?.participants);
+  const userGeneratedBhAndEventSignups = toNumber(userGeneratedRows[0]?.signups);
 
   const attributedSignupTotal = signupSourceRows.reduce(
     (sum, row) => sum + toNumber(row.signups),
     0
   );
   const historicalUnattributed = Math.max(totalAccounts - attributedSignupTotal, 0);
+  const activeEventTargets: ReferralTargetPreset[] = activeEventRows.map((event) => {
+    const isBuildGames = event.id === BUILD_GAMES_HACKATHON_ID;
+
+    return {
+      key: `event-${event.id}`,
+      group: "event",
+      label: event.title,
+      detail: `${getEventStatus(event.start_date, event.end_date)} event`,
+      targetType: isBuildGames ? "build_games_application" : "hackathon_registration",
+      targetId: event.id,
+      destinationUrl: isBuildGames
+        ? "/build-games/apply"
+        : `/events/registration-form?event=${event.id}`,
+    };
+  });
 
   return {
     totalAccounts,
-    buildGamesParticipants,
+    userGeneratedBhAndEventSignups,
     monthlySignups,
     signupsByReferrer: referrerRows.map((row) => ({
       referrerId: row.referrerId,
@@ -199,6 +281,19 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
       ...(historicalUnattributed > 0
         ? [{ source: "Historical / unattributed", signups: historicalUnattributed }]
         : []),
+    ],
+    referralTargets: [
+      {
+        key: "signup-builder-hub",
+        group: "signup",
+        label: "Builder Hub Sign Up",
+        detail: "Active signup link",
+        targetType: "bh_signup",
+        targetId: null,
+        destinationUrl: "/profile",
+      },
+      ...activeEventTargets,
+      ...ACTIVE_GRANT_TARGETS,
     ],
   };
 }

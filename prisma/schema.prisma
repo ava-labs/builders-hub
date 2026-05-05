@@ -283,6 +283,7 @@ model StatsPlaygroundFavorite {
 model ReferralLink {
   id              String                @id @default(uuid())
   code            String                @unique
+  dedupe_key      String?               @unique
   owner_user_id   String
   target_type     String
   target_id       String?
