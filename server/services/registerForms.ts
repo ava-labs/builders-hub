@@ -182,6 +182,7 @@ export async function createRegisterForm(
     await recordReferralAttribution({
       conversionType: "hackathon_registration",
       conversionResourceId: newRegisterFormData.id,
+      conversionTargetId: newRegisterFormData.hackathon_id,
       convertedEmail: newRegisterFormData.email,
       attribution: (registerData as any).referral_attribution ?? {
         referralCode: registerData.referrer_handle,

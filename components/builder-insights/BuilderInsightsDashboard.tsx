@@ -288,7 +288,7 @@ export function BuilderInsightsDashboard({
                 <TableBody>
                   {data.topReferrers.length ? (
                     data.topReferrers.map((row) => (
-                      <TableRow key={row.referrer}>
+                      <TableRow key={row.referrerId}>
                         <TableCell className="font-medium">{row.referrer}</TableCell>
                         <TableCell className="text-right">{formatNumber(row.bhSignups)}</TableCell>
                         <TableCell className="text-right">{formatNumber(row.hackathonRegistrations)}</TableCell>

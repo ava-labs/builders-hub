@@ -17,7 +17,8 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout: numb
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID || '7522520';
 const BUILD_GAMES_FORM_GUID = process.env.BUILD_GAMES_FORM_GUID || '2bab493b-9933-4076-8ace-f3cab2fe8cfb';
-const BUILD_GAMES_HACKATHON_ID = process.env.BUILD_GAMES_HACKATHON_ID;
+const BUILD_GAMES_HACKATHON_ID =
+  process.env.BUILD_GAMES_HACKATHON_ID ?? '249d2911-7931-4aa0-a696-37d8370b79f9';
 const DEFAULT_GITHUB_URL = 'https://github.com/ava-labs/builders-hub';
 
 // Map form field names to HubSpot field names
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
     const fields: { name: string; value: string | boolean }[] = [];
     const hubspotRequiredFields = [`${FIELD_GROUP_PREFIX}applicant_source_other`];
     // Fields that are only for our database, not HubSpot
-    const internalOnlyFields = ['referrer'];
+    const internalOnlyFields = ['referrer', 'referral_attribution'];
 
     Object.entries(formData).forEach(([key, value]) => {
       // Skip internal-only fields that shouldn't go to HubSpot
@@ -251,21 +252,24 @@ export async function POST(request: Request) {
       );
     }
 
+    let attributionRecorded = false;
     try {
-      await recordReferralAttributionFromRequest(request, {
+      const attribution = await recordReferralAttributionFromRequest(request, {
         conversionType: 'build_games_application',
         conversionResourceId: dbResult.id ?? null,
+        conversionTargetId: BUILD_GAMES_HACKATHON_ID ?? null,
         convertedEmail: typeof formData.email === 'string' ? formData.email : null,
         attribution: (formData.referral_attribution as any) ?? {
           referralCode: typeof formData.referrer === 'string' ? formData.referrer : null,
           landingPath: '/build-games/apply',
         },
       });
+      attributionRecorded = Boolean(attribution);
     } catch (error) {
       console.error('[Referral] Failed to record Build Games attribution:', error);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, attributionRecorded });
   } catch (error) {
     console.error('Error processing Build Games application:', error);
     return NextResponse.json(

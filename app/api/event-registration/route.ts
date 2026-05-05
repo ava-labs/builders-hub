@@ -29,9 +29,14 @@ export async function POST(request: Request) {
     
     // Process the form data for HubSpot
     const processedFormData: Record<string, any> = {};
+    const internalOnlyFields = new Set(['referral_attribution']);
     
     // Map standard fields directly
     Object.entries(formData).forEach(([key, value]) => {
+      if (internalOnlyFields.has(key)) {
+        return;
+      }
+
       if (['fullname', 'email', 'gdpr', 'marketing_consent'].includes(key)) {
         processedFormData[key] = value;
       } else {
@@ -152,6 +157,7 @@ export async function POST(request: Request) {
       await recordReferralAttributionFromRequest(request, {
         conversionType: 'hackathon_registration',
         conversionResourceId: typeof formData.hackathon_id === 'string' ? formData.hackathon_id : null,
+        conversionTargetId: typeof formData.hackathon_id === 'string' ? formData.hackathon_id : null,
         convertedEmail: typeof formData.email === 'string' ? formData.email : null,
         attribution: (formData.referral_attribution as any) ?? null,
       });

@@ -16,6 +16,7 @@ CREATE TABLE "ReferralLink" (
 
 CREATE TABLE "ReferralAttribution" (
     "id" TEXT NOT NULL,
+    "dedupe_key" TEXT NOT NULL,
     "referral_link_id" TEXT,
     "referrer_user_id" TEXT,
     "converted_user_id" TEXT,
@@ -35,6 +36,7 @@ CREATE TABLE "ReferralAttribution" (
 );
 
 CREATE UNIQUE INDEX "ReferralLink_code_key" ON "ReferralLink"("code");
+CREATE UNIQUE INDEX "ReferralAttribution_dedupe_key_key" ON "ReferralAttribution"("dedupe_key");
 CREATE INDEX "ReferralLink_owner_user_id_idx" ON "ReferralLink"("owner_user_id");
 CREATE INDEX "ReferralLink_target_type_idx" ON "ReferralLink"("target_type");
 CREATE INDEX "ReferralLink_created_at_idx" ON "ReferralLink"("created_at");

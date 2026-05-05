@@ -227,8 +227,9 @@ export async function POST(request: Request) {
         });
       }
     });
+    const internalOnlyFields = new Set(['referral_attribution']);
     Object.entries(formData).forEach(([name, value]) => {
-      if (!fieldMapping[name] && value !== undefined && value !== null && value !== '') {
+      if (!fieldMapping[name] && !internalOnlyFields.has(name) && value !== undefined && value !== null && value !== '') {
         let formattedValue: string | boolean;
         
         if (Array.isArray(value)) {
@@ -329,6 +330,7 @@ export async function POST(request: Request) {
     try {
       await recordReferralAttributionFromRequest(request, {
         conversionType: 'grant_application',
+        conversionTargetId: 'retro9000',
         convertedEmail: typeof formData.email === 'string' ? formData.email : null,
         attribution: (formData.referral_attribution as any) ?? null,
       });

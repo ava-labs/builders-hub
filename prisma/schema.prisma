@@ -299,6 +299,7 @@ model ReferralLink {
 
 model ReferralAttribution {
   id                     String        @id @default(uuid())
+  dedupe_key             String        @unique
   referral_link_id       String?
   referrer_user_id       String?
   converted_user_id      String?

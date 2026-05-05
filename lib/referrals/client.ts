@@ -24,6 +24,7 @@ const UTM_KEYS = [
 ] as const;
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const ATTRIBUTION_MAX_AGE_MS = COOKIE_MAX_AGE_SECONDS * 1000;
 
 function writeReferralCookie(attribution: StoredReferralAttribution): void {
   const value = encodeURIComponent(JSON.stringify(attribution));
@@ -65,7 +66,15 @@ export function getStoredReferralAttribution(): StoredReferralAttribution | null
   if (!stored) return null;
 
   try {
-    return JSON.parse(stored) as StoredReferralAttribution;
+    const attribution = JSON.parse(stored) as StoredReferralAttribution;
+    const capturedAtMs = Date.parse(attribution.capturedAt);
+
+    if (!Number.isFinite(capturedAtMs) || Date.now() - capturedAtMs > ATTRIBUTION_MAX_AGE_MS) {
+      clearStoredReferralAttribution();
+      return null;
+    }
+
+    return attribution;
   } catch {
     localStorage.removeItem(REFERRAL_STORAGE_KEY);
     return null;

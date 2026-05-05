@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import {
   captureReferralAttributionFromUrl,
+  clearStoredReferralAttribution,
   getStoredReferralAttribution,
 } from "@/lib/referrals/client";
 
@@ -72,17 +73,16 @@ export function useTrackNewUser(): void {
 
         fetch("/api/referrals/attribution", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            conversionType: "bh_signup",
-            convertedUserId: userId,
-            convertedEmail: session.user.email,
-            attribution: getStoredReferralAttribution(),
-          }),
           keepalive: true,
-        }).catch((error) => {
-          console.error("[useTrackNewUser] Failed to record referral attribution:", error);
-        });
+        })
+          .then(async (response) => {
+            if (!response.ok) return;
+            const result = await response.json();
+            if (result.attribution) clearStoredReferralAttribution();
+          })
+          .catch((error) => {
+            console.error("[useTrackNewUser] Failed to record referral attribution:", error);
+          });
       } catch (error) {
         // Log error but don't throw - tracking failures shouldn't break the app
         console.error("[useTrackNewUser] Failed to track new user:", error);

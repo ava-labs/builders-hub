@@ -20,6 +20,7 @@ export interface ReferralAttributionPayload {
 export interface RecordReferralAttributionInput {
   conversionType: ReferralTargetType;
   conversionResourceId?: string | null;
+  conversionTargetId?: string | null;
   convertedUserId?: string | null;
   convertedEmail?: string | null;
   attribution?: ReferralAttributionPayload | null;
@@ -62,6 +63,35 @@ function getSource(attribution: ReferralAttributionPayload | null | undefined): 
   if (attribution?.referralCode) return "referral";
   if (hasUtm(attribution)) return "utm";
   return "direct";
+}
+
+function normalizeNullable(value: string | null | undefined): string | null {
+  return value?.trim() || null;
+}
+
+function buildDedupeKey({
+  conversionType,
+  conversionResourceId,
+  referralLinkId,
+  convertedUserId,
+  convertedEmail,
+  source,
+}: {
+  conversionType: ReferralTargetType;
+  conversionResourceId: string | null;
+  referralLinkId: string | null;
+  convertedUserId: string | null;
+  convertedEmail: string | null;
+  source: ReferralSourceType;
+}): string {
+  return [
+    conversionType,
+    conversionResourceId ?? "",
+    referralLinkId ?? "",
+    convertedUserId ?? "",
+    convertedEmail ?? "",
+    source,
+  ].join("|");
 }
 
 function decodeCookieValue(value: string): ReferralAttributionPayload | null {
@@ -129,8 +159,10 @@ export async function listReferralLinksForUser(userId: string) {
 
 export async function recordReferralAttribution(input: RecordReferralAttributionInput) {
   const attribution = input.attribution ?? null;
-  const referralCode = attribution?.referralCode?.trim();
+  const referralCode = normalizeNullable(attribution?.referralCode);
   const source = getSource(attribution);
+  const conversionResourceId = normalizeNullable(input.conversionResourceId);
+  const conversionTargetId = normalizeNullable(input.conversionTargetId) ?? conversionResourceId;
 
   const referralLink = referralCode
     ? await prisma.referralLink.findFirst({
@@ -145,32 +177,37 @@ export async function recordReferralAttribution(input: RecordReferralAttribution
     return null;
   }
 
-  const convertedEmail = input.convertedEmail?.trim().toLowerCase() || null;
-  const convertedUserId = input.convertedUserId || null;
+  if (
+    referralLink &&
+    (referralLink.target_type !== input.conversionType ||
+      (referralLink.target_id && referralLink.target_id !== conversionTargetId))
+  ) {
+    return null;
+  }
 
-  const existing = await prisma.referralAttribution.findFirst({
-    where: {
-      conversion_type: input.conversionType,
-      conversion_resource_id: input.conversionResourceId || null,
-      referral_link_id: referralLink?.id || null,
-      ...(convertedUserId
-        ? { converted_user_id: convertedUserId }
-        : convertedEmail
-          ? { converted_email: convertedEmail }
-          : {}),
-    },
+  const convertedEmail = normalizeNullable(input.convertedEmail)?.toLowerCase() ?? null;
+  const convertedUserId = normalizeNullable(input.convertedUserId);
+  const referralLinkId = referralLink?.id ?? null;
+  const dedupeKey = buildDedupeKey({
+    conversionType: input.conversionType,
+    conversionResourceId,
+    referralLinkId,
+    convertedUserId,
+    convertedEmail,
+    source,
   });
 
-  if (existing) return existing;
-
-  return prisma.referralAttribution.create({
-    data: {
-      referral_link_id: referralLink?.id || null,
+  return prisma.referralAttribution.upsert({
+    where: { dedupe_key: dedupeKey },
+    update: {},
+    create: {
+      dedupe_key: dedupeKey,
+      referral_link_id: referralLinkId,
       referrer_user_id: referralLink?.owner_user_id || null,
       converted_user_id: convertedUserId,
       converted_email: convertedEmail,
       conversion_type: input.conversionType,
-      conversion_resource_id: input.conversionResourceId || null,
+      conversion_resource_id: conversionResourceId,
       source,
       utm_source: attribution?.utm_source || null,
       utm_medium: attribution?.utm_medium || null,

@@ -1,7 +1,8 @@
 import { prisma } from "@/prisma/prisma";
 import { listReferralLinksForUser } from "./referrals";
 
-const BUILD_GAMES_HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
+const BUILD_GAMES_HACKATHON_ID =
+  process.env.BUILD_GAMES_HACKATHON_ID ?? "249d2911-7931-4aa0-a696-37d8370b79f9";
 
 export interface MonthlySignupPoint {
   month: string;
@@ -10,6 +11,7 @@ export interface MonthlySignupPoint {
 }
 
 export interface ReferrerSignupPoint {
+  referrerId: string;
   referrer: string;
   signups: number;
 }
@@ -22,6 +24,7 @@ export interface EventParticipantPoint {
 }
 
 export interface TopReferrerRow {
+  referrerId: string;
   referrer: string;
   bhSignups: number;
   hackathonRegistrations: number;
@@ -61,6 +64,7 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
     monthlyRows,
     referrerRows,
     eventParticipantRows,
+    buildGamesParticipantRows,
     topReferrerRows,
     signupSourceRows,
   ] = await Promise.all([
@@ -71,14 +75,15 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
       GROUP BY 1
       ORDER BY 1 ASC
     `,
-    prisma.$queryRaw<Array<{ referrer: string | null; signups: bigint }>>`
-      SELECT COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
+    prisma.$queryRaw<Array<{ referrerId: string; referrer: string | null; signups: bigint }>>`
+      SELECT owner."id" AS "referrerId",
+             COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
              COUNT(*)::bigint AS "signups"
       FROM "ReferralAttribution" attribution
-      LEFT JOIN "User" owner ON owner."id" = attribution."referrer_user_id"
+      INNER JOIN "User" owner ON owner."id" = attribution."referrer_user_id"
       WHERE attribution."conversion_type" = 'bh_signup'
         AND attribution."source" = 'referral'
-      GROUP BY 1
+      GROUP BY owner."id", owner."name", owner."email"
       ORDER BY "signups" DESC
       LIMIT 20
     `,
@@ -99,8 +104,17 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
       ORDER BY "participants" DESC, h."start_date" DESC
       LIMIT 25
     `,
+    prisma.$queryRaw<Array<{ participants: bigint }>>`
+      SELECT COUNT(DISTINCT u."id")::bigint AS "participants"
+      FROM "Project" p
+      INNER JOIN "Member" m ON m."project_id" = p."id"
+      INNER JOIN "User" u ON u."id" = m."user_id"
+        OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
+      WHERE p."hackaton_id" = ${BUILD_GAMES_HACKATHON_ID}
+    `,
     prisma.$queryRaw<
       Array<{
+        referrerId: string;
         referrer: string | null;
         bhSignups: bigint;
         hackathonRegistrations: bigint;
@@ -109,7 +123,8 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
         totalConversions: bigint;
       }>
     >`
-      SELECT COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
+      SELECT owner."id" AS "referrerId",
+             COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
              COUNT(*) FILTER (WHERE attribution."conversion_type" = 'bh_signup')::bigint AS "bhSignups",
              COUNT(*) FILTER (WHERE attribution."conversion_type" = 'hackathon_registration')::bigint AS "hackathonRegistrations",
              COUNT(*) FILTER (WHERE attribution."conversion_type" = 'build_games_application')::bigint AS "buildGamesApplications",
@@ -118,7 +133,7 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
       FROM "ReferralAttribution" attribution
       INNER JOIN "User" owner ON owner."id" = attribution."referrer_user_id"
       WHERE attribution."source" = 'referral'
-      GROUP BY 1
+      GROUP BY owner."id", owner."name", owner."email"
       ORDER BY "totalConversions" DESC
       LIMIT 20
     `,
@@ -149,8 +164,7 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
     projects: toNumber(row.projects),
   }));
 
-  const buildGamesParticipants =
-    eventParticipants.find((event) => event.eventId === BUILD_GAMES_HACKATHON_ID)?.participants ?? 0;
+  const buildGamesParticipants = toNumber(buildGamesParticipantRows[0]?.participants);
 
   const attributedSignupTotal = signupSourceRows.reduce(
     (sum, row) => sum + toNumber(row.signups),
@@ -163,11 +177,13 @@ export async function getBuilderInsightsData(): Promise<BuilderInsightsData> {
     buildGamesParticipants,
     monthlySignups,
     signupsByReferrer: referrerRows.map((row) => ({
+      referrerId: row.referrerId,
       referrer: row.referrer ?? "Unknown",
       signups: toNumber(row.signups),
     })),
     eventParticipants,
     topReferrers: topReferrerRows.map((row) => ({
+      referrerId: row.referrerId,
       referrer: row.referrer ?? "Unknown",
       bhSignups: toNumber(row.bhSignups),
       hackathonRegistrations: toNumber(row.hackathonRegistrations),

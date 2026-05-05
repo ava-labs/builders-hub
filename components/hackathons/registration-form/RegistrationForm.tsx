@@ -30,7 +30,7 @@ import ProcessCompletedDialog from "./ProcessCompletedDialog";
 import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { captureEventReferrerFromUrl, getEventReferrer, clearEventReferrer } from "@/lib/referral";
-import { getStoredReferralAttribution } from "@/lib/referrals/client";
+import { clearStoredReferralAttribution, getStoredReferralAttribution } from "@/lib/referrals/client";
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
@@ -212,6 +212,7 @@ export function RegisterForm({
       }
     } catch (err) {
       console.error("API Error:", err);
+      throw err;
     }
   }
 
@@ -314,6 +315,9 @@ export function RegisterForm({
       };
 
       await saveProject(finalData);
+      if (finalData.referral_attribution) {
+        clearStoredReferralAttribution();
+      }
       clearEventReferrer();
       setIsDialogOpen(true);
     }

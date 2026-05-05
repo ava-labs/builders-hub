@@ -76,6 +76,7 @@ export async function POST(request: Request) {
       await recordReferralAttributionFromRequest(request, {
         conversionType: "grant_application",
         conversionResourceId: result.id,
+        conversionTargetId: "avalanche-research-proposals",
         convertedUserId: sessionUserId,
         convertedEmail: sessionEmail,
       });

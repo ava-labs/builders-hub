@@ -1,31 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { isReferralTargetType, recordReferralAttribution } from "@/server/services/referrals";
+import { prisma } from "@/prisma/prisma";
+import { recordReferralAttributionFromRequest } from "@/server/services/referrals";
+
+const SIGNUP_ATTRIBUTION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSession();
-  const body = await request.json();
-  const conversionType = body?.conversionType;
 
-  if (!isReferralTargetType(conversionType)) {
-    return NextResponse.json({ error: "Invalid conversion type" }, { status: 400 });
+  if (!session?.user?.id || session.user.id.startsWith("pending_")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 401 });
   }
 
-  const attribution = await recordReferralAttribution({
-    conversionType,
-    conversionResourceId:
-      typeof body?.conversionResourceId === "string" ? body.conversionResourceId : null,
-    convertedUserId:
-      typeof body?.convertedUserId === "string"
-        ? body.convertedUserId
-        : session?.user?.id && !session.user.id.startsWith("pending_")
-          ? session.user.id
-          : null,
-    convertedEmail:
-      typeof body?.convertedEmail === "string"
-        ? body.convertedEmail
-        : session?.user?.email ?? null,
-    attribution: body?.attribution ?? null,
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, email: true, created_at: true },
+  });
+
+  if (!user?.email) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 401 });
+  }
+
+  if (Date.now() - user.created_at.getTime() > SIGNUP_ATTRIBUTION_WINDOW_MS) {
+    return NextResponse.json({ error: "Signup attribution window expired" }, { status: 403 });
+  }
+
+  const attribution = await recordReferralAttributionFromRequest(request, {
+    conversionType: "bh_signup",
+    convertedUserId: user.id,
+    convertedEmail: user.email,
   });
 
   return NextResponse.json({ success: true, attribution });

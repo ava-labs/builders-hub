@@ -89,6 +89,7 @@ export async function POST(request: Request) {
       await recordReferralAttributionFromRequest(request, {
         conversionType: 'grant_application',
         conversionResourceId: result.id,
+        conversionTargetId: 'retro9000-returning',
         convertedEmail: result.email,
       });
     } catch (error) {
