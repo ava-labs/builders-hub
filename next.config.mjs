@@ -58,6 +58,10 @@ const config = {
         protocol: 'https',
         hostname: 'dashboard-assets.dappradar.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'icons.llama.fi',
+      },
     ],
   },
   async redirects() {

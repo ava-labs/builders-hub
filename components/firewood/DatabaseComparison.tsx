@@ -206,7 +206,7 @@ export function DatabaseComparison({ colors }: { colors: Colors }) {
       </div>
 
       <p className={`text-[9px] sm:text-[10px] font-mono ${colors.textFaint} mt-3`}>
-        Archival footprint figures: early engineering measurements, C-Chain. Source: Firewood engineering team.
+        Archival footprint figures: early engineering measurements with a commit interval of 4096, C-Chain. Source: Firewood engineering team.
       </p>
     </div>
   )
