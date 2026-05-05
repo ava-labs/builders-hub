@@ -244,6 +244,7 @@ function normalizeUser(user: Partial<User>): User {
     github: user.github ?? null,
     wallet: user.wallet ?? [],
     skills: user.skills ?? [],
+    team_id: user.team_id ?? null,
     noun_avatar_seed: user.noun_avatar_seed ?? null,
     noun_avatar_enabled: user.noun_avatar_enabled ?? false,
   };

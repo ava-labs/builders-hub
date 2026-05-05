@@ -390,6 +390,46 @@ export function BuilderInsightsDashboard({
               </Table>
             </CardContent>
           </Card>
+
+          <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
+            <CardHeader>
+              <CardTitle className="text-base">Team Referrers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Team</TableHead>
+                    <TableHead className="text-right">BH</TableHead>
+                    <TableHead className="text-right">Events</TableHead>
+                    <TableHead className="text-right">Build Games</TableHead>
+                    <TableHead className="text-right">Grants</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.topTeamReferrers.length ? (
+                    data.topTeamReferrers.map((row) => (
+                      <TableRow key={row.teamId}>
+                        <TableCell className="font-medium">{row.team}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.bhSignups)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.hackathonRegistrations)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.buildGamesApplications)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.grantApplications)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatNumber(row.totalConversions)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-neutral-500">
+                        No team referral conversions recorded yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -114,19 +114,26 @@ function toReferralCodePart(value: string | null | undefined, maxLength = 28): s
   return slug || null;
 }
 
-async function getOwnerReferralCodePart(ownerUserId: string): Promise<string> {
+async function getOwnerReferralProfile(ownerUserId: string): Promise<{
+  codePart: string;
+  teamId: string | null;
+}> {
   const owner = await prisma.user.findUnique({
     where: { id: ownerUserId },
-    select: { user_name: true, name: true, email: true },
+    select: { user_name: true, name: true, email: true, team_id: true },
   });
 
-  return (
+  const codePart =
     toReferralCodePart(owner?.user_name) ??
     toReferralCodePart(owner?.name) ??
     toReferralCodePart(owner?.email) ??
     toReferralCodePart(ownerUserId, 12) ??
-    "builder"
-  );
+    "builder";
+
+  return {
+    codePart,
+    teamId: owner?.team_id ?? null,
+  };
 }
 
 function buildReferralCode(ownerCodePart: string, targetType: ReferralTargetType): string {
@@ -180,15 +187,16 @@ export async function createReferralLink({
     return existingLink;
   }
 
-  const ownerCodePart = await getOwnerReferralCodePart(ownerUserId);
+  const ownerProfile = await getOwnerReferralProfile(ownerUserId);
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    const code = buildReferralCode(ownerCodePart, targetType);
+    const code = buildReferralCode(ownerProfile.codePart, targetType);
     try {
       return await prisma.referralLink.create({
         data: {
           code,
           owner_user_id: ownerUserId,
+          team_id: ownerProfile.teamId,
           target_type: targetType,
           target_id: normalizedTargetId,
           destination_url: destination,
@@ -259,6 +267,7 @@ export async function recordReferralAttribution(input: RecordReferralAttribution
       dedupe_key: dedupeKey,
       referral_link_id: referralLinkId,
       referrer_user_id: referralLink?.owner_user_id || null,
+      team_id: referralLink?.team_id || null,
       converted_user_id: convertedUserId,
       converted_email: convertedEmail,
       conversion_type: input.conversionType,
