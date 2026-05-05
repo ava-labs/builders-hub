@@ -1,7 +1,7 @@
 import type { StepConfig } from '@/components/console/step-code-viewer';
 import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 export const PCHAIN_REMOVAL_CODE = `// Step 3a: Aggregate signatures using Avalanche SDK
 import { Avalanche } from "@avalabs/avalanche-sdk";
@@ -36,8 +36,8 @@ export const STEP_CONFIG: StepConfig[] = [
     title: 'Initiate Removal',
     description: 'Call initiateValidatorRemoval on ValidatorManager',
     codeType: 'solidity' as const,
-    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
-    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
     highlightFunction: 'initiateValidatorRemoval',
     filename: 'ValidatorManager.sol',
   },
@@ -55,8 +55,8 @@ export const STEP_CONFIG: StepConfig[] = [
     title: 'Complete Removal',
     description: 'Call completeValidatorRemoval on ValidatorManager',
     codeType: 'solidity' as const,
-    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
-    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
     highlightFunction: 'completeValidatorRemoval',
     filename: 'ValidatorManager.sol',
   },

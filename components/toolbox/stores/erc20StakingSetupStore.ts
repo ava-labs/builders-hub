@@ -33,29 +33,32 @@ const initialValues = {
   globalSuccess: null as string | null,
 };
 
-const { getStore: getERC20StakingSetupStore, useStore: useERC20StakingSetupStore } = createFlowStore<ERC20StakingSetupState>({
-  name: 'erc20-staking-setup-store',
-  storeCreator: (set, isTestnet) => ({
-    ...initialValues,
+const { getStore: getERC20StakingSetupStore, useStore: useERC20StakingSetupStore } =
+  createFlowStore<ERC20StakingSetupState>({
+    name: 'erc20-staking-setup-store',
+    storeCreator: (set, isTestnet) => ({
+      ...initialValues,
 
-    setSubnetIdL1: (subnetIdL1: string) => set({ subnetIdL1 }),
-    setValidatorMessagesLibAddress: (address: string) => set({ validatorMessagesLibAddress: address }),
-    setStakingManagerAddress: (address: string) => set({ stakingManagerAddress: address }),
-    setRewardCalculatorAddress: (address: string) => set({ rewardCalculatorAddress: address }),
-    setErc20TokenAddress: (address: string) => set({ erc20TokenAddress: address }),
-    setInitializeTxHash: (hash: string) => set({ initializeTxHash: hash }),
-    setGlobalError: (error: string | null) => set({ globalError: error }),
-    setGlobalSuccess: (success: string | null) => set({ globalSuccess: success }),
+      setSubnetIdL1: (subnetIdL1: string) => set({ subnetIdL1 }),
+      setValidatorMessagesLibAddress: (address: string) => set({ validatorMessagesLibAddress: address }),
+      setStakingManagerAddress: (address: string) => set({ stakingManagerAddress: address }),
+      setRewardCalculatorAddress: (address: string) => set({ rewardCalculatorAddress: address }),
+      setErc20TokenAddress: (address: string) => set({ erc20TokenAddress: address }),
+      setInitializeTxHash: (hash: string) => set({ initializeTxHash: hash }),
+      setGlobalError: (error: string | null) => set({ globalError: error }),
+      setGlobalSuccess: (success: string | null) => set({ globalSuccess: success }),
 
-    reset: () => {
-      set({ ...initialValues });
-      window?.localStorage.removeItem(`${STORE_VERSION}-erc20-staking-setup-store-${isTestnet ? 'testnet' : 'mainnet'}`);
+      reset: () => {
+        set({ ...initialValues });
+        window?.localStorage.removeItem(
+          `${STORE_VERSION}-erc20-staking-setup-store-${isTestnet ? 'testnet' : 'mainnet'}`,
+        );
+      },
+    }),
+    partialize: (state) => {
+      const { globalError, globalSuccess, ...rest } = state;
+      return rest;
     },
-  }),
-  partialize: (state) => {
-    const { globalError, globalSuccess, ...rest } = state;
-    return rest;
-  },
-});
+  });
 
 export { getERC20StakingSetupStore, useERC20StakingSetupStore };

@@ -58,6 +58,10 @@ const config = {
         protocol: 'https',
         hostname: 'dashboard-assets.dappradar.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'icons.llama.fi',
+      },
     ],
   },
   async redirects() {
@@ -623,6 +627,16 @@ const config = {
         source: '/changelog/:path*',
         destination: '/docs/api-reference/changelog/:path*',
         permanent: false,
+      },
+      {
+        source: '/grants/infrabuidl',
+        destination: '/grants',
+        permanent: true,
+      },
+      {
+        source: '/grants/infrabuidlai',
+        destination: '/grants',
+        permanent: true,
       },
       {
         source: '/codebase',

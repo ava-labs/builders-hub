@@ -9,7 +9,7 @@ export function BodyFieldWithExpandedParams({
   fieldName: 'body'; 
   info: { schema: any; mediaType: string } 
 }) {
-  const { field } = Custom.useController({ name: fieldName });
+  const { field: { value, onChange: setValue } } = Custom.useController({ name: fieldName });
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set(['params']));
   
   const toggleField = (key: string) => {
@@ -77,7 +77,7 @@ export function BodyFieldWithExpandedParams({
                 type={propSchema.type === 'integer' || propSchema.type === 'number' ? 'number' : 'text'}
                 value={(() => {
                   const pathParts = fieldPath.split('.');
-                  let currentVal = field.value;
+                  let currentVal = value;
                   for (const part of pathParts) {
                     if (currentVal && typeof currentVal === 'object' && part in currentVal) {
                       currentVal = (currentVal as Record<string, any>)[part];
@@ -91,7 +91,7 @@ export function BodyFieldWithExpandedParams({
                   const newValue = propSchema.type === 'integer' || propSchema.type === 'number'
                     ? Number(e.target.value)
                     : e.target.value;
-                  const currentValue = (field.value && typeof field.value === 'object') ? field.value as Record<string, any> : {};
+                  const currentValue = (value && typeof value === 'object') ? value as Record<string, any> : {};
 
                   // Handle nested path
                   const pathParts = fieldPath.split('.');
@@ -109,7 +109,7 @@ export function BodyFieldWithExpandedParams({
                   }
 
                   current[pathParts[pathParts.length - 1]] = newValue;
-                  field.onChange(updated);
+                  setValue(updated);
                 }}
                 name={`body.${fieldPath}`}
                 {...(propSchema.type === 'number' || propSchema.type === 'integer' ? { step: propSchema.type === 'integer' ? '1' : 'any' } : {})}

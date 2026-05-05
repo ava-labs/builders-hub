@@ -14,13 +14,13 @@ import { ContractDeployViewer, type ContractSource } from '@/components/console/
 import { ValidatorListInput, type ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const NATIVE_CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'NativeTokenStakingManager',
     filename: 'NativeTokenStakingManager.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
     description: 'Manages validator registration and staking with native tokens. Stake is sent as msg.value.',
   },
 ];
@@ -29,7 +29,7 @@ const ERC20_CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'ERC20TokenStakingManager',
     filename: 'ERC20TokenStakingManager.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`,
     description:
       'Manages validator registration and staking with ERC20 tokens. Requires token approval before staking.',
   },
@@ -111,7 +111,7 @@ export default function InitiateRegistrationStep({ tokenType }: InitiateRegistra
         <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
           <span className="text-xs text-zinc-500">initiateValidatorRegistration()</span>
           <a
-            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"

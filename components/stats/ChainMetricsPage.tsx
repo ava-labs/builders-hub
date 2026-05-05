@@ -11,8 +11,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
-import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles } from "lucide-react";
+import {
+  calculateMovingAverage,
+  getMAConfig,
+  timeSeriesMetricToChartData,
+} from "@/utils/chart-utils";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles, Monitor } from "lucide-react";
 import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
@@ -30,6 +34,8 @@ import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { ValidatorChartCard } from "@/components/stats/ValidatorChartCard";
+import { ValidatorPieCard } from "@/components/stats/ValidatorPieCard";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -130,6 +136,17 @@ export default function ChainMetricsPage({
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [primaryValidatorMetric, setPrimaryValidatorMetric] = useState<any>(null);
+  const [totalValidatorSeats, setTotalValidatorSeats] = useState<any>(null);
+  const [subnetValidatorStats, setSubnetValidatorStats] = useState<
+    { id: string; name: string; nodes: number; isL1: boolean }[] | null
+  >(null);
+  const [validatorsLoading, setValidatorsLoading] = useState(false);
+  const [totalSeatsLoading, setTotalSeatsLoading] = useState(false);
+  const [validatorChartPeriod, setValidatorChartPeriod] = useState<
+    "D" | "W" | "M" | "Q" | "Y"
+  >("D");
 
   // Cache for "all chains" data - fetched once and reused for filtering
   const [cachedAllData, setCachedAllData] = useState<CChainMetrics | null>(
@@ -449,6 +466,63 @@ export default function ChainMetricsPage({
     selectedChainIds.size,
     excludedChainIds.join(","),
   ]);
+
+  useEffect(() => {
+    if (!isAllChainsView) return;
+    let cancelled = false;
+    setValidatorsLoading(true);
+
+    Promise.allSettled([
+      fetch("/api/primary-network-stats?timeRange=all").then((r) =>
+        r.ok ? r.json() : null,
+      ),
+      fetch("/api/validator-stats?network=mainnet").then((r) =>
+        r.ok ? r.json() : null,
+      ),
+    ])
+      .then(([primaryResult, subnetsResult]) => {
+        if (cancelled) return;
+        if (primaryResult.status === "fulfilled" && primaryResult.value?.validator_count) {
+          setPrimaryValidatorMetric(primaryResult.value.validator_count);
+        }
+        if (subnetsResult.status === "fulfilled" && Array.isArray(subnetsResult.value)) {
+          setSubnetValidatorStats(
+            subnetsResult.value.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              nodes: Object.values(s.byClientVersion ?? {}).reduce(
+                (sum: number, v: any) => sum + (v?.nodes ?? 0),
+                0,
+              ),
+              isL1: Boolean(s.isL1),
+            })),
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setValidatorsLoading(false);
+      });
+
+    setTotalSeatsLoading(true);
+    fetch("/api/total-ecosystem-validators?timeRange=all")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.total_validator_seats) {
+          setTotalValidatorSeats(data.total_validator_seats);
+        }
+      })
+      .catch((err) =>
+        console.error("Error fetching total ecosystem validators:", err),
+      )
+      .finally(() => {
+        if (!cancelled) setTotalSeatsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAllChainsView]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -925,6 +999,9 @@ export default function ChainMetricsPage({
     },
     { id: "fees", label: "Fees", metricKeys: ["feesPaid", "avgGasPrice", "maxGasPrice"] },
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
+    ...(isAllChainsView
+      ? [{ id: "validators", label: "Validators", metricKeys: [] as string[] }]
+      : []),
   ];
 
   // export all metrics as csv
@@ -2060,6 +2137,77 @@ export default function ChainMetricsPage({
                 })}
               </div>
             </section>
+
+            {isAllChainsView && (
+              <section className="space-y-4 sm:space-y-6">
+                <div className="space-y-2">
+                  <LinkableHeading
+                    as="h2"
+                    id="validators"
+                    className="text-lg sm:text-2xl font-medium text-left"
+                  >
+                    Validators
+                  </LinkableHeading>
+                  <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                    Validator distribution across the Avalanche ecosystem
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  {primaryValidatorMetric?.data?.length &&
+                  totalValidatorSeats?.data?.length ? (
+                    <ValidatorChartCard
+                      config={{
+                        title: "Avalanche Ecosystem Validator Count",
+                        description:
+                          "Validator seats across the Primary Network and sovereign L1s",
+                        metricKey: "validator_count",
+                        color: themeColor,
+                        chartType: "bar",
+                        icon: Monitor,
+                      }}
+                      rawData={timeSeriesMetricToChartData(primaryValidatorMetric, {
+                        excludeToday: true,
+                      })}
+                      period={validatorChartPeriod}
+                      currentValue={totalValidatorSeats.current_value}
+                      onPeriodChange={setValidatorChartPeriod}
+                      formatTooltipValue={(value) =>
+                        `${formatNumber(Math.round(value))} Validator Seats`
+                      }
+                      formatYAxisValue={formatNumber}
+                      overlayData={timeSeriesMetricToChartData(totalValidatorSeats, {
+                        excludeToday: true,
+                      })}
+                      overlayLabel="Total Validator Seats (Primary + L1s)"
+                      overlayColor="#3B82F6"
+                      overlayStartDate="2024-12-16"
+                      referenceLineDate="2024-12-16"
+                      referenceLineLabel="ACP-77 (Etna)"
+                      descriptionNote="Before the Etna upgrade every L1 validator was also a Primary Network validator, so total ecosystem seats only diverge from the Primary Network count after this point."
+                      primaryAsLine
+                    />
+                  ) : (
+                    <ValidatorChartPlaceholder
+                      title="Avalanche Ecosystem Validator Count"
+                      description="Validator seats across the Primary Network and sovereign L1s"
+                      color={themeColor}
+                      loading={validatorsLoading || totalSeatsLoading}
+                    />
+                  )}
+                  <ValidatorPieCard
+                    primaryNetworkCount={
+                      primaryValidatorMetric?.current_value != null
+                        ? typeof primaryValidatorMetric.current_value === "string"
+                          ? parseFloat(primaryValidatorMetric.current_value)
+                          : primaryValidatorMetric.current_value
+                        : null
+                    }
+                    subnetStats={subnetValidatorStats}
+                    loading={validatorsLoading}
+                  />
+                </div>
+              </section>
+            )}
           </>
         )}
       </div>
@@ -2076,6 +2224,42 @@ export default function ChainMetricsPage({
         <StatsBubbleNav />
       )}
     </div>
+  );
+}
+
+function ValidatorChartPlaceholder({
+  title,
+  description,
+  color,
+  loading,
+}: {
+  title: string;
+  description: string;
+  color: string;
+  loading: boolean;
+}) {
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div
+            className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+            style={{ backgroundColor: `${color}20` }}
+          >
+            <Monitor className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-normal">{title}</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+              {description}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-[440px] text-sm text-muted-foreground">
+          {loading ? "Loading…" : "Validator data unavailable."}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -3338,9 +3522,8 @@ function ChartCard({
                 )}
               </ChartWatermark>
 
-              {/* Brush Slider — hidden on mobile */}
-              {!isMobile &&
-                aggregatedData.length > 0 &&
+              {/* Brush Slider */}
+              {aggregatedData.length > 0 &&
                 brushIndexes &&
                 !isNaN(brushIndexes.startIndex) &&
                 !isNaN(brushIndexes.endIndex) &&

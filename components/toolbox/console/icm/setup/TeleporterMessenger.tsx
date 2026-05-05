@@ -21,19 +21,19 @@ import { Check, Wallet, Rocket, ExternalLink, Copy } from 'lucide-react';
 
 const MINIMUM_BALANCE = parseEther('11');
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'TeleporterMessenger',
     filename: 'TeleporterMessenger.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/teleporter/TeleporterMessenger.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/teleporter/TeleporterMessenger.sol`,
     description: 'Core ICM contract for cross-chain message sending and receiving',
   },
   {
     name: 'ITeleporterMessenger',
     filename: 'ITeleporterMessenger.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/teleporter/ITeleporterMessenger.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/teleporter/ITeleporterMessenger.sol`,
     description: 'Interface defining the Teleporter messenger protocol',
   },
 ];
@@ -317,7 +317,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
       {/* Footer */}
       <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
         <a
-          href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/teleporter/README.md"
+          href="https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/README.md"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors"

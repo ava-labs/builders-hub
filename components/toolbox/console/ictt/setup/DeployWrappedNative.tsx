@@ -26,13 +26,13 @@ import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'WrappedNativeToken',
     filename: 'WrappedNativeToken.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/mocks/WrappedNativeToken.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/ictt/mocks/WrappedNativeToken.sol`,
     description: "ERC20 wrapper for the L1's native token, enabling it to be used with ICTT bridges.",
   },
 ];

@@ -1,7 +1,7 @@
 import type { StepConfig } from '@/components/console/step-code-viewer';
 import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 export const PCHAIN_REGISTRATION_CODE = `// Aggregate signatures using Avalanche SDK
 import { Avalanche } from "@avalabs/avalanche-sdk";
@@ -36,8 +36,8 @@ export const STEP_CONFIG: StepConfig[] = [
     title: 'Initiate Validator Registration',
     description: 'Call initiateValidatorRegistration on ValidatorManager',
     codeType: 'solidity' as const,
-    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
-    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
     highlightFunction: 'initiateValidatorRegistration',
     filename: 'ValidatorManager.sol',
   },
@@ -55,8 +55,8 @@ export const STEP_CONFIG: StepConfig[] = [
     title: 'Complete Registration',
     description: 'Call completeValidatorRegistration on ValidatorManager',
     codeType: 'solidity' as const,
-    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
-    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
     highlightFunction: 'completeValidatorRegistration',
     filename: 'ValidatorManager.sol',
   },

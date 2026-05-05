@@ -22,21 +22,21 @@ import { Check, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { ManualAddressInput } from '@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ManualAddressInput';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 // GitHub raw URLs for source code
 const CONTRACT_SOURCES: ContractSource[] = [
   {
     name: 'ExampleRewardCalculator',
     filename: 'ExampleRewardCalculator.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ExampleRewardCalculator.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/ExampleRewardCalculator.sol`,
     description:
       'Implements linear, non-compounding rewards. Rewards a set percentage of tokens per year based on stake duration.',
   },
   {
     name: 'IRewardCalculator',
     filename: 'IRewardCalculator.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/interfaces/IRewardCalculator.sol`,
+    url: `https://raw.githubusercontent.com/ava-labs/icm-services/${ICM_COMMIT}/contracts/validator-manager/interfaces/IRewardCalculator.sol`,
     description: 'Interface for reward calculators. Implement this to create custom reward strategies.',
   },
 ];
@@ -211,7 +211,7 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
               </Link>
             </div>
             <a
-              href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+              href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"

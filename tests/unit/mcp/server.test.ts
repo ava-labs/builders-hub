@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { MCPServer } from '@/lib/mcp/server'
+import { MCPServer, MAX_BATCH_SIZE } from '@/lib/mcp/server'
 import { jsonRpcMessageSchema } from '@/lib/mcp/types'
+import { GITHUB_REPOSITORIES, githubTools } from '@/lib/mcp/tools/github'
 
 vi.mock('@/lib/posthog-server', () => ({
   captureServerEvent: vi.fn(),
@@ -80,5 +81,52 @@ describe('MCPServer.handlePost', () => {
         result: {},
       },
     ])
+  })
+
+  it('rejects batches that exceed the maximum batch size', async () => {
+    const server = createServer()
+    const batch = Array.from({ length: MAX_BATCH_SIZE + 1 }, (_, i) => ({
+      jsonrpc: '2.0' as const,
+      id: i,
+      method: 'ping' as const,
+    }))
+
+    await expect(server.handlePost(batch)).resolves.toEqual({
+      jsonrpc: '2.0',
+      id: null,
+      error: {
+        code: -32600,
+        message: expect.stringContaining(`exceeds the maximum of ${MAX_BATCH_SIZE}`),
+      },
+    })
+  })
+})
+
+describe('githubTools', () => {
+  it('covers the core Avalanche repositories from the MCP roadmap', () => {
+    expect(GITHUB_REPOSITORIES.map((repo) => repo.fullName)).toEqual([
+      'ava-labs/avalanchego',
+      'ava-labs/subnet-evm',
+      'ava-labs/coreth',
+      'ava-labs/avalanche-cli',
+      'ava-labs/platform-cli',
+      'ava-labs/icm-services',
+      'ava-labs/avalanche-network-runner',
+      'ava-labs/icm-contracts',
+      'ava-labs/hypersdk',
+      'ava-labs/libevm',
+      'ava-labs/builders-hub',
+    ])
+  })
+
+  it('exposes repository coverage through an MCP tool', async () => {
+    const result = await githubTools.handlers.github_list_repositories({})
+    const payload = JSON.parse(result.content[0].text)
+
+    expect(payload.repositories).toHaveLength(11)
+    expect(payload.repositories[0]).toMatchObject({
+      name: 'avalanchego',
+      fullName: 'ava-labs/avalanchego',
+    })
   })
 })

@@ -21,7 +21,7 @@ import { useCriticalError } from '@/components/toolbox/hooks/useCriticalError';
 import { LibraryRequirementStatus } from '@/components/toolbox/components/LibraryRequirementStatus';
 import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const metadata: ConsoleToolMetadata = {
   title: 'Deploy Staking Manager',
@@ -58,7 +58,7 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
 
   const contractJson = isNative ? NativeTokenStakingManager : ERC20TokenStakingManager;
   const contractName = isNative ? 'Native Token Staking Manager' : 'ERC20 Token Staking Manager';
-  const sourceUrl = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/${isNative ? 'NativeTokenStakingManager' : 'ERC20TokenStakingManager'}.sol`;
+  const sourceUrl = `https://github.com/ava-labs/icm-services/blob/${ICM_COMMIT}/contracts/validator-manager/${isNative ? 'NativeTokenStakingManager' : 'ERC20TokenStakingManager'}.sol`;
 
   async function deployStakingManager() {
     setContractAddress('');

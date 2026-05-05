@@ -779,7 +779,7 @@ const HackathonsEdit = () => {
     setLoadingHackathons(true);
     try {
       const response = await axios.get(
-        `/api/hackathons`,
+        `/api/hackathons?joined_only=true`,
         {
             headers: {
                 id: session?.user?.id,

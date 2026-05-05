@@ -5,9 +5,7 @@ import {
   Logs,
   ArrowUpRight,
   SendHorizontal,
-  Bot,
   Computer,
-  Cpu,
   Snowflake,
   BriefcaseBusiness,
   MessageSquareQuote,
@@ -460,24 +458,38 @@ export const grantsMenu: LinkItemType = {
       url: 'https://retro9000.avax.network',
     },
     {
-      icon: <Cpu />,
-      text: 'InfraBUIDL',
+      icon: <MessageSquareQuote />,
+      text: 'Retro9000',
       description:
-        "Strengthening Avalanche's infrastructure. Build the foundation for next-gen blockchain applications.",
-      url: '/grants/infrabuidl',
+        'Build innovative projects on Avalanche. Get rewarded for your creativity.',
+      url: 'https://retro9000.avax.network',
       menu: {
-        className: 'lg:col-start-2',
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
-      icon: <Bot />,
-      text: 'InfraBUIDL (AI)',
-      description:
-        'Supports projects that fuse artificial intelligence (AI) with decentralized infrastructure.',
-      url: '/grants/infrabuidlai',
       menu: {
-        className: 'lg:col-start-2',
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={'/images/call-for-research-2.jpeg'}
+              alt='Call For Research Proposals'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
       },
+      icon: <BookOpen />,
+      text: 'Call for Research Proposals',
+      description:
+        'Submit your proposal for academic research on the economics of cryptoassets and decentralized networks. Up to $50,000 in research grants.',
+      url: '/grants/avalanche-research-proposals',
     },
     {
       icon: <Snowflake />,

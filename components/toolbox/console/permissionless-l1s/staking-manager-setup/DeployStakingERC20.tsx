@@ -13,7 +13,7 @@ import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
 import versions from '@/scripts/versions.json';
 
-const ICM_COMMIT = versions['ava-labs/icm-contracts'];
+const ICM_COMMIT = versions['ava-labs/icm-services'];
 
 const DEPLOY_CODE = `import ExampleERC20Mintable from "./ExampleERC20Mintable.json";
 
@@ -36,7 +36,7 @@ const SDK_SOURCES: SDKCodeSource[] = [
     filename: 'deployExampleERC20.ts',
     code: DEPLOY_CODE,
     description: 'Deploy an ERC20 token with AccessControl for staking reward minting.',
-    githubUrl: `https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`,
+    githubUrl: `https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`,
   },
 ];
 
@@ -117,7 +117,7 @@ function DeployStakingERC20() {
         <div className="shrink-0 px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
           <span className="text-xs text-zinc-500">ExampleERC20Mintable</span>
           <a
-            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            href={`https://github.com/ava-labs/icm-services/tree/${ICM_COMMIT}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
