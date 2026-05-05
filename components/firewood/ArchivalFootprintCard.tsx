@@ -41,7 +41,7 @@ export function ArchivalFootprintCard({ colors }: { colors: Colors }) {
         </div>
         <InfoTooltip
           colors={colors}
-          text={`Archival nodes retain the full state history of the chain. Because Firewood stores the Merkle trie directly and reclaims space inline through the Future-Delete Log, the archival footprint is dramatically smaller — roughly 3 TB on Firewood versus ~16 TB on LevelDB for C-Chain. Cost figures assume mid-tier NVMe Gen 4 SSDs at ~$${PRICE_PER_TB_USD}/TB (April 2026 retail for drives like Samsung 990 Pro or WD Black SN850X at 2–4 TB capacity). Storage numbers sourced from the Firewood engineering team.`}
+          text={`Archival nodes retain historical chain state, but Firewood does not need to materialize every intermediate trie on disk. With a commit interval of 4096, commits are first incorporated into in-memory revisions, and Firewood’s deferred persistence worker periodically flushes the latest committed trie as a checkpoint. Because that persisted trie includes the effects of the preceding commits, intermediate tries within the interval are not separately written to disk. This checkpointing, combined with Firewood’s direct Merkle-trie storage, is why the archival footprint is dramatically smaller — roughly 3 TB on Firewood versus ~16 TB on LevelDB for C-Chain. Cost figures assume mid-tier NVMe Gen 4 SSDs at ~$${PRICE_PER_TB_USD}/TB (April 2026 retail for drives like Samsung 990 Pro or WD Black SN850X at 2–4 TB capacity). Storage numbers sourced from the Firewood engineering team.`}
         />
       </div>
 
@@ -151,7 +151,7 @@ export function ArchivalFootprintCard({ colors }: { colors: Colors }) {
           </span>
         </motion.div>
         <span className={`text-[9px] sm:text-[10px] font-mono ${colors.textFaint} text-right`}>
-          {`Storage: Firewood engineering team · Cost: mid-tier NVMe Gen 4 at ~$${PRICE_PER_TB_USD}/TB`}
+          {`Source: Firewood engineering team · Commit Interval = 4096 · Cost: mid-tier NVMe Gen 4 at ~$${PRICE_PER_TB_USD}/TB`}
         </span>
       </div>
     </div>

@@ -21,6 +21,11 @@ for (const entry of registryData.contracts) {
 // Protocol slug mapping for linking to dApp pages
 export const PROTOCOL_SLUGS: Record<string, string> = registryData.protocolSlugs as Record<string, string>;
 
+// Reverse mapping: slug -> protocol name
+export const SLUG_ALIASES: Record<string, string> = Object.fromEntries(
+  Object.entries(PROTOCOL_SLUGS).map(([name, slug]) => [slug, name])
+);
+
 // --- Utility functions ---
 
 export function getContractInfo(address: string): ContractInfo | undefined {
@@ -42,6 +47,10 @@ export function getProtocolContracts(protocolName: string): {
   const category = contracts[0].category;
 
   return { name: protocolName, slug, category, contracts };
+}
+
+export function getProtocolNameBySlug(slug: string): string | null {
+  return SLUG_ALIASES[slug] ?? null;
 }
 
 export function isRouter(address: string): boolean {

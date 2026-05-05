@@ -35,4 +35,6 @@ export {
   type TotalChainStats,
   type UnknownContract,
   type ProtocolGasRanking,
+  type MonthlyActivity,
+  type RecentTransaction,
 } from './clickhouse/queries';
