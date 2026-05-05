@@ -4,7 +4,7 @@
   "private": true,
   "resolutions": {
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "axios": "^1.15.0",
+    "axios": "^1.15.2",
     "fast-xml-parser": ">=5.5.9",
     "katex": "0.16.35",
     "@shikijs/types": "3.23.0",
@@ -103,7 +103,7 @@
     "ai": "^6.0.33",
     "algoliasearch": "^5.39.0",
     "autocannon": "^8.0.0",
-    "axios": "^1.15.0",
+    "axios": "^1.15.2",
     "boring-name-generator": "^1.0.3",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
