@@ -1,9 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
-const STORAGE_KEY = 'console:favorite-tools';
-const FAVORITES_CHANGED_EVENT = 'console:favorite-tools-changed';
+import { useCallback, useMemo } from 'react';
+import { createLocalPref } from '@/lib/console/local-pref';
 
 // Tools always pinned to the sidebar — the canonical navigation, not
 // promotable/demotable by the user. Starring exists to lift OTHER toolbox
@@ -40,24 +38,20 @@ function normalizeFavorites(value: unknown): Set<string> {
   );
 }
 
-function readFavorites(): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? normalizeFavorites(JSON.parse(stored)) : new Set();
-  } catch {
-    // localStorage may be disabled (private mode, denied permission) or the
-    // stored value may be malformed. Start fresh rather than crashing.
-    return new Set();
-  }
-}
-
-function emitFavoritesChanged() {
-  if (typeof window === 'undefined') return;
-  window.setTimeout(() => {
-    window.dispatchEvent(new Event(FAVORITES_CHANGED_EVENT));
-  }, 0);
-}
+const favoritesPref = createLocalPref<Set<string>>({
+  key: 'console:favorite-tools',
+  changedEvent: 'console:favorite-tools-changed',
+  defaultValue: new Set(),
+  parse: (raw) => {
+    try {
+      return normalizeFavorites(JSON.parse(raw));
+    } catch {
+      // Malformed JSON — start fresh.
+      return undefined;
+    }
+  },
+  serialize: (favorites) => JSON.stringify(Array.from(favorites)),
+});
 
 export interface UseFavoriteTools {
   /** True for any path that's either mandatory OR user-favorited. */
@@ -76,56 +70,27 @@ export interface UseFavoriteTools {
 }
 
 /**
- * localStorage-backed favorite tools. Reads on mount, writes on every
- * toggle. Mandatory paths can't be removed because they're hardcoded into
- * the sidebar groups; the hook surfaces them as starred so the toolbox UI
- * can show the user "this one is already pinned for you" with the same
- * visual treatment as user-starred items.
+ * localStorage-backed favorite tools. Mandatory paths can't be removed
+ * because they're hardcoded into the sidebar groups; the hook surfaces
+ * them as starred so the toolbox UI can show the user "this one is already
+ * pinned for you" with the same visual treatment as user-starred items.
  *
  * Storage shape: a JSON array of paths. Anything malformed → start fresh.
  */
 export function useFavoriteTools(): UseFavoriteTools {
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const syncFavorites = () => setFavorites(readFavorites());
-
-    syncFavorites();
-    setIsHydrated(true);
-
-    window.addEventListener(FAVORITES_CHANGED_EVENT, syncFavorites);
-    window.addEventListener('storage', syncFavorites);
-
-    return () => {
-      window.removeEventListener(FAVORITES_CHANGED_EVENT, syncFavorites);
-      window.removeEventListener('storage', syncFavorites);
-    };
-  }, []);
-
-  const persist = useCallback((next: Set<string>) => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
-    } catch {
-      // ignore — UI state still updates even if persistence fails
-    }
-    emitFavoritesChanged();
-  }, []);
+  const { value: favorites, setValue, isHydrated } = favoritesPref.usePref();
 
   const toggle = useCallback(
     (path: string) => {
       if (MANDATORY_PATHS.has(path)) return;
-      setFavorites((prev) => {
+      setValue((prev) => {
         const next = new Set(prev);
         if (next.has(path)) next.delete(path);
         else next.add(path);
-        persist(next);
         return next;
       });
     },
-    [persist],
+    [setValue],
   );
 
   const isStarred = useCallback(
@@ -133,7 +98,10 @@ export function useFavoriteTools(): UseFavoriteTools {
     [favorites],
   );
 
-  const isUserStarred = useCallback((path: string) => favorites.has(path), [favorites]);
+  const isUserStarred = useCallback(
+    (path: string) => favorites.has(path),
+    [favorites],
+  );
 
   const isMandatory = useCallback((path: string) => MANDATORY_PATHS.has(path), []);
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { startMockDeployment } from '@/lib/quick-l1/mock-orchestrator';
 import type { DeployRequest, DeployResponse } from '@/lib/quick-l1/types';
-import { getUserId } from '@/app/api/managed-testnet-nodes/utils';
+import { getUserId, rateLimited } from '@/app/api/managed-testnet-nodes/utils';
+import { getAuthSession } from '@/lib/auth/authSession';
 
 /**
  * POST /api/quick-l1/deploy
@@ -19,8 +20,23 @@ import { getUserId } from '@/app/api/managed-testnet-nodes/utils';
  *     authenticated userId in the body.
  *   - Otherwise (local dev without the upstream), runs the in-memory
  *     mock orchestrator so the UI can be exercised without a backend.
+ *
+ * Rate limit: 5 deploys/min per account in prod. Each deploy provisions
+ * a managed validator node, deploys ~7 contracts, and (optionally) bridges
+ * tokens — this caps abusive bursts while staying well above legitimate
+ * "I made a typo, retry" use.
  */
-export async function POST(request: NextRequest): Promise<NextResponse<DeployResponse | { error: string }>> {
+async function rateLimitIdentifier(): Promise<string> {
+  if (process.env.NODE_ENV === 'development') return 'dev-user';
+  const session = await getAuthSession();
+  const email = session?.user?.email;
+  if (!email) throw new Error('Authentication required');
+  return `quick-l1-deploy:${email}`;
+}
+
+async function handlePost(
+  request: NextRequest,
+): Promise<NextResponse<DeployResponse | { error: string }>> {
   // Gate the whole endpoint behind builders-hub auth — no deploys for
   // anonymous callers. In development mode `getUserId` returns a fixed
   // `'dev-user-id'` so local flows keep working.
@@ -127,3 +143,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<DeployRes
   const { jobId } = startMockDeployment(body);
   return NextResponse.json({ jobId });
 }
+
+export const POST = rateLimited(handlePost, {
+  dev: { windowMs: 60_000, max: 1000 },
+  prod: { windowMs: 60_000, max: 5 },
+  identifier: rateLimitIdentifier,
+}) as (request: NextRequest) => Promise<NextResponse<DeployResponse | { error: string }>>;

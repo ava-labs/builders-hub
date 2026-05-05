@@ -75,9 +75,11 @@ function AddChainModalInner() {
   const [inputMode, setInputMode] = useState<InputMode>('rpc');
   const [isFetchingChainData, setIsFetchingChainData] = useState(false);
   // Optional genesis JSON — pasted by users importing an external L1 they
-  // know the genesis for. When supplied it powers Copy Genesis on the L1
-  // detail page; otherwise that button stays disabled with a tooltip.
-  const [genesisData, setGenesisData] = useState('');
+  // know the genesis for, or seeded by the caller (e.g. the create-l1
+  // wizard) via `options.genesisData` so the user doesn't need to re-paste
+  // a JSON they already configured. When supplied it powers Copy Genesis
+  // on the L1 detail page; otherwise that tile stays hidden.
+  const [genesisData, setGenesisData] = useState(options?.genesisData ?? '');
   const [genesisError, setGenesisError] = useState<string | null>(null);
 
   // Seed defaults from the caller's options on mount. Because this

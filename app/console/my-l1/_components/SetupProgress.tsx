@@ -10,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { toast } from '@/lib/toast';
-import type { CombinedL1 } from '../_lib/types';
-import { setupSummary } from '../_lib/setup-steps';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
+import { setupSummary } from '@/lib/console/my-l1/setup-steps';
 
 // Inline "next step" hero — surfaces the single most important action a user
 // can take right now. Hidden when the L1 is fully configured (the green
@@ -134,10 +134,14 @@ export function SetupProgressCard({
       <CardContent>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-4">
           <motion.div
-            className="h-full bg-gradient-to-r from-amber-500 to-amber-400"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
+            // Animate via `scaleX` (a transform) instead of `width` so
+            // the browser can keep the bar on the compositor thread —
+            // width changes force a paint on every frame of the spring.
+            className="h-full origin-left bg-gradient-to-r from-amber-500 to-amber-400"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: pct / 100 }}
             transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+            style={{ width: '100%' }}
           />
         </div>
         <ol

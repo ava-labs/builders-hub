@@ -7,8 +7,8 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
-import type { CombinedL1 } from '../_lib/types';
-import type { L1ValidatorManagerInfo } from '../_lib/useL1ValidatorManager';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
+import type { L1ValidatorManagerInfo } from '@/lib/console/my-l1/useL1ValidatorManager';
 
 // Network identifiers (RPC URL, Subnet ID, Blockchain ID, EVM Chain ID) are
 // reference data the user looks up once per session — not on-glance content.

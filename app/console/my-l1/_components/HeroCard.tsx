@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import Link from 'next/link';
 import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
-import { Check, Copy, Layers, RefreshCw } from 'lucide-react';
+import { Layers, RefreshCw } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,10 +13,9 @@ import {
 } from '@/components/ui/tooltip';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
-import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { L1HealthState, L1HealthStatus } from '@/hooks/useL1Health';
-import type { CombinedL1 } from '../_lib/types';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { WalletNetworkAction } from './WalletNetworkAction';
 
 // Each tint stores three triplets:
@@ -202,8 +201,18 @@ export function HeroCard({
   // Tinted shadows are explicitly OK per taste-skill ("when a shadow
   // is used, tint it to the background hue") — for a chain-coloured
   // surface, the chain hue *is* the local background.
-  const lightShadowRest = `0 4px 18px -6px ${lightShadowColor}, 0 1px 2px 0 rgba(15,23,42,0.04), 0 8px 22px -8px rgba(15,23,42,0.06), inset 0 1px 0 0 rgba(255,255,255,0.6)`;
-  const lightShadowHover = `0 12px 32px -8px ${lightShadowColor}, 0 2px 4px 0 rgba(15,23,42,0.05), 0 16px 36px -10px rgba(15,23,42,0.10), inset 0 1px 0 0 rgba(255,255,255,0.6)`;
+  // Memoized so the (cheap but noisy) string concatenation doesn't fire
+  // on every motion-driven re-render — `cursorActive` flips fast.
+  const lightShadowRest = useMemo(
+    () =>
+      `0 4px 18px -6px ${lightShadowColor}, 0 1px 2px 0 rgba(15,23,42,0.04), 0 8px 22px -8px rgba(15,23,42,0.06), inset 0 1px 0 0 rgba(255,255,255,0.6)`,
+    [lightShadowColor],
+  );
+  const lightShadowHover = useMemo(
+    () =>
+      `0 12px 32px -8px ${lightShadowColor}, 0 2px 4px 0 rgba(15,23,42,0.05), 0 16px 36px -10px rgba(15,23,42,0.10), inset 0 1px 0 0 rgba(255,255,255,0.6)`,
+    [lightShadowColor],
+  );
 
   const handlePointerMove = (e: ReactMouseEvent<HTMLDivElement>) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -403,6 +412,12 @@ function HeroIdentity({
             src={l1.logoUrl}
             alt={l1.chainName}
             className="w-full h-full object-contain p-1.5 bg-muted"
+            // Hero card sits at the top of every dashboard view, so
+            // `eager` matches the user's expectation of the avatar
+            // appearing the moment the page paints. `decoding="async"`
+            // keeps the decode off the main thread.
+            loading="eager"
+            decoding="async"
             onError={() => setImgFailed(true)}
           />
         ) : (
@@ -586,7 +601,6 @@ function HeroActions({
         isTestnet={l1.isTestnet}
         customExplorerUrl={l1.explorerUrl}
       />
-      <CopyGenesisButton l1={l1} />
       <Link href="/console/create-l1">
         <Button size="sm">
           <Layers className="w-4 h-4 mr-1.5" />
@@ -594,67 +608,6 @@ function HeroActions({
         </Button>
       </Link>
     </div>
-  );
-}
-
-// Copies the L1's genesis JSON to the clipboard. Source of truth is the
-// wallet store's L1ListItem.genesisData, populated either by the Create L1
-// wizard or by the optional paste field on the Add Chain modal. When the
-// genesis isn't on file (older entries, primary network, imports without a
-// pasted genesis) the button is disabled with an explanatory tooltip.
-function CopyGenesisButton({ l1 }: { l1: CombinedL1 }) {
-  const [copied, setCopied] = useState(false);
-  const genesisData = typeof l1.genesisData === 'string' ? l1.genesisData.trim() : '';
-  const hasGenesis = genesisData.length > 0;
-
-  const handleCopy = async () => {
-    if (!hasGenesis) return;
-    try {
-      await navigator.clipboard.writeText(genesisData);
-      setCopied(true);
-      toast.success('Genesis JSON copied', undefined, { id: 'copy-genesis' });
-      setTimeout(() => setCopied(false), 1500);
-    } catch (err) {
-      toast.error(
-        'Could not copy',
-        err instanceof Error ? err.message : 'Clipboard unavailable',
-        { id: 'copy-genesis' },
-      );
-    }
-  };
-
-  const button = (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleCopy}
-      disabled={!hasGenesis}
-      aria-label={hasGenesis ? 'Copy genesis JSON' : 'Genesis JSON not available'}
-    >
-      {copied ? (
-        <Check className="w-4 h-4 mr-1.5 text-emerald-500" />
-      ) : (
-        <Copy className="w-4 h-4 mr-1.5" />
-      )}
-      Copy Genesis
-    </Button>
-  );
-
-  if (hasGenesis) return button;
-
-  // Wrap the disabled button in a focusable span — without it the tooltip
-  // never opens, since `disabled` removes the button from the focus order
-  // and pointer events bypass the trigger in some browsers.
-  return (
-    <UITooltip>
-      <TooltipTrigger asChild>
-        <span tabIndex={0}>{button}</span>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="max-w-[260px]">
-        Genesis JSON not stored for this L1. Re-add the chain from the Add
-        Chain modal and paste the genesis to enable copy.
-      </TooltipContent>
-    </UITooltip>
   );
 }
 

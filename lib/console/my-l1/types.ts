@@ -73,10 +73,25 @@ export function walletItemToCombined(w: L1ListItem): CombinedL1 {
 
 // Extract just the metadata fields from a wallet L1ListItem. Empty-string
 // addresses (the Quick L1 placeholder for "not deployed yet") map to
-// undefined so Setup Progress treats them as missing.
-export function metadataFromWalletItem(w: L1ListItem) {
+// undefined so Setup Progress treats them as missing. Undefined entries
+// are then OMITTED from the returned object — when this is spread into a
+// managed CombinedL1, undefined-valued keys would otherwise clobber valid
+// server-side data (notably the firn explorer URL set by
+// `lib/console/my-l1s.ts:122`).
+export function metadataFromWalletItem(w: L1ListItem): Partial<{
+  validatorManagerAddress: string;
+  validatorManagerBlockchainId: string;
+  teleporterRegistryAddress: string;
+  wrappedTokenAddress: string;
+  coinName: string;
+  logoUrl: string;
+  explorerUrl: string;
+  hasBuilderHubFaucet: boolean;
+  externalFaucetUrl: string;
+  genesisData: string;
+}> {
   const optional = (v: string | undefined) => (v && v.length > 0 ? v : undefined);
-  return {
+  const all: Record<string, unknown> = {
     validatorManagerAddress: optional(w.validatorManagerAddress),
     validatorManagerBlockchainId: optional(w.validatorManagerBlockchainId),
     teleporterRegistryAddress: optional(w.wellKnownTeleporterRegistryAddress),
@@ -88,5 +103,10 @@ export function metadataFromWalletItem(w: L1ListItem) {
     externalFaucetUrl: optional(w.externalFaucetUrl),
     genesisData: optional(w.genesisData),
   };
+  // Drop undefined entries so {...metadataFromWalletItem(w)} preserves
+  // managed-side defaults instead of overwriting them with undefined.
+  return Object.fromEntries(
+    Object.entries(all).filter(([, v]) => v !== undefined),
+  ) as ReturnType<typeof metadataFromWalletItem>;
 }
 

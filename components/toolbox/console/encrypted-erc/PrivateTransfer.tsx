@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { isAddress } from 'viem';
 import { BookOpen } from 'lucide-react';
@@ -16,6 +16,7 @@ import { useEERCBalance } from '@/hooks/eerc/useEERCBalance';
 import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId';
 import { useEERCTransfer } from '@/hooks/eerc/useEERCTransfer';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
+import { parseEERCAmount } from '@/lib/eerc/parseAmount';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
@@ -75,7 +76,15 @@ function PrivateTransfer() {
 
   const balance = useEERCBalance(deployment, mode ?? 'converter', token);
   const aud = useEERCAuditorAndTokenId(deployment, mode === 'converter' ? token?.address : undefined);
-  const tr = useEERCTransfer(deployment);
+  // Reload encrypted balance + auditor state once the transfer confirms.
+  // Both `refresh` callbacks are stable per their hook's useCallback deps,
+  // so this onConfirmed is also stable across renders.
+  const refreshBalance = balance.refresh;
+  const refreshAud = aud.refresh;
+  const onTransferConfirmed = useCallback(async () => {
+    await Promise.all([refreshBalance(), refreshAud()]);
+  }, [refreshBalance, refreshAud]);
+  const tr = useEERCTransfer(deployment, { onConfirmed: onTransferConfirmed });
   const activeChainId = mode === 'standalone' ? standalone.chainId : converter.chainId;
 
   const [recipient, setRecipient] = useState('');
@@ -90,13 +99,14 @@ function PrivateTransfer() {
     );
   }
 
-  // Parse amount as cents (eERC decimals = 2).
+  // Parse amount as cents (eERC decimals = 2). String-based parsing
+  // avoids the IEEE-754 precision loss that `Number(amountText) * 100`
+  // would introduce past ~15 significant digits.
   let amountCents: bigint | null = null;
   let parseError: string | null = null;
   if (amountText) {
-    const n = Number(amountText);
-    if (!Number.isFinite(n) || n <= 0) parseError = 'Amount must be positive';
-    else amountCents = BigInt(Math.round(n * 100));
+    amountCents = parseEERCAmount(amountText);
+    if (amountCents === null) parseError = 'Amount must be positive';
   }
   const recipientValid = recipient.length > 0 && isAddress(recipient);
 

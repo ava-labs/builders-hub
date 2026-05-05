@@ -1,9 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { formSchema } from "@/types/researchProposalForm";
+import { rateLimited } from "@/app/api/managed-testnet-nodes/utils";
 
-export async function POST(request: Request) {
+// Identifier for the rate limiter — uses the session email so each
+// account gets its own bucket. Throws on missing email so the wrapper
+// returns a 401 before consuming a slot in the limiter.
+async function rateLimitIdentifier(): Promise<string> {
+  if (process.env.NODE_ENV === "development") return "dev-user";
+  const session = await getAuthSession();
+  const email = session?.user?.email;
+  if (!email) throw new Error("Authentication required");
+  return `research-proposal:${email}`;
+}
+
+async function handlePost(request: NextRequest) {
   const session = await getAuthSession();
   const sessionUserId = session?.user?.id;
   const sessionEmail = session?.user?.email?.trim().toLowerCase();
@@ -83,3 +95,12 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// 5 submissions per day per account in prod is well above legitimate
+// retries (typo fixes, last-minute edits) but stops a logged-in user
+// from spamming the form into a stuck queue.
+export const POST = rateLimited(handlePost, {
+  dev: { windowMs: 24 * 60 * 60 * 1000, max: 1000 },
+  prod: { windowMs: 24 * 60 * 60 * 1000, max: 5 },
+  identifier: rateLimitIdentifier,
+});

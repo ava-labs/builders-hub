@@ -8,7 +8,7 @@ import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListSt
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { useModalTrigger } from '@/components/toolbox/hooks/useModal';
 import { toast } from '@/lib/toast';
-import type { CombinedL1 } from '../_lib/types';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
 
 // Inline header action that replaces the old full-width "Wallet on a different
 // chain…" banner. Lives next to Open Explorer in DetailHeader so the user

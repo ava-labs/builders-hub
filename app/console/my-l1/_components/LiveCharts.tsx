@@ -28,7 +28,7 @@ import { useChartTheme, type ChartThemeStyles } from '@/hooks/useChartTheme';
 import type { ChartPalette } from '@/lib/console/palettes';
 import { useL1RecentBlocks, type BlockSummary } from '@/hooks/useL1RecentBlocks';
 import { cn } from '@/lib/utils';
-import type { CombinedL1 } from '../_lib/types';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { ChartsSkeleton } from './charts/skeleton';
 
 // All four charts share this syncId so Recharts mirrors the hover cursor
@@ -429,8 +429,10 @@ function ChartsGrid({
   // Stable gradient ID per palette so each accent gets its own def. The
   // chart titles already encode the metric so we suffix with `palette.name`
   // to avoid Recharts caching gradients between palette switches.
-  const gradId = (suffix: string) =>
-    `grad-${suffix}-${palette.name.toLowerCase()}`;
+  // Compute the lowercased slug once per palette change rather than four
+  // times per render (one per chart's gradient).
+  const paletteSlug = palette.name.toLowerCase();
+  const gradId = (suffix: string) => `grad-${suffix}-${paletteSlug}`;
 
   // Common axis chrome shared by every chart. Inlined into each
   // `<XAxis>`/`<YAxis>` rather than wrapped in a custom component because
@@ -478,11 +480,14 @@ function ChartsGrid({
   const avgUtilization = points.length
     ? (points.reduce((s, p) => s + p.gasUtilization, 0) / points.length).toFixed(2)
     : '—';
+  // Filter once and reuse — the previous version walked `points` twice
+  // with the same predicate to compute sum and length separately.
+  const baseFeePoints = hasBaseFee ? points.filter((p) => p.baseFeeGwei !== null) : [];
   const avgBaseFee =
-    points.length && hasBaseFee
+    points.length && baseFeePoints.length > 0
       ? (
-          points.filter((p) => p.baseFeeGwei !== null).reduce((s, p) => s + (p.baseFeeGwei ?? 0), 0) /
-          points.filter((p) => p.baseFeeGwei !== null).length
+          baseFeePoints.reduce((s, p) => s + (p.baseFeeGwei ?? 0), 0) /
+          baseFeePoints.length
         ).toFixed(3)
       : '—';
 

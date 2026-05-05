@@ -60,7 +60,6 @@ import {
 } from "@/components/ui/collapsible";
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useFavoriteTools } from "@/hooks/useFavoriteTools";
-import { useSubStepSearchToggle } from "@/hooks/useSubStepSearchToggle";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { cn } from "@/lib/utils";
 import { TOOLS as ALL_CONSOLE_TOOLS } from "@/components/toolbox/console/toolbox/tools";
@@ -678,7 +677,6 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
     isMandatory: isMandatoryTool,
     toggle: toggleFavoriteTool,
   } = useFavoriteTools();
-  const { includeSubSteps } = useSubStepSearchToggle();
 
   // Set of every toolbox tool path — used by search results to decide
   // whether a hit is "pinnable" (i.e., backed by a real tool) and should
@@ -754,7 +752,12 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
 
     // Append every toolbox entry not already pinned to the sidebar. The
     // "Toolbox › <category>" prefix flags it visually in the search results
-    // so users know they're reaching beyond the sidebar tree.
+    // so users know they're reaching beyond the sidebar tree. Sub-steps
+    // are ALWAYS included here — the sidebar's global search is meant to
+    // be the fastest way to land on any specific step, so we don't gate
+    // them behind the `useSubStepSearchToggle` flag the way the Toolbox
+    // board does. The board's toggle still controls visibility of the
+    // sub-step grid section there; this surface is independent.
     ALL_CONSOLE_TOOLS.forEach((tool) => {
       if (tool.external) return;
       push({
@@ -763,29 +766,27 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
         icon: tool.icon,
         category: `Toolbox › ${tool.category}`,
       });
-      if (includeSubSteps) {
-        (tool.subSteps ?? []).forEach((step) => {
-          push({
-            title: step.name,
-            url: step.path,
-            icon: tool.icon,
-            // Two-tier category so sub-steps group with their parent's
-            // top-level tools under the same header (avoids interleaved
-            // duplicate headers when a category has both top-level tools
-            // and sub-steps matching the search).
-            category: `Toolbox › ${tool.category}`,
-            // Parent flow rendered inline above the step name — matches
-            // the toolbox board's `Add Validator › Initiate Validator
-            // Registration` layout so both surfaces read identically.
-            parentName: tool.name,
-            ariaLabel: `Sub-step of ${tool.name}: ${step.name}`,
-          });
+      (tool.subSteps ?? []).forEach((step) => {
+        push({
+          title: step.name,
+          url: step.path,
+          icon: tool.icon,
+          // Two-tier category so sub-steps group with their parent's
+          // top-level tools under the same header (avoids interleaved
+          // duplicate headers when a category has both top-level tools
+          // and sub-steps matching the search).
+          category: `Toolbox › ${tool.category}`,
+          // Parent flow rendered inline above the step name — matches
+          // the toolbox board's `Add Validator › Initiate Validator
+          // Registration` layout so both surfaces read identically.
+          parentName: tool.name,
+          ariaLabel: `Sub-step of ${tool.name}: ${step.name}`,
         });
-      }
+      });
     });
 
     return items;
-  }, [navGroups, includeSubSteps]);
+  }, [navGroups]);
 
   // Filter items based on search query — title-only match keeps results
   // tight and predictable. Searching "convert" returns only items whose

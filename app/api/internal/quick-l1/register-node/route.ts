@@ -4,6 +4,8 @@ import { createDbNode, selectNewestNode } from '@/app/api/managed-testnet-nodes/
 import { jsonError, jsonOk, validateSubnetId } from '@/app/api/managed-testnet-nodes/utils';
 import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
 import type { AwardedConsoleBadge } from '@/server/services/consoleBadge/types';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { prisma } from '@/prisma/prisma';
 
 /**
  * POST /api/internal/quick-l1/register-node
@@ -35,6 +37,12 @@ import type { AwardedConsoleBadge } from '@/server/services/consoleBadge/types';
  */
 
 const ADDRESS_HEX_RE = /^[0-9a-fA-F]+$/;
+
+// Defensive cap so that a leaked `QUICK_L1_INTERNAL_SECRET` can't be used
+// to mass-create node registrations for arbitrary users. Legitimate flow
+// is one register-node call per Quick L1 deploy (themselves rate-limited
+// to 5/min upstream), so 20/min/user is generous.
+const PER_USER_RATE_LIMIT = { windowMs: 60_000, maxRequests: 20 } as const;
 
 interface RegisterNodeRequest {
   userId: string;
@@ -87,6 +95,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!body.proofOfPossession || !ADDRESS_HEX_RE.test(body.proofOfPossession)) {
     return jsonError(400, 'Invalid proofOfPossession');
   }
+
+  // Per-userId throttle. The shared secret authenticates the caller, but
+  // an attacker holding a leaked secret should still hit a soft ceiling
+  // before fanning out registrations against many accounts.
+  const rl = checkRateLimit(`register-node:${body.userId}`, PER_USER_RATE_LIMIT);
+  if (!rl.allowed) {
+    return jsonError(429, 'Rate limit exceeded for this user');
+  }
+
+  // Verify the userId is real before writing to nodeRegistration. Without
+  // this, a leaked secret could pollute the table with rows pointing at
+  // user IDs that never existed (the FK on nodeRegistration is by string,
+  // not enforced, so the DB happily accepts garbage). Cheap lookup on a
+  // primary-key column.
+  const userExists = await prisma.user.findUnique({
+    where: { id: body.userId },
+    select: { id: true },
+  });
+  if (!userExists) return jsonError(400, 'Invalid userId');
 
   // Reshape the flat payload into the NodeInfo structure `createDbNode`
   // expects (matches what `selectNewestNode` returns from the manual
@@ -144,6 +171,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return jsonOk({ ok: true, status: 'created', nodeId: created.id, awardedBadges });
   } catch (e) {
-    return jsonError(500, e instanceof Error ? e.message : 'Failed to register node', e);
+    // Static client message — Prisma errors leak schema, query parameters,
+    // and connection details. The full error is logged server-side via the
+    // third arg of `jsonError`.
+    return jsonError(500, 'Failed to register node', e);
   }
 }

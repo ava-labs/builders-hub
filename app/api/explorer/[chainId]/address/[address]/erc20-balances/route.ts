@@ -15,6 +15,15 @@ const fujiSdk = new Avalanche({ network: "fuji" });
 
 const FUJI_C_CHAIN_ID = '43113';
 
+// EVM chain IDs are unsigned ints; Avalanche's largest known IDs are
+// 5–10 digits. Cap at 12 so a malformed param can't waste cycles on a
+// 200-char "number" string before we reject it.
+const CHAIN_ID_RE = /^[0-9]{1,12}$/;
+// Glacier page tokens are opaque base64-ish strings. We don't crack the
+// shape; we just bound length and character class so a path-traversal-y
+// or huge value can't tunnel through the SDK call.
+const PAGE_TOKEN_RE = /^[A-Za-z0-9+/=_\-:.]{1,512}$/;
+
 function sdkForChain(chainId: string): Avalanche {
   return chainId === FUJI_C_CHAIN_ID ? fujiSdk : mainnetSdk;
 }
@@ -51,6 +60,16 @@ export async function GET(
     // Validate address format
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
       return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
+    }
+    // Validate chainId — digits only, sane length. Anything else can't
+    // be a real chain and we don't want to forward it to Glacier.
+    if (!CHAIN_ID_RE.test(chainId)) {
+      return NextResponse.json({ error: 'Invalid chainId format' }, { status: 400 });
+    }
+    // Validate pageToken — opaque to us, but bound length + charset so
+    // a malformed/oversized value short-circuits before the upstream call.
+    if (pageToken !== undefined && !PAGE_TOKEN_RE.test(pageToken)) {
+      return NextResponse.json({ error: 'Invalid pageToken format' }, { status: 400 });
     }
 
     // Fetch ERC20 balances - returns a PageIterator. Switches between

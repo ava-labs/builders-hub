@@ -26,11 +26,24 @@ export interface UseEERCWithdrawState {
   }) => Promise<Hex | null>;
 }
 
-export function useEERCWithdraw(deployment: EERCDeployment | undefined): UseEERCWithdrawState {
+export interface UseEERCWithdrawOptions {
+  /**
+   * Fired after the on-chain withdraw is confirmed but before the hook flips
+   * to the 'success' state. Failures are swallowed so a refresh hiccup never
+   * blanks a successful tx.
+   */
+  onConfirmed?: () => void | Promise<void>;
+}
+
+export function useEERCWithdraw(
+  deployment: EERCDeployment | undefined,
+  options?: UseEERCWithdrawOptions,
+): UseEERCWithdrawState {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
   const notifiedWrite = useEERCNotifiedWrite();
+  const onConfirmed = options?.onConfirmed;
 
   const [status, setStatus] = useState<WithdrawStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +81,14 @@ export function useEERCWithdraw(deployment: EERCDeployment | undefined): UseEERC
         setTxHash(result.txHash);
         setStatus('confirming');
         await publicClient.waitForTransactionReceipt({ hash: result.txHash });
+        // Refresh dependent on-chain state (balance, auditor) before flipping
+        // to 'success'. Without this, the UI keeps showing the pre-withdraw
+        // ciphertext until the user manually reloads.
+        try {
+          await onConfirmed?.();
+        } catch {
+          // A refresh failure must not turn a confirmed tx into an error.
+        }
         setStatus('success');
         return result.txHash;
       } catch (err) {
@@ -76,7 +97,7 @@ export function useEERCWithdraw(deployment: EERCDeployment | undefined): UseEERC
         return null;
       }
     },
-    [address, deployment, walletClient, publicClient],
+    [address, deployment, walletClient, publicClient, notifiedWrite, onConfirmed],
   );
 
   return { status, error, txHash, withdraw };

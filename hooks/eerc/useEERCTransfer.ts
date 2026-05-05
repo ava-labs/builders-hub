@@ -27,16 +27,29 @@ export interface UseEERCTransferState {
   }) => Promise<Hex | null>;
 }
 
+export interface UseEERCTransferOptions {
+  /**
+   * Fired after the on-chain transfer is confirmed but before the hook flips
+   * to the 'success' state. Failures are swallowed so a refresh hiccup never
+   * blanks a successful tx.
+   */
+  onConfirmed?: () => void | Promise<void>;
+}
+
 /**
  * Orchestrates the full private-transfer tx. The caller feeds in already-read
  * encrypted balance + auditor key (from useEERCBalance + useEERCAuditorAndTokenId)
  * rather than re-reading them here, so the hook stays focused on the write path.
  */
-export function useEERCTransfer(deployment: EERCDeployment | undefined): UseEERCTransferState {
+export function useEERCTransfer(
+  deployment: EERCDeployment | undefined,
+  options?: UseEERCTransferOptions,
+): UseEERCTransferState {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useResolvedWalletClient();
   const notifiedWrite = useEERCNotifiedWrite();
+  const onConfirmed = options?.onConfirmed;
 
   const [status, setStatus] = useState<TransferStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +103,14 @@ export function useEERCTransfer(deployment: EERCDeployment | undefined): UseEERC
         setTxHash(result.txHash);
         setStatus('confirming');
         await publicClient.waitForTransactionReceipt({ hash: result.txHash });
+        // Refresh dependent on-chain state (balance, auditor) before flipping
+        // to 'success'. Without this, the UI keeps showing the pre-transfer
+        // ciphertext until the user manually reloads.
+        try {
+          await onConfirmed?.();
+        } catch {
+          // A refresh failure must not turn a confirmed tx into an error.
+        }
         setStatus('success');
         return result.txHash;
       } catch (err) {
@@ -98,7 +119,7 @@ export function useEERCTransfer(deployment: EERCDeployment | undefined): UseEERC
         return null;
       }
     },
-    [address, deployment, walletClient, publicClient],
+    [address, deployment, walletClient, publicClient, notifiedWrite, onConfirmed],
   );
 
   return { status, error, txHash, transfer };

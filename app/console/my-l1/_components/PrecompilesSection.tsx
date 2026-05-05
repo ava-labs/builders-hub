@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, CircleOff, Coins, MessagesSquare, ShieldCheck, ShieldUser, SlidersVertical } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { isPrimaryNetwork, type CombinedL1 } from '../_lib/types';
+import { isPrimaryNetwork, type CombinedL1 } from '@/lib/console/my-l1/types';
 import type { L1PrecompileKey, UseL1ActivePrecompilesState } from '@/hooks/useL1ActivePrecompiles';
 
 type PrecompileRow = {

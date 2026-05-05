@@ -7,7 +7,6 @@ import { useCreateChainStore } from '@/components/toolbox/stores/createChainStor
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Button } from '@/components/toolbox/components/Button';
-import { toast } from '@/lib/toast';
 import type { RequiredChain } from '@/components/console/step-flow';
 
 interface ChainGateProps {
@@ -138,39 +137,16 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     return <>{children}</>;
   }
 
-  // L1 path: only `wallet_switchEthereumChain` for chains the wallet
-  // already knows about. For a freshly-created L1 the wallet has never
-  // seen the chainId, so showing "Switch Network" is a dead end — Core
-  // throws "Unrecognized chain ID" and `safelySwitch` swallows the error
-  // (logs only). We disambiguate via l1ListStore: present in the list
-  // means the user has already added it through the modal at least once.
-  // C-Chain is always seeded into l1ListStore, so this defaults true
-  // there.
+  // l1ListStore-based "is the chain in our store?" check. This is a
+  // hint, not a hard truth: the user might have added the chain through
+  // Core wallet's UI directly (bypassing AddChainModal), in which case
+  // it's in their wallet but missing from our list. We use this to pick
+  // the *button label* + secondary action; the actual primary handler
+  // tries switching regardless and falls back to the add flow only when
+  // the wallet rejects the switch. C-Chain is always seeded into
+  // l1ListStore, so this defaults true there.
   const isInWallet =
     requiredChain === 'c-chain' ? true : walletL1s.some((w: L1ListItem) => w.evmChainId === expectedChainId);
-
-  const handleSwitch = async () => {
-    if (expectedChainId === null) return;
-    setIsSwitching(true);
-    try {
-      await switchChain(expectedChainId, isTestnet ?? false);
-      // safelySwitch swallows provider errors, so we can't rely on a
-      // throw to know whether the switch happened. Re-read the live
-      // chain — if it didn't move, surface a toast so the user isn't
-      // left wondering why nothing changed.
-      const live = await readLiveChainId();
-      setLiveChainId(live);
-      if (live !== expectedChainId) {
-        toast.error(
-          'Network switch failed',
-          `Your wallet is still on chain ${live ?? 'unknown'}. Try switching from the wallet UI directly.`,
-          { id: `chain-gate-switch:${expectedChainId}` },
-        );
-      }
-    } finally {
-      setIsSwitching(false);
-    }
-  };
 
   const handleAddToWallet = async () => {
     // For the create-l1 flow we already know the chain name + EVM id,
@@ -183,6 +159,45 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
       isTestnet: isTestnet ?? undefined,
     });
   };
+
+  // Primary action: try switching first regardless of whether we think
+  // the chain is in the wallet. The switch succeeds in two important
+  // cases the previous "isInWallet-only" branch missed:
+  //   1. User added the chain via Core's UI directly (not via our modal),
+  //      so our l1ListStore is unaware but the wallet itself isn't.
+  //   2. The chain was added in a previous session and a different
+  //      browser context wiped our local store but Core kept the entry.
+  // Only when the switch genuinely doesn't move the live chain do we
+  // fall back to the add-to-wallet modal.
+  const handlePrimary = async () => {
+    if (expectedChainId === null) return;
+    setIsSwitching(true);
+    try {
+      await switchChain(expectedChainId, isTestnet ?? false);
+      const live = await readLiveChainId();
+      setLiveChainId(live);
+      if (live === expectedChainId) return;
+      // Switch didn't move the chain — chain probably isn't in the wallet
+      // at all. Open the add-chain modal so the user can register it.
+      await handleAddToWallet();
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
+  // Best-effort label for what the wallet is currently on, so the user
+  // can immediately see the mismatch the gate detected.
+  const currentChainId = liveChainId ?? walletChainId;
+  const currentChainLabel =
+    currentChainId === FUJI_CHAIN_ID
+      ? 'Fuji C-Chain'
+      : currentChainId === MAINNET_CHAIN_ID
+        ? 'Mainnet C-Chain'
+        : currentChainId && currentChainId > 0
+          ? `chain ${currentChainId}`
+          : null;
+
+  const primaryLabel = isInWallet ? 'Switch Network' : 'Connect to ' + chainLabel;
 
   return (
     <div className="space-y-4">
@@ -198,46 +213,45 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
           </div>
           <div className="flex-1 space-y-3">
             <div>
-              <h3 className="text-base font-semibold text-white">
-                {isInWallet ? `Switch to ${chainLabel}` : `Add ${chainLabel} to your wallet`}
-              </h3>
+              <h3 className="text-base font-semibold text-white">Connect to {chainLabel}</h3>
               <p className="mt-1 text-sm text-zinc-400">
-                {isInWallet ? (
+                This step needs your wallet on <span className="text-zinc-200 font-medium">{chainLabel}</span>
+                {requiredChain === 'l1' && ' (Chain ID: ' + expectedChainId + ')'}.
+                {currentChainLabel ? (
                   <>
-                    This step requires your wallet to be connected to{' '}
-                    <span className="text-zinc-200 font-medium">{chainLabel}</span>
-                    {requiredChain === 'l1' && ' (Chain ID: ' + expectedChainId + ')'}. You&apos;re currently on a
-                    different network.
+                    {' '}
+                    You&apos;re currently on <span className="text-zinc-200 font-medium">{currentChainLabel}</span>.
                   </>
                 ) : (
-                  <>
-                    Your wallet hasn&apos;t added <span className="text-zinc-200 font-medium">{chainLabel}</span>
-                    {requiredChain === 'l1' && ' (Chain ID: ' + expectedChainId + ')'} yet. Add it now to continue.
-                  </>
+                  <> You&apos;re currently on a different network.</>
                 )}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              {isInWallet ? (
-                <Button
-                  onClick={handleSwitch}
-                  loading={isSwitching}
-                  loadingText="Switching…"
-                  variant="primary"
-                  size="sm"
-                  icon={<ArrowRight className="h-3.5 w-3.5" />}
-                >
-                  Switch Network
-                </Button>
-              ) : (
+              <Button
+                onClick={handlePrimary}
+                loading={isSwitching}
+                loadingText="Switching…"
+                variant="primary"
+                size="sm"
+                icon={<ArrowRight className="h-3.5 w-3.5" />}
+              >
+                {primaryLabel}
+              </Button>
+              {/* Always offer the explicit add-to-wallet path as a
+                  secondary option. This matters when the user knows they
+                  need to paste a custom RPC URL (e.g., a managed-nodes
+                  endpoint we don't have in scope) — they can skip the
+                  optimistic switch attempt and go straight to the modal. */}
+              {!isInWallet && (
                 <Button
                   onClick={handleAddToWallet}
-                  variant="primary"
+                  variant="secondary"
                   size="sm"
                   icon={<Wallet className="h-3.5 w-3.5" />}
                 >
-                  Add to Wallet
+                  Add manually
                 </Button>
               )}
             </div>

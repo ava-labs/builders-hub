@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMyL1s } from '@/hooks/useMyL1s';
-import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { getL1ListStore, useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useLoadedOnce } from '@/components/console/loaded-once';
 import { useL1Health } from '@/hooks/useL1Health';
@@ -12,7 +13,8 @@ import {
   metadataFromWalletItem,
   walletItemToCombined,
   type CombinedL1,
-} from '../_lib/types';
+} from '@/lib/console/my-l1/types';
+import { chainKey, useChainOrder, useHiddenL1s } from '@/lib/console/my-l1/chainOrderStore';
 import { HeroCard } from './HeroCard';
 import { SwitchChainRail } from './SwitchChainRail';
 import { L1Details } from './L1Details';
@@ -25,7 +27,39 @@ export function DashboardBody() {
   const walletL1s = useL1List();
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isWalletTestnet = useWalletStore((s) => s.isTestnet);
+  const chainOrder = useChainOrder();
+  const hiddenL1s = useHiddenL1s();
+  // The create-l1 wizard parks the in-progress L1's genesis JSON in this
+  // store (set during "Create Chain"). Used below to backfill genesis on
+  // wallet entries that came through the managed-nodes path, which
+  // doesn't currently carry genesis data into l1ListStore.
+  const createChainEvmChainId = useCreateChainStore()((s: { evmChainId: number }) => s.evmChainId);
+  const createChainGenesisData = useCreateChainStore()((s: { genesisData: string }) => s.genesisData);
   const { sawLoading } = useLoadedOnce(isLoading);
+
+  // One-shot backfill: when the create-l1 wizard's in-progress chain
+  // matches a wallet entry that's missing genesis, write the JSON in.
+  // Covers the advanced-mode flow where the managed-node "Add to Wallet"
+  // step calls addChain() without passing genesis, leaving Copy Genesis
+  // hidden in Tools even though the data exists in createChainStore.
+  // Self-limits via the early return on `existingGenesis` — once the
+  // wallet entry has a genesis on file, the effect is a no-op even
+  // though walletL1s changes after the write triggers a re-render.
+  useEffect(() => {
+    if (!createChainEvmChainId) return;
+    const genesis = createChainGenesisData?.trim();
+    if (!genesis) return;
+    const matching = walletL1s.find((w: L1ListItem) => w.evmChainId === createChainEvmChainId);
+    if (!matching) return;
+    const existingGenesis = matching.genesisData?.trim() ?? '';
+    if (existingGenesis.length > 0) return;
+    const store = getL1ListStore(Boolean(isWalletTestnet));
+    store.setState((state: { l1List: L1ListItem[] }) => ({
+      l1List: state.l1List.map((w) =>
+        w.id === matching.id ? { ...w, genesisData: genesis } : w,
+      ),
+    }));
+  }, [createChainEvmChainId, createChainGenesisData, walletL1s, isWalletTestnet]);
 
   // Total active managed nodes across the user's account — drives the
   // "X/3 total" hint and disables the Provision button when at cap. Sum
@@ -80,10 +114,35 @@ export function DashboardBody() {
     });
 
     const userL1s = Array.from(byChainId.values());
-    return walletChainId === 0
+    const filtered = walletChainId === 0
       ? userL1s
       : userL1s.filter((l1) => l1.isTestnet === isWalletTestnet);
-  }, [managedL1s, walletL1s, walletByChainId, walletChainId, isWalletTestnet]);
+
+    // Drop user-hidden entries before the order pass so the rail reflects
+    // the cleanup the user just did. Hide is purely visual — managed L1s
+    // keep running, wallet entries don't go through here (they use
+    // l1ListStore.removeL1). The hidden list lives in chainOrderStore so
+    // it persists across reloads.
+    const hiddenSet = new Set(hiddenL1s);
+    const visible = hiddenSet.size > 0
+      ? filtered.filter((l1) => !hiddenSet.has(chainKey(l1)))
+      : filtered;
+
+    // Apply user-saved ordering (set by drag-and-drop in the rail). Items
+    // missing from the order list fall through to their natural position
+    // at the end — newly-added L1s stay discoverable without auto-mutating
+    // the user's saved arrangement.
+    if (chainOrder.length === 0) return visible;
+    const orderIndex = new Map(chainOrder.map((k, i) => [k, i]));
+    return [...visible].sort((a, b) => {
+      const ai = orderIndex.get(chainKey(a));
+      const bi = orderIndex.get(chainKey(b));
+      if (ai === undefined && bi === undefined) return 0;
+      if (ai === undefined) return 1;
+      if (bi === undefined) return -1;
+      return ai - bi;
+    });
+  }, [managedL1s, walletL1s, walletByChainId, walletChainId, isWalletTestnet, chainOrder, hiddenL1s]);
 
   // URL-driven selection so refresh + back button work, and so wallet network
   // switches don't change which L1 the dashboard is viewing.
@@ -200,16 +259,21 @@ export function DashboardBody() {
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className="space-y-5"
           >
+            {/* Switch Chain rail moved ABOVE the hero card: it's a
+                navigator (which L1 am I looking at?), not detail
+                content. Putting it on top primes selection context
+                before the user reads details, and matches the standard
+                "tabs-above-pane" idiom. */}
+            <SwitchChainRail
+              l1s={activeL1s}
+              selected={selectedL1}
+              onSelect={onSelect}
+            />
             <HeroCard
               l1={selectedL1}
               health={health}
               onRefresh={refetch}
               isRefreshing={isLoading}
-            />
-            <SwitchChainRail
-              l1s={activeL1s}
-              selected={selectedL1}
-              onSelect={onSelect}
             />
             <L1Details
               l1={selectedL1}

@@ -11,6 +11,15 @@ export interface AddChainOptions {
      * have the chain indexed.
      */
     isTestnet?: boolean;
+    /**
+     * Optional genesis JSON to seed the modal's "Genesis JSON (optional)"
+     * textarea. Callers in the create-l1 flow pass this from
+     * createChainStore so the resulting L1ListItem ends up with the
+     * genesis on file — driving Copy Genesis on the My L1 dashboard
+     * without requiring the user to re-paste a JSON they already
+     * configured.
+     */
+    genesisData?: string;
 }
 
 export interface ChainData {

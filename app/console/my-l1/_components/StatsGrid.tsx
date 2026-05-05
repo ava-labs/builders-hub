@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { L1HealthState } from '@/hooks/useL1Health';
 import type { L1ValidatorCountState } from '@/hooks/useL1ValidatorCount';
-import type { CombinedL1 } from '../_lib/types';
-import { formatDurationCompact, formatGasPrice, formatRelativeFromNow } from '../_lib/format';
+import type { CombinedL1 } from '@/lib/console/my-l1/types';
+import { formatDurationCompact, formatGasPrice, formatRelativeFromNow } from '@/lib/console/my-l1/format';
 
 // Inline shimmer for stat values during the very first load. Sized to roughly
 // the final text so the cell's height doesn't jump when data lands.
