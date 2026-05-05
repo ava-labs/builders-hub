@@ -69,6 +69,17 @@ export function generate6DigitCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+const authUserSelect = {
+  id: true,
+  email: true,
+  image: true,
+  name: true,
+  custom_attributes: true,
+  authentication_mode: true,
+  notifications: true,
+  user_name: true,
+} as const;
+
 export const AuthOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -94,7 +105,8 @@ export const AuthOptions: NextAuthOptions = {
         if (!email) throw new Error('Missing email');
         if (!otp) throw new Error('Missing otp');
 
-        const result = await verifyOTP(email, otp);
+        const normalizedEmail = email.toLowerCase().trim();
+        const result = await verifyOTP(normalizedEmail, otp);
 
         if (!result.isValid) {
           if (result.reason === 'EXPIRED') {
@@ -109,18 +121,17 @@ export const AuthOptions: NextAuthOptions = {
           }
         }
 
-        let user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          select: authUserSelect,
+        });
         if (!user) {
-          // user = await prisma.user.create({
-          //   data: {
-          //     email, notification_email: email, name: '', image: '', last_login: null
-          //   },
-          // }
-          user = {
-            email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
-            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date(),
-            country: null, user_type: null, github: null, wallet: [], skills: [], noun_avatar_seed: null, noun_avatar_enabled: false
-          }
+          return {
+            id: `pending_${normalizedEmail}`,
+            email: normalizedEmail,
+            name: '',
+            image: '',
+          };
         }
 
         return user;
@@ -139,6 +150,7 @@ export const AuthOptions: NextAuthOptions = {
           // Check if user already exists in the database
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
+            select: { id: true },
           });
 
           if (existingUser) {
@@ -174,17 +186,13 @@ export const AuthOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
-      let dbUser = null;
-
-      if (user?.email) {
-        dbUser = await prisma.user.findUnique({
-          where: { email: user.email },
-        });
-      } else if (token?.email) {
-        dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-        });
-      }
+      const email = user?.email ?? token?.email;
+      const dbUser = email
+        ? await prisma.user.findUnique({
+            where: { email },
+            select: authUserSelect,
+          })
+        : null;
 
       if (dbUser) {
         token.id = dbUser.id;

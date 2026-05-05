@@ -12,7 +12,7 @@ is_employee          Boolean   @default(false)
 is_enthusiast        Boolean   @default(false)
 company_name         String?
 role                 String?
-github               String?
+github_account       String?
 wallet               String?
 student_institution  String?
 skills               String[]
@@ -34,7 +34,7 @@ model User {
   bio                      String?
   notification_email       String?
   profile_privacy          String?                   @default("public")
-  social_media             String[]
+  additional_social_media             String[] @default([])
   notifications            Boolean?
   custom_attributes        String[]
   telegram_user            String?
@@ -47,7 +47,7 @@ model User {
   is_enthusiast        Boolean   @default(false)
   company_name         String?
   role                 String?
-  github               String?
+  github_account       String?
   wallet               String?
   student_institution  String?
   skills               String[]
@@ -81,4 +81,3 @@ model User {
 
 // 4. Para aplicar en producción (después de probar en dev):
 // npx prisma migrate deploy
-

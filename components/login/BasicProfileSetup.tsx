@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   Form,
@@ -25,15 +25,36 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { Button } from '@/components/ui/button';
 import { countries } from '@/constants/countries';
 import { hsEmploymentRoles } from '@/constants/hs_employment_role';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  LINKEDIN_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
+} from '@/lib/profile/socialAccountValidation';
 
 // Form schema
 const basicProfileSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
   country: z.string().optional(),
+  x_account: z
+    .string()
+    .min(1, 'X (Twitter) profile URL is required')
+    .regex(X_ACCOUNT_PATTERN, 'Enter a URL like https://x.com/yourhandle'),
+  linkedin_account: z
+    .string()
+    .min(1, 'LinkedIn URL is required')
+    .regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter a LinkedIn URL like https://www.linkedin.com/in/username'),
+  github_account: z
+    .string()
+    .min(1, 'GitHub profile is required')
+    .regex(GITHUB_ACCOUNT_PATTERN, 'Enter a valid GitHub username or github.com URL'),
+  telegram_user: z
+    .string()
+    .min(1, 'Telegram username is required')
+    .regex(TELEGRAM_ACCOUNT_PATTERN, 'Enter a valid Telegram username (5-32 chars, starts with a letter)'),
   is_student: z.boolean().default(false),
   student_institution: z.string().optional(),
   is_founder: z.boolean().default(false),
@@ -50,12 +71,10 @@ type BasicProfileFormValues = z.infer<typeof basicProfileSchema>;
 interface BasicProfileSetupProps {
   userId: string;
   onSuccess?: () => void;
-  onCompleteProfile?: () => void;
 }
 
-export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: BasicProfileSetupProps) {
+export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
-  const router = useRouter();
   const { update } = useSession();
 
   const form = useForm<BasicProfileFormValues>({
@@ -63,6 +82,10 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
     defaultValues: {
       name: '',
       country: '',
+      x_account: '',
+      linkedin_account: '',
+      github_account: '',
+      telegram_user: '',
       is_student: false,
       student_institution: '',
       is_founder: false,
@@ -77,7 +100,47 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
 
   const watchedValues = form.watch();
 
-  const handleSave = async (data: BasicProfileFormValues, redirectToProfile: boolean = false) => {
+  // Prefill from the current extended profile so existing users who open the
+  // modal to backfill X / LinkedIn don't wipe their existing name, country,
+  // or user_type flags. Brand-new users will get mostly-null values here,
+  // which keeps the current blank-default behavior.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/profile/extended/${userId}`);
+        if (!res.ok || cancelled) return;
+        const profile = await res.json();
+        if (cancelled || !profile) return;
+        const userType = profile.user_type ?? {};
+        form.reset({
+          name: profile.name ?? '',
+          country: profile.country ?? '',
+          x_account: profile.x_account ?? '',
+          linkedin_account: profile.linkedin_account ?? '',
+          github_account: profile.github_account ?? '',
+          telegram_user: profile.telegram_user ?? '',
+          is_student: Boolean(userType.is_student),
+          student_institution: userType.student_institution ?? '',
+          is_founder: Boolean(userType.is_founder),
+          founder_company_name: userType.founder_company_name ?? '',
+          is_employee: Boolean(userType.is_employee),
+          employee_company_name: userType.employee_company_name ?? '',
+          employee_role: userType.employee_role ?? '',
+          is_developer: Boolean(userType.is_developer),
+          is_enthusiast: Boolean(userType.is_enthusiast),
+        });
+      } catch {
+        // silent: blank defaults are fine if the fetch fails
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, form]);
+
+  const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
     try {
       // Format data to match the API expected format
@@ -92,13 +155,21 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
         is_developer,
         is_enthusiast,
         name,
-        country
+        country,
+        x_account,
+        linkedin_account,
+        github_account,
+        telegram_user,
       } = data;
 
       // Construct user_type object with all role fields
       const profileData = {
         name,
         country,
+        x_account,
+        linkedin_account,
+        github_account,
+        telegram_user,
         user_type: {
           is_student,
           is_founder,
@@ -114,28 +185,11 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
 
       // Save to API using extended profile endpoint
       await axios.put(`/api/profile/extended/${userId}`, profileData);
-      
+
       // Update session
       await update();
 
-      if (redirectToProfile) {
-        // Store data in localStorage to populate profile form
-        if (typeof window !== "undefined") {
-          localStorage.setItem('basicProfileData', JSON.stringify(data));
-        }
-
-        // Call onCompleteProfile callback
-        onCompleteProfile?.();
-
-        // Small delay to allow session to propagate before redirect
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Redirect to profile
-        router.push('/profile');
-      } else {
-        // Just call onSuccess callback
-        onSuccess?.();
-      }
+      onSuccess?.();
     } catch (error) {
       console.error('Error saving basic profile:', error);
     } finally {
@@ -144,19 +198,26 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
   };
 
   const onSubmit = (data: BasicProfileFormValues) => {
-    handleSave(data, false);
-  };
-
-  const onCompleteProfileClick = () => {
-    form.handleSubmit((data) => handleSave(data, true))();
+    handleSave(data);
   };
 
   return (
     <Card className="w-full rounded-md text-black dark:bg-zinc-800 dark:text-white border">
       <CardHeader className="text-center pb-4 px-4 sm:px-6">
-        <h3 className="text-base sm:text-lg font-semibold">Complete Your Basic Info</h3>
+        <div className="flex items-center justify-center gap-3 mb-1">
+          <Image
+            src="/common-images/Avalanche_Logomark_Red.svg"
+            alt="Avalanche"
+            width={28}
+            height={28}
+            priority
+          />
+          <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-red-500">
+            Help us know you better
+          </h3>
+        </div>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Tell us a bit about yourself to get started
+          A few details so we can send you personalized hackathon invites, rewards, and more as they roll out on Builder Hub.
         </p>
       </CardHeader>
 
@@ -215,6 +276,78 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
             </div>
 
+            {/* Required social handles */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <FormField
+                control={form.control}
+                name="x_account"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">X (Twitter) *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://x.com/yourhandle"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="linkedin_account"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">LinkedIn *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://www.linkedin.com/in/username"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="github_account"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">GitHub *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://github.com/username"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="telegram_user"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">Telegram *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter your Telegram username (without @)"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             {/* Roles */}
             <div className="space-y-3 sm:space-y-4">
               <FormLabel className="text-sm sm:text-base">Select all roles that apply.</FormLabel>
@@ -229,6 +362,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                       <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                         <FormControl>
                           <Checkbox
+                            className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                             checked={field.value}
                             onCheckedChange={(checked) => {
                               field.onChange(checked);
@@ -281,6 +415,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                       <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                         <FormControl>
                           <Checkbox
+                            className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                             checked={field.value}
                             onCheckedChange={(checked) => {
                               field.onChange(checked);
@@ -332,6 +467,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
+                          className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
@@ -355,6 +491,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
+                          className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                           checked={field.value}
                           onCheckedChange={(checked) => {
                             field.onChange(checked);
@@ -368,7 +505,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     </FormItem>
                   )}
                 />
-                <FormLabel className="text-sm font-normal cursor-pointer shrink-0 w-[70px]" onClick={() => {
+                <FormLabel className="text-sm sm:text-base font-normal cursor-pointer shrink-0" onClick={() => {
                   const currentValue = watchedValues.is_employee;
                   form.setValue("is_employee", !currentValue);
                   if (currentValue) {
@@ -432,6 +569,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
+                          className="border-zinc-400 dark:border-zinc-200 rounded-md data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
@@ -447,26 +585,17 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
             </div>
 
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 sm:pt-5">
+            {/* Submit */}
+            <div className="pt-4 sm:pt-5">
               <LoadingButton
                 type="submit"
-                variant="outline"
-                className="flex-1 w-full sm:w-auto text-sm sm:text-base"
+                variant="red"
+                className="w-full text-sm sm:text-base"
                 isLoading={isSaving}
                 loadingText="Saving..."
               >
-                Save and close
+                Save
               </LoadingButton>
-              <Button
-                type="button"
-                variant="red"
-                className="flex-1 w-full sm:w-auto text-sm sm:text-base"
-                onClick={onCompleteProfileClick}
-                disabled={isSaving}
-              >
-                Complete Profile
-              </Button>
             </div>
           </form>
         </Form>

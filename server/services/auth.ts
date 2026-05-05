@@ -3,6 +3,14 @@ import { prisma } from "@/prisma/prisma";
 import { Account, Profile, User } from "next-auth";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
 
+const oauthUserSelect = {
+  id: true,
+  email: true,
+  name: true,
+  image: true,
+  authentication_mode: true,
+} as const;
+
 export async function upsertUser(user: User, account: Account | null, profile: Profile | undefined) {
   if (!user.email) {
     throw new Error("El usuario debe tener un email válido");
@@ -11,6 +19,7 @@ export async function upsertUser(user: User, account: Account | null, profile: P
 
   const existingUser = await prisma.user.findUnique({
     where: { email: user.email },
+    select: oauthUserSelect,
   });
 
   const updatedAuthMode = existingUser?.authentication_mode?.includes(account?.provider ?? "")
@@ -23,6 +32,7 @@ export async function upsertUser(user: User, account: Account | null, profile: P
     // Usuario existe, actualizar
     upsertedUser = await prisma.user.update({
       where: { email: user.email },
+      select: oauthUserSelect,
       data: {
         name: user.name || "",
         image: existingUser.image || user.image || "",
@@ -34,6 +44,7 @@ export async function upsertUser(user: User, account: Account | null, profile: P
   } else {
     // Usuario no existe, crear
     upsertedUser = await prisma.user.create({
+      select: oauthUserSelect,
       data: {
         email: user.email,
         notification_email: user.email,

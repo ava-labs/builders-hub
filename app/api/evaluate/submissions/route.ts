@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
             members: {
               include: {
                 user: {
-                  select: { id: true, name: true, email: true, country: true, github: true, telegram_user: true },
+                  select: { id: true, name: true, email: true, country: true, github_account: true, telegram_user: true },
                 },
               },
             },
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
         applicantEmail: leadUser?.email ?? (applicantData?.email as string) ?? lead?.email ?? "",
         country: leadUser?.country ?? (applicantData?.country as string) ?? "",
         telegram: leadUser?.telegram_user ?? (applicantData?.telegram as string) ?? null,
-        github: leadUser?.github ?? (applicantData?.github as string) ?? null,
+        github: leadUser?.github_account ?? (applicantData?.github as string) ?? null,
         areaOfFocus,
         stageProgress,
         applicationData,

@@ -9,6 +9,7 @@ import { LoginModal } from './LoginModal';
 import { Terms } from './terms';
 import { BasicProfileSetup } from './BasicProfileSetup';
 import { useLoginModalState, useNewUserLoginListener, triggerLoginComplete } from '@/hooks/useLoginModal';
+import { hasCompleteRequiredProfileAccounts } from '@/lib/profile/socialAccountValidation';
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
@@ -97,6 +98,39 @@ export function LoginModalWrapper() {
     }
   }, [showTerms, isOpen, closeLoginModal]);
 
+  // Enforce mandatory profile accounts on authenticated users.
+  // New users are caught via is_new_user -> Terms -> BasicProfileSetup.
+  // This extra check covers anyone who dismissed the modal or predates the
+  // requirement: on any authenticated page mount, reopen BasicProfileSetup
+  // if any required profile account is still null.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (status !== "authenticated") return;
+    if (!session?.user?.id) return;
+    if (session.user.id.startsWith("pending_")) return;
+    if (showTerms || showBasicProfile) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/profile/extended/${session.user.id}`);
+        if (!res.ok) return;
+        const profile = await res.json();
+        if (cancelled) return;
+        if (!hasCompleteRequiredProfileAccounts(profile)) {
+          setTermsUserId(session.user.id);
+          setShowBasicProfile(true);
+        }
+      } catch {
+        // silent: enforcement is a best-effort gate on navigation
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status, session?.user?.id, showTerms, showBasicProfile]);
+
   const handleTermsSuccess = async () => {
     // Update session to get latest data
     await update();
@@ -156,27 +190,6 @@ export function LoginModalWrapper() {
       await new Promise(resolve => setTimeout(resolve, 300));
       window.location.href = redirectUrl;
     }
-  };
-
-  const handleCompleteProfile = async () => {
-    // Close basic profile modal and close login modal
-    setShowBasicProfile(false);
-    setStoredCallbackUrl(null);
-    closeLoginModal();
-
-    // Force multiple session updates to ensure all components see the new auth state
-    await update();
-    await new Promise(resolve => setTimeout(resolve, 200));
-    await update();
-
-    // Trigger login complete event to notify all listening components
-    triggerLoginComplete();
-
-    // Navigate to profile page so user can complete their full profile
-    // Use window.location.href for a full page reload to ensure server gets fresh session
-    // Don't redirect to callback URL - user explicitly chose to complete profile
-    await new Promise(resolve => setTimeout(resolve, 300));
-    window.location.href = "/profile";
   };
 
   const handleTermsDecline = () => {
@@ -296,7 +309,6 @@ export function LoginModalWrapper() {
                   <BasicProfileSetup
                     userId={(termsUserId || session?.user?.id)!}
                     onSuccess={handleBasicProfileSuccess}
-                    onCompleteProfile={handleCompleteProfile}
                   />
                 </div>
               </DialogContent>

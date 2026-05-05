@@ -21,6 +21,8 @@
     "enrich:chains": "tsx ./scripts/enrich-chains.mts",
     "enrich:chains:prune": "tsx ./scripts/enrich-chains.mts --prune",
     "index-repos": "tsx ./scripts/index-repos.mts",
+    "seed:build-games:stages": "tsx ./scripts/import-build-games-stage-progression.mts",
+    "check:build-games:stages": "tsx ./scripts/check-build-games-stage-progression.mts",
     "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts",
     "postbuild": "tsx ./utils/update-index.ts",
     "commitlint": "commitlint --edit",
@@ -125,9 +127,9 @@
     "hast-util-to-jsx-runtime": "^2.3.6",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
+    "i18n-iso-countries": "^7.14.0",
     "idb": "^8.0.3",
     "input-otp": "^1.4.2",
-    "isomorphic-dompurify": "^3.0.0-rc.2",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.0",
     "jszip": "^3.10.1",
@@ -203,6 +205,5 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.58.1"
   },
-
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

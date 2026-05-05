@@ -51,12 +51,14 @@ model User {
   notification_email       String?
   notifications            Boolean?
   profile_privacy          String?                   @default("public")
-  social_media             String[]
+  additional_social_media  String[]                  @default([])
   custom_attributes        String[]
   telegram_user            String?
   created_at               DateTime                  @default(now()) @db.Timestamptz(3)
   country                  String?
-  github                   String?
+  github_account           String?
+  x_account                String?
+  linkedin_account         String?
   noun_avatar_enabled      Boolean                   @default(false)
   noun_avatar_seed         Json?
   skills                   String[]                  @default([])
@@ -143,18 +145,8 @@ model Project {
   deployed_addresses  Json[]         @default([])
   formData            FormData[]
   members             Member[]
-  prizes              Prize[]
   hackathon           Hackathon?     @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
   badges              ProjectBadge[]
-}
-
-model Prize {
-  id         String  @id @default(uuid())
-  icon       String
-  prize      Int
-  track      String
-  project_id String
-  Project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
 }
 
 model Member {
@@ -336,6 +328,9 @@ model FormData {
   current_stage  Int          @default(0)
   project        Project      @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   evaluations    Evaluation[]
+
+  @@index([project_id, origin])
+  @@index([origin, current_stage])
 }
 
 model Evaluation {
@@ -403,47 +398,6 @@ model OAuthCode {
 
   @@index([expires_at])
 }
-
-model Retro9000ReturningApplication {
-  id                                  String   @id @default(uuid())
-  email                               String   @unique
-  project_name                        String
-  project_type                        String
-  project_vertical                    String
-  project_website                     String?
-  project_x_handle                    String?
-  project_github                      String
-  project_hq                          String
-  project_continent                   String
-  media_kit                           String
-  previous_retro9000_snapshot_funding String?
-  requested_funding_range             String
-  eligibility_and_metrics             String
-  requested_grant_size_budget         String
-  changes_since_last_snapshot         String
-  first_name                          String
-  last_name                           String
-  pseudonym                           String?
-  role                                String
-  x_account                           String
-  telegram                            String
-  linkedin                            String?
-  github                              String?
-  country                             String?
-  other_url                           String?
-  bio                                 String
-  kyb_willing                         String
-  gdpr                                Boolean  @default(false)
-  marketing_consent                   Boolean  @default(false)
-  created_at                          DateTime @default(now()) @db.Timestamptz(3)
-  updated_at                          DateTime @updatedAt @db.Timestamptz(3)
-
-  @@index([created_at])
-  @@index([project_name])
-  @@index([project_vertical])
-  @@index([requested_funding_range])
-}
-
 model ResearchProposalApplication {
   id                          String   @id @default(uuid())
   submitted_by_user_id        String

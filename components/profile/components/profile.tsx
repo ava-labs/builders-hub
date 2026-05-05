@@ -402,15 +402,57 @@ export default function Profile() {
                 {/* GitHub */}
                 <FormField
                   control={form.control}
-                  name="github"
+                  name="github_account"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center gap-4">
-                      <FormLabel className="w-32 shrink-0">GitHub</FormLabel>
+                      <FormLabel className="w-32 shrink-0">GitHub *</FormLabel>
                       <div className="flex-1">
                         <FormControl>
-                          <Input 
-                            placeholder="https://github.com/username" 
-                            {...field} 
+                          <Input
+                            placeholder="https://github.com/username"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* X (Twitter) handle */}
+                <FormField
+                  control={form.control}
+                  name="x_account"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center gap-4">
+                      <FormLabel className="w-32 shrink-0">X (Twitter) *</FormLabel>
+                      <div className="flex-1">
+                        <FormControl>
+                          <Input
+                            placeholder="https://x.com/yourhandle"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* LinkedIn URL */}
+                <FormField
+                  control={form.control}
+                  name="linkedin_account"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center gap-4">
+                      <FormLabel className="w-32 shrink-0">LinkedIn *</FormLabel>
+                      <div className="flex-1">
+                        <FormControl>
+                          <Input
+                            placeholder="https://www.linkedin.com/in/username"
+                            {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -474,7 +516,7 @@ export default function Profile() {
                   name="telegram_user"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center gap-4">
-                      <FormLabel className="w-32 shrink-0">Telegram</FormLabel>
+                      <FormLabel className="w-32 shrink-0">Telegram *</FormLabel>
                       <div className="flex-1">
                         <FormControl>
                           <Input
@@ -491,7 +533,7 @@ export default function Profile() {
                 {/* Other accounts */}
                 <FormField
                   control={form.control}
-                  name="socials"
+                  name="additional_social_media"
                   render={({ field }) => {
                     const handleAddNewSocial = () => {
                       if (newSocial.trim()) {
@@ -509,7 +551,7 @@ export default function Profile() {
                         <div className="flex-1">
                           <FormControl>
                             <div className="space-y-2">
-                              {/* Display existing socials as tags */}
+                              {/* Display existing additional accounts as tags */}
                               {field.value && field.value.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mb-2">
                                   {field.value.map((social, index) => (
@@ -540,7 +582,7 @@ export default function Profile() {
                                     handleAddNewSocial();
                                   }
                                 }}
-                                placeholder="Add Twitter, LinkedIn or other links (Press Enter or Tab to add)"
+                                placeholder="Add other social links (Press Enter or Tab to add)"
                               />
                             </div>
                           </FormControl>

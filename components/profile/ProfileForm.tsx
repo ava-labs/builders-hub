@@ -43,7 +43,7 @@ const profileSchema = z.object({
   email: z.string().email("Invalid email"),
   notification_email: z.string().email("Invalid email"),
   image: z.string().optional(),
-  social_media: z.array(z.string()).default([]),
+  additional_social_media: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
   telegram_user: z.string().optional(),
@@ -56,7 +56,7 @@ interface ProfileFormProps {
   email: string;
   notification_email: string;
   image?: string;
-  social_media: string[];
+  additional_social_media: string[];
   notifications: boolean | null;
   profile_privacy: string;
   telegram_user?: string;
@@ -86,7 +86,7 @@ export default function ProfileForm({
     email: z.string().email("Invalid email"),
     notification_email: z.string().email("Invalid email"),
     image: z.string().optional(),
-    social_media: z.array(z.string()).default([]),
+    additional_social_media: z.array(z.string()).default([]),
     notifications: isFirstTime 
       ? z.boolean().default(false).refine((val) => val === true, {
           message: "You must agree to receive notifications to continue",
@@ -424,7 +424,7 @@ export default function ProfileForm({
 
           <FormField
             control={form.control}
-            name="social_media"
+            name="additional_social_media"
             render={({ field }) => (
               <FormItem>
                 <div>
