@@ -9,6 +9,7 @@ import { LoginModal } from './LoginModal';
 import { Terms } from './terms';
 import { BasicProfileSetup } from './BasicProfileSetup';
 import { useLoginModalState, useNewUserLoginListener, triggerLoginComplete } from '@/hooks/useLoginModal';
+import { hasCompleteRequiredProfileAccounts } from '@/lib/profile/socialAccountValidation';
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
@@ -116,12 +117,7 @@ export function LoginModalWrapper() {
         if (!res.ok) return;
         const profile = await res.json();
         if (cancelled) return;
-        if (
-          !profile?.x_account ||
-          !profile?.linkedin_account ||
-          !profile?.github_account ||
-          !profile?.telegram_user
-        ) {
+        if (!hasCompleteRequiredProfileAccounts(profile)) {
           setTermsUserId(session.user.id);
           setShowBasicProfile(true);
         }

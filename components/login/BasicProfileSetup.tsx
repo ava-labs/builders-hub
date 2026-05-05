@@ -28,18 +28,12 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { countries } from '@/constants/countries';
 import { hsEmploymentRoles } from '@/constants/hs_employment_role';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-
-// Must be an x.com or twitter.com profile URL pointing at a username
-// that follows X's own rules (1-15 chars, letters/digits/underscore).
-const X_URL_PATTERN = /^https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{1,15}\/?$/i;
-// Must be a linkedin.com/in/<slug> or linkedin.com/pub/<slug> URL.
-const LINKEDIN_URL_PATTERN = /^https?:\/\/(?:www\.)?linkedin\.com\/(?:in|pub)\/[\w\-\.%]+\/?$/i;
-// Accept either a bare GitHub username (1-39 chars, no leading/trailing dash,
-// no double dashes) or a github.com URL pointing at one.
-const GITHUB_PATTERN = /^(?:[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}|https?:\/\/(?:www\.)?github\.com\/[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\/?)$/;
-// Telegram's own rules: starts with a letter, 5-32 chars, letters/digits/underscore.
-// Leading @ is allowed and stripped on display by the server side if needed.
-const TELEGRAM_PATTERN = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  LINKEDIN_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
+} from '@/lib/profile/socialAccountValidation';
 
 // Form schema
 const basicProfileSchema = z.object({
@@ -48,19 +42,19 @@ const basicProfileSchema = z.object({
   x_account: z
     .string()
     .min(1, 'X (Twitter) profile URL is required')
-    .regex(X_URL_PATTERN, 'Enter a URL like https://x.com/yourhandle'),
+    .regex(X_ACCOUNT_PATTERN, 'Enter a URL like https://x.com/yourhandle'),
   linkedin_account: z
     .string()
     .min(1, 'LinkedIn URL is required')
-    .regex(LINKEDIN_URL_PATTERN, 'Enter a LinkedIn URL like https://www.linkedin.com/in/username'),
+    .regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter a LinkedIn URL like https://www.linkedin.com/in/username'),
   github_account: z
     .string()
     .min(1, 'GitHub profile is required')
-    .regex(GITHUB_PATTERN, 'Enter a valid GitHub username or github.com URL'),
+    .regex(GITHUB_ACCOUNT_PATTERN, 'Enter a valid GitHub username or github.com URL'),
   telegram_user: z
     .string()
     .min(1, 'Telegram username is required')
-    .regex(TELEGRAM_PATTERN, 'Enter a valid Telegram username (5-32 chars, starts with a letter)'),
+    .regex(TELEGRAM_ACCOUNT_PATTERN, 'Enter a valid Telegram username (5-32 chars, starts with a letter)'),
   is_student: z.boolean().default(false),
   student_institution: z.string().optional(),
   is_founder: z.boolean().default(false),

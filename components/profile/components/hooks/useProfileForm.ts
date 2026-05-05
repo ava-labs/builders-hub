@@ -4,14 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
-
-// Validation patterns shared with BasicProfileSetup so both forms enforce
-// the same "URL must be from the right site / Telegram follows its own
-// username rules" checks.
-const X_URL_PATTERN = /^https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{1,15}\/?$/i;
-const LINKEDIN_URL_PATTERN = /^https?:\/\/(?:www\.)?linkedin\.com\/(?:in|pub)\/[\w\-\.%]+\/?$/i;
-const GITHUB_PATTERN = /^(?:[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}|https?:\/\/(?:www\.)?github\.com\/[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\/?)$/;
-const TELEGRAM_PATTERN = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  LINKEDIN_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
+} from "@/lib/profile/socialAccountValidation";
 
 // Zod validation schema - no required fields, only format validations
 export const profileSchema = z.object({
@@ -40,15 +38,15 @@ export const profileSchema = z.object({
   github_account: z
     .string()
     .min(1, "GitHub profile is required")
-    .regex(GITHUB_PATTERN, "Enter a valid GitHub username or github.com URL"),
+    .regex(GITHUB_ACCOUNT_PATTERN, "Enter a valid GitHub username or github.com URL"),
   x_account: z
     .string()
     .min(1, "X (Twitter) profile URL is required")
-    .regex(X_URL_PATTERN, "Enter a URL like https://x.com/yourhandle"),
+    .regex(X_ACCOUNT_PATTERN, "Enter a URL like https://x.com/yourhandle"),
   linkedin_account: z
     .string()
     .min(1, "LinkedIn URL is required")
-    .regex(LINKEDIN_URL_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"),
+    .regex(LINKEDIN_ACCOUNT_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"),
   wallet: z.array(z.string()).optional().default([]),
   additional_social_media: z.array(z.string()).default([]),
   skills: z.array(z.string()).default([]),
@@ -57,7 +55,7 @@ export const profileSchema = z.object({
   telegram_user: z
     .string()
     .min(1, "Telegram username is required")
-    .regex(TELEGRAM_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"),
+    .regex(TELEGRAM_ACCOUNT_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
