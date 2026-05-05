@@ -7,7 +7,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { Pill, Pills } from "@/components/ui/pills";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { Feedback } from "@/components/ui/feedback";
-import posthog from "posthog-js";
 
 export default async function Page(props: {
   params: Promise<{ slug: string[] }>;
@@ -70,10 +69,6 @@ export default async function Page(props: {
             path={path}
             title={page.data.title || "Untitled"}
             pagePath={`/integrations/${page.slugs.join("/")}`}
-            onRateAction={async (url, feedback) => {
-              "use server";
-              await posthog.capture("on_rate_document", feedback);
-            }}
           />
         </div>
         <div className="flex flex-col gap-4 border-l p-4 text-sm">
