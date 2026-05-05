@@ -2263,10 +2263,10 @@ const HackathonsEdit = () => {
     <div className="fixed inset-0 overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
       <Toaster />
       {/* Header */}
-      <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 p-4">
+      <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 px-4 h-14 flex items-center justify-center">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t[language].editEvents}</h1>
+            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t[language].editEvents}</h1>
             <div className="flex items-center gap-2 px-3 py-1 bg-green-600 rounded-full text-sm">
               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
               <span className="text-white">Live Preview</span>
@@ -2540,43 +2540,49 @@ const HackathonsEdit = () => {
                   )}
                 </div>
                 {/* Event Type option */}
-                <div className="rounded-lg p-6 mb-6">
-                  <h2 className='font-medium text-xl mb-2 block'>Event Type</h2>
-                  <Select
-                    value={formDataLatest.event}
-                    onValueChange={(value) => {
-                      setFormDataLatest(prev => ({ ...prev, event: value }));
-                      console.log(value);
-                    }}
-                  >
-                    <SelectTrigger className="w-full mb-4">
-                      <SelectValue placeholder="Select event type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hackathon">Hackathon</SelectItem>
-                      <SelectItem value="workshop">Workshop</SelectItem>
-                      <SelectItem value="bootcamp">Bootcamp</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="rounded-lg p-6 mb-6 bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+                    <div>
+                      <h2 className='font-medium text-xl mb-2 block'>Event Type</h2>
+                      <Select
+                        value={formDataLatest.event}
+                        onValueChange={(value) => {
+                          setFormDataLatest(prev => ({ ...prev, event: value }));
+                          console.log(value);
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select event type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hackathon">Hackathon</SelectItem>
+                          <SelectItem value="workshop">Workshop</SelectItem>
+                          <SelectItem value="bootcamp">Bootcamp</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {/* Event Language */}
+                    <div>
+                      <h2 className='font-medium text-xl mb-2 block'>Event Language</h2>
+                      <Select
+                        value={(formDataContent.language ?? "en") as "en" | "es"}
+                        onValueChange={(value) => {
+                          const lang = value === "es" ? "es" : "en";
+                          setFormDataContent((prev) => ({ ...prev, language: lang }));
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select event language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="es">Español</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-                  <h2 className='font-medium text-xl mb-2 block'>Event Language</h2>
-                  <Select
-                    value={(formDataContent.language ?? "en") as "en" | "es"}
-                    onValueChange={(value) => {
-                      const lang = value === "es" ? "es" : "en";
-                      setFormDataContent((prev) => ({ ...prev, language: lang }));
-                    }}
-                  >
-                    <SelectTrigger className="w-full mb-4">
-                      <SelectValue placeholder="Select event language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Español</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <div className="flex items-center gap-3 mt-4">
+                  <div className="flex items-center gap-3">
                     <Switch
                       id="new-layout"
                       checked={formDataLatest.new_layout}
