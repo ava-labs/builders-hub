@@ -97,11 +97,11 @@ export function LoginModalWrapper() {
     }
   }, [showTerms, isOpen, closeLoginModal]);
 
-  // Enforce mandatory X (Twitter) and LinkedIn on authenticated users.
+  // Enforce mandatory profile accounts on authenticated users.
   // New users are caught via is_new_user -> Terms -> BasicProfileSetup.
   // This extra check covers anyone who dismissed the modal or predates the
   // requirement: on any authenticated page mount, reopen BasicProfileSetup
-  // if x_handle or linkedin_url is still null.
+  // if any required profile account is still null.
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (status !== "authenticated") return;
@@ -117,9 +117,9 @@ export function LoginModalWrapper() {
         const profile = await res.json();
         if (cancelled) return;
         if (
-          !profile?.x_handle ||
-          !profile?.linkedin_url ||
-          !profile?.github ||
+          !profile?.x_account ||
+          !profile?.linkedin_account ||
+          !profile?.github_account ||
           !profile?.telegram_user
         ) {
           setTermsUserId(session.user.id);

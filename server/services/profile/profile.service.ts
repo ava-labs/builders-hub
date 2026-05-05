@@ -50,11 +50,11 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         image: user.image,
         country: user.country || null,
         user_type: userType,
-        github: user.github || null,
-        x_handle: user.x_handle || null,
-        linkedin_url: user.linkedin_url || null,
+        github_account: user.github_account || null,
+        x_account: user.x_account || null,
+        linkedin_account: user.linkedin_account || null,
         wallet: Array.isArray(user.wallet) ? (user.wallet.length > 0 ? user.wallet : null) : (user.wallet ? [user.wallet] : null),
-        socials: user.social_media || [],
+        additional_social_media: user.additional_social_media || [],
         skills: user.skills || [],
         notifications: user.notifications,
         profile_privacy: user.profile_privacy,
@@ -144,8 +144,8 @@ export async function updateExtendedProfile(
         return profile;
     }
 
-    // map username to user_name and socials to social_media
-    const { username, socials, user_type, ...restData } = profileData;
+    // map username to user_name
+    const { username, user_type, ...restData } = profileData;
     
     const updateData: any = {
         ...restData,
@@ -156,11 +156,6 @@ export async function updateExtendedProfile(
     if (username !== undefined) {
         updateData.user_name = username.trim();
     }
-    
-    if (socials !== undefined) {
-        updateData.social_media = socials;
-    }
-
     // convert user_type to JSON to store in the database
     if (user_type !== undefined) {
         updateData.user_type = user_type;
@@ -191,12 +186,12 @@ export async function updateExtendedProfile(
                 employee_role: updatedProfile.user_type?.employee_role,
                 is_developer: updatedProfile.user_type?.is_developer,
                 is_enthusiast: updatedProfile.user_type?.is_enthusiast,
-                github: updatedProfile.github || undefined,
-                x_handle: updatedProfile.x_handle || undefined,
-                linkedin_url: updatedProfile.linkedin_url || undefined,
+                github_account: updatedProfile.github_account || undefined,
+                x_account: updatedProfile.x_account || undefined,
+                linkedin_account: updatedProfile.linkedin_account || undefined,
                 telegram_user: updatedProfile.telegram_user || undefined,
                 wallet: updatedProfile.wallet || undefined,
-                socials: updatedProfile.socials || undefined,
+                additional_social_media: updatedProfile.additional_social_media || undefined,
             });
         } catch (error) {
             console.error('[HubSpot UserData] Failed to sync updated profile:', error);
@@ -267,4 +262,3 @@ export async function getPopularSkills(): Promise<PopularSkill[]> {
 
     return popularSkills;
 }
-

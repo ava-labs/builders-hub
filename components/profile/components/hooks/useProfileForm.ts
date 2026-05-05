@@ -37,20 +37,20 @@ export const profileSchema = z.object({
   // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
-  github: z
+  github_account: z
     .string()
     .min(1, "GitHub profile is required")
     .regex(GITHUB_PATTERN, "Enter a valid GitHub username or github.com URL"),
-  x_handle: z
+  x_account: z
     .string()
     .min(1, "X (Twitter) profile URL is required")
     .regex(X_URL_PATTERN, "Enter a URL like https://x.com/yourhandle"),
-  linkedin_url: z
+  linkedin_account: z
     .string()
     .min(1, "LinkedIn URL is required")
     .regex(LINKEDIN_URL_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"),
   wallet: z.array(z.string()).optional().default([]),
-  socials: z.array(z.string()).default([]),
+  additional_social_media: z.array(z.string()).default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
@@ -94,11 +94,11 @@ export function useProfileForm() {
       student_institution: "",
       company_name: "",
       role: "",
-      github: "",
-      x_handle: "",
-      linkedin_url: "",
+      github_account: "",
+      x_account: "",
+      linkedin_account: "",
       wallet: [],
-      socials: [],
+      additional_social_media: [],
       skills: [],
       notifications: false,
       profile_privacy: "public",
@@ -159,11 +159,11 @@ export function useProfileForm() {
             student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
             company_name: profile.user_type?.company_name || "",
             role: profile.user_type?.role || "",
-            github: profile.github || "",
-            x_handle: profile.x_handle || "",
-            linkedin_url: profile.linkedin_url || "",
+            github_account: profile.github_account || "",
+            x_account: profile.x_account || "",
+            linkedin_account: profile.linkedin_account || "",
             wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
-            socials: profile.socials || [],
+            additional_social_media: profile.additional_social_media || [],
             skills: profile.skills || [],
             notifications: profile.notifications || false,
             profile_privacy: profile.profile_privacy || "public",
@@ -511,11 +511,11 @@ export function useProfileForm() {
         student_institution: updatedProfile.user_type?.student_institution || "",
         company_name: updatedProfile.user_type?.company_name || "",
         role: updatedProfile.user_type?.role || "",
-        github: updatedProfile.github || "",
-        x_handle: updatedProfile.x_handle || "",
-        linkedin_url: updatedProfile.linkedin_url || "",
+        github_account: updatedProfile.github_account || "",
+        x_account: updatedProfile.x_account || "",
+        linkedin_account: updatedProfile.linkedin_account || "",
         wallet: Array.isArray(updatedProfile.wallet) ? updatedProfile.wallet : (updatedProfile.wallet ? [updatedProfile.wallet] : []),
-        socials: updatedProfile.socials || [],
+        additional_social_media: updatedProfile.additional_social_media || [],
         skills: updatedProfile.skills || [],
         notifications: updatedProfile.notifications || false,
         profile_privacy: updatedProfile.profile_privacy || "public",
@@ -554,13 +554,13 @@ export function useProfileForm() {
 
   // Social handlers
   const handleAddSocial = () => {
-    const currentSocials = watchedValues.socials || [];
-    setValue("socials", [...currentSocials, ""], { shouldDirty: true });
+    const currentSocials = watchedValues.additional_social_media || [];
+    setValue("additional_social_media", [...currentSocials, ""], { shouldDirty: true });
   };
 
   const handleRemoveSocial = (index: number) => {
-    const currentSocials = watchedValues.socials || [];
-    setValue("socials", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
+    const currentSocials = watchedValues.additional_social_media || [];
+    setValue("additional_social_media", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
   };
 
   // Wallet handlers
@@ -597,4 +597,3 @@ export function useProfileForm() {
     onSubmit: form.handleSubmit(onSubmit),
   };
 }
-

@@ -45,15 +45,15 @@ const TELEGRAM_PATTERN = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
 const basicProfileSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
   country: z.string().optional(),
-  x_handle: z
+  x_account: z
     .string()
     .min(1, 'X (Twitter) profile URL is required')
     .regex(X_URL_PATTERN, 'Enter a URL like https://x.com/yourhandle'),
-  linkedin_url: z
+  linkedin_account: z
     .string()
     .min(1, 'LinkedIn URL is required')
     .regex(LINKEDIN_URL_PATTERN, 'Enter a LinkedIn URL like https://www.linkedin.com/in/username'),
-  github: z
+  github_account: z
     .string()
     .min(1, 'GitHub profile is required')
     .regex(GITHUB_PATTERN, 'Enter a valid GitHub username or github.com URL'),
@@ -88,9 +88,9 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
     defaultValues: {
       name: '',
       country: '',
-      x_handle: '',
-      linkedin_url: '',
-      github: '',
+      x_account: '',
+      linkedin_account: '',
+      github_account: '',
       telegram_user: '',
       is_student: false,
       student_institution: '',
@@ -123,9 +123,9 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
         form.reset({
           name: profile.name ?? '',
           country: profile.country ?? '',
-          x_handle: profile.x_handle ?? '',
-          linkedin_url: profile.linkedin_url ?? '',
-          github: profile.github ?? '',
+          x_account: profile.x_account ?? '',
+          linkedin_account: profile.linkedin_account ?? '',
+          github_account: profile.github_account ?? '',
           telegram_user: profile.telegram_user ?? '',
           is_student: Boolean(userType.is_student),
           student_institution: userType.student_institution ?? '',
@@ -162,9 +162,9 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
         is_enthusiast,
         name,
         country,
-        x_handle,
-        linkedin_url,
-        github,
+        x_account,
+        linkedin_account,
+        github_account,
         telegram_user,
       } = data;
 
@@ -172,9 +172,9 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
       const profileData = {
         name,
         country,
-        x_handle,
-        linkedin_url,
-        github,
+        x_account,
+        linkedin_account,
+        github_account,
         telegram_user,
         user_type: {
           is_student,
@@ -286,7 +286,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <FormField
                 control={form.control}
-                name="x_handle"
+                name="x_account"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm sm:text-base">X (Twitter) *</FormLabel>
@@ -303,7 +303,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
               />
               <FormField
                 control={form.control}
-                name="linkedin_url"
+                name="linkedin_account"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm sm:text-base">LinkedIn *</FormLabel>
@@ -320,7 +320,7 @@ export function BasicProfileSetup({ userId, onSuccess }: BasicProfileSetupProps)
               />
               <FormField
                 control={form.control}
-                name="github"
+                name="github_account"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm sm:text-base">GitHub *</FormLabel>
