@@ -1,5 +1,4 @@
 import { randomBytes } from "crypto";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import {
   REFERRAL_COOKIE_NAME,
@@ -95,20 +94,6 @@ function buildDedupeKey({
   ].join("|");
 }
 
-function buildReferralLinkDedupeKey({
-  ownerUserId,
-  targetType,
-  targetId,
-  destinationUrl,
-}: {
-  ownerUserId: string;
-  targetType: ReferralTargetType;
-  targetId: string | null;
-  destinationUrl: string;
-}): string {
-  return [ownerUserId, targetType, targetId ?? "", destinationUrl].join("|");
-}
-
 async function findExistingReferralLink({
   ownerUserId,
   targetType,
@@ -130,6 +115,39 @@ async function findExistingReferralLink({
     },
     orderBy: { created_at: "asc" },
   });
+}
+
+function toReferralCodePart(value: string | null | undefined, maxLength = 28): string | null {
+  const slug = value
+    ?.toLowerCase()
+    .trim()
+    .replace(/@.*$/, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, maxLength)
+    .replace(/-+$/g, "");
+
+  return slug || null;
+}
+
+async function getOwnerReferralCodePart(ownerUserId: string): Promise<string> {
+  const owner = await prisma.user.findUnique({
+    where: { id: ownerUserId },
+    select: { user_name: true, name: true, email: true },
+  });
+
+  return (
+    toReferralCodePart(owner?.user_name) ??
+    toReferralCodePart(owner?.name) ??
+    toReferralCodePart(owner?.email) ??
+    toReferralCodePart(ownerUserId, 12) ??
+    "builder"
+  );
+}
+
+function buildReferralCode(ownerCodePart: string, targetType: ReferralTargetType): string {
+  const targetCodePart = toReferralCodePart(targetType.replaceAll("_", "-"), 22) ?? "referral";
+  return `${ownerCodePart}-${targetCodePart}-${randomBytes(4).toString("hex")}`;
 }
 
 function decodeCookieValue(value: string): ReferralAttributionPayload | null {
@@ -178,20 +196,14 @@ export async function createReferralLink({
     return existingLink;
   }
 
-  const dedupeKey = buildReferralLinkDedupeKey({
-    ownerUserId,
-    targetType,
-    targetId: normalizedTargetId,
-    destinationUrl: destination,
-  });
+  const ownerCodePart = await getOwnerReferralCodePart(ownerUserId);
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    const code = randomBytes(8).toString("base64url");
+    const code = buildReferralCode(ownerCodePart, targetType);
     try {
       return await prisma.referralLink.create({
         data: {
           code,
-          dedupe_key: dedupeKey,
           owner_user_id: ownerUserId,
           target_type: targetType,
           target_id: normalizedTargetId,
@@ -199,19 +211,6 @@ export async function createReferralLink({
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        const existingAfterConflict = await findExistingReferralLink({
-          ownerUserId,
-          targetType,
-          targetId: normalizedTargetId,
-          destinationUrl: destination,
-        });
-
-        if (existingAfterConflict) {
-          return existingAfterConflict;
-        }
-      }
-
       if (attempt === 3) throw error;
     }
   }

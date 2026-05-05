@@ -17,8 +17,7 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout: numb
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID || '7522520';
 const BUILD_GAMES_FORM_GUID = process.env.BUILD_GAMES_FORM_GUID || '2bab493b-9933-4076-8ace-f3cab2fe8cfb';
-const BUILD_GAMES_HACKATHON_ID =
-  process.env.BUILD_GAMES_HACKATHON_ID ?? '249d2911-7931-4aa0-a696-37d8370b79f9';
+const BUILD_GAMES_HACKATHON_ID = process.env.BUILD_GAMES_HACKATHON_ID;
 const DEFAULT_GITHUB_URL = 'https://github.com/ava-labs/builders-hub';
 
 // Map form field names to HubSpot field names

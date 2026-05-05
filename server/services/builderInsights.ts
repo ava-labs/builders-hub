@@ -2,8 +2,7 @@ import { prisma } from "@/prisma/prisma";
 import { listReferralLinksForUser } from "./referrals";
 import type { ReferralTargetType } from "@/lib/referrals/constants";
 
-const BUILD_GAMES_HACKATHON_ID =
-  process.env.BUILD_GAMES_HACKATHON_ID ?? "249d2911-7931-4aa0-a696-37d8370b79f9";
+const BUILD_GAMES_HACKATHON_ID = process.env.BUILD_GAMES_HACKATHON_ID;
 
 export interface MonthlySignupPoint {
   month: string;
@@ -239,7 +238,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
   );
   const historicalUnattributed = Math.max(totalAccounts - attributedSignupTotal, 0);
   const activeEventTargets: ReferralTargetPreset[] = activeEventRows.map((event) => {
-    const isBuildGames = event.id === BUILD_GAMES_HACKATHON_ID;
+    const isBuildGames = Boolean(BUILD_GAMES_HACKATHON_ID && event.id === BUILD_GAMES_HACKATHON_ID);
 
     return {
       key: `event-${event.id}`,
