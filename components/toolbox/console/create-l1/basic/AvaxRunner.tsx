@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvaxLogo } from '@/components/toolbox/console/create-l1/icons';
 import { cn } from '@/lib/utils';
-import { GameExitButton } from './GameExitButton';
-import { GameMuteButton } from './GameMuteButton';
+import { GameControls } from './GameControls';
+import { useGameAudio } from './useGameAudio';
 
 /**
  * Chrome-dino-style runner with the Avalanche logo as the player.
@@ -110,6 +110,10 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
   const [gameState, setGameState] = useState<GameState>('ready');
   const [highScore, setHighScore] = useState(0);
   const [shakeKey, setShakeKey] = useState(0);
+  const { playLoseSound } = useGameAudio();
+  useEffect(() => {
+    if (gameState === 'over') playLoseSound();
+  }, [gameState, playLoseSound]);
 
   // Mutable game state — refs so the loop doesn't re-render per frame.
   const playerY = useRef(GROUND_Y - PLAYER_SIZE);
@@ -500,8 +504,7 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
         />
       ))}
 
-      {onExit && <GameExitButton onExit={onExit} />}
-      <GameMuteButton />
+      <GameControls onExit={onExit} />
 
       {/* Score HUD */}
       <div className="pointer-events-none absolute right-3 top-2.5 flex items-center gap-3">

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvaxLogo } from '@/components/toolbox/console/create-l1/icons';
 import { cn } from '@/lib/utils';
-import { GameExitButton } from './GameExitButton';
+import { GameControls } from './GameControls';
+import { useGameAudio } from './useGameAudio';
 
 /**
  * Doodle-Jump-style vertical platformer with the Avalanche logo as the
@@ -67,6 +68,10 @@ function makePlatform(id: number, y: number, allowMoving: boolean): Platform {
 
 export function AvaxJumper({ className, onExit }: { className?: string; onExit?: () => void }) {
   const [gameState, setGameState] = useState<GameState>('ready');
+  const { playLoseSound } = useGameAudio();
+  useEffect(() => {
+    if (gameState === 'over') playLoseSound();
+  }, [gameState, playLoseSound]);
   const [highScore, setHighScore] = useState(0);
   const [shakeKey, setShakeKey] = useState(0);
 
@@ -422,7 +427,7 @@ export function AvaxJumper({ className, onExit }: { className?: string; onExit?:
         </div>
       )}
 
-      {onExit && <GameExitButton onExit={onExit} />}
+      <GameControls onExit={onExit} />
 
       {/* Score HUD — same layout as the rest of the family. */}
       <div className="pointer-events-none absolute right-3 top-2.5 flex items-center gap-3">

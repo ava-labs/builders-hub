@@ -9,23 +9,22 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
  * uninterrupted across kind changes.
  *
  * Design notes:
- * - Default muted. Persistence is asymmetric: only `unmuted=true` is written
- *   to localStorage; muting removes the key entirely. Otherwise a user who
- *   muted months ago could be silently denied audio they've since forgotten
- *   they disabled.
- * - AudioContext is created lazily on the first user gesture (mute toggle
- *   counts; if the user previously persisted unmuted, the next page-level
- *   pointerdown/keydown unlocks it). iOS Safari throws if you `new
- *   AudioContext()` before any gesture.
+ * - Always starts muted on every session. No persistence — quiet by default
+ *   matches the developer-tool context (offices, calls, headphones plugged
+ *   into something else) and avoids the "I muted months ago and forgot"
+ *   silent-deny pitfall that surfaced via the inverse persistence design.
+ * - AudioContext is created lazily on the first user gesture (mute toggle).
+ *   iOS Safari throws if you `new AudioContext()` before any gesture.
  * - Sequencer is a single setInterval scheduling fresh oscillators per
  *   step. ~300ms granularity drift over a 3-min deploy is inaudible.
  * - All gain transitions ramp via setTargetAtTime / exponentialRampToValueAtTime
  *   to a 0.0001 floor — never to zero, which produces clicks on iOS.
  * - Tab visibility suspends/resumes the context (only resumes if unmuted).
  *   `visibilitychange` is preferred over `blur`, which fires on devtools.
+ * - `playLoseSound()` is fired by each game on its `'over'` transition.
+ *   Respects the mute state — if the user has muted music, the lose sound
+ *   stays silent too. The mute button is the user's "no audio" signal.
  */
-
-const STORAGE_KEY = 'avaxGameMusicOn';
 
 const MASTER_VOLUME = 0.1;
 const FADE_TC = 0.12; // setTargetAtTime time constant (~120ms to reach target)
@@ -41,6 +40,13 @@ const BASS_HOLD_FACTOR = 4;
 
 const LEAD_GAIN = 0.7;
 const BASS_GAIN = 0.5;
+
+// Lose-sound: descending sawtooth chirp 440Hz → 110Hz over 600ms with a
+// short attack. Reads as "wah-wah-fail" without sounding harsh.
+const LOSE_SOUND_FROM_HZ = 440;
+const LOSE_SOUND_TO_HZ = 110;
+const LOSE_SOUND_DURATION_S = 0.6;
+const LOSE_SOUND_PEAK_GAIN = 0.45;
 
 // 16-step loop in G major. Ascending melodic arc with a descending answer
 // and a brief lead-in at step 9. `null` = rest. Bass alternates root/fifth.
@@ -86,6 +92,7 @@ type Ctx = {
   muted: boolean;
   toggleMute: () => void;
   isReady: boolean;
+  playLoseSound: () => void;
 };
 
 const GameAudioContext = createContext<Ctx | null>(null);
@@ -100,7 +107,7 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sequencerRunning = useRef(false);
 
-  // Mirror muted in a ref so the visibility / gesture handlers see the
+  // Mirror muted in a ref so the visibility / lose-sound handlers see the
   // current value without resubscribing.
   const mutedRef = useRef(true);
   mutedRef.current = muted;
@@ -212,52 +219,52 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
     }, FADE_OUT_MS);
   }, [stopSequencer]);
 
-  // Hydrate persisted unmute, deferring AudioContext creation to the next
-  // user gesture (iOS gesture rule).
-  useEffect(() => {
-    let saved: string | null = null;
-    try {
-      saved = window.localStorage.getItem(STORAGE_KEY);
-    } catch {
-      /* localStorage blocked */
-    }
-    if (saved !== 'true') return;
-    setMuted(false);
-
-    const onGesture = () => {
-      if (!mutedRef.current) fadeIn();
-      document.removeEventListener('pointerdown', onGesture);
-      document.removeEventListener('keydown', onGesture);
-    };
-    document.addEventListener('pointerdown', onGesture, { once: true });
-    document.addEventListener('keydown', onGesture, { once: true });
-    return () => {
-      document.removeEventListener('pointerdown', onGesture);
-      document.removeEventListener('keydown', onGesture);
-    };
-  }, [fadeIn]);
-
   const toggleMute = useCallback(() => {
     setMuted((prev) => {
       const next = !prev;
       if (!next) {
         fadeIn();
-        try {
-          window.localStorage.setItem(STORAGE_KEY, 'true');
-        } catch {
-          /* localStorage blocked */
-        }
       } else {
         fadeOut();
-        try {
-          window.localStorage.removeItem(STORAGE_KEY);
-        } catch {
-          /* localStorage blocked */
-        }
       }
       return next;
     });
   }, [fadeIn, fadeOut]);
+
+  // Lose sound — short descending pitch sweep, played over the music.
+  // Skipped when muted so the mute button remains the single source of
+  // truth for "I want silence". Uses the master gain bus, so the music's
+  // current volume modulates the sting (sting is louder when music is on,
+  // inaudible when faded out).
+  const playLoseSound = useCallback(() => {
+    if (mutedRef.current) return;
+    const ctx = ctxRef.current;
+    const master = gainRef.current;
+    if (!ctx || !master || ctx.state === 'closed') return;
+    let osc: OscillatorNode;
+    let env: GainNode;
+    try {
+      osc = ctx.createOscillator();
+      env = ctx.createGain();
+    } catch {
+      return;
+    }
+    const t = ctx.currentTime;
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(LOSE_SOUND_FROM_HZ, t);
+    osc.frequency.exponentialRampToValueAtTime(LOSE_SOUND_TO_HZ, t + LOSE_SOUND_DURATION_S);
+    env.gain.setValueAtTime(GAIN_FLOOR, t);
+    env.gain.exponentialRampToValueAtTime(LOSE_SOUND_PEAK_GAIN, t + 0.02);
+    env.gain.exponentialRampToValueAtTime(GAIN_FLOOR, t + LOSE_SOUND_DURATION_S);
+    osc.connect(env);
+    env.connect(master);
+    try {
+      osc.start(t);
+      osc.stop(t + LOSE_SOUND_DURATION_S + 0.05);
+    } catch {
+      // Context may have been closed between create and start.
+    }
+  }, []);
 
   // Pause on tab hide; resume only if the user had it unmuted.
   useEffect(() => {
@@ -298,7 +305,7 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value: Ctx = { muted, toggleMute, isReady };
+  const value: Ctx = { muted, toggleMute, isReady, playLoseSound };
 
   return <GameAudioContext.Provider value={value}>{children}</GameAudioContext.Provider>;
 }
@@ -307,7 +314,7 @@ export function useGameAudio(): Ctx {
   const ctx = useContext(GameAudioContext);
   if (!ctx) {
     // Safe fallback so games rendered outside the provider don't crash.
-    return { muted: true, toggleMute: () => {}, isReady: false };
+    return { muted: true, toggleMute: () => {}, isReady: false, playLoseSound: () => {} };
   }
   return ctx;
 }
