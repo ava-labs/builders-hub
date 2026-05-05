@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { Plus, Trash, ChevronDown, ChevronRight } from 'lucide-react';
+import HackathonsList from '@/components/hackathons/edit/HackathonsList';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
 import axios from 'axios';
@@ -42,100 +43,6 @@ function toIso8601(datetimeLocal: string) {
 }
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
-
-const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevrel, loading }: {
-  myHackathons: any[],
-  language: 'en' | 'es',
-  onSelect: (hackathon: any) => void,
-  selectedId: string | null,
-  isDevrel: boolean,
-  loading: boolean
-}) => {
-  if (loading) {
-    return (
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">
-          {isDevrel ? (language === 'en' ? 'All Hackathons' : 'Todos los Hackathons') : t[language].myHackathons}
-        </h2>
-        <div className="flex justify-center items-center py-8">
-          <svg className="animate-spin h-8 w-8 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-          </svg>
-        </div>
-      </div>
-    );
-  }
-  if (!myHackathons.length) return null;
-  return (
-    <div className="mb-6">
-      <h2 className="text-xl font-semibold mb-2">
-        {isDevrel ? (language === 'en' ? 'All Hackathons' : 'Todos los Hackathons') : t[language].myHackathons}
-      </h2>
-      <ul className="flex flex-wrap gap-2">
-        {myHackathons.map((hackathon) => (
-          <li
-            key={hackathon.id}
-            className={
-              `text-sm px-3 py-2 rounded-md font-medium transition-colors duration-150 shadow-sm border border-zinc-300 dark:border-zinc-600 ` +
-              (hackathon.id === selectedId
-                ? 'bg-red-500 text-white'
-                : 'bg-zinc-200 dark:bg-zinc-700 hover:bg-red-500 hover:text-white')
-            }
-            title={isDevrel ? `${hackathon.title} (Created by: ${hackathon.created_by_name || 'Unknown'})` : hackathon.title}
-          >
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${hackathon.is_public
-                      ? 'bg-green-500'
-                      : 'bg-gray-400'
-                      }`}
-                    title={hackathon.is_public ? 'Public hackathon' : 'Private hackathon'}
-                  />
-                  <span className="cursor-pointer" onClick={() => onSelect(hackathon)}>
-                    {hackathon.title}
-                  </span>
-                </div>
-                <div className="flex gap-1 ml-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(`/events/${hackathon.id}`, '_blank');
-                    }}
-                  >
-                    <ExternalLink size={12} />
-                    Go to Site
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelect(hackathon);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                </div>
-              </div>
-              {isDevrel && hackathon.created_by_name && (
-                <span className="text-xs opacity-75">
-                  by {hackathon.created_by_name}
-                </span>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
 
 const ValidationErrorModal = ({
   open,
@@ -2298,7 +2205,7 @@ const HackathonsEdit = () => {
           ref={leftPanelRef}
           className="w-1/2 h-full min-h-0 overflow-y-auto bg-white dark:bg-zinc-950"
         >
-          <div className="container mx-auto px-4 py-8">
+          <div className="px-4 pt-2 pb-4 min-h-full flex flex-col">
             <UpdateModal
               open={showUpdateModal}
               onClose={() => setShowUpdateModal(false)}
@@ -2315,13 +2222,15 @@ const HackathonsEdit = () => {
               onNavigateTo={handleNavigateToError}
             />
 
-            <MyHackathonsList
+            <HackathonsList
               myHackathons={myHackathons}
               language={language}
               onSelect={handleSelectHackathon}
               selectedId={selectedHackathon?.id ?? null}
               isDevrel={session?.user?.custom_attributes?.includes("devrel") || false}
               loading={loadingHackathons}
+              forceCollapsed={isSelectedHackathon || showForm}
+              fullHeight={!isSelectedHackathon && !showForm}
             />
             {/* Sticky bar: action buttons + step navigation (always visible when editing) */}
             {(isSelectedHackathon || (showForm && hasEditPermission)) && (
