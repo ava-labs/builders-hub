@@ -24,9 +24,9 @@ export function canGenerateRestrictedReferralLinks(
 }
 
 export function canGenerateReferralLinkForTarget(
-  attributes: string[] | undefined | null,
+  _attributes: string[] | undefined | null,
   targetType: string
 ): boolean {
-  if (targetType === "bh_signup") return canGenerateRestrictedReferralLinks(attributes);
+  if (targetType === "build_games_application") return false;
   return true;
 }

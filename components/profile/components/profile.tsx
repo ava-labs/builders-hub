@@ -31,6 +31,7 @@ import { useProfileForm } from "./hooks/useProfileForm";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Toaster } from "@/components/ui/toaster";
 import { ProfileChecklist } from "./ProfileChecklist";
+import { ProfileReferralLink } from "./ProfileReferralLink";
 
 export default function Profile() {
   const [newSkill, setNewSkill] = useState("");
@@ -68,19 +69,22 @@ export default function Profile() {
       <div className=" rounded-lg   p-6">
         {/* Title Section */}
         <div className="mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Personal</h2>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 Complete your profile to unlock badges, grants and tailored opportunities
               </p>
             </div>
-            {isAutoSaving && (
-              <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
-                <span>Saving...</span>
-              </div>
-            )}
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              {isAutoSaving && (
+                <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
+                  <span>Saving...</span>
+                </div>
+              )}
+              <ProfileReferralLink />
+            </div>
           </div>
         </div>
 
