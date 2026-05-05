@@ -11,8 +11,6 @@ export type ReferralTargetType = (typeof REFERRAL_TARGET_TYPES)[number];
 
 export const REFERRAL_SOURCE_TYPES = [
   "referral",
-  "utm",
-  "direct",
   "unknown",
 ] as const;
 

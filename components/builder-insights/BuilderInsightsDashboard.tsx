@@ -90,7 +90,6 @@ export function BuilderInsightsDashboard({
     ...row,
     label: shortLabel(row.event, 24),
   }));
-  const sourceData = data.signupSources;
 
   const latestMonthlySignups = monthlyData.length
     ? monthlyData[monthlyData.length - 1].signups
@@ -320,24 +319,8 @@ export function BuilderInsightsDashboard({
           </ChartCard>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <ChartCard title="Signup Source Breakdown" className="lg:col-span-1">
-            {sourceData.length ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={sourceData} layout="vertical" margin={{ top: 12, right: 18, bottom: 8, left: 92 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tickLine={false} axisLine={false} fontSize={12} />
-                  <YAxis type="category" dataKey="source" tickLine={false} axisLine={false} fontSize={12} width={130} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="signups" name="Signups" fill="#7C3AED" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyState label="No source data yet" />
-            )}
-          </ChartCard>
-
-          <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-4">
+          <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
             <CardHeader>
               <CardTitle className="text-base">Top Referrers</CardTitle>
             </CardHeader>

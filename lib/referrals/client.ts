@@ -6,22 +6,9 @@ export const REFERRAL_STORAGE_KEY = "builderHubReferralAttribution";
 
 export interface StoredReferralAttribution {
   referralCode?: string;
-  utm_source?: string;
-  utm_medium?: string;
-  utm_campaign?: string;
-  utm_content?: string;
-  utm_term?: string;
   landingPath?: string;
   capturedAt: string;
 }
-
-const UTM_KEYS = [
-  "utm_source",
-  "utm_medium",
-  "utm_campaign",
-  "utm_content",
-  "utm_term",
-] as const;
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const ATTRIBUTION_MAX_AGE_MS = COOKIE_MAX_AGE_SECONDS * 1000;
@@ -36,20 +23,13 @@ export function captureReferralAttributionFromUrl(): StoredReferralAttribution |
 
   const url = new URL(window.location.href);
   const referralCode = url.searchParams.get("ref") ?? undefined;
-  const utmValues = Object.fromEntries(
-    UTM_KEYS.map((key) => [key, url.searchParams.get(key) ?? undefined]).filter(
-      ([, value]) => Boolean(value)
-    )
-  );
 
-  const hasAttribution = Boolean(referralCode) || Object.keys(utmValues).length > 0;
-  if (!hasAttribution) {
+  if (!referralCode) {
     return getStoredReferralAttribution();
   }
 
   const attribution: StoredReferralAttribution = {
     referralCode,
-    ...utmValues,
     landingPath: `${url.pathname}${url.search}`,
     capturedAt: new Date().toISOString(),
   };

@@ -307,11 +307,6 @@ model ReferralAttribution {
   conversion_type        String
   conversion_resource_id String?
   source                 String        @default("unknown")
-  utm_source             String?
-  utm_medium             String?
-  utm_campaign           String?
-  utm_content            String?
-  utm_term               String?
   landing_path           String?
   created_at             DateTime      @default(now()) @db.Timestamptz(3)
   referralLink           ReferralLink? @relation(fields: [referral_link_id], references: [id], onDelete: SetNull)

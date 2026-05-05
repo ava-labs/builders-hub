@@ -24,11 +24,6 @@ CREATE TABLE "ReferralAttribution" (
     "conversion_type" TEXT NOT NULL,
     "conversion_resource_id" TEXT,
     "source" TEXT NOT NULL DEFAULT 'unknown',
-    "utm_source" TEXT,
-    "utm_medium" TEXT,
-    "utm_campaign" TEXT,
-    "utm_content" TEXT,
-    "utm_term" TEXT,
     "landing_path" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

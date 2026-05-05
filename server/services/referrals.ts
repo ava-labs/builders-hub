@@ -9,11 +9,6 @@ import {
 
 export interface ReferralAttributionPayload {
   referralCode?: string | null;
-  utm_source?: string | null;
-  utm_medium?: string | null;
-  utm_campaign?: string | null;
-  utm_content?: string | null;
-  utm_term?: string | null;
   landingPath?: string | null;
 }
 
@@ -49,20 +44,9 @@ export function buildReferralUrl(origin: string, destinationUrl: string, code: s
   return url.toString();
 }
 
-function hasUtm(attribution: ReferralAttributionPayload | null | undefined): boolean {
-  return Boolean(
-    attribution?.utm_source ||
-      attribution?.utm_medium ||
-      attribution?.utm_campaign ||
-      attribution?.utm_content ||
-      attribution?.utm_term
-  );
-}
-
 function getSource(attribution: ReferralAttributionPayload | null | undefined): ReferralSourceType {
   if (attribution?.referralCode) return "referral";
-  if (hasUtm(attribution)) return "utm";
-  return "direct";
+  return "unknown";
 }
 
 function normalizeNullable(value: string | null | undefined): string | null {
@@ -229,20 +213,22 @@ export async function listReferralLinksForUser(userId: string) {
 export async function recordReferralAttribution(input: RecordReferralAttributionInput) {
   const attribution = input.attribution ?? null;
   const referralCode = normalizeNullable(attribution?.referralCode);
+  if (!referralCode) {
+    return null;
+  }
+
   const source = getSource(attribution);
   const conversionResourceId = normalizeNullable(input.conversionResourceId);
   const conversionTargetId = normalizeNullable(input.conversionTargetId) ?? conversionResourceId;
 
-  const referralLink = referralCode
-    ? await prisma.referralLink.findFirst({
-        where: {
-          code: referralCode,
-          disabled_at: null,
-        },
-      })
-    : null;
+  const referralLink = await prisma.referralLink.findFirst({
+    where: {
+      code: referralCode,
+      disabled_at: null,
+    },
+  });
 
-  if (referralCode && !referralLink) {
+  if (!referralLink) {
     return null;
   }
 
@@ -278,11 +264,6 @@ export async function recordReferralAttribution(input: RecordReferralAttribution
       conversion_type: input.conversionType,
       conversion_resource_id: conversionResourceId,
       source,
-      utm_source: attribution?.utm_source || null,
-      utm_medium: attribution?.utm_medium || null,
-      utm_campaign: attribution?.utm_campaign || null,
-      utm_content: attribution?.utm_content || null,
-      utm_term: attribution?.utm_term || null,
       landing_path: attribution?.landingPath || null,
     },
   });

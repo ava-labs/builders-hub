@@ -33,11 +33,6 @@ export interface TopReferrerRow {
   totalConversions: number;
 }
 
-export interface SignupSourcePoint {
-  source: string;
-  signups: number;
-}
-
 export interface ReferralTargetPreset {
   key: string;
   group: "signup" | "event" | "grant";
@@ -55,7 +50,6 @@ export interface BuilderInsightsData {
   signupsByReferrer: ReferrerSignupPoint[];
   eventParticipants: EventParticipantPoint[];
   topReferrers: TopReferrerRow[];
-  signupSources: SignupSourcePoint[];
   referralTargets: ReferralTargetPreset[];
 }
 
@@ -105,7 +99,6 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     userGeneratedRows,
     activeEventRows,
     topReferrerRows,
-    signupSourceRows,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.$queryRaw<Array<{ month: Date; signups: bigint }>>`
@@ -203,13 +196,6 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ORDER BY "totalConversions" DESC
       LIMIT 20
     `,
-    prisma.$queryRaw<Array<{ source: string; signups: bigint }>>`
-      SELECT attribution."source" AS "source",
-             COUNT(*)::bigint AS "signups"
-      FROM "ReferralAttribution" attribution
-      WHERE attribution."conversion_type" = 'bh_signup'
-      GROUP BY attribution."source"
-    `,
   ]);
 
   let cumulative = 0;
@@ -232,11 +218,6 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
 
   const userGeneratedBhAndEventSignups = toNumber(userGeneratedRows[0]?.signups);
 
-  const attributedSignupTotal = signupSourceRows.reduce(
-    (sum, row) => sum + toNumber(row.signups),
-    0
-  );
-  const historicalUnattributed = Math.max(totalAccounts - attributedSignupTotal, 0);
   const activeEventTargets: ReferralTargetPreset[] = activeEventRows.map((event) => {
     const isBuildGames = Boolean(BUILD_GAMES_HACKATHON_ID && event.id === BUILD_GAMES_HACKATHON_ID);
 
@@ -272,15 +253,6 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       grantApplications: toNumber(row.grantApplications),
       totalConversions: toNumber(row.totalConversions),
     })),
-    signupSources: [
-      ...signupSourceRows.map((row) => ({
-        source: row.source === "utm" ? "UTM" : row.source === "referral" ? "Referral link" : "Direct",
-        signups: toNumber(row.signups),
-      })),
-      ...(historicalUnattributed > 0
-        ? [{ source: "Historical / unattributed", signups: historicalUnattributed }]
-        : []),
-    ],
     referralTargets: [
       {
         key: "signup-builder-hub",
