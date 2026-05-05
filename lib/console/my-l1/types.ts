@@ -1,5 +1,6 @@
 import type { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import type { MyL1 } from '@/hooks/useMyL1s';
+export { C_CHAIN_IDS } from '@/lib/console/l1-dashboard';
 
 export const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
 
@@ -109,4 +110,3 @@ export function metadataFromWalletItem(w: L1ListItem): Partial<{
     Object.entries(all).filter(([, v]) => v !== undefined),
   ) as ReturnType<typeof metadataFromWalletItem>;
 }
-
