@@ -3,11 +3,15 @@ import { ManagedTestnetNodesServiceURLs } from './constants';
 import { SubnetStatusResponse, NodeInfo, SubnetStatusResponseSchema, ServiceErrorSchema } from './types';
 import { toDateFromEpoch, NODE_TTL_MS } from './utils';
 
-export async function builderHubAddNode(subnetId: string): Promise<SubnetStatusResponse> {
+export async function builderHubAddNode(
+  subnetId: string,
+  blockchainId: string,
+  chainName: string | null,
+): Promise<SubnetStatusResponse> {
   const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
   if (!password) throw new Error('MANAGED_TESTNET_NODE_SERVICE_PASSWORD not configured');
 
-  const url = ManagedTestnetNodesServiceURLs.addNode(subnetId, password);
+  const url = ManagedTestnetNodesServiceURLs.addNode(subnetId, password, blockchainId, chainName);
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
