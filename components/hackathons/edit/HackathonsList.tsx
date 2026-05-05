@@ -160,6 +160,7 @@ export default function HackathonsList({
                     </div>
 
                     {/* Right: date + 3-dot menu */}
+                    {/* test */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-xs text-zinc-400 dark:text-zinc-500 hidden sm:block">
                         {formatDate(hackathon.start_date)}

@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash, ChevronDown, ChevronRight, Database, PlusCircle, FileText, Layers, ImageIcon, Users, AlignLeft, LayoutGrid, ClipboardList, X, Save, Eye, EyeOff } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HackathonsList from '@/components/hackathons/edit/HackathonsList';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
@@ -2184,16 +2185,85 @@ const HackathonsEdit = () => {
               t={t}
             />
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={loadMockData}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Load Mock Data
-            </button>
-            <Button onClick={() => { setShowForm(true); setSelectedHackathon(null); setIsSelectedHackathon(false); }} disabled={isSelectedHackathon}>
-              {t[language].addNewEvent}
-            </Button>
+          <div className="flex items-center gap-1.5">
+            {isSelectedHackathon && (
+              <>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].cancel}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={handleUpdateClick}
+                        className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].update}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                {session?.user?.custom_attributes?.includes("devrel") && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleVisibility(selectedHackathon.id, !formDataMain.is_public)}
+                          className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        >
+                          {formDataMain.is_public ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-red-600 text-white border-red-500">{formDataMain.is_public ? 'Hide' : 'Activate'}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                <div className="border-l border-zinc-300 dark:border-zinc-600 h-5 mx-0.5" />
+              </>
+            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={loadMockData}
+                    className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                  >
+                    <Database className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="bg-red-600 text-white border-red-500">Load Mock Data</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => { setShowForm(true); setSelectedHackathon(null); setIsSelectedHackathon(false); }}
+                    disabled={isSelectedHackathon}
+                    className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <PlusCircle className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].addNewEvent}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
@@ -2232,196 +2302,226 @@ const HackathonsEdit = () => {
               forceCollapsed={isSelectedHackathon || showForm}
               fullHeight={!isSelectedHackathon && !showForm}
             />
-            {/* Sticky bar: action buttons + step navigation (always visible when editing) */}
+            {(isSelectedHackathon || showForm) && (
+              <div className="mt-2 mb-1 border-b border-zinc-200 dark:border-zinc-800" />
+            )}
+            {/* Sticky bar: step navigation (always visible when editing) */}
             {(isSelectedHackathon || (showForm && hasEditPermission)) && (
               <div className="sticky top-0 z-20 bg-white/95 dark:bg-zinc-950/98 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 mb-4">
-                {isSelectedHackathon && (
-                  <div className="flex gap-2 py-2 flex-wrap items-center">
-                    <Button onClick={handleCancelEdit} variant="outline">
-                      {t[language].cancel}
-                    </Button>
-                    <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleUpdateClick}>
-                      {t[language].update}
-                    </Button>
-                    {session?.user?.custom_attributes?.includes("devrel") && (
-                      <Button
-                        type="button"
-                        className={`${formDataMain.is_public
-                          ? 'bg-orange-600 hover:bg-orange-700'
-                          : 'bg-green-600 hover:bg-green-700'
-                          } text-white`}
-                        onClick={() => handleToggleVisibility(selectedHackathon.id, !formDataMain.is_public)}
-                      >
-                        {formDataMain.is_public ? 'Hide' : 'Activate'}
-                      </Button>
-                    )}
-                  </div>
-                )}
                 {showForm && hasEditPermission && (
-                  <div className={`flex flex-wrap gap-2 py-3 ${isSelectedHackathon ? 'border-t border-zinc-800/80' : ''}`}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (collapsed.main) {
-                          setCollapsed((prev) => ({ ...prev, main: false }));
-                        }
-                        setActiveStep('step1');
-                        requestAnimationFrame(() => {
-                          const container = leftPanelRef.current;
-                          const el = step1Ref.current;
-                          if (!container || !el) return;
-                          const containerRect = container.getBoundingClientRect();
-                          const elRect = el.getBoundingClientRect();
-                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
-                        });
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step1'
-                        ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
-                        }`}
-                    >
-                      {t[language].mainTopics}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (collapsed.stages) {
-                          setCollapsed((prev) => ({ ...prev, stages: false }));
-                        }
-                        setActiveStep('step2');
-                        requestAnimationFrame(() => {
-                          const container = leftPanelRef.current;
-                          const el = step2Ref.current;
-                          if (!container || !el) return;
-                          const containerRect = container.getBoundingClientRect();
-                          const elRect = el.getBoundingClientRect();
-                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
-                        });
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step2'
-                        ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
-                        }`}
-                    >
-                      Stages
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (collapsed.images) {
-                          setCollapsed((prev) => ({ ...prev, images: false }));
-                        }
-                        setActiveStep('step3');
-                        requestAnimationFrame(() => {
-                          const container = leftPanelRef.current;
-                          const el = step3Ref.current;
-                          if (!container || !el) return;
-                          const containerRect = container.getBoundingClientRect();
-                          const elRect = el.getBoundingClientRect();
-                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
-                        });
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step3'
-                        ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
-                        }`}
-                    >
-                      Images & Branding
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (collapsed.about) {
-                          setCollapsed((prev) => ({ ...prev, about: false }));
-                        }
-                        setActiveStep('step4');
-                        requestAnimationFrame(() => {
-                          const container = leftPanelRef.current;
-                          const el = step4Ref.current;
-                          if (!container || !el) return;
-                          const containerRect = container.getBoundingClientRect();
-                          const elRect = el.getBoundingClientRect();
-                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
-                        });
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step4'
-                        ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
-                        }`}
-                    >
-                      {formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}
-                    </button>
+                  <div className="flex justify-between gap-1.5 py-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (collapsed.main) {
+                                setCollapsed((prev) => ({ ...prev, main: false }));
+                              }
+                              setActiveStep('step1');
+                              requestAnimationFrame(() => {
+                                const container = leftPanelRef.current;
+                                const el = step1Ref.current;
+                                if (!container || !el) return;
+                                const containerRect = container.getBoundingClientRect();
+                                const elRect = el.getBoundingClientRect();
+                                container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                              });
+                            }}
+                            className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step1'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
+                              }`}
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].mainTopics}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (collapsed.stages) {
+                                setCollapsed((prev) => ({ ...prev, stages: false }));
+                              }
+                              setActiveStep('step2');
+                              requestAnimationFrame(() => {
+                                const container = leftPanelRef.current;
+                                const el = step2Ref.current;
+                                if (!container || !el) return;
+                                const containerRect = container.getBoundingClientRect();
+                                const elRect = el.getBoundingClientRect();
+                                container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                              });
+                            }}
+                            className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step2'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
+                              }`}
+                          >
+                            <Layers className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-red-600 text-white border-red-500">Stages</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (collapsed.images) {
+                                setCollapsed((prev) => ({ ...prev, images: false }));
+                              }
+                              setActiveStep('step3');
+                              requestAnimationFrame(() => {
+                                const container = leftPanelRef.current;
+                                const el = step3Ref.current;
+                                if (!container || !el) return;
+                                const containerRect = container.getBoundingClientRect();
+                                const elRect = el.getBoundingClientRect();
+                                container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                              });
+                            }}
+                            className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step3'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
+                              }`}
+                          >
+                            <ImageIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-red-600 text-white border-red-500">Images & Branding</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (collapsed.about) {
+                                setCollapsed((prev) => ({ ...prev, about: false }));
+                              }
+                              setActiveStep('step4');
+                              requestAnimationFrame(() => {
+                                const container = leftPanelRef.current;
+                                const el = step4Ref.current;
+                                if (!container || !el) return;
+                                const containerRect = container.getBoundingClientRect();
+                                const elRect = el.getBoundingClientRect();
+                                container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                              });
+                            }}
+                            className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step4'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
+                              }`}
+                          >
+                            <Users className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-red-600 text-white border-red-500">{formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     {formDataLatest.event === 'hackathon' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (collapsed.trackText) {
-                            setCollapsed((prev) => ({ ...prev, trackText: false }));
-                          }
-                          setActiveStep('step5');
-                          requestAnimationFrame(() => {
-                            const container = leftPanelRef.current;
-                            const el = step5Ref.current;
-                            if (!container || !el) return;
-                            const containerRect = container.getBoundingClientRect();
-                            const elRect = el.getBoundingClientRect();
-                            container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
-                          });
-                        }}
-                        className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step5'
-                          ? 'bg-red-600 text-white border-red-500'
-                          : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
-                          }`}
-                      >
-                        {t[language].trackText}
-                      </button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (collapsed.trackText) {
+                                  setCollapsed((prev) => ({ ...prev, trackText: false }));
+                                }
+                                setActiveStep('step5');
+                                requestAnimationFrame(() => {
+                                  const container = leftPanelRef.current;
+                                  const el = step5Ref.current;
+                                  if (!container || !el) return;
+                                  const containerRect = container.getBoundingClientRect();
+                                  const elRect = el.getBoundingClientRect();
+                                  container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                                });
+                              }}
+                              className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step5'
+                                ? 'bg-red-600 text-white border-red-500'
+                                : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
+                                }`}
+                            >
+                              <AlignLeft className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].trackText}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (collapsed.content) {
-                          setCollapsed((prev) => ({ ...prev, content: false }));
-                        }
-                        setActiveStep('step6');
-                        requestAnimationFrame(() => {
-                          const container = leftPanelRef.current;
-                          const el = step6Ref.current;
-                          if (!container || !el) return;
-                          const containerRect = container.getBoundingClientRect();
-                          const elRect = el.getBoundingClientRect();
-                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
-                        });
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step6'
-                        ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
-                        }`}
-                    >
-                      {t[language].content}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (collapsed.last) {
-                          setCollapsed((prev) => ({ ...prev, last: false }));
-                        }
-                        setActiveStep('step7');
-                        requestAnimationFrame(() => {
-                          const container = leftPanelRef.current;
-                          const el = step7Ref.current;
-                          if (!container || !el) return;
-                          const containerRect = container.getBoundingClientRect();
-                          const elRect = el.getBoundingClientRect();
-                          container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
-                        });
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${activeStep === 'step7'
-                        ? 'bg-red-600 text-white border-red-500'
-                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
-                        }`}
-                    >
-                      {t[language].lastDetails}
-                    </button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (collapsed.content) {
+                                setCollapsed((prev) => ({ ...prev, content: false }));
+                              }
+                              setActiveStep('step6');
+                              requestAnimationFrame(() => {
+                                const container = leftPanelRef.current;
+                                const el = step6Ref.current;
+                                if (!container || !el) return;
+                                const containerRect = container.getBoundingClientRect();
+                                const elRect = el.getBoundingClientRect();
+                                container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                              });
+                            }}
+                            className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step6'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
+                              }`}
+                          >
+                            <LayoutGrid className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].content}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (collapsed.last) {
+                                setCollapsed((prev) => ({ ...prev, last: false }));
+                              }
+                              setActiveStep('step7');
+                              requestAnimationFrame(() => {
+                                const container = leftPanelRef.current;
+                                const el = step7Ref.current;
+                                if (!container || !el) return;
+                                const containerRect = container.getBoundingClientRect();
+                                const elRect = el.getBoundingClientRect();
+                                container.scrollBy({ top: elRect.top - containerRect.top - 16, behavior: 'smooth' });
+                              });
+                            }}
+                            className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step7'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
+                              }`}
+                          >
+                            <ClipboardList className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].lastDetails}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 )}
               </div>
