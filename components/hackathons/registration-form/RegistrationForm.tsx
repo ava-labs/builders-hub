@@ -511,7 +511,7 @@ export function RegisterForm({
       </h2>
       <div className="relative w-full h-1 bg-zinc-300 dark:bg-zinc-900 mb-4">
         <div
-          className={`absolute h-full bg-zinc-800 dark:bg-zinc-300 ${progressPosition()} w-1/3 transition-all duration-300`}
+          className={`absolute h-full bg-zinc-800 dark:bg-zinc-300 ${progressPosition()} w-1/2 transition-all duration-300`}
         />
       </div>
       <Form {...form}>

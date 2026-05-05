@@ -281,7 +281,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.save.errorDesc": "An error occurred while saving the project.",
 
     // Registration form — header & nav
-    "reg.form.title": "Registration form for {title} (Step {step}/3)",
+    "reg.form.title": "Registration form for {title} (Step {step}/2)",
     "reg.form.continue": "Continue",
     "reg.form.saveLater": "Save & Continue Later",
     "reg.form.saveExit": "Save & Exit",
@@ -672,7 +672,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.save.errorDesc": "Ocurrió un error al guardar el proyecto.",
 
     // Registration form — header & nav
-    "reg.form.title": "Formulario de registro para {title} (Paso {step}/3)",
+    "reg.form.title": "Formulario de registro para {title} (Paso {step}/2)",
     "reg.form.continue": "Continuar",
     "reg.form.saveLater": "Guardar y continuar después",
     "reg.form.saveExit": "Guardar y salir",
