@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Wallet } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
-import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Button } from '@/components/toolbox/components/Button';
 import type { RequiredChain } from '@/components/console/step-flow';
+import { readLiveWalletChainId, useLiveWalletChainId } from '@/components/toolbox/hooks/useLiveWalletChainId';
+import { resolveCreateL1RequiredChain } from '@/lib/console/create-l1-chain';
 
 interface ChainGateProps {
   requiredChain?: RequiredChain;
@@ -16,27 +18,6 @@ interface ChainGateProps {
 
 const FUJI_CHAIN_ID = 43113;
 const MAINNET_CHAIN_ID = 43114;
-
-/**
- * Reads the actual EIP-1193 provider's current chain id, bypassing any
- * store/wagmi state. Used as a self-heal path when walletChainId in the
- * Zustand store drifts from reality — wagmi's `useChainId` doesn't surface
- * custom L1s (only chains registered in wagmiConfig), so a stale sync from
- * WalletSync can leave the store on C-Chain after the user actually
- * switched to their L1.
- */
-async function readLiveChainId(): Promise<number | null> {
-  if (typeof window === 'undefined') return null;
-  const provider = (window as any).avalanche ?? (window as any).ethereum;
-  if (!provider?.request) return null;
-  try {
-    const hex = await provider.request({ method: 'eth_chainId' });
-    const n = typeof hex === 'string' ? Number.parseInt(hex, 16) : Number(hex);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Checks if the wallet is on the correct chain for the current step.
@@ -49,49 +30,12 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const setWalletChainId = useWalletStore((s) => s.setWalletChainId);
   const createChainStore = useCreateChainStore()();
-  const walletL1s = useL1List();
+  const testnetL1s = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const mainnetL1s = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const walletL1s = useMemo(() => [...testnetL1s, ...mainnetL1s], [testnetL1s, mainnetL1s]);
   const { addChain, switchChain } = useWallet();
-  const [liveChainId, setLiveChainId] = useState<number | null>(null);
+  const liveChainId = useLiveWalletChainId(walletChainId);
   const [isSwitching, setIsSwitching] = useState(false);
-
-  // Re-read the live chain id from the EIP-1193 provider whenever the
-  // store value changes OR the wallet emits chainChanged. The store-only
-  // dependency isn't enough on its own: wagmi ignores chains not in
-  // wagmiConfig, so a custom-L1 switch leaves walletChainId stale and
-  // the effect would never refire — the gate would stay stuck on the
-  // warning even after a successful switch.
-  useEffect(() => {
-    let cancelled = false;
-
-    const refresh = () => {
-      readLiveChainId().then((n) => {
-        if (!cancelled) setLiveChainId(n);
-      });
-    };
-
-    refresh();
-
-    if (typeof window === 'undefined') {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const providers: Array<{
-      on?: (event: string, listener: (...args: any[]) => void) => void;
-      removeListener?: (event: string, listener: (...args: any[]) => void) => void;
-    }> = [];
-    if ((window as any).avalanche) providers.push((window as any).avalanche);
-    if ((window as any).ethereum && (window as any).ethereum !== (window as any).avalanche) {
-      providers.push((window as any).ethereum);
-    }
-    providers.forEach((p) => p.on?.('chainChanged', refresh));
-
-    return () => {
-      cancelled = true;
-      providers.forEach((p) => p.removeListener?.('chainChanged', refresh));
-    };
-  }, [walletChainId]);
 
   // No requirement or P-Chain (no EVM switch needed) — pass through
   if (!requiredChain || requiredChain === 'any' || requiredChain === 'p-chain') {
@@ -111,8 +55,12 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     expectedChainId = isTestnet ? FUJI_CHAIN_ID : MAINNET_CHAIN_ID;
     chainLabel = isTestnet ? 'Fuji C-Chain' : 'C-Chain';
   } else if (requiredChain === 'l1') {
-    expectedChainId = createChainStore?.evmChainId ?? null;
-    chainLabel = createChainStore?.chainName || 'your L1';
+    const resolved = resolveCreateL1RequiredChain({
+      createChain: createChainStore,
+      l1List: walletL1s,
+    });
+    expectedChainId = resolved.chainId;
+    chainLabel = resolved.chainLabel;
   }
 
   // Can't determine expected chain — pass through
@@ -155,7 +103,8 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     const isL1Step = requiredChain === 'l1';
     await addChain({
       allowLookup: !isL1Step,
-      chainName: isL1Step ? createChainStore?.chainName || undefined : undefined,
+      chainName: isL1Step ? chainLabel || undefined : undefined,
+      genesisData: isL1Step ? createChainStore?.genesisData || undefined : undefined,
       isTestnet: isTestnet ?? undefined,
     });
   };
@@ -174,9 +123,11 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     setIsSwitching(true);
     try {
       await switchChain(expectedChainId, isTestnet ?? false);
-      const live = await readLiveChainId();
-      setLiveChainId(live);
-      if (live === expectedChainId) return;
+      const live = await readLiveWalletChainId();
+      if (live === expectedChainId) {
+        if (walletChainId !== expectedChainId) setWalletChainId(expectedChainId);
+        return;
+      }
       // Switch didn't move the chain — chain probably isn't in the wallet
       // at all. Open the add-chain modal so the user can register it.
       await handleAddToWallet();

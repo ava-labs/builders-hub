@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Copy, Globe, Search } from 'lucide-react';
 import { Button } from '../../components/Button';
-import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Input } from '../../components/Input';
 import { getBlockchainInfo, getChainDetails, getSubnetInfo } from '../../coreViem/utils/glacier';
@@ -17,6 +17,7 @@ import { useLookupChain } from '@/components/toolbox/hooks/useLookupChain';
 import { toast } from '@/lib/toast';
 import type { ChainData } from '@/types/wallet';
 import { cn } from '@/lib/utils';
+import { networkIDs } from '@avalabs/avalanchejs';
 
 /**
  * Modal for adding an existing Avalanche L1 to the user's wallet.
@@ -69,8 +70,9 @@ export function AddChainModal() {
 function AddChainModalInner() {
   const { options, closeModal } = useModalState();
   const { client: walletClient } = useWallet();
-  const { l1List } = useL1ListStore()();
-  const { addL1 } = useL1ListStore()();
+  const testnetL1List = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const mainnetL1List = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const l1List = useMemo(() => [...testnetL1List, ...mainnetL1List], [testnetL1List, mainnetL1List]);
   const { anyChainId, setAnyChainId, error: lookupError, isLookingUp, lookup } = useLookupChain();
   const [inputMode, setInputMode] = useState<InputMode>('rpc');
   const [isFetchingChainData, setIsFetchingChainData] = useState(false);
@@ -238,9 +240,12 @@ function AddChainModalInner() {
       // Sync walletChainId so downstream gates (ChainGate) observe the
       // switch. wagmi's useChainId ignores chains not in wagmiConfig,
       // so custom L1s would otherwise leave walletChainId stale.
-      useWalletStore.getState().setWalletChainId(chainData.evmChainId);
+      const walletStore = useWalletStore.getState();
+      walletStore.setWalletChainId(chainData.evmChainId);
+      walletStore.setIsTestnet(chainData.isTestnet);
+      walletStore.setAvalancheNetworkID(chainData.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
 
-      addL1(chainData);
+      getL1ListStore(chainData.isTestnet).getState().addL1(chainData);
       toast.success('Chain added successfully!', `${chainData.name} has been added to your wallet`);
       return true;
     } catch (e) {
