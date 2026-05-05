@@ -377,7 +377,7 @@ export default function HackathonsEditStages({
         ],
       } as IDataContent)
     }
-    if (stages.length > 0 && !stages[0].submitForm?.fields.find((field) => field.projectColumnName === 'projectName')) {
+    if (stages.length > 0 && !stages[0].submitForm?.fields.find((field) => field.id === 'projectName')) {
       setFormDataContent({
         ...formDataContent,
         stages: [{ ...stages[0], submitForm: { ...stages[0].submitForm, fields: [BASE_SUBMIT_FORM_FIELDS.projectName.field, ...(stages[0].submitForm?.fields ?? [])] } }, ...stages.slice(1)]

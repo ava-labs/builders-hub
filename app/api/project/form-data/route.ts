@@ -1,41 +1,36 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 
-type StageSubmitValues = Record<string, string | string[]>
+type StageSubmitValues = Record<string, string | string[]>;
 
 type StageSubmitRequestBody = {
-  hackathonId: string
-  projectId?: string
-  stageIndex: number
-  values: StageSubmitValues
-}
+  hackathonId: string;
+  projectId?: string;
+  stageIndex: number;
+  values: StageSubmitValues;
+};
 
 export const POST = withAuth(async (request: Request, _context, session) => {
   try {
-    const body: StageSubmitRequestBody = await request.json()
+    const body: StageSubmitRequestBody = await request.json();
 
-    const hackathonId: string = body.hackathonId?.trim()
-    const incomingProjectId: string = body.projectId?.trim() ?? ''
-    const values: StageSubmitValues = body.values ?? {}
+    const hackathonId: string = body.hackathonId?.trim();
+    const incomingProjectId: string = body.projectId?.trim() ?? '';
+    const values: StageSubmitValues = body.values ?? {};
 
     if (!hackathonId) {
-      return NextResponse.json(
-        { error: 'hackathonId is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'hackathonId is required' }, { status: 400 });
     }
 
-    const sessionUserId: string = session.user.id
-    const sessionUserEmail: string = session.user.email ?? ''
+    const sessionUserId: string = session.user.id;
+    const sessionUserEmail: string = session.user.email ?? '';
 
     const result = await prisma.$transaction(async (tx) => {
-      let resolvedProject:
-        | {
-            id: string
-            project_name: string
-          }
-        | null = null
+      let resolvedProject: {
+        id: string;
+        project_name: string;
+      } | null = null;
 
       if (incomingProjectId) {
         resolvedProject = await tx.project.findFirst({
@@ -52,7 +47,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
             id: true,
             project_name: true,
           },
-        })
+        });
       }
 
       if (!resolvedProject) {
@@ -72,7 +67,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
           orderBy: {
             created_at: 'desc',
           },
-        })
+        });
       }
 
       if (!resolvedProject) {
@@ -109,9 +104,9 @@ export const POST = withAuth(async (request: Request, _context, session) => {
             id: true,
             project_name: true,
           },
-        })
+        });
 
-        resolvedProject = dummyProject
+        resolvedProject = dummyProject;
       }
 
       const existingFormData = await tx.formData.findFirst({
@@ -125,12 +120,12 @@ export const POST = withAuth(async (request: Request, _context, session) => {
           id: true,
           form_data: true,
         },
-      })
+      });
 
       const mergedFormData: StageSubmitValues = {
         ...((existingFormData?.form_data as StageSubmitValues | null) ?? {}),
         ...values,
-      }
+      };
 
       const savedFormData = existingFormData
         ? await tx.formData.update({
@@ -158,49 +153,65 @@ export const POST = withAuth(async (request: Request, _context, session) => {
               id: true,
               project_id: true,
             },
-          })
+          });
+      let projectColumnsToUpdate: { [key: string]: string } = {};
+
+      if (values.projectName && typeof values.projectName=== 'string') {
+        projectColumnsToUpdate.project_name= values.projectName;
+      }
+      if (values.shortDescription && typeof values.shortDescription === 'string') {
+        projectColumnsToUpdate.short_description = values.shortDescription;
+      }
+      if (values.fullDescription && typeof values.fullDescription === 'string') {
+        projectColumnsToUpdate.full_description = values.fullDescription;
+      }
+
+      const updatedProject = await tx.project.update({
+        where: {
+          id: resolvedProject.id,
+        },
+        data: {
+          updated_at: new Date(),
+          ...projectColumnsToUpdate,
+        },
+      });
 
       return {
         projectId: resolvedProject.id,
+        project: updatedProject,
         formDataId: savedFormData.id,
-      }
-    })
+      };
+    });
 
     return NextResponse.json(
       {
         success: true,
         projectId: result.projectId,
+        project: result.project,
         formDataId: result.formDataId,
       },
-      { status: 200 }
-    )
+      { status: 200 },
+    );
   } catch (error: unknown) {
-    const message: string =
-      error instanceof Error ? error.message : 'Unknown error'
+    const message: string = error instanceof Error ? error.message : 'Unknown error';
 
-    console.error('Error POST /api/project/stage-submit:', error)
+    console.error('Error POST /api/project/stage-submit:', error);
 
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-})
+});
 
 export const GET = withAuth(async (request: Request, _context, session) => {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = new URL(request.url);
 
-    const projectId: string = searchParams.get('projectId')?.trim() ?? ''
+    const projectId: string = searchParams.get('projectId')?.trim() ?? '';
 
     if (!projectId) {
-      return NextResponse.json(
-        { error: 'projectId is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'projectId is required' }, { status: 400 });
     }
 
-    const sessionUserId: string = session.user.id
+    const sessionUserId: string = session.user.id;
 
     const project = await prisma.project.findFirst({
       where: {
@@ -214,13 +225,10 @@ export const GET = withAuth(async (request: Request, _context, session) => {
       select: {
         id: true,
       },
-    })
+    });
 
     if (!project) {
-      return NextResponse.json(
-        { error: 'Project not found or access denied' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 });
     }
 
     const formData = await prisma.formData.findFirst({
@@ -237,24 +245,20 @@ export const GET = withAuth(async (request: Request, _context, session) => {
         origin: true,
         project_id: true,
       },
-    })
+    });
 
     return NextResponse.json(
       {
         success: true,
         formData: formData ?? null,
       },
-      { status: 200 }
-    )
+      { status: 200 },
+    );
   } catch (error: unknown) {
-    const message: string =
-      error instanceof Error ? error.message : 'Unknown error'
+    const message: string = error instanceof Error ? error.message : 'Unknown error';
 
-    console.error('Error GET /api/project/form-data:', error)
+    console.error('Error GET /api/project/form-data:', error);
 
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-})
+});

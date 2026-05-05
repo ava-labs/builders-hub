@@ -1753,7 +1753,6 @@ const HackathonsEdit = () => {
     else {
       dataToSend = { ...getDataToSend(), created_by: session?.user?.id };
     }
-    console.log({ dataToSend, isSelectedHackathon });
     try {
       dataToSend = await processBase64Images(dataToSend);
       console.log('Processed data with uploaded images:', dataToSend);

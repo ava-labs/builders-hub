@@ -64,9 +64,7 @@ export type ChipsStagesSubmitFormField = {
   chips: string[];
 };
 
-export type SubmitFormField = (TextStagesSubmitFormField | LinkStagesSubmitFormField | ChipsStagesSubmitFormField) & {
-  projectColumnName?: string;
-};
+export type SubmitFormField = TextStagesSubmitFormField | LinkStagesSubmitFormField | ChipsStagesSubmitFormField;
 
 export type StageSubmitForm = {
   fields: SubmitFormField[];

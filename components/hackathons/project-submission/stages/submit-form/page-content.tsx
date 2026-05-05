@@ -19,7 +19,6 @@ import {
 import { HackathonHeader } from '@/types/hackathons'
 import { X } from 'lucide-react'
 import TeamMembersWrapper from './team-members-wrapper'
-import { getAuthSession } from '@/lib/auth/authSession'
 import { useProjectByHackaUser } from '@/hooks/use-get-project-hacka-user'
 import { useProjectFormData } from '../../hooks/useGetFormDataFromProject'
 

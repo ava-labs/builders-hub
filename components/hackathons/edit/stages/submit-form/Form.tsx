@@ -68,8 +68,7 @@ function replaceSubmitFormFieldWithBaseField(
   const baseField: SubmitFormField = BASE_SUBMIT_FORM_FIELDS[baseFieldKey].field
 
   return {
-    ...baseField,
-    id: currentField.id,
+    ...baseField
   }
 }
 
@@ -159,10 +158,11 @@ export default function StageSubmitForm({
                     <select
                       id={`submit-base-field-${field.id}`}
                       className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={field.projectColumnName ?? ''}
+                      value={field.id ?? ''}
                       onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
                         const baseFieldKey: BaseSubmitFormFieldKey =
                           event.target.value as BaseSubmitFormFieldKey
+                          console.log('Selected field key:', field)
 
                         onUpdateField(
                           stageIndex,
