@@ -246,34 +246,34 @@ export function NounAvatarConfig({
     ];
 
     return (
-      <div className="flex flex-col items-center gap-6">
+      <div className="flex flex-col items-center gap-4 sm:gap-6">
         {/* Avatar Preview - Centered */}
         <div className="flex flex-col items-center justify-center">
-          <div className="rounded-lg flex items-center justify-center p-6">
+          <div className="rounded-lg flex items-center justify-center p-2 sm:p-6">
             <DiceBearAvatar seed={seed} size="xlarge" />
           </div>
         </div>
 
         {/* Trait Controls - 3 Columns */}
         {seed && (
-          <div className="grid grid-cols-3 gap-3 w-full max-w-3xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 w-full max-w-3xl">
             {traitOrder.map((trait) => (
               <div
                 key={trait}
-                className="flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-900 dark:border-zinc-700 rounded-lg"
+                className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-zinc-900 border border-zinc-900 dark:border-zinc-700 rounded-lg"
               >
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   onClick={() => adjustTrait(trait, 'prev')}
-                  className="h-8 w-8 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-0"
+                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-0"
                 >
                   <ChevronLeft className="h-4 w-4 text-zinc-900 dark:text-zinc-100" />
                 </Button>
                 
                 <div className="flex flex-col items-center flex-1 text-center">
-                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <span className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     {traitLabels[trait]}
                   </span>
                   {seed && (
@@ -288,7 +288,7 @@ export function NounAvatarConfig({
                   variant="ghost"
                   size="icon"
                   onClick={() => adjustTrait(trait, 'next')}
-                  className="h-8 w-8 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-0"
+                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-0"
                 >
                   <ChevronRight className="h-4 w-4 text-zinc-900 dark:text-zinc-100" />
                 </Button>
@@ -309,6 +309,7 @@ export function NounAvatarConfig({
           isLoading={isSaving}
           loadingText="Saving..."
           variant="red"
+          className="w-full sm:w-auto"
         >
           Save
         </LoadingButton>
@@ -324,7 +325,7 @@ export function NounAvatarConfig({
       description="Generate and customize your unique avatar."
       content={renderContent()}
       footer={renderFooter()}
-      className="bg-white dark:bg-zinc-900 text-black dark:text-white  lg:w-[80%] lg:max-w-[600px]"
+      className="bg-white dark:bg-zinc-900 text-black dark:text-white w-[95vw] max-w-[95vw] sm:max-w-[640px] max-h-[88vh] overflow-y-auto"
     />
   );
 }
