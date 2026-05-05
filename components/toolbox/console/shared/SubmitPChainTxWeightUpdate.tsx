@@ -14,6 +14,7 @@ import { PChainManualSubmit } from '@/components/toolbox/components/PChainManual
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
+import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 
 export interface WeightUpdateEventData {
   validationID: `0x${string}`;
@@ -238,6 +239,9 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
         return pChainTxIdPromise;
       });
+
+      // Wait for P-Chain confirmation before declaring success
+      await waitForPChainConfirmation(pChainTxId, isTestnet);
 
       setTxSuccess(pChainTxId);
       onSuccess(pChainTxId, eventData || undefined);

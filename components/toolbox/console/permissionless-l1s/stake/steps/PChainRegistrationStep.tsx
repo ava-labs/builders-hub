@@ -8,13 +8,18 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { STEP_CONFIG } from '../codeConfig';
+import Link from 'next/link';
+
+const PCHAIN_MIN_BALANCE = 0.1; // AVAX needed for P-Chain transaction gas
 
 export default function PChainRegistrationStep() {
   const store = useStakeValidatorStore();
   const vmcCtx = useValidatorManagerContext();
-  const { pChainBalance } = useWalletStore();
+  const pChainBalance = useWalletStore((s) => s.pChainBalance);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
 
   const userPChainBalanceNavax = pChainBalance ? BigInt(Math.floor(pChainBalance * 1e9)) : null;
+  const hasSufficientPChainBalance = pChainBalance >= PCHAIN_MIN_BALANCE;
 
   const validators = deserializeStakeValidators(store.validators);
   const validator = validators[0];
@@ -28,6 +33,20 @@ export default function PChainRegistrationStep() {
           <Alert variant="warning">
             No transaction hash from the initiation step. You can enter it manually below, or go back to{' '}
             <strong>Initiate Registration</strong>.
+          </Alert>
+        )}
+        {!hasSufficientPChainBalance && (
+          <Alert variant="warning">
+            Insufficient P-Chain balance for transaction fees. You need at least {PCHAIN_MIN_BALANCE} AVAX.{' '}
+            {isTestnet ? (
+              <Link href="/console/primary-network/faucet" className="underline font-medium">
+                Get testnet tokens from the faucet
+              </Link>
+            ) : (
+              <Link href="/console/primary-network/c-p-bridge" className="underline font-medium">
+                Bridge AVAX from C-Chain to P-Chain
+              </Link>
+            )}
           </Alert>
         )}
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">

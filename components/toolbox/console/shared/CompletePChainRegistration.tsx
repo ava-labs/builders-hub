@@ -340,7 +340,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     (!isCoreWallet && !!pChainSignature);
 
   const step1Complete = !!pChainTxIdState.trim();
-  const step2Complete = !!txHash;
+  const step2Complete = !!registrationComplete;
 
   return (
     <div className="space-y-3">

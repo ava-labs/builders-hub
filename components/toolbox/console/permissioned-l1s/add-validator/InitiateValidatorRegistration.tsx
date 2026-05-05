@@ -9,6 +9,7 @@ import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValid
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { WARP_PRECOMPILE_ADDRESS } from '@/components/toolbox/utils/warp';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -153,8 +154,22 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           return;
         }
 
-        const unsignedWarpMessage = receipt.logs[0].data ?? '';
-        const validationIdHex = receipt.logs[1].topics[1] ?? '';
+        // Filter by emitter address rather than position — any intermediate
+        // contract emitting a log would shift indices and cause us to read
+        // wrong data (or throw on undefined).
+        const warpLog = receipt.logs.find((l) => l.address.toLowerCase() === WARP_PRECOMPILE_ADDRESS.toLowerCase());
+        const registrationLog = receipt.logs.find(
+          (l) => l.address.toLowerCase() === (validatorManagerAddress as string).toLowerCase() && l.topics.length >= 2,
+        );
+        if (!warpLog || !registrationLog) {
+          const msg =
+            'Registration tx was mined but the expected warp/registration events are missing from the receipt.';
+          setErrorState(msg);
+          onError(msg);
+          return;
+        }
+        const unsignedWarpMessage = warpLog.data ?? '';
+        const validationIdHex = registrationLog.topics[1] ?? '';
 
         setTxSuccess(`Transaction successful! Hash: ${hash}`);
         onSuccess({

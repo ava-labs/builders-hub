@@ -1,6 +1,7 @@
 'use client';
 
-import { formatEther, parseEther, createPublicClient, http, Chain } from 'viem';
+import { formatEther, parseEther, Chain } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { L1ListItem, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -165,9 +166,8 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
         return;
       }
       for (const chain of selectedChains) {
-        const client = createPublicClient({
-          transport: http(chain.rpcUrl),
-        });
+        const client = makePublicClientForChain(chain.rpcUrl);
+        if (!client) continue;
         const balance = await client.getBalance({ address: relayerAddress });
         newBalances[chain.id] = formatEther(balance);
       }
@@ -204,9 +204,8 @@ function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
         },
       };
 
-      const publicClient = createPublicClient({
-        transport: http(chain.rpcUrl),
-      });
+      const publicClient = makePublicClientForChain(chain.rpcUrl);
+      if (!publicClient) return;
 
       const nextNonce = await publicClient.getTransactionCount({
         address: walletEVMAddress as `0x${string}`,

@@ -1,4 +1,5 @@
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { getTxHistoryStore } from '@/components/toolbox/stores/txHistoryStore';
 import { useConsoleLog } from './use-console-log';
 import { Chain, createPublicClient, http } from 'viem';
 import { usePathname } from 'next/navigation';
@@ -100,9 +101,36 @@ const useEVMNotifications = () => {
           const publicClient = createPublicClient({ chain: viemChain, transport: http() });
           const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
+          // Update tx history store with confirmed/failed status
+          const txHistoryState = getTxHistoryStore(Boolean(isTestnet)).getState();
           if (receipt.status === 'reverted') {
-            throw new Error(`Transaction reverted (hash: ${hash})`);
+            let revertMessage = `Transaction reverted (hash: ${hash})`;
+
+            // On Fuji, auto-trace the failed tx for richer error context
+            if (isTestnet) {
+              try {
+                const traceResp = await fetch('/api/debug-rpc', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    method: 'debug_traceTransaction',
+                    params: [hash, { tracer: 'callTracer', tracerConfig: { onlyTopCall: false } }],
+                  }),
+                });
+                if (traceResp.ok) {
+                  const traceData = await traceResp.json();
+                  const reason = traceData?.result?.revertReason || traceData?.result?.error;
+                  if (reason) revertMessage = `Transaction reverted: ${reason} (hash: ${hash})`;
+                }
+              } catch {
+                // Trace failed, use default message
+              }
+            }
+
+            txHistoryState.updateTxStatus(hash, 'failed', revertMessage);
+            throw new Error(revertMessage);
           }
+          txHistoryState.updateTxStatus(hash, 'confirmed');
 
           const explorerUrl = getEVMExplorerUrl(hash, viemChain);
 
@@ -145,6 +173,14 @@ const useEVMNotifications = () => {
           status: 'error',
           message: errorMessage,
         });
+
+        // Update tx history store if a hash was captured before the error
+        // (error might occur during confirmation, not during signing)
+        getTxHistoryStore(Boolean(isTestnet)).getState().updateTxStatus(
+          error?.transactionHash || '',
+          'failed',
+          error.message,
+        );
 
         addLog({ status: 'error', actionPath, data: { error: error.message, network: isTestnet ? 'testnet' : 'mainnet' } });
         posthog.capture('console_action_error', {

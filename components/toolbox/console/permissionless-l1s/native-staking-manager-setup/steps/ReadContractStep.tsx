@@ -133,7 +133,7 @@ export default function ReadContractStep() {
           onChange={setSubnetIdInput}
           hidePrimaryNetwork
           label="L1 (Subnet ID)"
-          helperText="Select the L1 whose Native Staking Manager you want to inspect."
+          helperText="Select the L1 whose Staking Manager you want to inspect."
         />
       </div>
 

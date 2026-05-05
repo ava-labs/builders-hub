@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import InitiateDelegation from '@/components/toolbox/console/permissionless-l1s/delegate/InitiateDelegation';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import CompletePChainWeightUpdate from '@/components/toolbox/console/shared/CompletePChainWeightUpdate';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
-import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { BaseConsoleToolProps } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';
 
 export type TokenType = 'native' | 'erc20';
@@ -28,12 +29,39 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
   const [pChainTxId, setPChainTxId] = useState<string>('');
   const [completeDelegationTxHash, setCompleteDelegationTxHash] = useState<string>('');
 
-  const { exampleErc20Address } = useToolboxStore();
   const l1State = useL1SubnetState();
   const { validatorManagerDetails } = l1State;
+  const chainPublicClient = useChainPublicClient();
 
   const isNative = tokenType === 'native';
   const tokenLabel = isNative ? 'Native Token' : 'ERC20 Token';
+
+  // Resolve the staking manager's actual ERC20 token address from the contract.
+  // Avoid useToolboxStore().exampleErc20Address — it's the example token from a
+  // different setup wizard, not necessarily this chain's staking token.
+  const stakingManagerAddress = validatorManagerDetails.contractOwner || '';
+  const [resolvedErc20Address, setResolvedErc20Address] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setResolvedErc20Address(null);
+    if (isNative || !stakingManagerAddress || !chainPublicClient) return;
+    (async () => {
+      try {
+        const addr = (await chainPublicClient.readContract({
+          address: stakingManagerAddress as `0x${string}`,
+          abi: ERC20TokenStakingManager.abi,
+          functionName: 'erc20',
+        })) as string;
+        if (!cancelled) setResolvedErc20Address(addr);
+      } catch (err) {
+        console.error('Failed to read staking manager erc20', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stakingManagerAddress, chainPublicClient, isNative]);
 
   const handleReset = () => {
     setGlobalError(null);
@@ -99,9 +127,9 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
           <InitiateDelegation
             key={`initiate-${l1State.resetKey}-${tokenType}`}
             validationID={validatorSelection.validationId}
-            stakingManagerAddress={validatorManagerDetails.contractOwner || ''}
+            stakingManagerAddress={stakingManagerAddress}
             tokenType={tokenType}
-            erc20TokenAddress={!isNative ? exampleErc20Address : undefined}
+            erc20TokenAddress={!isNative ? (resolvedErc20Address ?? undefined) : undefined}
             onSuccess={(data) => {
               setInitiateDelegationTxHash(data.txHash);
               setDelegationID(data.delegationID);

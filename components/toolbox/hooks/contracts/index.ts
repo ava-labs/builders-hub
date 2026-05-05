@@ -24,5 +24,9 @@ export { parsePChainError } from './parsePChainError';
 export { useContractActions } from './useContractActions';
 export type { ContractActions, WriteOptions } from './useContractActions';
 
+// Batch read (deployless multicall)
+export { useBatchRead } from './useBatchRead';
+export type { BatchReadContract, BatchReadResult } from './useBatchRead';
+
 // Shared types
 export * from './types';

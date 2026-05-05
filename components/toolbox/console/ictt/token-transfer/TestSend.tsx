@@ -13,16 +13,8 @@ import NativeTokenRemoteABI from '@/contracts/icm-contracts/compiled/NativeToken
 import ERC20TokenRemoteABI from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
 import ExampleERC20ABI from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import ITeleporterMessenger from '@/contracts/example-contracts/compiled/ITeleporterMessenger.json';
-import {
-  createPublicClient,
-  http,
-  formatUnits,
-  parseUnits,
-  Address,
-  zeroAddress,
-  decodeEventLog,
-  AbiEvent,
-} from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
+import { formatUnits, parseUnits, Address, zeroAddress, decodeEventLog, AbiEvent } from 'viem';
 import { AmountInput } from '@/components/toolbox/components/AmountInput';
 import { Suggestion } from '@/components/toolbox/components/TokenInput';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
@@ -214,9 +206,12 @@ export default function TokenBridge() {
       }
 
       try {
-        const publicClient = createPublicClient({
-          transport: http(direction === 'source' ? viemChain!.rpcUrls.default.http[0] : destL1!.rpcUrl),
-        });
+        const publicClient = makePublicClientForChain(
+          direction === 'source' ? viemChain!.rpcUrls.default.http[0] : destL1!.rpcUrl,
+        );
+        if (!publicClient) {
+          return;
+        }
 
         let tokenAddress = address;
         let detectedSourceType: 'unknown' | 'home' | 'nativeRemote' | 'erc20Remote' = 'unknown';
@@ -407,10 +402,10 @@ export default function TokenBridge() {
     setLastSendTxId(undefined);
 
     try {
-      const publicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const publicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!publicClient) {
+        throw new Error('Could not create public client for source chain');
+      }
 
       const amountParsed = parseUnits(amount, tokenDecimals);
 
@@ -461,10 +456,10 @@ export default function TokenBridge() {
     setLastSendTxDetails(null);
 
     try {
-      const publicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const publicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!publicClient) {
+        throw new Error('Could not create public client for source chain');
+      }
 
       const amountParsed = parseUnits(amount, tokenDecimals);
       const gasLimitParsed = BigInt(requiredGasLimit);
@@ -556,9 +551,8 @@ export default function TokenBridge() {
   };
 
   const getReceiveTransaction = async () => {
-    const publicClient = createPublicClient({
-      transport: http(destL1?.rpcUrl),
-    });
+    const publicClient = makePublicClientForChain(destL1?.rpcUrl);
+    if (!publicClient) return;
     const receiveEventABI = ITeleporterMessenger.abi.find(
       (item: any) => item.type === 'event' && item.name === 'ReceiveCrossChainMessage',
     ) as AbiEvent;

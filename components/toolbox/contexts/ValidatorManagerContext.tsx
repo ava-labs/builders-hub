@@ -7,6 +7,7 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
+import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import type { StakingManagerSettings } from '@/components/toolbox/hooks/contracts/types';
 
 type ValidatorManagerDetailsReturn = ReturnType<typeof useValidatorManagerDetails>;
@@ -22,11 +23,26 @@ export interface StakingDetails {
   isLoading: boolean;
 }
 
+export interface ChurnData {
+  /** How much churn budget remains in the current period */
+  remainingBudget: bigint;
+  /** Maximum churn budget for the current period (totalWeight * maxChurnPercent / 100) */
+  maxBudget: bigint;
+  /** Percentage of churn budget already used (0-100) */
+  percentUsed: number;
+  /** Unix timestamp when the current churn period ends */
+  periodEndsAt: bigint;
+  /** Whether the churn data is still loading */
+  isLoading: boolean;
+}
+
 interface ValidatorManagerContextType extends ValidatorManagerDetailsReturn {
   subnetId: string;
   isContractInitialized: boolean;
   isValidatorSetInitialized: boolean;
   staking: StakingDetails;
+  churn: ChurnData | null;
+  registrationExpirySeconds: bigint | null;
 }
 
 const ValidatorManagerContext = createContext<ValidatorManagerContextType | null>(null);
@@ -55,6 +71,89 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
   const [erc20TokenAddress, setErc20TokenAddress] = useState<string | null>(null);
   const [stakingSettings, setStakingSettings] = useState<StakingManagerSettings | null>(null);
   const [isLoadingStaking, setIsLoadingStaking] = useState(false);
+
+  // ── Churn budget + registration expiry ──
+  const [churnData, setChurnData] = useState<ChurnData | null>(null);
+  const [isLoadingChurn, setIsLoadingChurn] = useState(false);
+  const [registrationExpirySeconds, setRegistrationExpirySeconds] = useState<bigint | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchChurnAndExpiry = async () => {
+      if (!chainPublicClient || !validatorManagerAddress) {
+        if (!cancelled) {
+          setChurnData(null);
+          setRegistrationExpirySeconds(null);
+          setIsLoadingChurn(false);
+        }
+        return;
+      }
+
+      if (!cancelled) setIsLoadingChurn(true);
+
+      try {
+        const vmcAddr = validatorManagerAddress as `0x${string}`;
+        const abi = ValidatorManagerAbi.abi;
+
+        const [churnTrackerResult, expiryResult] = await Promise.all([
+          chainPublicClient.readContract({
+            address: vmcAddr,
+            abi,
+            functionName: 'getChurnTracker',
+          }) as Promise<
+            [bigint, number, { startTime: bigint; initialWeight: bigint; totalWeight: bigint; churnAmount: bigint }]
+          >,
+          chainPublicClient.readContract({
+            address: vmcAddr,
+            abi,
+            functionName: 'REGISTRATION_EXPIRY_LENGTH',
+          }) as Promise<bigint>,
+        ]);
+
+        if (cancelled) return;
+
+        const [churnPeriodSeconds, maxChurnPercent, period] = churnTrackerResult;
+
+        // Churn budget is calculated from initialWeight (weight at start of period),
+        // NOT totalWeight (current weight after changes). Matches on-chain logic.
+        const baseWeight = period.initialWeight > 0n ? period.initialWeight : contractTotalWeight;
+        const maxBudget = baseWeight > 0n ? (baseWeight * BigInt(maxChurnPercent)) / 100n : 0n;
+
+        // Check if we're within the current churn period
+        const now = BigInt(Math.floor(Date.now() / 1000));
+        const periodEnd = period.startTime + BigInt(churnPeriodSeconds);
+        const isWithinPeriod = now < periodEnd;
+
+        const currentChurnAmount = isWithinPeriod ? period.churnAmount : 0n;
+        const remainingBudget = maxBudget > currentChurnAmount ? maxBudget - currentChurnAmount : 0n;
+        const percentUsed = maxBudget > 0n ? Number((currentChurnAmount * 100n) / maxBudget) : 0;
+
+        setChurnData({
+          remainingBudget,
+          maxBudget,
+          percentUsed,
+          periodEndsAt: periodEnd,
+          isLoading: false,
+        });
+
+        setRegistrationExpirySeconds(expiryResult);
+      } catch {
+        // Churn/expiry reads failed — set to null gracefully
+        if (!cancelled) {
+          setChurnData(null);
+          setRegistrationExpirySeconds(null);
+        }
+      } finally {
+        if (!cancelled) setIsLoadingChurn(false);
+      }
+    };
+
+    fetchChurnAndExpiry();
+    return () => {
+      cancelled = true;
+    };
+  }, [chainPublicClient, validatorManagerAddress, contractTotalWeight]);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +234,13 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
     [stakingType, resolvedStakingManagerAddress, erc20TokenAddress, stakingSettings, isLoadingStaking],
   );
 
+  const churn = useMemo<ChurnData | null>(() => {
+    if (isLoadingChurn) {
+      return { remainingBudget: 0n, maxBudget: 0n, percentUsed: 0, periodEndsAt: 0n, isLoading: true };
+    }
+    return churnData;
+  }, [churnData, isLoadingChurn]);
+
   const value = useMemo<ValidatorManagerContextType>(() => {
     const isContractInitialized = !!validatorManagerAddress && !error;
     const isValidatorSetInitialized = isContractInitialized && contractTotalWeight > 0n && !l1WeightError;
@@ -161,6 +267,8 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
       isContractInitialized,
       isValidatorSetInitialized,
       staking,
+      churn,
+      registrationExpirySeconds,
     };
   }, [
     validatorManagerAddress,
@@ -182,6 +290,8 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
     refetchOwnership,
     subnetId,
     staking,
+    churn,
+    registrationExpirySeconds,
   ]);
 
   return <ValidatorManagerContext.Provider value={value}>{children}</ValidatorManagerContext.Provider>;

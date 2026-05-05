@@ -4,6 +4,7 @@ import React from 'react';
 import { ValidatorManagerProvider } from './ValidatorManagerContext';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MainnetPoSWarning } from '@/components/toolbox/components/MainnetPoSWarning';
+import { StepErrorBoundary } from '@/components/toolbox/components/StepErrorBoundary';
 
 interface ValidatorManagerLayoutProps {
   subnetIdL1: string;
@@ -27,7 +28,9 @@ export default function ValidatorManagerLayout({
           Error: {globalError}
         </Alert>
       )}
-      {children}
+      <StepErrorBoundary fallbackMessage="An error occurred in this flow. Your progress is preserved — try refreshing.">
+        {children}
+      </StepErrorBoundary>
     </ValidatorManagerProvider>
   );
 }

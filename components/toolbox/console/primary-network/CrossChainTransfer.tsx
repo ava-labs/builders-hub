@@ -26,6 +26,20 @@ interface CrossChainTransferProps extends BaseConsoleToolProps {
   suggestedAmount?: string;
 }
 
+// Atomic export fee buffer: ~0.001 AVAX on both C-Chain (base-fee burn) and
+// P-Chain (flat tx fee). MAX subtracts this so the user always has gas left.
+const EXPORT_FEE_BUFFER_NAVAX = 1_000_000;
+
+// Snap an AVAX amount to whole nAVAX (1e-9 AVAX) precision via integer math.
+// `BigInt(amount * 1e9)` inside the SDK throws unless `amount * 1e9` is an
+// exact integer; balances derived from wei (1e18) routinely carry sub-nAVAX
+// drift, so we floor in the integer domain and divide back only once.
+function avaxToSafeNAvaxNumber(avax: number): number {
+  if (!Number.isFinite(avax) || avax <= 0) return 0;
+  const nAvax = Math.floor(avax * 1e9);
+  return nAvax > 0 ? nAvax / 1e9 : 0;
+}
+
 const metadata: ConsoleToolMetadata = {
   title: 'Cross-Chain Transfer',
   description: (
@@ -193,8 +207,18 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   }, [walletEVMAddress, pChainAddress, fetchUTXOs]);
 
   const handleMaxAmount = () => {
-    const maxAmount = sourceChain === 'c-chain' ? cChainBalance.toString() : pChainBalance.toString();
-    setAmount(maxAmount);
+    const balance = sourceChain === 'c-chain' ? cChainBalance : pChainBalance;
+    if (!Number.isFinite(balance) || balance <= 0) {
+      setAmount('0');
+      return;
+    }
+    const balanceNAvax = Math.floor(balance * 1e9);
+    const spendableNAvax = balanceNAvax - EXPORT_FEE_BUFFER_NAVAX;
+    if (spendableNAvax <= 0) {
+      setAmount('0');
+      return;
+    }
+    setAmount((spendableNAvax / 1e9).toString());
   };
 
   // Handler to swap source and destination chains
@@ -237,13 +261,20 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     setError(null);
     autoImportTriggeredRef.current = false;
 
+    const safeAmount = avaxToSafeNAvaxNumber(Number(amount));
+    if (safeAmount <= 0) {
+      setError('Amount is below the smallest exportable unit (1 nAVAX).');
+      setExportLoading(false);
+      return;
+    }
+
     const exportPromise = (async () => {
       if (sourceChain === 'c-chain') {
         const txnRequest = await coreWalletClient.cChain.prepareExportTxn({
           destinationChain: 'P',
           exportedOutput: {
             addresses: [pChainAddress],
-            amount: Number(amount),
+            amount: safeAmount,
           },
           fromAddress: walletEVMAddress as `0x${string}`,
         });
@@ -255,7 +286,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           exportedOutputs: [
             {
               addresses: [coreEthAddress],
-              amount: Number(amount),
+              amount: safeAmount,
             },
           ],
           destinationChain: 'C',
@@ -281,7 +312,13 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       onBalanceChanged();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
-      setError(`Export failed: ${msg}`);
+      if (/invalid nonce/i.test(msg)) {
+        setError(
+          'Export failed: another C-Chain transaction from this wallet is still pending. Wait for it to confirm (or reset the account in Core: Settings → Advanced → Reset Account) and try again.',
+        );
+      } else {
+        setError(`Export failed: ${msg}`);
+      }
     } finally {
       setExportLoading(false);
     }

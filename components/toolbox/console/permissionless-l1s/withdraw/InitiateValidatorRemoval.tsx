@@ -5,8 +5,9 @@ import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
-import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
-import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { LockedContent } from '@/components/toolbox/components/LockedContent';
+import { ValidatorPreflightChecklist } from '@/components/toolbox/components/ValidatorPreflightChecklist';
+import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 
@@ -37,12 +38,18 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
   const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
+  const preflight = useValidatorPreflight({
+    validationID: validationID || undefined,
+    stakingManagerAddress,
+    validatorManagerAddress: stakingManagerAddress,
+    walletAddress: walletEVMAddress || undefined,
+  });
+
   const [messageIndex, setMessageIndex] = useState<string>('0');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
   const handleInitiateRemoval = async () => {
@@ -80,100 +87,9 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
     setIsProcessing(true);
     try {
-      // Pre-check validator state
-      try {
-        const stakingValidatorInfo = (await chainPublicClient.readContract({
-          address: stakingManagerAddress as `0x${string}`,
-          abi: contractAbi,
-          functionName: 'getStakingValidator',
-          args: [validationID as `0x${string}`],
-        })) as { owner: string; delegationFeeBips: number; minStakeDuration: bigint; uptimeSeconds: bigint };
-
-        const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-        const isGenesisValidator = stakingValidatorInfo.owner === ZERO_ADDRESS;
-
-        // For non-genesis validators, check ownership
-        if (!isGenesisValidator && stakingValidatorInfo.owner.toLowerCase() !== walletEVMAddress?.toLowerCase()) {
-          throw new Error(`You are not the owner of this validator. Owner: ${stakingValidatorInfo.owner}`);
-        }
-
-        // Get ValidatorManager address to check validator status
-        const settings = (await chainPublicClient.readContract({
-          address: stakingManagerAddress as `0x${string}`,
-          abi: contractAbi,
-          functionName: 'getStakingManagerSettings',
-        })) as { manager: string; minimumStakeDuration: bigint };
-
-        const ValidatorManagerAbi = [
-          {
-            type: 'function',
-            name: 'getValidator',
-            inputs: [{ name: 'validationID', type: 'bytes32' }],
-            outputs: [
-              {
-                type: 'tuple',
-                components: [
-                  { name: 'status', type: 'uint8' },
-                  { name: 'nodeID', type: 'bytes' },
-                  { name: 'startingWeight', type: 'uint64' },
-                  { name: 'weight', type: 'uint64' },
-                  { name: 'startTime', type: 'uint64' },
-                  { name: 'endedAt', type: 'uint64' },
-                ],
-              },
-            ],
-            stateMutability: 'view',
-          },
-        ];
-
-        const validatorInfo = (await chainPublicClient.readContract({
-          address: settings.manager as `0x${string}`,
-          abi: ValidatorManagerAbi,
-          functionName: 'getValidator',
-          args: [validationID as `0x${string}`],
-        })) as { status: number; startingWeight: bigint; weight: bigint; startTime: bigint };
-
-        const statusNames: Record<number, string> = {
-          0: 'Unknown',
-          1: 'Pending',
-          2: 'Active',
-          3: 'Removing',
-          4: 'Completed',
-        };
-
-        if (Number(validatorInfo.status) !== 2) {
-          throw new Error(
-            `Validator is not active. Current status: ${statusNames[validatorInfo.status] || validatorInfo.status}. Only active validators can be removed.`,
-          );
-        }
-
-        // Note: We no longer block on weight > startingWeight check here.
-        // This check was causing false positives due to state sync issues between
-        // delegation completion and validator weight updates.
-        // The contract itself will enforce proper delegation removal.
-
-        // Check minimum stake duration for PoS validators
-        if (!isGenesisValidator && stakingValidatorInfo.minStakeDuration > 0n) {
-          const currentTime = BigInt(Math.floor(Date.now() / 1000));
-          const endTime = validatorInfo.startTime + stakingValidatorInfo.minStakeDuration;
-
-          if (currentTime < endTime) {
-            const remaining = endTime - currentTime;
-            const hours = Number(remaining) / 3600;
-            throw new Error(`Minimum stake duration has not passed. Time remaining: ${hours.toFixed(1)} hours.`);
-          }
-        }
-      } catch (preCheckErr) {
-        if (
-          preCheckErr instanceof Error &&
-          (preCheckErr.message.includes('not the owner') ||
-            preCheckErr.message.includes('stake duration') ||
-            preCheckErr.message.includes('not active') ||
-            preCheckErr.message.includes('active delegations'))
-        ) {
-          throw preCheckErr;
-        }
-      }
+      // Pre-checks are handled by useValidatorPreflight — the button is gated
+      // behind preflight.checks.initiateRemoval.status === 'met', so we only
+      // reach here when all on-chain preconditions are satisfied.
 
       // Use hook to initiate validator removal (no uptime proof)
       // (useContractActions.write() already calls notify() internally)
@@ -215,6 +131,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}
 
+      {validationID && <ValidatorPreflightChecklist preflight={preflight} currentFlow="initiate-removal" />}
+
       <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
         <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
           Removal Parameters ({tokenLabel} Staking)
@@ -236,20 +154,17 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         </div>
       </div>
 
-      <Alert variant="info">
-        <p className="text-sm">
-          <strong>Requirements:</strong> You must be the validator owner. All delegations must be removed first. The
-          minimum stake duration must have passed.
-        </p>
-      </Alert>
-
-      <Button
-        onClick={handleInitiateRemoval}
-        disabled={isProcessing || !validationID || !!txHash}
-        loading={isProcessing}
+      <LockedContent
+        isUnlocked={!validationID || (!preflight.isLoading && preflight.checks.initiateRemoval.status === 'met')}
       >
-        {isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
-      </Button>
+        <Button
+          onClick={handleInitiateRemoval}
+          disabled={isProcessing || !validationID || !!txHash || preflight.isLoading}
+          loading={isProcessing || preflight.isLoading}
+        >
+          {isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
+        </Button>
+      </LockedContent>
     </div>
   );
 };

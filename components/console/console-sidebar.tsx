@@ -9,22 +9,15 @@ import {
   MessagesSquare,
   Wrench,
   Droplets,
-  Shield,
   Network,
   GitMerge,
   Server,
   Telescope,
   ArrowLeftRight,
   Calculator,
-  Coins,
-  Box,
-  ArrowUpDown,
-  ShieldCheck,
   ShieldUser,
   SquareTerminal,
   Hexagon,
-  SlidersVertical,
-  SquareMinus,
   SquarePlus,
   HandCoins,
   ExternalLink,
@@ -34,9 +27,12 @@ import {
   ChevronRight,
   Rocket,
   LayoutDashboard,
+  LayoutGrid,
   Workflow,
-
+  Lock,
+  BookOpen,
   Search,
+  Star,
   X,
   Bell,
   type LucideIcon,
@@ -55,6 +51,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -62,8 +59,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useSidebarState } from "@/hooks/useSidebarState";
+import { useFavoriteTools } from "@/hooks/useFavoriteTools";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { cn } from "@/lib/utils";
+import { TOOLS as ALL_CONSOLE_TOOLS } from "@/components/toolbox/console/toolbox/tools";
 
 // C-Chain chain IDs (Fuji testnet and Mainnet)
 const C_CHAIN_IDS = [43113, 43114];
@@ -74,6 +73,14 @@ interface NavItem {
   url: string;
   icon: LucideIcon;
   comingSoon?: boolean;
+  sourceCategory?: string;
+  /** Optional override for the row's accessible name. Used by sub-step
+   *  search results so screen readers hear the parent flow context. */
+  ariaLabel?: string;
+  /** When set, the search-result row renders this above the title in
+   *  small muted text — mirrors the toolbox grid's "Parent › Step" layout
+   *  so the sidebar reads the same way. */
+  parentName?: string;
 }
 
 interface CollapsibleSubGroup {
@@ -94,6 +101,11 @@ interface NavGroup {
 
 interface SearchableNavItem extends NavItem {
   category: string;
+  /** Optional override for the row's accessible name. Used for sub-step
+   *  results so screen readers hear "Sub-step under <parent>: <step>"
+   *  instead of just the step name (which is often ambiguous out of
+   *  context — "Initialize Manager" doesn't say what flow it belongs to). */
+  ariaLabel?: string;
 }
 
 // Helper to check if item is a collapsible subgroup
@@ -127,65 +139,22 @@ const data = {
       url: "/console",
       icon: Home,
     },
+    {
+      title: "Toolbox",
+      url: "/console/toolbox",
+      icon: LayoutGrid,
+    },
   ],
   navGroups: [
-    // Primary Network — the starting point for all developers
+    // Getting started — entry points
     {
-      id: "primary-network",
-      title: "Primary Network",
-      icon: Network,
-      items: [
-        {
-          title: "Testnet Faucet",
-          url: "/console/primary-network/faucet",
-          icon: Droplets,
-        },
-        {
-          title: "Data API Keys",
-          url: "/console/utilities/data-api-keys",
-          icon: BookKey,
-        },
-        {
-          title: "Stake AVAX",
-          url: "/console/primary-network/stake",
-          icon: HandCoins,
-        },
-        {
-          title: "Node Setup",
-          url: "/console/primary-network/node-setup",
-          icon: Server,
-        },
-        {
-          title: "C/P-Chain Bridge",
-          url: "/console/primary-network/c-p-bridge",
-          icon: ArrowLeftRight,
-        },
-        {
-          title: "Ethereum Bridge",
-          url: "https://core.app/bridge",
-          icon: ArrowUpDown,
-        },
-        {
-          title: "Validator Lookup",
-          url: "/console/primary-network/validator-lookup",
-          icon: Search,
-        },
-        {
-          title: "Validator Alerts",
-          url: "/console/primary-network/validator-alerts",
-          icon: Bell,
-        },
-      ],
-    },
-    // Create & Deploy — L1 lifecycle entry point
-    {
-      id: "create-deploy",
-      title: "Create & Deploy",
+      id: "getting-started",
+      title: "Getting Started",
       icon: Rocket,
       items: [
         {
           title: "Create L1",
-          url: "/console/layer-1/create",
+          url: "/console/create-l1",
           icon: Layers,
         },
         {
@@ -193,248 +162,22 @@ const data = {
           url: "/console/my-l1",
           icon: LayoutDashboard,
         },
-      ],
-    },
-    // Permissioned L1s — admin-controlled validator management
-    {
-      id: "permissioned-l1s",
-      title: "Permissioned L1s",
-      icon: Shield,
-      items: [
         {
-          id: "permissioned-setup",
-          title: "Setup",
-          icon: SquareTerminal,
-          items: [
-            {
-              title: "Validator Manager Setup",
-              url: "/console/permissioned-l1s/validator-manager-setup",
-              icon: SquareTerminal,
-            },
-            {
-              title: "Multisig Setup",
-              url: "/console/permissioned-l1s/multisig-setup",
-              icon: ShieldUser,
-            },
-          ],
-        },
-        {
-          id: "permissioned-manage",
-          title: "Manage Validators",
-          icon: Hexagon,
-          items: [
-            {
-              title: "Add Validator",
-              url: "/console/permissioned-l1s/add-validator",
-              icon: SquarePlus,
-            },
-            {
-              title: "Remove Validator",
-              url: "/console/permissioned-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Change Validator Weight",
-              url: "/console/permissioned-l1s/change-validator-weight",
-              icon: SlidersVertical,
-            },
-            {
-              title: "Disable Validator",
-              url: "/console/permissioned-l1s/disable-validator",
-              icon: ShieldOff,
-            },
-            {
-              title: "Remove Expired Registration",
-              url: "/console/permissioned-l1s/remove-expired-validator-registration",
-              icon: SquareMinus,
-            },
-          ],
+          title: "Testnet Faucet",
+          url: "/console/primary-network/faucet",
+          icon: Droplets,
         },
       ],
     },
-    // Permissionless L1s — open staking and delegation
+    // Testnet Infrastructure — sits right after Getting Started because these
+    // are the two entry points users return to after a Quick L1: the managed
+    // node they just provisioned, and the relayer that drives ICM/ICTT for
+    // it. The rest of the old Manage L1 group (Validator Set/Balance, Fee
+    // Params) lives in /console/toolbox.
     {
-      id: "permissionless-l1s",
-      title: "Permissionless L1s",
-      icon: HandCoins,
-      items: [
-        {
-          id: "permissionless-setup",
-          title: "Setup",
-          icon: GitMerge,
-          items: [
-            {
-              title: "Native Staking Manager Setup",
-              url: "/console/permissionless-l1s/native-staking-manager-setup",
-              icon: GitMerge,
-            },
-            {
-              title: "ERC20 Staking Manager Setup",
-              url: "/console/permissionless-l1s/erc20-staking-manager-setup",
-              icon: GitMerge,
-            },
-          ],
-        },
-        {
-          id: "permissionless-stake",
-          title: "Stake & Delegate",
-          icon: HandCoins,
-          items: [
-            {
-              title: "Stake (Native Token)",
-              url: "/console/permissionless-l1s/stake/native",
-              icon: HandCoins,
-            },
-            {
-              title: "Stake (ERC20 Token)",
-              url: "/console/permissionless-l1s/stake/erc20",
-              icon: HandCoins,
-            },
-            {
-              title: "Delegate (Native Token)",
-              url: "/console/permissionless-l1s/delegate/native",
-              icon: ArrowUpDown,
-            },
-            {
-              title: "Delegate (ERC20 Token)",
-              url: "/console/permissionless-l1s/delegate/erc20",
-              icon: ArrowUpDown,
-            },
-          ],
-        },
-        {
-          id: "permissionless-withdraw",
-          title: "Withdraw",
-          icon: SquareMinus,
-          items: [
-            {
-              title: "Remove Validator",
-              url: "/console/permissionless-l1s/remove-validator",
-              icon: SquareMinus,
-            },
-            {
-              title: "Remove Delegation",
-              url: "/console/permissionless-l1s/remove-delegation",
-              icon: SquareMinus,
-            },
-          ],
-        },
-      ],
-    },
-    // Interchain Messaging — cross-chain communication
-    {
-      id: "cross-chain",
-      title: "Interchain Messaging",
-      icon: ArrowLeftRight,
-      items: [
-        {
-          id: "icm-setup",
-          title: "Setup",
-          icon: MessagesSquare,
-          items: [
-            {
-              title: "ICM Setup",
-              url: "/console/icm/setup",
-              icon: MessagesSquare,
-            },
-            {
-              title: "ICTT Setup",
-              url: "/console/ictt/setup",
-              icon: Workflow,
-            },
-          ],
-        },
-        {
-          title: "Token Transfer Test",
-          url: "/console/ictt/token-transfer",
-          icon: ArrowLeftRight,
-        },
-      ],
-    },
-    // L1 Management — configure and monitor your running L1
-    {
-      id: "l1-management",
-      title: "L1 Management",
-      icon: Box,
-      items: [
-        {
-          id: "infrastructure",
-          title: "Infrastructure",
-          icon: Server,
-          items: [
-            {
-              title: "L1 Node Setup",
-              url: "/console/layer-1/l1-node-setup",
-              icon: Server,
-            },
-            {
-              title: "Explorer Setup",
-              url: "/console/layer-1/explorer-setup",
-              icon: Telescope,
-            },
-            {
-              title: "Performance Monitor",
-              url: "/console/layer-1/performance-monitor",
-              icon: Activity,
-            },
-          ],
-        },
-        {
-          id: "tokenomics",
-          title: "Tokenomics",
-          icon: Coins,
-          items: [
-            {
-              title: "Fee Parameters",
-              url: "/console/l1-tokenomics/fee-manager",
-              icon: Coins,
-            },
-            {
-              title: "Fee Distributions",
-              url: "/console/l1-tokenomics/reward-manager",
-              icon: Coins,
-            },
-            {
-              title: "Mint Native Coins",
-              url: "/console/l1-tokenomics/native-minter",
-              icon: Coins,
-            },
-          ],
-        },
-        {
-          id: "access-control",
-          title: "Access Control",
-          icon: Shield,
-          items: [
-            {
-              title: "Deployer Allowlist",
-              url: "/console/l1-access-restrictions/deployer-allowlist",
-              icon: ShieldCheck,
-            },
-            {
-              title: "Transactor Allowlist",
-              url: "/console/l1-access-restrictions/transactor-allowlist",
-              icon: ShieldUser,
-            },
-          ],
-        },
-        {
-          title: "Query Validator Set",
-          url: "/console/layer-1/validator-set",
-          icon: Hexagon,
-        },
-        {
-          title: "L1 Validator Balance",
-          url: "/console/layer-1/l1-validator-balance",
-          icon: Coins,
-        },
-      ],
-    },
-    // Utilities — tools and infra helpers
-    {
-      id: "utilities",
-      title: "Utilities",
-      icon: Wrench,
+      id: "testnet-infra",
+      title: "Testnet Infrastructure",
+      icon: Server,
       items: [
         {
           title: "Testnet Nodes",
@@ -446,30 +189,106 @@ const data = {
           url: "/console/testnet-infra/icm-relayer",
           icon: Layers,
         },
+      ],
+    },
+    // Primary Network
+    {
+      id: "primary-network",
+      title: "Primary Network",
+      icon: Network,
+      defaultOpen: true,
+      items: [
         {
-          title: "Format Converter",
-          url: "/console/utilities/format-converter",
-          icon: Wrench,
+          title: "Node Setup",
+          url: "/console/primary-network/node-setup",
+          icon: Server,
         },
         {
-          title: "Unit Converter",
-          url: "/console/primary-network/unit-converter",
-          icon: Calculator,
+          title: "Stake AVAX",
+          url: "/console/primary-network/stake",
+          icon: HandCoins,
         },
         {
-          title: "Transfer Proxy Admin",
-          url: "/console/utilities/transfer-proxy-admin",
-          icon: Wrench,
+          title: "C/P Bridge",
+          url: "/console/primary-network/c-p-bridge",
+          icon: ArrowLeftRight,
         },
         {
-          title: "VMC Migration (V1 → V2)",
-          url: "/console/utilities/vmcMigrateFromV1",
-          icon: Wrench,
+          title: "Validator Alerts",
+          url: "/console/primary-network/validator-alerts",
+          icon: Bell,
+        },
+      ],
+    },
+    // Validators — flat list of the highest-traffic actions. Add Validator
+    // is the canonical entry point for a freshly created PoA L1; Stake is
+    // the equivalent for PoS-Native; Disable Validator is the consensus-
+    // agnostic P-Chain exit. The full matrix (force-remove, change-weight,
+    // delegations, ERC20-flavored variants, etc.) lives in /console/toolbox
+    // so power users can still find them while the sidebar stays focused.
+    {
+      id: "validators",
+      title: "Validators",
+      icon: Hexagon,
+      items: [
+        {
+          title: "Add Validator",
+          url: "/console/permissioned-l1s/add-validator",
+          icon: SquarePlus,
         },
         {
-          title: "Revert PoA Manager",
-          url: "/console/utilities/revert-poa-manager",
-          icon: Wrench,
+          title: "Stake",
+          url: "/console/permissionless-l1s/stake/native",
+          icon: HandCoins,
+        },
+        {
+          title: "Disable Validator",
+          url: "/console/permissioned-l1s/disable-validator",
+          icon: ShieldOff,
+        },
+      ],
+    },
+    // Cross-Chain
+    {
+      id: "cross-chain",
+      title: "Cross-Chain",
+      icon: MessagesSquare,
+      items: [
+        {
+          title: "ICM Setup",
+          url: "/console/icm/setup",
+          icon: MessagesSquare,
+        },
+        {
+          title: "Token Bridge",
+          url: "/console/ictt/setup",
+          icon: Workflow,
+        },
+        {
+          title: "Token Transfer",
+          url: "/console/ictt/token-transfer",
+          icon: ArrowLeftRight,
+        },
+      ],
+    },
+    // Encrypted ERC — slim to two entries: Overview (the in-page hub with
+    // bubble nav for register / deposit / transfer / withdraw / balance /
+    // auditor) and Deploy Your Own (the wizard for custom L1s). The full
+    // sub-tool catalog lives in /console/toolbox under "Encrypted ERC".
+    {
+      id: "encrypted-erc",
+      title: "Encrypted ERC",
+      icon: Lock,
+      items: [
+        {
+          title: "Overview",
+          url: "/console/encrypted-erc/overview",
+          icon: BookOpen,
+        },
+        {
+          title: "Deploy Your Own",
+          url: "/console/encrypted-erc/deploy",
+          icon: Rocket,
         },
       ],
     },
@@ -496,11 +315,13 @@ function CollapsibleSection({
   pathname,
   isOpen,
   onToggle,
+  onUnpin,
 }: {
   group: NavGroup;
   pathname: string;
   isOpen: boolean;
   onToggle: () => void;
+  onUnpin?: (path: string) => void;
 }) {
   // Auto-expand if the current path is inside this group
   const containsActive = groupContainsPath(group, pathname);
@@ -535,6 +356,16 @@ function CollapsibleSection({
                     />
                   );
                 }
+                if (group.id === "pinned" && onUnpin) {
+                  return (
+                    <PinnedNavMenuItem
+                      key={item.title}
+                      item={item}
+                      pathname={pathname}
+                      onUnpin={onUnpin}
+                    />
+                  );
+                }
                 return (
                   <NavMenuItem key={item.title} item={item} pathname={pathname} />
                 );
@@ -544,6 +375,57 @@ function CollapsibleSection({
         </CollapsibleContent>
       </SidebarGroup>
     </Collapsible>
+  );
+}
+
+function PinnedNavMenuItem({
+  item,
+  pathname,
+  onUnpin,
+}: {
+  item: NavItem;
+  pathname: string;
+  onUnpin: (path: string) => void;
+}) {
+  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+  const handleUnpin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onUnpin(item.url);
+  };
+
+  return (
+    <SidebarMenuItem>
+      <div
+        className={cn(
+          "group/pinned flex min-h-9 items-center gap-1 rounded-md pr-1 text-sidebar-foreground/70 transition-colors",
+          "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          isActive && "bg-sidebar-accent text-sidebar-foreground"
+        )}
+      >
+        <Link href={item.url} className="flex min-w-0 flex-1 flex-col px-2 py-1.5">
+          <span className="truncate text-sm leading-4">{item.title}</span>
+          {item.sourceCategory && (
+            <span className="truncate text-[10px] leading-3 text-sidebar-foreground/40">
+              {item.sourceCategory}
+            </span>
+          )}
+        </Link>
+        <button
+          type="button"
+          onClick={handleUnpin}
+          title={`Unpin ${item.title}`}
+          aria-label={`Unpin ${item.title} from sidebar`}
+          className={cn(
+            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-amber-500 transition-all",
+            "opacity-100 hover:bg-sidebar-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            "sm:opacity-0 sm:group-hover/pinned:opacity-100 sm:focus-visible:opacity-100"
+          )}
+        >
+          <Star className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />
+        </button>
+      </div>
+    </SidebarMenuItem>
   );
 }
 
@@ -619,7 +501,7 @@ function CollapsibleSubGroupItem({
 // Map URLs to tour data attributes
 const TOUR_DATA_ATTRS: Record<string, string> = {
   "/console/primary-network/faucet": "faucet-link",
-  "/console/layer-1/create": "create-l1-link",
+  "/console/create-l1": "create-l1-link",
 
 };
 
@@ -663,11 +545,103 @@ function NavMenuItem({
             <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-50" />
           </a>
         ) : (
-          <Link href={item.url}>
+          <Link href={item.url} aria-label={item.ariaLabel}>
             <span>{item.title}</span>
           </Link>
         )}
       </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+// Search-result row variant. Same body as NavMenuItem, plus a trailing star
+// button when the result corresponds to a pinnable tool — so users can pin
+// from search without first navigating to the toolbox grid. Mandatory tools
+// render the star as filled+disabled to communicate "already in your
+// sidebar" without offering an unpin path.
+function SearchResultMenuItem({
+  item,
+  pathname,
+  isPinnable,
+  isUserStarred,
+  isMandatory,
+  onTogglePin,
+}: {
+  item: NavItem;
+  pathname: string;
+  isPinnable: boolean;
+  isUserStarred: boolean;
+  isMandatory: boolean;
+  onTogglePin: (path: string) => void;
+}) {
+  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+  const isComingSoon = item.comingSoon;
+  const isExternal = item.url.startsWith("https://");
+  const tourAttr = TOUR_DATA_ATTRS[item.url];
+  const showStar = isPinnable && !isComingSoon && !isExternal;
+  const isPinned = isUserStarred || isMandatory;
+
+  const handlePinClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isMandatory) return;
+    onTogglePin(item.url);
+  };
+
+  const starTitle = isMandatory
+    ? `${item.title} is already in the sidebar by default`
+    : isUserStarred
+      ? `Unpin ${item.title} from sidebar`
+      : `Pin ${item.title} to sidebar`;
+
+  if (!showStar) {
+    return <NavMenuItem item={item} pathname={pathname} />;
+  }
+
+  return (
+    <SidebarMenuItem data-tour={tourAttr}>
+      <div
+        className={cn(
+          "group/searchresult flex min-h-9 items-center gap-1 rounded-md pr-1 text-sidebar-foreground/70 transition-colors",
+          "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          isActive && "bg-sidebar-accent text-sidebar-foreground"
+        )}
+      >
+        <Link
+          href={item.url}
+          aria-label={item.ariaLabel}
+          className="flex min-w-0 flex-1 flex-col px-2 py-1.5 text-sm"
+        >
+          {item.parentName && (
+            <span className="truncate text-[10px] leading-tight text-sidebar-foreground/45">
+              {item.parentName} ›
+            </span>
+          )}
+          <span className="truncate">{item.title}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={handlePinClick}
+          disabled={isMandatory}
+          title={starTitle}
+          aria-label={starTitle}
+          aria-pressed={isPinned}
+          className={cn(
+            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            isPinned
+              ? "text-amber-500 opacity-100"
+              : "text-sidebar-foreground/40 opacity-0 hover:text-sidebar-foreground group-hover/searchresult:opacity-100 focus-visible:opacity-100",
+            isMandatory && "cursor-not-allowed opacity-60",
+            !isMandatory && "hover:bg-sidebar-accent"
+          )}
+        >
+          <Star
+            className="h-3.5 w-3.5"
+            fill={isPinned ? "currentColor" : "none"}
+            strokeWidth={isPinned ? 1.5 : 2}
+          />
+        </button>
+      </div>
     </SidebarMenuItem>
   );
 }
@@ -677,6 +651,14 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const sidebarState = useSidebarState(["primary-network"]);
   const { isCollapsed, toggleSection } = sidebarState;
 
+  // Rail collapse state (icon mode). When the user shrinks the sidebar to
+  // just the icon rail, the full-width search input no longer fits — swap
+  // it for a search-icon button that re-expands the rail and focuses the
+  // input on click. `useSidebar()` exposes `state` ("expanded"|"collapsed")
+  // and `setOpen` from `components/ui/sidebar.tsx`.
+  const { state: railState, setOpen: setRailOpen } = useSidebar();
+  const isRailCollapsed = railState === "collapsed";
+
   const [searchQuery, setSearchQuery] = React.useState("");
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -685,28 +667,133 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const isConnectedToL1 =
     walletChainId !== 0 && !C_CHAIN_IDS.includes(walletChainId);
 
-  // Flatten all nav items for search, tracking their category path
+  // User-pinned tools from the toolbox. Mandatory tools are already in the
+  // canonical sidebar groups below; we only inject what the user explicitly
+  // starred and isn't already pinned by the static navigation.
+  const {
+    userStarred,
+    isHydrated: favoritesHydrated,
+    isUserStarred,
+    isMandatory: isMandatoryTool,
+    toggle: toggleFavoriteTool,
+  } = useFavoriteTools();
+
+  // Set of every toolbox tool path — used by search results to decide
+  // whether a hit is "pinnable" (i.e., backed by a real tool) and should
+  // surface the star toggle. Pure-navigation hits (e.g. "Console" home)
+  // don't pin meaningfully so they get no star.
+  const toolPaths = React.useMemo(
+    () =>
+      new Set(
+        ALL_CONSOLE_TOOLS.filter((t) => !t.external).map((t) => t.path),
+      ),
+    [],
+  );
+
+  const starredGroup = React.useMemo<NavGroup | null>(() => {
+    if (!favoritesHydrated || userStarred.length === 0) return null;
+    const items: NavItem[] = [];
+    for (const path of userStarred) {
+      const tool = ALL_CONSOLE_TOOLS.find((t) => t.path === path);
+      if (!tool || tool.external) continue;
+      items.push({
+        title: tool.name,
+        url: tool.path,
+        icon: tool.icon,
+        sourceCategory: tool.category,
+      });
+    }
+    if (items.length === 0) return null;
+    return {
+      id: 'pinned',
+      title: 'Pinned',
+      icon: Star,
+      defaultOpen: true,
+      items,
+    };
+  }, [userStarred, favoritesHydrated]);
+
+  // "Create L1" is a single sidebar entry. When an in-progress flow exists,
+  // the `/console/create-l1` page itself auto-redirects to the resume step,
+  // so we no longer inject a separate "Resume" item here.
+  // Inject the user's Starred group at the top so pinned tools always render
+  // ahead of the canonical sidebar nav.
+  const navGroups = React.useMemo(
+    () => (starredGroup ? [starredGroup, ...data.navGroups] : data.navGroups),
+    [starredGroup],
+  );
+
+  // Flatten all searchable items, tracking their category path. The sidebar
+  // surfaces a curated subset; the toolbox grid is the source of truth for
+  // every console tool. Merge both so search results stay complete even when
+  // an item isn't pinned to the sidebar (e.g. encrypted-erc sub-tools after
+  // the group was slimmed to Overview + Deploy).
   const allNavItems = React.useMemo(() => {
     const items: SearchableNavItem[] = [];
-    data.navMain.forEach((item) =>
-      items.push({ ...item, category: "" })
-    );
-    data.navGroups.forEach((group) => {
+    const seenUrls = new Set<string>();
+
+    const push = (item: SearchableNavItem) => {
+      if (seenUrls.has(item.url)) return;
+      seenUrls.add(item.url);
+      items.push(item);
+    };
+
+    data.navMain.forEach((item) => push({ ...item, category: "" }));
+    navGroups.forEach((group) => {
       group.items.forEach((item) => {
         if (isCollapsibleSubGroup(item)) {
           const category = `${group.title} › ${item.title}`;
-          item.items.forEach((subItem) =>
-            items.push({ ...subItem, category })
-          );
+          item.items.forEach((subItem) => push({ ...subItem, category }));
         } else {
-          items.push({ ...item, category: group.title });
+          push({ ...item, category: group.title });
         }
       });
     });
-    return items;
-  }, []);
 
-  // Filter items based on search query
+    // Append every toolbox entry not already pinned to the sidebar. The
+    // "Toolbox › <category>" prefix flags it visually in the search results
+    // so users know they're reaching beyond the sidebar tree. Sub-steps
+    // are ALWAYS included here — the sidebar's global search is meant to
+    // be the fastest way to land on any specific step, so we don't gate
+    // them behind the `useSubStepSearchToggle` flag the way the Toolbox
+    // board does. The board's toggle still controls visibility of the
+    // sub-step grid section there; this surface is independent.
+    ALL_CONSOLE_TOOLS.forEach((tool) => {
+      if (tool.external) return;
+      push({
+        title: tool.name,
+        url: tool.path,
+        icon: tool.icon,
+        category: `Toolbox › ${tool.category}`,
+      });
+      (tool.subSteps ?? []).forEach((step) => {
+        push({
+          title: step.name,
+          url: step.path,
+          icon: tool.icon,
+          // Two-tier category so sub-steps group with their parent's
+          // top-level tools under the same header (avoids interleaved
+          // duplicate headers when a category has both top-level tools
+          // and sub-steps matching the search).
+          category: `Toolbox › ${tool.category}`,
+          // Parent flow rendered inline above the step name — matches
+          // the toolbox board's `Add Validator › Initiate Validator
+          // Registration` layout so both surfaces read identically.
+          parentName: tool.name,
+          ariaLabel: `Sub-step of ${tool.name}: ${step.name}`,
+        });
+      });
+    });
+
+    return items;
+  }, [navGroups]);
+
+  // Filter items based on search query — title-only match keeps results
+  // tight and predictable. Searching "convert" returns only items whose
+  // visible name contains "convert" (Convert to L1, Format Converter, Unit
+  // Converter), not anything whose description happens to mention
+  // "encrypted" or "permissioned." Sub-step entries match on their step
+  // name alone, which is exactly what users mean when they search for one.
   const filteredItems = React.useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
@@ -733,29 +820,48 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
     <SidebarStateContext.Provider value={sidebarState}>
       <Sidebar {...props} data-tour="sidebar">
         <SidebarHeader className="px-3 pt-3 pb-1">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-sidebar-foreground/40" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="w-full rounded-md border border-sidebar-border bg-transparent pl-8 pr-8 py-1.5 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 focus:outline-none focus:ring-1 focus:ring-sidebar-ring"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  searchInputRef.current?.focus();
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-sidebar-foreground/40 hover:text-sidebar-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+          {isRailCollapsed ? (
+            // Icon-rail mode: the full-width input would clip past the
+            // narrow rail, so we render a single search-icon button that
+            // re-expands the sidebar and focuses the input. The 220ms
+            // delay matches the rail's expansion transition so focus
+            // lands after the input has actually mounted at full width.
+            <button
+              type="button"
+              onClick={() => {
+                setRailOpen(true);
+                setTimeout(() => searchInputRef.current?.focus(), 220);
+              }}
+              aria-label="Open search"
+              className="flex h-9 w-full items-center justify-center rounded-md text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          ) : (
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-sidebar-foreground/40" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="w-full rounded-md border border-sidebar-border bg-sidebar-accent/50 pl-8 pr-8 py-1.5 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/50 focus:outline-none focus:ring-1 focus:ring-sidebar-ring focus:bg-sidebar-accent/70 focus:border-sidebar-ring transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent>
@@ -782,10 +888,16 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
                             </div>
                           )}
                           {group.items.map((item) => (
-                            <NavMenuItem
+                            <SearchResultMenuItem
                               key={item.url}
                               item={item}
                               pathname={pathname}
+                              isPinnable={
+                                toolPaths.has(item.url) || isMandatoryTool(item.url)
+                              }
+                              isUserStarred={isUserStarred(item.url)}
+                              isMandatory={isMandatoryTool(item.url)}
+                              onTogglePin={toggleFavoriteTool}
                             />
                           ))}
                         </React.Fragment>
@@ -826,7 +938,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
               </SidebarGroup>
 
               {/* Navigation Groups with Collapsible Sections */}
-              {data.navGroups.map((group) => {
+              {navGroups.map((group) => {
                 // Skip L1-only sections when not connected to L1
                 if (group.requiresL1 && !isConnectedToL1) {
                   return null;
@@ -841,6 +953,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
                     pathname={pathname}
                     isOpen={isOpen}
                     onToggle={() => toggleSection(group.id)}
+                    onUnpin={group.id === "pinned" ? toggleFavoriteTool : undefined}
                   />
                 );
               })}

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import type { Abi, AbiEvent, Address, Log } from 'viem';
-import { bytesToHex, hexToBytes } from 'viem';
+import type { AbiEvent, Address, Log } from 'viem';
+import { bytesToHex, hexToBytes, encodeFunctionData, type Abi } from 'viem';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
@@ -26,6 +26,8 @@ import { ContractFunctionViewer } from '@/components/console/contract-function-v
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
 import versions from '@/scripts/versions.json';
+import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { CliAlternative } from '@/components/console/cli-alternative';
 import {
   Search,
   Clock,
@@ -81,6 +83,7 @@ function RemoveExpiredValidatorRegistration() {
         error?: string | null;
         signedMessage?: string | null;
         evmTxHash?: string | null;
+        accessList?: any[] | null;
       }
     >
   >({});
@@ -403,6 +406,7 @@ function RemoveExpiredValidatorRegistration() {
           isProcessing: false,
           signedMessage,
           evmTxHash: hash,
+          accessList,
           error: null,
         },
       }));
@@ -417,6 +421,21 @@ function RemoveExpiredValidatorRegistration() {
       }));
     }
   };
+
+  function generateCastCommandForRemoval(validationId: string): string {
+    const state = actionState[validationId];
+    if (!state?.signedMessage || !state?.accessList) return '';
+    const rpcUrl = (viemChain as any)?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
+    const addr = (useMultisig ? contractOwner : validatorManagerAddress) || '<CONTRACT_ADDRESS>';
+
+    const calldata = encodeFunctionData({
+      abi: ValidatorManagerABI.abi as Abi,
+      functionName: 'completeValidatorRemoval',
+      args: [0],
+    });
+
+    return generateCastSendCommand({ address: addr, calldata, accessList: state.accessList, rpcUrl });
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -658,6 +677,11 @@ function RemoveExpiredValidatorRegistration() {
                               </a>
                             </div>
                           </div>
+                        </div>
+                      )}
+                      {state?.signedMessage && state?.accessList && !state?.evmTxHash && (
+                        <div className="mt-3">
+                          <CliAlternative command={generateCastCommandForRemoval(ev.validationId)} />
                         </div>
                       )}
                     </div>

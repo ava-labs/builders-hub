@@ -24,7 +24,7 @@ const metadata: ConsoleToolMetadata = {
   title: 'Deploy ICM Demo Contract',
   description:
     "Deploy a demo contract that can receive messages from the C-Chain using Avalanche's Inter-Chain Messaging (ICM) protocol",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
@@ -182,6 +182,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isTeleporterDeployed, setIsTeleporterDeployed] = useState(false);
   const [criticalError, setCriticalError] = useState<Error | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const selectedL1 = useSelectedL1();
   const { notify } = useConsoleNotifications();
   const [activeStep, _setActiveStep] = useState(0);
@@ -207,6 +208,31 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   }, [selectedL1?.evmChainId]);
 
   async function handleDeploy() {
+    setLocalError(null);
+
+    const targetChainId = viemChain?.id;
+    if (!targetChainId) {
+      setLocalError('No target chain selected.');
+      return;
+    }
+
+    try {
+      const currentChainId = await walletClient.getChainId();
+      if (currentChainId !== targetChainId) {
+        try {
+          await walletClient.switchChain({ id: targetChainId });
+        } catch {
+          setLocalError(
+            `Switch your wallet to ${selectedL1?.name ?? `chain ${targetChainId}`} (chain ${targetChainId}) to deploy.`,
+          );
+          return;
+        }
+      }
+    } catch {
+      setLocalError('Could not read the connected wallet chain. Please reconnect and try again.');
+      return;
+    }
+
     setIsDeploying(true);
     setIcmReceiverAddress('');
     try {
@@ -340,6 +366,16 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
             </a>
           </div>
         </div>
+
+        {/* Local error (e.g. user rejected wallet chain switch) */}
+        {localError && (
+          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+              <span className="text-xs text-red-700 dark:text-red-300">{localError}</span>
+            </div>
+          </div>
+        )}
 
         {/* Deploy Button / Success */}
         {icmReceiverAddress ? (

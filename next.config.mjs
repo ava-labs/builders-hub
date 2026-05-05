@@ -10,6 +10,13 @@ const config = {
     'typescript',
     'twoslash',
     'shiki',
+    // snarkjs + its ffjavascript dep ship CLI files using `import.meta.url`
+    // that Turbopack's NftJsonAsset can't handle during build-time tracing.
+    // Marking them external keeps the package off NFT's static graph —
+    // at runtime, the client dynamically imports snarkjs in lib/eerc/proof.ts.
+    'snarkjs',
+    'ffjavascript',
+    'blake-hash',
   ],
   // Include tsconfig.json in serverless function bundles for twoslash
   outputFileTracingIncludes: {
@@ -2113,6 +2120,20 @@ const config = {
   },
   async headers() {
     return [
+      {
+        // Encrypted-ERC zk circuits are large (~30 MB total across the 5
+        // circuits) and content-addressed — we ship them under a path
+        // that already encodes the circuit version (e.g. `transfer.wasm`,
+        // `transfer.zkey`), so a year-long immutable cache is safe and
+        // saves users from re-downloading them on every cold load.
+        source: '/eerc/circuits/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [

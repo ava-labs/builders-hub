@@ -92,6 +92,29 @@ jobs:
       - name: Design system (banned classes, color palette)
         run: ./scripts/check-console-design.sh
 
+      - name: Render safety (unsafe property access)
+        run: ./scripts/check-render-safety.sh
+
+      - name: Debug RPC integration
+        run: |
+          errors=0
+          # Ensure the debug-rpc API route exists
+          if [ ! -f "app/api/debug-rpc/route.ts" ]; then
+            echo "::error::app/api/debug-rpc/route.ts is missing — debug tracing will not work on Fuji"
+            errors=$((errors + 1))
+          fi
+          # Ensure useContractActions uses debug tracing on simulation failure
+          if ! grep -q 'debug_traceCall\|api/debug-rpc' components/toolbox/hooks/contracts/useContractActions.ts; then
+            echo "::error::useContractActions.ts must integrate debug tracing for Fuji simulation failures"
+            errors=$((errors + 1))
+          fi
+          # Ensure EVM notifications use debug tracing on reverts
+          if ! grep -q 'debug_traceTransaction\|api/debug-rpc' hooks/useEVMNotifications.ts; then
+            echo "::error::useEVMNotifications.ts must integrate debug tracing for Fuji tx reverts"
+            errors=$((errors + 1))
+          fi
+          [ $errors -eq 0 ] && echo "✓ Debug RPC integration verified" || exit 1
+
       - name: MDX imports use kebab-case paths
         run: |
           violations=$(grep -rn "toolbox/console/.*[A-Z].*/" \

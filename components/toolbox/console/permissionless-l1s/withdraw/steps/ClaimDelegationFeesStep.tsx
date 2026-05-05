@@ -15,7 +15,7 @@ export default function ClaimDelegationFeesStep() {
   const store = useRemovePoSValidatorStore();
   const vmcCtx = useValidatorManagerContext();
 
-  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.contractOwner || '';
+  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || '';
   const tokenType = vmcCtx.staking?.stakingType || 'native';
 
   return (

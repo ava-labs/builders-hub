@@ -1,6 +1,5 @@
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Plus, Edit3, X, RotateCcw } from 'lucide-react';
-import { resetAllStores } from '@/components/toolbox/stores/reset';
+import { Plus, Edit3, X } from 'lucide-react';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 
 interface NetworkActionsProps {
@@ -26,19 +25,6 @@ export function NetworkActions({ isEditMode, onToggleEditMode }: NetworkActionsP
       <DropdownMenuItem onSelect={() => addChain()} className="cursor-pointer">
         <Plus className="mr-2 h-3 w-3" />
         Add Network
-      </DropdownMenuItem>
-      <DropdownMenuItem
-        onSelect={() => {
-          try {
-            resetAllStores();
-          } catch {
-            throw new Error('Reset failed');
-          }
-        }}
-        className="cursor-pointer text-red-600 focus:text-red-700"
-      >
-        <RotateCcw className="mr-2 h-3 w-3" />
-        Reset
       </DropdownMenuItem>
       <DropdownMenuSeparator />
     </>

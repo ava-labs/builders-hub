@@ -20,7 +20,7 @@ const ICM_COMMIT = versions['ava-labs/icm-services'];
 export default function ValidatorDetailsStep() {
   const store = useAddValidatorStore();
   const vmcCtx = useValidatorManagerContext();
-  const { pChainAddress } = useWalletStore();
+  const { pChainAddress, isTestnet } = useWalletStore();
 
   const validators = deserializeValidators(store.validators);
 
@@ -47,6 +47,8 @@ export default function ValidatorDetailsStep() {
               !vmcCtx.l1WeightError && vmcCtx.contractTotalWeight > 0n ? vmcCtx.contractTotalWeight : null
             }
             maxValidators={1}
+            selectedSubnetId={store.subnetIdL1}
+            isTestnet={isTestnet}
           />
 
           {/* Initiate Registration — flows naturally below the validator form */}

@@ -1,4 +1,5 @@
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { getTxHistoryStore } from '@/components/toolbox/stores/txHistoryStore';
 import { useConsoleLog } from './use-console-log';
 import { PChainClient, createPChainClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
@@ -156,6 +157,16 @@ const usePChainNotifications = () => {
             txID = (txID as { txHash: string }).txHash;
           }
 
+          // Log P-Chain tx to history store as pending
+          const txHistory = getTxHistoryStore(Boolean(isTestnet)).getState();
+          txHistory.addTx({
+            type: 'pchain',
+            network: isTestnet ? 'fuji' : 'mainnet',
+            operation: config.eventType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+            txHash: txID,
+            status: 'pending',
+          });
+
           if (!skipConfirmationWait) {
             store.updateNotification(notifId, {
               message: 'Waiting for transaction confirmation...',
@@ -163,6 +174,9 @@ const usePChainNotifications = () => {
             });
             await waitForTransaction(client, txID as string);
           }
+
+          // Update tx history to confirmed
+          txHistory.updateTxStatus(txID, 'confirmed');
 
           const explorerUrl = getPChainTxExplorerURL(txID, isTestnet);
           store.updateNotification(notifId, {
@@ -193,6 +207,9 @@ const usePChainNotifications = () => {
             status: 'error',
             message: errorMessage,
           });
+
+          // Update tx history to failed (txID available in this scope)
+          getTxHistoryStore(Boolean(isTestnet)).getState().updateTxStatus(txID, 'failed', (error as Error).message);
 
           addLog({
             status: 'error',

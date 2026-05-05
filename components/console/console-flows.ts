@@ -26,6 +26,86 @@ export type FlowMetadata = {
  * Key is derived from basePath: "/console/layer-1/create" → "layer-1/create"
  */
 export const consoleFlows: Record<string, FlowMetadata> = {
+  "encrypted-erc/deposit": {
+    title: "Deposit into Encrypted ERC",
+    completionSummary: "You've wrapped AVAX into its encrypted form. The contract holds a Poseidon ciphertext of your balance — only you and the auditor can decrypt it.",
+    accomplishments: [
+      "Wrapped native AVAX into WAVAX (ERC20)",
+      "Approved + deposited WAVAX into the EncryptedERC converter",
+    ],
+    nextSteps: [
+      {
+        path: "/console/encrypted-erc/balance",
+        title: "Decrypt your balance",
+        description: "View the plaintext amount and toggle the raw ciphertext",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/transfer",
+        title: "Make a private transfer",
+        description: "Send encrypted amounts to any registered address",
+        priority: "recommended",
+      },
+    ],
+  },
+
+  "encrypted-erc/deploy": {
+    title: "Deploy Your Own Encrypted ERC",
+    completionSummary: "You've deployed a complete Encrypted ERC protocol — library, five verifiers, Registrar, and the main contract — and registered yourself as both an eERC user and the auditor.",
+    accomplishments: [
+      "Deployed BabyJubJub curve-ops library",
+      "Deployed five Groth16 verifiers (registration, mint, transfer, withdraw, burn)",
+      "Deployed Registrar and EncryptedERC",
+      "Registered your BabyJubJub identity",
+      "Appointed yourself as the deployment's auditor",
+    ],
+    nextSteps: [
+      {
+        path: "/console/encrypted-erc/deposit",
+        title: "Deposit into your converter",
+        description: "Wrap an ERC20 into its encrypted form (converter mode only)",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/transfer",
+        title: "Make a private transfer",
+        description: "Try the full ZK-proof transfer flow on your new deployment",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/auditor",
+        title: "Open the auditor dashboard",
+        description: "Decrypt every transaction on your deployment as the auditor",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "toolbox": {
+    title: "Console Toolbox",
+    completionSummary: "Browse all available console tools.",
+    nextSteps: [
+      {
+        path: "/console/layer-1/create",
+        title: "Create L1",
+        description: "Launch a new Avalanche L1 with a guided wizard",
+        priority: "recommended",
+      },
+      {
+        path: "/console/primary-network/faucet",
+        title: "Get Testnet AVAX",
+        description: "Request free testnet tokens for development",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable communication between your L1 and other chains",
+        priority: "optional",
+      },
+    ],
+  },
+
   "layer-1/create": {
     title: "Create New L1",
     completionSummary: "You've successfully created and launched your Avalanche L1!",
@@ -46,6 +126,31 @@ export const consoleFlows: Record<string, FlowMetadata> = {
         path: "/console/ictt/setup",
         title: "Setup Token Bridge",
         description: "Deploy a bridge to transfer tokens to/from your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "create-l1": {
+    title: "Create L1 Flow",
+    completionSummary: "Your Avalanche L1 is fully deployed and configured.",
+    nextSteps: [
+      {
+        path: "/console/my-l1",
+        title: "View My L1 Dashboard",
+        description: "Inspect validators, balances, and configuration for your new L1",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable interchain communication with other Avalanche chains",
+        priority: "recommended",
+      },
+      {
+        path: "/console/ictt/setup",
+        title: "Setup Token Bridge",
+        description: "Deploy a bridge to transfer tokens to and from your L1",
         priority: "optional",
       },
     ],

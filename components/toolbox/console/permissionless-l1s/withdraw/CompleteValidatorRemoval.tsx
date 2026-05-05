@@ -5,13 +5,17 @@ import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { hexToBytes, bytesToHex } from 'viem';
+import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
+import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { CliAlternative } from '@/components/console/cli-alternative';
 
 type TokenType = 'native' | 'erc20';
 
@@ -61,6 +65,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     stakeReturned: string;
     rewardsDistributed: boolean;
   } | null>(null);
+  const [castAccessList, setCastAccessList] = useState<any[] | null>(null);
 
   const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
@@ -159,6 +164,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       // Step 4: Package warp message into access list
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
+      setCastAccessList(accessList);
 
       // Step 5: Call completeValidatorRemoval via hook with warp message
       const hash =
@@ -214,6 +220,22 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       setIsProcessing(false);
     }
   };
+
+  function generateCastCommand(): string {
+    if (!pChainSignature || !castAccessList) return '';
+    const rpcUrl = viemChain?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
+    const addr = stakingManagerAddress || '<STAKING_MANAGER_ADDRESS>';
+    const abi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
+    const msgIndex = parseInt(messageIndex) || 0;
+
+    const calldata = encodeFunctionData({
+      abi: abi as Abi,
+      functionName: 'completeValidatorRemoval',
+      args: [msgIndex],
+    });
+
+    return generateCastSendCommand({ address: addr, calldata, accessList: castAccessList, rpcUrl });
+  }
 
   return (
     <div className="space-y-4">
@@ -300,13 +322,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         {isProcessing ? 'Processing...' : 'Complete Validator Removal & Distribute Rewards'}
       </Button>
 
-      {pChainSignature && !txHash && (
-        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            P-Chain signature aggregated. Waiting for transaction confirmation...
-          </p>
-        </div>
-      )}
+      {pChainSignature && !txHash && <CliAlternative command={generateCastCommand()} />}
 
       {txHash && rewardInfo?.rewardsDistributed && (
         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">

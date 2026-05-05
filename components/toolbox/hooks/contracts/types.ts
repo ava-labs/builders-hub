@@ -58,6 +58,34 @@ export interface MigrationParams {
   receivedNonce: number;
 }
 
+/**
+ * On-chain churn period data returned by ValidatorManager.getChurnTracker().
+ */
+export interface ValidatorChurnPeriod {
+  startTime: bigint;
+  initialWeight: bigint;
+  totalWeight: bigint;
+  churnAmount: bigint;
+}
+
+/**
+ * Structured result from ValidatorManager.getChurnTracker().
+ * The raw ABI returns (uint64, uint8, ValidatorChurnPeriod).
+ */
+export interface ChurnTrackerResult {
+  churnPeriodSeconds: bigint;
+  maxChurnPercentage: number;
+  period: ValidatorChurnPeriod;
+}
+
+/**
+ * Structured result from StakingManager.getValidatorRewardInfo() / getDelegatorRewardInfo().
+ */
+export interface RewardInfo {
+  rewardRecipient: string;
+  rewardAmount: bigint;
+}
+
 // ---------------------------------------------------------------------------
 // Staking Manager
 // ---------------------------------------------------------------------------

@@ -24,11 +24,14 @@ export default function SelectL1ValidatorStep() {
           hidePrimaryNetwork={true}
         />
 
-        {vmcCtx.ownerType && vmcCtx.ownerType !== 'StakingManager' && (
-          <Alert variant="error">
-            This L1 is not using a Staking Manager. This tool is only for permissionless L1s.
-          </Alert>
-        )}
+        {vmcCtx.ownerType &&
+          vmcCtx.ownerType !== 'StakingManager' &&
+          !vmcCtx.staking?.stakingType &&
+          !vmcCtx.staking?.isLoading && (
+            <Alert variant="error">
+              This L1 is not using a Staking Manager. This tool is only for permissionless L1s.
+            </Alert>
+          )}
       </div>
       {store.subnetIdL1 && (
         <div className="lg:sticky lg:top-4 lg:self-start">
