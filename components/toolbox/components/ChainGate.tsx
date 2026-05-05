@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Wallet } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
-import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Button } from '@/components/toolbox/components/Button';
 import type { RequiredChain } from '@/components/console/step-flow';
 import { readLiveWalletChainId, useLiveWalletChainId } from '@/components/toolbox/hooks/useLiveWalletChainId';
+import { resolveCreateL1RequiredChain } from '@/lib/console/create-l1-chain';
 
 interface ChainGateProps {
   requiredChain?: RequiredChain;
@@ -29,7 +30,9 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const setWalletChainId = useWalletStore((s) => s.setWalletChainId);
   const createChainStore = useCreateChainStore()();
-  const walletL1s = useL1List();
+  const testnetL1s = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const mainnetL1s = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const walletL1s = useMemo(() => [...testnetL1s, ...mainnetL1s], [testnetL1s, mainnetL1s]);
   const { addChain, switchChain } = useWallet();
   const liveChainId = useLiveWalletChainId(walletChainId);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -52,8 +55,12 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     expectedChainId = isTestnet ? FUJI_CHAIN_ID : MAINNET_CHAIN_ID;
     chainLabel = isTestnet ? 'Fuji C-Chain' : 'C-Chain';
   } else if (requiredChain === 'l1') {
-    expectedChainId = createChainStore?.evmChainId ?? null;
-    chainLabel = createChainStore?.chainName || 'your L1';
+    const resolved = resolveCreateL1RequiredChain({
+      createChain: createChainStore,
+      l1List: walletL1s,
+    });
+    expectedChainId = resolved.chainId;
+    chainLabel = resolved.chainLabel;
   }
 
   // Can't determine expected chain — pass through
@@ -96,7 +103,8 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     const isL1Step = requiredChain === 'l1';
     await addChain({
       allowLookup: !isL1Step,
-      chainName: isL1Step ? createChainStore?.chainName || undefined : undefined,
+      chainName: isL1Step ? chainLabel || undefined : undefined,
+      genesisData: isL1Step ? createChainStore?.genesisData || undefined : undefined,
       isTestnet: isTestnet ?? undefined,
     });
   };
