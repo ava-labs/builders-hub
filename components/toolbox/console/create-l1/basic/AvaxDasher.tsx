@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvaxLogo } from '@/components/toolbox/console/create-l1/icons';
 import { cn } from '@/lib/utils';
-import { GameExitButton } from './GameExitButton';
+import { GameControls } from './GameControls';
+import { useGameAudio } from './useGameAudio';
 
 /**
  * Three-lane top-down dodger — the Avalanche logo runs at the bottom,
@@ -19,7 +20,7 @@ import { GameExitButton } from './GameExitButton';
  *   - <AvaxLogo /> as the player sprite
  *   - useState<'ready' | 'playing' | 'over'> with overlay panels
  *   - localStorage high-score, screen shake on collision
- *   - GameExitButton in the corner
+ *   - GameControls in the corner (exit + mute)
  */
 
 const WIDTH = 280;
@@ -87,6 +88,10 @@ function laneCenterX(lane: number): number {
 
 export function AvaxDasher({ className, onExit }: { className?: string; onExit?: () => void }) {
   const [gameState, setGameState] = useState<GameState>('ready');
+  const { playLoseSound } = useGameAudio();
+  useEffect(() => {
+    if (gameState === 'over') playLoseSound();
+  }, [gameState, playLoseSound]);
   const [highScore, setHighScore] = useState(0);
   const [shakeKey, setShakeKey] = useState(0);
 
@@ -476,7 +481,7 @@ export function AvaxDasher({ className, onExit }: { className?: string; onExit?:
         <AvaxLogo className="h-full w-full text-zinc-900 dark:text-zinc-100 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)]" />
       </motion.div>
 
-      {onExit && <GameExitButton onExit={onExit} />}
+      <GameControls onExit={onExit} />
 
       {/* Score HUD — same layout as the other family members. */}
       <div className="pointer-events-none absolute right-3 top-2.5 flex items-center gap-3">

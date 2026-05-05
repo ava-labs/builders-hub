@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvaxLogo } from '@/components/toolbox/console/create-l1/icons';
 import { cn } from '@/lib/utils';
-import { GameExitButton } from './GameExitButton';
+import { GameControls } from './GameControls';
+import { useGameAudio } from './useGameAudio';
 
 /**
  * Super-Hexagon-style radial dodger. The player orbits at a fixed radius
@@ -95,6 +96,10 @@ function normalizeAngle(a: number): number {
 
 export function AvaxSpin({ className, onExit }: { className?: string; onExit?: () => void }) {
   const [gameState, setGameState] = useState<GameState>('ready');
+  const { playLoseSound } = useGameAudio();
+  useEffect(() => {
+    if (gameState === 'over') playLoseSound();
+  }, [gameState, playLoseSound]);
   const [highScore, setHighScore] = useState(0);
   const [shakeKey, setShakeKey] = useState(0);
 
@@ -349,7 +354,7 @@ export function AvaxSpin({ className, onExit }: { className?: string; onExit?: (
         </div>
       </div>
 
-      {onExit && <GameExitButton onExit={onExit} />}
+      <GameControls onExit={onExit} />
 
       <div className="pointer-events-none absolute right-3 top-2.5 flex items-center gap-3">
         {highScore > 0 && (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { GenesisBuilderInner } from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
@@ -23,6 +23,7 @@ import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx'
 import { GenesisWizard } from '@/components/toolbox/components/genesis/GenesisWizard';
 import { ChainConfigStep, generateRandomChainName } from '@/components/toolbox/components/genesis/ChainConfigStep';
 import type { PreinstallConfig } from '@/components/toolbox/components/genesis/types';
+import { parseGenesisEvmChainId } from '@/lib/console/create-l1-chain';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Create Chain',
@@ -77,6 +78,8 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
   const genesisData = store((state) => state.genesisData);
   const setGenesisData = store((state) => state.setGenesisData);
   const setChainName = store((state) => state.setChainName);
+  const storedEvmChainId = store((state) => state.evmChainId);
+  const setEvmChainId = store((state) => state.setEvmChainId);
 
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
   const { isTestnet } = useWalletStore();
@@ -87,6 +90,13 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
   const [localChainName, setLocalChainName] = useState<string>(generateRandomChainName());
   const [vmId, setVmId] = useState<string>(SUBNET_EVM_VM_ID);
   const prevVmIdRef = useRef(vmId);
+
+  useEffect(() => {
+    const genesisEvmChainId = parseGenesisEvmChainId(genesisData);
+    if (genesisEvmChainId !== null && genesisEvmChainId !== storedEvmChainId) {
+      setEvmChainId(genesisEvmChainId);
+    }
+  }, [genesisData, setEvmChainId, storedEvmChainId]);
 
   // Clear genesis data when switching FROM Subnet-EVM TO custom VM
   const handleVmIdChange = (newVmId: string) => {

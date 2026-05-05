@@ -18,7 +18,7 @@ import { sectionContainer, sectionItem } from "@/components/console/motion";
  * - 'any': no chain requirement (default)
  * - 'p-chain': P-Chain tx via Core Wallet (no EVM switch needed)
  * - 'c-chain': must be on C-Chain (43114 mainnet / 43113 fuji)
- * - 'l1': must be on the user's L1 (chainId from createChainStore)
+ * - 'l1': must be on the user's L1 (created L1 list entry, genesis chainId, then createChainStore fallback)
  */
 export type RequiredChain = "any" | "p-chain" | "c-chain" | "l1";
 

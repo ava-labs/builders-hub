@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvaxLogo } from '@/components/toolbox/console/create-l1/icons';
 import { cn } from '@/lib/utils';
-import { GameExitButton } from './GameExitButton';
+import { GameControls } from './GameControls';
+import { useGameAudio } from './useGameAudio';
 
 /**
  * Winter-dodge style game: ski down a slope dodging trees.
@@ -44,6 +45,10 @@ const HS_KEY = 'avaxSlopeHighScore';
 
 export function AvaxSlope({ className, onExit }: { className?: string; onExit?: () => void }) {
   const [gameState, setGameState] = useState<GameState>('ready');
+  const { playLoseSound } = useGameAudio();
+  useEffect(() => {
+    if (gameState === 'over') playLoseSound();
+  }, [gameState, playLoseSound]);
   const [highScore, setHighScore] = useState(0);
   const [shakeKey, setShakeKey] = useState(0);
 
@@ -310,7 +315,7 @@ export function AvaxSlope({ className, onExit }: { className?: string; onExit?: 
         <AvaxLogo className="h-full w-full text-zinc-900 dark:text-zinc-100 drop-shadow-[0_2px_3px_rgba(0,0,0,0.3)] dark:drop-shadow-[0_2px_3px_rgba(0,0,0,0.55)]" />
       </div>
 
-      {onExit && <GameExitButton onExit={onExit} />}
+      <GameControls onExit={onExit} />
 
       <div className="pointer-events-none absolute right-3 top-2.5 flex items-center gap-3">
         {highScore > 0 && (

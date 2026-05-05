@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { ArrowUp, Bird, Footprints, Orbit, Shuffle, Train, Trees } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GameAudioProvider } from './useGameAudio';
 
 // The mini-games are entertainment shown during the 3-minute Quick L1
 // deploy wait — no point shipping their ~1.8k lines of canvas-game logic in
@@ -101,16 +102,20 @@ export function AvaxGame({ className }: { className?: string }) {
 
   // Until client-side randomization runs, render the fixed initial game
   // (no flash — it's the same HTML the server sent).
+  // GameAudioProvider owns a single AudioContext that survives the inner
+  // game-component remounts on swap — keeps the loop click-free.
   return (
-    <div className={cn('relative', className)} style={{ width: WIDTH, height: HEIGHT }}>
-      {kind === 'select' && hydrated && <GameSelect onPick={setKind} />}
-      {kind === 'runner' && <AvaxRunner onExit={back} />}
-      {kind === 'flappy' && <AvaxFlapper onExit={back} />}
-      {kind === 'slope' && <AvaxSlope onExit={back} />}
-      {kind === 'spin' && <AvaxSpin onExit={back} />}
-      {kind === 'jumper' && <AvaxJumper onExit={back} />}
-      {kind === 'dasher' && <AvaxDasher onExit={back} />}
-    </div>
+    <GameAudioProvider>
+      <div className={cn('relative', className)} style={{ width: WIDTH, height: HEIGHT }}>
+        {kind === 'select' && hydrated && <GameSelect onPick={setKind} />}
+        {kind === 'runner' && <AvaxRunner onExit={back} />}
+        {kind === 'flappy' && <AvaxFlapper onExit={back} />}
+        {kind === 'slope' && <AvaxSlope onExit={back} />}
+        {kind === 'spin' && <AvaxSpin onExit={back} />}
+        {kind === 'jumper' && <AvaxJumper onExit={back} />}
+        {kind === 'dasher' && <AvaxDasher onExit={back} />}
+      </div>
+    </GameAudioProvider>
   );
 }
 
