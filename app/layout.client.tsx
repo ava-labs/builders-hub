@@ -9,7 +9,7 @@ export function Body({
   children: ReactNode;
 }): React.ReactElement {
   return (
-    <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={false}>
+    <SessionProvider>
       {children}
       {/* Custom wrapper from components/ui/sonner.tsx adds the project's
           theme observer (so toasts match site light/dark) and per-variant
