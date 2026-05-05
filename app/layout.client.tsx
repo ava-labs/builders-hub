@@ -9,9 +9,9 @@ export function Body({
   children: ReactNode;
 }): React.ReactElement {
   return (
-    <>
+    <SessionProvider>
       {children}
       <Toaster position="bottom-right" richColors expand visibleToasts={3} />
-    </>
+    </SessionProvider>
   );
 }
