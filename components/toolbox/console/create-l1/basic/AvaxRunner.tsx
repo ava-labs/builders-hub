@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AvaxLogo } from '@/components/toolbox/console/create-l1/icons';
 import { cn } from '@/lib/utils';
 import { GameExitButton } from './GameExitButton';
+import { GameMuteButton } from './GameMuteButton';
 
 /**
  * Chrome-dino-style runner with the Avalanche logo as the player.
@@ -500,6 +501,7 @@ export function AvaxRunner({ className, onExit }: { className?: string; onExit?:
       ))}
 
       {onExit && <GameExitButton onExit={onExit} />}
+      <GameMuteButton />
 
       {/* Score HUD */}
       <div className="pointer-events-none absolute right-3 top-2.5 flex items-center gap-3">
