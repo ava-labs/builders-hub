@@ -37,6 +37,15 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   company_name: z.string().optional(),
   telegram_user: z.string().min(1, "Telegram username is required"),
   role: z.string().optional(),
+  is_student: z.boolean().optional().default(false),
+  student_institution: z.string().optional(),
+  is_founder: z.boolean().optional().default(false),
+  founder_company_name: z.string().optional(),
+  is_employee: z.boolean().optional().default(false),
+  employee_company_name: z.string().optional(),
+  employee_role: z.string().optional(),
+  is_developer: z.boolean().optional().default(false),
+  is_enthusiast: z.boolean().optional().default(false),
   city: z.string().min(1, "City is required"),
   interests: z.array(z.string()).optional(),
   web3_proficiency: z.string().optional(),
@@ -95,6 +104,15 @@ export function RegisterForm({
     email: currentUser?.email || "",
     company_name: "",
     role: "",
+    is_student: false,
+    student_institution: "",
+    is_founder: false,
+    founder_company_name: "",
+    is_employee: false,
+    employee_company_name: "",
+    employee_role: "",
+    is_developer: false,
+    is_enthusiast: false,
     city: "",
     dietary: "",
     interests: [],
@@ -163,6 +181,15 @@ export function RegisterForm({
         telegram_user:  profile.telegram_user || current.telegram_user || "",
         company_name:  profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
         role:  profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
+        is_student: profile.user_type?.is_student ?? current.is_student ?? false,
+        student_institution: profile.user_type?.student_institution || current.student_institution || "",
+        is_founder: profile.user_type?.is_founder ?? current.is_founder ?? false,
+        founder_company_name: profile.user_type?.founder_company_name || current.founder_company_name || "",
+        is_employee: profile.user_type?.is_employee ?? current.is_employee ?? false,
+        employee_company_name: profile.user_type?.employee_company_name || current.employee_company_name || "",
+        employee_role: profile.user_type?.employee_role || current.employee_role || "",
+        is_developer: profile.user_type?.is_developer ?? current.is_developer ?? false,
+        is_enthusiast: profile.user_type?.is_enthusiast ?? current.is_enthusiast ?? false,
       };
       form.reset(merged);
     } catch (err) {
@@ -180,6 +207,17 @@ export function RegisterForm({
       if (!profileRes.ok) return;
       const existing = await profileRes.json();
       const userType = existing.user_type || {};
+      const roleCompany =
+        (step1.is_founder ? step1.founder_company_name : "") ||
+        (step1.is_employee ? step1.employee_company_name : "") ||
+        (step1.is_student ? step1.student_institution : "") ||
+        step1.company_name ||
+        "";
+      const roleLabel =
+        (step1.is_employee ? step1.employee_role : "") ||
+        step1.role ||
+        "";
+
       const payload = {
         name: step1.name ?? existing.name,
         email: step1.email ?? existing.email,
@@ -187,9 +225,17 @@ export function RegisterForm({
         telegram_user: (step1.telegram_user ?? "").trim() || existing.telegram_user,
         user_type: {
           ...userType,
-          company_name: (step1.company_name ?? "").trim() || userType.company_name,
-          role: (step1.role ?? "").trim() || userType.role,
-          employee_role: (step1.role ?? "").trim() || userType.employee_role,
+          is_student: Boolean(step1.is_student),
+          is_founder: Boolean(step1.is_founder),
+          is_employee: Boolean(step1.is_employee),
+          is_developer: Boolean(step1.is_developer),
+          is_enthusiast: Boolean(step1.is_enthusiast),
+          student_institution: (step1.student_institution ?? "").trim(),
+          founder_company_name: (step1.founder_company_name ?? "").trim(),
+          employee_company_name: (step1.employee_company_name ?? "").trim(),
+          employee_role: (step1.employee_role ?? "").trim(),
+          company_name: roleCompany.trim() || userType.company_name,
+          role: roleLabel.trim() || userType.role,
         },
       };
       await fetch(`/api/profile/extended/${userId}`, {
@@ -215,6 +261,15 @@ export function RegisterForm({
           email: loadedData.email || currentUser.email || "",
           company_name: loadedData.company_name || "",
           role: loadedData.role || "",
+          is_student: loadedData.is_student || false,
+          student_institution: loadedData.student_institution || "",
+          is_founder: loadedData.is_founder || false,
+          founder_company_name: loadedData.founder_company_name || "",
+          is_employee: loadedData.is_employee || false,
+          employee_company_name: loadedData.employee_company_name || "",
+          employee_role: loadedData.employee_role || "",
+          is_developer: loadedData.is_developer || false,
+          is_enthusiast: loadedData.is_enthusiast || false,
           city: loadedData.city || "",
           dietary: loadedData.dietary || "",
           telegram_user: loadedData.telegram_user || "",

@@ -220,7 +220,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.step3.demoVideo.hint":
       "Showcase your project in action with a short demo video. Ensure the link is accessible and not set to private.",
     "submission.step3.demoVideo.requirements":
-      "Video requirements: Minimum resolution 720p · Clear audio, no background music · Platforms: YouTube, Vimeo, Google Drive (public link)",
+      "Video requirements: Minimum resolution 720p · Clear audio, no background music · Platforms: YouTube, Vimeo",
 
     // Step navigation
     "submission.nav.finalSubmit": "Final Submit",
