@@ -728,7 +728,7 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step2.github.hint": "Incluye un link para mostrar tu trabajo anterior (opcional).",
 
     // Step 3
-    "reg.step3.title": "Paso 3: Términos y acuerdos",
+    "reg.step3.title": "Paso 2: Términos y acuerdos",
     "reg.step3.subtitle": "Revisa y acepta los términos para completar tu registro. Para más información sobre nuestras prácticas de privacidad, consulta nuestra",
     "reg.step3.privacyLink": "Política de privacidad de Avalanche.",
     "reg.step3.terms.label": "He leído y acepto los",
