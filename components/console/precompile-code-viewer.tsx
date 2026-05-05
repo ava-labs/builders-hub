@@ -285,12 +285,15 @@ export function PrecompileCodeViewer({
   return (
     <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-6 items-start", className)}>
       {/* Left: Form Controls */}
-      <div className="space-y-4">
+      <div className="space-y-4 min-w-0">
         {children}
 
         {/* Collapsible Sections */}
         {collapsibleSections?.map((section) => (
-          <div key={section.title} className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+          <div
+            key={section.title}
+            className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
+          >
             <button
               onClick={() => toggleSection(section.title)}
               className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
@@ -303,7 +306,7 @@ export function PrecompileCodeViewer({
               )}
             </button>
             {expandedSections[section.title] && (
-              <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="p-4 border-t border-zinc-200/80 dark:border-zinc-800">
                 {section.children}
               </div>
             )}
@@ -311,23 +314,25 @@ export function PrecompileCodeViewer({
         ))}
       </div>
 
-      {/* Right: Code Viewer - Sticky on scroll */}
+      {/* Right: Code Viewer — sticky, file-tab style matching contract-function-viewer */}
       <div
         className={cn(
-          "lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800",
-          height === "auto" ? "h-fit" : "overflow-hidden"
+          "lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden",
+          height === "auto" ? "h-fit" : ""
         )}
         style={height !== "auto" ? { height } : undefined}
       >
-        {/* Header */}
-        <div className="shrink-0 flex items-center gap-2 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
-          <FileCode className="w-4 h-4 text-amber-500" />
-          <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100">{filename}</span>
+        {/* Tab Bar */}
+        <div className="shrink-0 flex items-center gap-1 px-2 pt-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
+          <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 rounded-t-lg -mb-px">
+            <FileCode className="w-3.5 h-3.5 text-amber-500" />
+            {filename}
+          </div>
 
           <div className="flex-1" />
 
-          {/* Controls */}
-          <div className="flex items-center gap-0.5 px-1 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+          {/* Font size controls */}
+          <div className="flex items-center gap-0.5 mr-1 px-1 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
             <button
               onClick={() => adjustFontSize(-1)}
               disabled={fontSize === FONT_SIZES[0]}
@@ -364,28 +369,19 @@ export function PrecompileCodeViewer({
           </a>
         </div>
 
-        {/* Highlighted function indicator */}
-        {highlightFunction && (
-          <div className="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
-            <span className="text-xs text-amber-700 dark:text-amber-300">
-              Showing: <code className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 rounded">{highlightFunction}()</code>
-            </span>
-          </div>
-        )}
-
         {/* Code Content */}
         <div
           ref={codeScrollRef}
           className={cn(
             "flex-1 overflow-auto",
-            height === "auto" ? "max-h-[500px]" : ""
+            height === "auto" ? "max-h-[600px]" : ""
           )}
         >
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
                 <div className="w-4 h-4 border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-600 dark:border-t-zinc-300 rounded-full animate-spin" />
-                <span className="text-sm">Loading interface...</span>
+                <span className="text-sm">Loading interface…</span>
               </div>
             </div>
           ) : (
@@ -423,6 +419,15 @@ export function PrecompileCodeViewer({
             </div>
           )}
         </div>
+
+        {/* Footer with currently-shown function */}
+        {highlightFunction && !loading && (
+          <div className="shrink-0 px-4 py-2 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200/80 dark:border-zinc-800">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+              Viewing <code className="font-mono text-amber-700 dark:text-amber-300">{highlightFunction}()</code>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Shiki reset styles */}

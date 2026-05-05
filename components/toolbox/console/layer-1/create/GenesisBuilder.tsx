@@ -67,12 +67,28 @@ type GenesisBuilderProps = {
   genesisData?: string;
   setGenesisData?: (data: string) => void;
   initiallyExpandedSections?: SectionId[];
+  /**
+   * Override defaults for the pre-deploy toggles. Only the fields supplied
+   * are overridden; anything absent keeps GenesisBuilder's historical
+   * defaults. Used by the Create L1 questionnaire to seed ICM Messenger
+   * based on the user's interoperability answer. The user can still flip
+   * any toggle from the UI afterwards.
+   */
+  preinstallDefaults?: Partial<PreinstallConfig>;
+  /**
+   * When explicitly `false`, strips the Warp precompile from the generated
+   * genesis. Defaults to `true` (backwards-compatible — warp has always
+   * shipped with subnet-evm defaults here).
+   */
+  warpEnabled?: boolean;
 };
 
 function GenesisBuilderInner({
   genesisData: externalGenesisData,
   setGenesisData: externalSetGenesisData,
   initiallyExpandedSections = ['chainParams'],
+  preinstallDefaults,
+  warpEnabled: warpEnabledProp,
 }: GenesisBuilderProps) {
   // Internal state for when used standalone (e.g., in MDX files)
   const [internalGenesisData, setInternalGenesisData] = useState<string>('');
@@ -145,15 +161,19 @@ function GenesisBuilderInner({
   // Start with true to always show genesis, even with validation errors
   const [shouldGenerateGenesis, setShouldGenerateGenesis] = useState(true);
 
-  // Preinstall configuration state
+  // Warp defaults to on unless the caller explicitly passes `warpEnabled={false}`.
+  const interopEnabled = warpEnabledProp !== false;
+
+  // Preinstall configuration state — defaults, overridden by `preinstallDefaults`.
   const [preinstallConfig, setPreinstallConfig] = useState<PreinstallConfig>({
     proxy: true,
     proxyAdmin: true,
-    safeSingletonFactory: true, // Enabled by default as requested
+    safeSingletonFactory: true,
     multicall3: false,
     icmMessenger: true,
     wrappedNativeToken: true,
     create2Deployer: false,
+    ...preinstallDefaults,
   });
 
   // --- Validation Logic ---
@@ -311,6 +331,7 @@ function GenesisBuilderInner({
         preinstallConfig: preinstallConfig,
         tokenName: tokenName,
         tokenSymbol: tokenSymbol,
+        warpEnabled: interopEnabled,
       });
 
       // Override feeConfig, gasLimit, targetBlockRate, warpConfig in the base genesis
@@ -324,10 +345,15 @@ function GenesisBuilderInner({
             gasLimit: gasLimit, // Keep gasLimit here as well for clarity
             targetBlockRate: targetBlockRate,
           },
-          warpConfig: {
-            ...baseGenesis.config.warpConfig,
-            ...warpConfig,
-          },
+          // Only include warpConfig when interoperability is enabled. The
+          // override spread above would otherwise re-introduce it even when
+          // generateGenesis stripped it from baseGenesis.
+          ...(interopEnabled && {
+            warpConfig: {
+              ...baseGenesis.config.warpConfig,
+              ...warpConfig,
+            },
+          }),
           // Add fee and reward manager configurations
           ...(feeManagerConfig.activated && {
             feeManagerConfig: {
@@ -372,6 +398,7 @@ function GenesisBuilderInner({
     feeConfig,
     warpConfig,
     preinstallConfig,
+    interopEnabled,
     setGenesisData,
     blockTimestamp,
     tokenName,
@@ -405,6 +432,7 @@ function GenesisBuilderInner({
     feeConfig,
     warpConfig,
     preinstallConfig,
+    interopEnabled,
     tokenName,
     tokenSymbol,
     generateGenesisData,

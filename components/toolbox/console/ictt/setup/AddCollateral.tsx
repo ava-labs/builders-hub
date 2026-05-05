@@ -5,7 +5,8 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import ExampleERC20ABI from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
-import { createPublicClient, http, formatUnits, parseUnits, Address, Chain } from 'viem';
+import { formatUnits, parseUnits, Address, Chain } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Input, Suggestion } from '@/components/toolbox/components/Input';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { AmountInput } from '@/components/toolbox/components/AmountInput';
@@ -116,10 +117,15 @@ function AddCollateral() {
     setLocalError('');
     setIsFetchingTokenHome(true);
     try {
-      const remotePublicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const remotePublicClient = makePublicClientForChain(
+        viemChain?.rpcUrls.default.http[0],
+        [],
+        viemChain ?? undefined,
+      );
+      if (!remotePublicClient) {
+        setLocalError('Could not create public client for remote chain');
+        return;
+      }
 
       // Fetch tokenHomeAddress and tokenHomeBlockchainID from NativeTokenRemote
       const [fetchedTokenHomeAddress, fetchedTokenHomeBlockchainID] = await Promise.all([
@@ -146,9 +152,8 @@ function AddCollateral() {
         setSourceChainId(matchingChain.id);
 
         // Detect token type by checking storage locations on the TokenHome contract
-        const homePublicClient = createPublicClient({
-          transport: http(matchingChain.rpcUrl),
-        });
+        const homePublicClient = makePublicClientForChain(matchingChain.rpcUrl);
+        if (!homePublicClient) return;
 
         try {
           // Try to read NATIVE_TOKEN_HOME_STORAGE_LOCATION
@@ -210,14 +215,12 @@ function AddCollateral() {
     setLocalError('');
     setIsAutoFilled(false);
     try {
-      const homePublicClient = createPublicClient({
-        transport: http(sourceL1.rpcUrl),
-      });
-
-      const remotePublicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const homePublicClient = makePublicClientForChain(sourceL1.rpcUrl);
+      const remotePublicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!homePublicClient || !remotePublicClient) {
+        setLocalError('Could not create public clients for home or remote chain');
+        return;
+      }
 
       // 1. Get Token Address from Home Contract
       const fetchedTokenAddress = (await homePublicClient.readContract({
@@ -369,9 +372,11 @@ function AddCollateral() {
     setLastApprovalTxId(undefined);
 
     try {
-      const publicClient = createPublicClient({
-        transport: http(sourceL1.rpcUrl),
-      });
+      const publicClient = makePublicClientForChain(sourceL1.rpcUrl);
+      if (!publicClient) {
+        setLocalError('Could not resolve source chain RPC');
+        return;
+      }
 
       const amountParsed = parseUnits(amount, tokenDecimals);
 
@@ -428,9 +433,11 @@ function AddCollateral() {
     setLastAddCollateralTxId(undefined);
 
     try {
-      const publicClient = createPublicClient({
-        transport: http(sourceL1.rpcUrl),
-      });
+      const publicClient = makePublicClientForChain(sourceL1.rpcUrl);
+      if (!publicClient) {
+        setLocalError('Could not resolve source chain RPC');
+        return;
+      }
 
       const amountParsed = parseUnits(amount, tokenDecimals);
 

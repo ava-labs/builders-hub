@@ -14,6 +14,7 @@ import SelectSubnet from '@/components/toolbox/components/SelectSubnet';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Create Managed Testnet Node',
@@ -27,6 +28,13 @@ function CreateManagedTestnetNodeBase() {
   const { createNode, fetchNodes, nodes } = useManagedTestnetNodes();
   const { addChain } = useWallet();
   const { notify } = useConsoleNotifications();
+  // The create-l1 wizard parks the just-configured chain's metadata
+  // (subnetId + genesis JSON) in this store. When the subnet the user
+  // picks here matches what they're mid-creating, we pass the genesis
+  // through so the resulting wallet entry can power Copy Genesis on the
+  // dashboard without requiring a manual paste.
+  const createChainSubnetId = useCreateChainStore()((s: { subnetId: string }) => s.subnetId);
+  const createChainGenesisData = useCreateChainStore()((s: { genesisData: string }) => s.genesisData);
 
   const [subnetId, setSubnetId] = useState('');
   const [selectedBlockchainId, setSelectedBlockchainId] = useState('');
@@ -38,14 +46,18 @@ function CreateManagedTestnetNodeBase() {
   const [secondsUntilWalletEnabled, setSecondsUntilWalletEnabled] = useState<number>(0);
   const [isConnectingWallet, setIsConnectingWallet] = useState(false);
 
+  // Back-up matcher for the case where createNode couldn't return the DB
+  // node directly (legacy responses) — prefer the synchronously-set
+  // createdNode from handleCreate below.
   useEffect(() => {
+    if (createdNode) return;
     if (createdResponse && nodes.length > 0) {
       const node = nodes.find((n) => n.node_id === createdResponse.nodeID && n.subnet_id === subnetId);
       if (node) {
         setCreatedNode(node);
       }
     }
-  }, [nodes, createdResponse, subnetId]);
+  }, [nodes, createdResponse, subnetId, createdNode]);
 
   useEffect(() => {
     if (!createdNode) return;
@@ -82,6 +94,11 @@ function CreateManagedTestnetNodeBase() {
     try {
       const response = await createNodePromise;
       setCreatedResponse(response);
+      // The POST response carries the freshly-created DB node; apply it
+      // synchronously so Step 3 unlocks without waiting for a re-fetch round-trip.
+      if (response.node) {
+        setCreatedNode(response.node);
+      }
     } finally {
       setIsCreatingNode(false);
       await fetchNodes();
@@ -91,9 +108,15 @@ function CreateManagedTestnetNodeBase() {
   const handleAddToWallet = async () => {
     if (!createdNode) return;
     setIsConnectingWallet(true);
+    // Only pass genesis when the wizard's subnet matches what the user
+    // selected in step 1 here. Without this guard a stale createChainStore
+    // from a previous flow would seed the modal with mismatched genesis.
+    const matchesWizard = createChainSubnetId.length > 0 && createChainSubnetId === subnetId;
+    const genesisToPass = matchesWizard ? createChainGenesisData?.trim() || undefined : undefined;
     await addChain({
       rpcUrl: createdNode.rpc_url,
       allowLookup: false,
+      genesisData: genesisToPass,
     });
     setIsConnectingWallet(false);
   };

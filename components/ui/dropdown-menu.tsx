@@ -7,9 +7,18 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 function DropdownMenu({
+  modal = false,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+  // Default to non-modal so opening the menu doesn't lock body scroll
+  // and add a `padding-right: var(--removed-body-scroll-bar-size)` gutter
+  // — that compensation paints a phantom second scrollbar whenever an
+  // ancestor element is itself scrollable (the My L1 Explorer dropdown
+  // is the canonical repro). Radix's own docs recommend `modal=false`
+  // for menu/popover-style triggers; the modal flag is meant for
+  // confirmation dialogs. Consumers that genuinely need a focus-trapping
+  // modal menu can still pass `modal` explicitly.
+  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" modal={modal} {...props} />
 }
 
 function DropdownMenuPortal({

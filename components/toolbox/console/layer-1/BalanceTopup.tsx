@@ -21,6 +21,7 @@ import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code
 import { cn } from '@/lib/utils';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
+import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -127,6 +128,9 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
         notify('increaseL1ValidatorBalance', txPromise);
         return txPromise;
       });
+
+      // Wait for P-Chain confirmation before declaring success
+      await waitForPChainConfirmation(txHash, isTestnet);
 
       setValidatorTxId(txHash);
       setOperationSuccessful(true);

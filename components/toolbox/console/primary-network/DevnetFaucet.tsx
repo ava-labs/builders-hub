@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { createPublicClient, http, formatEther, defineChain } from 'viem';
+import { formatEther, defineChain } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Copy, Check, AlertTriangle, Droplets, ExternalLink, RefreshCw, Wallet } from 'lucide-react';
 import {
   BaseConsoleToolProps,
@@ -26,10 +27,10 @@ const devnetCChain = defineChain({
   },
 });
 
-const devnetPublicClient = createPublicClient({
-  chain: devnetCChain,
-  transport: http(DEVNET_RPC_URL),
-});
+// Module-scope client for the devnet RPC. Made non-null by construction
+// since DEVNET_RPC_URL is a literal string, but we guard anyway so the
+// type narrowing works in consumers below.
+const devnetPublicClient = makePublicClientForChain(DEVNET_RPC_URL, [], devnetCChain)!;
 
 const metadata: ConsoleToolMetadata = {
   title: 'Devnet Faucet',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
@@ -8,6 +8,9 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { LockedContent } from '@/components/toolbox/components/LockedContent';
+import { ValidatorPreflightChecklist } from '@/components/toolbox/components/ValidatorPreflightChecklist';
+import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
@@ -56,6 +59,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   const nativeStakingManager = useNativeTokenStakingManager(stakingManagerAddress || null);
   const erc20StakingManager = useERC20TokenStakingManager(stakingManagerAddress || null);
 
+  // Preflight check: read on-chain state for the nodeID to block re-registration
+  const preflight = useValidatorPreflight({
+    nodeID: nodeID || undefined,
+    stakingManagerAddress: stakingManagerAddress || null,
+    validatorManagerAddress: stakingManagerAddress || null,
+    walletAddress: walletEVMAddress || undefined,
+    stakingManagerType: tokenType === 'erc20' ? 'erc20' : 'native',
+  });
+
   const [stakeAmount, setStakeAmount] = useState<string>('');
   const [delegationFeeBips, setDelegationFeeBips] = useState<string>('100');
   const [minStakeDuration, setMinStakeDuration] = useState<string>('86400');
@@ -68,6 +80,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   const [contractSettings, setContractSettings] = useState<ContractSettings | null>(null);
   // Resolved ERC20 token address — read from the staking manager contract
   const [resolvedErc20Address, setResolvedErc20Address] = useState<string>(erc20TokenAddress || '');
+  const [tokenSymbol, setTokenSymbol] = useState<string | null>(null);
+  const [tokenAllowance, setTokenAllowance] = useState<bigint | null>(null);
+  const [isCheckingAllowance, setIsCheckingAllowance] = useState(false);
 
   const erc20Token = useERC20Token(resolvedErc20Address || null, ExampleERC20.abi);
 
@@ -94,7 +109,19 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
               abi: ERC20TokenStakingManager.abi,
               functionName: 'erc20',
             });
-            if (tokenAddr) setResolvedErc20Address(tokenAddr as string);
+            if (tokenAddr) {
+              setResolvedErc20Address(tokenAddr as string);
+              try {
+                const sym = (await chainPublicClient.readContract({
+                  address: tokenAddr as `0x${string}`,
+                  abi: ExampleERC20.abi,
+                  functionName: 'symbol',
+                })) as string;
+                setTokenSymbol(sym);
+              } catch {
+                // Symbol read is best-effort
+              }
+            }
           } catch {
             // Fallback to prop if erc20() read fails
           }
@@ -135,6 +162,48 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     fetchSettings();
   }, [chainPublicClient, stakingManagerAddress, contractAbi]); // stakeAmount/delegationFeeBips/minStakeDuration intentionally excluded — only pre-fill on first load
 
+  // Read on-chain allowance(owner, spender) directly to keep bigint precision.
+  // Avoid useERC20Token.allowance() because it lossy-stringifies via formatEther.
+  const refreshAllowance = useCallback(async () => {
+    if (!resolvedErc20Address || !walletEVMAddress || !stakingManagerAddress || isNative) {
+      setTokenAllowance(null);
+      return;
+    }
+    if (!chainPublicClient) return;
+    setIsCheckingAllowance(true);
+    try {
+      const allowance = (await chainPublicClient.readContract({
+        address: resolvedErc20Address as `0x${string}`,
+        abi: ExampleERC20.abi,
+        functionName: 'allowance',
+        args: [walletEVMAddress as `0x${string}`, stakingManagerAddress as `0x${string}`],
+      })) as bigint;
+      setTokenAllowance(allowance);
+    } catch (err) {
+      console.error('Failed to read allowance', err);
+      setTokenAllowance(null);
+    } finally {
+      setIsCheckingAllowance(false);
+    }
+  }, [resolvedErc20Address, walletEVMAddress, stakingManagerAddress, chainPublicClient, isNative]);
+
+  useEffect(() => {
+    void refreshAllowance();
+  }, [refreshAllowance]);
+
+  const parsedStakeAmount = useMemo(() => {
+    try {
+      return parseEther(stakeAmount || '0');
+    } catch {
+      return 0n;
+    }
+  }, [stakeAmount]);
+
+  const hasSufficientAllowance = useMemo(
+    () => tokenAllowance !== null && parsedStakeAmount > 0n && tokenAllowance >= parsedStakeAmount,
+    [tokenAllowance, parsedStakeAmount],
+  );
+
   const handleApproveERC20 = async () => {
     if (!resolvedErc20Address || !walletClient || !chainPublicClient || !viemChain) return;
     setIsApproving(true);
@@ -143,12 +212,64 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       // useERC20Token.approve() calls parseEther internally — pass human-readable amount
       const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, stakeAmount);
       await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+      await refreshAllowance();
     } catch (err: any) {
       setErrorState(`Failed to approve tokens: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsApproving(false);
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // Real-time input validation against contract constraints
+  // ---------------------------------------------------------------------------
+
+  const getStakeError = useMemo(() => {
+    return (): string | null => {
+      if (!stakeAmount || !contractSettings) return null;
+      try {
+        const amountWei = parseEther(stakeAmount);
+        const minWei = parseEther(contractSettings.minimumStakeAmount);
+        const maxWei = parseEther(contractSettings.maximumStakeAmount);
+        if (amountWei < minWei) return `Below minimum: ${contractSettings.minimumStakeAmount}`;
+        if (amountWei > maxWei) return `Above maximum: ${contractSettings.maximumStakeAmount}`;
+      } catch {
+        return 'Invalid amount';
+      }
+      return null;
+    };
+  }, [stakeAmount, contractSettings]);
+
+  const getDelegationFeeError = useMemo(() => {
+    return (): string | null => {
+      if (!delegationFeeBips || !contractSettings) return null;
+      const fee = parseInt(delegationFeeBips);
+      if (isNaN(fee)) return 'Invalid number';
+      if (fee < contractSettings.minimumDelegationFeeBips)
+        return `Below minimum: ${contractSettings.minimumDelegationFeeBips} bips`;
+      if (fee > 10000) return 'Cannot exceed 10000 bips (100%)';
+      return null;
+    };
+  }, [delegationFeeBips, contractSettings]);
+
+  const getDurationError = useMemo(() => {
+    return (): string | null => {
+      if (!minStakeDuration || !contractSettings) return null;
+      const dur = parseInt(minStakeDuration);
+      if (isNaN(dur)) return 'Invalid number';
+      if (dur < parseInt(contractSettings.minimumStakeDuration))
+        return `Below minimum: ${contractSettings.minimumStakeDuration}s`;
+      return null;
+    };
+  }, [minStakeDuration, contractSettings]);
+
+  const stakeError = getStakeError();
+  const delegationFeeError = getDelegationFeeError();
+  const durationError = getDurationError();
+  const hasValidationErrors = !!(stakeError || delegationFeeError || durationError);
+
+  // Determine if registration is blocked by preflight checks
+  const isPreflightBlocked = !!nodeID && !preflight.isLoading && preflight.checks.register.status === 'not_met';
 
   const handleInitiateRegistration = async () => {
     setErrorState(null);
@@ -169,6 +290,17 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }
     if (!stakingManagerAddress) {
       setErrorState('Staking Manager address is required.');
+      return;
+    }
+
+    // ERC20 path: ensure on-chain allowance covers the stake amount before
+    // submitting — otherwise the contract revert is opaque.
+    if (!isNative && (tokenAllowance === null || tokenAllowance < parsedStakeAmount)) {
+      setErrorState(
+        `Insufficient allowance. Need ${stakeAmount} ${tokenSymbol ?? 'tokens'}, have ${
+          tokenAllowance !== null ? formatEther(tokenAllowance) : '0'
+        }. Approve first.`,
+      );
       return;
     }
 
@@ -268,90 +400,135 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}
 
-      {/* Contract parameters with presets */}
-      <div className="space-y-3">
-        <Input
-          label="Stake Amount"
-          value={stakeAmount}
-          onChange={setStakeAmount}
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder={contractSettings?.minimumStakeAmount || '1000'}
-          disabled={isProcessing || isApproving}
-          helperText={
-            contractSettings
-              ? `Min: ${contractSettings.minimumStakeAmount} — Max: ${contractSettings.maximumStakeAmount}`
-              : 'Amount of tokens to stake'
-          }
-        />
+      {/* Preflight checklist — shown when the nodeID is entered and registration is blocked */}
+      {nodeID && !preflight.isLoading && preflight.checks.register.status !== 'met' && (
+        <ValidatorPreflightChecklist preflight={preflight} currentFlow="register" />
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Gate the form when the node is already registered */}
+      <LockedContent
+        isUnlocked={!nodeID || (!preflight.isLoading && preflight.checks.register.status === 'met')}
+        lockedMessage="This node is already registered. See the status above for next steps."
+      >
+        {/* Contract parameters with presets */}
+        <div className="space-y-3">
           <Input
-            label="Delegation Fee (Basis Points)"
-            value={delegationFeeBips}
-            onChange={setDelegationFeeBips}
+            label="Stake Amount"
+            value={stakeAmount}
+            onChange={setStakeAmount}
             type="number"
             min="0"
-            max="10000"
+            step="0.01"
+            placeholder={contractSettings?.minimumStakeAmount || '1000'}
             disabled={isProcessing || isApproving}
+            error={stakeError}
             helperText={
-              contractSettings
-                ? `Min: ${contractSettings.minimumDelegationFeeBips} bips (${contractSettings.minimumDelegationFeeBips / 100}%)`
-                : '100 = 1%, 10000 = 100%'
+              !stakeError && contractSettings
+                ? `Min: ${contractSettings.minimumStakeAmount} — Max: ${contractSettings.maximumStakeAmount}`
+                : !stakeError
+                  ? 'Amount of tokens to stake'
+                  : undefined
             }
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Input
+              label="Delegation Fee (Basis Points)"
+              value={delegationFeeBips}
+              onChange={setDelegationFeeBips}
+              type="number"
+              min="0"
+              max="10000"
+              disabled={isProcessing || isApproving}
+              error={delegationFeeError}
+              helperText={
+                !delegationFeeError && contractSettings
+                  ? `Min: ${contractSettings.minimumDelegationFeeBips} bips (${contractSettings.minimumDelegationFeeBips / 100}%)`
+                  : !delegationFeeError
+                    ? '100 = 1%, 10000 = 100%'
+                    : undefined
+              }
+            />
+            <Input
+              label="Min Stake Duration (seconds)"
+              value={minStakeDuration}
+              onChange={setMinStakeDuration}
+              type="number"
+              min="0"
+              disabled={isProcessing || isApproving}
+              error={durationError}
+              helperText={
+                !durationError && contractSettings
+                  ? `Min: ${contractSettings.minimumStakeDuration}s`
+                  : !durationError
+                    ? '86400 = 1 day'
+                    : undefined
+              }
+            />
+          </div>
+
           <Input
-            label="Min Stake Duration (seconds)"
-            value={minStakeDuration}
-            onChange={setMinStakeDuration}
-            type="number"
-            min="0"
+            label="Reward Recipient"
+            value={rewardRecipient}
+            onChange={setRewardRecipient}
+            placeholder="0x..."
             disabled={isProcessing || isApproving}
-            helperText={contractSettings ? `Min: ${contractSettings.minimumStakeDuration}s` : '86400 = 1 day'}
+            helperText="EVM address that receives staking rewards. Defaults to connected wallet."
           />
         </div>
 
-        <Input
-          label="Reward Recipient"
-          value={rewardRecipient}
-          onChange={setRewardRecipient}
-          placeholder="0x..."
-          disabled={isProcessing || isApproving}
-          helperText="EVM address that receives staking rewards. Defaults to connected wallet."
-        />
-      </div>
-
-      {/* ERC20: approve then register in sequence */}
-      {!isNative && resolvedErc20Address ? (
-        <div className="flex gap-2">
-          <Button
-            onClick={handleApproveERC20}
-            disabled={isApproving || isProcessing || !stakeAmount}
-            loading={isApproving}
-            variant="secondary"
-          >
-            1. Approve Tokens
-          </Button>
+        {/* ERC20: approve then register in sequence */}
+        {!isNative && resolvedErc20Address ? (
+          <div className="flex gap-2">
+            <Button
+              onClick={handleApproveERC20}
+              disabled={
+                isApproving ||
+                isProcessing ||
+                !stakeAmount ||
+                hasValidationErrors ||
+                isCheckingAllowance ||
+                hasSufficientAllowance ||
+                parsedStakeAmount === 0n
+              }
+              loading={isApproving}
+              variant="secondary"
+            >
+              {hasSufficientAllowance
+                ? `Approved (${stakeAmount} ${tokenSymbol ?? 'tokens'})`
+                : `1. Approve ${stakeAmount || '0'} ${tokenSymbol ?? 'tokens'}`}
+            </Button>
+            <Button
+              onClick={handleInitiateRegistration}
+              disabled={
+                isProcessing ||
+                isApproving ||
+                !stakeAmount ||
+                !!txHash ||
+                hasValidationErrors ||
+                isPreflightBlocked ||
+                preflight.isLoading ||
+                !hasSufficientAllowance
+              }
+              loading={isProcessing}
+              variant="primary"
+            >
+              2. Initiate Validator Registration
+            </Button>
+          </div>
+        ) : (
           <Button
             onClick={handleInitiateRegistration}
-            disabled={isProcessing || isApproving || !stakeAmount || !!txHash}
+            disabled={
+              isProcessing || isApproving || !stakeAmount || !!txHash || hasValidationErrors || isPreflightBlocked
+            }
             loading={isProcessing}
             variant="primary"
           >
-            2. Register Validator
+            Initiate Validator Registration
           </Button>
-        </div>
-      ) : (
-        <Button
-          onClick={handleInitiateRegistration}
-          disabled={isProcessing || isApproving || !stakeAmount || !!txHash}
-          loading={isProcessing}
-          variant="primary"
-        >
-          Initiate Validator Registration
-        </Button>
-      )}
+        )}
+      </LockedContent>
 
       {txHash && validationID && <Success label="Validation ID" value={validationID} />}
     </div>

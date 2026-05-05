@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
 import { getActiveRulesAt } from '../coreViem';
-import { createPublicClient, http } from 'viem';
+import { makePublicClientForChain } from '../hooks/usePublicClientForChain';
 import { cn } from '../lib/utils';
 import { AlertTriangle, ExternalLink, RefreshCw, Blocks, ArrowRightLeft } from 'lucide-react';
 import { Button } from './Button';
@@ -64,12 +64,10 @@ export const CheckPrecompile = ({
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Create a dedicated publicClient using the chain's RPC URL
-      // This is necessary because Core wallet provider doesn't support eth_getActiveRulesAt
-      const rpcPublicClient = createPublicClient({
-        transport: http(viemChain.rpcUrls.default.http[0]),
-        chain: viemChain as any,
-      });
+      // Dedicated publicClient that hits the chain's RPC directly —
+      // the Core wallet provider doesn't support eth_getActiveRulesAt.
+      const rpcPublicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!rpcPublicClient) return;
 
       const data = await getActiveRulesAt(rpcPublicClient);
       // Treat presence of a timestamp (including 0) as active.

@@ -1588,3 +1588,60 @@ html.embed-mode #nd-toc {
   background-color: #2f2f3353;
   border-radius: 5px;
 }
+
+/* Honor the OS-level "Reduce Motion" preference site-wide. Framer-motion
+   variants already respect this, but raw CSS @keyframes, Tailwind
+   `transition-*` utilities, and any third-party animation will keep
+   firing without this rule. Set to a near-instant duration rather than 0
+   so transitions still trigger their `transitionend` events (some libs
+   rely on those firing). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Subtle 1px highlight at the top of every shadcn Card in dark mode.
+   Differentiates cards from the page background (both are near-black
+   zinc shades with only ~10 steps between them) by suggesting the card
+   catches a hint of light from above. Kept invisible in light mode
+   since light cards already separate from the page via shadow. */
+.dark [data-slot="card"] {
+  box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.04);
+}
+
+/* Slow shimmer pass for inline progress bars that need a subtle "still
+   needs attention" hint. A diagonal highlight sweeps across once every
+   3 seconds, just enough to catch peripheral vision without becoming
+   loud. Used on the my-l1 SetupStatusPill's inline progress bar. */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(200%); }
+}
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 3s ease-in-out infinite;
+}
+
+/* Radix Collapsible animations. The primitive exposes the natural
+   content height as a CSS variable; we animate from 0 to that and back
+   so disclosures expand smoothly instead of snapping. Used by
+   `<CollapsibleContent>` consumers like the my-l1 NetworkDetailsCard. */
+@keyframes collapsible-down {
+  from { height: 0; }
+  to { height: var(--radix-collapsible-content-height); }
+}
+@keyframes collapsible-up {
+  from { height: var(--radix-collapsible-content-height); }
+  to { height: 0; }
+}
+.animate-collapsible-down {
+  animation: collapsible-down 220ms cubic-bezier(0.21, 0.47, 0.32, 0.98);
+}
+.animate-collapsible-up {
+  animation: collapsible-up 200ms cubic-bezier(0.21, 0.47, 0.32, 0.98);
+}

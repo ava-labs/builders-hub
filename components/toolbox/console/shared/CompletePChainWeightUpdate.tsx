@@ -329,7 +329,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
     (!isCoreWallet && !!pChainSignature);
 
   const step1Complete = !!pChainTxIdState.trim() && (!isDelegation || !!delegationIDState.trim());
-  const step2Complete = !!txHash;
+  const step2Complete = !!updateComplete;
 
   return (
     <div className="space-y-3">

@@ -30,7 +30,7 @@ export default function CompleteDelegationStep() {
               pChainTxId={store.pChainTxId}
               signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
               updateType="Delegation"
-              managerAddress={vmcCtx.staking?.stakingManagerAddress || vmcCtx.contractOwner || ''}
+              managerAddress={vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || ''}
               delegationID={store.delegationID}
               tokenType={store.tokenType}
               onSuccess={(data) => {

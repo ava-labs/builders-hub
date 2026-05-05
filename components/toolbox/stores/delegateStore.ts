@@ -93,7 +93,7 @@ const {
     },
   }),
   partialize: (state) => {
-    const { globalError, globalSuccess, ...rest } = state;
+    const { globalError, globalSuccess, subnetIdL1: _, ...rest } = state;
     return rest;
   },
 });

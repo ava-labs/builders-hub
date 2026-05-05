@@ -50,6 +50,7 @@ export { default as SelectSubnetId } from './SelectSubnetId';
 export { default as SelectValidationID } from './SelectValidationID';
 export type { ValidationSelection } from './SelectValidationID';
 export { StakingParametersForm } from './StakingParametersForm';
+export { StepErrorBoundary } from './StepErrorBoundary';
 export { StepIndicator, StepCard, StepFlowCard } from './StepCard';
 export type { StepFlowCardProps } from './StepCard';
 export { StorageRequirements } from './StorageRequirements';

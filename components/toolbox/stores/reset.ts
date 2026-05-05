@@ -2,6 +2,8 @@ import { useWalletStore } from './walletStore';
 import { getRegisteredFlowStores } from './createFlowStore';
 import { getL1ListStore } from './l1ListStore';
 import { getToolboxStore } from './toolboxStore';
+import { getTxHistoryStore } from './txHistoryStore';
+import { useCreateL1FlowStore } from './createL1FlowStore';
 import type { L1ListItem } from './l1ListStore';
 import { disconnect } from '@wagmi/core';
 import { wagmiConfig } from '../providers/wagmi-config';
@@ -35,8 +37,17 @@ export function resetAllStores() {
     getToolboxStore(chainId).getState().reset();
   });
 
-  // Clear console notification panel
+  // Clear console notification panel and tx history
   useNotificationPanelStore.getState().clearAll();
+  getTxHistoryStore(true).getState().clearHistory();
+  getTxHistoryStore(false).getState().clearHistory();
+
+  // Clear the Create L1 questionnaire flow — it isn't built via the
+  // `createFlowStore` factory (it's a plain zustand persist store) so it
+  // isn't in the registered-flow-stores registry picked up above. Missing
+  // this leaves a stale "Resume your previous flow" banner on the
+  // questionnaire after a user hits Reset.
+  useCreateL1FlowStore.getState().reset();
 
   // Disconnect wagmi so the page reloads with a clean wallet state
   disconnect(wagmiConfig).catch(() => {});

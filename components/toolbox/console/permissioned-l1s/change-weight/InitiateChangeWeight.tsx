@@ -86,9 +86,10 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       setErrorState('Weight is required');
       return;
     }
-    const weightNum = Number(weight);
-    if (isNaN(weightNum) || weightNum <= 0) {
-      setErrorState('Weight must be a positive number');
+    // Weight is a uint64 on-chain; reject decimals/NaN before constructing BigInt.
+    const trimmedWeight = weight.trim();
+    if (!/^\d+$/.test(trimmedWeight) || trimmedWeight === '0') {
+      setErrorState('Weight must be a positive integer');
       return;
     }
     if (!validatorManagerAddress) {

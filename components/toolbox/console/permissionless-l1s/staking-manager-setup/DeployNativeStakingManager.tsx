@@ -292,7 +292,7 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Link
-                href="/docs/avalanche-l1s/validator-manager/native-token-staking"
+                href="/docs/avalanche-l1s/validator-manager/contract"
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
               >
                 <BookOpen className="w-3.5 h-3.5" />

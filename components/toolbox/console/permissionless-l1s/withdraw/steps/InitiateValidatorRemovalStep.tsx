@@ -18,7 +18,7 @@ export default function InitiateValidatorRemovalStep() {
   const vmcCtx = useValidatorManagerContext();
   const viemChain = useViemChainStore();
 
-  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.contractOwner || '';
+  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || '';
   const tokenType = vmcCtx.staking?.stakingType || 'native';
 
   return (
@@ -36,6 +36,7 @@ export default function InitiateValidatorRemovalStep() {
               }}
               format="hex"
               subnetId={store.subnetIdL1}
+              validatorManagerAddress={stakingManagerAddress}
             />
 
             {store.nodeId && (

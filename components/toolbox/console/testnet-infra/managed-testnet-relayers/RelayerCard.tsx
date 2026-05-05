@@ -20,7 +20,8 @@ import {
 import { Button } from '@/components/toolbox/components/Button';
 import { Input, RawInput } from '@/components/toolbox/components/Input';
 import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
-import { createPublicClient, http, formatEther, parseEther, Chain } from 'viem';
+import { formatEther, parseEther, Chain } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';
@@ -123,9 +124,8 @@ export default function RelayerCard({
       }
       for (const config of relayer.configs) {
         try {
-          const client = createPublicClient({
-            transport: http(config.rpcUrl),
-          });
+          const client = makePublicClientForChain(config.rpcUrl);
+          if (!client) throw new Error('Unreachable RPC');
           const balance = await client.getBalance({ address: relayer.relayerId as `0x${string}` });
           newBalances[config.blockchainId] = formatEther(balance);
         } catch (error) {
@@ -158,9 +158,25 @@ export default function RelayerCard({
       // Get chain info for the transaction
       const chainInfo = getChainInfo(config);
       const l1 = l1List.find((item: L1ListItem) => item.id === config.blockchainId);
-      const evmChainId =
-        l1?.evmChainId ||
-        (config.rpcUrl.includes('avax-test.network') ? 43113 : parseInt(config.blockchainId.slice(0, 8), 16));
+      // Resolve the EVM chain ID — prefer the L1 list; for anything else
+      // query the RPC directly. The previous fallback, parseInt(cb58.slice(0,8), 16),
+      // silently returned NaN for non-hex base58 characters and left
+      // walletClient.switchChain with an invalid id.
+      let evmChainId: number | undefined = l1?.evmChainId;
+      if (!evmChainId) {
+        try {
+          const probe = makePublicClientForChain(config.rpcUrl);
+          if (!probe) throw new Error('no client');
+          evmChainId = await probe.getChainId();
+        } catch {
+          throw new Error(
+            `Could not reach ${config.blockchainId.slice(0, 8)}… to determine its EVM chain ID. Check that the relayer's RPC URL is online.`,
+          );
+        }
+      }
+      if (!evmChainId || !Number.isFinite(evmChainId)) {
+        throw new Error('Could not determine the EVM chain ID for this relayer config.');
+      }
 
       const viemChain: Chain = {
         id: evmChainId,
@@ -178,9 +194,8 @@ export default function RelayerCard({
       // Switch chain in Core wallet
       await walletClient.switchChain({ id: evmChainId });
 
-      const publicClient = createPublicClient({
-        transport: http(config.rpcUrl),
-      });
+      const publicClient = makePublicClientForChain(config.rpcUrl);
+      if (!publicClient) throw new Error(`Could not create public client for ${config.rpcUrl}`);
 
       const nextNonce = await publicClient.getTransactionCount({
         address: walletEVMAddress as `0x${string}`,

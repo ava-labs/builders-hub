@@ -1,0 +1,151 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { startMockDeployment } from '@/lib/quick-l1/mock-orchestrator';
+import type { DeployRequest, DeployResponse } from '@/lib/quick-l1/types';
+import { getUserId, rateLimited } from '@/app/api/managed-testnet-nodes/utils';
+import { getAuthSession } from '@/lib/auth/authSession';
+
+/**
+ * POST /api/quick-l1/deploy
+ *
+ * Kicks off a Basic L1 Setup deployment.
+ *
+ * Auth:
+ *   - Requires a builders-hub session. Unauthenticated calls 401.
+ *   - Never trust `userId` from the request body — we overwrite it
+ *     server-side from the session.
+ *
+ * Behavior:
+ *   - If `QUICK_L1_SERVICE_URL` is set, proxies to the Railway microservice
+ *     and attaches `x-quick-l1-secret` (service-to-service auth) plus the
+ *     authenticated userId in the body.
+ *   - Otherwise (local dev without the upstream), runs the in-memory
+ *     mock orchestrator so the UI can be exercised without a backend.
+ *
+ * Rate limit: 5 deploys/min per account in prod. Each deploy provisions
+ * a managed validator node, deploys ~7 contracts, and (optionally) bridges
+ * tokens — this caps abusive bursts while staying well above legitimate
+ * "I made a typo, retry" use.
+ */
+async function rateLimitIdentifier(): Promise<string> {
+  if (process.env.NODE_ENV === 'development') return 'dev-user';
+  const session = await getAuthSession();
+  const email = session?.user?.email;
+  if (!email) throw new Error('Authentication required');
+  return `quick-l1-deploy:${email}`;
+}
+
+async function handlePost(
+  request: NextRequest,
+): Promise<NextResponse<DeployResponse | { error: string }>> {
+  // Gate the whole endpoint behind builders-hub auth — no deploys for
+  // anonymous callers. In development mode `getUserId` returns a fixed
+  // `'dev-user-id'` so local flows keep working.
+  const { userId, error } = await getUserId();
+  if (error) return error as NextResponse<{ error: string }>;
+  if (!userId) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
+  let clientBody: Partial<DeployRequest>;
+  try {
+    clientBody = (await request.json()) as Partial<DeployRequest>;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  if (!clientBody.chainName || !clientBody.tokenSymbol || !clientBody.ownerEvmAddress) {
+    return NextResponse.json(
+      { error: 'chainName, tokenSymbol, and ownerEvmAddress are required' },
+      { status: 400 },
+    );
+  }
+  // Mirror avalanchego's CreateChainTx rule (vms/platformvm/txs/create_chain_tx.go):
+  // ASCII letters, digits, and spaces only — no `_`, `-`, `.`, emoji, accents.
+  // Catching this here avoids a round trip to the Railway service
+  // (which also re-validates) and gives the user a faster 400.
+  const trimmedChainName = clientBody.chainName.trim();
+  if (
+    trimmedChainName.length < 1 ||
+    trimmedChainName.length > 64 ||
+    !/^[a-zA-Z0-9 ]+$/.test(trimmedChainName)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          'chainName must be 1-64 characters and contain only ASCII letters, digits, and spaces (no _, -, ., emoji, or accents)',
+      },
+      { status: 400 },
+    );
+  }
+  if (clientBody.network !== 'fuji') {
+    return NextResponse.json({ error: 'Only Fuji network is supported in the MVP' }, { status: 400 });
+  }
+
+  // Validate the validatorMode shape before forwarding. The backend's
+  // zod schema rejects unknown discriminators, but catching it here
+  // gives the client a 400 without spending a round-trip on the
+  // Railway service.
+  //
+  // Note: nested fields on validatorMode (e.g. stakingTokenAddress for
+  // erc20-pos) pass through to the backend untouched — zod handles the
+  // 0x regex validation server-side. We deliberately don't re-validate
+  // those here so the proxy stays a thin shape-check layer.
+  const validatorMode = clientBody.validatorMode ?? { type: 'poa' as const };
+  if (validatorMode.type !== 'poa' && validatorMode.type !== 'erc20-pos') {
+    return NextResponse.json(
+      { error: 'validatorMode.type must be "poa" or "erc20-pos"' },
+      { status: 400 },
+    );
+  }
+
+  // Strip any client-supplied userId and inject the server-verified one.
+  const body: DeployRequest = {
+    chainName: trimmedChainName,
+    tokenSymbol: clientBody.tokenSymbol,
+    ownerEvmAddress: clientBody.ownerEvmAddress,
+    ownerPChainAddress: clientBody.ownerPChainAddress,
+    network: 'fuji',
+    validatorMode,
+    precompiles: clientBody.precompiles,
+    enableManagedRelayer: clientBody.enableManagedRelayer ?? false,
+    userId,
+  };
+
+  const upstream = process.env.QUICK_L1_SERVICE_URL;
+  if (upstream) {
+    const secret = process.env.QUICK_L1_INTERNAL_SECRET;
+    if (!secret) {
+      return NextResponse.json(
+        { error: 'QUICK_L1_INTERNAL_SECRET not configured on this server' },
+        { status: 503 },
+      );
+    }
+    // Tell the upstream which builders-hub origin to call back to for
+    // register-node — so preview deploys register nodes onto themselves
+    // rather than whatever `BUILDER_HUB_URL` the Railway env happens to
+    // point at. `nextUrl.origin` is whatever host the browser hit.
+    const res = await fetch(`${upstream.replace(/\/$/, '')}/deploy`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-quick-l1-secret': secret,
+        'x-builder-hub-url': request.nextUrl.origin,
+      },
+      body: JSON.stringify(body),
+    });
+    const text = await res.text();
+    return new NextResponse(text, {
+      status: res.status,
+      headers: { 'content-type': res.headers.get('content-type') ?? 'application/json' },
+    });
+  }
+
+  const { jobId } = startMockDeployment(body);
+  return NextResponse.json({ jobId });
+}
+
+export const POST = rateLimited(handlePost, {
+  dev: { windowMs: 60_000, max: 1000 },
+  prod: { windowMs: 60_000, max: 5 },
+  identifier: rateLimitIdentifier,
+}) as (request: NextRequest) => Promise<NextResponse<DeployResponse | { error: string }>>;

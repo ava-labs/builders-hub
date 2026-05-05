@@ -5,6 +5,7 @@ import CompletePChainRegistration from '@/components/toolbox/console/shared/Comp
 import { useStakeValidatorStore } from '@/components/toolbox/stores/stakeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { STEP_CONFIG } from '../codeConfig';
 import versions from '@/scripts/versions.json';
@@ -14,6 +15,19 @@ const ICM_COMMIT = versions['ava-labs/icm-services'];
 export default function CompleteRegistrationStep() {
   const store = useStakeValidatorStore();
   const vmcCtx = useValidatorManagerContext();
+
+  // Resolve the staking manager from the VMC context — for
+  // inheritance-model L1s (NativeStakingManager IS the ValidatorManager),
+  // `vmcCtx.contractOwner` is an EOA (the deployer), so falling back to
+  // `validatorManagerAddress` is the only correct address for the
+  // completeValidatorRegistration call.
+  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || null;
+
+  const preflight = useValidatorPreflight({
+    validationID: store.validationID || undefined,
+    stakingManagerAddress,
+    validatorManagerAddress: vmcCtx.validatorManagerAddress || null,
+  });
 
   const managerType = store.tokenType === 'native' ? 'PoS-Native' : 'PoS-ERC20';
 
@@ -26,6 +40,13 @@ export default function CompleteRegistrationStep() {
             <strong>P-Chain Registration</strong>.
           </Alert>
         )}
+        {store.validationID && !preflight.isLoading && preflight.status !== 1 && preflight.status !== 0 && (
+          <Alert variant="info">
+            {preflight.status === 2
+              ? 'This validator is already active -- registration was completed.'
+              : `Unexpected validator status: ${preflight.statusLabel}.`}
+          </Alert>
+        )}
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="p-4 space-y-3">
             <CompletePChainRegistration
@@ -34,7 +55,7 @@ export default function CompleteRegistrationStep() {
               validationID={store.validationID}
               signingSubnetId={vmcCtx.signingSubnetId || store.subnetIdL1}
               managerType={managerType}
-              managerAddress={vmcCtx.contractOwner || ''}
+              managerAddress={stakingManagerAddress || ''}
               onSuccess={(data) => {
                 store.setGlobalSuccess(data.message);
                 store.setGlobalError(null);

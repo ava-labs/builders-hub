@@ -8,6 +8,28 @@ export enum AccountRequirementsConfigKey {
   UserLoggedIn = 'userLoggedIn',
 }
 
+/**
+ * Dev-only bypass for the Builder Hub account check.
+ *
+ * On `next dev` (NODE_ENV !== 'production') or when the app is being
+ * served from localhost / 127.0.0.1, the UserLoggedIn requirement is
+ * auto-satisfied so contributors don't have to stand up a full
+ * NextAuth session loop just to click through a tool. Production builds
+ * served from real domains still enforce the check exactly as before.
+ *
+ * The backend (e.g. quick-l1 /deploy) still validates session-derived
+ * userId server-side, so this is strictly a UI-convenience escape —
+ * actions that require the account will fail downstream in dev if the
+ * user hasn't logged in for real. But browsing/previewing a gated tool
+ * no longer requires a round-trip through the login modal.
+ */
+function isDevLocalhostBypass(): boolean {
+  if (process.env.NODE_ENV !== 'production') return true;
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1';
+}
+
 // Reusable action constants for account requirements
 const ACCOUNT_ACTIONS = {
   LOGIN: {
@@ -59,8 +81,15 @@ export function useAccountRequirements(configKey: AccountRequirementsConfigKey |
   const status = session?.status || 'loading';
   const { openLoginModal } = useLoginModalTrigger();
 
-  const isAuthenticated: boolean = status === 'authenticated';
-  const isLoading: boolean = status === 'loading';
+  // Memoized to stabilise the value for the duration of the mount — the
+  // hostname shouldn't change without a navigation, and re-evaluating on
+  // every render would invalidate accountState's memo unnecessarily.
+  const devBypass = useMemo(() => isDevLocalhostBypass(), []);
+
+  const isAuthenticated: boolean = devBypass || status === 'authenticated';
+  // Don't get stuck in a "loading" state on localhost — when bypass is
+  // active, we're synchronously authenticated from frame 0.
+  const isLoading: boolean = !devBypass && status === 'loading';
 
   // Create account state object
   const accountState: AccountState = useMemo(

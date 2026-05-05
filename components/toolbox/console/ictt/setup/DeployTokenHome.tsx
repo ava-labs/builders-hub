@@ -11,7 +11,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Input, Suggestion } from '@/components/toolbox/components/Input';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
-import { createPublicClient, http } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Note } from '@/components/toolbox/components/Note';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import TeleporterRegistryAddressInput from '@/components/toolbox/components/TeleporterRegistryAddressInput';
@@ -124,10 +124,8 @@ function DeployTokenHome() {
     if (!viemChain) return;
 
     setLocalError('');
-    const publicClient = createPublicClient({
-      chain: viemChain,
-      transport: http(viemChain.rpcUrls.default.http[0]),
-    });
+    const publicClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+    if (!publicClient) return;
     publicClient
       .readContract({
         address: tokenAddress as `0x${string}`,

@@ -14,7 +14,7 @@ import dynamic from "next/dynamic";
 import { Fragment } from "react";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { pathToBreadcrumb } from "./breadcrumbs-mapping";
-import { HelpCircle, Gamepad2, Book, MessageCircle } from "lucide-react";
+import { HelpCircle, Gamepad2, Book, MessageCircle, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { ConsoleNotificationPanel } from "./notification-panel";
 import {
@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { resetAllStores } from "@/components/toolbox/stores/reset";
 
 const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/TestnetMainnetSwitch").then(m => m.TestnetMainnetSwitch), { ssr: false });
 const WalletPChain = dynamic(() => import("@/components/toolbox/components/console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
@@ -108,6 +109,20 @@ export function SiteHeader() {
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Discord Support
                 </a>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => {
+                  try {
+                    resetAllStores();
+                  } catch {
+                    throw new Error('Reset failed');
+                  }
+                }}
+                className="cursor-pointer text-red-600 focus:text-red-700"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset Console State
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

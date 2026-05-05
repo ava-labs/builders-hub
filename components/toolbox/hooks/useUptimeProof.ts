@@ -4,9 +4,10 @@ import { packValidationUptimeMessage } from '@/components/toolbox/coreViem/utils
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { cb58ToHex, hexToCB58 } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { getBlockchainInfo } from '@/components/toolbox/coreViem/utils/glacier';
 
 interface UptimeProofResult {
-  uptimeSeconds: bigint;
+  uptimeSeconds: number;
   signedWarpMessage: string;
   unsignedWarpMessage: string;
 }
@@ -18,11 +19,19 @@ export function useUptimeProof() {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Fetch current validators and extract uptime for a specific validation ID
+   * Fetch uptime from the L1 node's /validators endpoint.
+   * Returns null (instead of throwing) when the endpoint is unavailable.
+   *
+   * @param customValidatorsUrl — if provided, used directly instead of
+   *   auto-deriving from rpcUrl. Useful when the node uses a non-standard path.
    */
-  async function getValidatorUptime(validationID: string, rpcUrl: string): Promise<bigint> {
+  async function getValidatorUptimeFromNode(
+    validationID: string,
+    rpcUrl: string,
+    customValidatorsUrl?: string,
+  ): Promise<bigint | null> {
     try {
-      const validatorsRpcUrl = rpcUrl.replace('/rpc', '/validators');
+      const validatorsRpcUrl = customValidatorsUrl || rpcUrl.replace('/rpc', '/validators');
       const response = await fetch(validatorsRpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -34,14 +43,10 @@ export function useUptimeProof() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch validators');
-      }
+      if (!response.ok) return null;
 
       const data = await response.json();
-      if (!data?.result?.validators) {
-        throw new Error('No validators found in response');
-      }
+      if (!data?.result?.validators) return null;
 
       let hexValidationID = validationID;
       let cb58ValidationID = '';
@@ -80,27 +85,52 @@ export function useUptimeProof() {
         return false;
       });
 
-      if (!validator) {
-        throw new Error(`Validator with validationID ${validationID} not found`);
-      }
+      if (!validator) return null;
 
       return BigInt(validator.uptimeSeconds || 0);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`Failed to get validator uptime: ${message}`);
+    } catch {
+      return null;
     }
   }
 
   /**
-   * Create an unsigned uptime proof warp message
+   * Fetch current validators and extract uptime for a specific validation ID.
+   *
+   * Uses the L1 node's /validators endpoint which provides real-time uptime
+   * tracked by the node. The on-chain uptimeSeconds (from getStakingValidator)
+   * is NOT a viable fallback — it's only updated when someone explicitly calls
+   * submitUptimeProof() and defaults to 0.
+   */
+  async function getValidatorUptime(
+    validationID: string,
+    rpcUrl: string,
+    customValidatorsUrl?: string,
+  ): Promise<bigint> {
+    const uptime = await getValidatorUptimeFromNode(validationID, rpcUrl, customValidatorsUrl);
+    if (uptime !== null) return uptime;
+
+    throw new Error(
+      "Could not retrieve validator uptime. The L1 node's /validators endpoint is unavailable or the validator was not found. " +
+        'Provide a custom Validators API URL and retry.',
+    );
+  }
+
+  /**
+   * Create an unsigned uptime proof warp message.
+   * The sourceChainID must be the uptimeBlockchainID from the staking manager
+   * settings — NOT a subnet ID.
    */
   function createUptimeProofWarpMessage(
     validationID: Uint8Array,
     uptimeSeconds: bigint,
-    signingSubnetId: string,
+    uptimeBlockchainID: string,
   ): Uint8Array {
     try {
-      return packValidationUptimeMessage({ validationID, uptime: uptimeSeconds }, avalancheNetworkID, signingSubnetId);
+      return packValidationUptimeMessage(
+        { validationID, uptime: uptimeSeconds },
+        avalancheNetworkID,
+        uptimeBlockchainID,
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`Failed to create uptime proof warp message: ${message}`);
@@ -108,19 +138,32 @@ export function useUptimeProof() {
   }
 
   /**
-   * Complete uptime proof flow: fetch uptime, create message, and sign
-   * Tries progressively lower uptime percentages if aggregation fails
+   * Complete uptime proof flow: fetch uptime, create message, and sign.
+   *
+   * @param uptimeBlockchainID — from getStakingManagerSettings().uptimeBlockchainID (hex bytes32).
+   *   Used as sourceChainID in the warp message. The signing subnet is derived
+   *   from this blockchain ID via the Glacier API.
    */
   async function createAndSignUptimeProof(
     validationID: string,
     rpcUrl: string,
-    signingSubnetId: string,
+    uptimeBlockchainID: string,
+    customValidatorsUrl?: string,
   ): Promise<UptimeProofResult> {
     setIsLoading(true);
     setError(null);
 
     try {
-      const reportedUptime = await getValidatorUptime(validationID, rpcUrl);
+      // Convert hex bytes32 uptimeBlockchainID to CB58 for the warp message
+      const uptimeBlockchainCB58 = hexToCB58(
+        uptimeBlockchainID.startsWith('0x') ? uptimeBlockchainID.slice(2) : uptimeBlockchainID,
+      );
+
+      // Resolve the signing subnet from the uptimeBlockchainID via Glacier
+      const blockchainInfo = await getBlockchainInfo(uptimeBlockchainCB58);
+      const signingSubnetId = blockchainInfo.subnetId;
+
+      const reportedUptime = await getValidatorUptime(validationID, rpcUrl, customValidatorsUrl);
       const validationIDBytes = hexToBytes(validationID as `0x${string}`);
 
       // Try with progressively lower uptime percentages
@@ -131,7 +174,7 @@ export function useUptimeProof() {
         const adjustedUptime = (reportedUptime * BigInt(percentage)) / 100n;
 
         try {
-          const unsignedMessage = createUptimeProofWarpMessage(validationIDBytes, adjustedUptime, signingSubnetId);
+          const unsignedMessage = createUptimeProofWarpMessage(validationIDBytes, adjustedUptime, uptimeBlockchainCB58);
           const unsignedWarpMessage = bytesToHex(unsignedMessage);
 
           // Use timeout to fail faster
@@ -139,6 +182,7 @@ export function useUptimeProof() {
             setTimeout(() => reject(new Error('Signature aggregation timeout')), 10000);
           });
 
+          // Sign with the subnet that owns the uptimeBlockchainID
           const signaturePromise = aggregateSignature({
             message: unsignedWarpMessage,
             signingSubnetId,
@@ -147,7 +191,7 @@ export function useUptimeProof() {
           const result = await Promise.race([signaturePromise, timeoutPromise]);
 
           return {
-            uptimeSeconds: adjustedUptime,
+            uptimeSeconds: Number(adjustedUptime),
             signedWarpMessage: result.signedMessage,
             unsignedWarpMessage,
           };

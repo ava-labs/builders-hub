@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createPublicClient, http } from 'viem';
+import { makePublicClientForChain } from '../../usePublicClientForChain';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -60,13 +60,13 @@ export function useContractDeployer(): ContractDeployerHook {
 
       const hash = await deployPromise;
 
-      // Create a chain-specific public client for receipt polling.
-      // The global publicClient from walletStore may point to the wrong RPC
-      // (e.g. hardcoded to Fuji for non-Core wallets).
-      const chainClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      // Chain-specific public client for receipt polling. The global
+      // publicClient from walletStore may point to the wrong RPC (e.g.
+      // hardcoded to Fuji for non-Core wallets).
+      const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!chainClient) {
+        throw new Error('Could not create chain-specific public client');
+      }
       const receipt = await chainClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (!receipt.contractAddress) {

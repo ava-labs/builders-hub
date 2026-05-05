@@ -1,5 +1,6 @@
 export { useAccountRequirements, AccountRequirementsConfigKey } from './useAccountRequirements';
 export { useChainPublicClient } from './useChainPublicClient';
+export { usePublicClientForChain, makePublicClientForChain } from './usePublicClientForChain';
 export { useCriticalError } from './useCriticalError';
 export { useERC20Token } from './useERC20Token';
 export type { ERC20TokenHook } from './useERC20Token';
@@ -19,3 +20,5 @@ export { useWrappedNativeToken } from './useWrappedNativeToken';
 export type { WrappedNativeTokenHook } from './useWrappedNativeToken';
 export { useResolvedWalletClient } from './useResolvedWalletClient';
 export { useSubmitPChainTx } from './useSubmitPChainTx';
+export { useValidatorPreflight, ValidatorStatus } from './useValidatorPreflight';
+export type { ValidatorPreflightResult, PreflightCheck, ValidatorPreflightInput } from './useValidatorPreflight';

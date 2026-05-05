@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Container } from '@/components/toolbox/components/Container';
 import { Input } from '@/components/toolbox/components/Input';
 import { getBlockchainInfo, getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
@@ -79,6 +79,7 @@ interface DockerComposeConfig {
   domain: string;
   subnetId: string;
   blockchainId: string;
+  evmChainId: number;
   networkName: string;
   networkShortName: string;
   tokenName: string;
@@ -87,6 +88,25 @@ interface DockerComposeConfig {
   includeAvago: boolean;
   isTestnet: boolean;
   versions: any;
+  dbPassword: string;
+  secretKeyBase: string;
+}
+
+/**
+ * Generates a cryptographically-random base64url string suitable for
+ * Postgres passwords and Phoenix SECRET_KEY_BASE values. Runs on the
+ * client via Web Crypto — no server round-trip.
+ */
+function generateRandomSecret(byteLength = 48): string {
+  const buf = new Uint8Array(byteLength);
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(buf);
+  } else {
+    // Fallback for non-browser test environments only.
+    for (let i = 0; i < byteLength; i++) buf[i] = Math.floor(Math.random() * 256);
+  }
+  const b64 = btoa(String.fromCharCode(...buf));
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 const genDockerCompose = (config: DockerComposeConfig) => {
@@ -116,9 +136,8 @@ services:
     container_name: 'db'
     command: postgres -c 'max_connections=200' -c 'client_connection_check_interval=60000'
     environment:
-        POSTGRES_PASSWORD: ""
+        POSTGRES_PASSWORD: "${config.dbPassword}"
         POSTGRES_USER: "postgres"
-        POSTGRES_HOST_AUTH_METHOD: "trust"
     ports:
       - target: 5432
         published: 7432
@@ -136,10 +155,10 @@ services:
     command: sh -c 'bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start'
     environment:
       ETHEREUM_JSONRPC_VARIANT: geth
-      ETHEREUM_JSONRPC_HTTP_URL: ${config.rpcUrl} 
-      ETHEREUM_JSONRPC_TRACE_URL: ${config.rpcUrl} 
-      DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout # TODO: default, please change
-      SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN # TODO: default, please change
+      ETHEREUM_JSONRPC_HTTP_URL: ${config.rpcUrl}
+      ETHEREUM_JSONRPC_TRACE_URL: ${config.rpcUrl}
+      DATABASE_URL: postgresql://postgres:${config.dbPassword}@db:5432/blockscout
+      SECRET_KEY_BASE: ${config.secretKeyBase}
       NETWORK: EVM 
       SUBNETWORK: MySubnet # TODO: what is this ?
       PORT: 4000 
@@ -176,7 +195,7 @@ services:
       FAVICON_MASTER_URL: https://ash.center/img/ash-logo.svg # TODO: change to dynamic ?
       NEXT_PUBLIC_NETWORK_NAME: ${config.networkName}
       NEXT_PUBLIC_NETWORK_SHORT_NAME: ${config.networkShortName}
-      NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_ID: ${config.evmChainId}
       NEXT_PUBLIC_NETWORK_RPC_URL: ${config.includeAvago ? `https://${domain}/ext/bc/${config.blockchainId}/rpc` : config.rpcUrl}
       NEXT_PUBLIC_NETWORK_CURRENCY_NAME: ${config.tokenName}
       NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ${config.tokenSymbol}
@@ -248,6 +267,13 @@ export default function BlockScout() {
   const dockerComposePsOutput = getDockerComposePsOutput(versions);
 
   const [chainId, setChainId] = useState('');
+  const [evmChainId, setEvmChainId] = useState<number>(0);
+  // Generate explorer secrets once per component mount. Every session
+  // producing a compose file gets unique Phoenix SECRET_KEY_BASE and
+  // Postgres password values instead of the global defaults we used to
+  // ship in clear text.
+  const dbPassword = useMemo(() => generateRandomSecret(24), []);
+  const secretKeyBase = useMemo(() => generateRandomSecret(48), []);
   const [subnetId, setSubnetId] = useState('');
   const [subnet, setSubnet] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -270,6 +296,7 @@ export default function BlockScout() {
     setSubnetIdError(null);
     setSubnetId('');
     setSubnet(null);
+    setEvmChainId(0);
     if (!chainId) return;
 
     // Set defaults from L1 store if available
@@ -278,12 +305,14 @@ export default function BlockScout() {
       setNetworkShortName(l1Info.name.split(' ')[0]); // First word as short name
       setTokenName(l1Info.coinName);
       setTokenSymbol(l1Info.coinName);
+      if (l1Info.evmChainId) setEvmChainId(l1Info.evmChainId);
     }
 
     setIsLoading(true);
     getBlockchainInfo(chainId)
       .then(async (chainInfo) => {
         setSubnetId(chainInfo.subnetId);
+        if (chainInfo.evmChainId) setEvmChainId(chainInfo.evmChainId);
         try {
           const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
           setSubnet(subnetInfo);
@@ -301,7 +330,14 @@ export default function BlockScout() {
 
   useEffect(() => {
     let ready =
-      !!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol && !subnetIdError;
+      !!domain &&
+      !!subnetId &&
+      !!networkName &&
+      !!networkShortName &&
+      !!tokenName &&
+      !!tokenSymbol &&
+      evmChainId > 0 &&
+      !subnetIdError;
 
     // Additional validation for existing RPC option
     if (rpcOption === 'existing') {
@@ -317,6 +353,7 @@ export default function BlockScout() {
           domain,
           subnetId,
           blockchainId: chainId,
+          evmChainId,
           networkName,
           networkShortName,
           tokenName,
@@ -325,6 +362,8 @@ export default function BlockScout() {
           includeAvago: rpcOption === 'local',
           isTestnet: isTestnet ?? false,
           versions,
+          dbPassword,
+          secretKeyBase,
         }),
       );
     } else {
@@ -335,6 +374,7 @@ export default function BlockScout() {
     domain,
     subnetId,
     chainId,
+    evmChainId,
     networkName,
     networkShortName,
     tokenName,
@@ -343,6 +383,8 @@ export default function BlockScout() {
     rpcOption,
     existingRpcUrl,
     versions,
+    dbPassword,
+    secretKeyBase,
   ]);
 
   return (

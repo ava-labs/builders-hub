@@ -24,7 +24,7 @@ export default function InitiateDelegatorRemovalStep() {
   const { walletEVMAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
 
-  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.contractOwner || '';
+  const stakingManagerAddress = vmcCtx.staking?.stakingManagerAddress || vmcCtx.validatorManagerAddress || '';
   const tokenType = vmcCtx.staking?.stakingType || 'native';
 
   const [allDelegations, setAllDelegations] = useState<

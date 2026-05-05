@@ -21,7 +21,7 @@ import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20To
 import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useL1SubnetState } from './shared';
-import { createPublicClient, http } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 
 // Validator response from the API
 interface ValidatorResponse {
@@ -121,7 +121,11 @@ export default function QueryPoSValidatorSet() {
 
   // Determine if this is a PoS L1 (StakingManager)
   const isPoSL1 = validatorManagerDetails.ownerType === 'StakingManager';
-  const stakingManagerAddress = validatorManagerDetails.contractOwner;
+  // For inheritance-model L1s (owner is the validator manager itself), fall
+  // back to the validator manager address — `contractOwner` is the EOA
+  // deployer in that case and would break reads/writes against the contract.
+  const stakingManagerAddress =
+    (isPoSL1 && validatorManagerDetails.contractOwner) || validatorManagerDetails.validatorManagerAddress || '';
 
   // Determine token type based on stored addresses
   const tokenType = useMemo(() => {
@@ -274,9 +278,11 @@ export default function QueryPoSValidatorSet() {
       setRpcUrlError(null);
 
       // Create a public client for the L1 chain
-      const l1PublicClient = createPublicClient({
-        transport: http(rpcUrl),
-      });
+      const l1PublicClient = makePublicClientForChain(rpcUrl);
+      if (!l1PublicClient) {
+        setRpcUrlError('Could not create public client for RPC URL');
+        return;
+      }
 
       // Get ValidatorManager address from StakingManager
       const settings = (await l1PublicClient.readContract({
@@ -378,9 +384,11 @@ export default function QueryPoSValidatorSet() {
 
     try {
       // Create a public client for the L1 chain
-      const l1PublicClient = createPublicClient({
-        transport: http(l1RpcUrl),
-      });
+      const l1PublicClient = makePublicClientForChain(l1RpcUrl);
+      if (!l1PublicClient) {
+        setIsLoadingDelegations(false);
+        return;
+      }
 
       // Query InitiatedDelegatorRegistration events for this user
       const logs = await l1PublicClient.getLogs({

@@ -8,22 +8,19 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
 import { getFlowMetadata, type FlowMetadata } from "@/components/console/console-flows";
+import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
+import { ChainGate } from "@/components/toolbox/components/ChainGate";
+import { sectionContainer, sectionItem } from "@/components/console/motion";
 
-const flowContainerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
-  },
-};
-
-const flowItemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 200, damping: 24 },
-  },
-};
+/**
+ * Chain requirement for a step. StepFlow checks the wallet's active chain
+ * and shows an inline switch prompt if wrong.
+ * - 'any': no chain requirement (default)
+ * - 'p-chain': P-Chain tx via Core Wallet (no EVM switch needed)
+ * - 'c-chain': must be on C-Chain (43114 mainnet / 43113 fuji)
+ * - 'l1': must be on the user's L1 (chainId from createChainStore)
+ */
+export type RequiredChain = "any" | "p-chain" | "c-chain" | "l1";
 
 type SingleStep = {
   type: "single";
@@ -31,6 +28,7 @@ type SingleStep = {
   title: string;
   optional?: boolean;
   component: React.ComponentType;
+  requiredChain?: RequiredChain;
 };
 
 type BranchOption = {
@@ -45,6 +43,7 @@ type BranchStep = {
   title: string;
   optional?: boolean;
   options: BranchOption[];
+  requiredChain?: RequiredChain;
 };
 
 export type StepDefinition = SingleStep | BranchStep;
@@ -83,6 +82,8 @@ type StepFlowProps = {
    * Custom actions for the completion modal footer
    */
   completionActions?: FlowCompletionAction[];
+  /** Label for the final-step action. Defaults to "Finish". */
+  finishLabel?: string;
   /**
    * When provided, navigate via callback instead of URL <Link>.
    * Enables in-memory step navigation for inline chat rendering.
@@ -105,6 +106,7 @@ export default function StepFlow({
   transactionHash,
   explorerUrl,
   completionActions,
+  finishLabel = "Finish",
   onNavigate,
   compact,
 }: StepFlowProps) {
@@ -117,20 +119,37 @@ export default function StepFlow({
     return getFlowMetadata(basePath, steps);
   }, [basePath, steps, completionMetadata]);
 
-  // Handle finish button click
+  // Defer `onFinish` until AFTER the completion modal has been shown.
+  // Calling it here would unmount parent components (e.g. a parent that
+  // reads a flow store reset by `onFinish`) before the modal can render.
   const handleFinish = useCallback(() => {
-    if (onFinish) {
-      onFinish();
-    }
     // When onNavigate is provided (inline chat mode), skip URL navigation
-    if (onNavigate) return;
+    // and fire onFinish immediately — there is no modal to wait for.
+    if (onNavigate) {
+      if (onFinish) onFinish();
+      return;
+    }
     if (showCompletionModal && flowMetadata) {
       setIsCompletionModalOpen(true);
     } else {
-      // Fallback: navigate to console home if no modal configured
+      // Fallback: navigate to console home if no modal configured.
+      if (onFinish) {
+        onFinish();
+        return;
+      }
       router.push("/console");
     }
   }, [onFinish, onNavigate, showCompletionModal, flowMetadata, router]);
+
+  const handleCompletionModalChange = useCallback(
+    (open: boolean) => {
+      setIsCompletionModalOpen(open);
+      // Fire onFinish only when the modal transitions from open → closed.
+      // Guards against running onFinish on programmatic re-open.
+      if (!open && onFinish) onFinish();
+    },
+    [onFinish],
+  );
 
   // Find which step we're on - could be a single step or a branch option
   const { currentIndex, currentStep, selectedBranchOption } = useMemo(() => {
@@ -223,11 +242,11 @@ export default function StepFlow({
   return (
     <motion.div
       className={className}
-      variants={flowContainerVariants}
+      variants={sectionContainer}
       initial="hidden"
       animate="visible"
     >
-      <motion.nav className={compact ? "mb-3" : "mb-6"} variants={flowItemVariants}>
+      <motion.nav className={compact ? "mb-3" : "mb-6"} variants={sectionItem}>
         <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
           {steps.map((s, stepIdx) => {
             const isDoneStep = stepIdx < currentIndex;
@@ -323,9 +342,13 @@ export default function StepFlow({
         </ol>
       </motion.nav>
 
-      <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={flowItemVariants}>
+      <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={sectionItem}>
         <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
-          <CurrentComponent />
+          <StepErrorBoundary>
+            <ChainGate requiredChain={currentStep.requiredChain}>
+              <CurrentComponent />
+            </ChainGate>
+          </StepErrorBoundary>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
@@ -386,9 +409,9 @@ export default function StepFlow({
                 type="button"
                 onClick={handleFinish}
                 className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
-              >
-                Finish
-              </button>
+                >
+                  {finishLabel}
+                </button>
             ) : (
               nextLink && (
                 onNavigate ? (
@@ -420,7 +443,7 @@ export default function StepFlow({
       {showCompletionModal && flowMetadata && (
         <FlowCompletionModal
           open={isCompletionModalOpen}
-          onOpenChange={setIsCompletionModalOpen}
+          onOpenChange={handleCompletionModalChange}
           metadata={flowMetadata}
           transactionHash={transactionHash}
           explorerUrl={explorerUrl}

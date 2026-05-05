@@ -1,18 +1,16 @@
 'use client';
 
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Users, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { networkIDs } from '@avalabs/avalanchejs';
 import { GlobalParamNetwork } from '@avalabs/avacloud-sdk/models/components';
 import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
-import { createPublicClient, http } from 'viem';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useVMCAddress } from '@/components/toolbox/hooks/useVMCAddress';
 import { useVMCDetails } from '@/components/toolbox/hooks/useVMCDetails';
-import { useL1List } from '@/components/toolbox/stores/l1ListStore';
-import { getBlockchainInfoForNetwork } from '@/components/toolbox/coreViem/utils/glacier';
+import { usePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
@@ -37,52 +35,21 @@ const networkNames: Record<number, GlobalParamNetwork> = {
 
 export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
   const { avalancheNetworkID, isTestnet } = useWalletStore();
-  const l1List = useL1List();
   const [subnetId, setSubnetId] = useState('');
   const [validators, setValidators] = useState<ValidatorResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedNodeId, setExpandedNodeId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [vmcChainRpcUrl, setVmcChainRpcUrl] = useState<string | null>(null);
 
   const vmcAddress = useVMCAddress(subnetId);
 
-  // Create a standalone public client for the VMC's chain (works without switching wallet)
-  const vmcPublicClient = useMemo(() => {
-    if (!vmcChainRpcUrl) return null;
-    return createPublicClient({ transport: http(vmcChainRpcUrl) });
-  }, [vmcChainRpcUrl]);
+  // Read contract state from the VMC's own chain — independent of the
+  // wallet's currently-selected network. Resolves well-known C-Chain
+  // IDs even when the user's l1List has been customized.
+  const vmcPublicClient = usePublicClientForChain(vmcAddress.blockchainId);
 
   const vmcDetails = useVMCDetails(vmcAddress.validatorManagerAddress, vmcPublicClient);
-
-  // Resolve the RPC URL for the VMC's chain when blockchainId changes
-  useEffect(() => {
-    if (!vmcAddress.blockchainId) {
-      setVmcChainRpcUrl(null);
-      return;
-    }
-
-    // First check the L1 list for a known chain
-    const knownL1 = l1List.find((l1: { id: string; rpcUrl: string }) => l1.id === vmcAddress.blockchainId);
-    if (knownL1?.rpcUrl) {
-      setVmcChainRpcUrl(knownL1.rpcUrl);
-      return;
-    }
-
-    // Fall back to Glacier API
-    const network = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'testnet';
-    getBlockchainInfoForNetwork(network as 'mainnet' | 'testnet', vmcAddress.blockchainId)
-      .then((_info) => {
-        // Construct RPC URL from blockchain info
-        const baseUrl = isTestnet ? 'https://api.avax-test.network' : 'https://api.avax.network';
-        setVmcChainRpcUrl(`${baseUrl}/ext/bc/${vmcAddress.blockchainId}/rpc`);
-      })
-      .catch(() => {
-        // If that fails, try the standard C-Chain RPC for well-known chains
-        setVmcChainRpcUrl(null);
-      });
-  }, [vmcAddress.blockchainId, l1List, avalancheNetworkID, isTestnet]);
 
   const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text).then(() => {

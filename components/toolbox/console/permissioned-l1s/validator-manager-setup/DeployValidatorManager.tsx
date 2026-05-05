@@ -4,7 +4,7 @@ import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState } from 'react';
-import { createPublicClient, http } from 'viem';
+import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Button } from '@/components/toolbox/components/Button';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import ValidatorMessagesABI from '@/contracts/icm-contracts/compiled/ValidatorMessages.json';
@@ -93,10 +93,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: 'deploy', name: 'ValidatorMessages Library' }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
-      const chainClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!chainClient) throw new Error('Could not create public client for chain');
       const receipt = await chainClient.waitForTransactionReceipt({ hash });
       if (!receipt.contractAddress) {
         throw new Error('No contract address in receipt');
@@ -129,10 +127,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: 'deploy', name: 'ValidatorManager' }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
-      const chainClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
+      const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+      if (!chainClient) throw new Error('Could not create public client for chain');
       const receipt = await chainClient.waitForTransactionReceipt({ hash });
       if (!receipt.contractAddress) {
         throw new Error('No contract address in receipt');
@@ -185,8 +181,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                 {step1Complete ? (
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                        {validatorMessagesLibAddress.slice(0, 10)}...{validatorMessagesLibAddress.slice(-6)}
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs break-all">
+                        {validatorMessagesLibAddress}
                       </code>
                       <button
                         type="button"
@@ -276,8 +272,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                 {step2Complete ? (
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                        {validatorManagerAddress.slice(0, 10)}...{validatorManagerAddress.slice(-6)}
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs break-all">
+                        {validatorManagerAddress}
                       </code>
                       <button
                         type="button"

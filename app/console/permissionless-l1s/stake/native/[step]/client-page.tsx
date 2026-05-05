@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import StepFlow from "@/components/console/step-flow";
 import { steps } from "../steps";
 import { useStakeValidatorStore } from "@/components/toolbox/stores/stakeValidatorStore";
@@ -7,7 +9,14 @@ import ValidatorManagerLayout from "@/components/toolbox/contexts/ValidatorManag
 
 export default function StakeNativeClientPage({ currentStepKey }: { currentStepKey: string }) {
   const basePath = "/console/permissionless-l1s/stake/native";
-  const { subnetIdL1, globalError, pChainTxId } = useStakeValidatorStore();
+  const searchParams = useSearchParams();
+  const { subnetIdL1, globalError, pChainTxId, setSubnetIdL1, setTokenType } = useStakeValidatorStore();
+
+  useEffect(() => {
+    setTokenType("native");
+    const subnetId = searchParams.get("subnetId");
+    if (subnetId && subnetId !== subnetIdL1) setSubnetIdL1(subnetId);
+  }, [searchParams, setSubnetIdL1, setTokenType, subnetIdL1]);
 
   return (
     <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError} showPoSWarning>

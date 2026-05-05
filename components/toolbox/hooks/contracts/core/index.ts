@@ -7,6 +7,8 @@ export type {
   InitParams,
   MigrationParams,
   PChainOwner,
+  ValidatorChurnPeriod,
+  ChurnTrackerResult,
 } from './useValidatorManager';
 
 export { useContractDeployer } from './useContractDeployer';

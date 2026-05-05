@@ -14,9 +14,9 @@ import { fetchL1ValidatorWeightData } from '../../shared/fetchL1ValidatorWeightD
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { CliAlternative } from '@/components/console/cli-alternative';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -364,14 +364,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       </div>
 
       {/* Non-Core: CLI command panel after aggregation */}
-      {!isCoreWallet && pChainSignature && !transactionHash && (
-        <div className="p-3 rounded-xl border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 space-y-3">
-          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-            Signatures aggregated. Run this command to complete the validator removal:
-          </p>
-          <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
-        </div>
-      )}
+      {!isCoreWallet && pChainSignature && !transactionHash && <CliAlternative command={generateCastCommand()} />}
     </div>
   );
 };
