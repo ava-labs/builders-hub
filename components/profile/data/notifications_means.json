@@ -1,0 +1,40 @@
+[
+    {
+        "Academy": {
+            "course_completion": [
+                true,
+                true
+            ],
+            "new_course_available": [
+                true,
+                true
+            ]
+        }
+    },
+
+    {
+        "Events": {
+            "new_hackathon_available": [
+                true,
+                true
+            ],
+            "hackhaton_submission_reminder": [
+                true,
+                true
+            ]
+        }
+    },
+    
+    {
+        "Infrastructure": {
+            "avalanche_release": [
+                true,
+                true
+            ],
+            "node_monitor": [
+                true,
+                true
+            ]
+        }
+    }
+]

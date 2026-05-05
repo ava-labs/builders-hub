@@ -18,10 +18,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
 import { useProjectSubmission } from "../context/ProjectSubmissionContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { JoinTeamDialog } from "./JoinTeamDialog";
-import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 import InvalidInvitationComponent from "./InvalidInvitationDialog";
-import Modal from "@/components/ui/Modal";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 export default function GeneralSecureComponent({
@@ -123,27 +120,22 @@ export default function GeneralSecureComponent({
     let completedFields = 0;
 
     allFields.forEach((field) => {
-      // categories es opcional: solo contar si tiene al menos una seleccionada
       if (field === "categories" && !hackathonId) {
         const fieldValue = formValues[field as keyof typeof formValues];
         const categories = Array.isArray(fieldValue) ? fieldValue : [];
         
         if (categories.length > 0) {
-          // Verificar si se selecciona "Other (Specify)" y si other_category está completo
           const hasOtherSelected = categories.includes("Other (Specify)");
           if (hasOtherSelected) {
             const otherCategory = formValues.other_category as string || "";
             if (otherCategory.trim().length >= 1) {
-              // Todo está completo: categories + other_category
+              
               completedFields++;
             }
-            // Si "Other (Specify)" está seleccionado pero other_category está vacío, no contar
           } else {
-            // Categories tiene valores y no incluye "Other (Specify)", contar como completo
             completedFields++;
           }
         }
-        // Si categories está vacío, no cuenta (es opcional)
         return;
       }
 
@@ -225,7 +217,7 @@ export default function GeneralSecureComponent({
           title: t(lang, "submission.form.toast.submitted"),
           description: t(lang, "submission.form.toast.submittedDesc"),
         });
-        router.push('/profile#projects');
+        router.push('/profile?tab=projects');
       } else {
         console.error('❌ Save failed, result.success is false');
       }

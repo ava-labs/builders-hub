@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut, getSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
@@ -98,37 +98,34 @@ export function LoginModalWrapper() {
   }, [showTerms, isOpen, closeLoginModal]);
 
   const handleTermsSuccess = async () => {
-    // Update session to get latest data
+    // Trigger session refresh on the server side
+    await update();
+    await new Promise(resolve => setTimeout(resolve, 300));
     await update();
 
-    // Use session from context instead of fetching directly
-    let realUserId = session?.user?.id;
+    // Use getSession() to read the fresh session — avoids the stale closure
+    // issue that occurs when reading `session` from useSession() inside an
+    // async function after calling update().
+    const freshSession = await getSession();
+    const realUserId = freshSession?.user?.id;
 
-    // If still pending, update again after a delay
-    if (realUserId?.startsWith("pending_")) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      await update();
-      realUserId = session?.user?.id;
-    }
+    // #region agent log
+    fetch('http://127.0.0.1:7915/ingest/bf7a9014-2d96-4da2-8f66-bd4ec7c6a673',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fd76bb'},body:JSON.stringify({sessionId:'fd76bb',location:'LoginModalWrapper.tsx:handleTermsSuccess:post-fix',message:'getSession() result after update()',data:{realUserId,termsUserId,isPending:realUserId?.startsWith('pending_'),sessionUserId:session?.user?.id},timestamp:Date.now(),hypothesisId:'H1,H2'})}).catch(()=>{});
+    // #endregion
 
-    // Mark as completed in localStorage to prevent re-showing
-    // Use the real user ID if available, otherwise use the pending one
-    const userIdForStorage = realUserId || termsUserId || session?.user?.id;
+    const userIdForStorage = realUserId || termsUserId;
     if (typeof window !== "undefined" && userIdForStorage) {
       const termsKey = `shouldShowTerms_${userIdForStorage}`;
       localStorage.setItem(termsKey, "false");
-      // Also clean up the pending user key if it exists
       if (termsUserId?.startsWith("pending_")) {
         localStorage.removeItem(`shouldShowTerms_${termsUserId}`);
       }
     }
 
-    // Update termsUserId with the real user ID for BasicProfileSetup
     if (realUserId && !realUserId.startsWith("pending_")) {
       setTermsUserId(realUserId);
     }
 
-    // Close terms modal and show basic profile setup
     setShowTerms(false);
     setShowBasicProfile(true);
   };
@@ -253,7 +250,7 @@ export function LoginModalWrapper() {
             <Dialog.Portal>
               <DialogOverlay />
               <DialogContent
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-[10000] p-0"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-10000 p-0"
                 showCloseButton={false}
               >
                 <VisuallyHidden>
@@ -286,7 +283,7 @@ export function LoginModalWrapper() {
             <Dialog.Portal>
               <DialogOverlay />
               <DialogContent
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[500px] max-h-[90vh] overflow-hidden z-[10000] p-0"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[500px] max-h-[90vh] overflow-hidden z-10000 p-0"
                 showCloseButton={false}
               >
                 <VisuallyHidden>

@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
-// Zod validation schema - no required fields, only format validations
+// Zod validation schema - name is required; rest are format validations
 export const profileSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().trim().min(1, 'Name is required'),
   username: z.string().optional(),
   bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
   email: z.email("Invalid email").optional(), // Email from session, optional
@@ -29,9 +30,9 @@ export const profileSchema = z.object({
   // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
-  github: z.string().optional(),
+  github: z.union([z.literal(""), z.url("Must be a valid URL")]).optional(),
   wallet: z.array(z.string()).optional().default([]),
-  socials: z.array(z.string()).default([]),
+  socials: z.array(z.url("Must be a valid URL")).optional().default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
@@ -40,9 +41,42 @@ export const profileSchema = z.object({
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
 
+/** Number of criteria used for profile completion (each counts 1). */
+const PROFILE_COMPLETION_CRITERIA = 9;
+
+/**
+ * Computes profile completion percentage (0–100) based on filled fields
+ * used in the profile form. Used for the circular progress around the avatar.
+ */
+export function getProfileCompletionPercentage(values: Partial<ProfileFormValues> | undefined): number {
+  if (!values) return 0;
+  const v = values;
+  const has = (s: string | undefined) => (s?.trim() ?? "") !== "";
+  const hasRole =
+    v.is_developer === true ||
+    v.is_enthusiast === true ||
+    (v.is_student === true && has(v.student_institution)) ||
+    (v.is_founder === true && has(v.founder_company_name)) ||
+    (v.is_employee === true && has(v.employee_company_name) && has(v.employee_role));
+  let completed = 0;
+  if (has(v.name)) completed++;
+  if (has(v.bio)) completed++;
+  if (has(v.country)) completed++;
+  if (hasRole) completed++;
+  if (has(v.github)) completed++;
+  if (Array.isArray(v.wallet) && v.wallet.filter((w) => has(w)).length > 0) completed++;
+  if (has(v.telegram_user)) completed++;
+  if (Array.isArray(v.socials) && v.socials.length > 0) completed++;
+  if (Array.isArray(v.skills) && v.skills.length > 0) completed++;
+  return Math.round((completed / PROFILE_COMPLETION_CRITERIA) * 100);
+}
+
 export function useProfileForm() {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -50,10 +84,12 @@ export function useProfileForm() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialLoadRef = useRef(true);
   const lastSavedDataRef = useRef<string>("");
+  const [githubConnected, setGithubConnected] = useState(false);
 
   // Initialize form with react-hook-form and Zod
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       username: "",
@@ -85,93 +121,90 @@ export function useProfileForm() {
   const { watch, setValue, formState } = form;
   const watchedValues = watch();
 
-  // Load profile data on component mount
-  useEffect(() => {
-    async function loadProfile() {
-      if (!session?.user?.id) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/profile/extended/${session.user.id}`);
-        
-        if (response.ok) {
-          const profile = await response.json();
-          
-          // Check if there's basic profile data from the modal in localStorage
-          let basicProfileData = null;
-          if (typeof window !== "undefined") {
-            const savedBasicProfile = localStorage.getItem('basicProfileData');
-            if (savedBasicProfile) {
-              try {
-                basicProfileData = JSON.parse(savedBasicProfile);
-                // Clear it after reading
-                localStorage.removeItem('basicProfileData');
-              } catch (e) {
-                console.error('Error parsing basic profile data:', e);
-              }
-            }
-          }
-
-          // Decompose user_type from JSON to individual form fields
-          // Merge with basic profile data if available
-          const formData = {
-            name: basicProfileData?.name || profile.name || "",
-            username: profile.username || "",
-            bio: profile.bio || "",
-            email: profile.email || session.user.email || "",
-            notification_email: profile.notification_email || "",
-            image: profile.image || "",
-            country: basicProfileData?.country || profile.country || "",
-            is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
-            is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
-            is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
-            is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
-            is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
-            founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
-            employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
-            employee_role: basicProfileData?.employee_role || profile.user_type?.employee_role || "",
-            student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
-            company_name: profile.user_type?.company_name || "",
-            role: profile.user_type?.role || "",
-            github: profile.github || "",
-            wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
-            socials: profile.socials || [],
-            skills: profile.skills || [],
-            notifications: profile.notifications || false,
-            profile_privacy: profile.profile_privacy || "public",
-            telegram_user: profile.telegram_user || "",
-          };
-
-          form.reset(formData);
-          
-          // Update last saved data reference
-          lastSavedDataRef.current = JSON.stringify(formData);
-          
-          // Mark initial load as complete after a short delay
-          setTimeout(() => {
-            isInitialLoadRef.current = false;
-          }, 500);
-        }
-      } catch (error) {
-        console.error('Error loading profile:', error);
-        toast({
-          title: "Error loading profile",
-          description: "Could not load your profile data. Please refresh the page.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-        // Mark initial load as complete even on error
-        setTimeout(() => {
-          isInitialLoadRef.current = false;
-        }, 500);
-      }
+  const loadProfile = useCallback(async () => {
+    if (!session?.user?.id) {
+      setIsLoading(false);
+      return;
     }
 
-    loadProfile();
+    try {
+      const response = await fetch(`/api/profile/extended/${session.user.id}`);
+
+      if (response.ok) {
+        const profile = await response.json();
+
+        let basicProfileData = null;
+        if (typeof window !== "undefined") {
+          const savedBasicProfile = localStorage.getItem('basicProfileData');
+          if (savedBasicProfile) {
+            try {
+              basicProfileData = JSON.parse(savedBasicProfile);
+              localStorage.removeItem('basicProfileData');
+            } catch (e) {
+              console.error('Error parsing basic profile data:', e);
+            }
+          }
+        }
+
+        const formValues = {
+          name: basicProfileData?.name || profile.name || "",
+          username: profile.username || "",
+          bio: profile.bio || "",
+          email: profile.email || session.user.email || "",
+          notification_email: profile.notification_email || "",
+          image: profile.image || "",
+          country: basicProfileData?.country || profile.country || "",
+          is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
+          is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
+          is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
+          is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
+          is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
+          founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
+          employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
+          employee_role: basicProfileData?.employee_role || profile.user_type?.employee_role || "",
+          student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
+          company_name: profile.user_type?.company_name || "",
+          role: profile.user_type?.role || "",
+          github: profile.github || "",
+          wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
+          socials: profile.socials || [],
+          skills: profile.skills || [],
+          notifications: profile.notifications || false,
+          profile_privacy: profile.profile_privacy || "public",
+          telegram_user: profile.telegram_user || "",
+        };
+
+        setGithubConnected(Boolean(profile.githubConnected));
+        form.reset(formValues);
+        lastSavedDataRef.current = JSON.stringify(formValues);
+        setTimeout(() => { isInitialLoadRef.current = false; }, 500);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast({
+        title: "Error loading profile",
+        description: "Could not load your profile data. Please refresh the page.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => { isInitialLoadRef.current = false; }, 500);
+    }
   }, [session?.user?.id, session?.user?.email, form, toast]);
+  
+  useEffect(() => {
+    const gh = searchParams.get('gh');
+    if (!gh) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('gh');
+    router.replace(`${pathname}?${params.toString()}`);
+  }, []);
+
+  // Load profile data on component mount
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   // Update email when session is available
   useEffect(() => {
@@ -538,13 +571,14 @@ export function useProfileForm() {
   // Wallet handlers
   const handleAddWallet = (address: string) => {
     const currentWallets = watchedValues.wallet || [];
-    // Validar formato antes de agregar
-    if (address && address.trim() !== "" && /^0x[a-fA-F0-9]{40}$/.test(address.trim())) {
-      const trimmedAddress = address.trim();
-      // Evitar duplicados
-      if (!currentWallets.includes(trimmedAddress)) {
-        setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
-      }
+    const trimmedAddress = address?.trim() ?? "";
+    if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
+    // Evitar duplicados (comparación case-insensitive: las direcciones Ethereum son la misma con distinta capitalización)
+    const isDuplicate = currentWallets.some(
+      (w) => w.toLowerCase() === trimmedAddress.toLowerCase()
+    );
+    if (!isDuplicate) {
+      setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
     }
   };
 
@@ -559,6 +593,8 @@ export function useProfileForm() {
     isLoading,
     isSaving,
     isAutoSaving,
+    githubConnected,
+    setGithubConnected,
     handleFileSelect,
     handleAddSkill,
     handleRemoveSkill,

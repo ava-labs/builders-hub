@@ -8,7 +8,8 @@ import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
-import { User } from "@prisma/client";
+import { Prisma, User } from "@prisma/client";
+import { NotificationMeans } from "@/lib/notificationDefaults";
 
 export const projectValidations: Validation[] = [
   {
@@ -39,6 +40,16 @@ function normalizeCategories(categories: string | string[] | undefined): string[
   }
   return [];
 }
+
+// Type guard to check if a value is a non-empty object
+const isNonEmptyObject = (value: unknown): value is Record<string, unknown> => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.keys(value).length > 0
+  );
+};
 
 // Helper function to normalize deployed_addresses from JsonValue[] to Array<{ address: string; tag?: string }>
 function normalizeDeployedAddresses(
@@ -159,6 +170,12 @@ export async function createProject(
           categories: normalizeCategories(projectData.categories),
           other_category: projectData.other_category ?? null,
           deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
+          website: isNonEmptyObject(projectData.website)
+            ? projectData.website
+            : Prisma.JsonNull,
+          socials: isNonEmptyObject(projectData.socials)
+            ? projectData.socials
+            : Prisma.JsonNull,
         },
       });
 
@@ -183,6 +200,12 @@ export async function createProject(
         categories: normalizeCategories(projectData.categories),
         other_category: projectData.other_category ?? null,
         deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
+        website: isNonEmptyObject(projectData.website)
+          ? projectData.website
+          : Prisma.JsonNull,
+        socials: isNonEmptyObject(projectData.socials)
+          ? projectData.socials
+          : Prisma.JsonNull,
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly
@@ -246,7 +269,8 @@ function normalizeUser(user: Partial<User>): User {
     skills: user.skills ?? [],
     noun_avatar_seed: user.noun_avatar_seed ?? null,
     noun_avatar_enabled: user.noun_avatar_enabled ?? false,
-  };
+    notification_means: (user.notification_means as unknown as NotificationMeans) ?? null,
+  } as unknown as User;
 }
 export async function getProject(projectId: string): Promise<Project | null> {
   const projectData = await prisma.project.findUnique({

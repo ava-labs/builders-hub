@@ -78,7 +78,8 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                     type="email"
                     placeholder="your@email.com"
                     {...field}
-                    className="bg-transparent placeholder-zinc-600"
+                    readOnly
+                    className="bg-transparent placeholder-zinc-600 cursor-default opacity-90"
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">

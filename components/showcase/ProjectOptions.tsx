@@ -43,25 +43,78 @@ export const ProjectOptions = ({
   const { toast } = useToast();
   const handleSetWinner = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const response = await axios.put(`/api/project/set-winner`, {
-      project_id: project.id,
-      isWinner: true,
-    });
+    
+    try {
+      const response = await axios.put(`/api/project/set-winner`, {
+        project_id: project.id,
+        isWinner: true,
+      });
 
-    if (response.data.success) {
-      toast({
-        title: "Project winner set successfully",
-        description: "The project has been marked as the winner",
-        duration: 3000,
-      });
-    } else {
-      toast({
-        title: "Failed to set project winner",
-        description: "Unable to mark project as winner. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      });
+      if (response.data.success) {
+        toast({
+          title: "Project winner set successfully",
+          description: "The project has been marked as the winner",
+          duration: 3000,
+        });
+        router.refresh();
+      } else if (response.data.alreadyWinner) {
+        toast({
+          title: "Project is already a winner",
+          description: "This project has already been marked as winner.",
+          variant: "default",
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "Failed to set project winner",
+          description: response.data.message || "Unable to mark project as winner. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error setting winner:", error);
+      
+      // Handle API error responses (401, 403, etc.)
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        const errorTitle = errorData.error || "Error";
+        const errorMessage = errorData.message || "An error occurred while setting the project as winner.";
+        
+        // Special handling for authorization errors
+        if (error.response.status === 401) {
+          toast({
+            title: "Authentication Required",
+            description: errorMessage,
+            variant: "destructive",
+            duration: 5000,
+          });
+        } else if (error.response.status === 403) {
+          toast({
+            title: "Access Denied",
+            description: errorMessage,
+            variant: "destructive",
+            duration: 5000,
+          });
+        } else {
+          toast({
+            title: errorTitle,
+            description: errorMessage,
+            variant: "destructive",
+            duration: 3000,
+          });
+        }
+      } else {
+        // Network or other errors
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the server. Please check your internet connection.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
     }
+    
     setConfirmOpen(false);
   };
 
@@ -92,7 +145,7 @@ export const ProjectOptions = ({
         <DropdownMenuContent
           align="start"
           side="bottom"
-          className="w-48 z-[9999]"
+          className="w-48 z-9999"
           onPointerDownCapture={(e) => e.stopPropagation()}
         >
           {isFromProfile ? (

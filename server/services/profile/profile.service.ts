@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { ExtendedProfile, UserType, UpdateExtendedProfileData } from "@/types/extended-profile";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
@@ -51,64 +52,75 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         country: user.country || null,
         user_type: userType,
         github: user.github || null,
+        githubConnected: Boolean(user.github_access_token),
         wallet: Array.isArray(user.wallet) ? (user.wallet.length > 0 ? user.wallet : null) : (user.wallet ? [user.wallet] : null),
         socials: user.social_media || [],
         skills: user.skills || [],
         notifications: user.notifications,
         profile_privacy: user.profile_privacy,
         telegram_user: user.telegram_user || null,
+        notification_means: user.notification_means || null,
     } as ExtendedProfile;
 }
 
 /**
- * Validates profile data before updating
- * @param profileData - Profile data to validate
- * @param userId - User ID to validate username availability
- * @throws ProfileValidationError if validation fails
+ * Builds a Prisma update payload from the validated profile data.
+ *
+ * Applies an explicit whitelist of fields (no request-body spread) and maps
+ * frontend-facing names to their database column names:
+ *   - username      -> user_name
+ *   - socials       -> social_media
  */
-function validateProfileData(profileData: UpdateExtendedProfileData, userId: string): void {
-    // Validate that data was sent for update
-    if (!profileData || Object.keys(profileData).length === 0) {
-        throw new ProfileValidationError('No data provided for update.', 400);
+function buildUserUpdateData(
+    profileData: UpdateExtendedProfileData
+): Prisma.UserUpdateInput {
+    const updateData: Prisma.UserUpdateInput = {
+        last_login: new Date(),
+    };
+
+    if (profileData.name !== undefined) updateData.name = profileData.name;
+    if (profileData.bio !== undefined) updateData.bio = profileData.bio;
+    if (profileData.notification_email !== undefined) updateData.notification_email = profileData.notification_email;
+    if (profileData.image !== undefined) updateData.image = profileData.image;
+    if (profileData.country !== undefined) updateData.country = profileData.country;
+    if (profileData.github !== undefined) updateData.github = profileData.github;
+    if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
+    if (profileData.skills !== undefined) updateData.skills = profileData.skills;
+    if (profileData.notifications !== undefined) updateData.notifications = profileData.notifications;
+    if (profileData.profile_privacy !== undefined) updateData.profile_privacy = profileData.profile_privacy;
+    if (profileData.telegram_user !== undefined) updateData.telegram_user = profileData.telegram_user;
+
+    if (profileData.username !== undefined) {
+        updateData.user_name = profileData.username.trim();
+    }
+    if (profileData.socials !== undefined) {
+        updateData.social_media = profileData.socials;
+    }
+    if (profileData.user_type !== undefined) {
+        updateData.user_type = profileData.user_type as Prisma.InputJsonValue;
+    }
+    if (profileData.notification_means !== undefined) {
+        updateData.notification_means =
+            profileData.notification_means === null
+                ? Prisma.JsonNull
+                : (profileData.notification_means as Prisma.InputJsonValue);
     }
 
-   
-  
-    // Validate that at least one user type is selected
-    // Only validate if user types are being updated
-    const hasUserTypeUpdate = 
-        profileData.is_student !== undefined ||
-        profileData.is_founder !== undefined ||
-        profileData.is_employee !== undefined ||
-        profileData.is_enthusiast !== undefined;
-    
-    if (hasUserTypeUpdate) {
-        const userTypes = [
-            profileData.is_student,
-            profileData.is_founder,
-            profileData.is_employee,
-            profileData.is_enthusiast
-        ];
-        
-
-    }
+    return updateData;
 }
 
 /**
  * update extended profile
  * @param id - user ID
- * @param profileData - Partial profile data to update
+ * @param profileData - Partial profile data to update (already validated by Zod in the route)
  * @returns Updated profile
- * @throws ProfileValidationError si la validación falla
- * @throws Error si el usuario no existe o hay un error en la actualización
+ * @throws ProfileValidationError on business-rule violations (e.g. taken username)
+ * @throws Error when the user is not found or the update fails
  */
 export async function updateExtendedProfile(
-    id: string, 
+    id: string,
     profileData: UpdateExtendedProfileData
 ): Promise<ExtendedProfile> {
-    // Validate data before processing
-    validateProfileData(profileData, id);
-
     const existingUser = await prisma.user.findUnique({
         where: { id },
     });
@@ -117,52 +129,14 @@ export async function updateExtendedProfile(
         throw new Error("User not found");
     }
 
-    // Validate username availability if it's being updated
-    if (profileData.username && profileData.username!="")  {
-        const username = profileData.username.trim();
-        const available = await isUsernameAvailable(username, id);
+    if (profileData.username && profileData.username.trim() !== "") {
+        const available = await isUsernameAvailable(profileData.username.trim(), id);
         if (!available) {
-            throw new ProfileValidationError('Username is already taken.', 409);
+            throw new ProfileValidationError("Username is already taken.", 409);
         }
     }
 
-    // if there is no data to update, only update last_login
-    if (Object.keys(profileData).length === 0) {
-        await prisma.user.update({
-            where: { id },
-            data: {
-                last_login: new Date(),
-            }
-        });
-        
-        const profile = await getExtendedProfile(id);
-        if (!profile) {
-            throw new Error("Failed to retrieve updated profile");
-        }
-        return profile;
-    }
-
-    // map username to user_name and socials to social_media
-    const { username, socials, user_type, ...restData } = profileData;
-    
-    const updateData: any = {
-        ...restData,
-        last_login: new Date(),
-    };
-
-    // map frontend fields to the database
-    if (username !== undefined) {
-        updateData.user_name = username.trim();
-    }
-    
-    if (socials !== undefined) {
-        updateData.social_media = socials;
-    }
-
-    // convert user_type to JSON to store in the database
-    if (user_type !== undefined) {
-        updateData.user_type = user_type;
-    }
+    const updateData = buildUserUpdateData(profileData);
 
     await prisma.user.update({
         where: { id },
