@@ -11,8 +11,22 @@ export function canAccessEvaluationTools(
   return hasAnyAttribute(attributes, ["devrel", "judge"]);
 }
 
-export function canGenerateReferralLinks(
+export function canAccessBuilderInsights(
   attributes: string[] | undefined | null
 ): boolean {
-  return canAccessEvaluationTools(attributes);
+  return hasAnyAttribute(attributes, ["devrel", "judge", "team1"]);
+}
+
+export function canGenerateRestrictedReferralLinks(
+  attributes: string[] | undefined | null
+): boolean {
+  return canAccessBuilderInsights(attributes);
+}
+
+export function canGenerateReferralLinkForTarget(
+  attributes: string[] | undefined | null,
+  targetType: string
+): boolean {
+  if (targetType === "bh_signup") return canGenerateRestrictedReferralLinks(attributes);
+  return true;
 }

@@ -112,7 +112,6 @@ model RegisterForm {
   updated_at              DateTime  @updatedAt @db.Timestamptz(3)
   web3_proficiency        String
   telegram_user           String?
-  referrer_handle         String?
   user                    User      @relation(fields: [email], references: [email], onDelete: Cascade)
   hackathon               Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
 
@@ -322,6 +321,18 @@ model ReferralAttribution {
   @@index([created_at])
 }
 
+model ReferralBackfillUnresolved {
+  id           String   @id
+  source_table String
+  source_id    String
+  legacy_code  String?
+  reason       String
+  created_at   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([source_table])
+  @@index([created_at])
+}
+
 model FaucetClaim {
   id                  String   @id @default(uuid())
   user_id             String
@@ -424,8 +435,6 @@ model BuildGamesApplication {
   why_you                    String
   how_did_you_hear           String
   how_did_you_hear_specify   String?
-  referrer_name              String?
-  referrer_handle            String?
   university_affiliation     String
   avalanche_ecosystem_member String
   privacy_policy_read        Boolean  @default(false)
@@ -434,7 +443,6 @@ model BuildGamesApplication {
   updated_at                 DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([created_at])
-  @@index([referrer_handle])
   @@index([area_of_focus])
 }
 

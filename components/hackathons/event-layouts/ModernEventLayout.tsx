@@ -10,6 +10,7 @@ import Resources from "@/components/hackathons/hackathon/sections/Resources";
 import Community from "@/components/hackathons/hackathon/sections/Community";
 import MentorsJudges from "@/components/hackathons/hackathon/sections/MentorsJudges";
 import JoinButton from "@/components/hackathons/hackathon/JoinButton";
+import { EventReferralButton } from "@/components/hackathons/hackathon/EventReferralModal";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { format } from "date-fns";
 import type { HackathonHeader } from "@/types/hackathons";
@@ -111,7 +112,7 @@ export default function ModernEventLayout({
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
-      <div className="pl-4 flex gap-4 items-center">
+      <div className="pl-4 flex flex-wrap gap-4 items-center">
         <Image
           src={
             hackathon.icon.trim().length > 0
@@ -123,6 +124,14 @@ export default function ModernEventLayout({
           height={40}
         />
         <span className="text-sm sm:text-xl font-bold">{hackathon.title}</span>{" "}
+        {isHackathon && (
+          <EventReferralButton
+            hackathonId={id}
+            hackathonTitle={hackathon.title}
+            lang={lang}
+            isAuthenticated={isAuthenticated}
+          />
+        )}
         <JoinButton
           isRegistered={isRegistered}
           isAuthenticated={isAuthenticated}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Share2 } from "lucide-react";
-import { getSession } from "next-auth/react";
+import { Check, Copy, Loader2, Share2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { generateEventReferralLink } from "@/lib/referral";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import type { EventsLang } from "@/lib/events/i18n";
 import { t } from "@/lib/events/i18n";
 
@@ -29,28 +29,36 @@ export default function EventReferralModal({
   hackathonTitle,
   lang = "en",
 }: EventReferralModalProps) {
-  const [handle, setHandle] = useState("");
   const [referralLink, setReferralLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerateLink = async () => {
-    if (!handle.trim()) return;
     setIsGenerating(true);
+    setError(null);
 
-    let userId: string | undefined;
     try {
-      const freshSession = await getSession();
-      if (freshSession?.user?.id) {
-        userId = freshSession.user.id;
-      }
-    } catch (error) {
-      console.error("Error getting user ID for event referral:", error);
-    }
+      const response = await fetch("/api/referrals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetType: "hackathon_registration",
+          targetId: hackathonId,
+        }),
+      });
 
-    const link = generateEventReferralLink(handle.trim(), hackathonId, userId);
-    setReferralLink(link);
-    setIsGenerating(false);
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create referral link");
+      }
+
+      setReferralLink(result.shareUrl);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to create referral link");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopyLink = async () => {
@@ -78,6 +86,7 @@ export default function EventReferralModal({
       textArea.setAttribute("readonly", "");
       textArea.setAttribute("aria-hidden", "true");
       document.body.appendChild(textArea);
+
       try {
         textArea.focus();
         textArea.select();
@@ -116,9 +125,9 @@ export default function EventReferralModal({
   };
 
   const handleClose = () => {
-    setHandle("");
     setReferralLink("");
     setCopied(false);
+    setError(null);
     onClose();
   };
 
@@ -135,29 +144,20 @@ export default function EventReferralModal({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 mt-2">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="x-handle" className="text-sm font-medium">
-              {t(lang, "referral.modal.handleLabel")}
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="x-handle"
-                type="text"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-                placeholder="@yourhandle"
-                className="flex-1 min-w-0 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-transparent text-sm placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
-                onKeyDown={(e) => e.key === "Enter" && handleGenerateLink()}
-              />
-              <button
-                onClick={handleGenerateLink}
-                disabled={!handle.trim() || isGenerating}
-                className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-              >
-                {t(lang, "referral.modal.generate")}
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={handleGenerateLink}
+            disabled={isGenerating}
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isGenerating && <Loader2 size={16} className="animate-spin" />}
+            {t(lang, "referral.modal.generate")}
+          </button>
+
+          {error && (
+            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+              {error}
+            </p>
+          )}
 
           {referralLink && (
             <div className="flex flex-col gap-3 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
@@ -231,17 +231,31 @@ export function EventReferralButton({
   hackathonId,
   hackathonTitle,
   lang = "en",
+  isAuthenticated = false,
 }: {
   hackathonId: string;
   hackathonTitle: string;
   lang?: EventsLang;
+  isAuthenticated?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
+
+  const handleOpen = () => {
+    if (!isAuthenticated && status !== "authenticated") {
+      const callbackUrl = `${window.location.pathname}${window.location.search}`;
+      openLoginModal(callbackUrl);
+      return;
+    }
+
+    setIsOpen(true);
+  };
 
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         className="flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
       >
         <Share2 size={16} />

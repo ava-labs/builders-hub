@@ -138,8 +138,6 @@ export default async function EvaluatePage({
             hackathon_details: memberBgApp.hackathon_details,
             how_did_you_hear: memberBgApp.how_did_you_hear,
             how_did_you_hear_specify: memberBgApp.how_did_you_hear_specify,
-            referrer_name: memberBgApp.referrer_name,
-            referrer_handle: memberBgApp.referrer_handle,
           } as Record<string, unknown> : null,
         };
       });

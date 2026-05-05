@@ -90,6 +90,10 @@ export function BuilderInsightsDashboard({
     ...row,
     label: shortLabel(row.event, 24),
   }));
+  const communityHackathonReferrerData = data.communityHackathonReferrers.map((row) => ({
+    ...row,
+    label: shortLabel(row.referrer, 28),
+  }));
 
   const latestMonthlySignups = monthlyData.length
     ? monthlyData[monthlyData.length - 1].signups
@@ -315,6 +319,33 @@ export function BuilderInsightsDashboard({
               </ResponsiveContainer>
             ) : (
               <EmptyState label="No event participant data yet" />
+            )}
+          </ChartCard>
+
+          <ChartCard title="Community Hackathon Referrers" className="lg:col-span-2">
+            {communityHackathonReferrerData.length ? (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart
+                  data={communityHackathonReferrerData}
+                  layout="vertical"
+                  margin={{ top: 12, right: 18, bottom: 8, left: 64 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                    fontSize={12}
+                    width={140}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="signups" name="Hackathon registrations" fill="#7C3AED" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState label="No community hackathon referrals recorded yet" />
             )}
           </ChartCard>
         </div>

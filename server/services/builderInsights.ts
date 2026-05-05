@@ -2,8 +2,6 @@ import { prisma } from "@/prisma/prisma";
 import { listReferralLinksForUser } from "./referrals";
 import type { ReferralTargetType } from "@/lib/referrals/constants";
 
-const BUILD_GAMES_HACKATHON_ID = process.env.BUILD_GAMES_HACKATHON_ID;
-
 export interface MonthlySignupPoint {
   month: string;
   signups: number;
@@ -49,6 +47,7 @@ export interface BuilderInsightsData {
   monthlySignups: MonthlySignupPoint[];
   signupsByReferrer: ReferrerSignupPoint[];
   eventParticipants: EventParticipantPoint[];
+  communityHackathonReferrers: ReferrerSignupPoint[];
   topReferrers: TopReferrerRow[];
   referralTargets: ReferralTargetPreset[];
 }
@@ -99,6 +98,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     userGeneratedRows,
     activeEventRows,
     topReferrerRows,
+    communityHackathonReferrerRows,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.$queryRaw<Array<{ month: Date; signups: bigint }>>`
@@ -196,6 +196,19 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ORDER BY "totalConversions" DESC
       LIMIT 20
     `,
+    prisma.$queryRaw<Array<{ referrerId: string; referrer: string | null; signups: bigint }>>`
+      SELECT owner."id" AS "referrerId",
+             COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
+             COUNT(*)::bigint AS "signups"
+      FROM "ReferralAttribution" attribution
+      INNER JOIN "User" owner ON owner."id" = attribution."referrer_user_id"
+      WHERE attribution."conversion_type" = 'hackathon_registration'
+        AND attribution."source" = 'referral'
+        AND NOT (owner."custom_attributes" && ARRAY['devrel', 'judge', 'team1']::text[])
+      GROUP BY owner."id", owner."name", owner."email"
+      ORDER BY "signups" DESC
+      LIMIT 20
+    `,
   ]);
 
   let cumulative = 0;
@@ -219,18 +232,14 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
   const userGeneratedBhAndEventSignups = toNumber(userGeneratedRows[0]?.signups);
 
   const activeEventTargets: ReferralTargetPreset[] = activeEventRows.map((event) => {
-    const isBuildGames = Boolean(BUILD_GAMES_HACKATHON_ID && event.id === BUILD_GAMES_HACKATHON_ID);
-
     return {
       key: `event-${event.id}`,
       group: "event",
       label: event.title,
       detail: `${getEventStatus(event.start_date, event.end_date)} event`,
-      targetType: isBuildGames ? "build_games_application" : "hackathon_registration",
+      targetType: "hackathon_registration",
       targetId: event.id,
-      destinationUrl: isBuildGames
-        ? "/build-games/apply"
-        : `/events/registration-form?event=${event.id}`,
+      destinationUrl: `/events/registration-form?event=${event.id}`,
     };
   });
 
@@ -244,6 +253,11 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       signups: toNumber(row.signups),
     })),
     eventParticipants,
+    communityHackathonReferrers: communityHackathonReferrerRows.map((row) => ({
+      referrerId: row.referrerId,
+      referrer: row.referrer ?? "Unknown",
+      signups: toNumber(row.signups),
+    })),
     topReferrers: topReferrerRows.map((row) => ({
       referrerId: row.referrerId,
       referrer: row.referrer ?? "Unknown",

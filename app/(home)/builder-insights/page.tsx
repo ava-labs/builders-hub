@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { canAccessEvaluationTools } from "@/lib/auth/permissions";
+import { canAccessBuilderInsights } from "@/lib/auth/permissions";
 import { buildReferralUrl } from "@/server/services/referrals";
 import {
   getBuilderInsightsData,
@@ -27,7 +27,7 @@ async function getRequestOrigin(): Promise<string> {
 export default async function BuilderInsightsPage() {
   const session = await getAuthSession();
 
-  if (!session?.user?.id || !canAccessEvaluationTools(session.user.custom_attributes)) {
+  if (!session?.user?.id || !canAccessBuilderInsights(session.user.custom_attributes)) {
     redirect("/");
   }
 

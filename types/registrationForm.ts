@@ -22,6 +22,5 @@ export type RegistrationForm=
     terms_event_conditions: boolean,
     tools: string[],
     web3_proficiency: string,
-    referrer_handle?: string,
 
 }

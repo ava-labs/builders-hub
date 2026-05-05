@@ -173,7 +173,6 @@ export async function createRegisterForm(
       tools: (registerData.tools ?? []).join(","),
       web3_proficiency: registerData.web3_proficiency ?? "",
       github_portfolio: registerData.github_portfolio ?? "",
-      ...(registerData.referrer_handle ? { referrer_handle: registerData.referrer_handle } : {}),
     },
   });
   registerData.id = newRegisterFormData.id;
@@ -184,10 +183,7 @@ export async function createRegisterForm(
       conversionResourceId: newRegisterFormData.id,
       conversionTargetId: newRegisterFormData.hackathon_id,
       convertedEmail: newRegisterFormData.email,
-      attribution: (registerData as any).referral_attribution ?? {
-        referralCode: registerData.referrer_handle,
-        landingPath: `/events/registration-form?event=${newRegisterFormData.hackathon_id}`,
-      },
+      attribution: (registerData as any).referral_attribution ?? null,
     });
   } catch (error) {
     console.error("[Referral] Failed to record hackathon registration attribution:", error);
