@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { EventsLang, normalizeEventsLang, t } from "@/lib/events/i18n";
-import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
+import {
+  appendReferralTrackingParams,
+  useCurrentReferralCode,
+} from "@/lib/referrals/client";
 
 interface JoinButtonProps {
   isRegistered: boolean;
@@ -39,24 +42,7 @@ export default function JoinButton({
   const lang = langProp ?? normalizeEventsLang(undefined);
   const { status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
-  const [currentReferralCode, setCurrentReferralCode] = useState("");
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const referralCode = url.searchParams.get("ref") ?? "";
-    if (referralCode) {
-      captureReferralAttributionFromUrl();
-      setCurrentReferralCode(referralCode);
-    }
-  }, []);
-
-  const appendTrackingParams = (baseUrl: string) => {
-    const params = new URLSearchParams();
-    if (utm) params.set("utm", utm);
-    if (currentReferralCode) params.set("ref", currentReferralCode);
-    const query = params.toString();
-    return query ? `${baseUrl}&${query}` : baseUrl;
-  };
+  const currentReferralCode = useCurrentReferralCode();
 
   const getButtonText = () => {
     if (isRegistered) {
@@ -84,7 +70,7 @@ export default function JoinButton({
           return customLink;
         }
         const baseUrl = `/events/registration-form?event=${hackathonId}`;
-        return appendTrackingParams(baseUrl);
+        return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode, utm });
       }
       return "#";
     }
@@ -92,7 +78,7 @@ export default function JoinButton({
       return customLink;
     }
     const baseUrl = `/events/registration-form?event=${hackathonId}`;
-    return appendTrackingParams(baseUrl);
+    return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode, utm });
   };
 
   const getButtonTarget = () => {

@@ -1,6 +1,10 @@
 import { prisma } from "@/prisma/prisma";
 import { listReferralLinksForUser } from "./referrals";
-import type { ReferralTargetType } from "@/lib/referrals/constants";
+import {
+  ACTIVE_GRANT_TARGETS,
+  BUILDER_HUB_SIGNUP_TARGET,
+  type ReferralTargetPreset,
+} from "@/lib/referrals/targets";
 
 export interface MonthlySignupPoint {
   month: string;
@@ -43,16 +47,6 @@ export interface TopTeamReferrerRow {
   totalReferrals: number;
 }
 
-export interface ReferralTargetPreset {
-  key: string;
-  group: "signup" | "event" | "grant";
-  label: string;
-  detail: string;
-  targetType: ReferralTargetType;
-  targetId: string | null;
-  destinationUrl: string;
-}
-
 export interface BuilderInsightsData {
   totalAccounts: number;
   userGeneratedBhAndEventSignups: number;
@@ -82,27 +76,6 @@ function getEventStatus(startDate: Date, endDate: Date): string {
   if (startDate.getTime() <= now && endDate.getTime() >= now) return "Active";
   return "Upcoming";
 }
-
-const ACTIVE_GRANT_TARGETS: ReferralTargetPreset[] = [
-  {
-    key: "grant-avalanche-research-proposals",
-    group: "grant",
-    label: "Call for Research Proposals",
-    detail: "Active grant application",
-    targetType: "grant_application",
-    targetId: "avalanche-research-proposals",
-    destinationUrl: "/grants/avalanche-research-proposals",
-  },
-  {
-    key: "grant-retro9000-returning",
-    group: "grant",
-    label: "Retro9000 Returning",
-    detail: "Active grant application",
-    targetType: "grant_application",
-    targetId: "retro9000-returning",
-    destinationUrl: "/grants/retro9000returning",
-  },
-];
 
 const REFERRAL_TEAM_LABELS: Record<string, string> = {
   devrel: "DevRel",
@@ -358,15 +331,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       totalReferrals: toNumber(row.totalReferrals),
     })),
     referralTargets: [
-      {
-        key: "signup-builder-hub",
-        group: "signup",
-        label: "Builder Hub Sign Up",
-        detail: "Active signup link",
-        targetType: "bh_signup",
-        targetId: null,
-        destinationUrl: "/",
-      },
+      BUILDER_HUB_SIGNUP_TARGET,
       ...activeEventTargets,
       ...ACTIVE_GRANT_TARGETS,
     ],

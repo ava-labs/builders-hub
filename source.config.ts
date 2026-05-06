@@ -92,9 +92,6 @@ export const blog = defineCollections({
 export default defineConfig({
   lastModifiedTime: 'git',
   mdxOptions: {
-    remarkImageOptions: {
-      onError: 'ignore',
-    },
     rehypeCodeOptions: {
       lazy: true,
       langs: ['ts', 'js', 'html', 'tsx', 'mdx'],

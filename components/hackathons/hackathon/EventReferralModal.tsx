@@ -11,8 +11,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { EventsLang } from "@/lib/events/i18n";
 import { t } from "@/lib/events/i18n";
+import { createReferralLink } from "@/lib/referrals/client";
 
 interface EventReferralModalProps {
   isOpen: boolean;
@@ -30,29 +32,23 @@ export default function EventReferralModal({
   lang = "en",
 }: EventReferralModalProps) {
   const [referralLink, setReferralLink] = useState("");
-  const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { copiedId, copyToClipboard } = useCopyToClipboard({
+    resetDelay: 2000,
+    onError: () => setError("Failed to copy referral link"),
+  });
 
   const handleGenerateLink = async () => {
     setIsGenerating(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/referrals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetType: "hackathon_registration",
-          targetId: hackathonId,
-          destinationUrl: `/events/registration-form?event=${hackathonId}`,
-        }),
+      const result = await createReferralLink({
+        targetType: "hackathon_registration",
+        targetId: hackathonId,
+        destinationUrl: `/events/registration-form?event=${hackathonId}`,
       });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to create referral link");
-      }
 
       setReferralLink(result.shareUrl);
     } catch (error) {
@@ -64,45 +60,7 @@ export default function EventReferralModal({
 
   const handleCopyLink = async () => {
     if (!referralLink) return;
-
-    let success = false;
-
-    if (navigator.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(referralLink);
-        success = true;
-      } catch {
-        // fall through
-      }
-    }
-
-    if (!success) {
-      const textArea = document.createElement("textarea");
-      textArea.value = referralLink;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-9999px";
-      textArea.style.top = "0";
-      textArea.style.opacity = "0";
-      textArea.style.pointerEvents = "none";
-      textArea.setAttribute("readonly", "");
-      textArea.setAttribute("aria-hidden", "true");
-      document.body.appendChild(textArea);
-
-      try {
-        textArea.focus();
-        textArea.select();
-        success = document.execCommand("copy");
-      } catch {
-        success = false;
-      } finally {
-        document.body.removeChild(textArea);
-      }
-    }
-
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    await copyToClipboard(referralLink, "event-referral-link");
   };
 
   const handleShareX = () => {
@@ -127,7 +85,6 @@ export default function EventReferralModal({
 
   const handleClose = () => {
     setReferralLink("");
-    setCopied(false);
     setError(null);
     onClose();
   };
@@ -178,7 +135,7 @@ export default function EventReferralModal({
                     className="p-2 border border-zinc-300 dark:border-zinc-600 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
                     title={t(lang, "referral.modal.copy")}
                   >
-                    {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                    {copiedId ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
                   </button>
                 </div>
               </div>

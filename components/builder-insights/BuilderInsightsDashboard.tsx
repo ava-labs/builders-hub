@@ -31,7 +31,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { BuilderInsightsData, ReferralTargetPreset } from "@/server/services/builderInsights";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import type { BuilderInsightsData } from "@/server/services/builderInsights";
+import {
+  createReferralLink,
+  type ReferralLinkResponse,
+} from "@/lib/referrals/client";
+import type { ReferralTargetPreset } from "@/lib/referrals/targets";
 
 interface ReferralLinkSummary {
   id: string;
@@ -85,9 +91,11 @@ export function BuilderInsightsDashboard({
 }: BuilderInsightsDashboardProps) {
   const [referralLinks, setReferralLinks] = useState(initialReferralLinks);
   const [creatingTargetKey, setCreatingTargetKey] = useState<string | null>(null);
-  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [qrLinkId, setQrLinkId] = useState<string | null>(null);
   const [topReferrerTeamFilter, setTopReferrerTeamFilter] = useState("all");
+  const { copiedId: copiedLinkId, copyToClipboard } = useCopyToClipboard({
+    resetDelay: 1600,
+  });
 
   const monthlyData = data.monthlySignups;
   const referrerData = data.signupsByReferrer.map((row) => ({
@@ -136,9 +144,7 @@ export function BuilderInsightsDashboard({
     );
 
   const handleCopy = async (link: ReferralLinkSummary) => {
-    await navigator.clipboard.writeText(link.shareUrl);
-    setCopiedLinkId(link.id);
-    setTimeout(() => setCopiedLinkId(null), 1600);
+    await copyToClipboard(link.shareUrl, link.id);
   };
 
   const handleGenerateAndCopy = async (target: ReferralTargetPreset) => {
@@ -151,22 +157,11 @@ export function BuilderInsightsDashboard({
 
     setCreatingTargetKey(target.key);
     try {
-      const response = await fetch("/api/referrals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetType: target.targetType,
-          targetId: target.targetId,
-          destinationUrl: target.destinationUrl,
-        }),
+      const link: ReferralLinkResponse = await createReferralLink({
+        targetType: target.targetType,
+        targetId: target.targetId,
+        destinationUrl: target.destinationUrl,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create referral link");
-      }
-
-      const link = await response.json();
       setReferralLinks((current) => [link, ...current.filter((item) => item.id !== link.id)].slice(0, 25));
       setQrLinkId(link.id);
       await handleCopy(link);

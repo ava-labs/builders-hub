@@ -12,6 +12,10 @@ import {
   listReferralLinksForUser,
 } from "@/server/services/referrals";
 import type { ReferralTargetType } from "@/lib/referrals/constants";
+import {
+  BUILDER_HUB_SIGNUP_TARGET,
+  getGrantReferralTarget,
+} from "@/lib/referrals/targets";
 
 function getOrigin(request: NextRequest): string {
   return request.nextUrl.origin;
@@ -32,11 +36,6 @@ function getRegistrationDeadline(content: unknown): Date | null {
   if (!content || typeof content !== "object") return null;
   return getDateValue((content as { registration_deadline?: unknown }).registration_deadline);
 }
-
-const ACTIVE_GRANT_REFERRAL_TARGETS: Record<string, string> = {
-  "avalanche-research-proposals": "/grants/avalanche-research-proposals",
-  "retro9000-returning": "/grants/retro9000returning",
-};
 
 async function resolveReferralTarget(targetType: ReferralTargetType, body: any) {
   if (targetType === "hackathon_registration") {
@@ -72,20 +71,21 @@ async function resolveReferralTarget(targetType: ReferralTargetType, body: any) 
 
   if (targetType === "bh_signup") {
     return {
-      targetId: null,
-      destinationUrl: "/",
+      targetId: BUILDER_HUB_SIGNUP_TARGET.targetId,
+      destinationUrl: BUILDER_HUB_SIGNUP_TARGET.destinationUrl,
     };
   }
 
   if (targetType === "grant_application") {
     const targetId = getStringValue(body?.targetId);
-    if (!targetId || !ACTIVE_GRANT_REFERRAL_TARGETS[targetId]) {
+    const target = getGrantReferralTarget(targetId);
+    if (!target) {
       return { error: "Grant is not available for referrals" };
     }
 
     return {
-      targetId,
-      destinationUrl: ACTIVE_GRANT_REFERRAL_TARGETS[targetId],
+      targetId: target.targetId,
+      destinationUrl: target.destinationUrl,
     };
   }
 
