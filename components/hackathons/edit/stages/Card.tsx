@@ -113,14 +113,6 @@ export default function StageCardsForm({
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <IconPicker
-                    label="Icon"
-                    value={card.icon}
-                    onChange={(key) => updateCardField(cardIndex, 'icon', key)}
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor={`card-title-${index}-${cardIndex}`}>Title</Label>
                   <Input
                     id={`card-title-${index}-${cardIndex}`}
@@ -143,6 +135,14 @@ export default function StageCardsForm({
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                       updateCardField(cardIndex, 'description', event.target.value)
                     }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <IconPicker
+                    label="Icon"
+                    value={card.icon}
+                    onChange={(key) => updateCardField(cardIndex, 'icon', key)}
                   />
                 </div>
               </div>

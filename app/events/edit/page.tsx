@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, Database, PlusCircle, FileText, Layers, ImageIcon, Users, AlignLeft, LayoutGrid, ClipboardList, X, Save, Eye, EyeOff } from 'lucide-react';
+import { ICON_OPTIONS } from '@/components/hackathons/edit/icon-registry';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HackathonsList from '@/components/hackathons/edit/HackathonsList';
 import { t } from './translations';
@@ -182,6 +183,69 @@ function SubformFieldError({
   return <p className="text-red-500 text-sm -mt-2 mb-2">{msg}</p>;
 }
 
+
+
+const IconPicker = ({ value, onChange }: { value: string; onChange: (val: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const effective = ICON_OPTIONS.find((o) => o.value === value) ? value : ICON_OPTIONS[0].value;
+  const selected = ICON_OPTIONS.find((o) => o.value === effective) ?? ICON_OPTIONS[0];
+
+  // Persist default icon when value is unset (e.g. new record)
+  useEffect(() => {
+    if (!ICON_OPTIONS.find((o) => o.value === value)) {
+      onChange(ICON_OPTIONS[0].value);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm"
+      >
+        <selected.Icon className="w-4 h-4" />
+        <span className="capitalize">{selected.value.replace(/-/g, ' ')}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+      </button>
+      {open && (
+        <div className="absolute z-50 bottom-full mb-1 left-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-2 min-w-[220px] max-h-64 overflow-y-auto">
+          <div className="grid grid-cols-3 gap-1">
+            {ICON_OPTIONS.map(({ value: v, Icon }) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => { onChange(v); setOpen(false); }}
+                className={`flex flex-col items-center gap-1 p-2 rounded-md text-xs transition-colors ${
+                  v === effective
+                    ? 'bg-red-50 dark:bg-red-900/30 ring-1 ring-red-400 text-red-600 dark:text-red-400'
+                    : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="truncate w-full text-center">{v.replace(/-/g, ' ')}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 type TrackItemProps = {
   track: ITrack;
   index: number;
@@ -225,49 +289,6 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
         </div>
       ) : (
         <>
-          {/* <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].selectIcon}</div>
-          <Select
-            value={track.icon}
-            onValueChange={(value) => {
-              onChange(index, 'icon', value);
-              onScrollToPreview('tracks');
-            }}
-          >
-            <SelectTrigger className="mb-3">
-              <SelectValue placeholder="Select Icon" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="server">Server</SelectItem>
-              <SelectItem value="link">Link</SelectItem>
-              <SelectItem value="brain-circuit">Brain Circuit</SelectItem>
-              <SelectItem value="wrench">Wrench</SelectItem>
-              <SelectItem value="shield">Shield</SelectItem>
-              <SelectItem value="gamepad2">gamepad2</SelectItem>
-              <SelectItem value="cpu">CPU</SelectItem>
-            </SelectContent>
-          </Select> */}
-          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].selectLogo}</div>
-          <Select
-            value={track.logo}
-            onValueChange={(value) => {
-              onChange(index, 'logo', value);
-              onScrollToPreview('tracks');
-            }}
-          >
-            <SelectTrigger className="mb-3">
-              <SelectValue placeholder="Select Logo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="server">Server</SelectItem>
-              <SelectItem value="link">Link</SelectItem>
-              <SelectItem value="brain-circuit">Brain Circuit</SelectItem>
-              <SelectItem value="wrench">Wrench</SelectItem>
-              <SelectItem value="shield">Shield</SelectItem>
-              <SelectItem value="gamepad2">gamepad2</SelectItem>
-              <SelectItem value="cpu">CPU</SelectItem>
-            </SelectContent>
-          </Select>
-          <SubformFieldError fieldError={fieldError} field="logo" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackName}</div>
           <Input
             type="text"
@@ -442,6 +463,17 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             required
           />
           <SubformFieldError fieldError={fieldError} field="short_description" />
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Icon</div>
+          <div className="relative mb-3">
+            <IconPicker
+              value={track.logo || track.icon}
+              onChange={(val) => {
+                onChange(index, 'logo', val);
+                onChange(index, 'icon', val);
+                onScrollToPreview('tracks');
+              }}
+            />
+          </div>
           <div className="flex justify-end mt-2">
             <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
               {t[language].done} <ChevronDown className="w-4 h-4" />
@@ -832,22 +864,6 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceIcon}</div>
-          <Select
-            value={resource.icon}
-            onValueChange={(value) => onChange(index, 'icon', value)}
-          >
-            <SelectTrigger className="mb-3">
-              <SelectValue placeholder="Select Icon" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="app-window">App Window</SelectItem>
-              <SelectItem value="pickaxe">Pickaxe</SelectItem>
-              <SelectItem value="package">Package</SelectItem>
-              <SelectItem value="layout-grid">Layout Grid</SelectItem>
-            </SelectContent>
-          </Select>
-          <SubformFieldError fieldError={fieldError} field="icon" />
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceLink}</div>
           <Input
             type="text"
@@ -878,6 +894,13 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
             required
           />
           <SubformFieldError fieldError={fieldError} field="description" />
+          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceIcon}</div>
+          <div className="relative mb-3">
+            <IconPicker
+              value={resource.icon}
+              onChange={(val) => onChange(index, 'icon', val)}
+            />
+          </div>
           <div className="flex justify-end mt-2">
             <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
               {t[language].done} <ChevronDown className="w-4 h-4" />
@@ -1285,7 +1308,9 @@ const HackathonsEdit = () => {
   }, [formDataLatest.event, contentTab]);
 
   useEffect(() => {
-    if (!leftPanelRef.current) return;
+    const container = leftPanelRef.current;
+    if (!container) return;
+
     const sections: { id: typeof activeStep; ref: React.RefObject<HTMLDivElement | null> }[] = [
       { id: 'step1', ref: step1Ref },
       { id: 'step2', ref: step2Ref },
@@ -1296,36 +1321,31 @@ const HackathonsEdit = () => {
       { id: 'step7', ref: step7Ref },
     ];
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        let bestEntry: IntersectionObserverEntry | null = null;
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
-            bestEntry = entry;
-          }
-        });
-        if (bestEntry) {
-          const found = sections.find((s) => s.ref.current === bestEntry!.target);
-          if (found) {
-            setActiveStep(found.id);
-          }
+    const updateActiveStep = () => {
+      const containerRect = container.getBoundingClientRect();
+      let bestId: typeof activeStep = 'step1';
+      let bestVisible = -Infinity;
+      sections.forEach(({ id, ref }) => {
+        const el = ref.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        // Visible overlap = intersection of section rect with container viewport
+        const visibleTop = Math.max(rect.top, containerRect.top);
+        const visibleBottom = Math.min(rect.bottom, containerRect.bottom);
+        const visibleHeight = visibleBottom - visibleTop;
+        if (visibleHeight > bestVisible) {
+          bestVisible = visibleHeight;
+          bestId = id;
         }
-      },
-      {
-        root: leftPanelRef.current,
-        threshold: 0.3,
-      }
-    );
+      });
+      setActiveStep(bestId);
+    };
 
-    sections.forEach(({ ref }) => {
-      if (ref.current) {
-        observer.observe(ref.current);
-      }
-    });
+    container.addEventListener('scroll', updateActiveStep, { passive: true });
+    updateActiveStep();
 
     return () => {
-      observer.disconnect();
+      container.removeEventListener('scroll', updateActiveStep);
     };
   }, [leftPanelRef.current]);
 
@@ -1502,7 +1522,32 @@ const HackathonsEdit = () => {
   const { onValidationError } = useEventsValidation(
     (issues) => {
       if (issues.length === 0) return;
-      setValidationIssues(issues);
+      const fieldLabelMap: Record<string, string> = {
+        date: 'Date', name: 'Name', category: 'Category', location: 'Location',
+        description: 'Description', duration: 'Duration', url: 'URL', icon: 'Icon',
+        link: 'Link', title: 'Title', logo: 'Logo', partner: 'Partner',
+        short_description: 'Short Description',
+      };
+      const processed = issues.map((issue) => {
+        const label = issue.label?.trim()
+          ? issue.label
+          : (() => {
+              const seg = issue.path.split('.').pop() ?? '';
+              return fieldLabelMap[seg] ?? (seg.charAt(0).toUpperCase() + seg.slice(1).replace(/_/g, ' '));
+            })();
+        const section = issue.section?.trim()
+          ? issue.section
+          : (() => {
+              const m = issue.path.match(/^content\.(schedule|tracks|resources)\.(\d+)\./);
+              if (m) {
+                const typeMap: Record<string, string> = { schedule: 'Schedule', tracks: 'Track', resources: 'Resource' };
+                return `${typeMap[m[1]]} ${Number(m[2]) + 1}`;
+              }
+              return issue.section;
+            })();
+        return { ...issue, label, section };
+      });
+      setValidationIssues(processed);
       setShowValidationModal(true);
     },
     language
@@ -1528,6 +1573,15 @@ const HackathonsEdit = () => {
       collapsedKey = 'trackText'; targetRef = step5Ref; stepKey = 'step5';
     } else if (section === 'Last Details') {
       collapsedKey = 'last'; targetRef = step7Ref; stepKey = 'step7';
+    } else if (/^content\.schedule\.\d+\./.test(path)) {
+      collapsedKey = 'content'; targetRef = step6Ref; stepKey = 'step6';
+      setContentTab('schedule');
+    } else if (/^content\.tracks\.\d+\./.test(path)) {
+      collapsedKey = 'content'; targetRef = step6Ref; stepKey = 'step6';
+      setContentTab('tracks');
+    } else if (/^content\.resources\.\d+\./.test(path)) {
+      collapsedKey = 'content'; targetRef = step6Ref; stepKey = 'step6';
+      setContentTab('resources');
     } else if (section.startsWith('Content') || path.startsWith('content.')) {
       collapsedKey = 'content'; targetRef = step6Ref; stepKey = 'step6';
     }
@@ -3282,9 +3336,9 @@ const HackathonsEdit = () => {
                   )}
 
                   {/* Step 5: Content - Tracks, Schedule, etc. */}
-                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
+                  <div ref={step6Ref} className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 ref={step5Ref} className="text-2xl font-bold">Step 6: {t[language].content}</h2>
+                      <h2 className="text-2xl font-bold">Step 6: {t[language].content}</h2>
                       {collapsed.content && (
                         <button onClick={() => setCollapsed({ ...collapsed, content: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -3295,7 +3349,7 @@ const HackathonsEdit = () => {
                       <>
                         {/* Inner tabs for content sections */}
                         <div className="mb-6">
-                          <div ref={step6Ref} className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {formDataLatest.event === 'hackathon' && (
                               <button
                                 type="button"

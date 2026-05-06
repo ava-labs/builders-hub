@@ -150,14 +150,6 @@ export default function StageTagsForm({
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <IconPicker
-                    label="Icon"
-                    value={tag.icon}
-                    onChange={(key) => updateTagField(tagIndex, 'icon', key)}
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor={`tag-title-${index}-${tagIndex}`}>Title</Label>
                   <Input
                     id={`tag-title-${index}-${tagIndex}`}
@@ -180,6 +172,14 @@ export default function StageTagsForm({
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                       updateTagField(tagIndex, 'description', event.target.value)
                     }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <IconPicker
+                    label="Icon"
+                    value={tag.icon}
+                    onChange={(key) => updateTagField(tagIndex, 'icon', key)}
                   />
                 </div>
               </div>
