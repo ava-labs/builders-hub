@@ -2,13 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   EERC_BALANCE_PROOF_MISMATCH_MESSAGE,
+  EERC_BALANCE_UNINITIALIZED_MESSAGE,
+  EERC_AMOUNT_OUT_OF_RANGE_MESSAGE,
+  EERC_PRIVATE_KEY_INVALID_MESSAGE,
   assertEERCBalanceWitnessMatchesPlaintext,
+  isEERCBalanceProofAssertion,
   normalizeEERCBalanceProofError,
   validateEERCBalance,
   type EERCPCT,
   type RawEERCBalance,
   type RawEERCAmountPCT,
 } from '@/lib/eerc/balanceValidation';
+import { SUB_GROUP_ORDER } from '@/lib/eerc/crypto/constants';
 import { BabyJub, type BJPoint } from '@/lib/eerc/crypto/babyjub';
 import { FF } from '@/lib/eerc/crypto/ff';
 import { Poseidon } from '@/lib/eerc/crypto';
@@ -177,6 +182,92 @@ describe('assertEERCBalanceWitnessMatchesPlaintext', () => {
     );
 
     expect(normalizeEERCBalanceProofError(err).message).toBe(EERC_BALANCE_PROOF_MISMATCH_MESSAGE);
+  });
+
+  it('rejects (0,0) sentinel c1 (uninitialized contract balance)', async () => {
+    const identity = makeIdentity('a');
+
+    expect(() =>
+      assertEERCBalanceWitnessMatchesPlaintext({
+        encryptedBalance: [0n, 0n, 0n, 0n],
+        privateKey: identity.formattedKey,
+        plaintextBalance: 0n,
+      }),
+    ).toThrow(EERC_BALANCE_UNINITIALIZED_MESSAGE);
+  });
+
+  it('rejects off-curve c1 / c2 with the proof-mismatch message', async () => {
+    const identity = makeIdentity('b');
+    const eGCT = await encryptEGCT(identity.publicKey, 100n);
+
+    expect(() =>
+      assertEERCBalanceWitnessMatchesPlaintext({
+        encryptedBalance: [123n, 456n, eGCT.c2[0], eGCT.c2[1]],
+        privateKey: identity.formattedKey,
+        plaintextBalance: 100n,
+      }),
+    ).toThrow(EERC_BALANCE_PROOF_MISMATCH_MESSAGE);
+  });
+
+  it('rejects values >= subgroup order before invoking the prover', async () => {
+    const identity = makeIdentity('c');
+    const eGCT = await encryptEGCT(identity.publicKey, 100n);
+
+    expect(() =>
+      assertEERCBalanceWitnessMatchesPlaintext({
+        encryptedBalance: [eGCT.c1[0], eGCT.c1[1], eGCT.c2[0], eGCT.c2[1]],
+        privateKey: identity.formattedKey,
+        plaintextBalance: SUB_GROUP_ORDER,
+      }),
+    ).toThrow(EERC_AMOUNT_OUT_OF_RANGE_MESSAGE);
+  });
+
+  it('rejects a public key that does not pair with the private key', async () => {
+    const identity = makeIdentity('d');
+    const wrong = makeIdentity('e');
+    const eGCT = await encryptEGCT(identity.publicKey, 100n);
+
+    expect(() =>
+      assertEERCBalanceWitnessMatchesPlaintext({
+        encryptedBalance: [eGCT.c1[0], eGCT.c1[1], eGCT.c2[0], eGCT.c2[1]],
+        privateKey: identity.formattedKey,
+        plaintextBalance: 100n,
+        publicKey: [wrong.publicKey[0], wrong.publicKey[1]],
+      }),
+    ).toThrow(EERC_PRIVATE_KEY_INVALID_MESSAGE);
+  });
+
+  it('rejects a zero private key', async () => {
+    const identity = makeIdentity('f');
+    const eGCT = await encryptEGCT(identity.publicKey, 100n);
+
+    expect(() =>
+      assertEERCBalanceWitnessMatchesPlaintext({
+        encryptedBalance: [eGCT.c1[0], eGCT.c1[1], eGCT.c2[0], eGCT.c2[1]],
+        privateKey: 0n,
+        plaintextBalance: 100n,
+      }),
+    ).toThrow(EERC_PRIVATE_KEY_INVALID_MESSAGE);
+  });
+});
+
+describe('isEERCBalanceProofAssertion', () => {
+  it('matches every spending circuit + sub-template combination', () => {
+    const cases = [
+      'Assert Failed. Error in template CheckValue_23 line: 258\nError in template WithdrawCircuit_99 line: 55',
+      'Assert Failed. Error in template CheckValue_77 line: 258\nError in template TransferCircuit_120 line: 99',
+      'Assert Failed. Error in template CheckPCT_98 line: 356\nError in template WithdrawCircuit_99 line: 66',
+      'Assert Failed. Error in template BabyCheck_4 line: 82\nError in template CheckValue_23 line: 228\nError in template WithdrawCircuit_99 line: 55',
+      'Assert Failed. Error in template CheckPublicKey_5 line: 217\nError in template BurnCircuit_50 line: 30',
+    ];
+    for (const msg of cases) {
+      expect(isEERCBalanceProofAssertion(new Error(msg))).toBe(true);
+    }
+  });
+
+  it('does not match unrelated errors', () => {
+    expect(isEERCBalanceProofAssertion(new Error('Network error: fetch failed'))).toBe(false);
+    expect(isEERCBalanceProofAssertion(new Error('Assert Failed. Some random circuit'))).toBe(false);
   });
 });
 

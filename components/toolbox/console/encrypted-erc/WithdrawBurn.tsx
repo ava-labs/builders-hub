@@ -16,7 +16,11 @@ import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId'
 import { useEERCWithdraw } from '@/hooks/eerc/useEERCWithdraw';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
 import { parseEERCAmount } from '@/lib/eerc/parseAmount';
-import { EERC_BALANCE_PROOF_MISMATCH_MESSAGE } from '@/lib/eerc/balanceValidation';
+import {
+  EERC_BALANCE_PROOF_MISMATCH_MESSAGE,
+  EERC_BALANCE_UNINITIALIZED_MESSAGE,
+  EERC_PRIVATE_KEY_INVALID_MESSAGE,
+} from '@/lib/eerc/balanceValidation';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
@@ -166,11 +170,20 @@ function WithdrawBurn() {
         {wd.error && (
           <div className="text-[11px] text-red-600 dark:text-red-400">
             {wd.error}
-            {wd.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE && (
+            {(wd.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE || wd.error === EERC_PRIVATE_KEY_INVALID_MESSAGE) && (
               <>
                 {' '}
                 <Link href="/console/encrypted-erc/register" className="underline font-medium">
                   Open Register
+                </Link>
+                .
+              </>
+            )}
+            {wd.error === EERC_BALANCE_UNINITIALIZED_MESSAGE && (
+              <>
+                {' '}
+                <Link href="/console/encrypted-erc/deposit" className="underline font-medium">
+                  Open Deposit
                 </Link>
                 .
               </>

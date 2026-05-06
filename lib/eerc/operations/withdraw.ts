@@ -53,6 +53,7 @@ export async function withdrawFromEERC(inputs: WithdrawInputs): Promise<{ txHash
     encryptedBalance,
     privateKey: senderPrivateKey,
     plaintextBalance: decryptedBalance,
+    publicKey: [senderPublicKey[0], senderPublicKey[1]],
   });
 
   const newBalance = decryptedBalance - amount;

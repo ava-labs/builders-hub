@@ -64,6 +64,7 @@ export async function transferPrivate(inputs: TransferInputs): Promise<{ txHash:
     encryptedBalance,
     privateKey: senderPrivateKey,
     plaintextBalance: decryptedBalance,
+    publicKey: [senderPublicKey[0], senderPublicKey[1]],
   });
   if (recipientPublicKey[0] === 0n && recipientPublicKey[1] === 0n) {
     throw new Error('Recipient is not registered on this eERC Registrar');
