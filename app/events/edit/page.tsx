@@ -30,6 +30,7 @@ import {
   AccordionItem,
 } from '@/components/ui/accordion'
 import RemoveButton from '@/components/hackathons/edit/stages/RemoveButton';
+import { OverlaySpinner } from '@/components/ui/overlay-spinner';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -2179,8 +2180,12 @@ const HackathonsEdit = () => {
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
+    <div className={`fixed inset-0 overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col ${loading ? 'pointer-events-none' : ''}`}
+    aria-busy={loading}
+    aria-hidden={loading}>
       <Toaster />
+      {/* OverlaySpinner */}
+      <OverlaySpinner open={loading} message={language === 'es' ? 'Guardando cambios...' : 'Saving Changes...'} />
       {/* Header */}
       <div className="bg-fd-background/80 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 pr-4 h-14 flex items-center justify-center">
         <div className="container mx-auto flex justify-between items-center">
@@ -3796,14 +3801,6 @@ const HackathonsEdit = () => {
                 <p className="text-sm text-red-600 dark:text-red-200">
                   Only the creator, authorized roles, or configured cohosts can edit this hackathon. Please contact the hackathon owner if you believe this is a mistake.
                 </p>
-              </div>
-            )}
-            {loading && (
-              <div className="flex justify-center items-center my-4">
-                <svg className="animate-spin h-8 w-8 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                </svg>
               </div>
             )}
             {showDeleteModal && (
