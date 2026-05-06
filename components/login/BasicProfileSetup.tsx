@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { Button } from '@/components/ui/button';
 import { countries } from '@/constants/countries';
 import { hsEmploymentRoles } from '@/constants/hs_employment_role';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -48,11 +47,10 @@ type BasicProfileFormValues = z.infer<typeof basicProfileSchema>;
 
 interface BasicProfileSetupProps {
   userId: string;
-  onSuccess?: () => void;
   onCompleteProfile?: () => void;
 }
 
-export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: BasicProfileSetupProps) {
+export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
   const { update } = useSession();
 
@@ -75,7 +73,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
 
   const watchedValues = form.watch();
 
-  const handleSave = async (data: BasicProfileFormValues, completeProfileFlow: boolean = false) => {
+  const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
     try {
       // Format data to match the API expected format
@@ -116,11 +114,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
       // Update session
       await update();
 
-      if (completeProfileFlow) {
-        onCompleteProfile?.();
-      } else {
-        onSuccess?.();
-      }
+      onCompleteProfile?.();
     } catch (error) {
       console.error('Error saving basic profile:', error);
     } finally {
@@ -129,11 +123,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
   };
 
   const onSubmit = (data: BasicProfileFormValues) => {
-    handleSave(data, false);
-  };
-
-  const onCompleteProfileClick = () => {
-    void form.handleSubmit((data) => handleSave(data, true))();
+    void handleSave(data);
   };
 
   return (
@@ -432,26 +422,16 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
             </div>
 
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 sm:pt-5">
+            <div className="pt-4 sm:pt-5">
               <LoadingButton
                 type="submit"
-                variant="outline"
-                className="flex-1 w-full sm:w-auto text-sm sm:text-base"
-                isLoading={isSaving}
-                loadingText="Saving..."
-              >
-                Save and close
-              </LoadingButton>
-              <Button
-                type="button"
                 variant="red"
-                className="flex-1 w-full sm:w-auto text-sm sm:text-base"
-                onClick={onCompleteProfileClick}
-                disabled={isSaving}
+                className="w-full text-sm sm:text-base"
+                isLoading={isSaving}
+                loadingText="Saving profile..."
               >
                 Complete Profile
-              </Button>
+              </LoadingButton>
             </div>
           </form>
         </Form>

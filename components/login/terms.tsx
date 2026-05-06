@@ -40,7 +40,7 @@ type TermsFormValues = z.infer<typeof termsFormSchema>;
 
 interface TermsProps {
   userId: string;
-  onSuccess?: () => void;
+  onSuccess?: (userId?: string) => void;
   onDecline?: () => void;
   skipRedirect?: boolean;
   compact?: boolean;
@@ -73,6 +73,8 @@ export const Terms = ({
       // Check if this is a pending user (userId starts with "pending_")
       const isPendingUser = userId.startsWith("pending_");
 
+      let resolvedUserId = userId;
+
       if (isPendingUser) {
         const referralAttribution =
           captureReferralAttributionFromUrl() ?? getStoredReferralAttribution();
@@ -86,6 +88,7 @@ export const Terms = ({
         if (!createResponse.data.id) {
           throw new Error("Failed to create user account");
         }
+        resolvedUserId = createResponse.data.id;
 
         if (createResponse.data.referralAttributed) {
           clearStoredReferralAttribution();
@@ -106,7 +109,7 @@ export const Terms = ({
       }
 
       // Execute success callback if provided
-      onSuccess?.();
+      onSuccess?.(resolvedUserId);
 
       // Only redirect if skipRedirect is false
       if (!skipRedirect) {

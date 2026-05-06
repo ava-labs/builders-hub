@@ -17,7 +17,7 @@ import {
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
-  const { isOpen, callbackUrl, closeLoginModal } = useLoginModalState();
+  const { isOpen, closeLoginModal } = useLoginModalState();
   const pathname = usePathname();
 
   const protectedPaths = [
@@ -33,15 +33,6 @@ export function LoginModalWrapper() {
   const [showBasicProfile, setShowBasicProfile] = useState(false);
   // Store user ID separately so we can show modal even before useSession updates
   const [termsUserId, setTermsUserId] = useState<string | null>(null);
-  // Store callback URL in state so it persists through the flow
-  const [storedCallbackUrl, setStoredCallbackUrl] = useState<string | null>(null);
-
-  // Store callback URL when modal opens
-  useEffect(() => {
-    if (isOpen && callbackUrl) {
-      setStoredCallbackUrl(callbackUrl);
-    }
-  }, [isOpen, callbackUrl]);
 
   const showTermsForUser = useCallback((user: { id?: string | null; is_new_user?: boolean | null }) => {
     if (!user.id) return;
@@ -123,18 +114,15 @@ export function LoginModalWrapper() {
     }
   }, [isOpen, status, session?.user?.id, session?.user?.is_new_user, showTerms, showBasicProfile, closeLoginModal]);
 
-  const handleTermsSuccess = async () => {
-    // Update session to get latest data
-    await update();
-
-    // Use session from context instead of fetching directly
-    let realUserId = session?.user?.id;
+  const handleTermsSuccess = async (createdUserId?: string) => {
+    const firstUpdatedSession = await update();
+    let realUserId = createdUserId || firstUpdatedSession?.user?.id || session?.user?.id;
 
     // If still pending, update again after a delay
     if (realUserId?.startsWith("pending_")) {
       await new Promise(resolve => setTimeout(resolve, 300));
-      await update();
-      realUserId = session?.user?.id;
+      const secondUpdatedSession = await update();
+      realUserId = secondUpdatedSession?.user?.id || realUserId;
     }
 
     // Mark as completed in localStorage to prevent re-showing
@@ -159,34 +147,8 @@ export function LoginModalWrapper() {
     setShowBasicProfile(true);
   };
 
-  const handleBasicProfileSuccess = async () => {
-    // Capture the callback URL before clearing state
-    const redirectUrl = storedCallbackUrl;
-
-    // Close basic profile modal
-    setShowBasicProfile(false);
-    setStoredCallbackUrl(null);
-    closeLoginModal();
-
-    // Force multiple session updates to ensure all components see the new auth state
-    await update();
-    await new Promise(resolve => setTimeout(resolve, 200));
-    await update();
-
-    // Trigger login complete event to notify all listening components
-    triggerLoginComplete();
-
-    // Redirect to callback URL if one was set when opening the modal
-    if (redirectUrl) {
-      // Small delay to ensure session has propagated
-      await new Promise(resolve => setTimeout(resolve, 300));
-      window.location.href = redirectUrl;
-    }
-  };
-
   const handleCompleteProfile = async () => {
     setShowBasicProfile(false);
-    setStoredCallbackUrl(null);
     closeLoginModal();
 
     // Force multiple session updates to ensure all components see the new auth state
@@ -220,7 +182,6 @@ export function LoginModalWrapper() {
 
     setShowTerms(false);
     setTermsUserId(null);
-    setStoredCallbackUrl(null);
     closeLoginModal();
 
     // Sign out the session (this clears the JWT even for pending users)
@@ -249,7 +210,6 @@ export function LoginModalWrapper() {
 
       setShowTerms(false);
       setTermsUserId(null);
-      setStoredCallbackUrl(null);
       closeLoginModal();
 
       // Sign out only if user is not fully authenticated (clears pending/incomplete sessions).
@@ -318,7 +278,6 @@ export function LoginModalWrapper() {
                 <div className="px-5 py-5 overflow-y-auto" style={{ maxHeight: '90vh' }}>
                   <BasicProfileSetup
                     userId={(termsUserId || session?.user?.id)!}
-                    onSuccess={handleBasicProfileSuccess}
                     onCompleteProfile={handleCompleteProfile}
                   />
                 </div>
