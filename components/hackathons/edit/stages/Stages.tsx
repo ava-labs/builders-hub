@@ -116,6 +116,8 @@ const createDefaultSubmitFormField = (
 
     case SubmitFormFieldType.Chips:
       return createChipsStagesSubmitFormField()
+    case SubmitFormFieldType.Predefined:
+      return createTextStagesSubmitFormField()
   }
 }
 
@@ -135,6 +137,17 @@ export default function HackathonsEditStages({
 
     return initialStages ?? []
   })
+  const [selectedPredefinedFields, setSelectedPredefinedFields] = useState<string[]>([])
+
+  useEffect(() => {
+    setSelectedPredefinedFields(
+      stages.flatMap((stage) =>
+        stage.submitForm?.fields
+          .filter((field) => field.predefinedField)
+          .map((field) => field.id) ?? []
+      )
+    )
+  }, [stages])
 
   useEffect(() => {
     const externalStages: HackathonStage[] | undefined = (

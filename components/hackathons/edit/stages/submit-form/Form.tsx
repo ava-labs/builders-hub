@@ -58,6 +58,8 @@ function replaceSubmitFormFieldType(
       return createLinkStagesSubmitFormField(currentField.id)
     case SubmitFormFieldType.Chips:
       return createChipsStagesSubmitFormField(currentField.id)
+    case SubmitFormFieldType.Predefined:
+      return { ...createTextStagesSubmitFormField(currentField.id), predefinedField: true }
   }
 }
 
@@ -68,7 +70,8 @@ function replaceSubmitFormFieldWithBaseField(
   const baseField: SubmitFormField = BASE_SUBMIT_FORM_FIELDS[baseFieldKey].field
 
   return {
-    ...baseField
+    ...baseField,
+    predefinedField: true
   }
 }
 
@@ -104,9 +107,10 @@ export default function StageSubmitForm({
             <Button
               type="button"
               variant="destructive"
+              className='bg-red-600 border border-red-500'
               onClick={() => onRemoveSubmitForm(stageIndex)}
             >
-              Remove submit form
+              Remove all fields 
             </Button>
           )}
         </div>
@@ -140,7 +144,7 @@ export default function StageSubmitForm({
       {submitForm?.fields.map(
         (field: SubmitFormField, fieldIndex: number): React.JSX.Element => (
           <Accordion
-            key={field.id}
+            key={fieldIndex}
             type="single"
             collapsible
             className="w-full rounded-md border px-4"
@@ -154,42 +158,15 @@ export default function StageSubmitForm({
                 <div className="space-y-4 pt-2">
 
                   <div className="space-y-2">
-                    <Label htmlFor={`submit-field-type-${field.id}`}>Use predefined field</Label>
+                    <Label htmlFor={`submit-base-field-${field.id}`}>Select field type</Label>
                     <select
                       id={`submit-base-field-${field.id}`}
                       className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={field.id ?? ''}
+                      value={field.predefinedField ? 'predefined' : field.type}
                       onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                        const baseFieldKey: BaseSubmitFormFieldKey =
-                          event.target.value as BaseSubmitFormFieldKey
-                          console.log('Selected field key:', field)
-
-                        onUpdateField(
-                          stageIndex,
-                          fieldIndex,
-                          replaceSubmitFormFieldWithBaseField(field, baseFieldKey)
-                        )
-                      }}
-                    >
-                      <option value="" disabled>
-                        Select a predefined field
-                      </option>
-
-                      {Object.entries(BASE_SUBMIT_FORM_FIELDS).map(([key, config]) => (
-                        <option key={key} value={key}>
-                          {config.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`submit-base-field-${field.id}`}>Or create custom field by type</Label>
-                    <select
-                      id={`submit-base-field-${field.id}`}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={field.type}
-                      onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+                        if (event.target.value === SubmitFormFieldType.Predefined) {
+                          field.predefinedField = true
+                        }
                         onUpdateField(
                           stageIndex,
                           fieldIndex,
@@ -199,15 +176,50 @@ export default function StageSubmitForm({
                           )
                         )
                       }
+                      }
                     >
+                      <option value={SubmitFormFieldType.Predefined}>Predefined field</option>
                       <option value={SubmitFormFieldType.Text}>Text</option>
                       <option value={SubmitFormFieldType.Link}>Link</option>
                       <option value={SubmitFormFieldType.Chips}>Chips</option>
                     </select>
                   </div>
 
+                  {
+                    field.type && (
+                      <div className="space-y-2">
+                        <Label htmlFor={`submit-field-type-${field.id}`}>Use predefined field</Label>
+                        <select
+                          id={`submit-base-field-${field.id}`}
+                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={field.id ?? ''}
+                          onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                            const baseFieldKey: BaseSubmitFormFieldKey =
+                              event.target.value as BaseSubmitFormFieldKey
+                            console.log('Selected field key:', field)
 
-                  {field.type === SubmitFormFieldType.Text && (
+                            onUpdateField(
+                              stageIndex,
+                              fieldIndex,
+                              replaceSubmitFormFieldWithBaseField(field, baseFieldKey)
+                            )
+                          }}
+                        >
+                          <option value="" disabled>
+                            Select a predefined field
+                          </option>
+
+                          {Object.entries(BASE_SUBMIT_FORM_FIELDS).map(([key, config]) => (
+                            <option key={key} value={key}>
+                              {config.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )
+                  }
+
+                  {!field.predefinedField && field.type === SubmitFormFieldType.Text && (
                     <TextStagesSubmitFormField
                       field={field as TextStagesSubmitFormFieldType}
                       onChange={(updatedField: TextStagesSubmitFormFieldType) =>
@@ -216,7 +228,7 @@ export default function StageSubmitForm({
                     />
                   )}
 
-                  {field.type === SubmitFormFieldType.Link && (
+                  {!field.predefinedField && field.type === SubmitFormFieldType.Link && (
                     <LinkStagesSubmitFormField
                       field={field as LinkStagesSubmitFormFieldType}
                       onChange={(updatedField: LinkStagesSubmitFormFieldType) =>
@@ -225,7 +237,7 @@ export default function StageSubmitForm({
                     />
                   )}
 
-                  {field.type === SubmitFormFieldType.Chips && (
+                  {!field.predefinedField && field.type === SubmitFormFieldType.Chips && (
                     <ChipsStagesSubmitFormField
                       field={field as ChipsStagesSubmitFormFieldType}
                       onChange={(updatedField: ChipsStagesSubmitFormFieldType) =>

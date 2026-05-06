@@ -31,6 +31,7 @@ export type TagItem = {
 };
 
 export enum SubmitFormFieldType {
+  Predefined = 'predefined',
   Text = 'text',
   Link = 'link',
   Chips = 'chips',
@@ -64,7 +65,9 @@ export type ChipsStagesSubmitFormField = {
   chips: string[];
 };
 
-export type SubmitFormField = TextStagesSubmitFormField | LinkStagesSubmitFormField | ChipsStagesSubmitFormField;
+export type SubmitFormField = (TextStagesSubmitFormField | LinkStagesSubmitFormField | ChipsStagesSubmitFormField) & {
+  predefinedField?: boolean;
+};
 
 export type StageSubmitForm = {
   fields: SubmitFormField[];
