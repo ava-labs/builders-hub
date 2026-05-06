@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  captureReferralAttributionFromUrl,
   clearStoredReferralAttribution,
   getStoredReferralAttribution,
 } from "@/lib/referrals/client";
@@ -73,10 +74,13 @@ export const Terms = ({
       const isPendingUser = userId.startsWith("pending_");
 
       if (isPendingUser) {
+        const referralAttribution =
+          captureReferralAttributionFromUrl() ?? getStoredReferralAttribution();
+
         // Create the user in the database first
         const createResponse = await axios.post("/api/user/create-after-terms", {
           notifications: data.notifications,
-          referral_attribution: getStoredReferralAttribution(),
+          referral_attribution: referralAttribution,
         });
 
         if (!createResponse.data.id) {

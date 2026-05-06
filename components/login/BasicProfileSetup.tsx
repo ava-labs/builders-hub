@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   Form,
@@ -55,7 +54,6 @@ interface BasicProfileSetupProps {
 
 export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
-  const router = useRouter();
   const { update } = useSession();
 
   const form = useForm<BasicProfileFormValues>({
@@ -77,7 +75,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
 
   const watchedValues = form.watch();
 
-  const handleSave = async (data: BasicProfileFormValues, redirectToProfile: boolean = false) => {
+  const handleSave = async (data: BasicProfileFormValues, completeProfileFlow: boolean = false) => {
     setIsSaving(true);
     try {
       // Format data to match the API expected format
@@ -118,22 +116,9 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
       // Update session
       await update();
 
-      if (redirectToProfile) {
-        // Store data in localStorage to populate profile form
-        if (typeof window !== "undefined") {
-          localStorage.setItem('basicProfileData', JSON.stringify(data));
-        }
-
-        // Call onCompleteProfile callback
+      if (completeProfileFlow) {
         onCompleteProfile?.();
-
-        // Small delay to allow session to propagate before redirect
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Redirect to profile
-        router.push('/profile');
       } else {
-        // Just call onSuccess callback
         onSuccess?.();
       }
     } catch (error) {
@@ -148,7 +133,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
   };
 
   const onCompleteProfileClick = () => {
-    onCompleteProfile?.();
+    void form.handleSubmit((data) => handleSave(data, true))();
   };
 
   return (

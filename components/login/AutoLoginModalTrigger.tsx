@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
 
 const protectedPaths = [
   "/hackathons/registration-form",
@@ -37,6 +38,7 @@ export function AutoLoginModalTrigger() {
 
     // Get current URL with search params for callback
     const currentUrl = window.location.href;
+    captureReferralAttributionFromUrl();
     // Open login modal with current URL as callback
     openLoginModal(currentUrl);
   }, [openLoginModal]);

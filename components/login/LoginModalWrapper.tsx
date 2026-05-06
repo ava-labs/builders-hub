@@ -185,7 +185,6 @@ export function LoginModalWrapper() {
   };
 
   const handleCompleteProfile = async () => {
-    // Close basic profile modal and close login modal
     setShowBasicProfile(false);
     setStoredCallbackUrl(null);
     closeLoginModal();
@@ -198,11 +197,7 @@ export function LoginModalWrapper() {
     // Trigger login complete event to notify all listening components
     triggerLoginComplete();
 
-    // Navigate to profile page so user can complete their full profile
-    // Use window.location.href for a full page reload to ensure server gets fresh session
-    // Don't redirect to callback URL - user explicitly chose to complete profile
-    await new Promise(resolve => setTimeout(resolve, 300));
-    window.location.href = "/profile";
+    // Stay on the page that opened signup. The basic profile was already saved.
   };
 
   const handleTermsDecline = () => {

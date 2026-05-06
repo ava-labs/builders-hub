@@ -17,6 +17,7 @@ import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { useLoginModalState, triggerNewUserLogin, triggerLoginComplete } from "@/hooks/useLoginModal";
+import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
 const verifySchema = z.object({
   code: z
     .string()
@@ -77,6 +78,7 @@ export function VerifyEmail({
     setIsVerifying(true);
     setMessage(null);
     try {
+      captureReferralAttributionFromUrl();
       const result = await signIn("credentials", {
         email,
         otp: values.code,
