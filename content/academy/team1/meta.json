@@ -1,0 +1,12 @@
+{
+  "title": "Team1 Academy",
+  "icon": "Users",
+  "pages": [
+    "team1-fundamentals",
+    "team1-technical-member",
+    "team1-advanced-technical-member",
+    "team1-organizing-first-event",
+    "team1-soft-skills"
+  ]
+}
+

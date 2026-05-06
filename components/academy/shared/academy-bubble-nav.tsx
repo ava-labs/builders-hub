@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Users } from 'lucide-react';
 
 const AVALANCHE_LOGO_SRC =
     "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Avalanche_Logomark_Red.svg";
@@ -66,11 +66,14 @@ const academyItems = [
     { id: "avalanche", label: "Avalanche L1", href: "/academy/avalanche-l1", icon: AvalancheLogo, iconSize: "w-7 h-7", padding: "14px" },
     { id: "blockchain", label: "Blockchain", href: "/academy/blockchain", icon: SolidityLogo, iconSize: "w-9 h-9", padding: "10px" },
     { id: "entrepreneur", label: "Entrepreneur", href: "/academy/entrepreneur", icon: GraduationCap, iconSize: "w-7 h-7", padding: "14px" },
+    { id: "team1", label: "Team1", href: "/academy/team1", icon: Users, iconSize: "w-7 h-7", padding: "14px" },
 ];
 
 function getActiveItem(pathname: string): string {
     if (pathname === "/academy/entrepreneur" || pathname.startsWith("/academy/entrepreneur/")) {
         return "entrepreneur";
+    } else if (pathname === "/academy/team1" || pathname.startsWith("/academy/team1/")) {
+        return "team1";
     } else if (pathname === "/academy/blockchain" || pathname.startsWith("/academy/blockchain/")) {
         return "blockchain";
     } else if (
@@ -79,7 +82,8 @@ function getActiveItem(pathname: string): string {
         pathname.startsWith("/academy/avalanche-l1/") ||
         (pathname.startsWith("/academy/") &&
             !pathname.startsWith("/academy/blockchain") &&
-            !pathname.startsWith("/academy/entrepreneur"))
+            !pathname.startsWith("/academy/entrepreneur") &&
+            !pathname.startsWith("/academy/team1"))
     ) {
         return "avalanche";
     }
@@ -92,7 +96,8 @@ function isMainAcademyPage(pathname: string): boolean {
         "/academy",
         "/academy/avalanche-l1",
         "/academy/blockchain",
-        "/academy/entrepreneur"
+        "/academy/entrepreneur",
+        "/academy/team1"
     ];
     return mainPages.includes(pathname);
 }

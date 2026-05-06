@@ -21,6 +21,10 @@ import foundationsWeb3Venture from './courses/foundations-web3-venture.json';
 import web3CommunityArchitect from './courses/web3-community-architect.json';
 import goToMarket from './courses/go-to-market.json';
 import fundraisingFinance from './courses/fundraising-finance.json';
+import team1Fundamentals from './courses/team1-fundamentals.json';
+import team1TechnicalMember from './courses/team1-technical-member.json';
+import team1AdvancedTechnicalMember from './courses/team1-advanced-technical-member.json';
+import team1SoftSkills from './courses/team1-soft-skills.json';
 
 const courseFiles: Record<string, { title: string; quizzes: Record<string, unknown> }> = {
   'blockchain-fundamentals': blockchainFundamentals,
@@ -44,6 +48,10 @@ const courseFiles: Record<string, { title: string; quizzes: Record<string, unkno
   'web3-community-architect': web3CommunityArchitect,
   'go-to-market': goToMarket,
   'fundraising-finance': fundraisingFinance,
+  'team1-fundamentals': team1Fundamentals,
+  'team1-technical-member': team1TechnicalMember,
+  'team1-advanced-technical-member': team1AdvancedTechnicalMember,
+  'team1-soft-skills': team1SoftSkills,
 };
 
 const courses: Record<string, Course> = {};

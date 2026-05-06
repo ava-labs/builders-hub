@@ -25,9 +25,10 @@ export interface CourseNode {
 import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche.config';
 import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/entrepreneur.config';
 import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-path-configs/blockchain.config';
+import { team1LearningPaths, team1CategoryStyles } from './learning-path-configs/team1.config';
 
 interface LearningTreeProps {
-  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain' | 'team1';
   externalHoveredCategory?: string | null;
   onCategoryHover?: (category: string | null) => void;
 }
@@ -105,11 +106,15 @@ export default function LearningTree({
     ? avalancheLearningPaths 
     : pathType === 'blockchain' 
     ? blockchainLearningPaths 
+    : pathType === 'team1'
+    ? team1LearningPaths
     : entrepreneurLearningPaths;
   const categoryStyles = pathType === 'avalanche' 
     ? avalancheCategoryStyles 
     : pathType === 'blockchain' 
     ? blockchainCategoryStyles 
+    : pathType === 'team1'
+    ? team1CategoryStyles
     : entrepreneurCategoryStyles;
 
   // Course completion tracking
@@ -710,7 +715,7 @@ export function LearningTreeLegend({
   activeCategory = null,
   onCategoryHover
 }: { 
-  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain' | 'team1';
   isMobile?: boolean;
   activeCategory?: string | null;
   onCategoryHover?: (category: string | null) => void;
@@ -734,6 +739,8 @@ export function LearningTreeLegend({
     ? avalancheCategoryStyles 
     : pathType === 'blockchain' 
     ? blockchainCategoryStyles 
+    : pathType === 'team1'
+    ? team1CategoryStyles
     : entrepreneurCategoryStyles;
 
   return (

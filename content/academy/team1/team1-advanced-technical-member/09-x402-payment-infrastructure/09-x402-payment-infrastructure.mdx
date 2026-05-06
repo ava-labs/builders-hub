@@ -1,0 +1,277 @@
+---
+title: x402 Payment Infrastructure on Avalanche
+description: HTTP-native payments for web services and AI agents using the x402 protocol and Avalanche.
+updated: 2026-04-15
+authors: [team1]
+icon: BookOpen
+---
+
+Before reading this page, work through the **[x402 Payment Infrastructure](https://build.avax.network/academy/blockchain/x402-payment-infrastructure)** course on Avalanche Academy. This page builds on that foundation with the details you need to implement, evaluate, and explain x402-powered applications.
+
+## What Is x402 and What Problem Does It Solve
+
+x402 is an open payment standard that activates the long-dormant **HTTP 402 “Payment Required”** status code to embed blockchain payments directly into HTTP request/response flows.
+
+The internet has no native payment layer. Today's web monetization requires creating accounts, managing API keys, integrating payment processors that charge around 2.9% plus $0.30 per transaction, waiting days for settlement, and handling complex authentication flows. For small payments (a cent or less per API call), these overheads make the economics impossible. For AI agents that need to autonomously pay for compute, data, or services, the requirement to have pre-configured accounts and billing systems is a hard blocker.
+
+x402 solves both problems. A client makes an HTTP request. The server responds with 402 and a description of what payment is needed. The client signs a payment authorization, retries the request with that authorization in a header. The server confirms and delivers the resource. The entire flow takes about two seconds, works programmatically, and requires no accounts or prior relationship between the parties.
+
+## HTTP 402 in Practice
+
+HTTP 402 was defined in 1991 but reserved for future use. x402 standardizes its meaning:
+
+1. Client makes a GET (or any HTTP method) request to a protected resource.
+2. Server returns `HTTP 402 Payment Required` with a `PAYMENT-REQUIRED` header containing a base64-encoded JSON object that describes the price, accepted token, recipient address, blockchain network, and a validity window.
+3. Client reads the payment requirements, constructs an EIP-712 signed payment authorization (using EIP-3009 `transferWithAuthorization`), and retries the request with a `X-PAYMENT` header containing the signed payload.
+4. Server sends the payload to a **facilitator** for verification, then instructs the facilitator to settle on-chain.
+5. Server returns `HTTP 200` with the resource and an `X-PAYMENT-RESPONSE` header containing the on-chain transaction hash.
+
+Nothing in this flow requires the client to have a blockchain account open in a browser tab. It works from a command-line script, a backend service, or an AI agent with a funded wallet address.
+
+## Main Use Cases
+
+**AI agent micropayments**: Autonomous agents (LLMs, bots, pipelines) can pay for compute, data, external APIs, and tools without requiring human-in-the-loop payment approval. The agent reads the 402 response, signs the payment, and continues operating, all within its execution loop.
+
+**API monetization**: Developers can charge per request without building billing infrastructure. Adding a payment middleware to an existing HTTP service converts it into a revenue-generating endpoint in minutes.
+
+**Content access**: Pay-per-article, pay-per-download, or token-gated resources without requiring user registration or subscription management.
+
+**Machine-to-machine commerce**: One microservice paying another service for data, computation, or results, in real time, with on-chain settlement.
+
+## The Payment Flow
+
+Here is the complete flow from the first HTTP request to blockchain settlement:
+
+| Step | Actor | Action |
+|---|---|---|
+| 1 | Client | Sends HTTP request with no payment |
+| 2 | Server | Returns 402 with `PAYMENT-REQUIRED` header (price, token, recipient, network, timeout) |
+| 3 | Client | Constructs EIP-3009 authorization, signs with EIP-712, base64-encodes it |
+| 4 | Client | Retries request with `X-PAYMENT` header containing the signed payload |
+| 5 | Server | Forwards payload to facilitator `/verify` endpoint |
+| 6 | Facilitator | Checks: signature validity, amount, timestamp window, nonce uniqueness (replay prevention) |
+| 7 | Server | Proceeds if verified, returns new 402 if not |
+| 8 | Server | Calls facilitator `/settle` endpoint |
+| 9 | Facilitator | Calls `transferWithAuthorization` on the USDC contract on-chain |
+| 10 | Avalanche | Confirms transaction (approximately one second) |
+| 11 | Facilitator | Returns transaction hash to server |
+| 12 | Server | Returns resource with `X-PAYMENT-RESPONSE` header including the transaction hash |
+
+Total end-to-end time on Avalanche is approximately 1.5 to 2 seconds.
+
+## The X-PAYMENT Header
+
+The `X-PAYMENT` header carries the client's signed payment as a base64-encoded JSON object. The structure before encoding:
+
+```json
+{
+  “x402Version”: 1,
+  “scheme”: “exact”,
+  “network”: “avalanche-fuji”,
+  “payload”: {
+    “signature”: “0x...”,
+    “authorization”: {
+      “from”: “0xPayerAddress”,
+      “to”: “0xRecipientAddress”,
+      “value”: “10000”,
+      “validAfter”: “1740672089”,
+      “validBefore”: “1740672154”,
+      “nonce”: “0x<32-byte-random-hex>”
+    }
+  }
+}
+```
+
+The `authorization` object is signed with EIP-712 typed data. The domain binds the signature to a specific token contract and chain, preventing reuse on a different network or with a different token.
+
+The `X-PAYMENT-RESPONSE` header is returned by the server after settlement and contains a base64-encoded confirmation with the transaction hash. Clients can independently verify payment on-chain using this hash.
+
+## The Facilitator
+
+The facilitator is a trusted service that handles two responsibilities: **verification** and **settlement**.
+
+For verification, the facilitator validates the `X-PAYMENT` payload: it checks the EIP-712 signature, confirms the amount matches what the server requires, verifies the timestamp window is valid (using `validAfter` and `validBefore`), and checks that the nonce has not been used before (replay prevention).
+
+For settlement, the facilitator submits the signed authorization to the blockchain by calling `transferWithAuthorization` on the USDC contract, paying gas from its own funded wallet. It then returns the transaction hash to the server.
+
+The key consequence of this design: **end users never need native tokens (AVAX)**. They only need USDC (or another supported payment token). The facilitator absorbs all gas costs, which on Avalanche amount to approximately $0.001 per transaction.
+
+Facilitators are a point of trust in the system. If you want stronger guarantees, you can use multiple facilitators, independently verify settlement on-chain, or self-host a facilitator using open-source implementations.
+
+## Why Avalanche for x402
+
+Avalanche's properties match x402's requirements closely.
+
+| Property | Value on Avalanche |
+|---|---|
+| Finality | Approximately 1 second, deterministic (not probabilistic) |
+| Transaction cost | Approximately $0.001 per transaction |
+| Overhead on a $0.01 API call | Around 10%, compared to over 3,000% with traditional payment processors on the same amount |
+| Throughput | Hundreds to over 1,000 TPS, no gas price spikes |
+| EVM compatibility | Standard Ethereum tooling: ethers.js, viem, Hardhat, Foundry |
+| Native USDC | Circle-issued (not bridged), available on both mainnet and Fuji testnet |
+| Testnet | Free Fuji Testnet with free test AVAX and USDC for development |
+
+The combination of low fees and fast deterministic finality makes x402 economically viable for per-request pricing at any scale. A payment that costs $0.001 in gas on a $0.01 resource is a 10% overhead that can be absorbed or passed through. The same payment on a network with $0.50 gas fees makes the business model impossible.
+
+## Gas Sponsorship and Gasless Payments
+
+x402 uses **EIP-3009** (`transferWithAuthorization`), which is a gasless payment standard natively supported by USDC and EURC.
+
+The user only signs an off-chain message. The facilitator submits this signed message to the USDC contract on-chain. The USDC contract atomically transfers tokens from user to merchant. The user pays zero AVAX at any point.
+
+This is not a separate meta-transaction layer. It is built into the USDC contract itself. The facilitator is the only party that needs a funded wallet for gas. This design is what makes x402 usable from JavaScript running in a browser with only a funded USDC wallet, or from an AI agent process that holds USDC but not necessarily native gas tokens.
+
+## Security Considerations
+
+x402 moves real money, so it is worth understanding the attack surface.
+
+**Replay attacks**: The 32-byte random nonce in the payment authorization is recorded by the USDC contract. Once used, it cannot be used again. The `validAfter` and `validBefore` timestamps create a short window (typically around 30 to 60 seconds) during which the authorization is valid. After it expires, the signature is worthless even if intercepted.
+
+**Cross-chain replay**: The EIP-712 domain separator includes the `chainId` and the `verifyingContract` (the USDC address). A signature created for Avalanche Fuji cannot be replayed on Avalanche mainnet or on Ethereum, because those chains have different chain IDs and different USDC addresses.
+
+**Man-in-the-middle**: Use HTTPS with HSTS. The payment payload is signed, so an attacker cannot alter the amount or recipient, but they could potentially suppress or delay delivery. Certificate pinning adds an extra layer in high-security contexts.
+
+**Server-side validation**: Always verify payment amounts server-side through the facilitator. Never trust client-supplied values for price or recipient address. The server controls what it puts in the 402 response, and it should validate the returned payment matches exactly.
+
+**AI agent prompt injection**: If an AI agent reads 402 responses as part of its context, a malicious server could attempt to manipulate the agent into paying unexpected amounts or endpoints. Whitelist allowed payment endpoints and validate all 402 responses before the agent acts on them.
+
+**Rate limiting and abuse**: Even with payment, implement rate limiting. A bad actor could pay for thousands of requests to exhaust compute resources or perform timing attacks. Payments prevent most abuse but do not eliminate it.
+
+## Facilitator Implementations on Avalanche
+
+Two main facilitator implementations are available for Avalanche.
+
+**Thirdweb x402**:
+
+- Enterprise hosted service.
+- Supports ERC-2612 and ERC-3009 compatible tokens (USDC, EURC).
+- Uses EIP-7702 for smart account delegation and additional gasless transaction patterns.
+- Includes a dashboard with transaction analytics.
+- Available on Avalanche C-Chain, Base, and Polygon.
+
+```typescript
+import { paymentMiddleware } from “x402-hono”;
+import { thirdwebFacilitator } from “./thirdweb”;
+
+app.use(paymentMiddleware(
+  “0xYourWalletAddress”,
+  {
+    “/api/service”: {
+      price: “$0.01”,
+      network: “avalanche-c-chain”,
+      config: { description: “Your API endpoint” }
+    }
+  },
+  { facilitator: thirdwebFacilitator }
+));
+```
+
+**Ultravioleta DAO**:
+
+- Community-governed DAO facilitator focused on Latin America and the Avalanche ecosystem.
+- Covers 100% of gas costs.
+- EIP-712 signature validation plus EIP-3009 on-chain settlement.
+- End-to-end time of approximately 2 to 3 seconds.
+- Facilitator endpoint: `https://facilitator.ultravioletadao.xyz`
+
+```typescript
+import { paymentMiddleware } from “x402-hono”;
+
+app.use(paymentMiddleware(
+  “0xYourWalletAddress”,
+  {
+    “/api/service”: {
+      price: “$0.01”,
+      network: “avalanche-c-chain”,
+      config: { description: “Service description” }
+    }
+  },
+  { facilitatorUrl: “https://facilitator.ultravioletadao.xyz” }
+));
+```
+
+The main practical difference is governance and geographic focus. Thirdweb is a commercial product with enterprise support. Ultravioleta DAO is community-governed and particularly active in Latin American builder ecosystems. For self-hosting, an open-source Rust implementation (`x402-rs`) is available as a Docker image for teams that need full control over the facilitator.
+
+## Setting Up a Development Environment
+
+The chain identifiers you need for configuration:
+
+| Network | EVM chain ID | x402 network string |
+|---|---|---|
+| Avalanche mainnet | 43114 | `avalanche` or `avalanche-c-chain` |
+| Avalanche Fuji testnet | 43113 | `avalanche-fuji` |
+
+Install the middleware package for your framework:
+
+```bash
+npm install x402-hono         # Hono (TypeScript)
+npm install x402-express      # Express (JavaScript/TypeScript)
+```
+
+Get test tokens for Fuji at the Avalanche faucet. The Coinbase x402 documentation also provides a testnet USDC faucet.
+
+For a minimal test, you can run your server locally pointing at the Fuji testnet and the Ultravioleta DAO or Thirdweb facilitator. You do not need to deploy anything to Avalanche mainnet to verify the full flow works.
+
+## Implementing x402 Middleware
+
+A typical server-side middleware configuration:
+
+```typescript
+import { Hono } from “hono”;
+import { paymentMiddleware } from “x402-hono”;
+
+const app = new Hono();
+
+app.use(paymentMiddleware(
+  “0xYourRecipientWallet”,
+  {
+    “/api/data”: {
+      price: “$0.001”,
+      network: “avalanche-fuji”,
+      config: { description: “Per-request data API” }
+    },
+    “/api/premium”: {
+      price: “$0.10”,
+      network: “avalanche-fuji”,
+      config: { description: “Premium analysis endpoint” }
+    }
+  },
+  { facilitatorUrl: “https://facilitator.ultravioletadao.xyz” }
+));
+
+app.get(“/api/data”, (c) => c.json({ result: “your data here” }));
+app.get(“/api/premium”, (c) => c.json({ result: “premium result” }));
+```
+
+The middleware handles the full 402 negotiation, verification, and settlement automatically. Your route handlers only need to return the content, not deal with payment logic.
+
+For error handling, the middleware distinguishes between payment failures (402 response with a clear description), verification errors (facilitator unreachable or invalid signature), and settlement failures (blockchain transaction failed). Build retry logic into clients for transient errors and monitor facilitator health in production.
+
+## Measuring a Successful x402 Integration
+
+| KPI | What to measure |
+|---|---|
+| Payment success rate | Percentage of 402 responses that result in a successful settlement. Aim for above 95%. |
+| End-to-end latency | Time from initial 402 response to resource delivery. Target under 3 seconds on Avalanche. |
+| Revenue per request | Average value settled per paid request, net of gas costs absorbed by facilitator. |
+| Failed payment rate | Payments that were verified but failed to settle on-chain. Should be near zero on Avalanche. |
+| Abandoned payment rate | 402 responses where the client never retried. High rates suggest pricing or UX issues. |
+| Facilitator availability | Uptime of your chosen facilitator. Monitor the facilitator's `/health` endpoint. |
+
+On Avalanche, the cost per transaction to the facilitator is approximately $0.001, so a $0.01 endpoint has about 10% overhead from gas. A $0.001 endpoint has around 100% overhead, which is still viable at scale if the compute cost is low enough. For sub-cent micropayments, batch or aggregate payments where possible.
+
+---
+
+## Key Takeaways
+
+- x402 activates the HTTP 402 status code to enable programmatic blockchain payments inside standard HTTP flows, with no accounts, subscriptions, or complex authentication required.
+- The four-step flow is: request, receive 402 with payment requirements, retry with signed `X-PAYMENT` header, receive resource with `X-PAYMENT-RESPONSE` confirmation.
+- The `X-PAYMENT` header carries a base64-encoded EIP-712 signed EIP-3009 authorization. The `X-PAYMENT-RESPONSE` header carries the settlement transaction hash.
+- The facilitator verifies the payment signature and submits the on-chain transaction, paying gas from its own wallet. End users only need USDC, not AVAX.
+- Avalanche's approximately $0.001 transaction cost and approximately one second finality make it well-suited for per-request micropayments.
+- Replay attacks are prevented by one-time nonces, short validity windows, and EIP-712 domain separators that bind signatures to a specific chain and contract.
+- Thirdweb is a commercial enterprise facilitator; Ultravioleta DAO is a community-governed option focused on the Latin American Avalanche ecosystem. Both cover gas for end users.
+- x402 middleware libraries exist for Hono and Express. Configuration specifies your recipient wallet, endpoint paths, prices, and chosen facilitator.
+- Key KPIs are payment success rate, end-to-end latency, revenue per request, failed payment rate, and facilitator availability.
+
