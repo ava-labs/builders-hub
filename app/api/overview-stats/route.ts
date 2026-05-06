@@ -9,10 +9,8 @@ const SECONDS_PER_DAY = 24 * 60 * 60;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
-const METRICS_API_URL = process.env.METRICS_API_URL;
-if (!METRICS_API_URL) {
-  console.warn('METRICS_API_URL is not set — overview-stats endpoint will fail');
-}
+const EVM_METRICS_URL = process.env.EVM_METRICS_URL || 'https://stats-api-production-8a73.up.railway.app';
+const EVM_METRICS_API_KEY = process.env.EVM_METRICS_API_KEY || '';
 
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
@@ -118,14 +116,16 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - (config.days * SECONDS_PER_DAY);
 
-    const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/txCount`);
+    const url = new URL(`${EVM_METRICS_URL}/v2/chains/${chainId}/metrics/txCount`);
     url.searchParams.set('timeInterval', 'day');
     url.searchParams.set('startTimestamp', String(startTimestamp));
     url.searchParams.set('endTimestamp', String(endTimestamp));
     url.searchParams.set('pageSize', String(config.days + 1));
 
-    const res = await fetchWithTimeout(url.toString());
-    if (!res.ok) throw new Error(`metrics-api ${res.status}`);
+    const headers: Record<string, string> = {};
+    if (EVM_METRICS_API_KEY) headers['X-API-Key'] = EVM_METRICS_API_KEY;
+    const res = await fetchWithTimeout(url.toString(), { headers });
+    if (!res.ok) throw new Error(`evm-metrics ${res.status}`);
     const data = await res.json();
 
     const allResults: MetricResult[] = data.results || [];
@@ -145,14 +145,16 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - (30 * SECONDS_PER_DAY);
 
-    const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/activeAddresses`);
+    const url = new URL(`${EVM_METRICS_URL}/v2/chains/${chainId}/metrics/activeAddresses`);
     url.searchParams.set('timeInterval', timeRange);
     url.searchParams.set('startTimestamp', String(startTimestamp));
     url.searchParams.set('endTimestamp', String(endTimestamp));
     url.searchParams.set('pageSize', '2');
 
-    const res = await fetchWithTimeout(url.toString());
-    if (!res.ok) throw new Error(`metrics-api ${res.status}`);
+    const headers2: Record<string, string> = {};
+    if (EVM_METRICS_API_KEY) headers2['X-API-Key'] = EVM_METRICS_API_KEY;
+    const res = await fetchWithTimeout(url.toString(), { headers: headers2 });
+    if (!res.ok) throw new Error(`evm-metrics ${res.status}`);
     const data = await res.json();
 
     const allResults: MetricResult[] = data.results || [];

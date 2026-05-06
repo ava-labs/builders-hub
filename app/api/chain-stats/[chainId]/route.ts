@@ -6,10 +6,8 @@ export const dynamic = 'force-dynamic';
 
 const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
-const METRICS_API_URL = process.env.METRICS_API_URL;
-if (!METRICS_API_URL) {
-  console.warn('METRICS_API_URL is not set — chain-stats endpoint will fail');
-}
+const EVM_METRICS_URL = process.env.EVM_METRICS_URL || 'https://stats-api-production-8a73.up.railway.app';
+const EVM_METRICS_API_KEY = process.env.EVM_METRICS_API_KEY || '';
 
 interface ChainMetrics {
   activeAddresses: {
@@ -68,7 +66,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   }
 }
 
-async function fetchMetricsApi(
+async function fetchEvmMetric(
   chainId: string,
   metric: string,
   timeInterval: string,
@@ -77,20 +75,22 @@ async function fetchMetricsApi(
   pageSize: number,
   fetchAllPages: boolean
 ): Promise<{ value: number; timestamp: number }[]> {
-  const resolvedChainId = chainId === 'all' ? 'mainnet' : chainId;
+  const baseUrl = `${EVM_METRICS_URL}/v2/chains/${chainId}/metrics/${metric}`;
   const allResults: { value: number; timestamp: number }[] = [];
   let pageToken: string | undefined;
 
   do {
-    const url = new URL(`${METRICS_API_URL}/v2/chains/${resolvedChainId}/metrics/${metric}`);
+    const url = new URL(baseUrl);
     url.searchParams.set('timeInterval', timeInterval);
     url.searchParams.set('startTimestamp', String(startTimestamp));
     url.searchParams.set('endTimestamp', String(endTimestamp));
     url.searchParams.set('pageSize', String(pageSize));
     if (pageToken) url.searchParams.set('pageToken', pageToken);
 
-    const res = await fetchWithTimeout(url.toString());
-    if (!res.ok) throw new Error(`metrics-api ${res.status}: ${res.statusText}`);
+    const headers: Record<string, string> = {};
+    if (EVM_METRICS_API_KEY) headers['X-API-Key'] = EVM_METRICS_API_KEY;
+    const res = await fetchWithTimeout(url.toString(), { headers });
+    if (!res.ok) throw new Error(`evm-metrics ${res.status}: ${res.statusText}`);
     const data = await res.json();
 
     if (data.results && Array.isArray(data.results)) {
@@ -125,7 +125,7 @@ async function getTimeSeriesData(
       finalEndTimestamp = timestamps.endTimestamp;
     }
 
-    const results = await fetchMetricsApi(
+    const results = await fetchEvmMetric(
       chainId, metricType, 'day',
       finalStartTimestamp, finalEndTimestamp,
       pageSize, fetchAllPages
@@ -166,7 +166,7 @@ async function getActiveAddressesData(
       endTimestamp = timestamps.endTimestamp;
     }
 
-    const results = await fetchMetricsApi(
+    const results = await fetchEvmMetric(
       chainId, 'activeAddresses', interval,
       startTimestamp, endTimestamp,
       pageSize, fetchAllPages
@@ -920,7 +920,7 @@ export async function GET(
     const chainId = resolvedParams.chainId;
     console.error(`[GET /api/chain-stats/${chainId}] Unhandled error:`, error);
     return createResponse(
-      { error: 'Failed to fetch chain metrics', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to fetch chain metrics' },
       { source: 'error', chainId },
       500
     );
