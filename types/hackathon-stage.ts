@@ -35,6 +35,7 @@ export enum SubmitFormFieldType {
   Text = 'text',
   Link = 'link',
   Chips = 'chips',
+  MultiSelect = 'multiSelect',
 }
 
 export type TextStagesSubmitFormField = {
@@ -65,7 +66,23 @@ export type ChipsStagesSubmitFormField = {
   chips: string[];
 };
 
-export type SubmitFormField = (TextStagesSubmitFormField | LinkStagesSubmitFormField | ChipsStagesSubmitFormField) & {
+export type MultiSelectStagesSubmitFormField = {
+  id: string;
+  type: SubmitFormFieldType.MultiSelect;
+  label: string;
+  description?: string | null;
+  placeholder: string;
+  required: boolean;
+  options: string[];
+  maxSelections?: number | null;
+};
+
+export type SubmitFormField = (
+  | TextStagesSubmitFormField
+  | LinkStagesSubmitFormField
+  | ChipsStagesSubmitFormField
+  | MultiSelectStagesSubmitFormField
+) & {
   predefinedField?: boolean;
 };
 

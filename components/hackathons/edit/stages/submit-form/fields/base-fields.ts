@@ -52,7 +52,19 @@ export const BASE_SUBMIT_FORM_FIELDS = {
       predefinedField: true,
       required: true,
     },
-  }
+  },
+  categories: {
+    label: 'Categories',
+    field: {
+      id: 'categories',
+      type: SubmitFormFieldType.MultiSelect,
+      label: 'Categories',
+      description: 'Select the categories that best describe your project.',
+      placeholder: 'Select categories',
+      required: true,
+      options: ['Consumer', 'Defi', 'Enterprise', 'Developer Tooling', 'RWA', 'Gaming', 'Social'],
+    },
+  },
 } satisfies Record<
   string,
   {

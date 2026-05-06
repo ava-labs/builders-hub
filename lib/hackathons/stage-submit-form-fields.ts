@@ -2,12 +2,11 @@ import {
   type ChipsStagesSubmitFormField,
   type LinkStagesSubmitFormField,
   type TextStagesSubmitFormField,
+  MultiSelectStagesSubmitFormField,
   SubmitFormFieldType,
-} from '@/types/hackathon-stage'
+} from '@/types/hackathon-stage';
 
-export function createTextStagesSubmitFormField(
-  id?: string
-): TextStagesSubmitFormField {
+export function createTextStagesSubmitFormField(id?: string): TextStagesSubmitFormField {
   return {
     id: id ?? crypto.randomUUID(),
     type: SubmitFormFieldType.Text,
@@ -16,12 +15,10 @@ export function createTextStagesSubmitFormField(
     description: '',
     maxCharacters: null,
     required: false,
-  }
+  };
 }
 
-export function createLinkStagesSubmitFormField(
-  id?: string
-): LinkStagesSubmitFormField {
+export function createLinkStagesSubmitFormField(id?: string): LinkStagesSubmitFormField {
   return {
     id: id ?? crypto.randomUUID(),
     type: SubmitFormFieldType.Link,
@@ -29,12 +26,10 @@ export function createLinkStagesSubmitFormField(
     placeholder: '',
     description: '',
     required: false,
-  }
+  };
 }
 
-export function createChipsStagesSubmitFormField(
-  id?: string
-): ChipsStagesSubmitFormField {
+export function createChipsStagesSubmitFormField(id?: string): ChipsStagesSubmitFormField {
   return {
     id: id ?? crypto.randomUUID(),
     type: SubmitFormFieldType.Chips,
@@ -42,5 +37,17 @@ export function createChipsStagesSubmitFormField(
     description: '',
     required: false,
     chips: [],
-  }
+  };
+}
+export function createMultiSelectStagesSubmitFormField(id?: string): MultiSelectStagesSubmitFormField {
+  return {
+    id: id ?? crypto.randomUUID(),
+    type: SubmitFormFieldType.MultiSelect,
+    label: '',
+    description: '',
+    placeholder: '',
+    required: false,
+    options: [],
+    maxSelections: null,
+  };
 }

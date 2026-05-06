@@ -20,6 +20,7 @@ import StageSubmitForm from './submit-form/Form'
 import {
   createChipsStagesSubmitFormField,
   createLinkStagesSubmitFormField,
+  createMultiSelectStagesSubmitFormField,
   createTextStagesSubmitFormField,
 } from '@/lib/hackathons/stage-submit-form-fields'
 import {
@@ -114,9 +115,10 @@ const createDefaultSubmitFormField = (
 
     case SubmitFormFieldType.Link:
       return createLinkStagesSubmitFormField()
-
     case SubmitFormFieldType.Chips:
       return createChipsStagesSubmitFormField()
+    case SubmitFormFieldType.MultiSelect:
+      return createMultiSelectStagesSubmitFormField()
     case SubmitFormFieldType.Predefined:
       return createTextStagesSubmitFormField()
   }

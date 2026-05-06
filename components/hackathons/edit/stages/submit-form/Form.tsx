@@ -5,7 +5,6 @@ import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
 } from '@/components/ui/accordion'
 import * as AccordionPrimitive from '@radix-ui/react-accordion'
 import { Button } from '@/components/ui/button'
@@ -17,6 +16,7 @@ import ChipsStagesSubmitFormField from './fields/Chips'
 import {
   createChipsStagesSubmitFormField,
   createLinkStagesSubmitFormField,
+  createMultiSelectStagesSubmitFormField,
   createTextStagesSubmitFormField,
 } from '@/lib/hackathons/stage-submit-form-fields'
 import {
@@ -26,10 +26,12 @@ import {
   SubmitFormField,
   SubmitFormFieldType,
   TextStagesSubmitFormField as TextStagesSubmitFormFieldType,
+  MultiSelectStagesSubmitFormField as MultiSelectStagesSubmitFormFieldType
 } from '@/types/hackathon-stage'
 import { BASE_SUBMIT_FORM_FIELDS, BaseSubmitFormFieldKey } from './fields/base-fields'
 import { ChevronDownIcon } from 'lucide-react'
 import RemoveButton from '../RemoveButton'
+import MultiSelectStagesSubmitFormField from './fields/MultiSelect'
 
 type StageSubmitFormProps = {
   stageIndex: number
@@ -62,8 +64,10 @@ function replaceSubmitFormFieldType(
       return createLinkStagesSubmitFormField(currentField.id)
     case SubmitFormFieldType.Chips:
       return createChipsStagesSubmitFormField(currentField.id)
+    case SubmitFormFieldType.MultiSelect:
+      return createMultiSelectStagesSubmitFormField(currentField.id)
     case SubmitFormFieldType.Predefined:
-      return { ...createTextStagesSubmitFormField(''), predefinedField: true }
+      return { ...createTextStagesSubmitFormField(currentField.id), predefinedField: true }
   }
 }
 
@@ -194,10 +198,14 @@ export default function StageSubmitForm({
                       }
                       }
                     >
+                      <option value="" disabled>
+                        Select a type
+                      </option>
                       <option value={SubmitFormFieldType.Predefined}>Predefined field</option>
                       <option value={SubmitFormFieldType.Text}>Text</option>
                       <option value={SubmitFormFieldType.Link}>Link</option>
                       <option value={SubmitFormFieldType.Chips}>Chips</option>
+                      <option value={SubmitFormFieldType.MultiSelect}>Multi-select</option>
                     </select>
                   </div>
                   {
@@ -258,6 +266,16 @@ export default function StageSubmitForm({
                       }
                     />
                   )}
+                  {
+                    !field.predefinedField && field.type === SubmitFormFieldType.MultiSelect && (
+                      <MultiSelectStagesSubmitFormField
+                        field={field as MultiSelectStagesSubmitFormFieldType}
+                        onChange={(updatedField: MultiSelectStagesSubmitFormFieldType) =>
+                          onUpdateField(stageIndex, fieldIndex, updatedField)
+                        }
+                      />
+                    )
+                  }
                 </div>
               </AccordionContent>
             </AccordionItem>
