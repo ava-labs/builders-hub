@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { SessionProvider } from 'next-auth/react';
 import { WalletProvider } from '@/components/toolbox/providers/WalletProvider';
 import { baseOptions } from '@/app/layout.config';
 import { LayoutWrapper } from '@/app/layout-wrapper.client';
@@ -23,7 +22,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
   const isSharePage = pathname.startsWith('/chat/share');
 
   return (
-    <SessionProvider>
+    <>
       <TrackNewUser />
       <NavbarDropdownInjector />
       <WalletProvider>
@@ -43,6 +42,6 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
         <AutoLoginModalTrigger />
         <LoginModalWrapper />
       </WalletProvider>
-    </SessionProvider>
+    </>
   );
 }

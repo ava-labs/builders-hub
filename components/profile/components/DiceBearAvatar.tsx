@@ -130,15 +130,15 @@ export function DiceBearAvatar({
   const [svgDataUri, setSvgDataUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Size configurations
+  // Size configurations (container/SVG must be larger than avatar so progress ring wraps around)
   const sizeConfig = {
     small: {
-      container: "h-10 w-10",
+      container: "h-14 w-14",
       avatar: "h-12 w-12",
       textSize: "text-lg",
-      svg: 40,
-      center: 20,
-      radius: 18,
+      svg: 56,
+      center: 28,
+      radius: 25,
     },
     large: {
       container: "h-40 w-40",
@@ -162,27 +162,27 @@ export function DiceBearAvatar({
   const circumference = 2 * Math.PI * config.radius;
   const offset = circumference - (profileProgress / 100) * circumference;
 
-  // Get progress color based on percentage
+  // Get progress color: red ≤50%, orange ≤85%, green >85%
   const getProgressColor = () => {
-    if (profileProgress < 40) {
+    if (profileProgress <= 50) {
       return {
         gradientStart: "#ef4444",
         gradientEnd: "#dc2626",
         shadowColor: "rgba(239, 68, 68, 0.3)",
       };
-    } else if (profileProgress <= 80) {
+    }
+    if (profileProgress <= 85) {
       return {
-        gradientStart: "#FCD34D",
-        gradientEnd: "#FBBF24",
-        shadowColor: "rgba(252, 211, 77, 0.3)",
-      };
-    } else {
-      return {
-        gradientStart: "#4D7C0F",
-        gradientEnd: "#65A30D",
-        shadowColor: "rgba(77, 124, 15, 0.3)",
+        gradientStart: "#f97316",
+        gradientEnd: "#ea580c",
+        shadowColor: "rgba(249, 115, 22, 0.3)",
       };
     }
+    return {
+      gradientStart: "#22c55e",
+      gradientEnd: "#16a34a",
+      shadowColor: "rgba(34, 197, 94, 0.3)",
+    };
   };
 
   const progressColor = getProgressColor();

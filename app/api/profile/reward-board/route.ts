@@ -1,8 +1,9 @@
+import { Session } from 'next-auth';
 import { withAuth } from "@/lib/protectedRoute";
 import { getRewardBoard } from "@/server/services/rewardBoard";
 import { NextResponse } from "next/server";
 
-export const GET = withAuth(async (request, context, session) => {
+export const GET = withAuth(async (request, _context: unknown, session: Session) => {
   const { searchParams } = new URL(request.url);
   const user_id = searchParams.get("user_id");
   if (!user_id) {

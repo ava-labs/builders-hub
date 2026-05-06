@@ -1,5 +1,6 @@
 import React from "react";
 import { useTexture } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 type DiscSpec = { radius: number; segments: number };
@@ -23,9 +24,14 @@ export function ImageDisc({
   backgroundMetalness?: number;
   backgroundRoughness?: number
 }) {
+  const { gl } = useThree();
   const texture = useTexture(url);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 2;
+  const maxAnisotropy =
+    typeof gl.capabilities?.getMaxAnisotropy === "function"
+      ? gl.capabilities.getMaxAnisotropy()
+      : 1;
+  texture.anisotropy = Math.min(16, maxAnisotropy);
 
   return (
     <group>

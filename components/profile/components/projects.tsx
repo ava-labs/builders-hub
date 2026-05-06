@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
  import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 // Skeleton component for project cards
 function ProjectCardSkeleton() {

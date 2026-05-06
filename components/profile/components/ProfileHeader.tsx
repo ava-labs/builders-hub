@@ -14,6 +14,8 @@ interface ProfileHeaderProps {
   onEditName?: () => void;
   nounAvatarSeed?: AvatarSeed | null;
   nounAvatarEnabled?: boolean;
+  /** 0–100; drives the circular progress bar around the avatar. */
+  completionPercentage?: number;
 }
 
 export function ProfileHeader({
@@ -26,6 +28,7 @@ export function ProfileHeader({
   onEditName,
   nounAvatarSeed,
   nounAvatarEnabled = false,
+  completionPercentage = 0,
 }: ProfileHeaderProps) {
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
   const [isHoveringName, setIsHoveringName] = useState(false);
@@ -34,9 +37,9 @@ export function ProfileHeader({
     <div className="flex flex-col rounded-lg">
       {/* Avatar and Name Section - Horizontal Layout */}
       <div className="flex items-start gap-3 mb-4">
-        {/* Small Avatar */}
+        {/* Small Avatar: container h-14 w-14 (avatar circle is h-12 w-12) */}
         <div
-          className="relative cursor-pointer pt-2"
+          className="relative h-14 w-14 shrink-0 cursor-pointer pt-2"
           onMouseEnter={() => setIsHoveringAvatar(true)}
           onMouseLeave={() => setIsHoveringAvatar(false)}
           onClick={onEditAvatar}
@@ -46,19 +49,28 @@ export function ProfileHeader({
               seed={nounAvatarSeed}
               name={name}
               size="small"
-              showProgress={false}
+              showProgress={true}
+              profileProgress={completionPercentage}
             />
           ) : (
             <DiceBearAvatar
               seed={null}
               name={name}
               size="small"
-              showProgress={false}
+              showProgress={true}
+              profileProgress={completionPercentage}
             />
           )}
           {isHoveringAvatar && (
-            <div className="absolute pt-2 inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer transition-opacity z-30">
-              <Pencil className="h-4 w-4 text-white" />
+            <div
+              className="absolute inset-0 flex items-center justify-center pt-2 z-30 cursor-pointer transition-opacity"
+              onClick={onEditAvatar}
+              role="button"
+              aria-label="Edit avatar"
+            >
+              <div className="h-12 w-12 rounded-full bg-black/50 flex items-center justify-center">
+                <Pencil className="h-4 w-4 text-white" />
+              </div>
             </div>
           )}
         </div>
@@ -70,13 +82,13 @@ export function ProfileHeader({
             onMouseEnter={() => setIsHoveringName(true)}
             onMouseLeave={() => setIsHoveringName(false)}
           >
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 break-words flex-1">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 wrap-break-word flex-1">
               {name || "Your Name"}
             </h2>
             {onEditName && (
               <button
                 onClick={onEditName}
-                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5"
                 type="button"
               >
                 <Pencil className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
@@ -85,11 +97,11 @@ export function ProfileHeader({
           </div>
           {/* Email below name - split before @ for better wrapping */}
           {email && (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 break-words">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 wrap-break-word">
               {email.includes('@') ? (
                 <>
                   <span className="break-all">{email.split('@')[0]}</span>
-                  <span className="break-words">@{email.split('@')[1]}</span>
+                  <span className="wrap-break-word">@{email.split('@')[1]}</span>
                 </>
               ) : (
                 email

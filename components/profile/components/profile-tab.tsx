@@ -8,18 +8,11 @@ import { ProfileHeader } from "./ProfileHeader";
 import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useProfileForm } from "./hooks/useProfileForm";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useProfileForm, getProfileCompletionPercentage } from "./hooks/useProfileForm";
 import { AvatarSeed } from "./DiceBearAvatar";
 import { NounAvatarConfig } from "./NounAvatarConfig";
-
-// Map hash values to tab values (case-insensitive)
-const hashToTabMap: Record<string, string> = {
-  'personal': 'personal',
-  'projects': 'projects',
-  'achievements': 'achievements',
-  'achievement': 'achievements', 
-  'settings': 'settings',
-};
+import { useUserAvatar } from "@/components/context/UserAvatarContext";
 
 const validTabs = ['personal', 'projects', 'achievements', 'settings'];
 
@@ -29,81 +22,77 @@ interface ProfileTabProps {
 
 export default function ProfileTab({ achievements }: ProfileTabProps) {
   const { data: session } = useSession();
+  const avatarContext = useUserAvatar();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [isNounAvatarConfigOpen, setIsNounAvatarConfigOpen] = useState(false);
   const [nounAvatarSeed, setNounAvatarSeed] = useState<AvatarSeed | null>(null);
   const [nounAvatarEnabled, setNounAvatarEnabled] = useState(false);
 
-  // Get profile data using the hook
-  const { form, watchedValues, isLoading } = useProfileForm();
+  // Single form instance so header progress updates while editing (watchedValues shared)
+  const {
+    form,
+    watchedValues,
+    isLoading,
+    isSaving,
+    isAutoSaving,
+    githubConnected,
+    setGithubConnected,
+    handleRemoveSkill,
+    handleAddSocial,
+    handleRemoveSocial,
+    handleAddWallet,
+    handleRemoveWallet,
+    onSubmit,
+  } = useProfileForm();
 
-  // Load Noun avatar data
+  const handleGithubDisconnect = async () => {
+    await fetch('/api/auth/github-link/disconnect', { method: 'DELETE' });
+    setGithubConnected(false);
+    form.setValue('github', '', { shouldDirty: false });
+  };
+
+  // Load Noun avatar data and sincronizar con contexto (para que UserButton lo muestre)
   useEffect(() => {
     async function loadNounAvatar() {
       try {
         const response = await fetch("/api/user/noun-avatar");
         if (response.ok) {
           const data = await response.json();
-          setNounAvatarSeed(data.seed);
-          setNounAvatarEnabled(data.enabled ?? false);
+          const seed = data.seed ?? null;
+          const enabled = data.enabled ?? false;
+          setNounAvatarSeed(seed);
+          setNounAvatarEnabled(enabled);
+          avatarContext?.setNounAvatar(seed, enabled);
         }
       } catch (error) {
         console.error("Error loading Noun avatar:", error);
       }
     }
     loadNounAvatar();
-  }, []);
+  }, [avatarContext?.setNounAvatar]);
 
-  // Handle avatar save
+  // Handle avatar save: actualizar estado local y contexto para que UserButton refleje el cambio
   const handleNounAvatarSave = async (seed: AvatarSeed, enabled: boolean) => {
     setNounAvatarSeed(seed);
     setNounAvatarEnabled(enabled);
+    avatarContext?.setNounAvatar(seed, enabled);
   };
 
-  // Get initial tab from URL hash
-  const getInitialTab = (): string => {
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash.slice(1).toLowerCase();
-      const tabValue = hashToTabMap[hash];
-      if (tabValue && validTabs.includes(tabValue)) {
-        return tabValue;
-      }
-    }
-    return 'personal';
-  };
+  const tabParam = searchParams.get('tab');
+  const activeTab = validTabs.includes(tabParam ?? '') ? (tabParam ?? 'personal') : 'personal';
 
-  const [activeTab, setActiveTab] = useState<string>(getInitialTab);
-
-  // Update URL hash when tab changes
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    if (typeof window !== 'undefined') {
-      const hash = value === 'personal' ? '' : `#${value}`;
-      window.history.replaceState(null, '', `${window.location.pathname}${hash}`);
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === 'personal') {
+      params.delete('tab');
+    } else {
+      params.set('tab', value);
     }
+    const query = params.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ''}`);
   };
-
-  // Listen for hash changes (back/forward navigation or direct links)
-  useEffect(() => {
-    const handleHashChange = () => {
-      if (typeof window !== 'undefined') {
-        const hash = window.location.hash.slice(1).toLowerCase();
-        const tabValue = hashToTabMap[hash];
-        if (tabValue && validTabs.includes(tabValue)) {
-          setActiveTab(tabValue);
-        } else if (!hash) {
-          // No hash means default to personal
-          setActiveTab('personal');
-        }
-      }
-    };
-
-    // Check hash on mount
-    handleHashChange();
-
-    // Listen for hash changes
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
 
   if (isLoading) {
     return (
@@ -133,6 +122,7 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
                 onEditAvatar={() => setIsNounAvatarConfigOpen(true)}
                 nounAvatarSeed={nounAvatarSeed}
                 nounAvatarEnabled={nounAvatarEnabled}
+                completionPercentage={getProfileCompletionPercentage(watchedValues)}
               />
 
               {/* Separator */}
@@ -171,7 +161,20 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
           {/* Right Content - Tab Content */}
           <div className="flex-1 min-w-0">
             <TabsContent value="personal" className="mt-1">
-              <Profile />
+              <Profile
+                form={form}
+                watchedValues={watchedValues}
+                isSaving={isSaving}
+                isAutoSaving={isAutoSaving}
+                githubConnected={githubConnected}
+                onGithubDisconnect={handleGithubDisconnect}
+                handleRemoveSkill={handleRemoveSkill}
+                handleAddSocial={handleAddSocial}
+                handleRemoveSocial={handleRemoveSocial}
+                handleAddWallet={handleAddWallet}
+                handleRemoveWallet={handleRemoveWallet}
+                onSubmit={onSubmit}
+              />
             </TabsContent>
 
             <TabsContent value="projects" className="mt-1">

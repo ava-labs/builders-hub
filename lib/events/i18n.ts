@@ -220,7 +220,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.step3.demoVideo.hint":
       "Showcase your project in action with a short demo video. Ensure the link is accessible and not set to private.",
     "submission.step3.demoVideo.requirements":
-      "Video requirements: Minimum resolution 720p · Clear audio, no background music · Platforms: YouTube, Vimeo, Google Drive (public link)",
+      "Video requirements: Minimum resolution 720p · Clear audio, no background music · Platforms: YouTube, Vimeo",
 
     // Step navigation
     "submission.nav.finalSubmit": "Final Submit",
@@ -281,7 +281,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.save.errorDesc": "An error occurred while saving the project.",
 
     // Registration form — header & nav
-    "reg.form.title": "Registration form for {title} (Step {step}/3)",
+    "reg.form.title": "Registration form for {title} (Step {step}/2)",
     "reg.form.continue": "Continue",
     "reg.form.saveLater": "Save & Continue Later",
     "reg.form.saveExit": "Save & Exit",
@@ -611,7 +611,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.step3.demoVideo.hint":
       "Muestra tu proyecto en acción con un video demo corto. Asegúrate de que el link sea accesible y no esté en privado.",
     "submission.step3.demoVideo.requirements":
-      "Requisitos del video: Resolución mínima 720p · Audio claro, sin música de fondo · Plataformas: YouTube, Vimeo, Google Drive (link público)",
+      "Requisitos del video: Resolución mínima 720p · Audio claro, sin música de fondo · Plataformas: YouTube, Vimeo",
 
     // Step navigation
     "submission.nav.finalSubmit": "Envío final",
@@ -672,7 +672,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.save.errorDesc": "Ocurrió un error al guardar el proyecto.",
 
     // Registration form — header & nav
-    "reg.form.title": "Formulario de registro para {title} (Paso {step}/3)",
+    "reg.form.title": "Formulario de registro para {title} (Paso {step}/2)",
     "reg.form.continue": "Continuar",
     "reg.form.saveLater": "Guardar y continuar después",
     "reg.form.saveExit": "Guardar y salir",
@@ -728,7 +728,7 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step2.github.hint": "Incluye un link para mostrar tu trabajo anterior (opcional).",
 
     // Step 3
-    "reg.step3.title": "Paso 3: Términos y acuerdos",
+    "reg.step3.title": "Paso 2: Términos y acuerdos",
     "reg.step3.subtitle": "Revisa y acepta los términos para completar tu registro. Para más información sobre nuestras prácticas de privacidad, consulta nuestra",
     "reg.step3.privacyLink": "Política de privacidad de Avalanche.",
     "reg.step3.terms.label": "He leído y acepto los",

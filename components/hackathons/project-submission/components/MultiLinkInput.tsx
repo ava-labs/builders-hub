@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, type FieldValues } from "react-hook-form";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
+import { isValidHttpUrl, normalizeUrl } from "@/lib/url-validation";
 
 interface MultiLinkInputProps {
   name: string;
@@ -37,54 +38,50 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   description,
   allowAllDomains = false,
 }) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const form = useFormContext<any>();
+  const form = useFormContext<FieldValues>();
   const [newLink, setNewLink] = React.useState("");
 
-  const handleAddLink = async () => {
-    if (!newLink) return;
+  const handleAddLink = (): void => {
+    const rawInput = newLink.trim();
+    if (!rawInput) return;
 
-    try {
-      // Auto-format URL by prepending https:// if needed
-      let formattedLink = newLink.trim();
-      if (!formattedLink.startsWith('http://') && !formattedLink.startsWith('https://')) {
-        formattedLink = `https://${formattedLink}`;
-      }
+    const formattedLink = normalizeUrl(rawInput);
 
-      const url = new URL(formattedLink);
-
-
-      if (!allowAllDomains && name === 'demo_link' && (
-        url.hostname.includes('youtube.com') ||
-        url.hostname.includes('youtu.be') ||
-        url.hostname.includes('loom.com')
-      )) {
-        form.setError(name, {
-          type: 'manual',
-          message: 'YouTube and Loom links should be added in the video section'
-        });
-        return;
-      }
-
-      const currentLinks = (form.getValues(name) as string[]) || [];
-
-
-      if (currentLinks.includes(formattedLink)) {
-        form.setError(name, {
-          type: 'manual',
-          message: 'This link has already been added'
-        });
-        return;
-      }
-
-      form.setValue(name, [...currentLinks, formattedLink], { shouldValidate: true });
-      setNewLink("");
-    } catch (error) {
+    if (!isValidHttpUrl(formattedLink)) {
       form.setError(name, {
-        type: 'manual',
-        message: 'Please enter a valid URL'
+        type: "manual",
+        message: "Please enter a valid URL (e.g. https://example.com)",
       });
+      return;
     }
+
+    const url = new URL(formattedLink);
+    if (
+      !allowAllDomains &&
+      name === "demo_link" &&
+      (url.hostname.includes("youtube.com") ||
+        url.hostname.includes("youtu.be") ||
+        url.hostname.includes("loom.com"))
+    ) {
+      form.setError(name, {
+        type: "manual",
+        message: "YouTube and Loom links should be added in the video section",
+      });
+      return;
+    }
+
+    const currentLinks = (form.getValues(name) as string[]) || [];
+    if (currentLinks.includes(formattedLink)) {
+      form.setError(name, {
+        type: "manual",
+        message: "This link has already been added",
+      });
+      return;
+    }
+
+    form.clearErrors(name);
+    form.setValue(name, [...currentLinks, formattedLink], { shouldValidate: true, shouldDirty: true });
+    setNewLink("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -124,7 +121,12 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
               <Input
                 placeholder={placeholder}
                 value={newLink}
-                onChange={(e) => setNewLink(e.target.value)}
+                onChange={(e) => {
+                  setNewLink(e.target.value);
+                  if (form.formState.errors[name]) {
+                    form.clearErrors(name);
+                  }
+                }}
                 onKeyDown={handleKeyDown}
                 onBlur={handleAddLink}
                 className="w-full"

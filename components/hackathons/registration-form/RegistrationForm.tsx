@@ -11,12 +11,11 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
-import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useEffect, useState } from "react";
+import { zodResolver } from "@/lib/zodResolver";
+import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { RegisterFormStep3 } from "./RegisterFormStep3";
-import { RegisterFormStep2 } from "./RegisterFormStep2";
 import RegisterFormStep1 from "./RegisterFormStep1";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
@@ -33,11 +32,20 @@ import { captureEventReferrerFromUrl, getEventReferrer, clearEventReferrer } fro
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().trim().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   company_name: z.string().optional(),
   telegram_user: z.string().min(1, "Telegram username is required"),
   role: z.string().optional(),
+  is_student: z.boolean().optional().default(false),
+  student_institution: z.string().optional(),
+  is_founder: z.boolean().optional().default(false),
+  founder_company_name: z.string().optional(),
+  is_employee: z.boolean().optional().default(false),
+  employee_company_name: z.string().optional(),
+  employee_role: z.string().optional(),
+  is_developer: z.boolean().optional().default(false),
+  is_enthusiast: z.boolean().optional().default(false),
   city: z.string().min(1, "City is required"),
   interests: z.array(z.string()).optional(),
   web3_proficiency: z.string().optional(),
@@ -76,7 +84,8 @@ export function RegisterForm({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const [isSavingLater, setIsSavingLater] = useState(false);
-  
+  const isAdvancingStepRef = useRef(false);
+
   // Use UTM preservation hook
   const { getPreservedUTMs } = useUTMPreservation();
 
@@ -90,10 +99,20 @@ export function RegisterForm({
   const lang = normalizeEventsLang(hackathon?.content?.language);
   
   const getDefaultValues = () => ({
+    
     name: currentUser?.name || "",
     email: currentUser?.email || "",
     company_name: "",
     role: "",
+    is_student: false,
+    student_institution: "",
+    is_founder: false,
+    founder_company_name: "",
+    is_employee: false,
+    employee_company_name: "",
+    employee_role: "",
+    is_developer: false,
+    is_enthusiast: false,
     city: "",
     dietary: "",
     interests: [],
@@ -145,6 +164,90 @@ export function RegisterForm({
     }
   }
 
+  /** Prefill step1 from profile (name, email, country, telegram, company, role) when field is empty */
+  async function mergeProfileIntoStep1() {
+    const userId = (currentUser as { id?: string })?.id;
+    if (!userId) return;
+    try {
+      const profileRes = await fetch(`/api/profile/extended/${userId}`);
+      if (!profileRes.ok) return;
+      const profile = await profileRes.json();
+      const current = form.getValues();
+      const merged = {
+        ...current,
+        name:  profile.name || current.name || "",
+        email:  profile.email || current.email || "",
+        city:  profile.country || current.city || "",
+        telegram_user:  profile.telegram_user || current.telegram_user || "",
+        company_name:  profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
+        role:  profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
+        is_student: profile.user_type?.is_student ?? current.is_student ?? false,
+        student_institution: profile.user_type?.student_institution || current.student_institution || "",
+        is_founder: profile.user_type?.is_founder ?? current.is_founder ?? false,
+        founder_company_name: profile.user_type?.founder_company_name || current.founder_company_name || "",
+        is_employee: profile.user_type?.is_employee ?? current.is_employee ?? false,
+        employee_company_name: profile.user_type?.employee_company_name || current.employee_company_name || "",
+        employee_role: profile.user_type?.employee_role || current.employee_role || "",
+        is_developer: profile.user_type?.is_developer ?? current.is_developer ?? false,
+        is_enthusiast: profile.user_type?.is_enthusiast ?? current.is_enthusiast ?? false,
+      };
+      form.reset(merged);
+    } catch (err) {
+      console.error("Error merging profile into registration form:", err);
+    }
+  }
+
+  /** Persist step1 fields to profile (name, email, country, telegram, company_name, role) */
+  async function saveStep1ToProfile() {
+    const userId = (currentUser as { id?: string })?.id;
+    if (!userId) return;
+    const step1 = form.getValues();
+    try {
+      const profileRes = await fetch(`/api/profile/extended/${userId}`);
+      if (!profileRes.ok) return;
+      const existing = await profileRes.json();
+      const userType = existing.user_type || {};
+      const roleCompany =
+        (step1.is_founder ? step1.founder_company_name : "") ||
+        (step1.is_employee ? step1.employee_company_name : "") ||
+        (step1.is_student ? step1.student_institution : "") ||
+        step1.company_name ||
+        "";
+      const roleLabel =
+        (step1.is_employee ? step1.employee_role : "") ||
+        step1.role ||
+        "";
+
+      const payload = {
+        name: step1.name ?? existing.name,
+        email: step1.email ?? existing.email,
+        country: (step1.city ?? "").trim() || existing.country,
+        telegram_user: (step1.telegram_user ?? "").trim() || existing.telegram_user,
+        user_type: {
+          ...userType,
+          is_student: Boolean(step1.is_student),
+          is_founder: Boolean(step1.is_founder),
+          is_employee: Boolean(step1.is_employee),
+          is_developer: Boolean(step1.is_developer),
+          is_enthusiast: Boolean(step1.is_enthusiast),
+          student_institution: (step1.student_institution ?? "").trim(),
+          founder_company_name: (step1.founder_company_name ?? "").trim(),
+          employee_company_name: (step1.employee_company_name ?? "").trim(),
+          employee_role: (step1.employee_role ?? "").trim(),
+          company_name: roleCompany.trim() || userType.company_name,
+          role: roleLabel.trim() || userType.role,
+        },
+      };
+      await fetch(`/api/profile/extended/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      console.error("Error saving step1 to profile:", err);
+    }
+  }
+
   async function getRegisterFormLoaded() {
     if (!hackathon_id || !currentUser?.email) return;
     try {
@@ -158,6 +261,15 @@ export function RegisterForm({
           email: loadedData.email || currentUser.email || "",
           company_name: loadedData.company_name || "",
           role: loadedData.role || "",
+          is_student: loadedData.is_student || false,
+          student_institution: loadedData.student_institution || "",
+          is_founder: loadedData.is_founder || false,
+          founder_company_name: loadedData.founder_company_name || "",
+          is_employee: loadedData.is_employee || false,
+          employee_company_name: loadedData.employee_company_name || "",
+          employee_role: loadedData.employee_role || "",
+          is_developer: loadedData.is_developer || false,
+          is_enthusiast: loadedData.is_enthusiast || false,
           city: loadedData.city || "",
           dietary: loadedData.dietary || "",
           telegram_user: loadedData.telegram_user || "",
@@ -183,8 +295,12 @@ export function RegisterForm({
         setRegistrationForm(loadedData);
       }
       setDataFromLocalStorage();
+      await mergeProfileIntoStep1();
     } catch (err) {
       setDataFromLocalStorage();
+      if (status === "authenticated" && currentUser) {
+        await mergeProfileIntoStep1();
+      }
       console.error("API Error:", err);
     }
   }
@@ -238,6 +354,12 @@ export function RegisterForm({
     setDataFromLocalStorage();
   }, [hackathon_id]);
 
+  /** Registration only has steps 1–2; clamp if state ever jumps (e.g. double-click before fix). */
+  useEffect(() => {
+    if (step > 2) setStep(2);
+    if (step < 1) setStep(1);
+  }, [step]);
+
   // Reinitialize form when hackathon data is loaded to use correct resolver
   useEffect(() => {
     if (hackathon) {
@@ -246,7 +368,10 @@ export function RegisterForm({
     }
   }, [hackathon, form]);
 
-  const onSaveLater = () => {
+  const onSaveLater = async () => {
+    if (step === 1) {
+      await saveStep1ToProfile();
+    }
     const preservedUTMs = getPreservedUTMs();
     const effectiveUTM = utm || preservedUTMs.utm || "";
     
@@ -266,8 +391,8 @@ export function RegisterForm({
 
   const onSubmit = async (data: RegisterFormValues) => {
     
-    if (step < 3) {
-      setStep(step + 1);
+    if (step < 2) {
+      setStep((prev) => (prev < 2 ? prev + 1 : prev));
     } else {
       const errors: any = {};
 
@@ -322,21 +447,24 @@ export function RegisterForm({
       case 1:
         return "left-0";
       case 2:
-        return "left-1/2 transform -translate-x-1/2";
-      case 3:
         return "right-0";
       default:
         return "left-0";
     }
   };
 
-  const handleStepChange = (newStep: number) => {
-    if (newStep >= 1 && newStep <= 3) {
+  const handleStepChange = async (newStep: number) => {
+    if (newStep >= 1 && newStep <= 2) {
+      if (step === 1 && newStep !== 1) {
+        await saveStep1ToProfile();
+      }
       setStep(newStep);
     }
   };
 
   const onNextStep = async () => {
+    if (step >= 2 || isAdvancingStepRef.current) return;
+
     let fieldsToValidate: (keyof RegisterFormValues)[] = [];
     if (step === 1) {
       fieldsToValidate = [
@@ -386,26 +514,15 @@ export function RegisterForm({
       }
     } else if (step === 2) {
       fieldsToValidate = [
-        "web3_proficiency",
-        "tools",
-        "roles",
-        "languages",
-        "interests",
-        "hackathon_participation",
-        "github_portfolio",
-      ];
-    } else if (step === 3) {
-      fieldsToValidate = [
         "newsletter_subscription",
         "terms_event_conditions",
+        "hackathon_participation",
       ];
-      // Only validate prohibited_items if it's not an online hackathon
       if (!isOnlineHackathon) {
         fieldsToValidate.push("prohibited_items");
       }
-      // Custom validation for Step 3 required fields
       const formValues = form.getValues();
-      const errors: any = {};
+      const errors: Partial<Record<keyof RegisterFormValues, { type: string; message: string }>> = {};
 
       if (!formValues.terms_event_conditions) {
         errors.terms_event_conditions = {
@@ -413,7 +530,6 @@ export function RegisterForm({
           message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions."
         };
       }
-
 
       if (!isOnlineHackathon && !formValues.prohibited_items) {
         errors.prohibited_items = {
@@ -423,15 +539,23 @@ export function RegisterForm({
       }
 
       if (Object.keys(errors).length > 0) {
-        Object.keys(errors).forEach(field => {
-          form.setError(field as keyof RegisterFormValues, errors[field]);
+        (Object.keys(errors) as (keyof RegisterFormValues)[]).forEach(field => {
+          form.setError(field, errors[field]!);
         });
         return;
       }
     }
     const isValid = await form.trigger(fieldsToValidate);
-    if (isValid) {
-      setStep((prev) => prev + 1);
+    if (!isValid) return;
+
+    isAdvancingStepRef.current = true;
+    try {
+      if (step === 1) {
+        await saveStep1ToProfile();
+      }
+      setStep((prev) => (prev < 2 ? prev + 1 : prev));
+    } finally {
+      isAdvancingStepRef.current = false;
     }
   };
 
@@ -442,18 +566,17 @@ export function RegisterForm({
       </h2>
       <div className="relative w-full h-1 bg-zinc-300 dark:bg-zinc-900 mb-4">
         <div
-          className={`absolute h-full bg-zinc-800 dark:bg-zinc-300 ${progressPosition()} w-1/3 transition-all duration-300`}
+          className={`absolute h-full bg-zinc-800 dark:bg-zinc-300 ${progressPosition()} w-1/2 transition-all duration-300`}
         />
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {step === 1 && <RegisterFormStep1 user={session?.user} lang={lang} />}
-          {step === 2 && <RegisterFormStep2 lang={lang} />}
-          {step === 3 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
+          {step === 2 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
-              {step === 3 && (
+              {step === 2 && (
                 <LoadingButton
                   isLoading={form.formState.isSubmitting}
                   loadingText={t(lang, "reg.form.saving")}
@@ -465,7 +588,7 @@ export function RegisterForm({
                 </LoadingButton>
               )}
 
-              {step !== 3 && (
+              {step !== 2 && (
                 <Button
                   variant="red"
                   type="button"
@@ -476,7 +599,7 @@ export function RegisterForm({
                 </Button>
               )}
 
-              {step !== 3 && (
+              {step !== 2 && (
                 <LoadingButton
                   isLoading={isSavingLater}
                   loadingText={t(lang, "reg.form.saving")}
@@ -507,7 +630,7 @@ export function RegisterForm({
                 )}
                 <Pagination>
                   <PaginationContent>
-                    {Array.from({ length: 3 }, (_, i) => i + 1).map((page) => (
+                    {Array.from({ length: 2 }, (_, i) => i + 1).map((page) => (
                       <PaginationItem key={page}>
                         <PaginationLink
                           isActive={step === page}
@@ -520,7 +643,7 @@ export function RegisterForm({
                     ))}
                   </PaginationContent>
                 </Pagination>
-                {step < 3 && (
+                {step < 2 && (
                   <PaginationNext
                     className="dark:hover:text-gray-200 cursor-pointer"
                     label={t(lang, "reg.form.next")}
@@ -529,7 +652,7 @@ export function RegisterForm({
                 )}
               </div>
               <span className="font-Aeonik text-xs sm:text-sm mt-2 md:mt-0 md:ml-2">
-                {t(lang, "reg.form.stepOf", { current: step, total: 3 })}
+                Step {step} of 2
               </span>
             </div>
           </div>

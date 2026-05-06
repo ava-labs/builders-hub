@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
-import {  trackProp } from './MultiSelectTrack';
+import { trackProp } from './MultiSelectTrack';
 import { FormLabelWithCheck } from './FormLabelWithCheck';
 import MembersComponent from './Members';
 import { Track as HackathonTrack } from '@/types/hackathons';
@@ -43,6 +43,13 @@ export interface projectProps {
   invite_stage?: number;
   lang?: EventsLang;
 }
+
+/** Dynamic key/value URL fields are not wired with `{...field}`; validate explicitly after edits. */
+const scheduleTrigger = (trigger: () => Promise<boolean>) => {
+  queueMicrotask(() => {
+    void trigger();
+  });
+};
 
 const SubmitStep1: FC<projectProps> = (project) => {
   const form = useFormContext<SubmissionForm>();
@@ -73,7 +80,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
 
   useLayoutEffect(() => {
     const textareas = ['full_description', 'short_description'];
-    
+
     textareas.forEach(name => {
       const el = document.querySelector(`textarea[name="${name}"]`);
       if (el) {
@@ -161,7 +168,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
           )}
         />
 
-        {/* Tracks (solo cuando hay hackathon_id) */}
         {hasHackathon && (
           <FormField
             control={form.control}
@@ -187,7 +193,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
           />
         )}
 
-        {/* Categories (solo cuando NO hay hackathon_id) */}
         {!hasHackathon && (
           <FormField
             control={form.control}
@@ -204,7 +209,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
                     selected={field.value || []}
                     onChange={(values) => {
                       field.onChange(values);
-                      // Limpiar other_category si se deselecciona "Other (Specify)"
                       if (!values.includes('Other (Specify)')) {
                         form.setValue('other_category', '');
                       }
@@ -219,7 +223,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
           />
         )}
 
-        {/* Input para categoría personalizada (solo cuando se selecciona "Other (Specify)") */}
         {!hasHackathon && hasOtherCategory && (
           <FormField
             control={form.control}
@@ -243,6 +246,172 @@ const SubmitStep1: FC<projectProps> = (project) => {
           />
         )}
 
+        <FormField
+          control={form.control}
+          name='website'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabelWithCheck
+                label='Website'
+                checked={!!field.value && field.value.length > 0}
+              />
+              <div className='space-y-3'>
+                {(field.value && field.value.length > 0) ? (
+                  <div className='space-y-3'>
+                    {field.value.map((item: { key: string; value: string }, index: number) => (
+                      <div key={index} className='flex gap-3 items-start'>
+                        <div className='w-32'>
+                          <Input
+                            placeholder='Tag'
+                            value={item.key || ''}
+                            onChange={(e) => {
+                              const newItems = [...(field.value || [])];
+                              newItems[index] = { ...newItems[index], key: e.target.value };
+                              field.onChange(newItems);
+                            }}
+                            onBlur={() => {
+                              field.onBlur();
+                              void form.trigger('website');
+                            }}
+                            className='w-full dark:bg-zinc-950'
+                          />
+                        </div>
+                        <div className='flex-1'>
+                          <Input
+                            placeholder='https://example.com'
+                            value={item.value || ''}
+                            onChange={(e) => {
+                              const newItems = [...(field.value || [])];
+                              newItems[index] = { ...newItems[index], value: e.target.value };
+                              field.onChange(newItems);
+                            }}
+                            onBlur={() => {
+                              field.onBlur();
+                              void form.trigger('website');
+                            }}
+                            className='w-full dark:bg-zinc-950'
+                          />
+                        </div>
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          onClick={() => {
+                            const newItems = field.value.filter(
+                              (_: { key: string; value: string }, i: number) => i !== index
+                            );
+                            field.onChange(newItems);
+                            scheduleTrigger(() => form.trigger('website'));
+                          }}
+                          className='h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950'
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                <Button
+                  type='button'
+                  onClick={() => {
+                    const newItems = [...(field.value || []), { key: '', value: '' }];
+                    field.onChange(newItems);
+                    scheduleTrigger(() => form.trigger('website'));
+                  }}
+                  className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
+                >
+                  + new website
+                </Button>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='socials'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabelWithCheck
+                label='Socials'
+                checked={!!field.value && field.value.length > 0}
+              />
+              <div className='space-y-3'>
+                {(field.value && field.value.length > 0) ? (
+                  <div className='space-y-3'>
+                    {field.value.map((item: { key: string; value: string }, index: number) => (
+                      <div key={index} className='flex gap-3 items-start'>
+                        <div className='w-32'>
+                          <Input
+                            placeholder='Tag'
+                            value={item.key || ''}
+                            onChange={(e) => {
+                              const newItems = [...(field.value || [])];
+                              newItems[index] = { ...newItems[index], key: e.target.value };
+                              field.onChange(newItems);
+                            }}
+                            onBlur={() => {
+                              field.onBlur();
+                              void form.trigger('socials');
+                            }}
+                            className='w-full dark:bg-zinc-950'
+                          />
+                        </div>
+                        <div className='flex-1'>
+                          <Input
+                            placeholder='https://example.com'
+                            value={item.value || ''}
+                            onChange={(e) => {
+                              const newItems = [...(field.value || [])];
+                              newItems[index] = { ...newItems[index], value: e.target.value };
+                              field.onChange(newItems);
+                            }}
+                            onBlur={() => {
+                              field.onBlur();
+                              void form.trigger('socials');
+                            }}
+                            className='w-full dark:bg-zinc-950'
+                          />
+                        </div>
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          onClick={() => {
+                            const newItems = field.value.filter(
+                              (_: { key: string; value: string }, i: number) => i !== index
+                            );
+                            field.onChange(newItems);
+                            scheduleTrigger(() => form.trigger('socials'));
+                          }}
+                          className='h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950'
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                <Button
+                  type='button'
+                  onClick={() => {
+                    const newItems = [...(field.value || []), { key: '', value: '' }];
+                    field.onChange(newItems);
+                    scheduleTrigger(() => form.trigger('socials'));
+                  }}
+                  className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
+                >
+                  + new social
+                </Button>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Deployed Addresses (Only for projects without hackathon) */}
         {!hasHackathon && (
           <FormField
@@ -259,21 +428,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
                     <div className='space-y-3'>
                       {field.value.map((addressItem: { address: string; tag?: string }, index: number) => (
                         <div key={index} className='flex gap-3 items-start'>
-                          <div className='flex-1'>
-                            <Input
-                              placeholder='address'
-                              value={addressItem.address || ''}
-                              onChange={(e) => {
-                                const newAddresses = [...(field.value || [])];
-                                newAddresses[index] = {
-                                  ...newAddresses[index],
-                                  address: e.target.value,
-                                };
-                                field.onChange(newAddresses);
-                              }}
-                              className='w-full dark:bg-zinc-950'
-                            />
-                          </div>
                           <div className='w-32'>
                             <Input
                               placeholder='Tag'
@@ -289,13 +443,29 @@ const SubmitStep1: FC<projectProps> = (project) => {
                               className='w-full dark:bg-zinc-950'
                             />
                           </div>
+                          <div className='flex-1'>
+                            <Input
+                              placeholder='address'
+                              value={addressItem.address || ''}
+                              onChange={(e) => {
+                                const newAddresses = [...(field.value || [])];
+                                newAddresses[index] = {
+                                  ...newAddresses[index],
+                                  address: e.target.value,
+                                };
+                                field.onChange(newAddresses);
+                              }}
+                              className='w-full dark:bg-zinc-950'
+                            />
+                          </div>
+
                           <Button
                             type='button'
                             variant='ghost'
                             size='icon'
                             onClick={() => {
                               const newAddresses = field.value.filter(
-                                (_: any, i: number) => i !== index
+                                (_: { address: string; tag?: string }, i: number) => i !== index
                               );
                               field.onChange(newAddresses);
                             }}
@@ -314,7 +484,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                       const newAddresses = [...(field.value || []), { address: '', tag: '' }];
                       field.onChange(newAddresses);
                     }}
-               className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
+                    className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
                   >
                     {t(lang, "submission.step1.deployedAddresses.addButton")}
                   </Button>
