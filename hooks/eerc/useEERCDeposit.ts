@@ -6,7 +6,7 @@ import { formatUnits } from 'viem';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useEERCNotifiedWrite } from './useEERCNotifiedWrite';
 import { depositToEERC, ERC20_MINIMAL_ABI, computeDepositCents } from '@/lib/eerc/operations/deposit';
-import { loadIdentity } from '@/lib/eerc/identity';
+import { loadVerifiedEERCIdentity } from '@/lib/eerc/identityValidation';
 import type { EERCDeployment, ERC20Meta, Hex } from '@/lib/eerc/types';
 
 export type DepositStatus = 'idle' | 'checking-allowance' | 'approving' | 'depositing' | 'confirming' | 'success' | 'error';
@@ -68,6 +68,8 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
       setTxHash(null);
 
       try {
+        setStatus('checking-allowance');
+        await loadVerifiedEERCIdentity({ address, registrar: deployment.registrar, publicClient });
         setStatus('approving');
         // Routes the ERC20 approval through the notified-write helper so
         // the console toast + tx-history row fire alongside every other
@@ -101,14 +103,13 @@ export function useEERCDeposit(deployment: EERCDeployment | undefined, token: ER
       if (!address || !deployment || !token || !walletClient || !publicClient) {
         throw new Error('Wallet not connected or deployment/token not resolved');
       }
-      const identity = loadIdentity(address, deployment.registrar);
-      if (!identity) throw new Error('Register your BabyJubJub identity first');
 
       setError(null);
       setTxHash(null);
 
       try {
         setStatus('checking-allowance');
+        const identity = await loadVerifiedEERCIdentity({ address, registrar: deployment.registrar, publicClient });
         const allowance = await refreshAllowance();
         if (allowance !== null && allowance < amountWei) {
           throw new Error('Approve WAVAX before depositing.');

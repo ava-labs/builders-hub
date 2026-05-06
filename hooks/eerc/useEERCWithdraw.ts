@@ -6,7 +6,7 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import { useEERCNotifiedWrite } from './useEERCNotifiedWrite';
 import { withdrawFromEERC } from '@/lib/eerc/operations/withdraw';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
-import { loadIdentity } from '@/lib/eerc/identity';
+import { loadVerifiedEERCIdentity } from '@/lib/eerc/identityValidation';
 import type { BJPoint } from '@/lib/eerc/crypto/babyjub';
 import type { FlatEncryptedBalance } from '@/lib/eerc/operations/transfer';
 import type { EERCDeployment, Hex } from '@/lib/eerc/types';
@@ -54,8 +54,6 @@ export function useEERCWithdraw(
       if (!address || !deployment || !walletClient || !publicClient) {
         throw new Error('Wallet not connected or deployment not resolved');
       }
-      const identity = loadIdentity(address, deployment.registrar);
-      if (!identity) throw new Error('Register your BabyJubJub identity first');
 
       setError(null);
       setTxHash(null);
@@ -63,6 +61,7 @@ export function useEERCWithdraw(
       const human = Scalar.parseEERCBalance(amountCents);
       try {
         setStatus('proving');
+        const identity = await loadVerifiedEERCIdentity({ address, registrar: deployment.registrar, publicClient });
         const result = await withdrawFromEERC({
           deployment,
           senderAddress: address as Hex,

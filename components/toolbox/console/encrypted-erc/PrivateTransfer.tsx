@@ -17,6 +17,11 @@ import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId'
 import { useEERCTransfer } from '@/hooks/eerc/useEERCTransfer';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
 import { parseEERCAmount } from '@/lib/eerc/parseAmount';
+import {
+  EERC_BALANCE_PROOF_MISMATCH_MESSAGE,
+  EERC_BALANCE_UNINITIALIZED_MESSAGE,
+  EERC_PRIVATE_KEY_INVALID_MESSAGE,
+} from '@/lib/eerc/balanceValidation';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
@@ -194,6 +199,21 @@ function PrivateTransfer() {
         </div>
       </div>
 
+      {balance.error && (
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10 p-3 text-xs text-red-700 dark:text-red-400">
+          {balance.error}
+          {balance.validationError && (
+            <>
+              {' '}
+              <Link href="/console/encrypted-erc/register" className="underline font-medium">
+                Open Register
+              </Link>
+              .
+            </>
+          )}
+        </div>
+      )}
+
       {!aud.isAuditorSet && !aud.isLoading && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-700 dark:text-amber-300">
           Auditor public key not set — transfers will revert. Visit{' '}
@@ -225,7 +245,29 @@ function PrivateTransfer() {
           </div>
         )}
 
-        {tr.error && <div className="text-[11px] text-red-600 dark:text-red-400">{tr.error}</div>}
+        {tr.error && (
+          <div className="text-[11px] text-red-600 dark:text-red-400">
+            {tr.error}
+            {(tr.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE || tr.error === EERC_PRIVATE_KEY_INVALID_MESSAGE) && (
+              <>
+                {' '}
+                <Link href="/console/encrypted-erc/register" className="underline font-medium">
+                  Open Register
+                </Link>
+                .
+              </>
+            )}
+            {tr.error === EERC_BALANCE_UNINITIALIZED_MESSAGE && (
+              <>
+                {' '}
+                <Link href="/console/encrypted-erc/deposit" className="underline font-medium">
+                  Open Deposit
+                </Link>
+                .
+              </>
+            )}
+          </div>
+        )}
         {tr.status === 'success' && tr.txHash && (
           <div className="text-[11px]">
             <EERCTxLink chainId={activeChainId} txHash={tr.txHash}>

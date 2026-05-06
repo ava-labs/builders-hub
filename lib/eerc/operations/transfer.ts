@@ -9,6 +9,10 @@
 import EncryptedERCArtifact from '@/contracts/encrypted-erc/compiled/EncryptedERC.json';
 import { BabyJub, FF, Poseidon, SNARK_FIELD_SIZE } from '../crypto';
 import type { BJPoint } from '../crypto/babyjub';
+import {
+  assertEERCBalanceWitnessMatchesPlaintext,
+  normalizeEERCBalanceProofError,
+} from '../balanceValidation';
 import { generateProof } from '../proof';
 import type { EERCDeployment, Hex } from '../types';
 
@@ -56,6 +60,12 @@ export async function transferPrivate(inputs: TransferInputs): Promise<{ txHash:
 
   if (amount <= 0n) throw new Error('Amount must be positive');
   if (amount > decryptedBalance) throw new Error('Insufficient encrypted balance');
+  assertEERCBalanceWitnessMatchesPlaintext({
+    encryptedBalance,
+    privateKey: senderPrivateKey,
+    plaintextBalance: decryptedBalance,
+    publicKey: [senderPublicKey[0], senderPublicKey[1]],
+  });
   if (recipientPublicKey[0] === 0n && recipientPublicKey[1] === 0n) {
     throw new Error('Recipient is not registered on this eERC Registrar');
   }
@@ -113,7 +123,13 @@ export async function transferPrivate(inputs: TransferInputs): Promise<{ txHash:
     AuditorPCTRandom: aPCT.encryptionRandom,
   };
 
-  const { points, publicSignals } = await generateProof('transfer', circuitInput);
+  let generatedProof: Awaited<ReturnType<typeof generateProof>>;
+  try {
+    generatedProof = await generateProof('transfer', circuitInput);
+  } catch (err) {
+    throw normalizeEERCBalanceProofError(err);
+  }
+  const { points, publicSignals } = generatedProof;
   if (publicSignals.length !== 32) {
     throw new Error(`Expected 32 public signals for transfer, got ${publicSignals.length}`);
   }
