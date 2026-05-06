@@ -23,6 +23,12 @@ import { zodResolver } from '@/lib/zodResolver';
 import { FieldErrors, useForm, useWatch } from 'react-hook-form';
 import { HackathonEditFormValues, hackathonEditSchema } from '@/lib/hackathons/hackathon-edit.schema';
 import { useEventsValidation, type ValidationIssue } from '@/hooks/use-events-validation';
+import * as AccordionPrimitive from '@radix-ui/react-accordion'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+} from '@/components/ui/accordion'
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -3665,51 +3671,6 @@ const HackathonsEdit = () => {
                       </label>
                     </div>
                     */}
-                          <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataLatest.custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('latest.custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.custom_link')}</p>
-                          )}
-                          <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="join_custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.join_custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('content.join_custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.join_custom_link')}</p>
-                          )}
-                          <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="submission_custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.submission_custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('content.submission_custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_custom_link')}</p>
-                          )}
                           <div>
                             <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
                             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].startDateHelp}</div>
@@ -3807,27 +3768,96 @@ const HackathonsEdit = () => {
                             )}
                           </div>
                         </div>
-                        <div className="flex justify-end mt-4">
-                          <button
-                            type="button"
-                            onClick={() => handleDone('last')}
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
-                          >
-                            {t[language].done} <ChevronDown className="w-4 h-4" />
-                          </button>
+                        <div>
+                        <Accordion
+                        type="single"
+                        collapsible
+                        className="w-full rounded-md border mt-6 px-4 py-2"
+                        >
+                          <AccordionItem value={'options'}>
+                            <AccordionPrimitive.Header className="flex">
+                              <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
+                              <span>Advanced options</span>
+                              <div className="flex items-center gap-2">
+                              <ChevronDown className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
+                              </div>
+                              </AccordionPrimitive.Trigger>
+                            </AccordionPrimitive.Header>
+
+                            <AccordionContent>
+                            <div className='pt-4'>
+                              <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
+                              <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
+                              <Input
+                                type="text"
+                                name="custom_link"
+                                placeholder="e.g., https://hackathon.custom..."
+                                value={formDataLatest.custom_link ?? ''}
+                                onChange={(e) => {
+                                  setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
+                                }}
+                                className="w-full mb-4"
+                              />
+                              {getInlineError('latest.custom_link') && (
+                                <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.custom_link')}</p>
+                              )}
+                              <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
+                              <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
+                              <Input
+                                type="text"
+                                name="join_custom_link"
+                                placeholder="e.g., https://hackathon.custom..."
+                                value={formDataContent.join_custom_link ?? ''}
+                                onChange={(e) => {
+                                  setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
+                                }}
+                                className="w-full mb-4"
+                              />
+                              {getInlineError('content.join_custom_link') && (
+                                <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.join_custom_link')}</p>
+                              )}
+                              <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
+                              <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
+                              <Input
+                                type="text"
+                                name="submission_custom_link"
+                                placeholder="e.g., https://hackathon.custom..."
+                                value={formDataContent.submission_custom_link ?? ''}
+                                onChange={(e) => {
+                                  setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
+                                }}
+                                className="w-full mb-4"
+                              />
+                              {getInlineError('content.submission_custom_link') && (
+                                <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_custom_link')}</p>
+                              )}
+                            </div>
+                            </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
                         </div>
-                      </>
+
+                        <div className="flex justify-end mt-4">
+                        <button
+                        type="button"
+                        onClick={() => handleDone('last')}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+                        >
+                        {t[language].done} <ChevronDown className="w-4 h-4" />
+                        </button>
+                        </div>
+                        </>
                     )}
                     {collapsed.last && (
                       <div className="text-zinc-600 dark:text-zinc-400 italic">{t[language].lastDetailsCompleted}</div>
                     )}
-                  </div>
-                  {!isSelectedHackathon && (
-                    <Button type="submit" className="bg-red-500 hover:bg-red-600 text-white">
+                    </div>
+                    {!isSelectedHackathon && (
+                      <Button type="submit" className="bg-red-500 hover:bg-red-600 text-white">
                       {t[language].submit}
-                    </Button>
-                  )}
-                </form>
+                      </Button>
+                    )}
+                    </form>
               </>
             )}
             {showForm && !hasEditPermission && (
