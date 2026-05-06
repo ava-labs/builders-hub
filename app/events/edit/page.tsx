@@ -29,6 +29,7 @@ import {
   AccordionContent,
   AccordionItem,
 } from '@/components/ui/accordion'
+import RemoveButton from '@/components/hackathons/edit/stages/RemoveButton';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -273,27 +274,20 @@ type TrackItemProps = {
 
 const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, onDone, onExpand, onRemove, onScrollToPreview, t, language, removing, tracksLength, rawTrackDescriptions, setRawTrackDescriptions, convertToHTML, fieldError }: TrackItemProps) {
   return (
-    <div
-      className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`track-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}
-    >
-      {tracksLength > 1 && (
-        <button
-          type="button"
-          onClick={() => onRemove(index)}
-          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg p-2 transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
-          title={t[language].removeTrack}
-        >
-          <Trash className="w-5 h-5" />
-        </button>
-      )}
-      <h3 className="text-lg font-semibold mb-2">Track {index + 1}</h3>
-      {collapsed ? (
-        <div className="flex justify-end">
-          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-            <ChevronRight className="w-5 h-5" /> {t[language].expand}
-          </button>
-        </div>
-      ) : (
+    <Accordion key={`track-${index}`} type="single" collapsible className="w-full rounded-md border px-4 py-0.5">
+      <AccordionItem value={`item-${index}`}>
+        <AccordionPrimitive.Header className="flex">
+          <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
+            <h3 className="text-lg font-semibold my-1">Track {index + 1}</h3>
+            <div className="flex items-center gap-2">
+              <ChevronDown className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
+              {tracksLength > 1 && (
+                <RemoveButton onRemove={() => onRemove(index)} tooltipLabel={t[language].removeTrack} size={18} />
+              )}
+            </div>
+          </AccordionPrimitive.Trigger>
+        </AccordionPrimitive.Header>
+        <AccordionContent>
         <>
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackName}</div>
           <Input
@@ -480,14 +474,10 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
               }}
             />
           </div>
-          <div className="flex justify-end mt-2">
-            <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
-              {t[language].done} <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
         </>
-      )}
-    </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 });
 
@@ -509,23 +499,18 @@ type ScheduleItemProps = {
 
 const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, scheduleLength, toLocalDatetimeString, fieldError }: ScheduleItemProps) {
   return (
-    <div className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`schedule-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
-      <button
-        type="button"
-        onClick={() => onRemove(index)}
-        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg p-2 transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
-        title={t[language].removeSchedule}
-      >
-        <Trash className="w-5 h-5" />
-      </button>
-      <h3 className="text-lg font-semibold mb-2">Schedule {index + 1}</h3>
-      {collapsed ? (
-        <div className="flex justify-end">
-          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-            <ChevronRight className="w-5 h-5" /> {t[language].expand}
-          </button>
-        </div>
-      ) : (
+    <Accordion key={`stage-${index}`} type="single" collapsible className="w-full rounded-md border px-4 py-0.5">
+      <AccordionItem value={`item-${index}`}>
+        <AccordionPrimitive.Header className="flex">
+          <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
+            <h3 className="text-lg font-semibold my-1">Schedule {index + 1}</h3>
+            <div className="flex items-center gap-2">
+              <ChevronDown className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
+              <RemoveButton onRemove={() => onRemove(index)} tooltipLabel={t[language].removeSchedule} size={18} />
+            </div>
+          </AccordionPrimitive.Trigger>
+        </AccordionPrimitive.Header>
+        <AccordionContent>
         <>
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleDate}</div>
           <Input
@@ -603,14 +588,10 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
           />
           <SubformFieldError fieldError={fieldError} field="duration" />
           <SubformFieldError fieldError={fieldError} field="url" />
-          <div className="flex justify-end mt-2">
-            <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
-              {t[language].done} <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
         </>
-      )}
-    </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 });
 
@@ -672,34 +653,20 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
     onApplyTemplate(index, selectedTemplate);
   };
   return (
-    <div
-      className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'
-        }`}
-    >
-      {speakersLength > 1 && (
-        <button
-          type="button"
-          onClick={() => onRemove(index)}
-          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg p-2 transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
-          title={t[language].removeSpeaker}
-        >
-          <Trash className="w-5 h-5" />
-        </button>
-      )}
-
-      <h3 className="text-lg font-semibold mb-2">Speaker {index + 1}</h3>
-
-      {collapsed ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => onExpand(index)}
-            className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer"
-          >
-            <ChevronRight className="w-5 h-5" /> {t[language].expand}
-          </button>
-        </div>
-      ) : (
+    <Accordion key={`speaker-${index}`} type="single" collapsible className="w-full rounded-md border px-4 py-0.5">
+      <AccordionItem value={`item-${index}`}>
+        <AccordionPrimitive.Header className="flex">
+          <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
+            <h3 className="text-lg font-semibold my-1">Speaker {index + 1}</h3>
+            <div className="flex items-center gap-2">
+              <ChevronDown className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
+              {speakersLength > 1 && (
+                <RemoveButton onRemove={() => onRemove(index)} tooltipLabel={t[language].removeSpeaker} size={18} />
+              )}
+            </div>
+          </AccordionPrimitive.Trigger>
+        </AccordionPrimitive.Header>
+        <AccordionContent>
         <>
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Default speaker</div>
 
@@ -817,19 +784,10 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
               />
             </div>
           )}
-
-          <div className="flex justify-end mt-2">
-            <button
-              type="button"
-              onClick={() => onDone(index)}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
-            >
-              {t[language].done} <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
         </>
-      )}
-    </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 });
 
@@ -850,25 +808,20 @@ type ResourceItemProps = {
 
 const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, resourcesLength, fieldError }: ResourceItemProps) {
   return (
-    <div className={`border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 mb-6 bg-white dark:bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`resource-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
-      {resourcesLength > 1 && (
-        <button
-          type="button"
-          onClick={() => onRemove(index)}
-          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg p-2 transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
-          title={t[language].removeResource}
-        >
-          <Trash className="w-5 h-5" />
-        </button>
-      )}
-      <h3 className="text-lg font-semibold mb-2">Resource {index + 1}</h3>
-      {collapsed ? (
-        <div className="flex justify-end">
-          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-            <ChevronRight className="w-5 h-5" /> {t[language].expand}
-          </button>
-        </div>
-      ) : (
+    <Accordion key={`resource-${index}`} type="single" collapsible className="w-full rounded-md border px-4 py-0.5">
+      <AccordionItem value={`item-${index}`}>
+        <AccordionPrimitive.Header className="flex">
+          <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
+            <h3 className="text-lg font-semibold my-1">Resource {index + 1}</h3>
+            <div className="flex items-center gap-2">
+              <ChevronDown className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
+              {resourcesLength > 1 && (
+                <RemoveButton onRemove={() => onRemove(index)} tooltipLabel={t[language].removeResource} size={18} />
+              )}
+            </div>
+          </AccordionPrimitive.Trigger>
+        </AccordionPrimitive.Header>
+        <AccordionContent>
         <>
           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].resourceLink}</div>
           <Input
@@ -907,14 +860,10 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
               onChange={(val) => onChange(index, 'icon', val)}
             />
           </div>
-          <div className="flex justify-end mt-2">
-            <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
-              {t[language].done} <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
         </>
-      )}
-    </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 });
 
