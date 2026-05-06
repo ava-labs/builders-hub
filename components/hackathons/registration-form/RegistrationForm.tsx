@@ -209,10 +209,11 @@ export function RegisterForm({
 
   async function saveProject(data: RegisterFormValues) {
     try {
-      await axios.post(`/api/register-form/`, data);
+      const response = await axios.post(`/api/register-form/`, data);
       if (typeof window !== "undefined") {
         localStorage.removeItem(`formData_${hackathon_id}`);
       }
+      return response.data as { referralAttributed?: boolean };
     } catch (err) {
       console.error("API Error:", err);
       throw err;
@@ -314,8 +315,8 @@ export function RegisterForm({
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
       };
 
-      await saveProject(finalData);
-      if (finalData.referral_attribution) {
+      const result = await saveProject(finalData);
+      if (result.referralAttributed) {
         clearStoredReferralAttribution();
       }
       setIsDialogOpen(true);

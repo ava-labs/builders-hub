@@ -8,7 +8,11 @@ export const POST = withAuth(async (req: NextRequest) => {
     const newHackathon = await createRegisterForm(body);
 
     return NextResponse.json(
-      { message: 'registration form created', hackathon: newHackathon },
+      {
+        message: 'registration form created',
+        hackathon: newHackathon,
+        referralAttributed: Boolean((newHackathon as any).referralAttributed),
+      },
       { status: 201 }
     );
   } catch (error: any) {
