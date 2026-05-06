@@ -73,7 +73,7 @@ async function resolveReferralTarget(targetType: ReferralTargetType, body: any) 
   if (targetType === "bh_signup") {
     return {
       targetId: null,
-      destinationUrl: "/profile",
+      destinationUrl: "/",
     };
   }
 

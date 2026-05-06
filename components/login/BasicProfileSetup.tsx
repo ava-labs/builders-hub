@@ -148,7 +148,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
   };
 
   const onCompleteProfileClick = () => {
-    form.handleSubmit((data) => handleSave(data, true))();
+    onCompleteProfile?.();
   };
 
   return (

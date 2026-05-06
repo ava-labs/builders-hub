@@ -253,10 +253,9 @@ export async function POST(request: Request) {
     let attributionRecorded = false;
     try {
       const attribution = await recordReferralAttributionFromRequest(request, {
-        conversionType: 'build_games_application',
-        conversionResourceId: dbResult.id ?? null,
-        conversionTargetId: BUILD_GAMES_HACKATHON_ID ?? null,
-        convertedEmail: typeof formData.email === 'string' ? formData.email : null,
+        targetType: 'build_games_application',
+        targetId: BUILD_GAMES_HACKATHON_ID ?? null,
+        userEmail: typeof formData.email === 'string' ? formData.email : null,
         attribution: (formData.referral_attribution as any) ?? null,
       });
       attributionRecorded = Boolean(attribution);

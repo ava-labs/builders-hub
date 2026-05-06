@@ -24,6 +24,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { BuilderInsightsData, ReferralTargetPreset } from "@/server/services/builderInsights";
 
 interface ReferralLinkSummary {
@@ -80,6 +87,7 @@ export function BuilderInsightsDashboard({
   const [creatingTargetKey, setCreatingTargetKey] = useState<string | null>(null);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [qrLinkId, setQrLinkId] = useState<string | null>(null);
+  const [topReferrerTeamFilter, setTopReferrerTeamFilter] = useState("all");
 
   const monthlyData = data.monthlySignups;
   const referrerData = data.signupsByReferrer.map((row) => ({
@@ -90,14 +98,25 @@ export function BuilderInsightsDashboard({
     ...row,
     label: shortLabel(row.event, 24),
   }));
-  const communityHackathonReferrerData = data.communityHackathonReferrers.map((row) => ({
-    ...row,
-    label: shortLabel(row.referrer, 28),
-  }));
 
-  const latestMonthlySignups = monthlyData.length
-    ? monthlyData[monthlyData.length - 1].signups
-    : 0;
+  const topReferrerTeamOptions = useMemo(() => {
+    const teams = new Map<string, string>();
+    data.topReferrers.forEach((row) => {
+      teams.set(row.teamId ?? "community", row.team);
+    });
+    return Array.from(teams, ([id, label]) => ({ id, label })).sort((a, b) => {
+      if (a.id === "community") return -1;
+      if (b.id === "community") return 1;
+      return a.label.localeCompare(b.label);
+    });
+  }, [data.topReferrers]);
+  const filteredTopReferrers = useMemo(() => {
+    if (topReferrerTeamFilter === "all") return data.topReferrers;
+    if (topReferrerTeamFilter === "community") {
+      return data.topReferrers.filter((row) => !row.teamId);
+    }
+    return data.topReferrers.filter((row) => row.teamId === topReferrerTeamFilter);
+  }, [data.topReferrers, topReferrerTeamFilter]);
   const targetsByGroup = useMemo(
     () => ({
       signup: data.referralTargets.filter((target) => target.group === "signup"),
@@ -124,7 +143,7 @@ export function BuilderInsightsDashboard({
 
   const handleGenerateAndCopy = async (target: ReferralTargetPreset) => {
     const existingLink = getLatestLinkForTarget(target);
-    if (existingLink) {
+    if (existingLink && /^[A-Z]{5}$/.test(existingLink.code)) {
       await handleCopy(existingLink);
       setQrLinkId(existingLink.id);
       return;
@@ -172,7 +191,11 @@ export function BuilderInsightsDashboard({
             label="Your BH + event signups"
             value={data.userGeneratedBhAndEventSignups}
           />
-          <MetricCard label="Latest monthly signups" value={latestMonthlySignups} />
+          <MetricCard
+            label="Latest monthly signups"
+            value={data.latest30DaySignups}
+            deltaPercent={data.rollingSignupDeltaPercent}
+          />
         </div>
 
         <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
@@ -322,61 +345,48 @@ export function BuilderInsightsDashboard({
             )}
           </ChartCard>
 
-          <ChartCard title="Community Hackathon Referrers" className="lg:col-span-2">
-            {communityHackathonReferrerData.length ? (
-              <ResponsiveContainer width="100%" height={320}>
-                <BarChart
-                  data={communityHackathonReferrerData}
-                  layout="vertical"
-                  margin={{ top: 12, right: 18, bottom: 8, left: 64 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tickLine={false} axisLine={false} fontSize={12} />
-                  <YAxis
-                    type="category"
-                    dataKey="label"
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={12}
-                    width={140}
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="signups" name="Hackathon registrations" fill="#7C3AED" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyState label="No community hackathon referrals recorded yet" />
-            )}
-          </ChartCard>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
           <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
-            <CardHeader>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-base">Top Referrers</CardTitle>
+              <Select value={topReferrerTeamFilter} onValueChange={setTopReferrerTeamFilter}>
+                <SelectTrigger className="h-9 w-full sm:w-56">
+                  <SelectValue placeholder="Filter by team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All teams</SelectItem>
+                  {topReferrerTeamOptions.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Referrer</TableHead>
-                    <TableHead className="text-right">BH</TableHead>
+                    <TableHead className="text-right">Builder Hub Sign Up</TableHead>
                     <TableHead className="text-right">Events</TableHead>
-                    <TableHead className="text-right">Build Games</TableHead>
+                    <TableHead className="text-right">Hackathons</TableHead>
                     <TableHead className="text-right">Grants</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.topReferrers.length ? (
-                    data.topReferrers.map((row) => (
+                  {filteredTopReferrers.length ? (
+                    filteredTopReferrers.map((row) => (
                       <TableRow key={row.referrerId}>
                         <TableCell className="font-medium">{row.referrer}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.bhSignups)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.builderHubSignups)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.eventRegistrations)}</TableCell>
                         <TableCell className="text-right">{formatNumber(row.hackathonRegistrations)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.buildGamesApplications)}</TableCell>
                         <TableCell className="text-right">{formatNumber(row.grantApplications)}</TableCell>
-                        <TableCell className="text-right font-medium">{formatNumber(row.totalConversions)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatNumber(row.totalReferrals)}</TableCell>
                       </TableRow>
                     ))
                   ) : (
@@ -400,9 +410,9 @@ export function BuilderInsightsDashboard({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Team</TableHead>
-                    <TableHead className="text-right">BH</TableHead>
+                    <TableHead className="text-right">Builder Hub Sign Up</TableHead>
                     <TableHead className="text-right">Events</TableHead>
-                    <TableHead className="text-right">Build Games</TableHead>
+                    <TableHead className="text-right">Hackathons</TableHead>
                     <TableHead className="text-right">Grants</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
@@ -412,11 +422,11 @@ export function BuilderInsightsDashboard({
                     data.topTeamReferrers.map((row) => (
                       <TableRow key={row.teamId}>
                         <TableCell className="font-medium">{row.team}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.bhSignups)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.builderHubSignups)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.eventRegistrations)}</TableCell>
                         <TableCell className="text-right">{formatNumber(row.hackathonRegistrations)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.buildGamesApplications)}</TableCell>
                         <TableCell className="text-right">{formatNumber(row.grantApplications)}</TableCell>
-                        <TableCell className="text-right font-medium">{formatNumber(row.totalConversions)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatNumber(row.totalReferrals)}</TableCell>
                       </TableRow>
                     ))
                   ) : (
@@ -491,7 +501,26 @@ function ReferralTargetGroup({
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+function MetricCard({
+  label,
+  value,
+  deltaPercent,
+}: {
+  label: string;
+  value: number;
+  deltaPercent?: number;
+}) {
+  const hasDelta = typeof deltaPercent === "number";
+  const deltaClass =
+    !hasDelta || deltaPercent === 0
+      ? "text-neutral-500 dark:text-neutral-400"
+      : deltaPercent > 0
+        ? "text-emerald-600 dark:text-emerald-400"
+        : "text-red-600 dark:text-red-400";
+  const formattedDelta = hasDelta
+    ? `${deltaPercent > 0 ? "+" : ""}${Math.round(deltaPercent)}%`
+    : null;
+
   return (
     <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
       <CardHeader className="pb-2">
@@ -499,8 +528,13 @@ function MetricCard({ label, value }: { label: string; value: number }) {
           {label}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-2">
         <div className="text-4xl font-semibold tracking-tight">{formatNumber(value)}</div>
+        {formattedDelta && (
+          <div className={`text-sm font-medium ${deltaClass}`}>
+            {formattedDelta} vs previous 30 days
+          </div>
+        )}
       </CardContent>
     </Card>
   );

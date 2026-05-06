@@ -8,7 +8,12 @@ import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/co
 import { LoginModal } from './LoginModal';
 import { Terms } from './terms';
 import { BasicProfileSetup } from './BasicProfileSetup';
-import { useLoginModalState, useNewUserLoginListener, triggerLoginComplete } from '@/hooks/useLoginModal';
+import {
+  type NewUserLoginPayload,
+  useLoginModalState,
+  useNewUserLoginListener,
+  triggerLoginComplete,
+} from '@/hooks/useLoginModal';
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
@@ -38,25 +43,38 @@ export function LoginModalWrapper() {
     }
   }, [isOpen, callbackUrl]);
 
-  // Function to check and show terms modal
-  const checkAndShowTerms = useCallback(async () => {
-    // Use existing session from context instead of fetching
-    if (!session?.user?.id) {
-      // If no session yet, update and wait for it
-      await update();
-      return;
-    }
+  const showTermsForUser = useCallback((user: { id?: string | null; is_new_user?: boolean | null }) => {
+    if (!user.id) return;
 
-    const termsKey = `shouldShowTerms_${session.user.id}`;
+    const termsKey = `shouldShowTerms_${user.id}`;
     const termsKeyValue = localStorage.getItem(termsKey);
 
-    if (session.user.is_new_user && termsKeyValue !== "false") {
+    if (user.is_new_user && termsKeyValue !== "false") {
       // Store the user ID from session so we can render the modal
-      setTermsUserId(session.user.id);
+      setTermsUserId(user.id);
       setShowTerms(true);
       localStorage.setItem(termsKey, "true");
     }
-  }, [session, update]);
+  }, []);
+
+  // Function to check and show terms modal
+  const checkAndShowTerms = useCallback(async (payload?: NewUserLoginPayload) => {
+    if (payload?.isNewUser && payload.userId) {
+      showTermsForUser({ id: payload.userId, is_new_user: true });
+      return;
+    }
+
+    let currentUser = session?.user;
+
+    if (!currentUser?.id) {
+      const updatedSession = await update();
+      currentUser = updatedSession?.user;
+    }
+
+    if (currentUser?.id) {
+      showTermsForUser(currentUser);
+    }
+  }, [session?.user, update, showTermsForUser]);
 
   // Listen for new user login events from VerifyEmail
   useNewUserLoginListener(checkAndShowTerms);
@@ -73,22 +91,17 @@ export function LoginModalWrapper() {
     }
 
     const termsKey = `shouldShowTerms_${session.user.id}`;
-    const termsKeyValue = localStorage.getItem(termsKey);
 
     // If user is a new user, show terms
     if (session.user.is_new_user) {
       // Only show if not explicitly set to "false" (user already accepted)
-      if (termsKeyValue !== "false") {
-        setTermsUserId(session.user.id);
-        setShowTerms(true);
-        localStorage.setItem(termsKey, "true");
-      }
+      showTermsForUser(session.user);
     } else {
       // User is not new, hide terms and clean up
       setShowTerms(false);
       localStorage.removeItem(termsKey);
     }
-  }, [status, session, session?.user?.id, session?.user?.is_new_user]);
+  }, [status, session, session?.user?.id, session?.user?.is_new_user, showTermsForUser]);
 
   // Separate effect to close login modal when terms should be shown
   useEffect(() => {
@@ -96,6 +109,19 @@ export function LoginModalWrapper() {
       closeLoginModal();
     }
   }, [showTerms, isOpen, closeLoginModal]);
+
+  useEffect(() => {
+    if (
+      isOpen &&
+      status === "authenticated" &&
+      session?.user?.id &&
+      !session.user.is_new_user &&
+      !showTerms &&
+      !showBasicProfile
+    ) {
+      closeLoginModal();
+    }
+  }, [isOpen, status, session?.user?.id, session?.user?.is_new_user, showTerms, showBasicProfile, closeLoginModal]);
 
   const handleTermsSuccess = async () => {
     // Update session to get latest data
@@ -258,6 +284,7 @@ export function LoginModalWrapper() {
               >
                 <VisuallyHidden>
                   <DialogTitle>Terms and Conditions</DialogTitle>
+                  <Dialog.Description>Review and accept the Builder Hub terms.</Dialog.Description>
                 </VisuallyHidden>
                 <div className="px-5 py-5 overflow-y-auto" style={{ maxHeight: '90vh' }}>
                   <Terms
@@ -291,6 +318,7 @@ export function LoginModalWrapper() {
               >
                 <VisuallyHidden>
                   <DialogTitle>Basic Profile Setup</DialogTitle>
+                  <Dialog.Description>Complete basic profile information for your Builder Hub account.</Dialog.Description>
                 </VisuallyHidden>
                 <div className="px-5 py-5 overflow-y-auto" style={{ maxHeight: '90vh' }}>
                   <BasicProfileSetup

@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
 
 interface JoinBannerLinkProps {
   isRegistered: boolean;
@@ -21,14 +22,32 @@ export default function JoinBannerLink({
   altText = "Hackathon background",
   utm = ""
 }: JoinBannerLinkProps) {
-  
+  const [currentReferralCode, setCurrentReferralCode] = useState("");
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const referralCode = url.searchParams.get("ref") ?? "";
+    if (referralCode) {
+      captureReferralAttributionFromUrl();
+      setCurrentReferralCode(referralCode);
+    }
+  }, []);
+
+  const appendTrackingParams = (baseUrl: string) => {
+    const params = new URLSearchParams();
+    if (utm) params.set("utm", utm);
+    if (currentReferralCode) params.set("ref", currentReferralCode);
+    const query = params.toString();
+    return query ? `${baseUrl}&${query}` : baseUrl;
+  };
+
   const getHref = () => {
     // Always allow navigation to registration form (even if registered, so they can modify)
     if (customLink) {
       return customLink;
     }
     const baseUrl = `/events/registration-form?event=${hackathonId}`;
-    return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
+    return appendTrackingParams(baseUrl);
   };
 
   const getTarget = () => {
@@ -50,4 +69,4 @@ export default function JoinBannerLink({
       />
     </Link>
   );
-} 
+}

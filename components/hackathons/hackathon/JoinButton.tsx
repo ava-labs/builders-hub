@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { EventsLang, normalizeEventsLang, t } from "@/lib/events/i18n";
+import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
 
 interface JoinButtonProps {
   isRegistered: boolean;
@@ -38,7 +39,25 @@ export default function JoinButton({
   const lang = langProp ?? normalizeEventsLang(undefined);
   const { status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
-  
+  const [currentReferralCode, setCurrentReferralCode] = useState("");
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const referralCode = url.searchParams.get("ref") ?? "";
+    if (referralCode) {
+      captureReferralAttributionFromUrl();
+      setCurrentReferralCode(referralCode);
+    }
+  }, []);
+
+  const appendTrackingParams = (baseUrl: string) => {
+    const params = new URLSearchParams();
+    if (utm) params.set("utm", utm);
+    if (currentReferralCode) params.set("ref", currentReferralCode);
+    const query = params.toString();
+    return query ? `${baseUrl}&${query}` : baseUrl;
+  };
+
   const getButtonText = () => {
     if (isRegistered) {
       if (showChatWhenRegistered) {
@@ -65,7 +84,7 @@ export default function JoinButton({
           return customLink;
         }
         const baseUrl = `/events/registration-form?event=${hackathonId}`;
-        return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
+        return appendTrackingParams(baseUrl);
       }
       return "#";
     }
@@ -73,7 +92,7 @@ export default function JoinButton({
       return customLink;
     }
     const baseUrl = `/events/registration-form?event=${hackathonId}`;
-    return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
+    return appendTrackingParams(baseUrl);
   };
 
   const getButtonTarget = () => {
@@ -115,4 +134,4 @@ export default function JoinButton({
       </Link>
     </Button>
   );
-} 
+}

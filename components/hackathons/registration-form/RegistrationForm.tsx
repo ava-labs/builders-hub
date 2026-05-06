@@ -305,7 +305,7 @@ export function RegisterForm({
         ...data,
         hackathon_id: hackathon_id,
         utm: effectiveUTM,
-        referral_attribution: getStoredReferralAttribution(),
+        referral_attribution: captureReferralAttributionFromUrl() ?? getStoredReferralAttribution(),
         interests: data.interests ?? [],
         languages: data.languages ?? [],
         roles: data.roles ?? [],

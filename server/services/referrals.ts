@@ -1,9 +1,8 @@
-import { randomBytes } from "crypto";
+import { createHash } from "crypto";
 import { prisma } from "@/prisma/prisma";
 import {
   REFERRAL_COOKIE_NAME,
   REFERRAL_TARGET_TYPES,
-  type ReferralSourceType,
   type ReferralTargetType,
 } from "@/lib/referrals/constants";
 
@@ -13,11 +12,10 @@ export interface ReferralAttributionPayload {
 }
 
 export interface RecordReferralAttributionInput {
-  conversionType: ReferralTargetType;
-  conversionResourceId?: string | null;
-  conversionTargetId?: string | null;
-  convertedUserId?: string | null;
-  convertedEmail?: string | null;
+  targetType: ReferralTargetType;
+  targetId?: string | null;
+  userId?: string | null;
+  userEmail?: string | null;
   attribution?: ReferralAttributionPayload | null;
 }
 
@@ -28,7 +26,7 @@ export function isReferralTargetType(value: unknown): value is ReferralTargetTyp
 export function getDefaultReferralDestination(targetType: ReferralTargetType): string {
   switch (targetType) {
     case "bh_signup":
-      return "/profile";
+      return "/";
     case "hackathon_registration":
       return "/events/registration-form";
     case "build_games_application":
@@ -44,101 +42,66 @@ export function buildReferralUrl(origin: string, destinationUrl: string, code: s
   return url.toString();
 }
 
-function getSource(attribution: ReferralAttributionPayload | null | undefined): ReferralSourceType {
-  if (attribution?.referralCode) return "referral";
-  return "unknown";
-}
-
 function normalizeNullable(value: string | null | undefined): string | null {
   return value?.trim() || null;
 }
 
-function buildDedupeKey({
-  conversionType,
-  conversionResourceId,
+function buildAttributionKey({
+  targetType,
+  targetId,
   referralLinkId,
-  convertedUserId,
-  convertedEmail,
-  source,
+  userId,
+  userEmail,
 }: {
-  conversionType: ReferralTargetType;
-  conversionResourceId: string | null;
+  targetType: ReferralTargetType;
+  targetId: string | null;
   referralLinkId: string | null;
-  convertedUserId: string | null;
-  convertedEmail: string | null;
-  source: ReferralSourceType;
+  userId: string | null;
+  userEmail: string | null;
 }): string {
   return [
-    conversionType,
-    conversionResourceId ?? "",
+    targetType,
+    targetId ?? "",
     referralLinkId ?? "",
-    convertedUserId ?? "",
-    convertedEmail ?? "",
-    source,
+    userId ?? "",
+    userEmail ?? "",
   ].join("|");
 }
 
-async function findExistingReferralLink({
-  ownerUserId,
-  targetType,
-  targetId,
-  destinationUrl,
-}: {
-  ownerUserId: string;
-  targetType: ReferralTargetType;
-  targetId: string | null;
-  destinationUrl: string;
-}) {
-  return prisma.referralLink.findFirst({
-    where: {
-      owner_user_id: ownerUserId,
-      target_type: targetType,
-      target_id: targetId,
-      destination_url: destinationUrl,
-      disabled_at: null,
-    },
-    orderBy: { created_at: "asc" },
-  });
-}
-
-function toReferralCodePart(value: string | null | undefined, maxLength = 28): string | null {
-  const slug = value
-    ?.toLowerCase()
-    .trim()
-    .replace(/@.*$/, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, maxLength)
-    .replace(/-+$/g, "");
-
-  return slug || null;
-}
-
 async function getOwnerReferralProfile(ownerUserId: string): Promise<{
-  codePart: string;
   teamId: string | null;
 }> {
   const owner = await prisma.user.findUnique({
     where: { id: ownerUserId },
-    select: { user_name: true, name: true, email: true, team_id: true },
+    select: { team_id: true },
   });
 
-  const codePart =
-    toReferralCodePart(owner?.user_name) ??
-    toReferralCodePart(owner?.name) ??
-    toReferralCodePart(owner?.email) ??
-    toReferralCodePart(ownerUserId, 12) ??
-    "builder";
-
   return {
-    codePart,
     teamId: owner?.team_id ?? null,
   };
 }
 
-function buildReferralCode(ownerCodePart: string, targetType: ReferralTargetType): string {
-  const targetCodePart = toReferralCodePart(targetType.replaceAll("_", "-"), 22) ?? "referral";
-  return `${ownerCodePart}-${targetCodePart}-${randomBytes(4).toString("hex")}`;
+const REFERRAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const REFERRAL_CODE_LENGTH = 5;
+
+function buildReferralCode({
+  ownerUserId,
+  targetType,
+  targetId,
+  attempt,
+}: {
+  ownerUserId: string;
+  targetType: ReferralTargetType;
+  targetId: string | null;
+  attempt: number;
+}): string {
+  const hash = createHash("sha256")
+    .update(`${ownerUserId}:${targetType}:${targetId ?? "global"}:${attempt}`)
+    .digest();
+
+  return Array.from({ length: REFERRAL_CODE_LENGTH }, (_, index) => {
+    return REFERRAL_CODE_ALPHABET[hash[index] % REFERRAL_CODE_ALPHABET.length];
+  }).join("");
 }
 
 function decodeCookieValue(value: string): ReferralAttributionPayload | null {
@@ -149,18 +112,49 @@ function decodeCookieValue(value: string): ReferralAttributionPayload | null {
   }
 }
 
+function readReferralAttributionFromUrl(value: string | null): ReferralAttributionPayload | null {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    const referralCode = normalizeNullable(url.searchParams.get("ref"));
+    if (!referralCode) return null;
+
+    return {
+      referralCode,
+      landingPath: `${url.pathname}${url.search}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function readReferralAttributionFromRequest(request: Request): ReferralAttributionPayload | null {
   const cookieHeader = request.headers.get("cookie");
-  if (!cookieHeader) return null;
+  if (!cookieHeader) {
+    return (
+      readReferralAttributionFromUrl(request.headers.get("referer")) ??
+      readReferralAttributionFromUrl(request.headers.get("referrer"))
+    );
+  }
 
   const cookie = cookieHeader
     .split(";")
     .map((part) => part.trim())
     .find((part) => part.startsWith(`${REFERRAL_COOKIE_NAME}=`));
 
-  if (!cookie) return null;
+  if (!cookie) {
+    return (
+      readReferralAttributionFromUrl(request.headers.get("referer")) ??
+      readReferralAttributionFromUrl(request.headers.get("referrer"))
+    );
+  }
 
-  return decodeCookieValue(cookie.slice(REFERRAL_COOKIE_NAME.length + 1));
+  return (
+    decodeCookieValue(cookie.slice(REFERRAL_COOKIE_NAME.length + 1)) ??
+    readReferralAttributionFromUrl(request.headers.get("referer")) ??
+    readReferralAttributionFromUrl(request.headers.get("referrer"))
+  );
 }
 
 export async function createReferralLink({
@@ -176,21 +170,31 @@ export async function createReferralLink({
 }) {
   const destination = destinationUrl?.trim() || getDefaultReferralDestination(targetType);
   const normalizedTargetId = normalizeNullable(targetId);
-  const existingLink = await findExistingReferralLink({
-    ownerUserId,
-    targetType,
-    targetId: normalizedTargetId,
-    destinationUrl: destination,
-  });
-
-  if (existingLink) {
-    return existingLink;
-  }
-
   const ownerProfile = await getOwnerReferralProfile(ownerUserId);
 
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const code = buildReferralCode(ownerProfile.codePart, targetType);
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    const code = buildReferralCode({
+      ownerUserId,
+      targetType,
+      targetId: normalizedTargetId,
+      attempt,
+    });
+
+    const existingByCode = await prisma.referralLink.findUnique({ where: { code } });
+    if (existingByCode) {
+      if (
+        existingByCode.owner_user_id === ownerUserId &&
+        existingByCode.target_type === targetType &&
+        (existingByCode.target_id ?? null) === normalizedTargetId &&
+        existingByCode.destination_url === destination &&
+        !existingByCode.disabled_at
+      ) {
+        return existingByCode;
+      }
+
+      continue;
+    }
+
     try {
       return await prisma.referralLink.create({
         data: {
@@ -203,7 +207,7 @@ export async function createReferralLink({
         },
       });
     } catch (error) {
-      if (attempt === 3) throw error;
+      if (attempt === 15) throw error;
     }
   }
 
@@ -225,9 +229,7 @@ export async function recordReferralAttribution(input: RecordReferralAttribution
     return null;
   }
 
-  const source = getSource(attribution);
-  const conversionResourceId = normalizeNullable(input.conversionResourceId);
-  const conversionTargetId = normalizeNullable(input.conversionTargetId) ?? conversionResourceId;
+  const targetId = normalizeNullable(input.targetId);
 
   const referralLink = await prisma.referralLink.findFirst({
     where: {
@@ -242,38 +244,44 @@ export async function recordReferralAttribution(input: RecordReferralAttribution
 
   if (
     referralLink &&
-    (referralLink.target_type !== input.conversionType ||
-      (referralLink.target_id && referralLink.target_id !== conversionTargetId))
+    (referralLink.target_type !== input.targetType ||
+      (referralLink.target_id && referralLink.target_id !== targetId))
   ) {
     return null;
   }
 
-  const convertedEmail = normalizeNullable(input.convertedEmail)?.toLowerCase() ?? null;
-  const convertedUserId = normalizeNullable(input.convertedUserId);
-  const referralLinkId = referralLink?.id ?? null;
-  const dedupeKey = buildDedupeKey({
-    conversionType: input.conversionType,
-    conversionResourceId,
+  const userEmail = normalizeNullable(input.userEmail)?.toLowerCase() ?? null;
+  const userId =
+    normalizeNullable(input.userId) ??
+    (userEmail
+      ? (
+          await prisma.user.findUnique({
+            where: { email: userEmail },
+            select: { id: true },
+          })
+        )?.id ?? null
+      : null);
+  const referralLinkId = referralLink.id;
+  const attributionKey = buildAttributionKey({
+    targetType: input.targetType,
+    targetId,
     referralLinkId,
-    convertedUserId,
-    convertedEmail,
-    source,
+    userId,
+    userEmail,
   });
 
   return prisma.referralAttribution.upsert({
-    where: { dedupe_key: dedupeKey },
+    where: { attribution_key: attributionKey },
     update: {},
     create: {
-      dedupe_key: dedupeKey,
+      attribution_key: attributionKey,
       referral_link_id: referralLinkId,
-      referrer_user_id: referralLink?.owner_user_id || null,
-      team_id: referralLink?.team_id || null,
-      converted_user_id: convertedUserId,
-      converted_email: convertedEmail,
-      conversion_type: input.conversionType,
-      conversion_resource_id: conversionResourceId,
-      source,
-      landing_path: attribution?.landingPath || null,
+      user_id_referrer: referralLink.owner_user_id,
+      team_id_referrer: referralLink.team_id || null,
+      user_id: userId,
+      target_type: input.targetType,
+      target_id: targetId,
+      path: attribution?.landingPath || null,
     },
   });
 }

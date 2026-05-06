@@ -155,10 +155,9 @@ export async function POST(request: Request) {
 
     try {
       await recordReferralAttributionFromRequest(request, {
-        conversionType: 'hackathon_registration',
-        conversionResourceId: typeof formData.hackathon_id === 'string' ? formData.hackathon_id : null,
-        conversionTargetId: typeof formData.hackathon_id === 'string' ? formData.hackathon_id : null,
-        convertedEmail: typeof formData.email === 'string' ? formData.email : null,
+        targetType: 'hackathon_registration',
+        targetId: typeof formData.hackathon_id === 'string' ? formData.hackathon_id : null,
+        userEmail: typeof formData.email === 'string' ? formData.email : null,
         attribution: (formData.referral_attribution as any) ?? null,
       });
     } catch (error) {

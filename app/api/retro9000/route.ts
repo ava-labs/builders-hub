@@ -329,9 +329,9 @@ export async function POST(request: Request) {
 
     try {
       await recordReferralAttributionFromRequest(request, {
-        conversionType: 'grant_application',
-        conversionTargetId: 'retro9000',
-        convertedEmail: typeof formData.email === 'string' ? formData.email : null,
+        targetType: 'grant_application',
+        targetId: 'retro9000',
+        userEmail: typeof formData.email === 'string' ? formData.email : null,
         attribution: (formData.referral_attribution as any) ?? null,
       });
     } catch (error) {

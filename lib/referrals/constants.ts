@@ -8,10 +8,3 @@ export const REFERRAL_TARGET_TYPES = [
 ] as const;
 
 export type ReferralTargetType = (typeof REFERRAL_TARGET_TYPES)[number];
-
-export const REFERRAL_SOURCE_TYPES = [
-  "referral",
-  "unknown",
-] as const;
-
-export type ReferralSourceType = (typeof REFERRAL_SOURCE_TYPES)[number];

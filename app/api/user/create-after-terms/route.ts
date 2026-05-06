@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     // Get the terms acceptance data from the request body
     const body = await req.json();
-    const { notifications = false } = body;
+    const { notifications = false, referral_attribution = null } = body;
 
     // Create the new user
     const newUser = await prisma.user.create({
@@ -70,12 +70,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let referralAttributed = false;
     try {
-      await recordReferralAttributionFromRequest(req, {
-        conversionType: 'bh_signup',
-        convertedUserId: newUser.id,
-        convertedEmail: newUser.email,
+      const attribution = await recordReferralAttributionFromRequest(req, {
+        targetType: 'bh_signup',
+        userId: newUser.id,
+        userEmail: newUser.email,
+        attribution: referral_attribution,
       });
+      referralAttributed = Boolean(attribution);
     } catch (error) {
       console.error('[Referral] Failed to record BH signup attribution:', error);
     }
@@ -84,6 +87,7 @@ export async function POST(req: NextRequest) {
       id: newUser.id,
       email: newUser.email,
       created: true,
+      referralAttributed,
     });
   } catch (error) {
     console.error('Error creating user after terms:', error);

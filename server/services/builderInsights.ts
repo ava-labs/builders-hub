@@ -24,21 +24,23 @@ export interface EventParticipantPoint {
 export interface TopReferrerRow {
   referrerId: string;
   referrer: string;
-  bhSignups: number;
+  teamId: string | null;
+  team: string;
+  builderHubSignups: number;
+  eventRegistrations: number;
   hackathonRegistrations: number;
-  buildGamesApplications: number;
   grantApplications: number;
-  totalConversions: number;
+  totalReferrals: number;
 }
 
 export interface TopTeamReferrerRow {
   teamId: string;
   team: string;
-  bhSignups: number;
+  builderHubSignups: number;
+  eventRegistrations: number;
   hackathonRegistrations: number;
-  buildGamesApplications: number;
   grantApplications: number;
-  totalConversions: number;
+  totalReferrals: number;
 }
 
 export interface ReferralTargetPreset {
@@ -54,10 +56,12 @@ export interface ReferralTargetPreset {
 export interface BuilderInsightsData {
   totalAccounts: number;
   userGeneratedBhAndEventSignups: number;
+  latest30DaySignups: number;
+  previous30DaySignups: number;
+  rollingSignupDeltaPercent: number;
   monthlySignups: MonthlySignupPoint[];
   signupsByReferrer: ReferrerSignupPoint[];
   eventParticipants: EventParticipantPoint[];
-  communityHackathonReferrers: ReferrerSignupPoint[];
   topReferrers: TopReferrerRow[];
   topTeamReferrers: TopTeamReferrerRow[];
   referralTargets: ReferralTargetPreset[];
@@ -114,17 +118,21 @@ function formatTeamLabel(teamId: string): string {
   return REFERRAL_TEAM_LABELS[teamId] ?? teamId;
 }
 
+function getReferrerTeamLabel(teamId: string | null): string {
+  return teamId ? formatTeamLabel(teamId) : "Community";
+}
+
 export async function getBuilderInsightsData(currentUserId: string): Promise<BuilderInsightsData> {
   const [
     totalAccounts,
     monthlyRows,
+    rollingSignupRows,
     referrerRows,
     eventParticipantRows,
     userGeneratedRows,
     activeEventRows,
     topReferrerRows,
     topTeamReferrerRows,
-    communityHackathonReferrerRows,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.$queryRaw<Array<{ month: Date; signups: bigint }>>`
@@ -133,14 +141,24 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       GROUP BY 1
       ORDER BY 1 ASC
     `,
+    prisma.$queryRaw<Array<{ latest30Days: bigint; previous30Days: bigint }>>`
+      SELECT
+        COUNT(*) FILTER (
+          WHERE "created_at" >= NOW() - INTERVAL '30 days'
+        )::bigint AS "latest30Days",
+        COUNT(*) FILTER (
+          WHERE "created_at" < NOW() - INTERVAL '30 days'
+            AND "created_at" >= NOW() - INTERVAL '60 days'
+        )::bigint AS "previous30Days"
+      FROM "User"
+    `,
     prisma.$queryRaw<Array<{ referrerId: string; referrer: string | null; signups: bigint }>>`
       SELECT owner."id" AS "referrerId",
              COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
              COUNT(*)::bigint AS "signups"
       FROM "ReferralAttribution" attribution
-      INNER JOIN "User" owner ON owner."id" = attribution."referrer_user_id"
-      WHERE attribution."conversion_type" = 'bh_signup'
-        AND attribution."source" = 'referral'
+      INNER JOIN "User" owner ON owner."id" = attribution."user_id_referrer"
+      WHERE attribution."target_type" = 'bh_signup'
       GROUP BY owner."id", owner."name", owner."email"
       ORDER BY "signups" DESC
       LIMIT 20
@@ -175,9 +193,8 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     prisma.$queryRaw<Array<{ signups: bigint }>>`
       SELECT COUNT(*)::bigint AS "signups"
       FROM "ReferralAttribution" attribution
-      WHERE attribution."source" = 'referral'
-        AND attribution."referrer_user_id" = ${currentUserId}
-        AND attribution."conversion_type" IN (
+      WHERE attribution."user_id_referrer" = ${currentUserId}
+        AND attribution."target_type" IN (
           'bh_signup',
           'hackathon_registration',
           'build_games_application'
@@ -201,61 +218,68 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       Array<{
         referrerId: string;
         referrer: string | null;
-        bhSignups: bigint;
+        teamId: string | null;
+        builderHubSignups: bigint;
+        eventRegistrations: bigint;
         hackathonRegistrations: bigint;
-        buildGamesApplications: bigint;
         grantApplications: bigint;
-        totalConversions: bigint;
+        totalReferrals: bigint;
       }>
     >`
       SELECT owner."id" AS "referrerId",
              COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
-             COUNT(*) FILTER (WHERE attribution."conversion_type" = 'bh_signup')::bigint AS "bhSignups",
-             COUNT(*) FILTER (WHERE attribution."conversion_type" = 'hackathon_registration')::bigint AS "hackathonRegistrations",
-             COUNT(*) FILTER (WHERE attribution."conversion_type" = 'build_games_application')::bigint AS "buildGamesApplications",
-             COUNT(*) FILTER (WHERE attribution."conversion_type" = 'grant_application')::bigint AS "grantApplications",
-             COUNT(*)::bigint AS "totalConversions"
+             owner."team_id" AS "teamId",
+             COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
+             COUNT(*) FILTER (
+               WHERE attribution."target_type" = 'hackathon_registration'
+                 AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
+             )::bigint AS "eventRegistrations",
+             COUNT(*) FILTER (
+               WHERE attribution."target_type" = 'build_games_application'
+                  OR (
+                    attribution."target_type" = 'hackathon_registration'
+                    AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
+                  )
+             )::bigint AS "hackathonRegistrations",
+             COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
+             COUNT(*)::bigint AS "totalReferrals"
       FROM "ReferralAttribution" attribution
-      INNER JOIN "User" owner ON owner."id" = attribution."referrer_user_id"
-      WHERE attribution."source" = 'referral'
-      GROUP BY owner."id", owner."name", owner."email"
-      ORDER BY "totalConversions" DESC
+      INNER JOIN "User" owner ON owner."id" = attribution."user_id_referrer"
+      LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
+      GROUP BY owner."id", owner."name", owner."email", owner."team_id"
+      ORDER BY "totalReferrals" DESC
       LIMIT 20
     `,
     prisma.$queryRaw<
       Array<{
         teamId: string;
-        bhSignups: bigint;
+        builderHubSignups: bigint;
+        eventRegistrations: bigint;
         hackathonRegistrations: bigint;
-        buildGamesApplications: bigint;
         grantApplications: bigint;
-        totalConversions: bigint;
+        totalReferrals: bigint;
       }>
     >`
-      SELECT attribution."team_id" AS "teamId",
-             COUNT(*) FILTER (WHERE attribution."conversion_type" = 'bh_signup')::bigint AS "bhSignups",
-             COUNT(*) FILTER (WHERE attribution."conversion_type" = 'hackathon_registration')::bigint AS "hackathonRegistrations",
-             COUNT(*) FILTER (WHERE attribution."conversion_type" = 'build_games_application')::bigint AS "buildGamesApplications",
-             COUNT(*) FILTER (WHERE attribution."conversion_type" = 'grant_application')::bigint AS "grantApplications",
-             COUNT(*)::bigint AS "totalConversions"
+      SELECT attribution."team_id_referrer" AS "teamId",
+             COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
+             COUNT(*) FILTER (
+               WHERE attribution."target_type" = 'hackathon_registration'
+                 AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
+             )::bigint AS "eventRegistrations",
+             COUNT(*) FILTER (
+               WHERE attribution."target_type" = 'build_games_application'
+                  OR (
+                    attribution."target_type" = 'hackathon_registration'
+                    AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
+                  )
+             )::bigint AS "hackathonRegistrations",
+             COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
+             COUNT(*)::bigint AS "totalReferrals"
       FROM "ReferralAttribution" attribution
-      WHERE attribution."source" = 'referral'
-        AND attribution."team_id" IS NOT NULL
-      GROUP BY attribution."team_id"
-      ORDER BY "totalConversions" DESC
-      LIMIT 20
-    `,
-    prisma.$queryRaw<Array<{ referrerId: string; referrer: string | null; signups: bigint }>>`
-      SELECT owner."id" AS "referrerId",
-             COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
-             COUNT(*)::bigint AS "signups"
-      FROM "ReferralAttribution" attribution
-      INNER JOIN "User" owner ON owner."id" = attribution."referrer_user_id"
-      WHERE attribution."conversion_type" = 'hackathon_registration'
-        AND attribution."source" = 'referral'
-        AND NOT (owner."custom_attributes" && ARRAY['devrel', 'judge', 'team1', 'team1-admin']::text[])
-      GROUP BY owner."id", owner."name", owner."email"
-      ORDER BY "signups" DESC
+      LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
+      WHERE attribution."team_id_referrer" IS NOT NULL
+      GROUP BY attribution."team_id_referrer"
+      ORDER BY "totalReferrals" DESC
       LIMIT 20
     `,
   ]);
@@ -279,6 +303,14 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
   }));
 
   const userGeneratedBhAndEventSignups = toNumber(userGeneratedRows[0]?.signups);
+  const latest30DaySignups = toNumber(rollingSignupRows[0]?.latest30Days);
+  const previous30DaySignups = toNumber(rollingSignupRows[0]?.previous30Days);
+  const rollingSignupDeltaPercent =
+    previous30DaySignups === 0
+      ? latest30DaySignups > 0
+        ? 100
+        : 0
+      : ((latest30DaySignups - previous30DaySignups) / previous30DaySignups) * 100;
 
   const activeEventTargets: ReferralTargetPreset[] = activeEventRows.map((event) => {
     return {
@@ -295,6 +327,9 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
   return {
     totalAccounts,
     userGeneratedBhAndEventSignups,
+    latest30DaySignups,
+    previous30DaySignups,
+    rollingSignupDeltaPercent,
     monthlySignups,
     signupsByReferrer: referrerRows.map((row) => ({
       referrerId: row.referrerId,
@@ -302,28 +337,25 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       signups: toNumber(row.signups),
     })),
     eventParticipants,
-    communityHackathonReferrers: communityHackathonReferrerRows.map((row) => ({
-      referrerId: row.referrerId,
-      referrer: row.referrer ?? "Unknown",
-      signups: toNumber(row.signups),
-    })),
     topReferrers: topReferrerRows.map((row) => ({
       referrerId: row.referrerId,
       referrer: row.referrer ?? "Unknown",
-      bhSignups: toNumber(row.bhSignups),
+      teamId: row.teamId ?? null,
+      team: getReferrerTeamLabel(row.teamId ?? null),
+      builderHubSignups: toNumber(row.builderHubSignups),
+      eventRegistrations: toNumber(row.eventRegistrations),
       hackathonRegistrations: toNumber(row.hackathonRegistrations),
-      buildGamesApplications: toNumber(row.buildGamesApplications),
       grantApplications: toNumber(row.grantApplications),
-      totalConversions: toNumber(row.totalConversions),
+      totalReferrals: toNumber(row.totalReferrals),
     })),
     topTeamReferrers: topTeamReferrerRows.map((row) => ({
       teamId: row.teamId,
       team: formatTeamLabel(row.teamId),
-      bhSignups: toNumber(row.bhSignups),
+      builderHubSignups: toNumber(row.builderHubSignups),
+      eventRegistrations: toNumber(row.eventRegistrations),
       hackathonRegistrations: toNumber(row.hackathonRegistrations),
-      buildGamesApplications: toNumber(row.buildGamesApplications),
       grantApplications: toNumber(row.grantApplications),
-      totalConversions: toNumber(row.totalConversions),
+      totalReferrals: toNumber(row.totalReferrals),
     })),
     referralTargets: [
       {
@@ -333,7 +365,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
         detail: "Active signup link",
         targetType: "bh_signup",
         targetId: null,
-        destinationUrl: "/profile",
+        destinationUrl: "/",
       },
       ...activeEventTargets,
       ...ACTIVE_GRANT_TARGETS,

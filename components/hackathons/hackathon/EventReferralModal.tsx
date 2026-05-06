@@ -45,6 +45,7 @@ export default function EventReferralModal({
         body: JSON.stringify({
           targetType: "hackathon_registration",
           targetId: hackathonId,
+          destinationUrl: `/events/registration-form?event=${hackathonId}`,
         }),
       });
 

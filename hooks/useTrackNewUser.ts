@@ -73,6 +73,10 @@ export function useTrackNewUser(): void {
 
         fetch("/api/referrals/attribution", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            referral_attribution: getStoredReferralAttribution(),
+          }),
           keepalive: true,
         })
           .then(async (response) => {

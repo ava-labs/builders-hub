@@ -60,8 +60,10 @@ export function AutoLoginModalTrigger() {
     if (status === "unauthenticated" && !hasTriggeredRef.current) {
       // Check if current path is protected
       const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+      const isSignupReferralLanding =
+        pathname === "/" && new URLSearchParams(window.location.search).has("ref");
 
-      if (isProtectedPath) {
+      if (isProtectedPath || isSignupReferralLanding) {
         // Mark as triggered to prevent multiple opens
         hasTriggeredRef.current = true;
 

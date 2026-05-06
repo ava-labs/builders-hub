@@ -22,6 +22,10 @@ import {
   FormDescription,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  clearStoredReferralAttribution,
+  getStoredReferralAttribution,
+} from "@/lib/referrals/client";
 
 // Form schema with validation
 const termsFormSchema = z.object({
@@ -72,10 +76,15 @@ export const Terms = ({
         // Create the user in the database first
         const createResponse = await axios.post("/api/user/create-after-terms", {
           notifications: data.notifications,
+          referral_attribution: getStoredReferralAttribution(),
         });
 
         if (!createResponse.data.id) {
           throw new Error("Failed to create user account");
+        }
+
+        if (createResponse.data.referralAttributed) {
+          clearStoredReferralAttribution();
         }
 
         // Force multiple session updates to ensure the JWT callback re-queries the DB
