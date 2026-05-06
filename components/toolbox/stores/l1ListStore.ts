@@ -3,6 +3,7 @@ import { persist, createJSONStorage, combine } from 'zustand/middleware';
 import { useWalletStore } from './walletStore';
 import { localStorageComp, STORE_VERSION } from './utils';
 import { useMemo } from 'react';
+import { findL1ByEvmChainId } from '@/lib/console/l1-dashboard';
 
 export type FaucetThresholds = {
   threshold: number; // min balance threshold to trigger drip
@@ -263,13 +264,23 @@ export const useL1ListStore = () => {
 
 export const useSelectedL1 = (): L1ListItem | undefined => {
   const walletChainId = useWalletStore((s) => s.walletChainId);
-  const l1List = useL1ListStore()((state: { l1List: L1ListItem[] }) => state.l1List);
-  return useMemo(() => l1List.find((l1: L1ListItem) => l1.evmChainId === walletChainId), [l1List, walletChainId]);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
+  const testnetL1List = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const mainnetL1List = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
+  return useMemo(() => {
+    const activeFirstLists = isTestnet ? [testnetL1List, mainnetL1List] : [mainnetL1List, testnetL1List];
+    return findL1ByEvmChainId(walletChainId, activeFirstLists) ?? undefined;
+  }, [isTestnet, mainnetL1List, testnetL1List, walletChainId]);
 };
 
 export const useL1ByChainId = (chainId: string): L1ListItem | undefined => {
-  const l1List = useL1ListStore()((state: { l1List: L1ListItem[] }) => state.l1List);
-  return useMemo(() => l1List.find((l1: L1ListItem) => l1.id === chainId), [l1List, chainId]);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
+  const testnetL1List = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const mainnetL1List = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
+  return useMemo(() => {
+    const activeFirstLists = isTestnet ? [testnetL1List, mainnetL1List] : [mainnetL1List, testnetL1List];
+    return activeFirstLists.flat().find((l1: L1ListItem) => l1.id === chainId);
+  }, [chainId, isTestnet, mainnetL1List, testnetL1List]);
 };
 
 // Native currency hooks for L1 store

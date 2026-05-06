@@ -4,6 +4,7 @@ import { createWalletClient, custom } from 'viem';
 import type { WalletClient } from 'viem';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
+import { useActiveWalletProvider } from './useLiveWalletChainId';
 
 /**
  * Returns a wallet client that works on custom L1 chains.
@@ -17,19 +18,21 @@ export function useResolvedWalletClient(): WalletClient | undefined {
   const { data: wagmiWalletClient } = useWalletClient();
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const viemChain = useViemChainStore();
+  const activeProvider = useActiveWalletProvider({
+    enabled: Boolean(walletEVMAddress),
+    refreshKey: walletEVMAddress,
+  });
 
   return useMemo(() => {
     if (wagmiWalletClient) return wagmiWalletClient;
 
     if (!walletEVMAddress || !viemChain) return undefined;
-
-    const provider = typeof window !== 'undefined' ? window.avalanche || (window as any).ethereum : null;
-    if (!provider) return undefined;
+    if (!activeProvider) return undefined;
 
     return createWalletClient({
       chain: viemChain,
-      transport: custom(provider),
+      transport: custom(activeProvider),
       account: walletEVMAddress as `0x${string}`,
     });
-  }, [wagmiWalletClient, walletEVMAddress, viemChain]);
+  }, [activeProvider, wagmiWalletClient, walletEVMAddress, viemChain]);
 }

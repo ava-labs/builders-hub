@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import { useWalletStore } from './walletStore';
 import { L1ListItem, useSelectedL1 } from './l1ListStore';
 import { localStorageComp, STORE_VERSION } from './utils';
-import { useL1ListStore } from './l1ListStore';
+import { getL1ListStore } from './l1ListStore';
+import { findL1ByEvmChainId } from '@/lib/console/l1-dashboard';
 
 const toolboxInitialState = {
   validatorMessagesLibAddress: '',
@@ -84,12 +85,13 @@ export const useToolboxStore = () => {
 };
 
 export function useViemChainStore() {
-  const { walletChainId } = useWalletStore();
-  const l1List = useL1ListStore()(({ l1List }: { l1List: L1ListItem[] }) => l1List);
-  const selectedL1 = useMemo(
-    () => l1List.find((l1: L1ListItem) => l1.evmChainId === walletChainId),
-    [l1List, walletChainId],
-  );
+  const { walletChainId, isTestnet } = useWalletStore();
+  const testnetL1List = getL1ListStore(true)(({ l1List }: { l1List: L1ListItem[] }) => l1List);
+  const mainnetL1List = getL1ListStore(false)(({ l1List }: { l1List: L1ListItem[] }) => l1List);
+  const selectedL1 = useMemo(() => {
+    const activeFirstLists = isTestnet ? [testnetL1List, mainnetL1List] : [mainnetL1List, testnetL1List];
+    return findL1ByEvmChainId(walletChainId, activeFirstLists);
+  }, [isTestnet, mainnetL1List, testnetL1List, walletChainId]);
 
   const viemChain = useMemo(() => {
     if (!selectedL1) {

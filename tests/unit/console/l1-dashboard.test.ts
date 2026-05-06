@@ -26,6 +26,7 @@ describe('resolveL1DashboardConnection', () => {
   it('uses the live provider chain over a stale wallet-store chain', () => {
     const l1 = makeL1();
     const resolved = resolveL1DashboardConnection({
+      isConnected: true,
       walletChainId: C_CHAIN_FUJI,
       liveChainId: l1.evmChainId,
       l1Lists: [[l1]],
@@ -39,6 +40,7 @@ describe('resolveL1DashboardConnection', () => {
   it('searches all supplied L1 stores, not only the active network store', () => {
     const testnetL1 = makeL1({ evmChainId: 555_777 });
     const resolved = resolveL1DashboardConnection({
+      isConnected: true,
       walletChainId: testnetL1.evmChainId,
       liveChainId: null,
       l1Lists: [[], [testnetL1], []],
@@ -49,6 +51,7 @@ describe('resolveL1DashboardConnection', () => {
 
   it('keeps C-Chain classified as C-Chain even when L1 lists are populated', () => {
     const resolved = resolveL1DashboardConnection({
+      isConnected: true,
       walletChainId: C_CHAIN_FUJI,
       liveChainId: null,
       l1Lists: [[makeL1()]],
@@ -60,11 +63,26 @@ describe('resolveL1DashboardConnection', () => {
 
   it('returns no L1 for an unregistered custom chain', () => {
     const resolved = resolveL1DashboardConnection({
+      isConnected: true,
       walletChainId: 999_000,
       liveChainId: null,
       l1Lists: [[makeL1()]],
     });
 
+    expect(resolved.isConnectedToCChain).toBe(false);
+    expect(resolved.currentL1).toBeNull();
+  });
+
+  it('ignores live provider chain state while the wallet is disconnected', () => {
+    const l1 = makeL1();
+    const resolved = resolveL1DashboardConnection({
+      isConnected: false,
+      walletChainId: 0,
+      liveChainId: l1.evmChainId,
+      l1Lists: [[l1]],
+    });
+
+    expect(resolved.effectiveChainId).toBe(l1.evmChainId);
     expect(resolved.isConnectedToCChain).toBe(false);
     expect(resolved.currentL1).toBeNull();
   });

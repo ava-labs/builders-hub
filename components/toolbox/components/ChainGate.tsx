@@ -8,7 +8,11 @@ import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1L
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Button } from '@/components/toolbox/components/Button';
 import type { RequiredChain } from '@/components/console/step-flow';
-import { readLiveWalletChainId, useLiveWalletChainId } from '@/components/toolbox/hooks/useLiveWalletChainId';
+import {
+  readLiveWalletChainId,
+  useActiveWalletProvider,
+  useLiveWalletChainId,
+} from '@/components/toolbox/hooks/useLiveWalletChainId';
 import { resolveCreateL1RequiredChain } from '@/lib/console/create-l1-chain';
 
 interface ChainGateProps {
@@ -34,7 +38,15 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
   const mainnetL1s = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
   const walletL1s = useMemo(() => [...testnetL1s, ...mainnetL1s], [testnetL1s, mainnetL1s]);
   const { addChain, switchChain } = useWallet();
-  const liveChainId = useLiveWalletChainId(walletChainId);
+  const activeProvider = useActiveWalletProvider({
+    enabled: Boolean(walletEVMAddress),
+    refreshKey: walletChainId,
+  });
+  const liveChainId = useLiveWalletChainId({
+    provider: activeProvider,
+    enabled: Boolean(walletEVMAddress),
+    refreshKey: walletChainId,
+  });
   const [isSwitching, setIsSwitching] = useState(false);
 
   // No requirement or P-Chain (no EVM switch needed) — pass through
@@ -123,7 +135,7 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     setIsSwitching(true);
     try {
       await switchChain(expectedChainId, isTestnet ?? false);
-      const live = await readLiveWalletChainId();
+      const live = await readLiveWalletChainId(activeProvider);
       if (live === expectedChainId) {
         if (walletChainId !== expectedChainId) setWalletChainId(expectedChainId);
         return;

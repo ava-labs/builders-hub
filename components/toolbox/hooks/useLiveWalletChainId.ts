@@ -1,64 +1,95 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import {
+  type Eip1193Provider,
+  parseProviderChainId,
+  readWalletProviderChainId,
+  resolveActiveWalletProvider,
+} from '@/components/toolbox/lib/walletProvider';
 
-type Eip1193Provider = {
-  request?: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-  on?: (event: string, listener: (...args: unknown[]) => void) => void;
-  removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
+export type { Eip1193Provider };
+
+type UseActiveWalletProviderOptions = {
+  enabled?: boolean;
+  refreshKey?: unknown;
 };
 
-function parseChainId(value: unknown): number | null {
-  const parsed = typeof value === 'string' ? Number.parseInt(value, 16) : Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+type UseLiveWalletChainIdOptions = {
+  provider?: Eip1193Provider | null;
+  enabled?: boolean;
+  refreshKey?: unknown;
+};
+
+export function useActiveWalletProvider({
+  enabled = true,
+  refreshKey,
+}: UseActiveWalletProviderOptions = {}): Eip1193Provider | null {
+  const { connector, isConnected } = useAccount();
+  const walletType = useWalletStore((s) => s.walletType);
+  const [provider, setProvider] = useState<Eip1193Provider | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!enabled || !isConnected) {
+      setProvider(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    resolveActiveWalletProvider({ connector, walletType }).then((resolvedProvider) => {
+      if (!cancelled) setProvider(resolvedProvider);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connector, enabled, isConnected, walletType, refreshKey]);
+
+  return provider;
 }
 
-function getWalletProviders(): Eip1193Provider[] {
-  if (typeof window === 'undefined') return [];
+export const readLiveWalletChainId = readWalletProviderChainId;
 
-  const providers: Eip1193Provider[] = [];
-  const avalanche = (window as any).avalanche as Eip1193Provider | undefined;
-  const ethereum = (window as any).ethereum as Eip1193Provider | undefined;
-
-  if (avalanche) providers.push(avalanche);
-  if (ethereum && ethereum !== avalanche) providers.push(ethereum);
-
-  return providers;
-}
-
-export async function readLiveWalletChainId(): Promise<number | null> {
-  const provider = getWalletProviders().find((p) => typeof p.request === 'function');
-  if (!provider?.request) return null;
-
-  try {
-    return parseChainId(await provider.request({ method: 'eth_chainId' }));
-  } catch {
-    return null;
-  }
-}
-
-export function useLiveWalletChainId(refreshKey?: unknown): number | null {
+export function useLiveWalletChainId({ provider, enabled = true, refreshKey }: UseLiveWalletChainIdOptions = {}):
+  | number
+  | null {
   const [liveChainId, setLiveChainId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
+    if (!enabled || !provider?.request) {
+      setLiveChainId(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const refresh = () => {
-      readLiveWalletChainId().then((chainId) => {
+      readLiveWalletChainId(provider).then((chainId) => {
         if (!cancelled) setLiveChainId(chainId);
       });
     };
 
+    const handleChainChanged = (chainId: unknown) => {
+      const parsed = parseProviderChainId(chainId);
+      if (!cancelled) setLiveChainId(parsed);
+    };
+
     refresh();
 
-    const providers = getWalletProviders();
-    providers.forEach((provider) => provider.on?.('chainChanged', refresh));
+    provider.on?.('chainChanged', handleChainChanged);
 
     return () => {
       cancelled = true;
-      providers.forEach((provider) => provider.removeListener?.('chainChanged', refresh));
+      provider.removeListener?.('chainChanged', handleChainChanged);
     };
-  }, [refreshKey]);
+  }, [provider, enabled, refreshKey]);
 
   return liveChainId;
 }
