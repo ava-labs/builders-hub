@@ -7,6 +7,7 @@ import type { EERCIdentitySecret } from './identity';
 
 export type EERCPCT = readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint];
 export type RawEERCPoint = readonly [bigint, bigint];
+export type FlatEERCEncryptedBalance = readonly [bigint, bigint, bigint, bigint];
 
 export interface RawEERCAmountPCT {
   pct: EERCPCT;
@@ -29,6 +30,9 @@ export const EERC_BALANCE_PCT_DECRYPTION_MESSAGE =
 
 export const EERC_BALANCE_EGCT_MISMATCH_MESSAGE =
   'Encrypted balance verification failed: the decrypted history does not match the on-chain EGCT for your local BabyJubJub key. Open Register, clear/re-derive the local key, then refresh. If this balance was created with a different key, you need that key to spend it.';
+
+export const EERC_BALANCE_PROOF_MISMATCH_MESSAGE =
+  'Encrypted balance proof blocked: the local BabyJubJub key cannot prove the on-chain encrypted balance. Refresh Balance, then open Register to clear/re-derive the local key. If this balance was created with a different key, that key is required to withdraw or transfer.';
 
 export type EERCBalanceValidationResult =
   | {
@@ -85,6 +89,47 @@ export function validateEERCBalance(
   }
 
   return { ok: true, decryptedCents: total };
+}
+
+export function encryptedBalanceMatchesPlaintext({
+  encryptedBalance,
+  privateKey,
+  plaintextBalance,
+}: {
+  encryptedBalance: FlatEERCEncryptedBalance;
+  privateKey: bigint;
+  plaintextBalance: bigint;
+}): boolean {
+  return egctMatchesTotal(
+    {
+      c1: [encryptedBalance[0], encryptedBalance[1]],
+      c2: [encryptedBalance[2], encryptedBalance[3]],
+    },
+    privateKey,
+    plaintextBalance,
+  );
+}
+
+export function assertEERCBalanceWitnessMatchesPlaintext(args: {
+  encryptedBalance: FlatEERCEncryptedBalance;
+  privateKey: bigint;
+  plaintextBalance: bigint;
+}): void {
+  if (!encryptedBalanceMatchesPlaintext(args)) {
+    throw new Error(EERC_BALANCE_PROOF_MISMATCH_MESSAGE);
+  }
+}
+
+export function normalizeEERCBalanceProofError(err: unknown): Error {
+  if (isEERCBalanceProofAssertion(err)) {
+    return new Error(EERC_BALANCE_PROOF_MISMATCH_MESSAGE);
+  }
+  return err instanceof Error ? err : new Error(String(err));
+}
+
+export function isEERCBalanceProofAssertion(err: unknown): boolean {
+  const message = err instanceof Error ? `${err.message}\n${err.stack ?? ''}` : String(err);
+  return /Assert Failed/i.test(message) && /CheckValue/i.test(message) && /(WithdrawCircuit|TransferCircuit)/i.test(message);
 }
 
 function decryptPCT(identity: EERCIdentitySecret, pct: EERCPCT): bigint | null {

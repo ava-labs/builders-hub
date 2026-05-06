@@ -8,6 +8,10 @@
 import EncryptedERCArtifact from '@/contracts/encrypted-erc/compiled/EncryptedERC.json';
 import { BabyJub, FF, Poseidon, SNARK_FIELD_SIZE } from '../crypto';
 import type { BJPoint } from '../crypto/babyjub';
+import {
+  assertEERCBalanceWitnessMatchesPlaintext,
+  normalizeEERCBalanceProofError,
+} from '../balanceValidation';
 import { generateProof } from '../proof';
 import type { EERCDeployment, Hex } from '../types';
 import type { FlatEncryptedBalance } from './transfer';
@@ -45,6 +49,11 @@ export async function withdrawFromEERC(inputs: WithdrawInputs): Promise<{ txHash
 
   if (amount <= 0n) throw new Error('Amount must be positive');
   if (amount > decryptedBalance) throw new Error('Insufficient encrypted balance');
+  assertEERCBalanceWitnessMatchesPlaintext({
+    encryptedBalance,
+    privateKey: senderPrivateKey,
+    plaintextBalance: decryptedBalance,
+  });
 
   const newBalance = decryptedBalance - amount;
 
@@ -75,7 +84,13 @@ export async function withdrawFromEERC(inputs: WithdrawInputs): Promise<{ txHash
     AuditorPCTRandom: auditorPCT.encryptionRandom,
   };
 
-  const { points, publicSignals } = await generateProof('withdraw', circuitInput);
+  let generatedProof: Awaited<ReturnType<typeof generateProof>>;
+  try {
+    generatedProof = await generateProof('withdraw', circuitInput);
+  } catch (err) {
+    throw normalizeEERCBalanceProofError(err);
+  }
+  const { points, publicSignals } = generatedProof;
   if (publicSignals.length !== 16) {
     throw new Error(`Expected 16 public signals for withdraw, got ${publicSignals.length}`);
   }

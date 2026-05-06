@@ -16,6 +16,7 @@ import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId'
 import { useEERCWithdraw } from '@/hooks/eerc/useEERCWithdraw';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
 import { parseEERCAmount } from '@/lib/eerc/parseAmount';
+import { EERC_BALANCE_PROOF_MISMATCH_MESSAGE } from '@/lib/eerc/balanceValidation';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
@@ -162,7 +163,20 @@ function WithdrawBurn() {
             Exceeds balance ({Scalar.parseEERCBalance(balance.decryptedCents)}).
           </div>
         )}
-        {wd.error && <div className="text-[11px] text-red-600 dark:text-red-400">{wd.error}</div>}
+        {wd.error && (
+          <div className="text-[11px] text-red-600 dark:text-red-400">
+            {wd.error}
+            {wd.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE && (
+              <>
+                {' '}
+                <Link href="/console/encrypted-erc/register" className="underline font-medium">
+                  Open Register
+                </Link>
+                .
+              </>
+            )}
+          </div>
+        )}
         {wd.status === 'success' && wd.txHash && (
           <div className="text-[11px]">
             <EERCTxLink chainId={converter.chainId} txHash={wd.txHash}>

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  EERC_BALANCE_PROOF_MISMATCH_MESSAGE,
+  assertEERCBalanceWitnessMatchesPlaintext,
+  normalizeEERCBalanceProofError,
   validateEERCBalance,
   type EERCPCT,
   type RawEERCBalance,
@@ -129,6 +132,51 @@ describe('validateEERCBalance', () => {
       ok: true,
       decryptedCents: 0n,
     });
+  });
+});
+
+describe('assertEERCBalanceWitnessMatchesPlaintext', () => {
+  beforeEach(() => {
+    let nextRandom = 2000n;
+    vi.spyOn(BabyJub, 'generateRandomValue').mockImplementation(async () => nextRandom++);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('accepts the exact encrypted balance and plaintext used by the proof input', async () => {
+    const identity = makeIdentity('8');
+    const eGCT = await encryptEGCT(identity.publicKey, 100n);
+
+    expect(() =>
+      assertEERCBalanceWitnessMatchesPlaintext({
+        encryptedBalance: [eGCT.c1[0], eGCT.c1[1], eGCT.c2[0], eGCT.c2[1]],
+        privateKey: identity.formattedKey,
+        plaintextBalance: 100n,
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects the exact proof input when the plaintext does not match the EGCT', async () => {
+    const identity = makeIdentity('9');
+    const eGCT = await encryptEGCT(identity.publicKey, 100n);
+
+    expect(() =>
+      assertEERCBalanceWitnessMatchesPlaintext({
+        encryptedBalance: [eGCT.c1[0], eGCT.c1[1], eGCT.c2[0], eGCT.c2[1]],
+        privateKey: identity.formattedKey,
+        plaintextBalance: 200n,
+      }),
+    ).toThrow(EERC_BALANCE_PROOF_MISMATCH_MESSAGE);
+  });
+
+  it('normalizes withdraw CheckValue assertion errors into the balance recovery message', () => {
+    const err = new Error(
+      'Error: Assert Failed. Error in template CheckValue_23 line: 258 Error in template WithdrawCircuit_99 line: 55',
+    );
+
+    expect(normalizeEERCBalanceProofError(err).message).toBe(EERC_BALANCE_PROOF_MISMATCH_MESSAGE);
   });
 });
 

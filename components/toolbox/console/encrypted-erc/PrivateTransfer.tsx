@@ -17,6 +17,7 @@ import { useEERCAuditorAndTokenId } from '@/hooks/eerc/useEERCAuditorAndTokenId'
 import { useEERCTransfer } from '@/hooks/eerc/useEERCTransfer';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
 import { parseEERCAmount } from '@/lib/eerc/parseAmount';
+import { EERC_BALANCE_PROOF_MISMATCH_MESSAGE } from '@/lib/eerc/balanceValidation';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { EERCTxLink } from './shared/EERCTxLink';
 import { ENCRYPTED_ERC_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
@@ -240,7 +241,20 @@ function PrivateTransfer() {
           </div>
         )}
 
-        {tr.error && <div className="text-[11px] text-red-600 dark:text-red-400">{tr.error}</div>}
+        {tr.error && (
+          <div className="text-[11px] text-red-600 dark:text-red-400">
+            {tr.error}
+            {tr.error === EERC_BALANCE_PROOF_MISMATCH_MESSAGE && (
+              <>
+                {' '}
+                <Link href="/console/encrypted-erc/register" className="underline font-medium">
+                  Open Register
+                </Link>
+                .
+              </>
+            )}
+          </div>
+        )}
         {tr.status === 'success' && tr.txHash && (
           <div className="text-[11px]">
             <EERCTxLink chainId={activeChainId} txHash={tr.txHash}>
