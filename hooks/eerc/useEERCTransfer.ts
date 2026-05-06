@@ -7,9 +7,9 @@ import { useEERCNotifiedWrite } from './useEERCNotifiedWrite';
 import RegistrarArtifact from '@/contracts/encrypted-erc/compiled/Registrar.json';
 import { transferPrivate, type FlatEncryptedBalance } from '@/lib/eerc/operations/transfer';
 import { Scalar } from '@/lib/eerc/crypto/scalar';
-import { loadIdentity } from '@/lib/eerc/identity';
+import { loadVerifiedEERCIdentity } from '@/lib/eerc/identityValidation';
 import type { BJPoint } from '@/lib/eerc/crypto/babyjub';
-import type { EERCDeployment, ERC20Meta, Hex } from '@/lib/eerc/types';
+import type { EERCDeployment, Hex } from '@/lib/eerc/types';
 
 export type TransferStatus = 'idle' | 'lookup' | 'proving' | 'submitting' | 'confirming' | 'success' | 'error';
 
@@ -60,14 +60,13 @@ export function useEERCTransfer(
       if (!address || !deployment || !walletClient || !publicClient) {
         throw new Error('Wallet not connected or deployment not resolved');
       }
-      const identity = loadIdentity(address, deployment.registrar);
-      if (!identity) throw new Error('Register your BabyJubJub identity first');
 
       setError(null);
       setTxHash(null);
 
       try {
         setStatus('lookup');
+        const identity = await loadVerifiedEERCIdentity({ address, registrar: deployment.registrar, publicClient });
         // Recipient must be registered — fetch their pubkey from Registrar.
         const recipientPkArr = (await publicClient.readContract({
           address: deployment.registrar,

@@ -122,6 +122,21 @@ function WithdrawBurn() {
         </div>
       </div>
 
+      {balance.error && (
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10 p-3 text-xs text-red-700 dark:text-red-400">
+          {balance.error}
+          {balance.validationError && (
+            <>
+              {' '}
+              <Link href="/console/encrypted-erc/register" className="underline font-medium">
+                Open Register
+              </Link>
+              .
+            </>
+          )}
+        </div>
+      )}
+
       {!aud.isAuditorSet && !aud.isLoading && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-700 dark:text-amber-300">
           Auditor public key not set — withdrawals will revert. Visit{' '}
