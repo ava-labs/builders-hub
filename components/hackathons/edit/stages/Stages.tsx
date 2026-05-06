@@ -48,6 +48,7 @@ type StageFormProps = {
   stage: HackathonStage
   index: number
   language: 'en' | 'es'
+  selectedPredefinedFields: string[]
   onStageFieldChange: (
     index: number,
     field: keyof Pick<HackathonStage, 'label' | 'date' | 'deadline'>,
@@ -446,6 +447,7 @@ export default function HackathonsEditStages({
                 onRemove={removeStage}
                 setSelectedStageForm={setSelectedStageForm}
                 setActivePreviewTab={setActivePreviewTab}
+                selectedPredefinedFields={selectedPredefinedFields}
               />
             </AccordionContent>
           </AccordionItem>
@@ -469,7 +471,7 @@ function StageForm({
   onReplaceSubmitFormFields,
   setSelectedStageForm,
   setActivePreviewTab,
-  onRemove,
+  selectedPredefinedFields,
 }: StageFormProps): React.JSX.Element {
   const validateDates = (): { error: string | null } => {
     if (stage.date && stage.deadline) {
@@ -586,6 +588,7 @@ function StageForm({
         onRemoveSubmitForm={onRemoveSubmitForm}
         setSelectedStageForm={setSelectedStageForm}
         setActivePreviewTab={setActivePreviewTab}
+        selectedPredefinedFields={selectedPredefinedFields}
       />
     </div>
   )

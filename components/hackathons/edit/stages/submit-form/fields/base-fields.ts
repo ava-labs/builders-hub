@@ -10,6 +10,7 @@ export const BASE_SUBMIT_FORM_FIELDS = {
       placeholder: 'Enter the project name',
       description: 'The name of the project being submitted.',
       maxCharacters: 40,
+      predefinedField: true,
       required: true,
     },
   },
@@ -22,6 +23,7 @@ export const BASE_SUBMIT_FORM_FIELDS = {
       placeholder: 'Enter a short description',
       description: 'A brief overview of the project.',
       maxCharacters: 100,
+      predefinedField: true,
       required: true,
     },
   },
@@ -34,9 +36,23 @@ export const BASE_SUBMIT_FORM_FIELDS = {
       placeholder: 'Enter a full description',
       description: 'A detailed overview of the project.',
       maxCharacters: 200,
+      predefinedField: true,
       required: true,
     },
   },
+  deployedAddress: {
+    label: 'Deployed Address',
+    field: {
+      id: 'deployedAddress',
+      type: SubmitFormFieldType.Text,
+      label: 'Deployed Address',
+      placeholder: 'Enter the deployed address',
+      description: 'The address where the project is deployed.',
+      maxCharacters: 200,
+      predefinedField: true,
+      required: true,
+    },
+  }
 } satisfies Record<
   string,
   {
