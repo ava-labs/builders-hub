@@ -1,11 +1,10 @@
 import React from "react";
-import { redirect } from "next/navigation";
-import ProjectOverview from "../../../../components/showcase/ProjectOverview";
 import { getProject } from "@/server/services/projects";
 import { Project } from "@/types/showcase";
 import { getUserBadgesByProjectId } from "@/server/services/project-badge";
+import { ShowcaseProjectAuthWrapper } from "@/components/showcase/ShowcaseProjectAuthWrapper";
 import { getAuthSession } from "@/lib/auth/authSession";
-
+import { redirect } from "next/navigation";
 export default async function ProjectPage({
   params,
 }: {
@@ -50,8 +49,10 @@ export default async function ProjectPage({
   const badges = await getUserBadgesByProjectId(id);
 
   return (
-    <main className="container relative max-w-[1400px] pb-16">
-      <ProjectOverview project={project as unknown as Project} badges={badges} />
-    </main>
+    <ShowcaseProjectAuthWrapper 
+      project={project as unknown as Project} 
+      badges={badges} 
+      projectId={id}
+    />
   );
 }

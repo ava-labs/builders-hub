@@ -6,27 +6,26 @@ import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useLoginModalTrigger } from '@/hooks/useLoginModal'
 
 export default function StudentLaunchpadPage() {
   const { resolvedTheme } = useTheme()
   const arrowColor = resolvedTheme === "dark" ? "white" : "black"
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const { data: session, status } = useSession()
-  const router = useRouter()
+  const { openLoginModal } = useLoginModalTrigger()
 
   const handleIframeLoad = () => {
     setIframeLoaded(true)
   }
 
-  // Redirect to login if not authenticated
+  // Show login modal if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
       const currentUrl = window.location.href
-      const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`
-      router.push(loginUrl)
+      openLoginModal(currentUrl)
     }
-  }, [status, router])
+  }, [status, openLoginModal])
 
   // Show loading state while checking authentication
   if (status === 'loading') {
