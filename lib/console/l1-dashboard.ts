@@ -20,22 +20,24 @@ export function findL1ByEvmChainId(chainId: number, l1Lists: L1ListItem[][]): L1
 }
 
 export function resolveL1DashboardConnection({
+  isConnected,
   walletChainId,
   liveChainId,
   l1Lists,
 }: {
+  isConnected: boolean;
   walletChainId: number;
   liveChainId?: number | null;
   l1Lists: L1ListItem[][];
 }): L1DashboardConnection {
   const effectiveChainId = liveChainId && liveChainId > 0 ? liveChainId : walletChainId;
-  const isConnectedToCChain = C_CHAIN_IDS.has(effectiveChainId);
+  const isConnectedToCChain = isConnected && C_CHAIN_IDS.has(effectiveChainId);
 
   return {
     effectiveChainId,
     isConnectedToCChain,
     currentL1:
-      effectiveChainId > 0 && !isConnectedToCChain
+      isConnected && effectiveChainId > 0 && !isConnectedToCChain
         ? findL1ByEvmChainId(effectiveChainId, l1Lists)
         : null,
   };

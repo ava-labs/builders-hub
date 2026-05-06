@@ -1,13 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAccount, useAccountEffect, useChainId, useSwitchChain } from 'wagmi';
 import { avalancheFuji } from 'wagmi/chains';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { createCoreWalletClient } from '@/components/toolbox/coreViem';
 import { networkIDs } from '@avalabs/avalanchejs';
 import posthog from 'posthog-js';
+import {
+  parseProviderChainId,
+  readWalletProviderChainId,
+  resolveActiveWalletProvider,
+  type Eip1193Provider,
+} from '@/components/toolbox/lib/walletProvider';
+import { C_CHAIN_FUJI, C_CHAIN_MAINNET, findL1ByEvmChainId } from '@/lib/console/l1-dashboard';
 
 /**
  * Invisible component that bridges wagmi/RainbowKit state into the
@@ -62,10 +70,49 @@ export function WalletSync() {
   const updateAllBalances = useWalletStore((s) => s.updateAllBalances);
   const setBootstrapped = useWalletStore((s) => s.setBootstrapped);
   const setWalletType = useWalletStore((s) => s.setWalletType);
+  const testnetL1List = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const mainnetL1List = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
 
   // Track previous address to detect actual changes
   const prevAddressRef = useRef<string | undefined>(undefined);
   const prevChainIdRef = useRef<number | undefined>(undefined);
+
+  const getKnownL1 = useCallback(
+    (nextChainId: number) => {
+      const activeFirstLists = useWalletStore.getState().isTestnet
+        ? [testnetL1List, mainnetL1List]
+        : [mainnetL1List, testnetL1List];
+      return findL1ByEvmChainId(nextChainId, activeFirstLists);
+    },
+    [mainnetL1List, testnetL1List],
+  );
+
+  const resolveTestnetForChainId = useCallback(
+    (nextChainId: number): boolean => {
+      if (nextChainId === C_CHAIN_FUJI) return true;
+      if (nextChainId === C_CHAIN_MAINNET) return false;
+      return getKnownL1(nextChainId)?.isTestnet ?? useWalletStore.getState().isTestnet;
+    },
+    [getKnownL1],
+  );
+
+  const applyWalletChainId = useCallback(
+    (nextChainId: number) => {
+      if (!Number.isFinite(nextChainId) || nextChainId <= 0) return;
+
+      const current = useWalletStore.getState();
+      if (nextChainId !== current.walletChainId) {
+        setWalletChainId(nextChainId);
+      }
+
+      const nextIsTestnet = resolveTestnetForChainId(nextChainId);
+      if (nextIsTestnet !== current.isTestnet) {
+        setIsTestnet(nextIsTestnet);
+        setAvalancheNetworkID(nextIsTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+      }
+    },
+    [resolveTestnetForChainId, setAvalancheNetworkID, setIsTestnet, setWalletChainId],
+  );
 
   /**
    * Determine if the connected wallet is Core.
@@ -216,13 +263,18 @@ export function WalletSync() {
 
             if (pAddr) setPChainAddress(pAddr);
             if (cAddr) setCoreEthAddress(cAddr);
+            let resolvedCoreChainId = 0;
             if (coreChainId) {
-              const numId = typeof coreChainId === 'string' ? parseInt(coreChainId as any, 16) : coreChainId;
-              setWalletChainId(numId);
+              resolvedCoreChainId = typeof coreChainId === 'string' ? parseInt(coreChainId as any, 16) : coreChainId;
+              applyWalletChainId(resolvedCoreChainId);
             }
             if (typeof chainInfo?.isTestnet === 'boolean') {
-              setIsTestnet(chainInfo.isTestnet);
-              setAvalancheNetworkID(chainInfo.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+              const knownL1 = resolvedCoreChainId > 0 ? getKnownL1(resolvedCoreChainId) : null;
+              const chainInfoIsAuthoritative =
+                resolvedCoreChainId === C_CHAIN_FUJI || resolvedCoreChainId === C_CHAIN_MAINNET || !knownL1;
+              const nextIsTestnet = chainInfoIsAuthoritative ? chainInfo.isTestnet : knownL1.isTestnet;
+              setIsTestnet(nextIsTestnet);
+              setAvalancheNetworkID(nextIsTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
               setEvmChainName(chainInfo.chainName);
             }
           } catch {
@@ -247,7 +299,26 @@ export function WalletSync() {
         } catch {}
       }
     }
-  }, [isConnected, address, isCoreConnector]);
+  }, [
+    address,
+    applyWalletChainId,
+    chainId,
+    connector,
+    getKnownL1,
+    isConnected,
+    isCoreConnector,
+    setAvalancheNetworkID,
+    setBootstrapped,
+    setCoreEthAddress,
+    setCoreWalletClient,
+    setEvmChainName,
+    setIsTestnet,
+    setPChainAddress,
+    setWalletChainId,
+    setWalletEVMAddress,
+    setWalletType,
+    updateAllBalances,
+  ]);
 
   // Sync chain changes → Zustand store
   //
@@ -262,16 +333,8 @@ export function WalletSync() {
     if (chainId === prevChainIdRef.current) return;
     prevChainIdRef.current = chainId;
 
-    setWalletChainId(chainId);
-
-    // Determine testnet status from chain ID, preserving current state for L1s
-    const resolveTestnet = (): boolean => {
-      if (chainId === 43113) return true; // Fuji C-Chain
-      if (chainId === 43114) return false; // Mainnet C-Chain
-      // Custom L1 — preserve the current testnet state from the store
-      return useWalletStore.getState().isTestnet;
-    };
-    const testnet = resolveTestnet();
+    applyWalletChainId(chainId);
+    const testnet = resolveTestnetForChainId(chainId);
 
     if (isCoreConnector) {
       // Re-create Core client for the new chain and update store.
@@ -312,7 +375,7 @@ export function WalletSync() {
         updateAllBalances();
       } catch {}
     }
-  }, [chainId, isConnected, isCoreConnector]);
+  }, [applyWalletChainId, chainId, isConnected, isCoreConnector, resolveTestnetForChainId]);
 
   // Bridge raw EIP-1193 `chainChanged` events into the store.
   //
@@ -322,27 +385,35 @@ export function WalletSync() {
   // `walletChainId` stale in the store and breaks ChainGate for L1 steps.
   // A native listener catches every switch regardless of registration.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (isCoreConnector === null) return;
+    if (!isConnected) return;
 
-    const handler = (chainIdHex: string | number) => {
-      const next = typeof chainIdHex === 'string' ? Number.parseInt(chainIdHex, 16) : Number(chainIdHex);
-      if (!Number.isFinite(next) || next <= 0) return;
-      if (next === useWalletStore.getState().walletChainId) return;
-      setWalletChainId(next);
+    const handler = (chainIdHex: unknown) => {
+      const next = parseProviderChainId(chainIdHex);
+      if (next !== null) applyWalletChainId(next);
     };
 
-    const providers: Array<{
-      on?: (event: string, listener: (...args: any[]) => void) => void;
-      removeListener?: (event: string, listener: (...args: any[]) => void) => void;
-    }> = [];
-    if (window.avalanche) providers.push(window.avalanche as any);
-    if (window.ethereum && window.ethereum !== window.avalanche) providers.push(window.ethereum as any);
+    let cancelled = false;
+    let activeProvider: Eip1193Provider | null = null;
+    const walletType = isCoreConnector ? 'core' : 'generic-evm';
 
-    providers.forEach((p) => p.on?.('chainChanged', handler));
+    resolveActiveWalletProvider({ connector, walletType }).then(async (provider) => {
+      if (cancelled || !provider) return;
+
+      activeProvider = provider;
+      provider.on?.('chainChanged', handler);
+
+      const liveChainId = await readWalletProviderChainId(provider);
+      if (!cancelled && liveChainId !== null) {
+        applyWalletChainId(liveChainId);
+      }
+    });
+
     return () => {
-      providers.forEach((p) => p.removeListener?.('chainChanged', handler));
+      cancelled = true;
+      activeProvider?.removeListener?.('chainChanged', handler);
     };
-  }, [setWalletChainId]);
+  }, [applyWalletChainId, connector, isConnected, isCoreConnector]);
 
   return null;
 }

@@ -5,7 +5,7 @@ import { useWalletStore, useNetworkInfo } from "@/components/toolbox/stores/wall
 import { getL1ListStore, useL1List, type L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { createPublicClient, http, formatEther } from "viem";
 import { networkIDs } from "@avalabs/avalanchejs";
-import { useLiveWalletChainId } from "@/components/toolbox/hooks/useLiveWalletChainId";
+import { useActiveWalletProvider, useLiveWalletChainId } from "@/components/toolbox/hooks/useLiveWalletChainId";
 import { resolveL1DashboardConnection } from "@/lib/console/l1-dashboard";
 const GLACIER_API = "https://glacier-api.avax.network";
 
@@ -55,7 +55,18 @@ export function useL1Dashboard(): L1DashboardData {
   const l1List = useL1List();
   const testnetL1List = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
   const mainnetL1List = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
-  const liveChainId = useLiveWalletChainId(walletChainId);
+
+  // Determine if connected
+  const isConnected = Boolean(walletEVMAddress);
+  const activeProvider = useActiveWalletProvider({
+    enabled: isConnected,
+    refreshKey: walletChainId,
+  });
+  const liveChainId = useLiveWalletChainId({
+    provider: activeProvider,
+    enabled: isConnected,
+    refreshKey: walletChainId,
+  });
 
   const [healthStatus, setHealthStatus] = useState<L1HealthStatus>("unknown");
   const [blockTime, setBlockTime] = useState<number | null>(null);
@@ -63,17 +74,15 @@ export function useL1Dashboard(): L1DashboardData {
   const [validatorCount, setValidatorCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Determine if connected
-  const isConnected = Boolean(walletEVMAddress);
-
   const { effectiveChainId, isConnectedToCChain, currentL1 } = useMemo(
     () =>
       resolveL1DashboardConnection({
+        isConnected,
         walletChainId,
         liveChainId,
         l1Lists: [l1List, testnetL1List, mainnetL1List],
       }),
-    [walletChainId, liveChainId, l1List, testnetL1List, mainnetL1List],
+    [isConnected, walletChainId, liveChainId, l1List, testnetL1List, mainnetL1List],
   );
 
   useEffect(() => {

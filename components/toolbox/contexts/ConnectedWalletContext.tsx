@@ -5,6 +5,7 @@ import { useViemChainStore } from '../stores/toolboxStore';
 import { createWalletClient, custom } from 'viem';
 import type { CoreWalletClientType } from '../coreViem';
 import type { WalletClient } from 'viem';
+import { useActiveWalletProvider } from '../hooks/useLiveWalletChainId';
 
 interface ConnectedWalletContextValue {
   /** Wagmi wallet client — works for ALL connected EVM wallets (Core, MetaMask, Rabby, etc.) */
@@ -22,6 +23,10 @@ export function ConnectedWalletProvider({ children }: { children: React.ReactNod
   const { data: connectorClient } = useConnectorClient();
   const { address } = useAccount();
   const viemChain = useViemChainStore();
+  const activeProvider = useActiveWalletProvider({
+    enabled: Boolean(address || walletEVMAddress),
+    refreshKey: address || walletEVMAddress,
+  });
 
   // Fallback: create a wallet client manually when wagmi can't provide one.
   // This happens when:
@@ -33,16 +38,14 @@ export function ConnectedWalletProvider({ children }: { children: React.ReactNod
     // Use wagmi's address if connected, otherwise our bootstrap's address
     const effectiveAddress = address || walletEVMAddress;
     if (!effectiveAddress || !viemChain) return null;
-
-    const provider = typeof window !== 'undefined' ? window.avalanche || (window as any).ethereum : null;
-    if (!provider) return null;
+    if (!activeProvider) return null;
 
     return createWalletClient({
       chain: viemChain,
-      transport: custom(provider),
+      transport: custom(activeProvider),
       account: effectiveAddress as `0x${string}`,
     });
-  }, [wagmiWalletClient, connectorClient, address, walletEVMAddress, viemChain]);
+  }, [activeProvider, wagmiWalletClient, connectorClient, address, walletEVMAddress, viemChain]);
 
   const resolvedClient = wagmiWalletClient ?? (connectorClient as WalletClient | undefined) ?? fallbackWalletClient;
 
