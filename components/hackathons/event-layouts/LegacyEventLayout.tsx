@@ -12,6 +12,7 @@ import MentorsJudges from "@/components/hackathons/hackathon/sections/MentorsJud
 import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewBanner";
 import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
+import { EventReferralButton } from "@/components/hackathons/hackathon/EventReferralModal";
 import type { HackathonHeader } from "@/types/hackathons";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
@@ -76,7 +77,7 @@ export default function LegacyEventLayout({
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
-      <div className="pl-4 flex gap-4 items-center">
+      <div className="pl-4 flex flex-wrap gap-4 items-center">
         <Image
           src={
             hackathon.icon.trim().length > 0
@@ -88,6 +89,14 @@ export default function LegacyEventLayout({
           height={40}
         />
         <span className="text-sm sm:text-xl font-bold">{hackathon.title}</span>{" "}
+        {isHackathon && (
+          <EventReferralButton
+            hackathonId={id}
+            hackathonTitle={hackathon.title}
+            lang={lang}
+            isAuthenticated={isAuthenticated}
+          />
+        )}
         <JoinButton
           isRegistered={isRegistered}
           isAuthenticated={isAuthenticated}

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -28,9 +29,14 @@ export async function POST(request: Request) {
     
     // Process the form data for HubSpot
     const processedFormData: Record<string, any> = {};
+    const internalOnlyFields = new Set(['referral_attribution']);
     
     // Map standard fields directly
     Object.entries(formData).forEach(([key, value]) => {
+      if (internalOnlyFields.has(key)) {
+        return;
+      }
+
       if (['fullname', 'email', 'gdpr', 'marketing_consent'].includes(key)) {
         processedFormData[key] = value;
       } else {
@@ -145,6 +151,17 @@ export async function POST(request: Request) {
 
     if (!hubspotResponse.ok) {
       throw new Error(`HubSpot API error: ${responseStatus} - ${JSON.stringify(hubspotResult)}`);
+    }
+
+    try {
+      await recordReferralAttributionFromRequest(request, {
+        targetType: 'hackathon_registration',
+        targetId: typeof formData.hackathon_id === 'string' ? formData.hackathon_id : null,
+        userEmail: typeof formData.email === 'string' ? formData.email : null,
+        attribution: (formData.referral_attribution as any) ?? null,
+      });
+    } catch (error) {
+      console.error('[Referral] Failed to record hackathon HubSpot attribution:', error);
     }
 
     return NextResponse.json({ 

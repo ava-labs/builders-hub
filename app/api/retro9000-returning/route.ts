@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 
 export async function POST(request: Request) {
   try {
@@ -83,7 +84,21 @@ export async function POST(request: Request) {
       },
       create: applicationData,
     });
-    return NextResponse.json({ success: true, id: result.id });
+
+    let referralAttributed = false;
+    try {
+      const attribution = await recordReferralAttributionFromRequest(request, {
+        targetType: 'grant_application',
+        targetId: 'retro9000-returning',
+        userEmail: result.email,
+        attribution: (formData.referral_attribution as any) ?? null,
+      });
+      referralAttributed = Boolean(attribution);
+    } catch (error) {
+      console.error('[Referral] Failed to record Retro9000 returning attribution:', error);
+    }
+
+    return NextResponse.json({ success: true, id: result.id, referralAttributed });
   } catch (error) {
     console.error('Error processing Retro9000 Returning application:', error);
     return NextResponse.json(

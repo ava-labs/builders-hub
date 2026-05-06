@@ -10,6 +10,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { RegistrationForm } from "@/types/registrationForm";
 import { sendMail } from "./mail";
+import { recordReferralAttribution } from "./referrals";
 
 export const registerValidations: Validation[] = [
   {
@@ -172,10 +173,22 @@ export async function createRegisterForm(
       tools: (registerData.tools ?? []).join(","),
       web3_proficiency: registerData.web3_proficiency ?? "",
       github_portfolio: registerData.github_portfolio ?? "",
-      ...(registerData.referrer_handle ? { referrer_handle: registerData.referrer_handle } : {}),
     },
   });
   registerData.id = newRegisterFormData.id;
+
+  let referralAttributed = false;
+  try {
+    const attribution = await recordReferralAttribution({
+      targetType: "hackathon_registration",
+      targetId: newRegisterFormData.hackathon_id,
+      userEmail: newRegisterFormData.email,
+      attribution: (registerData as any).referral_attribution ?? null,
+    });
+    referralAttributed = Boolean(attribution);
+  } catch (error) {
+    console.error("[Referral] Failed to record hackathon registration attribution:", error);
+  }
   
   // Send registration data to HubSpot
   try {
@@ -191,7 +204,10 @@ export async function createRegisterForm(
   );
   revalidatePath("/api/register-form/");
 
-  return newRegisterFormData as unknown as RegistrationForm;
+  return {
+    ...newRegisterFormData,
+    referralAttributed,
+  } as unknown as RegistrationForm & { referralAttributed: boolean };
 }
 export async function getRegisterForm(email: string, hackathon_id: string) {
   const registeredData = await prisma.registerForm.findFirst({

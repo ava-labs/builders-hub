@@ -18,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { countries } from "@/constants/countries";
 import { cn } from "@/lib/utils";
-import { getReferrer } from "@/lib/referral";
+import { getStoredReferralAttribution } from "@/lib/referrals/client";
 
 const EMPLOYMENT_ROLES = ["Accounting", "Administrative", "Development", "Communications", "Consulting", "Customer", "Design", "Education", "Engineering", "Entrepreneurship", "Finance", "Health", "Human Resources", "Information Technology", "Legal", "Marketing", "Operations", "Product", "Project Management", "Public Relations", "Quality Assurance", "Real Estate", "Recruiting", "Research", "Sales", "Support", "Retired", "Other"];
 
@@ -71,7 +71,6 @@ const formSchema = z.object({
 
   howDidYouHear: z.string().min(1, "Please select an option"),
   howDidYouHearSpecify: z.string().min(1, "Please specify how you heard about us"),
-  referrerName: z.string().optional(),
   universityAffiliation: z.enum(["yes", "no"], { message: "Please select an option" }),
   avalancheEcosystemMember: z.enum(["yes", "no"], { message: "Please select an option" }),
 
@@ -122,7 +121,6 @@ export default function BuildGamesApplyForm() {
       whyYou: "",
       howDidYouHear: "",
       howDidYouHearSpecify: "",
-      referrerName: "",
       universityAffiliation: undefined,
       avalancheEcosystemMember: undefined,
       privacyPolicyRead: false,
@@ -288,14 +286,12 @@ export default function BuildGamesApplyForm() {
   async function onSubmit(values: FormData) {
     setIsSubmitting(true);
     try {
-      const referrer = getReferrer();
-
       const response = await fetch("/api/build-games/apply", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           ...values,
-          referrer: referrer,
+          referral_attribution: getStoredReferralAttribution(),
         }),
       });
 
@@ -953,26 +949,6 @@ export default function BuildGamesApplyForm() {
                               <Input
                                 className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
                                 placeholder="Please specify"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-destructive" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="referrerName"
-                        render={({ field }) => (
-                          <FormItem className="space-y-2">
-                            <Label className="text-sm font-medium text-foreground">
-                              Please list their name:
-                            </Label>
-                            <FormControl>
-                              <Input
-                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
-                                placeholder="Referrer's name"
                                 {...field}
                               />
                             </FormControl>

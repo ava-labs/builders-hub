@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -226,8 +227,9 @@ export async function POST(request: Request) {
         });
       }
     });
+    const internalOnlyFields = new Set(['referral_attribution']);
     Object.entries(formData).forEach(([name, value]) => {
-      if (!fieldMapping[name] && value !== undefined && value !== null && value !== '') {
+      if (!fieldMapping[name] && !internalOnlyFields.has(name) && value !== undefined && value !== null && value !== '') {
         let formattedValue: string | boolean;
         
         if (Array.isArray(value)) {
@@ -323,6 +325,17 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       );
+    }
+
+    try {
+      await recordReferralAttributionFromRequest(request, {
+        targetType: 'grant_application',
+        targetId: 'retro9000',
+        userEmail: typeof formData.email === 'string' ? formData.email : null,
+        attribution: (formData.referral_attribution as any) ?? null,
+      });
+    } catch (error) {
+      console.error('[Referral] Failed to record Retro9000 attribution:', error);
     }
 
     return NextResponse.json({ 

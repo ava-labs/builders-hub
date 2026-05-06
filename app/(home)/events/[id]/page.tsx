@@ -1,9 +1,6 @@
 import React from "react";
 import { redirect } from "next/navigation";
-import {
-  getFilteredHackathons,
-  getHackathon,
-} from "@/server/services/hackathons";
+import { getHackathon } from "@/server/services/hackathons";
 import { getRegisterForm } from "@/server/services/registerForms";
 import { getAuthSession } from "@/lib/auth/authSession";
 import LegacyEventLayout from "@/components/hackathons/event-layouts/LegacyEventLayout";
@@ -14,13 +11,6 @@ import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 export const revalidate = 60;
 export const dynamicParams = true;
-
-export async function generateStaticParams() {
-  const { hackathons } = await getFilteredHackathons({});
-  return hackathons.map((hackathon) => ({
-    id: hackathon.id,
-  }));
-}
 
 export async function generateMetadata({
   params,

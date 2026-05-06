@@ -6,6 +6,10 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { EventsLang, normalizeEventsLang, t } from "@/lib/events/i18n";
+import {
+  appendReferralTrackingParams,
+  useCurrentReferralCode,
+} from "@/lib/referrals/client";
 
 interface JoinButtonProps {
   isRegistered: boolean;
@@ -38,7 +42,8 @@ export default function JoinButton({
   const lang = langProp ?? normalizeEventsLang(undefined);
   const { status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
-  
+  const currentReferralCode = useCurrentReferralCode();
+
   const getButtonText = () => {
     if (isRegistered) {
       if (showChatWhenRegistered) {
@@ -65,7 +70,7 @@ export default function JoinButton({
           return customLink;
         }
         const baseUrl = `/events/registration-form?event=${hackathonId}`;
-        return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
+        return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode, utm });
       }
       return "#";
     }
@@ -73,7 +78,7 @@ export default function JoinButton({
       return customLink;
     }
     const baseUrl = `/events/registration-form?event=${hackathonId}`;
-    return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
+    return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode, utm });
   };
 
   const getButtonTarget = () => {
@@ -115,4 +120,4 @@ export default function JoinButton({
       </Link>
     </Button>
   );
-} 
+}

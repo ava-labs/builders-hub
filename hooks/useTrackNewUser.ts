@@ -4,6 +4,11 @@ import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
+import {
+  captureReferralAttributionFromUrl,
+  clearStoredReferralAttribution,
+  getStoredReferralAttribution,
+} from "@/lib/referrals/client";
 
 /**
  * Hook to track new user creation in PostHog.
@@ -21,6 +26,7 @@ export function useTrackNewUser(): void {
 
   useEffect(() => {
     isMountedRef.current = true;
+    captureReferralAttributionFromUrl();
 
     // Only proceed if authenticated with a new user
     if (status !== "authenticated" || !session?.user?.is_new_user) {
@@ -61,8 +67,26 @@ export function useTrackNewUser(): void {
           utm_campaign: searchParams.get("utm_campaign") || undefined,
           utm_content: searchParams.get("utm_content") || undefined,
           utm_term: searchParams.get("utm_term") || undefined,
+          referral_code: getStoredReferralAttribution()?.referralCode || undefined,
           referrer: document.referrer || undefined,
         });
+
+        fetch("/api/referrals/attribution", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            referral_attribution: getStoredReferralAttribution(),
+          }),
+          keepalive: true,
+        })
+          .then(async (response) => {
+            if (!response.ok) return;
+            const result = await response.json();
+            if (result.attribution) clearStoredReferralAttribution();
+          })
+          .catch((error) => {
+            console.error("[useTrackNewUser] Failed to record referral attribution:", error);
+          });
       } catch (error) {
         // Log error but don't throw - tracking failures shouldn't break the app
         console.error("[useTrackNewUser] Failed to track new user:", error);

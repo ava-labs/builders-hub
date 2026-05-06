@@ -22,6 +22,11 @@ import {
   FormDescription,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  captureReferralAttributionFromUrl,
+  clearStoredReferralAttribution,
+  getStoredReferralAttribution,
+} from "@/lib/referrals/client";
 
 // Form schema with validation
 const termsFormSchema = z.object({
@@ -35,7 +40,7 @@ type TermsFormValues = z.infer<typeof termsFormSchema>;
 
 interface TermsProps {
   userId: string;
-  onSuccess?: () => void;
+  onSuccess?: (userId?: string) => void;
   onDecline?: () => void;
   skipRedirect?: boolean;
   compact?: boolean;
@@ -68,14 +73,25 @@ export const Terms = ({
       // Check if this is a pending user (userId starts with "pending_")
       const isPendingUser = userId.startsWith("pending_");
 
+      let resolvedUserId = userId;
+
       if (isPendingUser) {
+        const referralAttribution =
+          captureReferralAttributionFromUrl() ?? getStoredReferralAttribution();
+
         // Create the user in the database first
         const createResponse = await axios.post("/api/user/create-after-terms", {
           notifications: data.notifications,
+          referral_attribution: referralAttribution,
         });
 
         if (!createResponse.data.id) {
           throw new Error("Failed to create user account");
+        }
+        resolvedUserId = createResponse.data.id;
+
+        if (createResponse.data.referralAttributed) {
+          clearStoredReferralAttribution();
         }
 
         // Force multiple session updates to ensure the JWT callback re-queries the DB
@@ -93,7 +109,7 @@ export const Terms = ({
       }
 
       // Execute success callback if provided
-      onSuccess?.();
+      onSuccess?.(resolvedUserId);
 
       // Only redirect if skipRedirect is false
       if (!skipRedirect) {
