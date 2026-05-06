@@ -49,7 +49,7 @@ export interface TopTeamReferrerRow {
 
 export interface BuilderInsightsData {
   totalAccounts: number;
-  userGeneratedBhAndEventSignups: number;
+  userGeneratedReferralImpact: number;
   latest30DaySignups: number;
   previous30DaySignups: number;
   rollingSignupDeltaPercent: number;
@@ -163,15 +163,10 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       FROM latest_events
       ORDER BY "startDate" ASC
     `,
-    prisma.$queryRaw<Array<{ signups: bigint }>>`
-      SELECT COUNT(*)::bigint AS "signups"
+    prisma.$queryRaw<Array<{ referrals: bigint }>>`
+      SELECT COUNT(*)::bigint AS "referrals"
       FROM "ReferralAttribution" attribution
       WHERE attribution."user_id_referrer" = ${currentUserId}
-        AND attribution."target_type" IN (
-          'bh_signup',
-          'hackathon_registration',
-          'build_games_application'
-        )
     `,
     prisma.hackathon.findMany({
       where: {
@@ -275,7 +270,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     projects: toNumber(row.projects),
   }));
 
-  const userGeneratedBhAndEventSignups = toNumber(userGeneratedRows[0]?.signups);
+  const userGeneratedReferralImpact = toNumber(userGeneratedRows[0]?.referrals);
   const latest30DaySignups = toNumber(rollingSignupRows[0]?.latest30Days);
   const previous30DaySignups = toNumber(rollingSignupRows[0]?.previous30Days);
   const rollingSignupDeltaPercent =
@@ -299,7 +294,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
 
   return {
     totalAccounts,
-    userGeneratedBhAndEventSignups,
+    userGeneratedReferralImpact,
     latest30DaySignups,
     previous30DaySignups,
     rollingSignupDeltaPercent,

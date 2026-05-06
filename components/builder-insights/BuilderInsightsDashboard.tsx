@@ -183,8 +183,8 @@ export function BuilderInsightsDashboard({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <MetricCard label="Total BH accounts" value={data.totalAccounts} />
           <MetricCard
-            label="Your BH + event signups"
-            value={data.userGeneratedBhAndEventSignups}
+            label="Your Builder Impact"
+            value={data.userGeneratedReferralImpact}
           />
           <MetricCard
             label="Latest monthly signups"
