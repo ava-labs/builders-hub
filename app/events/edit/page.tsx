@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash, ChevronDown, ChevronRight, Database, PlusCircle, FileText, Layers, ImageIcon, Users, AlignLeft, LayoutGrid, ClipboardList, X, Save, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash, ChevronDown, ChevronRight, Database, PlusCircle, FileText, Layers, ImageIcon, Users, AlignLeft, LayoutGrid, ClipboardList, X, Save, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { ICON_OPTIONS } from '@/components/hackathons/edit/icon-registry';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HackathonsList from '@/components/hackathons/edit/HackathonsList';
@@ -163,7 +163,7 @@ const UpdateModal = ({ open, onClose, onConfirm, fieldsToUpdate, t, language }: 
           ))}
         </ul>
         <div className="flex justify-end gap-2 mt-4 flex-shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600">{t[language].cancel}</button>
+          <button onClick={onClose} className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-red-400">{t[language].cancel}</button>
           <button onClick={onConfirm} className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">{t[language].update}</button>
         </div>
       </div>
@@ -2110,7 +2110,7 @@ const HackathonsEdit = () => {
 
     setShowForm(true);
     setSelectedHackathon(null);
-    setIsSelectedHackathon(false);
+    setIsSelectedHackathon(true);
   };
 
   const handlePartnerLogoChange = (index: number, url: string) => {
@@ -2225,7 +2225,7 @@ const HackathonsEdit = () => {
     <div className="fixed inset-0 overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
       <Toaster />
       {/* Header */}
-      <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 px-4 h-14 flex items-center justify-center">
+      <div className="bg-fd-background/80 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 pr-4 h-14 flex items-center justify-center">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t[language].editEvents}</h1>
@@ -2248,7 +2248,7 @@ const HackathonsEdit = () => {
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-red-400 hover:text-white dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -2267,7 +2267,7 @@ const HackathonsEdit = () => {
                         <Save className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>{t[language].update}</TooltipContent>
+                    <TooltipContent>{selectedHackathon ? t[language].update : t[language].save}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 {session?.user?.custom_attributes?.includes("devrel") && (
@@ -2286,6 +2286,22 @@ const HackathonsEdit = () => {
                     </Tooltip>
                   </TooltipProvider>
                 )}
+                {formDataMain.is_public && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => window.open(`/events/${selectedHackathon.id}`, '_blank')}
+                          className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t[language].goToSite}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
                 <div className="border-l border-zinc-300 dark:border-zinc-600 h-5 mx-0.5" />
               </>
             )}
@@ -2295,12 +2311,13 @@ const HackathonsEdit = () => {
                   <button
                     type="button"
                     onClick={loadMockData}
-                    className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    disabled={selectedHackathon !== null}
+                    className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Database className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Load Mock Data</TooltipContent>
+                <TooltipContent>{selectedHackathon ? 'Cannot load mock data while editing' : 'Load Mock Data'}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <TooltipProvider>
