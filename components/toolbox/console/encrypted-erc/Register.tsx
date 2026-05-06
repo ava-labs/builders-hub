@@ -14,6 +14,7 @@ import { useEERCDeployment } from '@/hooks/eerc/useEERCDeployment';
 import { useEERCRegistration } from '@/hooks/eerc/useEERCRegistration';
 import { EERCToolShell } from './shared/EERCToolShell';
 import { REGISTRAR_SOURCES, EERC_COMMIT } from '@/lib/eerc/contractSources';
+import { localIdentityMatchesRegistrar } from '@/lib/eerc/identityValidation';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Register Encrypted ERC Keys',
@@ -40,6 +41,7 @@ export function Register() {
   const deployment = standalone.deployment ?? converter.deployment;
 
   const reg = useEERCRegistration(deployment);
+  const localKeyMatchesOnChain = localIdentityMatchesRegistrar(reg.identity, reg.onChainPublicKey);
 
   if (!deployment) {
     return <NoDeployment />;
@@ -63,6 +65,7 @@ export function Register() {
           registrar={deployment.registrar}
           onChainKey={reg.onChainPublicKey}
           hasLocalKey={reg.identity !== null}
+          localKeyMatchesOnChain={localKeyMatchesOnChain}
           onResetLocal={reg.resetIdentity}
           onDeriveLocal={reg.deriveIdentity}
         />
@@ -208,6 +211,7 @@ function RegisteredPanel({
   registrar,
   onChainKey,
   hasLocalKey,
+  localKeyMatchesOnChain,
   onResetLocal,
   onDeriveLocal,
 }: {
@@ -215,6 +219,7 @@ function RegisteredPanel({
   registrar: string;
   onChainKey: [bigint, bigint] | null;
   hasLocalKey: boolean;
+  localKeyMatchesOnChain: boolean | null;
   onResetLocal: () => void;
   onDeriveLocal: () => Promise<void>;
 }) {
@@ -231,10 +236,17 @@ function RegisteredPanel({
       setIsReDeriving(false);
     }
   };
+  const hasLocalKeyMismatch = hasLocalKey && localKeyMatchesOnChain === false;
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 p-5 space-y-4">
+      <div
+        className={
+          hasLocalKeyMismatch
+            ? 'rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-5 space-y-4'
+            : 'rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 p-5 space-y-4'
+        }
+      >
         <div className="flex items-center gap-2.5">
           <div className="shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center">
             <Check className="w-4 h-4" />
@@ -253,7 +265,26 @@ function RegisteredPanel({
           <Field label="Public key y" value={onChainKey?.[1].toString() ?? '—'} mono />
         </div>
         <div className="rounded-md border border-green-200/50 dark:border-green-800/50 bg-white/50 dark:bg-zinc-900/30 p-3 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-          {hasLocalKey ? (
+          {hasLocalKeyMismatch ? (
+            <div className="space-y-2">
+              <p className="text-amber-800 dark:text-amber-300">
+                The local BabyJubJub key cached in this browser does not match the public key registered on-chain.
+                Deposit, transfer, and withdraw are blocked until they match.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button className="underline text-zinc-700 dark:text-zinc-300" onClick={onResetLocal}>
+                  Clear local key
+                </button>
+                <button
+                  className="underline text-zinc-700 dark:text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleReDerive}
+                  disabled={isReDeriving}
+                >
+                  {isReDeriving ? 'Deriving…' : 'Re-derive from wallet'}
+                </button>
+              </div>
+            </div>
+          ) : hasLocalKey ? (
             <>
               Your BabyJubJub private key is cached locally so decrypt and transfer tools won&apos;t re-prompt for a
               signature.{' '}
