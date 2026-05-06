@@ -129,8 +129,14 @@ export const hackathonEditSchema = z.object({
     become_sponsor_link: nullableUrlOrEmptySchema,
     submission_custom_link: nullableUrlOrEmptySchema,
     judging_guidelines: z.string().max(20_000),
-    submission_deadline: z.string().max(64),
-    registration_deadline: z.string().max(64),
+    submission_deadline: z.string().max(64).refine(
+      (val) => val === '' || !isNaN(new Date(val).getTime()),
+      { message: 'Please enter a valid date and time' }
+    ),
+    registration_deadline: z.string().max(64).refine(
+      (val) => val === '' || !isNaN(new Date(val).getTime()),
+      { message: 'Please enter a valid date and time' }
+    ),
     stages: z.array(stageSchema).max(12).optional().default([]),
   }),
   latest: z.object({
@@ -147,6 +153,36 @@ export const hackathonEditSchema = z.object({
     google_calendar_id: z.string().max(300).nullable(),
   }),
   cohostsEmails: z.array(z.string().email()).max(50),
+}).superRefine((data, ctx) => {
+  const deadline = data.content.submission_deadline;
+  const startDate = data.latest.start_date;
+  const endDate = data.latest.end_date;
+  if (deadline) {
+    const deadlineDate = new Date(deadline);
+    if (!isNaN(deadlineDate.getTime())) {
+      if (startDate) {
+        const startDateTime = new Date(startDate);
+        if (!isNaN(startDateTime.getTime()) && deadlineDate < startDateTime) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Submission deadline must be after the hackathon start date',
+            path: ['content', 'submission_deadline'],
+          });
+          return;
+        }
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        if (!isNaN(endDateTime.getTime()) && deadlineDate > endDateTime) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Submission deadline must be before the hackathon end date',
+            path: ['content', 'submission_deadline'],
+          });
+        }
+      }
+    }
+  }
 });
 
 export type HackathonEditFormValues = z.infer<typeof hackathonEditSchema>;

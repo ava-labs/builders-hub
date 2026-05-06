@@ -1035,11 +1035,9 @@ const HackathonsEdit = () => {
           }
         }
       );
-      if (response.data?.hackathons?.length > 0) {
-        const hackathons = response.data.hackathons;
-        console.log({ response: hackathons });
-        setMyHackathons(hackathons);
-      }
+      const hackathons = response.data?.hackathons ?? [];
+      console.log({ response: hackathons });
+      setMyHackathons(hackathons);
     } catch (error) {
       console.error('Error loading hackathons:', error);
     } finally {
@@ -1307,7 +1305,7 @@ const HackathonsEdit = () => {
 
   useEffect(() => {
     if (formDataLatest.event !== 'hackathon') {
-      if (contentTab === 'tracks' || contentTab === 'submission') {
+      if (contentTab === 'tracks') {
         setContentTab('meta');
       }
     }
@@ -1716,7 +1714,7 @@ const HackathonsEdit = () => {
     }
     setDateRangeError(null);
     let dataToSend
-    if (isSelectedHackathon)
+    if (selectedHackathon !== null)
       dataToSend = { ...getDataToSend(), updated_by: session?.user?.id };
     else {
       dataToSend = { ...getDataToSend(), created_by: session?.user?.id };
@@ -1728,7 +1726,7 @@ const HackathonsEdit = () => {
       console.error('Error processing base64 images:', error);
     }
 
-    if (!isSelectedHackathon) {
+    if (selectedHackathon === null) {
       try {
         const response = await fetch('/api/hackathons', {
           method: 'POST',
@@ -1918,6 +1916,10 @@ const HackathonsEdit = () => {
       });
     }
     setFieldsToUpdate(changedFields);
+    if (selectedHackathon === null) {
+      void submitWithValidation();
+      return;
+    }
     setShowUpdateModal(true);
   };
 
@@ -2276,7 +2278,7 @@ const HackathonsEdit = () => {
                     <TooltipContent>{selectedHackathon ? t[language].update : t[language].save}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                {session?.user?.custom_attributes?.includes("devrel") && (
+                {session?.user?.custom_attributes?.includes("devrel") && selectedHackathon !== null && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -2331,7 +2333,7 @@ const HackathonsEdit = () => {
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    onClick={() => { setShowForm(true); setSelectedHackathon(null); setIsSelectedHackathon(false); }}
+                    onClick={() => { setShowForm(true); setSelectedHackathon(null); setIsSelectedHackathon(true); }}
                     disabled={isSelectedHackathon}
                     className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
@@ -3425,18 +3427,7 @@ const HackathonsEdit = () => {
                             >
                               {t[language].speakers}
                             </button>
-                            {formDataLatest.event === 'hackathon' && (
-                              <button
-                                type="button"
-                                onClick={() => setContentTab('submission')}
-                                className={`px-3 py-1 rounded-full text-xs border transition-colors ${contentTab === 'submission'
-                                  ? 'bg-red-600 text-white border-red-500'
-                                  : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
-                                  }`}
-                              >
-                                {t[language].submissionDeadline}
-                              </button>
-                            )}
+
                           </div>
                         </div>
 
@@ -3608,27 +3599,6 @@ const HackathonsEdit = () => {
                           </div>
                         )}
 
-                        {/* Submission Section - Only for Hackathons */}
-                        {formDataLatest.event === 'hackathon' && contentTab === 'submission' && (
-                          <div className="space-y-4">
-                            <div>
-                              <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                              <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
-                              <Input
-                                type="datetime-local"
-                                placeholder="Submission Deadline"
-                                value={formDataContent.submission_deadline}
-                                onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
-                                className="w-full mb-4"
-                                required
-                              />
-                              {getInlineError('content.submission_deadline') && (
-                                <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_deadline')}</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
                         <div className="flex justify-end mt-4">
                           <button
                             type="button"
@@ -3712,6 +3682,22 @@ const HackathonsEdit = () => {
                               <p className="text-red-500 text-sm mt-1 mb-4">{dateRangeError}</p>
                             )}
                           </div>
+                          {formDataLatest.event === 'hackathon' && (
+                            <div>
+                              <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
+                              <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
+                              <Input
+                                type="datetime-local"
+                                placeholder="Submission Deadline"
+                                value={formDataContent.submission_deadline}
+                                onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
+                                className="w-full mb-4"
+                              />
+                              {getInlineError('content.submission_deadline') && (
+                                <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_deadline')}</p>
+                              )}
+                            </div>
+                          )}
                           <div>
                             <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
                             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].timezoneHelp}</div>
@@ -3852,11 +3838,6 @@ const HackathonsEdit = () => {
                       <div className="text-zinc-600 dark:text-zinc-400 italic">{t[language].lastDetailsCompleted}</div>
                     )}
                     </div>
-                    {!isSelectedHackathon && (
-                      <Button type="submit" className="bg-red-500 hover:bg-red-600 text-white">
-                      {t[language].submit}
-                      </Button>
-                    )}
                     </form>
               </>
             )}
