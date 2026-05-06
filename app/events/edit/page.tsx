@@ -2253,7 +2253,7 @@ const HackathonsEdit = () => {
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].cancel}</TooltipContent>
+                    <TooltipContent>{t[language].cancel}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 <TooltipProvider>
@@ -2267,7 +2267,7 @@ const HackathonsEdit = () => {
                         <Save className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].update}</TooltipContent>
+                    <TooltipContent>{t[language].update}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 {session?.user?.custom_attributes?.includes("devrel") && (
@@ -2282,7 +2282,7 @@ const HackathonsEdit = () => {
                           {formDataMain.is_public ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent className="bg-red-600 text-white border-red-500">{formDataMain.is_public ? 'Hide' : 'Activate'}</TooltipContent>
+                      <TooltipContent>{formDataMain.is_public ? 'Hide' : 'Activate'}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 )}
@@ -2300,7 +2300,7 @@ const HackathonsEdit = () => {
                     <Database className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="bg-red-600 text-white border-red-500">Load Mock Data</TooltipContent>
+                <TooltipContent>Load Mock Data</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <TooltipProvider>
@@ -2315,7 +2315,7 @@ const HackathonsEdit = () => {
                     <PlusCircle className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].addNewEvent}</TooltipContent>
+                <TooltipContent>{t[language].addNewEvent}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
@@ -2384,14 +2384,14 @@ const HackathonsEdit = () => {
                               });
                             }}
                             className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step1'
-                              ? 'bg-red-600 text-white border-red-500'
+                              ? 'bg-[#D66666] text-white border-[#D66666]'
                               : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                               }`}
                           >
                             <FileText className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].mainTopics}</TooltipContent>
+                        <TooltipContent>{t[language].mainTopics}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                     <TooltipProvider>
@@ -2414,14 +2414,14 @@ const HackathonsEdit = () => {
                               });
                             }}
                             className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step2'
-                              ? 'bg-red-600 text-white border-red-500'
+                              ? 'bg-[#D66666] text-white border-[#D66666]'
                               : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                               }`}
                           >
                             <Layers className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-red-600 text-white border-red-500">Stages</TooltipContent>
+                        <TooltipContent>Stages</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                     <TooltipProvider>
@@ -2444,14 +2444,14 @@ const HackathonsEdit = () => {
                               });
                             }}
                             className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step3'
-                              ? 'bg-red-600 text-white border-red-500'
+                              ? 'bg-[#D66666] text-white border-[#D66666]'
                               : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                               }`}
                           >
                             <ImageIcon className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-red-600 text-white border-red-500">Images & Branding</TooltipContent>
+                        <TooltipContent>Images & Branding</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                     <TooltipProvider>
@@ -2474,14 +2474,14 @@ const HackathonsEdit = () => {
                               });
                             }}
                             className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step4'
-                              ? 'bg-red-600 text-white border-red-500'
+                              ? 'bg-[#D66666] text-white border-[#D66666]'
                               : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                               }`}
                           >
                             <Users className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-red-600 text-white border-red-500">{formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}</TooltipContent>
+                        <TooltipContent>{formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                     {formDataLatest.event === 'hackathon' && (
@@ -2505,14 +2505,14 @@ const HackathonsEdit = () => {
                                 });
                               }}
                               className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step5'
-                                ? 'bg-red-600 text-white border-red-500'
+                                ? 'bg-[#D66666] text-white border-[#D66666]'
                                 : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                                 }`}
                             >
                               <AlignLeft className="h-3.5 w-3.5" />
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].trackText}</TooltipContent>
+                          <TooltipContent>{t[language].trackText}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     )}
@@ -2536,14 +2536,14 @@ const HackathonsEdit = () => {
                               });
                             }}
                             className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step6'
-                              ? 'bg-red-600 text-white border-red-500'
+                              ? 'bg-[#D66666] text-white border-[#D66666]'
                               : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                               }`}
                           >
                             <LayoutGrid className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].content}</TooltipContent>
+                        <TooltipContent>{t[language].content}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                     <TooltipProvider>
@@ -2566,14 +2566,14 @@ const HackathonsEdit = () => {
                               });
                             }}
                             className={`shrink-0 p-1.5 rounded-full border transition-colors ${activeStep === 'step7'
-                              ? 'bg-red-600 text-white border-red-500'
+                              ? 'bg-[#D66666] text-white border-[#D66666]'
                               : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800'
                               }`}
                           >
                             <ClipboardList className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-red-600 text-white border-red-500">{t[language].lastDetails}</TooltipContent>
+                        <TooltipContent>{t[language].lastDetails}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>

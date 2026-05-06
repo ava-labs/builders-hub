@@ -60,10 +60,45 @@ export function resolveFieldLabel(path: string): { label: string; section: strin
     return { label: `Resource #${idx + 1} – ${field}`, section: 'Content (Resources)' };
   }
 
+  // Stage submit form chips: content.stages.N.submitForm.fields.M.chips.K
+  const stageSubmitChipMatch = path.match(/^content\.stages\.(\d+)\.submitForm\.fields\.(\d+)\.chips\.(\d+)$/);
+  if (stageSubmitChipMatch) {
+    const stageIdx = parseInt(stageSubmitChipMatch[1], 10);
+    const fieldIdx = parseInt(stageSubmitChipMatch[2], 10);
+    const chipIdx = parseInt(stageSubmitChipMatch[3], 10);
+    return { label: `Stage #${stageIdx + 1} – Field #${fieldIdx + 1} – Chip #${chipIdx + 1}`, section: 'Stages' };
+  }
+
+  // Stage submit form field: content.stages.N.submitForm.fields.M.FIELD
+  const stageSubmitFieldMatch = path.match(/^content\.stages\.(\d+)\.submitForm\.fields\.(\d+)\.(.+)$/);
+  if (stageSubmitFieldMatch) {
+    const stageIdx = parseInt(stageSubmitFieldMatch[1], 10);
+    const fieldIdx = parseInt(stageSubmitFieldMatch[2], 10);
+    const fieldName = stageSubmitFieldMatch[3];
+    const submitFieldLabels: Record<string, string> = {
+      label: 'Label', placeholder: 'Placeholder', description: 'Description',
+      required: 'Required', maxCharacters: 'Max Characters', chips: 'Chips',
+      id: 'ID', type: 'Type',
+    };
+    const humanField = submitFieldLabels[fieldName] ?? fieldName.replace(/_/g, ' ');
+    return { label: `Stage #${stageIdx + 1} – Field #${fieldIdx + 1} – ${humanField}`, section: 'Stages' };
+  }
+
+  // Stage submit form root: content.stages.N.submitForm.fields (array-level error)
+  const stageSubmitFormMatch = path.match(/^content\.stages\.(\d+)\.submitForm\.fields$/);
+  if (stageSubmitFormMatch) {
+    const stageIdx = parseInt(stageSubmitFormMatch[1], 10);
+    return { label: `Stage #${stageIdx + 1} – Submit Form Fields`, section: 'Stages' };
+  }
+
+  // Generic stage field: content.stages.N.FIELD
   const stageMatch = path.match(/^content\.stages\.(\d+)\.(.+)$/);
   if (stageMatch) {
     const idx = parseInt(stageMatch[1], 10);
-    const field = stageMatch[2].replace(/_/g, ' ');
+    const stageFieldLabels: Record<string, string> = {
+      label: 'Label', date: 'Date', deadline: 'Deadline',
+    };
+    const field = stageFieldLabels[stageMatch[2]] ?? stageMatch[2].replace(/_/g, ' ');
     return { label: `Stage #${idx + 1} – ${field}`, section: 'Stages' };
   }
 

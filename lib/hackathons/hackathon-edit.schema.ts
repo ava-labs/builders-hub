@@ -80,7 +80,7 @@ const trackSchema = z.object({
 
 const scheduleSchema = z.object({
   url: nullableUrlOrEmptySchema,
-  date: z.string().max(64),
+  date: z.string().min(1, 'Date is required').max(64),
   name: z.string().max(100),
   category: z.string().max(30),
   location: z.string().max(100),

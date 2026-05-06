@@ -46,7 +46,7 @@ export default function RemoveButton({
             <X size={size} strokeWidth={2} />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" className="bg-red-500 text-white">
+        <TooltipContent side="right">
           {tooltipLabel}
         </TooltipContent>
       </Tooltip>
