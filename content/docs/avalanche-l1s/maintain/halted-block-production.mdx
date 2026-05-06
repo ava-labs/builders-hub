@@ -1,0 +1,256 @@
+---
+title: Recovering a Halted L1 After Validator Inactivity
+description: Diagnose and plan recovery when an Avalanche L1 stops producing blocks after all registered validator balances are exhausted.
+---
+
+An Avalanche L1 can stop producing blocks when all registered validators become
+inactive after their P-Chain balances are exhausted. The L1 RPC can remain
+responsive and transactions can sit in the mempool, but no registered validator
+is eligible to propose the next block at the P-Chain height referenced by the
+last accepted L1 block.
+
+<Callout type="warn" title="Recovery Patch Not Merged">
+The fallback proposer path described below is based on an unmerged AvalancheGo
+pull request. Treat it as a recovery approach under testing, not as a standard
+AvalancheGo release feature.
+</Callout>
+
+## Prevention
+
+Treat validator P-Chain balances as a production SLO:
+
+1. Monitor each validator's remaining continuous-fee balance.
+2. Set L1 balance runway alerts in [Validator Alerts](/validator-alerts) so
+   operators are notified well before a validator can reach zero balance.
+3. Top up balances before exhaustion with `IncreaseL1ValidatorBalanceTx`.
+4. Keep at least one registered validator active and funded at all times, and
+   maintain enough funded validator redundancy that missed top-ups cannot
+   cascade into the entire registered validator set reaching zero balance.
+5. Keep direct contact information for every validator operator.
+
+For the fee model and top-up transaction, see
+[How Do L1 Validator Fees Work](/blog/l1-validator-fee) and
+[ACP-77](/docs/acps/77-reinventing-subnets#increasel1validatorbalancetx).
+
+## Symptoms
+
+This failure mode usually looks like:
+
+- RPC endpoints still answer requests.
+- New transactions are accepted into the mempool.
+- `eth_blockNumber` stops increasing.
+- Validators repeatedly log a ProposerVM wait near the one-hour fallback window:
+
+```text
+Waiting until we should build a block duration=59m59s
+```
+
+Check the current height from any L1 RPC endpoint:
+
+```bash
+curl -s http://127.0.0.1:9650/ext/bc/<blockchainID>/rpc \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
+```
+
+If the value does not change while transactions are pending, first confirm
+whether this is the all-registered-validators-inactive case. Do not treat node
+restarts as a recovery step: restarting validators does not change the P-Chain
+height referenced by the last accepted L1 block.
+
+If any active L1 validator weight is still present at the stuck P-Chain height,
+this is not the all-registered-validators-balance-exhausted recovery case. At
+least one registered validator is still eligible to propose, so investigate
+connectivity, subnet tracking, mempool, or other consensus issues instead of
+using the recovery path below.
+
+## Why the Halt Occurs
+
+Avalanche L1 validators pay a continuous P-Chain fee for their validator state
+to be maintained and for ICM messages from the L1 to be verifiable by P-Chain
+validators. When a validator's balance reaches zero, the validator becomes
+inactive until its balance is increased with `IncreaseL1ValidatorBalanceTx`.
+
+The halt happens when the last accepted L1 block references a P-Chain height
+where every registered validator for the L1 is inactive. A
+top-up applies at the current P-Chain height, but the L1 cannot move to that
+newer reference until it accepts another block.
+
+<HaltedBlockProductionDiagram />
+
+This creates a chicken-and-egg problem:
+
+- The L1 needs a new block to advance its P-Chain reference.
+- The new block needs an eligible proposer from the validator set at the stuck
+  P-Chain reference.
+- Reactivated or newly registered validators only become visible at a newer
+  P-Chain height that the halted L1 has not referenced yet.
+
+ACP-151 explains that ProposerVM still uses the parent block's P-Chain height to
+verify proposers, even though newer P-Chain heights can be used for ICM message
+verification. See
+[ACP-151](/docs/acps/151-use-current-block-pchain-height-as-context) and the
+[Warp Messenger P-Chain height notes](/docs/avalanche-l1s/precompiles/warp-messenger#p-chain-height-considerations).
+
+## Confirm the Diagnosis
+
+Use the L1's Subnet ID and the P-Chain height referenced by the last accepted L1
+block.
+
+1. Query the validator set at the stuck P-Chain height:
+
+   ```bash
+   curl -s http://127.0.0.1:9650/ext/bc/P \
+     -H 'content-type: application/json' \
+     -d '{
+       "jsonrpc":"2.0",
+       "id":1,
+       "method":"platform.getValidatorsAt",
+       "params":{"subnetID":"<subnetID>","height":<pChainHeight>}
+     }'
+   ```
+
+   If this returns any active validator weight for the L1, this guide is not the
+   right diagnosis. At least one registered validator is still eligible at the
+   stuck P-Chain height, so the halt has a different cause.
+
+2. Check the current registered L1 validators and their balances:
+
+   ```bash
+   curl -s http://127.0.0.1:9650/ext/bc/P \
+     -H 'content-type: application/json' \
+     -d '{
+       "jsonrpc":"2.0",
+       "id":1,
+       "method":"platform.getCurrentValidators",
+       "params":{"subnetID":"<subnetID>"}
+     }'
+   ```
+
+   Confirm the current remaining balance for the validators you plan to bring
+   back online:
+
+   ```bash
+   avalanche validator getBalance \
+     --validation-id <validationID> \
+     --mainnet
+   ```
+
+   You can also query `platform.getL1Validator` for each `validationID` and
+   inspect the `balance` field. Before attempting recovery, top up validators
+   representing at least 80% of the L1's stake weight so the validator set can
+   resume block production once the stuck P-Chain reference advances.
+
+## Pre-Recovery Checklist
+
+Before attempting any recovery, confirm all of the following:
+
+- `platform.getValidatorsAt` returns no active L1 validator weight at the
+  P-Chain height referenced by the last accepted L1 block.
+- Validators representing at least 80% of the L1's stake weight have been
+  topped up and have current P-Chain balance greater than zero.
+- Do not rely on restarts alone; restarting validators does not change the
+  P-Chain height referenced by the last accepted L1 block.
+- Do not rely on top-ups alone; top-ups reactivate validators at the current
+  P-Chain height, not retroactively at the stuck height.
+- Do not rely on new validator registration alone. On-chain registration, or an
+  off-chain signed and aggregated `RegisterL1ValidatorMessage`, makes a
+  validator visible at a newer P-Chain height. ProposerVM still selects the next
+  proposer from the stuck height referenced by the last accepted L1 block.
+- The L1's last accepted block height and timestamp are known.
+- If recovery depends on Warp, Warp was already active at the last accepted L1
+  block. A halted L1 can still serve RPC and produce signatures from its
+  existing state, but it cannot accept a new block to cross a future Warp
+  activation timestamp.
+- AvalancheGo is explicitly configured to track the L1 subnet ID with
+  `--track-subnets` or equivalent node configuration.
+- The recovery build has been reviewed for this attempt and is based on the
+  AvalancheGo version currently running the L1, with the recovery patch
+  cherry-picked on top.
+- The emergency ProposerVM flags and config that will be used during recovery
+  are recorded before startup, and operators have a rollback plan that removes
+  them after recovery.
+- Every validator operator has taken a full backup of its `~/.avalanchego`
+  directory.
+
+## Experimental Recovery Only
+
+<Callout type="error" title="Mainnet Danger">
+Do not attempt this on a mainnet L1 unless you have contacted the Avalanche team,
+coordinated all validator operators and external integrators, paused bridge
+contracts and integrations that read L1 state, taken full backups of every
+validator's `~/.avalanchego` directory, and tested on a mirrored environment if
+feasible.
+</Callout>
+
+<Callout type="info" title="Testnet Recovery Choice">
+For a halted testnet or development L1, recreating the L1 is usually the more
+straightforward path if the existing chain state can be discarded. Use this
+recovery path for testnet only when the current state must be preserved to
+continue testing.
+</Callout>
+
+AvalancheGo PR
+[#4955](https://github.com/ava-labs/avalanchego/pull/4955) proposes an
+emergency ProposerVM fallback that lets a non-validator propose after a maximum
+wait time. The PR is open, unmerged, and unsupported. It is not part of a
+standard AvalancheGo release. Do not run that branch directly without review;
+for a live recovery attempt, the fallback change should be reviewed and
+cherry-picked onto the AvalancheGo version the L1 is already running.
+
+The patch introduces two node-level flags:
+
+| Flag | Purpose |
+|------|---------|
+| `--proposervm-fallback-nonvalidator-can-propose` | Enables the emergency non-validator proposer fallback. |
+| `--proposervm-fallback-nonvalidator-max-wait-time` | Sets the maximum wait time before the fallback can propose. The patch requires a value between 1 second and 1 hour. |
+
+At a high level, the recovery procedure is:
+
+1. Coordinate the recovery plan with Avalanche engineering, DevRel, and all
+   online L1 node operators.
+2. Build a recovery AvalancheGo binary by cherry-picking the reviewed fallback
+   change onto the AvalancheGo version currently running the L1.
+3. Roll that recovery-capable binary to every online L1 node. Nodes without the
+   verification change can reject the fallback-produced block and fail to advance
+   the L1's P-Chain height reference.
+4. Agree which node will attempt the fallback proposal and the
+   `--proposervm-fallback-nonvalidator-max-wait-time` value.
+5. Start the online L1 nodes with the recovery-capable binary and agreed
+   emergency configuration.
+6. Wait for the fallback proposer to build one block that advances the L1's
+   P-Chain reference to a height where the validator set is active again.
+7. Verify every online L1 node accepts that block and advances to the same L1
+   height.
+8. Verify normal validators resume block production.
+9. Restart with a standard AvalancheGo build and remove the emergency flags from
+   all node configuration.
+
+## Risks
+
+This recovery path changes proposer behavior in a custom AvalancheGo build. The
+main risks are:
+
+- The recovery build could build malformed or otherwise unexpected blocks.
+- The patch has not been audited or released.
+- A failed attempt can deepen the halt or complicate later recovery.
+- Operators can diverge if online nodes run different binaries, reject the
+  fallback-produced block, or leave emergency flags enabled after recovery.
+
+Do not run the recovery build or emergency flags longer than needed to advance
+the chain past the stuck P-Chain reference.
+
+## Verification
+
+Confirm recovery from every online L1 node:
+
+1. Poll `eth_blockNumber` and verify each node advances to the same height.
+2. Confirm each online L1 node accepted the fallback-produced block.
+3. Check validator logs for normal block proposal and acceptance after the
+   recovery block.
+4. Confirm standard AvalancheGo binaries and normal node configs are restored.
+5. Confirm external integrations and bridges are only resumed after the chain is
+   producing blocks normally.
+
+If block production does not resume, stop the recovery attempt and preserve logs,
+configs, and backups before attempting further changes.

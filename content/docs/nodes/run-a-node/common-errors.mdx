@@ -57,6 +57,7 @@ If you experience any issues running your node, here are common errors and their
 |-------|-------|----------|
 | `not a validator` (Code: -3) | • Validator-only operation on non-validator<br/>• Stake expired or not active<br/>• Not registered as validator | • Verify registration status<br/>• Check stake is active<br/>• Wait for validation period<br/>• Use correct API for node type |
 | `unknown validator` | • Not in current validator set<br/>• NodeID mismatch<br/>• Validator expired/removed | • Verify validator is active<br/>• Check end time hasn't passed<br/>• Confirm correct NodeID<br/>• Query validator set |
+| `Waiting until we should build a block duration=59m59s` on an L1 | • ProposerVM is waiting for an eligible proposer<br/>• All registered L1 validator balances may have reached zero<br/>• The last accepted L1 block may reference a P-Chain height where every registered validator is inactive | • Check whether `eth_blockNumber` is advancing<br/>• Check P-Chain balances for all registered L1 validators<br/>• Do not rely on restarts or top-ups alone if every registered validator was inactive at the stuck height<br/>• See [Recovering a Halted L1 After Validator Inactivity](/docs/avalanche-l1s/maintain/halted-block-production) |
 
 ## Version and Upgrade Errors
 
