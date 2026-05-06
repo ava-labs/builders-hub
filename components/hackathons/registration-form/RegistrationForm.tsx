@@ -572,7 +572,7 @@ export function RegisterForm({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {step === 1 && <RegisterFormStep1 user={session?.user} lang={lang} />}
-          {step === 3 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
+          {step === 2 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
