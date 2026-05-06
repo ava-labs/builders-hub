@@ -14,7 +14,7 @@ export function canAccessEvaluationTools(
 export function canAccessBuilderInsights(
   attributes: string[] | undefined | null
 ): boolean {
-  return hasAnyAttribute(attributes, ["devrel", "judge", "team1", "team1-admin"]);
+  return hasAnyAttribute(attributes, ["builder_insights"]);
 }
 
 export function canGenerateRestrictedReferralLinks(

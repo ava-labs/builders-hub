@@ -67,6 +67,24 @@ WHERE LOWER("email") IN (
   'ilya.solohin@avalabs.org'
 );
 
+UPDATE "User"
+SET "custom_attributes" = array_append("custom_attributes", 'builder_insights')
+WHERE (
+  "team_id" = 'devrel'
+  OR "custom_attributes" && ARRAY[
+    'devrel',
+    'team1',
+    'team1-admin',
+    'team1-leader',
+    'team1-member',
+    't1-technical',
+    'Team1-Leader',
+    'Team1-member',
+    'T1-Technical'
+  ]::TEXT[]
+)
+AND NOT ('builder_insights' = ANY("custom_attributes"));
+
 -- Backfill legacy event referral codes into the normalized referral tables.
 WITH legacy_event_codes AS (
   SELECT DISTINCT TRIM("referrer_handle") AS "code"
