@@ -135,11 +135,26 @@ export function ChainGate({ requiredChain, children }: ChainGateProps) {
     setIsSwitching(true);
     try {
       await switchChain(expectedChainId, isTestnet ?? false);
-      const live = await readLiveWalletChainId(activeProvider);
-      if (live === expectedChainId) {
-        if (walletChainId !== expectedChainId) setWalletChainId(expectedChainId);
+
+      // useWalletSwitch writes walletChainId after a confirmed switch. Check
+      // the store before reading the async provider hook so a fast click while
+      // activeProvider is still resolving does not fall through to Add Chain.
+      if (useWalletStore.getState().walletChainId === expectedChainId) {
         return;
       }
+
+      const live = await readLiveWalletChainId(activeProvider);
+      if (live === expectedChainId) {
+        if (useWalletStore.getState().walletChainId !== expectedChainId) {
+          setWalletChainId(expectedChainId);
+        }
+        return;
+      }
+
+      if (useWalletStore.getState().walletChainId === expectedChainId) {
+        return;
+      }
+
       // Switch didn't move the chain — chain probably isn't in the wallet
       // at all. Open the add-chain modal so the user can register it.
       await handleAddToWallet();
