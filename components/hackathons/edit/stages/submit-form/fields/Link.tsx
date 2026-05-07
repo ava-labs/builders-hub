@@ -4,10 +4,10 @@
 import React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { type LinkStagesSubmitFormField, type TextStagesSubmitFormField } from '@/types/hackathon-stage'
+import { type LinkStagesSubmitFormField } from '@/types/hackathon-stage'
 
 type LinkStagesSubmitFormFieldProps = {
-  field: LinkStagesSubmitFormField 
+  field: LinkStagesSubmitFormField
   onChange: (updatedField: LinkStagesSubmitFormField) => void
 }
 
@@ -17,12 +17,12 @@ export default function LinkStagesSubmitFormField({
 }: LinkStagesSubmitFormFieldProps): React.JSX.Element {
   return (
     <div className="space-y-4 rounded-md border p-4">
-      <h3 className="text-sm font-semibold">Text field</h3>
+      <h3 className="text-sm font-semibold">Link field</h3>
 
       <div className="space-y-2">
-        <Label htmlFor={`text-label-${field.id}`}>Label</Label>
+        <Label htmlFor={`link-label-${field.id}`}>Label</Label>
         <Input
-          id={`text-label-${field.id}`}
+          id={`link-label-${field.id}`}
           value={field.label}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             onChange({
@@ -34,9 +34,9 @@ export default function LinkStagesSubmitFormField({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`text-label-${field.id}`}>Description</Label>
+        <Label htmlFor={`link-description-${field.id}`}>Description</Label>
         <Input
-          id={`text-label-${field.id}`}
+          id={`link-description-${field.id}`}
           value={field.description}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             onChange({
@@ -49,9 +49,9 @@ export default function LinkStagesSubmitFormField({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`text-placeholder-${field.id}`}>Placeholder</Label>
+        <Label htmlFor={`link-placeholder-${field.id}`}>Placeholder</Label>
         <Input
-          id={`text-placeholder-${field.id}`}
+          id={`link-placeholder-${field.id}`}
           value={field.placeholder}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             onChange({
@@ -60,6 +60,29 @@ export default function LinkStagesSubmitFormField({
             })
           }
           placeholder="Field placeholder"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`link-max-links-${field.id}`}>Max links</Label>
+        <Input
+          id={`link-max-links-${field.id}`}
+          type="number"
+          min={1}
+          value={field.maxLinks ?? ''}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            const value: string = event.target.value
+            const parsedValue: number = Number(value)
+
+            onChange({
+              ...field,
+              maxLinks:
+                value === '' || !Number.isFinite(parsedValue)
+                  ? undefined
+                  : Math.max(1, Math.floor(parsedValue)),
+            })
+          }}
+          placeholder="E.g. 3"
         />
       </div>
 
