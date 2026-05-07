@@ -54,6 +54,7 @@ export type LinkStagesSubmitFormField = {
   label: string;
   placeholder: string;
   description: string;
+  maxLinks?: number;
   required: boolean;
 };
 

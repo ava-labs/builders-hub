@@ -78,6 +78,7 @@ function replaceSubmitFormFieldWithBaseField(
 
   return {
     ...baseField,
+    predefinedField: true,
   }
 }
 
@@ -157,7 +158,7 @@ export default function StageSubmitForm({
             collapsible
             className="w-full rounded-md border px-4"
           >
-            <AccordionItem value={`submit-field-${field.id}`}>
+            <AccordionItem value={`submit-field-${fieldIndex}`}>
               <AccordionPrimitive.Header className="flex">
                 <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
                   <span>{field.label?.trim() ? field.label : `Field ${fieldIndex + 1}`}</span>
@@ -175,39 +176,35 @@ export default function StageSubmitForm({
               <AccordionContent>
                 <div className="space-y-4 pt-2">
 
-                  <div className="space-y-2">
-                    <Label htmlFor={`submit-base-field-${field.id}`}>Select field type</Label>
-                    <select
-                      id={`submit-base-field-${field.id}`}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={field.predefinedField ? 'predefined' : field.type}
-                      onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                        const selectedType = event.target.value as SubmitFormFieldType
-                        if (selectedType === SubmitFormFieldType.Predefined) {
-                          field.predefinedField = true
-                        }
-                        console.log('Selected type:', selectedType, 'Current field:', field)
-                        onUpdateField(
-                          stageIndex,
-                          fieldIndex,
-                          replaceSubmitFormFieldType(
-                            { ...field },
-                            event.target.value as SubmitFormFieldType
+                  {!field.predefinedField && (
+                    <div className="space-y-2">
+                      <Label htmlFor={`submit-base-field-${field.id}`}>Select field type</Label>
+                      <select
+                        id={`submit-base-field-${field.id}`}
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={field.type}
+                        onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                          onUpdateField(
+                            stageIndex,
+                            fieldIndex,
+                            replaceSubmitFormFieldType(
+                              { ...field },
+                              event.target.value as SubmitFormFieldType
+                            )
                           )
-                        )
-                      }
-                      }
-                    >
-                      <option value="" disabled>
-                        Select a type
-                      </option>
-                      <option value={SubmitFormFieldType.Predefined}>Predefined field</option>
-                      <option value={SubmitFormFieldType.Text}>Text</option>
-                      <option value={SubmitFormFieldType.Link}>Link</option>
-                      <option value={SubmitFormFieldType.Chips}>Chips</option>
-                      <option value={SubmitFormFieldType.MultiSelect}>Multi-select</option>
-                    </select>
-                  </div>
+                        }}
+                      >
+                        <option value="" disabled>
+                          Select a type
+                        </option>
+                        <option value={SubmitFormFieldType.Predefined}>Predefined field</option>
+                        <option value={SubmitFormFieldType.Text}>Text</option>
+                        <option value={SubmitFormFieldType.Link}>Link</option>
+                        <option value={SubmitFormFieldType.Chips}>Chips</option>
+                        <option value={SubmitFormFieldType.MultiSelect}>Multi-select</option>
+                      </select>
+                    </div>
+                  )}
                   {
                     field.predefinedField && (
                       <div className="space-y-2">
@@ -230,11 +227,13 @@ export default function StageSubmitForm({
                             Select a predefined field
                           </option>
 
-                          {Object.entries(BASE_SUBMIT_FORM_FIELDS).filter(([key]) => !selectedPredefinedFields.includes(key)).map(([key, config]) => (
-                            <option key={key} value={key}>
-                              {config.label}
-                            </option>
-                          ))}
+                          {Object.entries(BASE_SUBMIT_FORM_FIELDS)
+                            .filter(([key]) => key === field.id || !selectedPredefinedFields.includes(key))
+                            .map(([key, config]) => (
+                              <option key={key} value={key}>
+                                {config.label}
+                              </option>
+                            ))}
                         </select>
                       </div>
                     )

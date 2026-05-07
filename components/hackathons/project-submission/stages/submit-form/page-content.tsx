@@ -8,10 +8,12 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } fr
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { MultiSelect } from '@/components/ui/multi-select'
 import {
   ChipsStagesSubmitFormField,
   HackathonStage,
   LinkStagesSubmitFormField,
+  MultiSelectStagesSubmitFormField,
   SubmitFormField,
   SubmitFormFieldType,
   TextStagesSubmitFormField,
@@ -43,7 +45,10 @@ function buildDefaultValues(stage: HackathonStage): StageSubmitValues {
 
   return fields.reduce(
     (acc: StageSubmitValues, field: SubmitFormField): StageSubmitValues => {
-      if (field.type === SubmitFormFieldType.Link) {
+      if (
+        field.type === SubmitFormFieldType.Link ||
+        field.type === SubmitFormFieldType.MultiSelect
+      ) {
         acc[field.id] = []
         return acc
       }
@@ -159,6 +164,12 @@ export default function StageSubmitPageContent({
                 : []
 
               const draftValue: string = linkDrafts[linkField.id] ?? ''
+              const maxLinks: number | null =
+                typeof linkField.maxLinks === 'number' && linkField.maxLinks > 0
+                  ? linkField.maxLinks
+                  : null
+              const isSingleLink: boolean = maxLinks === 1
+              const canAddMoreLinks: boolean = !maxLinks || links.length < maxLinks
 
               const normalizeUrl = (url: string): string => {
                 const trimmedUrl: string = url.trim()
@@ -174,6 +185,10 @@ export default function StageSubmitPageContent({
               }
 
               const handleAddLink = (): void => {
+                if (!canAddMoreLinks) {
+                  return
+                }
+
                 const trimmedValue: string = draftValue.trim()
 
                 if (!trimmedValue) {
@@ -201,6 +216,30 @@ export default function StageSubmitPageContent({
                 }))
               }
 
+              const handleSingleLinkChange = (
+                event: React.ChangeEvent<HTMLInputElement>
+              ): void => {
+                const value: string = event.target.value
+
+                form.setValue(linkField.id, value.trim() ? [value] : [], {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+
+              const handleSingleLinkBlur = (): void => {
+                const value: string = links[0]?.trim() ?? ''
+
+                if (!value) {
+                  return
+                }
+
+                form.setValue(linkField.id, [normalizeUrl(value)], {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+
               const handleRemoveLink = (linkToRemove: string): void => {
                 form.setValue(
                   linkField.id,
@@ -225,8 +264,13 @@ export default function StageSubmitPageContent({
                     <FormControl>
                       <Input
                         type="url"
-                        value={draftValue}
+                        value={isSingleLink ? (links[0] ?? '') : draftValue}
                         onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
+                          if (isSingleLink) {
+                            handleSingleLinkChange(event)
+                            return
+                          }
+
                           setLinkDrafts(
                             (prev: Record<string, string>): Record<string, string> => ({
                               ...prev,
@@ -234,24 +278,33 @@ export default function StageSubmitPageContent({
                             })
                           )
                         }}
+                        onBlur={isSingleLink ? handleSingleLinkBlur : undefined}
                         onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>): void => {
                           if (event.key === 'Enter') {
                             event.preventDefault()
+                            if (isSingleLink) {
+                              handleSingleLinkBlur()
+                              return
+                            }
                             handleAddLink()
                           }
                         }}
                         placeholder={linkField.placeholder}
+                        disabled={!isSingleLink && !canAddMoreLinks}
                         className={inputClassName}
                       />
                     </FormControl>
 
-                    <Button
-                      type="button"
-                      onClick={handleAddLink}
-                      className="bg-[#d66666] text-zinc-900 hover:bg-[#e57f7f]"
-                    >
-                      Add
-                    </Button>
+                    {!isSingleLink && (
+                      <Button
+                        type="button"
+                        onClick={handleAddLink}
+                        disabled={!canAddMoreLinks}
+                        className="bg-[#d66666] text-zinc-900 hover:bg-[#e57f7f]"
+                      >
+                        Add
+                      </Button>
+                    )}
                   </div>
 
                   {!!links.length && (
@@ -354,6 +407,71 @@ export default function StageSubmitPageContent({
         )
       }
 
+      case SubmitFormFieldType.MultiSelect: {
+        const multiSelectField: MultiSelectStagesSubmitFormField =
+          field as MultiSelectStagesSubmitFormField
+
+        return (
+          <FormField
+            key={multiSelectField.id}
+            control={form.control}
+            name={multiSelectField.id}
+            render={({ field: rhfField }) => {
+              const selectedValues: string[] = Array.isArray(rhfField.value)
+                ? (rhfField.value as string[])
+                : []
+
+              const maxSelections: number | null =
+                typeof multiSelectField.maxSelections === 'number' &&
+                  multiSelectField.maxSelections > 0
+                  ? multiSelectField.maxSelections
+                  : null
+
+              const options = (multiSelectField.options ?? [])
+                .filter((option: string): boolean => option.trim().length > 0)
+                .map((option: string) => ({
+                  label: option,
+                  value: option,
+                }))
+
+              const handleChange = (values: string[]): void => {
+                const nextValues: string[] = maxSelections
+                  ? values.slice(0, maxSelections)
+                  : values
+
+                form.setValue(multiSelectField.id, nextValues, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+
+              return (
+                <FormItem>
+                  <FormLabel className={fieldLabelClassName}>
+                    {multiSelectField.label}
+                    {multiSelectField.required ? (
+                      <span className="ml-1 text-[#d66666]">*</span>
+                    ) : null}
+                  </FormLabel>
+                  <FormDescription className={fieldDescriptionClassName}>
+                    {multiSelectField.description}
+                  </FormDescription>
+                  <FormControl>
+                    <MultiSelect
+                      options={options}
+                      selected={selectedValues}
+                      onChange={handleChange}
+                      placeholder={multiSelectField.placeholder || 'Select options'}
+                      searchPlaceholder="Search options"
+                    />
+                  </FormControl>
+                </FormItem>
+              )
+            }}
+          />
+        )
+      }
+
       default:
         return null
     }
@@ -362,6 +480,40 @@ export default function StageSubmitPageContent({
   const handleSubmit = async (values: StageSubmitValues): Promise<void> => {
     try {
       setIsSubmitting(true)
+      const valuesForSubmit: StageSubmitValues = { ...values }
+
+      stage.submitForm?.fields.forEach((field: SubmitFormField): void => {
+        if (field.type !== SubmitFormFieldType.Link) {
+          return
+        }
+
+        const linkField: LinkStagesSubmitFormField =
+          field as LinkStagesSubmitFormField
+        const currentLinks: string[] = Array.isArray(values[linkField.id])
+          ? (values[linkField.id] as string[])
+          : []
+        const maxLinks: number | null =
+          typeof linkField.maxLinks === 'number' && linkField.maxLinks > 0
+            ? linkField.maxLinks
+            : null
+
+        valuesForSubmit[linkField.id] = currentLinks
+          .slice(0, maxLinks ?? undefined)
+          .map((link: string): string => {
+            const trimmedLink: string = link.trim()
+
+            if (
+              !trimmedLink ||
+              trimmedLink.startsWith('http://') ||
+              trimmedLink.startsWith('https://')
+            ) {
+              return trimmedLink
+            }
+
+            return `https://${trimmedLink}`
+          })
+          .filter((link: string): boolean => link.length > 0)
+      })
 
       const response: Response = await fetch('/api/project/form-data', {
         method: 'POST',
@@ -373,7 +525,7 @@ export default function StageSubmitPageContent({
           hackathonId: hackathon.id,
           projectId: resolvedProjectId,
           stageIndex,
-          values,
+          values: valuesForSubmit,
         }),
       })
 

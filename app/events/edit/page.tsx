@@ -1111,6 +1111,9 @@ const HackathonsEdit = () => {
     content: false,
     last: false,
   });
+  const [pendingCollapseSection, setPendingCollapseSection] = useState<
+    'main' | 'images' | 'stages' | 'about' | 'trackText' | 'content' | 'last' | null
+  >(null);
 
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
@@ -1556,15 +1559,49 @@ const HackathonsEdit = () => {
     });
   }, []);
 
+  const collapseSection = useCallback(
+    (section: 'main' | 'images' | 'stages' | 'about' | 'trackText' | 'content' | 'last'): void => {
+      setCollapsed((prev) => ({ ...prev, [section]: true }));
+    },
+    []
+  );
+
   const submitWithValidation = handleFormSubmit(
-    () => {
-      void doSubmit();
+    async () => {
+      await doSubmit();
     },
     onValidationError
   );
 
-  const handleDone = (section: 'main' | 'images' | 'stages' | 'about' | 'trackText' | 'content' | 'last') => {
-    setCollapsed({ ...collapsed, [section]: true });
+  const handleDone = async (
+    section: 'main' | 'images' | 'stages' | 'about' | 'trackText' | 'content' | 'last'
+  ): Promise<void> => {
+    const isValid = await trigger();
+    if (!isValid) {
+      setPendingCollapseSection(null);
+      void submitWithValidation();
+      return;
+    }
+
+    const dateErr = getDateRangeError(formDataLatest.start_date, formDataLatest.end_date);
+    if (dateErr) {
+      setDateRangeError(dateErr);
+      setPendingCollapseSection(null);
+      return;
+    }
+
+    setDateRangeError(null);
+
+    if (selectedHackathon !== null) {
+      setPendingCollapseSection(section);
+      await handleUpdateClick();
+      return;
+    }
+
+    const didSave = await doSubmit();
+    if (didSave) {
+      collapseSection(section);
+    }
   };
 
   const handleTrackDone = (index: number) => {
@@ -1654,13 +1691,13 @@ const HackathonsEdit = () => {
     return processedData;
   };
 
-  const doSubmit = async () => {
+  const doSubmit = async (): Promise<boolean> => {
     setLoading(true);
     const dateErr = getDateRangeError(formDataLatest.start_date, formDataLatest.end_date);
     if (dateErr) {
       setDateRangeError(dateErr);
       setLoading(false);
-      return;
+      return false;
     }
     setDateRangeError(null);
     let dataToSend
@@ -1686,6 +1723,9 @@ const HackathonsEdit = () => {
           body: JSON.stringify(dataToSend),
         });
         if (response.ok) {
+          const data = await response.json().catch(() => ({}));
+          const savedHackathon = data?.hackathon;
+
           toast({
             title: 'Event created',
             description: 'Your event has been created successfully.',
@@ -1695,20 +1735,13 @@ const HackathonsEdit = () => {
           // El popup solo tiene sentido cuando el usuario edita un evento existente.
           setShowUpdateModal(false);
           setFieldsToUpdate([]);
-          reset({
-            main: initialData.main,
-            content: {
-              ...initialData.content,
-              partners: [{ name: '', logo: '' }],
-              stages: [],
-            },
-            latest: initialData.latest,
-            cohostsEmails: [],
-          });
-          setShowForm(false);
-          setIsSelectedHackathon(false);
-          setSelectedHackathon(null);
-          await getMyHackathons();
+          if (savedHackathon) {
+            setSelectedHackathon(savedHackathon);
+          }
+          setIsSelectedHackathon(true);
+          setShowForm(true);
+          void getMyHackathons();
+          return true;
         } else {
           const data = await response.json().catch(() => ({}));
           toast({
@@ -1716,6 +1749,7 @@ const HackathonsEdit = () => {
             description: typeof data?.error === 'string' ? data.error : 'Failed to create event. Please try again.',
             variant: 'destructive',
           });
+          return false;
         }
       } catch (error) {
         console.error('Error creating hackathon:', error);
@@ -1724,14 +1758,26 @@ const HackathonsEdit = () => {
           description: error instanceof Error ? error.message : 'An error occurred. Please try again.',
           variant: 'destructive',
         });
+        return false;
       } finally {
         setLoading(false);
       }
     } else {
-      console.log({ selectedHackathon, id: selectedHackathon?.id });
+      const hackathonId = selectedHackathon?.id;
+      console.log({ selectedHackathon, id: hackathonId });
+      if (!hackathonId) {
+        toast({
+          title: 'Error updating event',
+          description: 'Missing event id. Please select the event again and try saving.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return false;
+      }
+
       try {
 
-        const response = await fetch(`/api/hackathons/${selectedHackathon?.id}`, {
+        const response = await fetch(`/api/hackathons/${hackathonId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1740,26 +1786,25 @@ const HackathonsEdit = () => {
         });
 
         if (response.ok) {
+          const updatedHackathon = await response.json().catch(() => null);
+
           toast({
             title: 'Event updated',
             description: 'Your event has been updated successfully.',
             variant: 'success',
           });
           setShowUpdateModal(false);
-          reset({
-            main: initialData.main,
-            content: {
-              ...initialData.content,
-              partners: [{ name: '', logo: '' }],
-              stages: [],
-            },
-            latest: initialData.latest,
-            cohostsEmails: [],
-          });
-          setShowForm(false);
-          setIsSelectedHackathon(false);
-          setSelectedHackathon(null);
-          await getMyHackathons();
+          if (updatedHackathon) {
+            setSelectedHackathon((prev: any) => ({
+              ...(prev ?? {}),
+              ...updatedHackathon,
+              id: hackathonId,
+            }));
+          }
+          setIsSelectedHackathon(true);
+          setShowForm(true);
+          void getMyHackathons();
+          return true;
         } else {
           const data = await response.json().catch(() => ({}));
           toast({
@@ -1767,6 +1812,7 @@ const HackathonsEdit = () => {
             description: typeof data?.error === 'string' ? data.error : 'Failed to update event. Please try again.',
             variant: 'destructive',
           });
+          return false;
         }
       } catch (error) {
         console.error('Error updating hackathon:', error);
@@ -1775,6 +1821,7 @@ const HackathonsEdit = () => {
           description: error instanceof Error ? error.message : 'An error occurred. Please try again.',
           variant: 'destructive',
         });
+        return false;
       } finally {
         setLoading(false);
       }
@@ -1873,12 +1920,28 @@ const HackathonsEdit = () => {
     setShowUpdateModal(true);
   };
 
-  const handleConfirmUpdate = () => {
+  const handleConfirmUpdate = async (): Promise<void> => {
     setShowUpdateModal(false);
     // En caso de que el modal se abra por algún motivo en modo creación,
     // evitamos re-ejecutar el submit.
-    if (!isSelectedHackathon) return;
-    submitWithValidation();
+    if (!isSelectedHackathon) {
+      setPendingCollapseSection(null);
+      return;
+    }
+
+    let didSave = false;
+    await handleFormSubmit(
+      async () => {
+        didSave = await doSubmit();
+      },
+      onValidationError
+    )();
+
+    if (didSave && pendingCollapseSection) {
+      collapseSection(pendingCollapseSection);
+    }
+
+    setPendingCollapseSection(null);
   };
 
   const handleTrackFieldChange = useCallback((idx: number, field: string, value: any) => {
@@ -2311,7 +2374,10 @@ const HackathonsEdit = () => {
           <div className="px-4 pt-2 pb-4 min-h-full flex flex-col">
             <UpdateModal
               open={showUpdateModal}
-              onClose={() => setShowUpdateModal(false)}
+              onClose={() => {
+                setShowUpdateModal(false);
+                setPendingCollapseSection(null);
+              }}
               onConfirm={handleConfirmUpdate}
               fieldsToUpdate={fieldsToUpdate}
               t={t}
