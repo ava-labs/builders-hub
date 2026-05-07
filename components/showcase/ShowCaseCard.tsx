@@ -217,7 +217,7 @@ export default function ShowCaseCard({
 
   // Show NotFound if not logged in or doesn't have required role
   if (isLoggedIn === false) {
-    return <NotFound isAComponent={true} />;
+    return <NotFound isAComponent={true} hideReportIssue={true} skipTracking={true} />;
   }
 
   return (
