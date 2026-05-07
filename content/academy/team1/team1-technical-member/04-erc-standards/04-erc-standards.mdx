@@ -1,0 +1,305 @@
+---
+title: "ERC Standards: ERC20, ERC721, ERC1155"
+description: Understand the three most important token standards on EVM chains and how to deploy and interact with them on Avalanche.
+updated: 2026-03-31
+authors: [team1]
+icon: BookOpen
+---
+
+Token standards are one of the most consequential inventions in smart contract history. By agreeing on a common interface, the entire ecosystem — wallets, exchanges, frontends, and other contracts — can interact with any token without needing custom integration. Three standards dominate the EVM world: ERC20 for fungible tokens, ERC721 for unique non-fungible tokens, and ERC1155 for mixed collections.
+
+For implementation walkthroughs, testing, and deployment practice on Avalanche, pair this overview with Avalanche Academy’s **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** course. The **[ERC-20 Smart Contracts](https://build.avax.network/academy/blockchain/solidity-foundry/07-erc20-smart-contracts/01-erc20-intro)** module matches the ERC20 section below especially closely.
+
+## ERC20: Fungible Tokens
+
+A **fungible** asset is one where every unit is identical and interchangeable. One dollar bill is worth exactly the same as any other dollar bill. ERC20 brings this concept on-chain.
+
+An **ERC20 token** is a smart contract that maintains a ledger of balances and implements a standard interface so that any wallet, DEX, or other contract can transfer tokens, check balances, and grant spending permissions without knowing anything about the specific token's business logic.
+
+Typical use cases include stablecoins (USDC, DAI), governance tokens (which give holders voting power), liquidity pool shares, reward tokens, and wrapped versions of native assets.
+
+### The ERC20 Interface
+
+```solidity
+interface IERC20 {
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address to, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+```
+
+### How the Approval Flow Works
+
+ERC20 introduces an approval mechanism that allows a third-party contract to spend tokens on a holder's behalf. This is essential for DeFi — when you interact with a DEX or lending protocol, you first approve the protocol's contract to move your tokens, and then the protocol pulls them using `transferFrom`.
+
+- **`balanceOf(account)`** returns how many tokens `account` holds.
+- **`approve(spender, amount)`** authorizes `spender` to transfer up to `amount` tokens from the caller's balance. This sets an entry in the `allowances` mapping.
+- **`allowance(owner, spender)`** returns how much `spender` is still allowed to transfer on behalf of `owner`.
+- **`transferFrom(from, to, amount)`** moves `amount` tokens from `from` to `to`, deducting from the previously set allowance. The caller must be the approved spender.
+
+For a full technical build of an ERC-20—including interfaces, tests, and mainnet-style flows—follow the **[ERC-20 Smart Contracts](https://build.avax.network/academy/blockchain/solidity-foundry/07-erc20-smart-contracts/01-erc20-intro)** lessons in **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)**.
+
+```
+Alice                    DEX Contract
+  |                           |
+  |-- approve(DEX, 100) ----> |   (Alice allows DEX to move 100 tokens)
+  |                           |
+  |-- swap() --------------> |   (Alice calls the DEX's swap function)
+  |                           |
+  |               DEX calls transferFrom(Alice, pool, 100)
+  |                           |
+  |<-- receives other token --|
+```
+
+## ERC721: Non-Fungible Tokens (NFTs)
+
+A **non-fungible** asset is unique — each unit is distinct and not interchangeable with any other. A concert ticket for seat 14-C is not the same as one for seat 22-A, even if both are "tickets to the same show." ERC721 encodes this concept on-chain.
+
+An **ERC721 token** represents ownership of a unique item identified by a numeric `tokenId`. The contract tracks which address owns each `tokenId` and provides standard methods for transferring ownership. Typical use cases include digital art, collectibles, gaming items, domain names, membership passes, and real-world asset representations.
+
+### The ERC721 Interface (key methods)
+
+```solidity
+interface IERC721 {
+    function balanceOf(address owner) external view returns (uint256);
+    function ownerOf(uint256 tokenId) external view returns (address);
+    function safeTransferFrom(address from, address to, uint256 tokenId) external;
+    function transferFrom(address from, address to, uint256 tokenId) external;
+    function approve(address to, uint256 tokenId) external;
+    function getApproved(uint256 tokenId) external view returns (address);
+    function setApprovalForAll(address operator, bool approved) external;
+    function isApprovedForAll(address owner, address operator) external view returns (bool);
+}
+```
+
+Note that `balanceOf` here returns the total number of NFTs an address owns, not a token amount. `ownerOf` is unique to ERC721 and returns the owner of a specific token ID.
+
+ERC721 and ERC1155 patterns build on the same Solidity foundations as the Academy course; use **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** for contract structure, inheritance, and testing habits, then apply them to your NFT contracts.
+
+### Token Metadata and IPFS
+
+NFTs often need to display images, names, and descriptions. The ERC721 standard includes an optional `tokenURI(tokenId)` function that returns a URL pointing to a JSON metadata file. This file follows a convention like:
+
+```json
+{
+  "name": "Avalanche Warrior #42",
+  "description": "A unique warrior from the Avalanche ecosystem.",
+  "image": "ipfs://bafybeig.../42.png",
+  "attributes": [
+    { "trait_type": "Strength", "value": 85 },
+    { "trait_type": "Region", "value": "Fuji" }
+  ]
+}
+```
+
+The `image` field typically points to **IPFS** (the InterPlanetary File System), a decentralized content-addressed storage network. Content on IPFS is identified by its hash (a CID, or Content Identifier), meaning the content cannot be changed without changing the address. This is critical for NFTs: it prevents the creator from swapping out the image after sale. Pinning services like Pinata or NFT.Storage keep IPFS content available.
+
+## ERC1155: The Multi-Token Standard
+
+**ERC1155** is a single contract that can manage many token types at once — some fungible, some non-fungible, and some semi-fungible. Each token type is identified by a numeric `id`. This was designed for gaming and other applications where you need hundreds of different item types (gold coins, swords, shields, potions) under one contract.
+
+Implementing ERC1155 uses the same Solidity and testing skills taught in **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)**; extend those patterns with the standard’s batch and `id`-based balance model below.
+
+Key advantages over deploying separate ERC20 and ERC721 contracts:
+- A single contract address manages all item types — simpler integration.
+- Batch operations (`safeBatchTransferFrom`, `balanceOfBatch`) allow moving multiple token types in a single transaction, reducing gas costs significantly.
+- Semi-fungible tokens are naturally supported: 10,000 "gold coin" tokens (fungible) can coexist with 1 unique "legendary sword" (non-fungible) in the same contract.
+
+### ERC1155 Interface (key methods)
+
+```solidity
+interface IERC1155 {
+    function balanceOf(address account, uint256 id) external view returns (uint256);
+    function balanceOfBatch(address[] calldata accounts, uint256[] calldata ids)
+        external view returns (uint256[] memory);
+    function setApprovalForAll(address operator, bool approved) external;
+    function isApprovedForAll(address account, address operator) external view returns (bool);
+    function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes calldata data) external;
+    function safeBatchTransferFrom(address from, address to, uint256[] calldata ids,
+        uint256[] calldata amounts, bytes calldata data) external;
+}
+```
+
+## Comparing the Three Standards
+
+| Feature | ERC20 | ERC721 | ERC1155 |
+|---|---|---|---|
+| Fungibility | Fully fungible | Non-fungible (each token unique) | Both (per token ID) |
+| Token tracking | Global balance per address | Owner per token ID | Balance per (address, id) pair |
+| Batch operations | No | Limited | Yes, native |
+| Use cases | Currency, governance, staking | Art, collectibles, passes | Games, mixed collections |
+| Gas efficiency | High | Medium | High (batch) |
+| Metadata | Optional, off-chain | `tokenURI` per ID | `uri` per ID |
+
+## Deploying Your Own Tokens with OpenZeppelin
+
+Writing token contracts from scratch is error-prone. [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts) is the industry-standard library of audited, upgradeable smart contract implementations. It provides base contracts for ERC20, ERC721, and ERC1155 that you inherit and extend.
+
+### ERC20 with OpenZeppelin
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MyToken is ERC20, Ownable {
+    constructor(address initialOwner)
+        ERC20("MyToken", "MTK")
+        Ownable(initialOwner)
+    {
+        _mint(initialOwner, 1_000_000 * 10 ** decimals());
+    }
+
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+}
+```
+
+Deploy this to Avalanche Fuji testnet:
+
+```bash
+forge create src/MyToken.sol:MyToken \
+  --constructor-args 0xYourAddress \
+  --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
+  --private-key $PRIVATE_KEY
+```
+
+### ERC721 with OpenZeppelin
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MyNFT is ERC721, ERC721URIStorage, Ownable {
+    uint256 private _nextTokenId;
+
+    constructor(address initialOwner)
+        ERC721("MyNFT", "MNFT")
+        Ownable(initialOwner)
+    {}
+
+    function safeMint(address to, string memory uri) public onlyOwner {
+        uint256 tokenId = _nextTokenId++;
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
+
+    // Required overrides
+    function tokenURI(uint256 tokenId)
+        public view override(ERC721, ERC721URIStorage) returns (string memory)
+    { return super.tokenURI(tokenId); }
+
+    function supportsInterface(bytes4 interfaceId)
+        public view override(ERC721, ERC721URIStorage) returns (bool)
+    { return super.supportsInterface(interfaceId); }
+}
+```
+
+### ERC1155 with OpenZeppelin
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract GameItems is ERC1155, Ownable {
+    uint256 public constant GOLD   = 0;
+    uint256 public constant SWORD  = 1;
+    uint256 public constant SHIELD = 2;
+
+    constructor(address initialOwner)
+        ERC1155("https://game.example/api/item/{id}.json")
+        Ownable(initialOwner)
+    {
+        _mint(initialOwner, GOLD,   10_000, "");
+        _mint(initialOwner, SWORD,  50,     "");
+        _mint(initialOwner, SHIELD, 50,     "");
+    }
+
+    function mint(address to, uint256 id, uint256 amount) public onlyOwner {
+        _mint(to, id, amount, "");
+    }
+}
+```
+
+## Security: The Reentrancy Attack
+
+A **reentrancy attack** occurs when an external contract calls back into the victim contract before the first execution has finished. The classic scenario:
+
+1. Attacker calls `withdraw()` on a vault contract.
+2. The vault sends ETH to the attacker's contract via `call`.
+3. The attacker's contract, on receiving ETH, immediately calls `withdraw()` again.
+4. The vault has not yet updated the attacker's balance — so it sends ETH again.
+5. Steps 3–4 repeat until the vault is drained.
+
+This is exactly how the 2016 DAO hack drained $50 million. The fix is the **checks-effects-interactions** pattern: always update state before making external calls.
+
+```solidity
+// VULNERABLE
+function withdraw(uint256 amount) public {
+    require(balances[msg.sender] >= amount);
+    (bool success,) = msg.sender.call{value: amount}(""); // external call BEFORE state update
+    require(success);
+    balances[msg.sender] -= amount; // state update AFTER — too late!
+}
+
+// SAFE: checks-effects-interactions
+function withdraw(uint256 amount) public {
+    require(balances[msg.sender] >= amount);   // 1. Check
+    balances[msg.sender] -= amount;             // 2. Effect (update state first)
+    (bool success,) = msg.sender.call{value: amount}(""); // 3. Interaction
+    require(success);
+}
+```
+
+OpenZeppelin's `ReentrancyGuard` provides a `nonReentrant` modifier as an additional layer of defense:
+
+```solidity
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+contract Vault is ReentrancyGuard {
+    function withdraw(uint256 amount) public nonReentrant {
+        // ...
+    }
+}
+```
+
+## OpenZeppelin Tooling Overview
+
+Beyond the base token contracts, OpenZeppelin provides:
+
+- **`Ownable`** and **`AccessControl`**: role-based access control for restricting sensitive functions.
+- **`Pausable`**: an emergency stop mechanism to pause all token transfers.
+- **`ERC20Permit`**: allows approvals via off-chain signatures (EIP-2612), saving the user one transaction.
+- **`ERC721Enumerable`**: adds on-chain token enumeration so you can list all tokens owned by an address.
+- **`ERC1155Supply`**: tracks total supply per token ID.
+- **`Upgrades` plugins**: patterns for making contracts upgradeable while maintaining a stable address.
+
+The [OpenZeppelin Contracts Wizard](https://wizard.openzeppelin.com) lets you configure and generate contract code in the browser, which is a fast starting point for any token project.
+
+---
+
+## Key Takeaways
+
+- ERC20 tokens are fungible — every unit is identical. They power currencies, governance, and DeFi.
+- ERC721 tokens are non-fungible — each has a unique `tokenId` and an owner. They power NFTs and unique digital assets.
+- ERC1155 tokens can be fungible, non-fungible, or semi-fungible depending on supply per ID. They power games and mixed collections.
+- The approval flow (`approve` → `allowance` → `transferFrom`) lets smart contracts spend tokens on behalf of users — the foundation of DeFi.
+- Reentrancy is the most historically damaging smart contract vulnerability; always follow checks-effects-interactions and use `ReentrancyGuard`.
+- OpenZeppelin provides audited base implementations for all three standards; use them instead of writing from scratch.
+- IPFS provides content-addressed, decentralized storage for NFT metadata and images, preventing post-mint tampering.
