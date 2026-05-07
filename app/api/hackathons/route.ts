@@ -6,7 +6,7 @@ import {
 } from '@/server/services/hackathons';
 import { HackathonStatus } from '@/types/hackathons';
 import { getUserById } from '@/server/services/getUser';
-import { withAuthRole } from '@/lib/protectedRoute';
+import { withAuth, withAuthRole } from '@/lib/protectedRoute';
 import { getAuthSession } from '@/lib/auth/authSession';
 
 
@@ -71,7 +71,17 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const POST = withAuth(async (req: NextRequest, context: any, session: any) => {
+  const customAttributes: string[] = session?.user?.custom_attributes || [];
+  const canCreate =
+    customAttributes.includes('devrel') ||
+    customAttributes.includes('team1-admin') ||
+    customAttributes.includes('hackathonCreator');
+
+  if (!canCreate) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const newHackathon = await createHackathon(body);
@@ -84,8 +94,8 @@ export const POST = withAuthRole('devrel', async (req: NextRequest, context: any
     console.error('Error POST /api/hackathons:', error.message);
     const wrappedError = error as Error;
     return NextResponse.json(
-      { error: wrappedError },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
+      { error: wrappedError.message ?? 'An error occurred' },
+      { status: wrappedError.cause === 'ValidationError' ? 400 : 500 }
     );
   }
 });

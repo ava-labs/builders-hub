@@ -1,6 +1,3 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   getFilteredHackathons,
@@ -23,6 +20,8 @@ import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
+import StagesSection from "@/components/hackathons/hackathon/sections/StagesSection";
+import { getUserById } from "@/server/services/getUser";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -40,10 +39,10 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  
+
   try {
     const hackathon = await getHackathon(id);
-    
+
     if (!hackathon) {
       return createMetadata({
         title: 'Hackathon Not Found',
@@ -79,13 +78,13 @@ export default async function HackathonPage({
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
   const utm = resolvedSearchParams?.utm ?? "";
-  
+
   const hackathon = await getHackathon(id);
 
   // Check if user is authenticated and registered
   const session = await getAuthSession();
   let isRegistered = false;
-  
+
   if (session?.user?.email) {
     const registration = await getRegisterForm(session.user.email, id);
     isRegistered = !!registration;
@@ -102,20 +101,28 @@ export default async function HackathonPage({
   ];
 
   if (!hackathon) redirect("/events");
+  const hacakthonCreator = await getUserById(hackathon.created_by);
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
-        <Image
-          src={
-            hackathon.icon?.trim().length > 0
-              ? hackathon.icon
-              : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
-          }
-          alt="Hackathon background"
-          width={40}
-          height={40}
-        />
+        {
+          hacakthonCreator?.email?.includes('@team1.network') ? (
+            <Image
+              src={'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg'}
+              alt="Hackathon background"
+              width={40}
+              height={40}
+            />
+          ) : (
+            <Image
+              src={'/images/avax.png'}
+              alt="Hackathon background"
+              width={40}
+              height={40}
+            />
+          )
+        }
         <span className="text-sm sm:text-xl font-bold">{hackathon.title}</span>{" "}
         <JoinButton
           isRegistered={isRegistered}
@@ -149,11 +156,16 @@ export default async function HackathonPage({
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
+            {
+              hackathon.content.stages && hackathon.content.stages.length > 0 && (
+                <StagesSection stages={hackathon.content.stages} hackathon={hackathon} />
+              )
+            }
             {hackathon.content.tracks_text && <About hackathon={hackathon} />}
             {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
             <Resources hackathon={hackathon} />
-            <Schedule 
-              hackathon={hackathon} 
+            <Schedule
+              hackathon={hackathon}
               scheduleSource={hackathon.google_calendar_id ? "google-calendar" : "database"}
               googleCalendarConfig={hackathon.google_calendar_id ? {
                 calendarId: hackathon.google_calendar_id,

@@ -1,7 +1,6 @@
 
 import { SubmissionWrapperSecure } from '@/components/hackathons/project-submission/SubmissionWrapperSecure';
 import UTMPreservationWrapper from "@/components/hackathons/UTMPreservationWrapper";
-import React from 'react'
 
 export default async function ProjectSubmissionPage({
   searchParams,

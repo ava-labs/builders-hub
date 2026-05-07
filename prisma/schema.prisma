@@ -468,6 +468,14 @@ model ResearchProposalApplication {
   @@index([submitted_by_user_id])
 }
 
+model Speaker {
+  id       String @id @default(uuid())
+  name     String
+  icon     String
+  category String
+  picture  String
+}
+
 model ValidatorAlert {
   id                String              @id @default(uuid())
   user_id           String

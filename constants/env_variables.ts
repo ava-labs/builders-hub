@@ -1,0 +1,1 @@
+export const NEXT_AUTH_SECRET = process.env.NEXTAUTH_SECRET

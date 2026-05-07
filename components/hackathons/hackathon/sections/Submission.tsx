@@ -25,6 +25,11 @@ export default async function Submission({
   const lang = normalizeEventsLang(hackathon.content?.language);
   const locale = lang === 'es' ? 'es-ES' : 'en-US';
 
+  const submissionDeadlineDate = hackathon.content?.submission_deadline
+    ? new Date(hackathon.content.submission_deadline)
+    : null;
+  const hasValidDeadline = submissionDeadlineDate !== null && !isNaN(submissionDeadlineDate.getTime());
+
   return (
     <section className='py-16 text-black dark:text-white'>
       <h2 className='text-4xl font-bold' id='submission'>
@@ -46,25 +51,31 @@ export default async function Submission({
           </h3>
           <p className='text-sm'>
             {t(lang, 'section.submission.submissionsCloseOn')}{' '}
-            <b>
-              {new Intl.DateTimeFormat(locale, {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-                timeZone: hackathon.timezone,
-              }).format(new Date(hackathon.content.submission_deadline))}
-            </b>
-            , at{' '}
-            <b>
-              {new Intl.DateTimeFormat(locale, {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: hackathon.timezone,
-              }).format(new Date(hackathon.content.submission_deadline))}{' '}
-              {hackathon.timezone}
-            </b>
-            .
+            {hasValidDeadline ? (
+              <>
+                <b>
+                  {new Intl.DateTimeFormat(locale, {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                    timeZone: hackathon.timezone,
+                  }).format(submissionDeadlineDate!)}
+                </b>
+                , at{' '}
+                <b>
+                  {new Intl.DateTimeFormat(locale, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: hackathon.timezone,
+                  }).format(submissionDeadlineDate!)}{' '}
+                  {hackathon.timezone}
+                </b>
+                .
+              </>
+            ) : (
+              <b>TBD</b>
+            )}
           </p>
         </div>
 

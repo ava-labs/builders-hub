@@ -14,6 +14,7 @@ import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import type { HackathonHeader } from "@/types/hackathons";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import StagesSection from "@/components/hackathons/hackathon/sections/StagesSection";
 
 interface LegacyEventLayoutProps {
   hackathon: HackathonHeader;
@@ -128,6 +129,11 @@ export default function LegacyEventLayout({
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
+            {
+              hackathon.content.stages && hackathon.content.stages.length > 0 && (
+                <StagesSection stages={hackathon.content.stages} hackathon={hackathon} />
+              )
+            }
             {hasAbout && <About hackathon={hackathon} />}
             {isHackathon && hasTracks && <Tracks hackathon={hackathon} />}
             {hasResources && <Resources hackathon={hackathon} />}
