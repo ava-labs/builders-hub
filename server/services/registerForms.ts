@@ -169,7 +169,6 @@ export async function createRegisterForm(
       user: {
         connect: { email: registerData.email },
       },
-      utm: registerData.utm ?? "",
       city: registerData.city ?? "",
       telegram_account: registerData.telegram_account ?? "",
       company_name: registerData.company_name ?? null,
@@ -311,8 +310,7 @@ export async function sendRegistrationToHubSpot(
       'avalanche_ecosystem_member': registrationData.avalanche_ecosystem_member ? 'Yes' : 'No',
       //'hackathon_event_id': registrationData.hackathon_id, // TODO: add this to the HS form
       //'hackathon_event_title': hackathon?.title || '', // TODO: add this to the HS form
-      
-      //'registration_utm_source': registrationData.utm || '', // TODO: add this to the HS form
+
       'marketing_consent': registrationData.newsletter_subscription ? 'Yes' : 'No', // TODO: add this to the HS form
       'gdpr': registrationData.terms_event_conditions ? 'Yes' : 'No' // TODO: add this to the HS form
     };

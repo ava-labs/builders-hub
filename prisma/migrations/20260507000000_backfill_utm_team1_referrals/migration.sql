@@ -110,3 +110,7 @@ WHERE LOWER(TRIM(rf."utm")) = 't1-as'
     )
   )
 ON CONFLICT ("attribution_key") DO NOTHING;
+
+-- Drop RegisterForm.utm now that resolvable values are in ReferralAttribution.
+-- Soft (channel-style) UTM tracking is owned by PostHog going forward.
+ALTER TABLE "RegisterForm" DROP COLUMN "utm";

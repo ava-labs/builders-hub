@@ -94,7 +94,6 @@ model VerificationToken {
 
 model RegisterForm {
   id                      String    @id @default(uuid())
-  utm                     String
   city                    String
   dietary                 String?
   email                   String

@@ -71,7 +71,6 @@ export function RegisterForm({
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
   let hackathon_id = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
-  const utm = searchParams?.utm ?? "";
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
     null
@@ -80,8 +79,8 @@ export function RegisterForm({
   const router = useRouter();
   const [isSavingLater, setIsSavingLater] = useState(false);
   
-  // Use UTM preservation hook
-  const { getPreservedUTMs } = useUTMPreservation();
+  // Preserve URL UTM params across navigation so PostHog can attribute them.
+  useUTMPreservation();
 
   // Capture referral attribution from URL on mount
   useEffect(() => {
@@ -123,8 +122,7 @@ export function RegisterForm({
       const savedData = localStorage.getItem(`formData_${hackathon_id}`);
 
       if (savedData) {
-        const { utm: utm_local, hackathon_id: hackathon_id_local } =
-          JSON.parse(savedData);
+        const { hackathon_id: hackathon_id_local } = JSON.parse(savedData);
         try {
           const parsedData: RegisterFormValues = JSON.parse(savedData);
 
@@ -250,13 +248,9 @@ export function RegisterForm({
   }, [hackathon, form]);
 
   const onSaveLater = () => {
-    const preservedUTMs = getPreservedUTMs();
-    const effectiveUTM = utm || preservedUTMs.utm || "";
-    
     const formValues = {
       ...form.getValues(),
       hackathon_id: hackathon_id,
-      utm: effectiveUTM,
     };
     if (typeof window !== "undefined") {
       localStorage.setItem(
@@ -296,13 +290,10 @@ export function RegisterForm({
         return;
       }
       setFormData((prevData) => ({ ...prevData, ...data }));
-      const preservedUTMs = getPreservedUTMs();
-      const effectiveUTM = utm || preservedUTMs.utm || "";
-      
+
       const finalData = {
         ...data,
         hackathon_id: hackathon_id,
-        utm: effectiveUTM,
         referral_attribution: captureReferralAttributionFromUrl() ?? getStoredReferralAttribution(),
         interests: data.interests ?? [],
         languages: data.languages ?? [],
