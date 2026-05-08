@@ -49,6 +49,40 @@ const PHASE_TO_NEXT: Record<PhaseId, PhaseId | null> = {
  * search-param deep-link is supported for the redirect targets coming
  * from the old `/setup/[step]` and `/token-transfer/[step]` routes.
  */
+const PREFERRED_REMOTE_STORAGE_KEY = 'ictt-bridge-preferred-remote-v1';
+
+/** Persist the preferred remote per home chain in localStorage so the
+ *  user's last selection survives a reload even without a URL param.
+ *  Keyed by home chain ID since the same wallet might run bridges from
+ *  multiple home chains. */
+function loadPreferredRemote(homeChainId: string | undefined): string | undefined {
+  if (!homeChainId || typeof window === 'undefined') return undefined;
+  try {
+    const raw = window.localStorage.getItem(PREFERRED_REMOTE_STORAGE_KEY);
+    if (!raw) return undefined;
+    const map = JSON.parse(raw) as Record<string, string>;
+    return map[homeChainId];
+  } catch {
+    return undefined;
+  }
+}
+
+function savePreferredRemote(homeChainId: string, remoteChainId: string | undefined) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = window.localStorage.getItem(PREFERRED_REMOTE_STORAGE_KEY);
+    const map: Record<string, string> = raw ? JSON.parse(raw) : {};
+    if (remoteChainId) {
+      map[homeChainId] = remoteChainId;
+    } else {
+      delete map[homeChainId];
+    }
+    window.localStorage.setItem(PREFERRED_REMOTE_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    /* quota / disabled storage — silent */
+  }
+}
+
 export function BridgeConsole({
   initialPhase,
   initialRemoteChainId,
@@ -58,6 +92,26 @@ export function BridgeConsole({
 }) {
   const [preferredRemoteChainId, setPreferredRemoteChainId] = useState<string | undefined>(initialRemoteChainId);
   const bridge = useBridgeState({ preferredRemoteChainId });
+
+  // Hydrate from localStorage on first mount (after we know the home
+  // chain). URL `?remote=` always wins over persisted state.
+  useEffect(() => {
+    if (preferredRemoteChainId || !bridge.homeChain?.id) return;
+    const stored = loadPreferredRemote(bridge.homeChain.id);
+    if (stored && bridge.allRemotes.some((r) => r.chain.id === stored)) {
+      setPreferredRemoteChainId(stored);
+    }
+    // We intentionally only run this once per home chain change — if the
+    // user clears their selection, the auto-pick kicks in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridge.homeChain?.id]);
+
+  // Persist any explicit selection. Skipping when no home chain (during
+  // bootstrap) avoids writing under an empty key.
+  useEffect(() => {
+    if (!bridge.homeChain?.id) return;
+    savePreferredRemote(bridge.homeChain.id, preferredRemoteChainId);
+  }, [bridge.homeChain?.id, preferredRemoteChainId]);
   const { events, append, clear: clearActivity, messageCount } = useBridgeActivity();
   const homeSnapshot = useHomeTokenSnapshot({
     homeChain: bridge.homeChain,
