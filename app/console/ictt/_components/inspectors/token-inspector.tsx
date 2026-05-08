@@ -16,7 +16,7 @@ import WrappedNativeToken from '@/contracts/icm-contracts/compiled/WrappedNative
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
-import { ChainMismatchBanner } from './preflight-banner';
+import { usePreflight } from '../use-preflight';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
 
@@ -25,7 +25,6 @@ type TokenSource = 'existing' | 'test' | 'wrapped';
 interface TokenInspectorProps {
   bridge: BridgeState;
   accent: string;
-  onClose: () => void;
   onAdvance: () => void;
   appendActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
   switchChain: (chainId: number, isTestnet: boolean) => Promise<void>;
@@ -42,7 +41,6 @@ interface TokenInspectorProps {
 export function TokenInspector({
   bridge,
   accent,
-  onClose,
   onAdvance,
   appendActivity,
   switchChain,
@@ -64,9 +62,7 @@ export function TokenInspector({
     if (!pasted && exampleErc20Address) setPasted(exampleErc20Address);
   }, [exampleErc20Address]);
 
-  const onSwitchToHome = bridge.homeChain
-    ? () => switchChain(bridge.homeChain!.evmChainId, !!bridge.homeChain!.isTestnet)
-    : undefined;
+  const { banner: preflight } = usePreflight({ expectedChain: bridge.homeChain, switchChain });
 
   const handleDeployTest = async () => {
     setError(null);
@@ -168,16 +164,7 @@ export function TokenInspector({
       description="The token whose value will move across chains. Use an existing ERC-20, deploy a test token, or use the wrapped-native helper for native flows."
       meta={source === 'existing' ? 'Reads name, symbol, decimals via static call.' : 'Deploys to the home chain.'}
       primaryAction={action}
-      onClose={onClose}
-      preflight={
-        bridge.homeChain ? (
-          <ChainMismatchBanner
-            expectedChain={bridge.homeChain}
-            walletChainId={selectedL1?.evmChainId ?? -1}
-            onSwitch={onSwitchToHome}
-          />
-        ) : null
-      }
+      preflight={preflight}
     >
       <div>
         <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">Token type</label>

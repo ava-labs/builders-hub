@@ -14,14 +14,13 @@ import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicCl
 import { useDeployTokenRemote } from '@/components/toolbox/console/ictt/hooks/useDeployTokenRemote';
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
-import { ChainMismatchBanner } from './preflight-banner';
+import { usePreflight } from '../use-preflight';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent, TokenKind } from '../types';
 
 interface RemoteInspectorProps {
   bridge: BridgeState;
   accent: string;
-  onClose: () => void;
   onAdvance: () => void;
   appendActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
   switchChain: (chainId: number, isTestnet: boolean) => Promise<void>;
@@ -39,14 +38,11 @@ interface RemoteInspectorProps {
 export function RemoteInspector({
   bridge,
   accent,
-  onClose,
   onAdvance,
   appendActivity,
   switchChain,
 }: RemoteInspectorProps) {
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-  const walletChainId = useWalletStore((s) => s.walletChainId);
-  const isTestnet = useWalletStore((s) => s.isTestnet);
   const viemChain = useViemChainStore();
   const l1List = useL1List();
   const { run: runDeploy, isDeploying, error: deployError } = useDeployTokenRemote();
@@ -70,6 +66,7 @@ export function RemoteInspector({
 
   const destChain = useL1ByChainId(destChainId);
   const sourceL1 = bridge.homeChain;
+  const { banner: preflight } = usePreflight({ expectedChain: destChain, switchChain });
 
   // Default destination = first L1 that isn't the home chain.
   useEffect(() => {
@@ -176,10 +173,6 @@ export function RemoteInspector({
     }
   };
 
-  const onSwitchToDest = destChain
-    ? () => switchChain(destChain.evmChainId, destChain.isTestnet ?? isTestnet)
-    : undefined;
-
   return (
     <InspectorPanel
       phase="remote"
@@ -198,12 +191,7 @@ export function RemoteInspector({
           Deploy TokenRemote →
         </Button>
       }
-      onClose={onClose}
-      preflight={
-        destChain ? (
-          <ChainMismatchBanner expectedChain={destChain} walletChainId={walletChainId} onSwitch={onSwitchToDest} />
-        ) : null
-      }
+      preflight={preflight}
     >
       <div>
         <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">Remote kind</label>

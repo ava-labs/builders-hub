@@ -12,14 +12,13 @@ import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicCl
 import { useDeployTokenHome } from '@/components/toolbox/console/ictt/hooks/useDeployTokenHome';
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
-import { ChainMismatchBanner } from './preflight-banner';
+import { usePreflight } from '../use-preflight';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent, TokenKind } from '../types';
 
 interface HomeInspectorProps {
   bridge: BridgeState;
   accent: string;
-  onClose: () => void;
   onAdvance: () => void;
   appendActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
   switchChain: (chainId: number, isTestnet: boolean) => Promise<void>;
@@ -33,15 +32,14 @@ interface HomeInspectorProps {
 export function HomeInspector({
   bridge,
   accent,
-  onClose,
   onAdvance,
   appendActivity,
   switchChain,
 }: HomeInspectorProps) {
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-  const walletChainId = useWalletStore((s) => s.walletChainId);
   const viemChain = useViemChainStore();
   const { run: runDeploy, isDeploying, error: deployError } = useDeployTokenHome();
+  const { banner: preflight } = usePreflight({ expectedChain: bridge.homeChain, switchChain });
 
   const [kind, setKind] = useState<TokenKind>('erc20');
   const [registry, setRegistry] = useState(bridge.homeChain?.wellKnownTeleporterRegistryAddress ?? '');
@@ -111,10 +109,6 @@ export function HomeInspector({
     }
   };
 
-  const onSwitchToHome = bridge.homeChain
-    ? () => switchChain(bridge.homeChain!.evmChainId, !!bridge.homeChain!.isTestnet)
-    : undefined;
-
   const error = localError || deployError;
 
   return (
@@ -135,16 +129,7 @@ export function HomeInspector({
           Deploy TokenHome →
         </Button>
       }
-      onClose={onClose}
-      preflight={
-        bridge.homeChain ? (
-          <ChainMismatchBanner
-            expectedChain={bridge.homeChain}
-            walletChainId={walletChainId}
-            onSwitch={onSwitchToHome}
-          />
-        ) : null
-      }
+      preflight={preflight}
     >
       <div>
         <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">

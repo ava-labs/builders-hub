@@ -15,7 +15,7 @@ import { Note } from '@/components/toolbox/components/Note';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
-import { ChainMismatchBanner } from './preflight-banner';
+import { usePreflight } from '../use-preflight';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
 
@@ -24,7 +24,6 @@ const DEFAULT_GAS_LIMIT = 250_000n;
 interface TransferInspectorProps {
   bridge: BridgeState;
   accent: string;
-  onClose: () => void;
   onAdvance: () => void;
   appendActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
   switchChain: (chainId: number, isTestnet: boolean) => Promise<void>;
@@ -45,7 +44,6 @@ interface TransferInspectorProps {
 export function TransferInspector({
   bridge,
   accent,
-  onClose,
   onAdvance,
   appendActivity,
   switchChain,
@@ -53,7 +51,7 @@ export function TransferInspector({
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const viemChain = useViemChainStore();
-  const { run: runSend, status, isApproving, isSending, isWorking, error: hookError } = useSendTransfer();
+  const { run: runSend, status, isApproving, isWorking, error: hookError } = useSendTransfer();
 
   const [direction, setDirection] = useState<TransferDirection>('home-to-remote');
   const [amount, setAmount] = useState('');
@@ -173,9 +171,7 @@ export function TransferInspector({
     }
   };
 
-  const onSwitchToSource = sourceChain
-    ? () => switchChain(sourceChain.evmChainId, !!sourceChain.isTestnet)
-    : undefined;
+  const { banner: preflight } = usePreflight({ expectedChain: sourceChain, switchChain });
   const error = localError || hookError;
 
   return (
@@ -196,12 +192,7 @@ export function TransferInspector({
           Send →
         </Button>
       }
-      onClose={onClose}
-      preflight={
-        sourceChain ? (
-          <ChainMismatchBanner expectedChain={sourceChain} walletChainId={walletChainId} onSwitch={onSwitchToSource} />
-        ) : null
-      }
+      preflight={preflight}
     >
       <div>
         <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">Direction</label>

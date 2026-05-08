@@ -12,14 +12,13 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Note } from '@/components/toolbox/components/Note';
 import { InspectorPanel } from '../inspector-panel';
-import { ChainMismatchBanner } from './preflight-banner';
+import { usePreflight } from '../use-preflight';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
 
 interface CollateralInspectorProps {
   bridge: BridgeState;
   accent: string;
-  onClose: () => void;
   onAdvance: () => void;
   appendActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
   switchChain: (chainId: number, isTestnet: boolean) => Promise<void>;
@@ -37,15 +36,14 @@ interface CollateralInspectorProps {
 export function CollateralInspector({
   bridge,
   accent,
-  onClose,
   onAdvance,
   appendActivity,
   switchChain,
 }: CollateralInspectorProps) {
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-  const walletChainId = useWalletStore((s) => s.walletChainId);
   const viemChain = useViemChainStore();
   const { approve, addCollateral, status, isApproving, isDepositing, error: hookError } = useAddCollateral();
+  const { banner: preflight } = usePreflight({ expectedChain: bridge.homeChain, switchChain });
 
   const [decimals, setDecimals] = useState<number>(18);
   const [tokenAddress, setTokenAddress] = useState<string | null>(null);
@@ -170,10 +168,6 @@ export function CollateralInspector({
     }
   };
 
-  const onSwitchToHome = bridge.homeChain
-    ? () => switchChain(bridge.homeChain!.evmChainId, !!bridge.homeChain!.isTestnet)
-    : undefined;
-
   const collateralNeededFormatted =
     bridge.collateralNeeded > 0n ? formatUnits(bridge.collateralNeeded, decimals) : '0';
 
@@ -222,16 +216,7 @@ export function CollateralInspector({
           </Button>
         )
       }
-      onClose={onClose}
-      preflight={
-        bridge.homeChain ? (
-          <ChainMismatchBanner
-            expectedChain={bridge.homeChain}
-            walletChainId={walletChainId}
-            onSwitch={onSwitchToHome}
-          />
-        ) : null
-      }
+      preflight={preflight}
     >
       <Input
         label={bridge.homeKind === 'native' ? `Amount (${bridge.homeChain?.coinName ?? 'native'})` : 'Amount (tokens)'}

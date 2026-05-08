@@ -89,14 +89,27 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
   const [activePhase, setActivePhase] = useState<PhaseId>(computedActive);
   const [switching, setSwitching] = useState(false);
 
-  // If the computed phase changes (e.g., because the user just deployed
-  // something), nudge the active phase forward when it's currently
-  // pointing at a blocked / done phase the user hasn't manually picked.
+  // If the active phase becomes blocked (shouldn't happen normally, but
+  // can happen if state is rebuilt after a chain switch), fall back to
+  // the computed default phase.
   useEffect(() => {
     if (bridge.phaseStatus[activePhase] === 'blocked') {
       setActivePhase(computedActive);
     }
   }, [activePhase, bridge.phaseStatus, computedActive]);
+
+  // Smart auto-advance: when the active phase flips to `done` via
+  // background polling (e.g., the register phase confirms registration
+  // ~30s after the ICM message lands), auto-advance the user to the
+  // next non-blocked phase. Without this, users would stare at a "done"
+  // inspector and have to click "Continue" to move forward.
+  useEffect(() => {
+    if (bridge.phaseStatus[activePhase] !== 'done') return;
+    const next = PHASE_TO_NEXT[activePhase];
+    if (next && bridge.phaseStatus[next] !== 'blocked' && bridge.phaseStatus[next] !== 'done') {
+      setActivePhase(next);
+    }
+  }, [activePhase, bridge.phaseStatus]);
 
   const handleSwitchChain = async (chainId: number, isTestnet: boolean) => {
     setSwitching(true);
@@ -121,7 +134,6 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
     const common = {
       bridge,
       accent: ACCENT,
-      onClose: () => setActivePhase(computedActive),
       onAdvance: handleAdvance,
       appendActivity,
       switchChain: handleSwitchChain,

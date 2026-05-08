@@ -9,7 +9,7 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Note } from '@/components/toolbox/components/Note';
 import { useRegisterRemote } from '@/components/toolbox/console/ictt/hooks/useRegisterRemote';
 import { InspectorPanel } from '../inspector-panel';
-import { ChainMismatchBanner } from './preflight-banner';
+import { usePreflight } from '../use-preflight';
 import { relativeTime } from '../relative-time';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
@@ -17,7 +17,6 @@ import type { ActivityEvent } from '../types';
 interface RegisterInspectorProps {
   bridge: BridgeState;
   accent: string;
-  onClose: () => void;
   onAdvance: () => void;
   appendActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
   switchChain: (chainId: number, isTestnet: boolean) => Promise<void>;
@@ -36,7 +35,6 @@ interface RegisterInspectorProps {
 export function RegisterInspector({
   bridge,
   accent,
-  onClose,
   onAdvance,
   appendActivity,
   switchChain,
@@ -44,6 +42,7 @@ export function RegisterInspector({
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const viemChain = useViemChainStore();
   const { run: runRegister, isRegistering, error: registerError } = useRegisterRemote();
+  const { banner: preflight } = usePreflight({ expectedChain: bridge.remoteChain, switchChain });
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleRegister = async () => {
@@ -76,9 +75,6 @@ export function RegisterInspector({
   };
 
   const elapsed = bridge.lastChecked ? relativeTime(bridge.lastChecked) : '—';
-  const onSwitchToRemote = bridge.remoteChain
-    ? () => switchChain(bridge.remoteChain!.evmChainId, !!bridge.remoteChain!.isTestnet)
-    : undefined;
   const error = localError || registerError;
 
   return (
@@ -114,16 +110,7 @@ export function RegisterInspector({
           </>
         )
       }
-      onClose={onClose}
-      preflight={
-        bridge.remoteChain ? (
-          <ChainMismatchBanner
-            expectedChain={bridge.remoteChain}
-            walletChainId={walletChainId}
-            onSwitch={onSwitchToRemote}
-          />
-        ) : null
-      }
+      preflight={preflight}
     >
       <Input
         label="From (Remote address)"

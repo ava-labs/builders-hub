@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { X } from 'lucide-react';
 import { PHASES, type PhaseId } from './types';
 
 interface InspectorPanelProps {
@@ -11,7 +10,6 @@ interface InspectorPanelProps {
   description: string;
   meta?: string;
   primaryAction?: ReactNode;
-  onClose?: () => void;
   preflight?: ReactNode;
   children: ReactNode;
 }
@@ -24,6 +22,9 @@ interface InspectorPanelProps {
  * `./inspectors/` provide the form fields and wire `primaryAction` to
  * the corresponding contract hook. `preflight` slot renders chain-
  * mismatch / precompile warnings above the form body.
+ *
+ * No close (×) button — the phase strip is the navigation surface;
+ * a redundant close that often resolves to a no-op was confusing.
  */
 export function InspectorPanel({
   phase,
@@ -32,7 +33,6 @@ export function InspectorPanel({
   description,
   meta,
   primaryAction,
-  onClose,
   preflight,
   children,
 }: InspectorPanelProps) {
@@ -40,27 +40,15 @@ export function InspectorPanel({
 
   return (
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden flex flex-col min-h-0">
-      <div className="px-5 pt-5 pb-3 border-b border-zinc-100 dark:border-zinc-800/60 flex items-start justify-between gap-3 flex-shrink-0">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
-            <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: accent }}>
-              {phaseObj?.label ?? phase}
-            </span>
-          </div>
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-md">{description}</p>
+      <div className="px-5 pt-5 pb-3 border-b border-zinc-100 dark:border-zinc-800/60 flex flex-col gap-1 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
+          <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: accent }}>
+            {phaseObj?.label ?? phase}
+          </span>
         </div>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer p-1 -m-1 rounded"
-            aria-label="Close inspector"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md">{description}</p>
       </div>
 
       <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
