@@ -39,6 +39,7 @@ export function BridgeShell({ initialPhase: _initialPhase, initialRemote: _initi
   const bridgesRecord = useIcttBridgeStore((s) => s.bridges);
   const lastActiveBridgeId = useIcttBridgeStore((s) => s.lastActiveBridgeId);
   const setLastActiveBridge = useIcttBridgeStore((s) => s.setLastActiveBridge);
+  const removeRemote = useIcttBridgeStore((s) => s.removeRemote);
   const selectedL1 = useSelectedL1();
 
   const visibleBridges = useMemo(() => Object.values(bridgesRecord).filter((b) => !b.archivedAt), [bridgesRecord]);
@@ -132,7 +133,15 @@ export function BridgeShell({ initialPhase: _initialPhase, initialRemote: _initi
                   selectRemote(id);
                   setRemoteId(id);
                 }}
-                onAddRemote={() => setPhase('remote')}
+                onAddRemote={() => {
+                  setRemoteId(null);
+                  setPhase('remote');
+                }}
+                onRemoveFromView={(id) => {
+                  if (activeBridgeId) {
+                    removeRemote(activeBridgeId, id);
+                  }
+                }}
               />
             }
             remoteCard={
