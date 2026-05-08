@@ -13,6 +13,7 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Note } from '@/components/toolbox/components/Note';
 import { InspectorPanel } from '../inspector-panel';
 import { usePreflight } from '../use-preflight';
+import { useKeyboardSubmit } from '../use-keyboard-submit';
 import { FieldLoading } from '../field-loading';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
@@ -180,6 +181,12 @@ export function CollateralInspector({
   // decreases as collateral lands. When `needed === 0`, we're 100% funded.
   const fullyFunded = bridge.registered && bridge.collateralNeeded === 0n;
   const error = localError || hookError;
+  // Cmd+Enter binds to whichever primary action is currently visible:
+  // Continue (when fully funded), Approve (when allowance < amount), or
+  // Add collateral (otherwise).
+  const submitHandler = fullyFunded ? onAdvance : needsApproval ? handleApprove : handleAddCollateral;
+  const canSubmit = fullyFunded || (parsedAmount > 0n && status === 'idle');
+  useKeyboardSubmit({ onSubmit: submitHandler, enabled: canSubmit });
 
   return (
     <InspectorPanel
@@ -194,6 +201,7 @@ export function CollateralInspector({
               bridge.homeKind === 'native' ? bridge.homeChain?.coinName ?? 'tokens' : 'tokens'
             }`
       }
+      showSubmitShortcut={canSubmit}
       primaryAction={
         fullyFunded ? (
           <Button onClick={onAdvance} variant="secondary" stickLeft>

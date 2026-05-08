@@ -10,6 +10,7 @@ import { Note } from '@/components/toolbox/components/Note';
 import { useRegisterRemote } from '@/components/toolbox/console/ictt/hooks/useRegisterRemote';
 import { InspectorPanel } from '../inspector-panel';
 import { usePreflight } from '../use-preflight';
+import { useKeyboardSubmit } from '../use-keyboard-submit';
 import { relativeTime } from '../relative-time';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
@@ -76,6 +77,13 @@ export function RegisterInspector({
 
   const elapsed = bridge.lastChecked ? relativeTime(bridge.lastChecked) : '—';
   const error = localError || registerError;
+  // Cmd+Enter submits the active primary action: "Continue" when the
+  // bridge is registered, otherwise "Send ICM register message".
+  const canSubmit = bridge.registered || (!!bridge.remoteAddress && !isRegistering);
+  useKeyboardSubmit({
+    onSubmit: bridge.registered ? onAdvance : handleRegister,
+    enabled: canSubmit,
+  });
 
   return (
     <InspectorPanel
@@ -88,6 +96,7 @@ export function RegisterInspector({
           ? `Registered. Last polled ${elapsed} ago.`
           : `One-way trip. Avg 28s · last polled ${elapsed} ago.`
       }
+      showSubmitShortcut={canSubmit}
       primaryAction={
         bridge.registered ? (
           <Button onClick={onAdvance} variant="secondary" stickLeft>

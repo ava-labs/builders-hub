@@ -13,6 +13,7 @@ import { useDeployTokenHome } from '@/components/toolbox/console/ictt/hooks/useD
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
 import { usePreflight } from '../use-preflight';
+import { useKeyboardSubmit } from '../use-keyboard-submit';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent, TokenKind } from '../types';
 
@@ -111,6 +112,9 @@ export function HomeInspector({
 
   const error = localError || deployError;
 
+  const canSubmit = !!bridge.tokenAddress && !!registry && !isDeploying;
+  useKeyboardSubmit({ onSubmit: handleDeploy, enabled: canSubmit });
+
   return (
     <InspectorPanel
       phase="home"
@@ -118,6 +122,7 @@ export function HomeInspector({
       title="Deploy TokenHome"
       description="The custodian contract that holds the canonical supply on the origin chain."
       meta="Will become the home of the bridge."
+      showSubmitShortcut={canSubmit}
       primaryAction={
         <Button
           onClick={handleDeploy}

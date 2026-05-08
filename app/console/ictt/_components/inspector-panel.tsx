@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { PHASES, type PhaseId } from './types';
 
 interface InspectorPanelProps {
@@ -11,6 +11,13 @@ interface InspectorPanelProps {
   meta?: string;
   primaryAction?: ReactNode;
   preflight?: ReactNode;
+  /**
+   * When true, shows a `⌘ Enter` / `Ctrl Enter` hint near the meta text
+   * to advertise the keyboard shortcut. Inspectors that bind the
+   * shortcut via `useKeyboardSubmit` should pass this so users can
+   * discover it.
+   */
+  showSubmitShortcut?: boolean;
   children: ReactNode;
 }
 
@@ -34,9 +41,11 @@ export function InspectorPanel({
   meta,
   primaryAction,
   preflight,
+  showSubmitShortcut,
   children,
 }: InspectorPanelProps) {
   const phaseObj = PHASES.find((p) => p.id === phase);
+  const submitChord = useSubmitChord();
 
   return (
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden flex flex-col min-h-0">
@@ -58,10 +67,31 @@ export function InspectorPanel({
 
       {(meta || primaryAction) && (
         <div className="px-5 py-3 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/30 flex-shrink-0 gap-3">
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">{meta}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">{meta}</span>
+            {showSubmitShortcut && (
+              <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[9px] font-mono text-zinc-500 dark:text-zinc-400 flex-shrink-0">
+                {submitChord}
+              </kbd>
+            )}
+          </div>
           {primaryAction && <div className="flex items-center gap-2">{primaryAction}</div>}
         </div>
       )}
     </div>
   );
+}
+
+/**
+ * macOS uses Cmd; everything else uses Ctrl. Detected once at mount;
+ * SSR returns the generic chord so the markup is stable until hydration.
+ */
+function useSubmitChord(): string {
+  const [chord, setChord] = useState('Ctrl + Enter');
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+    const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
+    setChord(isMac ? '⌘ Enter' : 'Ctrl + Enter');
+  }, []);
+  return chord;
 }

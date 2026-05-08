@@ -16,6 +16,7 @@ import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
 import { usePreflight } from '../use-preflight';
 import { usePrecompileActive } from '../use-precompile-active';
+import { useKeyboardSubmit } from '../use-keyboard-submit';
 import { PrecompileBanner } from './precompile-banner';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent, TokenKind } from '../types';
@@ -201,6 +202,10 @@ export function RemoteInspector({
     }
   };
 
+  const canSubmit =
+    !!bridge.homeAddress && !!destChain && tokenDecimals !== '0' && !isDeploying && !minterMissing;
+  useKeyboardSubmit({ onSubmit: handleDeploy, enabled: canSubmit });
+
   return (
     <InspectorPanel
       phase="remote"
@@ -208,6 +213,7 @@ export function RemoteInspector({
       title="Deploy TokenRemote"
       description="The mirror contract on the destination chain. Mints / burns wrapped representations of the home asset."
       meta="Will need collateral on Home before transfers can flow."
+      showSubmitShortcut={canSubmit}
       primaryAction={
         <Button
           onClick={handleDeploy}

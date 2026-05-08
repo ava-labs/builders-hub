@@ -16,6 +16,7 @@ import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
 import { usePreflight } from '../use-preflight';
+import { useKeyboardSubmit } from '../use-keyboard-submit';
 import { FieldLoading } from '../field-loading';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
@@ -178,6 +179,8 @@ export function TransferInspector({
 
   const { banner: preflight } = usePreflight({ expectedChain: sourceChain, switchChain });
   const error = localError || hookError;
+  const canSubmit = !!sourceContract && !!destContract && parsedAmount > 0n && !isWorking;
+  useKeyboardSubmit({ onSubmit: handleSend, enabled: canSubmit });
 
   return (
     <InspectorPanel
@@ -186,6 +189,7 @@ export function TransferInspector({
       title="Send tokens"
       description="Bridge live. Tokens move Home ↔ Remote via ICM."
       meta={`Arrival ETA ≈ 25s after origin tx confirms · gas ${DEFAULT_GAS_LIMIT.toString()}`}
+      showSubmitShortcut={canSubmit}
       primaryAction={
         <Button
           onClick={handleSend}

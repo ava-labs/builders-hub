@@ -17,6 +17,7 @@ import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicCl
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
 import { usePreflight } from '../use-preflight';
+import { useKeyboardSubmit } from '../use-keyboard-submit';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
 
@@ -156,6 +157,11 @@ export function TokenInspector({
       </Button>
     );
 
+  const submitHandler =
+    source === 'existing' ? handleUseExisting : source === 'test' ? handleDeployTest : handleDeployWrapped;
+  const canSubmit = source === 'existing' ? !!pasted && !isDeploying : !isDeploying;
+  useKeyboardSubmit({ onSubmit: submitHandler, enabled: canSubmit });
+
   return (
     <InspectorPanel
       phase="token"
@@ -163,6 +169,7 @@ export function TokenInspector({
       title="Choose home asset"
       description="The token whose value will move across chains. Use an existing ERC-20, deploy a test token, or use the wrapped-native helper for native flows."
       meta={source === 'existing' ? 'Reads name, symbol, decimals via static call.' : 'Deploys to the home chain.'}
+      showSubmitShortcut={canSubmit}
       primaryAction={action}
       preflight={preflight}
     >
