@@ -31,8 +31,17 @@ export function ICMRail({ events, className }: ICMRailProps) {
   const hasRecent = recentCount > 0;
 
   return (
-    <div className={cn('flex flex-col items-center justify-stretch gap-2', className)} aria-hidden={false}>
-      <span aria-hidden className="flex-1 border-l border-dashed border-zinc-200 dark:border-zinc-800" />
+    <div
+      className={cn(
+        'flex w-full items-center justify-center gap-2 md:h-full md:w-auto md:flex-col md:items-center md:justify-stretch md:gap-2',
+        className,
+      )}
+      aria-hidden={false}
+    >
+      <span
+        aria-hidden
+        className="hidden h-px w-12 border-t border-dashed border-zinc-200 dark:border-zinc-800 md:block md:h-auto md:w-auto md:flex-1 md:border-l md:border-t-0"
+      />
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <button
@@ -89,7 +98,10 @@ export function ICMRail({ events, className }: ICMRailProps) {
           </div>
         </SheetContent>
       </Sheet>
-      <span aria-hidden className="flex-1 border-l border-dashed border-zinc-200 dark:border-zinc-800" />
+      <span
+        aria-hidden
+        className="hidden h-px w-12 border-t border-dashed border-zinc-200 dark:border-zinc-800 md:block md:h-auto md:w-auto md:flex-1 md:border-l md:border-t-0"
+      />
     </div>
   );
 }

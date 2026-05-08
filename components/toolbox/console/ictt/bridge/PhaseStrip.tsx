@@ -34,7 +34,11 @@ export function PhaseStrip({ activePhase, phaseStatus, highestReachablePhase, on
     <ol
       role="tablist"
       aria-label="ICTT setup phases"
-      className={cn('flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto pb-1', className)}
+      className={cn(
+        'flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto pb-1',
+        '-mx-2 scroll-px-2 px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        className,
+      )}
     >
       {BRIDGE_PHASE_ORDER.map((phase, index) => {
         const status = phaseStatus[phase];

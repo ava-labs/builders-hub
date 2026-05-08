@@ -282,10 +282,12 @@ interface BridgeGraphProps {
 
 function BridgeGraph({ homeCard, rail, remoteHeader, remoteCard }: BridgeGraphProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-stretch md:gap-2">
+    <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-stretch md:gap-3">
       <div className="md:row-span-2">{homeCard}</div>
-      <div className="hidden md:flex md:row-span-2 md:py-2">{rail}</div>
-      <div className="flex md:hidden md:row-span-2">{rail}</div>
+      <div className="flex items-center justify-center md:row-span-2 md:py-2">
+        <div className="md:hidden">{rail}</div>
+        <div className="hidden md:flex md:h-full">{rail}</div>
+      </div>
       <div className="flex flex-col gap-2">
         <div>{remoteHeader}</div>
         <div>{remoteCard}</div>
