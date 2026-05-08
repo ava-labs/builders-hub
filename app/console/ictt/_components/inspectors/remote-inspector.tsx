@@ -9,6 +9,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Note } from '@/components/toolbox/components/Note';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TeleporterRegistryAddressInput from '@/components/toolbox/components/TeleporterRegistryAddressInput';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { useDeployTokenRemote } from '@/components/toolbox/console/ictt/hooks/useDeployTokenRemote';
@@ -240,25 +241,21 @@ export function RemoteInspector({
       </div>
 
       <div>
-        <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
-          Destination chain
-        </label>
-        <select
-          value={destChainId}
-          onChange={(e) => setDestChainId(e.target.value)}
-          className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm"
-        >
-          <option value="" disabled>
-            Pick a destination chain…
-          </option>
-          {l1List
-            .filter((l1: { id: string }) => l1.id !== sourceL1?.id)
-            .map((l1: { id: string; name: string; evmChainId: number }) => (
-              <option key={l1.id} value={l1.id}>
-                {l1.name} (chain id {l1.evmChainId})
-              </option>
-            ))}
-        </select>
+        <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">Destination chain</label>
+        <Select value={destChainId} onValueChange={setDestChainId}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Pick a destination chain…" />
+          </SelectTrigger>
+          <SelectContent>
+            {l1List
+              .filter((l1: { id: string }) => l1.id !== sourceL1?.id)
+              .map((l1: { id: string; name: string; evmChainId: number }) => (
+                <SelectItem key={l1.id} value={l1.id}>
+                  {l1.name} (chain id {l1.evmChainId})
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <TeleporterRegistryAddressInput value={registry} onChange={setRegistry} disabled={isDeploying} />
