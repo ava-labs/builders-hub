@@ -192,6 +192,33 @@ export function BridgeConsole({
     }
   }, [activePhase, bridge.phaseStatus]);
 
+  // Arrow-key phase navigation. Skips blocked phases so users can
+  // hold ← / → to scrub through what's actually reachable. Ignored when
+  // the focus is in an editable field so typed text isn't hijacked.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      const direction = e.key === 'ArrowLeft' ? -1 : 1;
+      const currentIndex = PHASES.findIndex((p) => p.id === activePhase);
+      if (currentIndex === -1) return;
+      // Walk in the chosen direction skipping blocked phases.
+      for (let i = currentIndex + direction; i >= 0 && i < PHASES.length; i += direction) {
+        const next = PHASES[i];
+        if (bridge.phaseStatus[next.id] !== 'blocked') {
+          e.preventDefault();
+          setActivePhase(next.id);
+          return;
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [activePhase, bridge.phaseStatus]);
+
   const handleSwitchChain = async (chainId: number, isTestnet: boolean) => {
     setSwitching(true);
     try {
