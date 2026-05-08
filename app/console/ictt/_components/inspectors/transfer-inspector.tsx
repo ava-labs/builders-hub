@@ -16,6 +16,7 @@ import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
 import { usePreflight } from '../use-preflight';
+import { FieldLoading } from '../field-loading';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
 
@@ -59,6 +60,7 @@ export function TransferInspector({
   const [decimals, setDecimals] = useState(18);
   const [tokenSymbol, setTokenSymbol] = useState('TKN');
   const [localError, setLocalError] = useState<string | null>(null);
+  const [isReading, setIsReading] = useState(false);
 
   const sourceChain = direction === 'home-to-remote' ? bridge.homeChain : bridge.remoteChain;
   const destChain = direction === 'home-to-remote' ? bridge.remoteChain : bridge.homeChain;
@@ -76,6 +78,7 @@ export function TransferInspector({
     let cancelled = false;
     const client = makePublicClientForChain(sourceChain.rpcUrl);
     if (!client) return;
+    setIsReading(true);
     (async () => {
       try {
         if (direction === 'home-to-remote' && bridge.homeKind === 'erc20') {
@@ -117,6 +120,8 @@ export function TransferInspector({
         }
       } catch {
         /* leave defaults */
+      } finally {
+        if (!cancelled) setIsReading(false);
       }
     })();
     return () => {
@@ -213,6 +218,8 @@ export function TransferInspector({
       </div>
 
       <Input label={`Amount (${tokenSymbol})`} value={amount} onChange={setAmount} type="number" />
+
+      {isReading && <FieldLoading label={`Reading decimals + symbol from ${sourceChain?.name ?? 'source'}…`} />}
 
       <EVMAddressInput
         label="Recipient"

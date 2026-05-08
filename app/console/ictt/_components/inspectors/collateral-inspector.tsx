@@ -13,6 +13,7 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Note } from '@/components/toolbox/components/Note';
 import { InspectorPanel } from '../inspector-panel';
 import { usePreflight } from '../use-preflight';
+import { FieldLoading } from '../field-loading';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent } from '../types';
 
@@ -50,6 +51,7 @@ export function CollateralInspector({
   const [allowance, setAllowance] = useState<bigint>(0n);
   const [amount, setAmount] = useState<string>('');
   const [localError, setLocalError] = useState<string | null>(null);
+  const [isReading, setIsReading] = useState(false);
 
   // For ERC20 path: read the token address from the home contract
   // (`getTokenAddress`) plus decimals + the user's allowance to gate the
@@ -59,6 +61,7 @@ export function CollateralInspector({
     let cancelled = false;
     const client = makePublicClientForChain(bridge.homeChain.rpcUrl);
     if (!client) return;
+    setIsReading(true);
     (async () => {
       try {
         if (bridge.homeKind === 'erc20') {
@@ -90,6 +93,8 @@ export function CollateralInspector({
         }
       } catch (e: any) {
         if (!cancelled) setLocalError(`Read failed: ${e?.shortMessage ?? e?.message ?? ''}`);
+      } finally {
+        if (!cancelled) setIsReading(false);
       }
     })();
     return () => {
@@ -225,6 +230,8 @@ export function CollateralInspector({
         type="number"
         helperText={`Pre-filled with collateralNeeded (${collateralNeededFormatted}). Editable — partial funding allowed; top up later.`}
       />
+
+      {isReading && <FieldLoading label="Reading decimals + allowance from home chain…" />}
 
       {bridge.homeKind === 'erc20' && (
         <Note variant="default">
