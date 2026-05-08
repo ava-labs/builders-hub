@@ -26,11 +26,11 @@ export function TokenSnapshotPanel({
 
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-semibold mb-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
         {title}
       </div>
       {error ? (
-        <div className="text-[11px] text-zinc-400 dark:text-zinc-500 bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-100 dark:border-zinc-800 rounded-lg px-3 py-2">
+        <div className="text-[11px] text-muted-foreground bg-muted/30 border border-border/60 rounded-lg px-3 py-2">
           Could not load snapshot.
         </div>
       ) : (
@@ -50,9 +50,9 @@ export function TokenSnapshotPanel({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-100 dark:border-zinc-800 px-2.5 py-2">
-      <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{label}</div>
-      <div className="text-xs font-mono font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5 truncate">{value}</div>
+    <div className="rounded-lg bg-muted/40 border border-border/60 px-2.5 py-2">
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
+      <div className="text-xs font-mono font-semibold text-foreground mt-0.5 truncate">{value}</div>
     </div>
   );
 }

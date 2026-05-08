@@ -291,27 +291,27 @@ export function BridgeConsole({
   const dimRight = activePhase === 'token' || activePhase === 'home' || activePhase === 'collateral';
 
   return (
-    <div className="w-full h-full flex flex-col font-sans bg-zinc-50 dark:bg-zinc-950">
+    <div className="w-full h-full flex flex-col font-sans bg-background">
       {/* Sticky header group: top bar + phase strip stick together so the
           phase navigation stays reachable when the user scrolls long
           inspector content (especially on tablet). The `top-12` offset
           clears the console layout's 3rem-tall header. */}
       <div className="sticky top-12 z-20 flex-shrink-0">
         {/* Top bar */}
-        <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+        <div className="border-b border-border bg-card px-4 md:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0" style={{ background: ACCENT }}>
               <ArrowLeftRight className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">ICTT Bridge Console</div>
-              <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">{subtitle}</div>
+              <div className="text-sm font-semibold text-foreground">ICTT Bridge Console</div>
+              <div className="text-[10px] text-muted-foreground truncate">{subtitle}</div>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link
               href="/console/history"
-              className="hidden md:inline-flex items-center px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900"
+              className="hidden md:inline-flex items-center px-3 py-1.5 text-xs font-medium text-foreground/80 border border-border rounded-lg hover:bg-muted"
             >
               History
             </Link>
@@ -353,10 +353,10 @@ export function BridgeConsole({
             <div className="w-12 h-12 rounded-2xl mx-auto mb-4 grid place-items-center" style={{ background: ACCENT }}>
               <ArrowLeftRight className="w-6 h-6 text-white" strokeWidth={2.5} />
             </div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+            <h2 className="text-lg font-semibold text-foreground mb-2">
               Connect a wallet to start a bridge
             </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               The bridge console deploys TokenHome on a source chain, TokenRemote on a destination chain, and pairs
               them via ICM so tokens can move both ways.
             </p>
@@ -472,19 +472,19 @@ function CollateralProgressDetail({
 }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-semibold mb-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
         Collateral
       </div>
-      <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-3 bg-zinc-50/50 dark:bg-zinc-900/30">
+      <div className="rounded-xl border border-dashed border-border p-3 bg-muted/30">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-zinc-600 dark:text-zinc-400">
+          <span className="text-xs text-foreground/80">
             {registered ? 'Status' : 'Awaiting registration'}
           </span>
-          <span className="text-xs font-mono text-zinc-900 dark:text-zinc-100">
+          <span className="text-xs font-mono text-foreground">
             {registered ? `${collateralNeeded === '0' ? '✓ funded' : `needs ${collateralNeeded}`}` : '—'}
           </span>
         </div>
-        <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all"
             style={{ width: registered && collateralNeeded === '0' ? '100%' : '0%', background: accent }}
@@ -498,7 +498,7 @@ function CollateralProgressDetail({
 function PairingStatusDetail({ registered, lastChecked }: { registered: boolean; lastChecked: number | null }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-semibold mb-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
         Pairing status
       </div>
       <div

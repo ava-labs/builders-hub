@@ -228,7 +228,7 @@ export function RemoteInspector({
       preflight={preflight}
     >
       <div>
-        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">Remote kind</label>
+        <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">Remote kind</label>
         <SegmentControl<TokenKind>
           value={kind}
           onChange={setKind}
@@ -240,13 +240,13 @@ export function RemoteInspector({
       </div>
 
       <div>
-        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+        <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
           Destination chain
         </label>
         <select
           value={destChainId}
           onChange={(e) => setDestChainId(e.target.value)}
-          className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm"
+          className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm"
         >
           <option value="" disabled>
             Pick a destination chain…

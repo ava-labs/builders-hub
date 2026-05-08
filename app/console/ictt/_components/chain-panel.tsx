@@ -47,8 +47,8 @@ export function ChainPanel({
   return (
     <div
       className={cn(
-        'relative flex-1 rounded-2xl border bg-white dark:bg-zinc-950 transition-opacity',
-        'border-zinc-200 dark:border-zinc-800 overflow-hidden',
+        'relative flex-1 rounded-2xl border bg-card transition-opacity',
+        'border-border overflow-hidden',
         dim && 'opacity-50',
       )}
     >
@@ -64,16 +64,16 @@ export function ChainPanel({
             {chainInitial(name)}
           </div>
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-semibold">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
               {role}
             </div>
-            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">{name}</div>
+            <div className="text-sm font-semibold text-foreground truncate">{name}</div>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {headerExtra}
           {walletConnected && (
-            <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500">
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               connected
             </div>
@@ -82,7 +82,7 @@ export function ChainPanel({
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="text-[10px] text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer px-1.5 py-0.5 rounded border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
+              className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer px-1.5 py-0.5 rounded border border-transparent hover:border-border"
             >
               {expanded ? '– collapse' : '+ details'}
             </button>
@@ -92,7 +92,7 @@ export function ChainPanel({
 
       <div className="px-5 pb-4 space-y-3">
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-semibold mb-1.5">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">
             Contracts
           </div>
           {contracts.map((c) => (

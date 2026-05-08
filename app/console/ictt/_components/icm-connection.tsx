@@ -86,18 +86,16 @@ function ICMPill({ accent, active, count }: { accent: string; active: boolean; c
     <div className="relative z-10 flex flex-col items-center gap-1">
       <div
         className={cn(
-          'px-3 py-2 rounded-xl border bg-white dark:bg-zinc-950 transition-shadow',
-          active
-            ? 'border-zinc-300 dark:border-zinc-700 shadow-sm'
-            : 'border-zinc-200 dark:border-zinc-800',
+          'px-3 py-2 rounded-xl border bg-card transition-shadow',
+          active ? 'border-border shadow-sm' : 'border-border/60',
         )}
       >
         <div className="text-[9px] uppercase tracking-widest font-bold" style={{ color: accent }}>
           ICM
         </div>
-        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 text-center">{count} msgs</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5 text-center">{count} msgs</div>
       </div>
-      <div className="text-[10px] text-zinc-400 dark:text-zinc-500 text-center px-1 leading-tight">
+      <div className="text-[10px] text-muted-foreground text-center px-1 leading-tight">
         Interchain
         <br />
         Messaging

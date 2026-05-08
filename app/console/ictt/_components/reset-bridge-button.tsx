@@ -74,7 +74,7 @@ export function ResetBridgeButton({
         onClick={() => setOpen(true)}
         disabled={!hasAnythingToReset}
         title={hasAnythingToReset ? 'Reset bridge' : 'Nothing to reset yet'}
-        className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 border border-border rounded-lg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
       >
         <RotateCcw className="w-3.5 h-3.5" />
         Reset

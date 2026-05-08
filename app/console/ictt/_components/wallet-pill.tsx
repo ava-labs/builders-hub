@@ -23,9 +23,9 @@ interface WalletPillProps {
 export function WalletPill({ walletAddress, walletChainId, expectedChain, onSwitchChain }: WalletPillProps) {
   if (!walletAddress) {
     return (
-      <div className="flex items-center gap-2 px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-        <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-        <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">Not connected</span>
+      <div className="flex items-center gap-2 px-2.5 py-1.5 bg-muted border border-border rounded-lg">
+        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+        <span className="text-[11px] font-medium text-muted-foreground">Not connected</span>
       </div>
     );
   }

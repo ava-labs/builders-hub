@@ -250,12 +250,12 @@ export function CollateralInspector({
 
       <div>
         <div className="flex items-center justify-between mb-2 text-xs">
-          <span className="text-zinc-600 dark:text-zinc-400">Funded</span>
-          <span className="font-mono text-zinc-900 dark:text-zinc-100">
+          <span className="text-muted-foreground">Funded</span>
+          <span className="font-mono text-foreground">
             {fullyFunded ? '100%' : `${collateralNeededFormatted} remaining`}
           </span>
         </div>
-        <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all"
             style={{ width: fullyFunded ? '100%' : '0%', background: accent }}

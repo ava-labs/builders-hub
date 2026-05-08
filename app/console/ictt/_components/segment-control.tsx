@@ -24,7 +24,7 @@ interface SegmentControlProps<T extends string> {
  */
 export function SegmentControl<T extends string>({ options, value, onChange, className }: SegmentControlProps<T>) {
   return (
-    <div className={cn('inline-flex p-0.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg', className)}>
+    <div className={cn('inline-flex p-0.5 bg-muted rounded-lg', className)}>
       {options.map((opt) => {
         const isActive = opt.value === value;
         return (
@@ -37,8 +37,8 @@ export function SegmentControl<T extends string>({ options, value, onChange, cla
             className={cn(
               'px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors',
               isActive
-                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200',
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
               opt.disabled && 'opacity-40 cursor-not-allowed',
               !opt.disabled && 'cursor-pointer',
             )}

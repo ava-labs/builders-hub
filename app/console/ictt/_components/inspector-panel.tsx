@@ -48,16 +48,16 @@ export function InspectorPanel({
   const submitChord = useSubmitChord();
 
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden flex flex-col min-h-0">
-      <div className="px-5 pt-5 pb-3 border-b border-zinc-100 dark:border-zinc-800/60 flex flex-col gap-1 flex-shrink-0">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col min-h-0">
+      <div className="px-5 pt-5 pb-3 border-b border-border/60 flex flex-col gap-1 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
           <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: accent }}>
             {phaseObj?.label ?? phase}
           </span>
         </div>
-        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md">{description}</p>
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+        <p className="text-xs text-muted-foreground max-w-md">{description}</p>
       </div>
 
       <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
@@ -66,11 +66,11 @@ export function InspectorPanel({
       </div>
 
       {(meta || primaryAction) && (
-        <div className="px-5 py-3 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/30 flex-shrink-0 gap-3">
+        <div className="px-5 py-3 border-t border-border/60 flex items-center justify-between bg-muted/30 flex-shrink-0 gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">{meta}</span>
+            <span className="text-[10px] text-muted-foreground truncate">{meta}</span>
             {showSubmitShortcut && (
-              <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[9px] font-mono text-zinc-500 dark:text-zinc-400 flex-shrink-0">
+              <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border bg-background text-[9px] font-mono text-muted-foreground flex-shrink-0">
                 {submitChord}
               </kbd>
             )}

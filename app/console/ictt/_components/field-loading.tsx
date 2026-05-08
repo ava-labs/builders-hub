@@ -15,7 +15,7 @@ interface FieldLoadingProps {
 export function FieldLoading({ label, className }: FieldLoadingProps) {
   return (
     <div
-      className={`flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 ${className ?? ''}`}
+      className={`flex items-center gap-1.5 text-[10px] text-muted-foreground ${className ?? ''}`}
     >
       <Loader2 className="w-3 h-3 animate-spin" />
       <span>{label}</span>

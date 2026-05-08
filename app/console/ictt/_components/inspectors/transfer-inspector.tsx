@@ -204,7 +204,7 @@ export function TransferInspector({
       preflight={preflight}
     >
       <div>
-        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">Direction</label>
+        <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">Direction</label>
         <SegmentControl<TransferDirection>
           value={direction}
           onChange={setDirection}

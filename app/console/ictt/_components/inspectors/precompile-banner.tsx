@@ -21,7 +21,7 @@ interface PrecompileBannerProps {
 export function PrecompileBanner({ check, precompileName, chainName, docsLink }: PrecompileBannerProps) {
   if (check.isLoading) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/30 px-3.5 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3.5 py-2 text-xs text-muted-foreground">
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
         Checking {precompileName} on {chainName}…
       </div>
@@ -32,13 +32,13 @@ export function PrecompileBanner({ check, precompileName, chainName, docsLink }:
 
   if (check.error) {
     return (
-      <div className="flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/30 px-3.5 py-3">
-        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
+      <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 px-3.5 py-3">
+        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm font-medium text-foreground/80">
             Could not verify {precompileName}
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed font-mono break-all">
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed font-mono break-all">
             {check.error}
           </p>
         </div>

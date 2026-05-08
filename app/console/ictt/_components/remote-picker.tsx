@@ -18,10 +18,10 @@ interface RemotePickerProps {
  */
 export function RemotePicker({ remotes, selected, onChange }: RemotePickerProps) {
   return (
-    <label className="relative inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-colors text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+    <label className="relative inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-background hover:border-foreground/30 cursor-pointer transition-colors text-[11px] font-medium text-foreground/80">
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: chainColor(selected.id) }} />
       <span className="truncate max-w-[8rem]">{selected.name}</span>
-      <ChevronDown className="w-3 h-3 text-zinc-400" />
+      <ChevronDown className="w-3 h-3 text-muted-foreground" />
       <select
         value={selected.id}
         onChange={(e) => onChange(e.target.value)}

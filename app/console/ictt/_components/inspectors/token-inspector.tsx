@@ -174,7 +174,7 @@ export function TokenInspector({
       preflight={preflight}
     >
       <div>
-        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">Token type</label>
+        <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">Token type</label>
         <SegmentControl<TokenSource>
           value={source}
           onChange={setSource}

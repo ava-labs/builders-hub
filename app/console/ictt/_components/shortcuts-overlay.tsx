@@ -56,7 +56,7 @@ export function ShortcutsOverlay() {
         type="button"
         onClick={() => setOpen(true)}
         title="Keyboard shortcuts"
-        className="hidden md:inline-flex items-center justify-center w-8 h-8 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer"
+        className="hidden md:inline-flex items-center justify-center w-8 h-8 text-muted-foreground border border-border rounded-lg hover:bg-muted cursor-pointer"
       >
         <Keyboard className="w-4 h-4" />
       </button>
@@ -74,7 +74,7 @@ export function ShortcutsOverlay() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer p-1 -m-1 rounded"
+                className="text-muted-foreground hover:text-foreground cursor-pointer p-1 -m-1 rounded"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -85,12 +85,12 @@ export function ShortcutsOverlay() {
           <div className="space-y-3">
             {SHORTCUTS.map((s) => (
               <div key={s.keys.join('+')} className="flex items-center justify-between gap-3">
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">{s.description}</span>
+                <span className="text-sm text-foreground/80">{s.description}</span>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {s.keys.map((k, i) => (
                     <kbd
                       key={i}
-                      className="inline-flex items-center justify-center min-w-[1.75rem] h-7 px-2 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs font-mono text-zinc-700 dark:text-zinc-300"
+                      className="inline-flex items-center justify-center min-w-[1.75rem] h-7 px-2 rounded border border-border bg-background text-xs font-mono text-foreground/80"
                     >
                       {k}
                     </kbd>

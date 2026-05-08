@@ -137,7 +137,7 @@ export function HomeInspector({
       preflight={preflight}
     >
       <div>
-        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+        <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
           Transferrer kind
         </label>
         <SegmentControl<TokenKind>
