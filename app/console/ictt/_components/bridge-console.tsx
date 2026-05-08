@@ -13,6 +13,7 @@ import { useHomeTokenSnapshot, useRemoteTokenSnapshot } from './use-token-snapsh
 import { TokenSnapshotPanel } from './token-snapshot';
 import { PhaseStrip } from './phase-strip';
 import { RemotePicker } from './remote-picker';
+import { ResetBridgeButton } from './reset-bridge-button';
 import { ChainPanel } from './chain-panel';
 import { ICMConnection } from './icm-connection';
 import { ActivityFeed } from './activity-feed';
@@ -57,7 +58,7 @@ export function BridgeConsole({
 }) {
   const [preferredRemoteChainId, setPreferredRemoteChainId] = useState<string | undefined>(initialRemoteChainId);
   const bridge = useBridgeState({ preferredRemoteChainId });
-  const { events, append, messageCount } = useBridgeActivity();
+  const { events, append, clear: clearActivity, messageCount } = useBridgeActivity();
   const homeSnapshot = useHomeTokenSnapshot({
     homeChain: bridge.homeChain,
     homeAddress: bridge.homeAddress,
@@ -231,6 +232,16 @@ export function BridgeConsole({
             >
               History
             </Link>
+            <ResetBridgeButton
+              homeChainId={bridge.homeChain?.id}
+              remoteChainIds={bridge.allRemotes.map((r) => r.chain.id)}
+              hasAnythingToReset={!!(bridge.tokenAddress || bridge.homeAddress || bridge.allRemotes.length > 0)}
+              onAfterReset={() => {
+                clearActivity();
+                setPreferredRemoteChainId(undefined);
+                setActivePhase('token');
+              }}
+            />
             <WalletPill
               walletAddress={walletEVMAddress}
               walletChainId={walletChainId}
