@@ -1,14 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Keyboard, X } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/toolbox/components/AlertDialog';
+import { Keyboard } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Shortcut {
   keys: string[];
@@ -25,11 +19,11 @@ const SHORTCUTS: Shortcut[] = [
 /**
  * Discoverability surface for the keyboard shortcuts. Opens via the
  * `?` keystroke (when not focused inside an editable field) or via the
- * trigger button in the top bar. Uses the project's `<AlertDialog>`
- * primitive to stay visually consistent with the reset-bridge confirm.
+ * trigger button in the top bar.
  *
- * The trigger is exposed so the BridgeConsole can render it inline in
- * the top bar's action group.
+ * Uses the project's `<Dialog>` primitive since this is informational
+ * — `<AlertDialog>` is reserved for destructive confirmations like
+ * Reset Bridge.
  */
 export function ShortcutsOverlay() {
   const [open, setOpen] = useState(false);
@@ -61,26 +55,12 @@ export function ShortcutsOverlay() {
         <Keyboard className="w-4 h-4" />
       </button>
 
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <AlertDialogTitle>Keyboard shortcuts</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Power-user shortcuts for the bridge console. None require Shift.
-                </AlertDialogDescription>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-muted-foreground hover:text-foreground cursor-pointer p-1 -m-1 rounded"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </AlertDialogHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Keyboard shortcuts</DialogTitle>
+            <DialogDescription>Power-user shortcuts for the bridge console. None require Shift.</DialogDescription>
+          </DialogHeader>
 
           <div className="space-y-3">
             {SHORTCUTS.map((s) => (
@@ -99,8 +79,8 @@ export function ShortcutsOverlay() {
               </div>
             ))}
           </div>
-        </AlertDialogContent>
-      </AlertDialog>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
