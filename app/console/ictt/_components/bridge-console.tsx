@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeftRight } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
+import { useL1List } from '@/components/toolbox/stores/l1ListStore';
 import { Note } from '@/components/toolbox/components/Note';
 import { useBridgeState } from './use-bridge-state';
 import { useBridgeActivity } from './use-bridge-activity';
@@ -62,6 +63,17 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const { safelySwitch } = useWalletSwitch();
+  const l1List = useL1List();
+
+  // Resolves an explorer transaction URL from an event's chainId by
+  // matching against `L1ListItem.evmChainId`. Returns null when the chain
+  // isn't recognized or doesn't have an explorerUrl configured.
+  const getEventExplorerUrl = (event: ActivityEvent) => {
+    if (!event.txHash) return null;
+    const chain = l1List.find((l1: { evmChainId: number; explorerUrl?: string }) => l1.evmChainId === event.chainId);
+    if (!chain?.explorerUrl) return null;
+    return `${chain.explorerUrl.replace(/\/+$/, '')}/tx/${event.txHash}`;
+  };
 
   // Compute the first non-blocked, non-done phase as the default. Falls
   // back to `transfer` (the live phase) when the bridge is fully set up.
@@ -275,7 +287,7 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
             </div>
             <div className="min-h-[16rem] flex">
               <div className="flex-1 flex">
-                <ActivityFeed events={events} />
+                <ActivityFeed events={events} getExplorerUrl={getEventExplorerUrl} />
               </div>
             </div>
           </div>

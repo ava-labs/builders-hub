@@ -126,15 +126,20 @@ export function RegisterInspector({
             Continue → Collateral
           </Button>
         ) : (
-          <Button
-            onClick={handleRegister}
-            loading={isRegistering}
-            loadingText="Sending ICM..."
-            disabled={!bridge.remoteAddress || isRegistering}
-            stickLeft
-          >
-            Send ICM register message →
-          </Button>
+          <>
+            <Button onClick={bridge.refresh} variant="outline" size="sm" stickLeft>
+              Check now
+            </Button>
+            <Button
+              onClick={handleRegister}
+              loading={isRegistering}
+              loadingText="Sending ICM..."
+              disabled={!bridge.remoteAddress || isRegistering}
+              stickLeft
+            >
+              Send ICM register message →
+            </Button>
+          </>
         )
       }
       onClose={onClose}

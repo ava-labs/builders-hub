@@ -89,7 +89,13 @@ export function ChainPanel({
             Contracts
           </div>
           {contracts.map((c) => (
-            <ContractRow key={c.label} label={c.label} address={c.address} status={c.status} />
+            <ContractRow
+              key={c.label}
+              label={c.label}
+              address={c.address}
+              status={c.status}
+              explorerUrl={chain?.explorerUrl}
+            />
           ))}
         </div>
         {expanded && expandedDetails && <div className="space-y-3">{expandedDetails}</div>}
