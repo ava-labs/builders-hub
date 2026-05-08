@@ -29,7 +29,6 @@ import {
   Rocket,
   LayoutDashboard,
   LayoutGrid,
-  Workflow,
   Lock,
   BookOpen,
   Search,
@@ -266,13 +265,8 @@ const data = {
           icon: MessagesSquare,
         },
         {
-          title: "Token Bridge",
-          url: "/console/ictt/setup",
-          icon: Workflow,
-        },
-        {
-          title: "Token Transfer",
-          url: "/console/ictt/token-transfer",
+          title: "ICTT Bridge Console",
+          url: "/console/ictt",
           icon: ArrowLeftRight,
         },
       ],
