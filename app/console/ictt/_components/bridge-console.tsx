@@ -29,7 +29,8 @@ import { TransferInspector } from './inspectors/transfer-inspector';
 import { PHASES, type PhaseId } from './types';
 import type { ActivityEvent } from './types';
 
-const ACCENT = '#3B82F6';
+// Avalanche red — matches `.bg-avax-red` brand utility in app/global.css.
+const ACCENT = '#e84142';
 
 const PHASE_TO_NEXT: Record<PhaseId, PhaseId | null> = {
   token: 'home',

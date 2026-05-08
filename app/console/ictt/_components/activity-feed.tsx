@@ -30,7 +30,7 @@ export function ActivityFeed({
   emptyHint = 'No bridge activity yet. Deploy a contract or send tokens to see events here.',
   getExplorerUrl,
   onStart,
-  accent = '#3B82F6',
+  accent = '#e84142',
 }: ActivityFeedProps) {
   // Tick once a second so relative-time labels stay fresh without React
   // having to re-render the entire bridge console on each event.
