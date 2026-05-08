@@ -15,8 +15,12 @@ import { useDeployTokenRemote } from '@/components/toolbox/console/ictt/hooks/us
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
 import { usePreflight } from '../use-preflight';
+import { usePrecompileActive } from '../use-precompile-active';
+import { PrecompileBanner } from './precompile-banner';
 import type { BridgeState } from '../use-bridge-state';
 import type { ActivityEvent, TokenKind } from '../types';
+
+const NATIVE_MINTER_DOCS = '/docs/avalanche-l1s/customize/native-minter';
 
 interface RemoteInspectorProps {
   bridge: BridgeState;
@@ -66,7 +70,31 @@ export function RemoteInspector({
 
   const destChain = useL1ByChainId(destChainId);
   const sourceL1 = bridge.homeChain;
-  const { banner: preflight } = usePreflight({ expectedChain: destChain, switchChain });
+  const { banner: chainBanner } = usePreflight({ expectedChain: destChain, switchChain });
+
+  // Native-minter precompile is required for NativeTokenRemote so the
+  // remote contract can mint bridged tokens. Skip the check (and any
+  // hard-blocking) when the user is deploying an ERC-20 remote — that
+  // path doesn't need the precompile.
+  const minterCheck = usePrecompileActive({
+    configKey: 'contractNativeMinterConfig',
+    rpcUrl: destChain?.rpcUrl,
+    enabled: kind === 'native',
+  });
+  const minterMissing = kind === 'native' && !minterCheck.isLoading && !minterCheck.isActive;
+  const preflight = (
+    <>
+      {chainBanner}
+      {kind === 'native' && (
+        <PrecompileBanner
+          check={minterCheck}
+          precompileName="Native Minter"
+          chainName={destChain?.name ?? 'destination'}
+          docsLink={NATIVE_MINTER_DOCS}
+        />
+      )}
+    </>
+  );
 
   // Default destination = first L1 that isn't the home chain.
   useEffect(() => {
@@ -185,7 +213,7 @@ export function RemoteInspector({
           onClick={handleDeploy}
           loading={isDeploying}
           loadingText="Deploying..."
-          disabled={!bridge.homeAddress || !destChain || tokenDecimals === '0' || isDeploying}
+          disabled={!bridge.homeAddress || !destChain || tokenDecimals === '0' || isDeploying || minterMissing}
           stickLeft
         >
           Deploy TokenRemote →
@@ -256,12 +284,6 @@ export function RemoteInspector({
           </>
         )}
       </div>
-
-      {kind === 'native' && (
-        <Note variant="warning">
-          NativeTokenRemote needs the <strong>Native Minter precompile</strong> active on the destination chain.
-        </Note>
-      )}
 
       {!sourceL1 || !bridge.homeAddress ? (
         <Note variant="warning">
