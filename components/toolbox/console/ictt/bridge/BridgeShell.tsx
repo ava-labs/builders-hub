@@ -25,6 +25,9 @@ import { useMigrationOnce } from './hooks/useMigrationOnce';
 import { TokenInspector } from './inspectors/TokenInspector';
 import { HomeInspector } from './inspectors/HomeInspector';
 import { RemoteInspector } from './inspectors/RemoteInspector';
+import { RegisterInspector } from './inspectors/RegisterInspector';
+import { CollateralInspector } from './inspectors/CollateralInspector';
+import { LiveInspector } from './inspectors/LiveInspector';
 
 interface BridgeShellProps {
   initialPhase?: string;
@@ -210,6 +213,26 @@ function InspectorSlot({
       return (
         <RemoteInspector onPhaseChange={onPhaseChange} status={phaseStatus.remote} bridge={bridge} remote={remote} />
       );
+    case 'register':
+      return (
+        <RegisterInspector
+          onPhaseChange={onPhaseChange}
+          status={phaseStatus.register}
+          bridge={bridge}
+          remote={remote}
+        />
+      );
+    case 'collateral':
+      return (
+        <CollateralInspector
+          onPhaseChange={onPhaseChange}
+          status={phaseStatus.collateral}
+          bridge={bridge}
+          remote={remote}
+        />
+      );
+    case 'live':
+      return <LiveInspector onPhaseChange={onPhaseChange} status={phaseStatus.live} bridge={bridge} remote={remote} />;
     default:
       return <InspectorComingSoonPlaceholder phase={phase} />;
   }
