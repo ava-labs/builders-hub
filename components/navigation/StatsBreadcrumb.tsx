@@ -51,6 +51,10 @@ interface StatsBreadcrumbProps {
   themeColor?: string;
   // Optional: Additional CSS classes
   className?: string;
+  // Optional: P-Chain specific - current network (mainnet or fuji)
+  pchainNetwork?: 'mainnet' | 'fuji';
+  // Optional: P-Chain specific - callback when network changes
+  onPChainNetworkChange?: (network: 'mainnet' | 'fuji') => void;
 }
 
 // Generate initial from chain name (e.g., "My Custom Chain" -> "M")
@@ -116,6 +120,8 @@ export function StatsBreadcrumb({
   breadcrumbItems = [],
   themeColor,
   className = "",
+  pchainNetwork,
+  onPChainNetworkChange,
 }: StatsBreadcrumbProps) {
   const router = useRouter();
   const { openModal } = useModalTrigger<AddChainResult>();
@@ -612,10 +618,16 @@ export function StatsBreadcrumb({
                       <button className={`inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-md ${breadcrumbItems.length > 0 ? 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'} hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0`}>
                         {chainSlug === 'all-chains' ? (
                           <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 flex-shrink-0" />
+                        ) : chainSlug === 'p-chain' ? (
+                          <AvalancheLogo className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="#E84142" />
                         ) : (
                           <ChainLogo src={chainLogoURI} name={chainName} size="md" />
                         )}
-                        <span className="max-w-[80px] sm:max-w-none truncate">{chainName}</span>
+                        <span className="max-w-[80px] sm:max-w-none truncate">
+                          {chainSlug === 'p-chain' 
+                            ? `P-Chain ${pchainNetwork === 'fuji' ? 'Fuji' : 'Mainnet'}`
+                            : chainName}
+                        </span>
                         <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-50" />
                       </button>
                     </DropdownMenuTrigger>
@@ -663,6 +675,53 @@ export function StatsBreadcrumb({
                               </span>
                             </div>
                           </DropdownMenuItem>
+                        )}
+                        
+                        {/* P-Chain Networks section - only show when searching or on P-Chain pages */}
+                        {(chainSlug === 'p-chain' || (!chainSearchTerm || "p-chain".includes(chainSearchTerm.toLowerCase()))) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                              P-Chain
+                            </div>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (onPChainNetworkChange) {
+                                  onPChainNetworkChange('mainnet');
+                                } else {
+                                  router.push('/explorer/p-chain?network=mainnet');
+                                }
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 w-full">
+                                <AvalancheLogo className="w-4 h-4" fill="#E84142" />
+                                <span className={chainSlug === 'p-chain' && pchainNetwork === 'mainnet' ? "font-medium" : ""}>
+                                  P-Chain Mainnet
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (onPChainNetworkChange) {
+                                  onPChainNetworkChange('fuji');
+                                } else {
+                                  router.push('/explorer/p-chain?network=fuji');
+                                }
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 w-full">
+                                <AvalancheLogo className="w-4 h-4" fill="#E84142" />
+                                <span className={chainSlug === 'p-chain' && pchainNetwork === 'fuji' ? "font-medium" : ""}>
+                                  P-Chain Fuji
+                                </span>
+                                <span className="ml-auto px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                  Testnet
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                          </>
                         )}
                         
                         {/* Mainnet chains section */}
@@ -796,7 +855,7 @@ export function StatsBreadcrumb({
               <>
                 <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
                 <Link 
-                  href={`/explorer/${chainSlug}`}
+                  href={chainSlug === 'p-chain' ? `/explorer/p-chain?network=${pchainNetwork || 'mainnet'}` : `/explorer/${chainSlug}`}
                   className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   <Home className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
