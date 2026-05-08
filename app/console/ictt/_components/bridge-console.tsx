@@ -8,6 +8,8 @@ import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { Note } from '@/components/toolbox/components/Note';
 import { useBridgeState } from './use-bridge-state';
 import { useBridgeActivity } from './use-bridge-activity';
+import { useHomeTokenSnapshot, useRemoteTokenSnapshot } from './use-token-snapshot';
+import { TokenSnapshotPanel } from './token-snapshot';
 import { PhaseStrip } from './phase-strip';
 import { ChainPanel } from './chain-panel';
 import { ICMConnection } from './icm-connection';
@@ -47,6 +49,16 @@ const PHASE_TO_NEXT: Record<PhaseId, PhaseId | null> = {
 export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
   const bridge = useBridgeState();
   const { events, append, messageCount } = useBridgeActivity();
+  const homeSnapshot = useHomeTokenSnapshot({
+    homeChain: bridge.homeChain,
+    homeAddress: bridge.homeAddress,
+    homeKind: bridge.homeKind,
+    remoteChainId: bridge.remoteChain?.id,
+  });
+  const remoteSnapshot = useRemoteTokenSnapshot({
+    remoteChain: bridge.remoteChain,
+    remoteAddress: bridge.remoteAddress,
+  });
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const { safelySwitch } = useWalletSwitch();
@@ -212,11 +224,16 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
               dim={dimLeft}
               walletConnected={homeWalletConnected}
               expandedDetails={
-                <CollateralProgressDetail
-                  registered={bridge.registered}
-                  collateralNeeded={bridge.collateralNeeded.toString()}
-                  accent={ACCENT}
-                />
+                <>
+                  {bridge.homeAddress && (
+                    <TokenSnapshotPanel title="Token snapshot" snapshot={homeSnapshot} />
+                  )}
+                  <CollateralProgressDetail
+                    registered={bridge.registered}
+                    collateralNeeded={bridge.collateralNeeded.toString()}
+                    accent={ACCENT}
+                  />
+                </>
               }
               initiallyExpanded={activePhase === 'transfer'}
             />
@@ -236,10 +253,16 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
               dim={dimRight}
               walletConnected={remoteWalletConnected}
               expandedDetails={
-                <PairingStatusDetail
-                  registered={bridge.registered}
-                  lastChecked={bridge.lastChecked}
-                />
+                <>
+                  {bridge.remoteAddress && (
+                    <TokenSnapshotPanel
+                      title="Wrapped supply"
+                      snapshot={remoteSnapshot}
+                      showBridged={false}
+                    />
+                  )}
+                  <PairingStatusDetail registered={bridge.registered} lastChecked={bridge.lastChecked} />
+                </>
               }
               initiallyExpanded={activePhase === 'transfer'}
             />
