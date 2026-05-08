@@ -22,7 +22,6 @@ interface Props {
 
 export function ExportModal({ rows, hackathonTitle, getEvaluations, getCurrentStage, onClose }: Props) {
   const [includeMembers, setIncludeMembers] = useState(true);
-  const [includeReferral, setIncludeReferral] = useState(false);
   const [includeStages, setIncludeStages] = useState(true);
 
   const maxMembers = Math.max(...rows.map((r) => r.memberApplications.length), 1);
@@ -38,12 +37,6 @@ export function ExportModal({ rows, hackathonTitle, getEvaluations, getCurrentSt
     if (includeMembers) {
       for (let i = 0; i < maxMembers; i++) {
         headers.push(`Member ${i + 1} Email`, `Member ${i + 1} Name`);
-      }
-    }
-
-    if (includeReferral) {
-      for (let i = 0; i < maxMembers; i++) {
-        headers.push(`Member ${i + 1} Referrer`, `Member ${i + 1} Referrer Handle`);
       }
     }
 
@@ -71,16 +64,6 @@ export function ExportModal({ rows, hackathonTitle, getEvaluations, getCurrentSt
         for (let i = 0; i < maxMembers; i++) {
           const m = row.memberApplications[i];
           cols.push(m?.email ?? "", m?.name ?? "");
-        }
-      }
-
-      if (includeReferral) {
-        for (let i = 0; i < maxMembers; i++) {
-          const m = row.memberApplications[i];
-          cols.push(
-            String(m?.data?.referrer_name ?? ""),
-            String(m?.data?.referrer_handle ?? ""),
-          );
         }
       }
 
@@ -153,17 +136,6 @@ export function ExportModal({ rows, hackathonTitle, getEvaluations, getCurrentSt
               />
               Team members
               <span className="text-xs text-zinc-500 ml-auto">email, name per member</span>
-            </label>
-
-            <label className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeReferral}
-                onChange={(e) => setIncludeReferral(e.target.checked)}
-                className="rounded border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 w-4 h-4"
-              />
-              Referral info
-              <span className="text-xs text-zinc-500 ml-auto">referrer per member</span>
             </label>
 
             <label className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-300 cursor-pointer">

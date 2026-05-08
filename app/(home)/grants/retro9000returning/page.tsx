@@ -18,6 +18,11 @@ import { Label } from "@/components/ui/label";
 import { countries } from "@/constants/countries";
 import { cn } from "@/lib/utils";
 import { formSchema, jobRoles, projectTypes, projectVerticals, continents, fundingRanges, type Retro9000ReturningFormData } from "@/types/retro9000ReturningForm";
+import {
+  captureReferralAttributionFromUrl,
+  clearStoredReferralAttribution,
+  getStoredReferralAttribution,
+} from "@/lib/referrals/client";
 
 const STEPS = [
   { id: 1, name: "Applicant Info", description: "Your contact details", icon: User },
@@ -78,6 +83,10 @@ export default function Retro9000ReturningForm() {
   });
 
   const watchedValues = useWatch({ control: form.control });
+
+  useEffect(() => {
+    captureReferralAttributionFromUrl();
+  }, []);
 
   // Prefill email from session
   useEffect(() => {
@@ -194,15 +203,22 @@ export default function Retro9000ReturningForm() {
 
   async function onSubmit(values: Retro9000ReturningFormData) {
     setIsSubmitting(true);
+    const referralAttribution = captureReferralAttributionFromUrl() ?? getStoredReferralAttribution();
     try {
       const response = await fetch("/api/retro9000-returning", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          referral_attribution: referralAttribution,
+        }),
       });
 
       const result = await response.json();
       if (!response.ok || !result.success) { throw new Error(result.message || "Failed to submit application") }
+      if (result.referralAttributed) {
+        clearStoredReferralAttribution();
+      }
       setSubmissionStatus("success");
       form.reset();
       if (session?.user?.email) { form.setValue("email", session.user.email) }

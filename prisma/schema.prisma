@@ -41,7 +41,7 @@ model Hackathon {
 model User {
   id                       String                    @id @default(cuid())
   name                     String?
-  email                    String?                   @unique
+  email                    String                    @unique
   image                    String?
   authentication_mode      String?
   integration              String?
@@ -53,6 +53,7 @@ model User {
   profile_privacy          String?                   @default("public")
   social_media             String[]
   custom_attributes        String[]
+  team_id                  String?
   telegram_user            String?
   created_at               DateTime                  @default(now()) @db.Timestamptz(3)
   country                  String?
@@ -76,6 +77,9 @@ model User {
   oauthCodes               OAuthCode[]
   validatorAlerts          ValidatorAlert[]
   evaluations              Evaluation[]            @relation("Evaluations")
+  referralLinks            ReferralLink[]           @relation("ReferralLinkOwner")
+  referralAttributionsMade ReferralAttribution[]    @relation("ReferralAttributionReferrer")
+  referralAttributions     ReferralAttribution[]    @relation("ReferralAttributionUser")
 }
 
 model VerificationToken {
@@ -109,7 +113,6 @@ model RegisterForm {
   updated_at              DateTime  @updatedAt @db.Timestamptz(3)
   web3_proficiency        String
   telegram_user           String?
-  referrer_handle         String?
   user                    User      @relation(fields: [email], references: [email], onDelete: Cascade)
   hackathon               Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
 
@@ -277,6 +280,49 @@ model StatsPlaygroundFavorite {
   @@index([user_id])
 }
 
+model ReferralLink {
+  id              String                @id @default(uuid())
+  code            String                @unique
+  owner_user_id   String
+  team_id         String?
+  target_type     String
+  target_id       String?
+  destination_url String
+  created_at      DateTime              @default(now()) @db.Timestamptz(3)
+  disabled_at     DateTime?             @db.Timestamptz(3)
+  owner           User                  @relation("ReferralLinkOwner", fields: [owner_user_id], references: [id], onDelete: Cascade)
+  attributions    ReferralAttribution[]
+
+  @@index([owner_user_id])
+  @@index([team_id])
+  @@index([target_type])
+  @@index([created_at])
+}
+
+model ReferralAttribution {
+  id               String        @id @default(uuid())
+  attribution_key  String        @unique
+  referral_link_id String?
+  user_id          String?
+  user_id_referrer String?
+  team_id_referrer String?
+  target_type      String
+  target_id        String?
+  path             String?
+  created_at       DateTime      @default(now()) @db.Timestamptz(3)
+  referralLink     ReferralLink? @relation(fields: [referral_link_id], references: [id], onDelete: SetNull)
+  referrer         User?         @relation("ReferralAttributionReferrer", fields: [user_id_referrer], references: [id], onDelete: SetNull)
+  user             User?         @relation("ReferralAttributionUser", fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([referral_link_id])
+  @@index([user_id])
+  @@index([user_id_referrer])
+  @@index([team_id_referrer])
+  @@index([target_type])
+  @@index([target_id])
+  @@index([created_at])
+}
+
 model FaucetClaim {
   id                  String   @id @default(uuid())
   user_id             String
@@ -379,8 +425,6 @@ model BuildGamesApplication {
   why_you                    String
   how_did_you_hear           String
   how_did_you_hear_specify   String?
-  referrer_name              String?
-  referrer_handle            String?
   university_affiliation     String
   avalanche_ecosystem_member String
   privacy_policy_read        Boolean  @default(false)
@@ -389,7 +433,6 @@ model BuildGamesApplication {
   updated_at                 DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([created_at])
-  @@index([referrer_handle])
   @@index([area_of_focus])
 }
 

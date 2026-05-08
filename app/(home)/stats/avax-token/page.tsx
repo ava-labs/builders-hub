@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CircleDotDashed, CircleFadingPlus, Lock, BadgeDollarSign, RefreshCw, Flame, Award, MessageSquareIcon, Server, Unlock, HandCoins, Info, ArrowUpRight } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Brush, LineChart, Line } from "recharts";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
@@ -67,19 +67,27 @@ export default function AvaxTokenPage() {
     endIndex: number;
   } | null>(null);
 
-  const fetchData = async () => {
+  const abortRef = useRef<AbortController | null>(null);
+
+  const fetchData = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       setLoading(true);
       setError(null);
 
       const [supplyRes, cChainRes, icmRes] = await Promise.all([
-        fetch("/api/avax-supply"),
-        fetch("/api/chain-stats/43114?timeRange=1y"),
-        fetch("/api/icm-contract-fees?timeRange=1y"),
+        fetch("/api/avax-supply", { signal: controller.signal }),
+        fetch("/api/chain-stats/43114?timeRange=1y", { signal: controller.signal }),
+        fetch("/api/icm-contract-fees?timeRange=1y", { signal: controller.signal }),
       ]);
 
       if (!supplyRes.ok || !cChainRes.ok) {
-        throw new Error("Failed to fetch required data");
+        throw new Error(
+          `Failed to fetch required data (supply: HTTP ${supplyRes.status}, c-chain: HTTP ${cChainRes.status})`
+        );
       }
 
       const supplyData = await supplyRes.json();
@@ -87,7 +95,11 @@ export default function AvaxTokenPage() {
 
       setData(supplyData);
 
-      const cChainFeesData: FeeDataPoint[] = cChainData.feesPaid.data
+      const cChainFeesRaw = cChainData?.feesPaid?.data;
+      if (!Array.isArray(cChainFeesRaw)) {
+        throw new Error("C-Chain fees response is missing expected shape");
+      }
+      const cChainFeesData: FeeDataPoint[] = cChainFeesRaw
         .map((item) => ({
           date: item.date,
           timestamp: item.timestamp,
@@ -109,17 +121,24 @@ export default function AvaxTokenPage() {
             .reverse();
           setICMFees(icmFeesData);
         }
-      } 
-    } catch (err) {
+      } else {
+        // ICM data is non-critical — log and continue without breaking the page.
+        console.warn(`ICM contract fees fetch failed: HTTP ${icmRes.status}`);
+      }
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+    return () => abortRef.current?.abort();
+  }, [fetchData]);
 
   const formatNumber = (value: string | number): string => {
     const num = typeof value === "string" ? parseFloat(value) : value;

@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { formSchema } from "@/types/researchProposalForm";
+import { recordReferralAttributionFromRequest } from "@/server/services/referrals";
 import { rateLimited } from "@/app/api/managed-testnet-nodes/utils";
+
+function getReferralAttribution(body: unknown) {
+  if (!body || typeof body !== "object" || !("referral_attribution" in body)) {
+    return null;
+  }
+
+  return (body as { referral_attribution?: unknown }).referral_attribution ?? null;
+}
 
 // Identifier for the rate limiter — uses the session email so each
 // account gets its own bucket. Throws on missing email so the wrapper
@@ -60,6 +69,7 @@ async function handlePost(request: NextRequest) {
   }
 
   const data = parsed.data;
+  const referralAttribution = getReferralAttribution(body);
 
   try {
     const result = await prisma.researchProposalApplication.create({
@@ -83,7 +93,21 @@ async function handlePost(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, id: result.id }, { status: 201 });
+    let referralAttributed = false;
+    try {
+      const attribution = await recordReferralAttributionFromRequest(request, {
+        targetType: "grant_application",
+        targetId: "avalanche-research-proposals",
+        userId: sessionUserId,
+        userEmail: sessionEmail,
+        attribution: referralAttribution as any,
+      });
+      referralAttributed = Boolean(attribution);
+    } catch (error) {
+      console.error("[Referral] Failed to record research proposal attribution:", error);
+    }
+
+    return NextResponse.json({ success: true, id: result.id, referralAttributed }, { status: 201 });
   } catch (error) {
     console.error("[Research Proposal] DB save failed:", error);
     return NextResponse.json(

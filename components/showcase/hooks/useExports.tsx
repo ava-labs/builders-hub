@@ -58,9 +58,9 @@ export const useExports = (): UseExportsReturn => {
         }
       );
 
-      const contentType = response.headers['content-type'];
-      
-      if (contentType && contentType.includes('application/json')) {
+      const contentType = String(response.headers['content-type'] || '');
+
+      if (contentType.includes('application/json')) {
         const text = await response.data.text();
         const errorData = JSON.parse(text);
         throw new Error(errorData.message || 'Error exporting data');

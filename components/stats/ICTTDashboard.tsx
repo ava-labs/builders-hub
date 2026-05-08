@@ -67,7 +67,7 @@ interface RouteData {
   direction: string;
 }
 
-interface Transfer {
+export interface Transfer {
   homeChainName: string;
   remoteChainName: string;
   homeChainDisplayName?: string;

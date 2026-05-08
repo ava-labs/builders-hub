@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
 
 const protectedPaths = [
   "/hackathons/registration-form",
@@ -37,6 +38,7 @@ export function AutoLoginModalTrigger() {
 
     // Get current URL with search params for callback
     const currentUrl = window.location.href;
+    captureReferralAttributionFromUrl();
     // Open login modal with current URL as callback
     openLoginModal(currentUrl);
   }, [openLoginModal]);
@@ -60,8 +62,10 @@ export function AutoLoginModalTrigger() {
     if (status === "unauthenticated" && !hasTriggeredRef.current) {
       // Check if current path is protected
       const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+      const isSignupReferralLanding =
+        pathname === "/" && new URLSearchParams(window.location.search).has("ref");
 
-      if (isProtectedPath) {
+      if (isProtectedPath || isSignupReferralLanding) {
         // Mark as triggered to prevent multiple opens
         hasTriggeredRef.current = true;
 

@@ -3,12 +3,23 @@ import ProfileForm from "@/components/profile/ProfileForm";
 import { getProfile } from "@/server/services/profile";
 import UTMPreservationWrapper from "@/components/hackathons/UTMPreservationWrapper";
 import Achievements from "@/components/profile/components/achievements";
+import { redirect } from "next/navigation";
 
-export default async function ProfileWrapper() {
+export default async function ProfileWrapper({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await getAuthSession();
+  const resolvedSearchParams = await searchParams;
+  const ref = resolvedSearchParams?.ref;
   
   // If no session, return placeholder - AutoLoginModalTrigger will show the login modal
   if (!session?.user?.id) {
+    if (typeof ref === "string" && ref.trim()) {
+      redirect(`/?ref=${encodeURIComponent(ref.trim())}`);
+    }
+
     return (
       <UTMPreservationWrapper>
         <main className='container relative max-w-[1400px] py-4 lg:py-16 '>

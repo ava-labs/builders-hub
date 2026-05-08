@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
+import { canAccessEvaluationTools } from "@/lib/auth/permissions";
 
 const ALLOWED_VERDICTS = ["top", "strong", "maybe", "weak", "reject"];
-
-function hasJudgeAccess(attributes: string[] | undefined): boolean {
-  return (
-    attributes?.includes("devrel") === true ||
-    attributes?.includes("judge") === true
-  );
-}
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getAuthSession();
 
-    if (!session?.user?.id || !hasJudgeAccess(session.user.custom_attributes)) {
+    if (!session?.user?.id || !canAccessEvaluationTools(session.user.custom_attributes)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 401 });
     }
 

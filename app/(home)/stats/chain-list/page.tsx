@@ -204,7 +204,7 @@ export default function ChainListPage() {
       // Network filter
       const isTestnet = chain.chainId === "43113" || chain.chainId === "43114" 
         ? chain.chainId === "43113"
-        : chain.category === "Testnet" || (chain as any).isTestnet;
+        : chain.category === "Testnet" || chain.isTestnet === true;
       const isConsoleChain = chain.isCustom === true;
       const matchesNetwork = 
         (selectedNetwork === "console" && isConsoleChain) ||

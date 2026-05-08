@@ -17,6 +17,7 @@ import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { useLoginModalState, triggerNewUserLogin, triggerLoginComplete } from "@/hooks/useLoginModal";
+import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
 const verifySchema = z.object({
   code: z
     .string()
@@ -73,9 +74,11 @@ export function VerifyEmail({
   }, [session, pendingRedirectUrl]);
 
   const handleVerify = async (values: z.infer<typeof verifySchema>) => {
+    let keepLoadingAfterSuccess = false;
     setIsVerifying(true);
     setMessage(null);
     try {
+      captureReferralAttributionFromUrl();
       const result = await signIn("credentials", {
         email,
         otp: values.code,
@@ -109,6 +112,7 @@ export function VerifyEmail({
             break;
         }
       } else if (result?.ok) {
+        keepLoadingAfterSuccess = true;
         // Authentication successful
 
         // Force refresh the session multiple times to ensure all useSession() hooks update
@@ -122,6 +126,7 @@ export function VerifyEmail({
 
         // Fetch fresh session to check if new user
         const freshSession = await getSession();
+        const sessionUser = freshSession?.user;
 
 
         // Store redirect URL - we'll handle it after session updates
@@ -130,14 +135,23 @@ export function VerifyEmail({
         }
 
         // If user is new, trigger the new user login event to notify LoginModalWrapper
-        if (freshSession?.user?.is_new_user) {
-          // Close the login modal first
-          closeLoginModal();
-          // Small delay to ensure modal is closed
-          await new Promise(resolve => setTimeout(resolve, 100));
+        if (sessionUser?.is_new_user || sessionUser?.id?.startsWith("pending_")) {
+          setMessage("Code accepted. Loading the next step...");
           // Trigger the event that LoginModalWrapper is listening to
-          triggerNewUserLogin();
+          // before closing the OTP modal so the terms step can replace it immediately.
+          triggerNewUserLogin({
+            userId: sessionUser.id,
+            email: sessionUser.email ?? email,
+            isNewUser: true,
+          });
           // Note: triggerLoginComplete() will be called AFTER they complete terms + profile
+        } else if (!sessionUser) {
+          setMessage("Code accepted. Loading the next step...");
+          triggerNewUserLogin({
+            userId: `pending_${email}`,
+            email,
+            isNewUser: true,
+          });
         } else {
           // Not a new user, their login flow is complete after OTP
           // Trigger login complete event to notify all components
@@ -151,10 +165,13 @@ export function VerifyEmail({
         // If user is not new, the useEffect will redirect after session updates
       }
     } catch (error) {
+      keepLoadingAfterSuccess = false;
       console.error('[VerifyEmail] Error during verification:', error);
       setMessage("Error with OTP try again.");
     } finally {
-      setIsVerifying(false);
+      if (!keepLoadingAfterSuccess) {
+        setIsVerifying(false);
+      }
     }
   };
 
@@ -247,9 +264,10 @@ export function VerifyEmail({
             )}
 
             <Button
-              type="submit"
+              type="button"
               className="w-full px-4 py-2 gap-2 dark:bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
               onClick={onBack}
+              disabled={isVerifying}
             >
               Go back
             </Button>

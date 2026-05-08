@@ -21,6 +21,7 @@ import {
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { SortIcon } from "@/components/stats/SortIcon";
 import { type SubnetStats } from "@/types/validator-stats";
+import type { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
 import {
@@ -80,7 +81,7 @@ export default function ValidatorStatsPage() {
 
   // Helper function to find the slug for a subnet ID
   const getSlugForSubnetId = (subnetId: string): string | null => {
-    const chain = (l1ChainsData as any[]).find((c) => c.subnetId === subnetId);
+    const chain = (l1ChainsData as L1Chain[]).find((c) => c.subnetId === subnetId);
     if (chain?.isTestnet) return null;
     return chain?.slug || null;
   };

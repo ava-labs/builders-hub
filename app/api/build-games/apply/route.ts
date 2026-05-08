@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   const controller = new AbortController();
@@ -44,7 +45,6 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
   whyYou: `${FIELD_GROUP_PREFIX}why_you`,
   howDidYouHear: `${FIELD_GROUP_PREFIX}applicant_source`,
   howDidYouHearSpecify: `${FIELD_GROUP_PREFIX}applicant_source_other`,
-  referrerName: 'referrer_name',
   universityAffiliation: 'university_affiliated',
   avalancheEcosystemMember: 'avalanche_ecosystem_member',
   privacyPolicyRead: 'gdpr',
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     const fields: { name: string; value: string | boolean }[] = [];
     const hubspotRequiredFields = [`${FIELD_GROUP_PREFIX}applicant_source_other`];
     // Fields that are only for our database, not HubSpot
-    const internalOnlyFields = ['referrer'];
+    const internalOnlyFields = ['referral_attribution'];
 
     Object.entries(formData).forEach(([key, value]) => {
       // Skip internal-only fields that shouldn't go to HubSpot
@@ -250,7 +250,20 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    let attributionRecorded = false;
+    try {
+      const attribution = await recordReferralAttributionFromRequest(request, {
+        targetType: 'build_games_application',
+        targetId: BUILD_GAMES_HACKATHON_ID ?? null,
+        userEmail: typeof formData.email === 'string' ? formData.email : null,
+        attribution: (formData.referral_attribution as any) ?? null,
+      });
+      attributionRecorded = Boolean(attribution);
+    } catch (error) {
+      console.error('[Referral] Failed to record Build Games attribution:', error);
+    }
+
+    return NextResponse.json({ success: true, attributionRecorded });
   } catch (error) {
     console.error('Error processing Build Games application:', error);
     return NextResponse.json(
@@ -289,8 +302,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
       why_you: (formData.whyYou as string) || '',
       how_did_you_hear: (formData.howDidYouHear as string) || '',
       how_did_you_hear_specify: (formData.howDidYouHearSpecify as string) || null,
-      referrer_name: (formData.referrerName as string) || null,
-      referrer_handle: (formData.referrer as string) || null,
       university_affiliation: (formData.universityAffiliation as string) || '',
       avalanche_ecosystem_member: (formData.avalancheEcosystemMember as string) || '',
       privacy_policy_read: formData.privacyPolicyRead === true,
@@ -320,8 +331,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
         why_you: applicationData.why_you,
         how_did_you_hear: applicationData.how_did_you_hear,
         how_did_you_hear_specify: applicationData.how_did_you_hear_specify,
-        referrer_name: applicationData.referrer_name,
-        referrer_handle: applicationData.referrer_handle,
         university_affiliation: applicationData.university_affiliation,
         avalanche_ecosystem_member: applicationData.avalanche_ecosystem_member,
         privacy_policy_read: applicationData.privacy_policy_read,

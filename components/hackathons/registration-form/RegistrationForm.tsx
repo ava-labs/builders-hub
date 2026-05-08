@@ -29,7 +29,11 @@ import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
 import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
-import { captureEventReferrerFromUrl, getEventReferrer, clearEventReferrer } from "@/lib/referral";
+import {
+  captureReferralAttributionFromUrl,
+  clearStoredReferralAttribution,
+  getStoredReferralAttribution,
+} from "@/lib/referrals/client";
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
@@ -80,9 +84,9 @@ export function RegisterForm({
   // Use UTM preservation hook
   const { getPreservedUTMs } = useUTMPreservation();
 
-  // Capture referrer from URL on mount
+  // Capture referral attribution from URL on mount
   useEffect(() => {
-    captureEventReferrerFromUrl();
+    captureReferralAttributionFromUrl();
   }, []);
 
   // Determine if hackathon is online based on location
@@ -205,12 +209,14 @@ export function RegisterForm({
 
   async function saveProject(data: RegisterFormValues) {
     try {
-      await axios.post(`/api/register-form/`, data);
+      const response = await axios.post(`/api/register-form/`, data);
       if (typeof window !== "undefined") {
         localStorage.removeItem(`formData_${hackathon_id}`);
       }
+      return response.data as { referralAttributed?: boolean };
     } catch (err) {
       console.error("API Error:", err);
+      throw err;
     }
   }
 
@@ -296,23 +302,23 @@ export function RegisterForm({
       const preservedUTMs = getPreservedUTMs();
       const effectiveUTM = utm || preservedUTMs.utm || "";
       
-      const referrerHandle = getEventReferrer();
-
       const finalData = {
         ...data,
         hackathon_id: hackathon_id,
         utm: effectiveUTM,
+        referral_attribution: captureReferralAttributionFromUrl() ?? getStoredReferralAttribution(),
         interests: data.interests ?? [],
         languages: data.languages ?? [],
         roles: data.roles ?? [],
         tools: data.tools,
         // Only include prohibited_items if it's not an online hackathon
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
-        ...(referrerHandle ? { referrer_handle: referrerHandle } : {}),
       };
 
-      await saveProject(finalData);
-      clearEventReferrer();
+      const result = await saveProject(finalData);
+      if (result.referralAttributed) {
+        clearStoredReferralAttribution();
+      }
       setIsDialogOpen(true);
     }
   };

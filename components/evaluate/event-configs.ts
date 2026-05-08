@@ -135,8 +135,6 @@ export const EVENT_CONFIGS: Record<string, EventConfig> = {
         fields: [
           { key: "how_did_you_hear", label: "How Did You Hear" },
           { key: "how_did_you_hear_specify", label: "Specify" },
-          { key: "referrer_name", label: "Referrer Name" },
-          { key: "referrer_handle", label: "Referrer Handle" },
         ],
       },
     ],

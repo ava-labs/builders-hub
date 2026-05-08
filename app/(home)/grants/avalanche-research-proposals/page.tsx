@@ -16,6 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { formSchema, researchAreas, MAX_BUDGET_USD, type ResearchProposalFormData } from "@/types/researchProposalForm";
+import {
+  captureReferralAttributionFromUrl,
+  clearStoredReferralAttribution,
+  getStoredReferralAttribution,
+} from "@/lib/referrals/client";
 
 const LINK_HELPER = "Make sure the link is set to \"Anyone with the link can view\" so reviewers can access it without a request.";
 
@@ -54,6 +59,10 @@ export default function ResearchProposalForm() {
   });
 
   const selectedArea = form.watch("primary_research_area");
+
+  useEffect(() => {
+    captureReferralAttributionFromUrl();
+  }, []);
 
   // Prefill email from session
   useEffect(() => {
@@ -102,16 +111,20 @@ export default function ResearchProposalForm() {
   async function onSubmit(values: ResearchProposalFormData) {
     setIsSubmitting(true);
     setSubmitError(null);
+    const referralAttribution = captureReferralAttributionFromUrl() ?? getStoredReferralAttribution();
 
     try {
       const response = await fetch("/api/grants/avalanche-research-proposals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          referral_attribution: referralAttribution,
+        }),
       });
 
       const result = (await response.json().catch(() => null)) as
-        | { success?: boolean; message?: string }
+        | { success?: boolean; message?: string; referralAttributed?: boolean }
         | null;
 
       if (!response.ok || !result?.success) {
@@ -120,6 +133,9 @@ export default function ResearchProposalForm() {
 
       setSubmitError(null);
       setSubmissionStatus("success");
+      if (result.referralAttributed) {
+        clearStoredReferralAttribution();
+      }
       form.reset();
       if (session?.user?.email) form.setValue("email", session.user.email);
     } catch (error) {

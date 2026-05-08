@@ -3,6 +3,12 @@
 import { useEffect, useRef } from 'react';
 import { create } from 'zustand';
 
+export interface NewUserLoginPayload {
+  userId?: string | null;
+  email?: string | null;
+  isNewUser?: boolean | null;
+}
+
 /**
  * Login modal state + cross-component event bus.
  *
@@ -26,11 +32,12 @@ interface LoginModalStore {
   /** Bumped on every `triggerNewUserLogin()` call. Listeners watch the
    *  numeric value and react to changes — never read directly. */
   newUserLoginVersion: number;
+  newUserLoginPayload?: NewUserLoginPayload;
   /** Bumped on every `triggerLoginComplete()` call. */
   loginCompleteVersion: number;
   open: (callbackUrl?: string) => void;
   close: () => void;
-  bumpNewUserLogin: () => void;
+  bumpNewUserLogin: (payload?: NewUserLoginPayload) => void;
   bumpLoginComplete: () => void;
 }
 
@@ -38,6 +45,7 @@ const useLoginModalStore = create<LoginModalStore>((set) => ({
   isOpen: false,
   callbackUrl: undefined,
   newUserLoginVersion: 0,
+  newUserLoginPayload: undefined,
   loginCompleteVersion: 0,
   open: (callbackUrl) => {
     // Default to the current URL so post-login the user returns to the page
@@ -52,16 +60,19 @@ const useLoginModalStore = create<LoginModalStore>((set) => ({
     set({ isOpen: true, callbackUrl: resolved });
   },
   close: () => set({ isOpen: false, callbackUrl: undefined }),
-  bumpNewUserLogin: () =>
-    set((s) => ({ newUserLoginVersion: s.newUserLoginVersion + 1 })),
+  bumpNewUserLogin: (payload) =>
+    set((s) => ({
+      newUserLoginVersion: s.newUserLoginVersion + 1,
+      newUserLoginPayload: payload,
+    })),
   bumpLoginComplete: () =>
     set((s) => ({ loginCompleteVersion: s.loginCompleteVersion + 1 })),
 }));
 
 // Function to trigger new user login event (called from VerifyEmail).
 // Stays a free function for non-React call sites.
-export function triggerNewUserLogin() {
-  useLoginModalStore.getState().bumpNewUserLogin();
+export function triggerNewUserLogin(payload?: NewUserLoginPayload) {
+  useLoginModalStore.getState().bumpNewUserLogin(payload);
 }
 
 // Function to trigger login complete event (called after full flow completes).
@@ -93,7 +104,11 @@ export function useLoginModalState() {
  * (e.g. one missing the initial-skip) used to cause subtle "callback
  * fired twice on mount" bugs.
  */
-function useVersionedListener(version: number, callback: () => void) {
+function useVersionedListener<TPayload>(
+  version: number,
+  payload: TPayload,
+  callback: (payload: TPayload) => void
+) {
   const seenVersionRef = useRef<number | null>(null);
   // Stash the latest callback so subscribers don't have to memoize their
   // closure to avoid re-firing on every render.
@@ -107,19 +122,20 @@ function useVersionedListener(version: number, callback: () => void) {
     }
     if (version !== seenVersionRef.current) {
       seenVersionRef.current = version;
-      callbackRef.current();
+      callbackRef.current(payload);
     }
-  }, [version]);
+  }, [version, payload]);
 }
 
 // Hook to listen for new user login events
-export function useNewUserLoginListener(callback: () => void) {
+export function useNewUserLoginListener(callback: (payload?: NewUserLoginPayload) => void) {
   const version = useLoginModalStore((s) => s.newUserLoginVersion);
-  useVersionedListener(version, callback);
+  const payload = useLoginModalStore((s) => s.newUserLoginPayload);
+  useVersionedListener(version, payload, callback);
 }
 
 // Hook to listen for login complete events (after full flow: OTP + terms + profile)
 export function useLoginCompleteListener(callback: () => void) {
   const version = useLoginModalStore((s) => s.loginCompleteVersion);
-  useVersionedListener(version, callback);
+  useVersionedListener(version, undefined, callback);
 }

@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 
-interface ICMFlowData {
+export interface ICMFlowData {
   sourceChain: string;
   sourceChainId: string;
   sourceLogo: string;
@@ -15,7 +15,7 @@ interface ICMFlowData {
   messageCount: number;
 }
 
-interface ChainNode {
+export interface ChainNode {
   id: string;
   name: string;
   logo: string;
@@ -24,7 +24,7 @@ interface ChainNode {
   isSource: boolean;
 }
 
-interface ICMFlowResponse {
+export interface ICMFlowResponse {
   flows: ICMFlowData[];
   sourceNodes: ChainNode[];
   targetNodes: ChainNode[];

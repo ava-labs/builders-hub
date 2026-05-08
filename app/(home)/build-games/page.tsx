@@ -1,7 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
 import "./styles.css";
-import ReferralLink from "@/components/build-games/ReferralLink";
 import ProgramTimelineWrapper from "@/components/build-games/ProgramTimelineWrapper";
 import BuildGamesResourcesWrapper from "@/components/build-games/BuildGamesResourcesWrapper";
 import HowItWorksWrapper from "@/components/build-games/HowItWorksWrapper";
@@ -956,7 +955,7 @@ There are no predefined tracks or categories, and strong projects may look very 
     },
     {
       question: "How do I refer someone?",
-      answer: <>1. Click <ReferralLink />{"\n"}2. Share your link everywhere.{"\n\n"}*You cannot refer yourself.</>
+      answer: "The Build Games referral program has ended."
     },
     {
       question: "What is the competition timeline?",

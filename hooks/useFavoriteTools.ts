@@ -21,6 +21,7 @@ const MANDATORY_PATHS = new Set<string>([
   '/console/permissioned-l1s/add-validator',
   '/console/permissionless-l1s/stake/native',
   '/console/permissioned-l1s/disable-validator',
+  '/console/layer-1/l1-validator-balance',
   '/console/icm/setup',
   '/console/ictt/setup',
   '/console/ictt/token-transfer',

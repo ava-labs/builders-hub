@@ -36,7 +36,7 @@ import type {
   CustomAspectRatio,
 } from "./types";
 
-interface CustomizationPanelProps {
+export interface CustomizationPanelProps {
   settings: ExportSettings;
   isCustomized: boolean;
   isCollageMode?: boolean;
