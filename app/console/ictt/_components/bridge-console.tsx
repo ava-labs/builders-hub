@@ -267,7 +267,14 @@ export function BridgeConsole({
   const subtitle = (() => {
     const homeName = bridge.homeChain?.name ?? '—';
     const remoteName = bridge.remoteChain?.name ?? '—';
-    const tokenLabel = bridge.tokenAddress ? 'TOKEN' : '—';
+    // Prefer the home-side token snapshot's symbol once it's been read;
+    // fall back to a truncated address; finally to the em-dash placeholder
+    // before any token is set.
+    const tokenLabel = (() => {
+      if (homeSnapshot.symbol && homeSnapshot.symbol !== '—') return homeSnapshot.symbol;
+      if (bridge.tokenAddress) return `${bridge.tokenAddress.slice(0, 6)}…${bridge.tokenAddress.slice(-4)}`;
+      return '—';
+    })();
     return `${tokenLabel} · ${homeName} ↔ ${remoteName} · setup ${bridge.progress}% complete`;
   })();
 
