@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Sparkles } from 'lucide-react';
 import { cn } from '@/components/toolbox/lib/utils';
 import { relativeTime } from './relative-time';
 import type { ActivityEvent } from './types';
@@ -10,6 +10,11 @@ interface ActivityFeedProps {
   events: ActivityEvent[];
   emptyHint?: string;
   getExplorerUrl?: (event: ActivityEvent) => string | null;
+  /** Called when user clicks the empty-state CTA. When provided, the
+   *  empty state becomes an actionable "Start with the Token phase"
+   *  card; without it, the empty state is just informational text. */
+  onStart?: () => void;
+  accent?: string;
 }
 
 const KIND_COLOR: Record<ActivityEvent['kind'], string> = {
@@ -24,6 +29,8 @@ export function ActivityFeed({
   events,
   emptyHint = 'No bridge activity yet. Deploy a contract or send tokens to see events here.',
   getExplorerUrl,
+  onStart,
+  accent = '#3B82F6',
 }: ActivityFeedProps) {
   // Tick once a second so relative-time labels stay fresh without React
   // having to re-render the entire bridge console on each event.
@@ -45,9 +52,25 @@ export function ActivityFeed({
 
       {events.length === 0 ? (
         <div className="flex-1 grid place-items-center px-6 py-8">
-          <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center max-w-[20rem] leading-relaxed">
-            {emptyHint}
-          </p>
+          <div className="text-center max-w-[20rem]">
+            <div
+              className="w-10 h-10 rounded-xl mx-auto mb-3 grid place-items-center"
+              style={{ background: `${accent}20`, color: accent }}
+            >
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">{emptyHint}</p>
+            {onStart && (
+              <button
+                type="button"
+                onClick={onStart}
+                style={{ color: accent }}
+                className="mt-3 text-xs font-medium hover:underline cursor-pointer"
+              >
+                Start with the Token phase →
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60 flex-1">

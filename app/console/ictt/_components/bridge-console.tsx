@@ -310,7 +310,16 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
             </div>
             <div className="min-h-[16rem] flex">
               <div className="flex-1 flex">
-                <ActivityFeed events={events} getExplorerUrl={getEventExplorerUrl} />
+                <ActivityFeed
+                  events={events}
+                  getExplorerUrl={getEventExplorerUrl}
+                  accent={ACCENT}
+                  onStart={
+                    bridge.tokenAddress
+                      ? undefined
+                      : () => setActivePhase('token')
+                  }
+                />
               </div>
             </div>
           </div>
