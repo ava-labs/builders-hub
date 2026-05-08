@@ -48,8 +48,14 @@ const PHASE_TO_NEXT: Record<PhaseId, PhaseId | null> = {
  * search-param deep-link is supported for the redirect targets coming
  * from the old `/setup/[step]` and `/token-transfer/[step]` routes.
  */
-export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
-  const [preferredRemoteChainId, setPreferredRemoteChainId] = useState<string | undefined>(undefined);
+export function BridgeConsole({
+  initialPhase,
+  initialRemoteChainId,
+}: {
+  initialPhase?: PhaseId;
+  initialRemoteChainId?: string;
+}) {
+  const [preferredRemoteChainId, setPreferredRemoteChainId] = useState<string | undefined>(initialRemoteChainId);
   const bridge = useBridgeState({ preferredRemoteChainId });
   const { events, append, messageCount } = useBridgeActivity();
   const homeSnapshot = useHomeTokenSnapshot({
@@ -90,6 +96,24 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
 
   const [activePhase, setActivePhase] = useState<PhaseId>(computedActive);
   const [switching, setSwitching] = useState(false);
+
+  // Keep the address bar in sync with active phase + selected remote so
+  // the URL is always shareable. Uses `history.replaceState` rather than
+  // Next.js `router.replace` to avoid a server round-trip on every click.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('phase', activePhase);
+    if (preferredRemoteChainId) {
+      url.searchParams.set('remote', preferredRemoteChainId);
+    } else {
+      url.searchParams.delete('remote');
+    }
+    const next = `${url.pathname}?${url.searchParams.toString()}`;
+    if (next !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState({}, '', next);
+    }
+  }, [activePhase, preferredRemoteChainId]);
 
   // If the active phase becomes blocked (shouldn't happen normally, but
   // can happen if state is rebuilt after a chain switch), fall back to
