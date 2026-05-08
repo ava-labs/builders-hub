@@ -26,6 +26,21 @@ const EMPTY_STATUS: RegistrationStatus = {
   lastChecked: null,
 };
 
+interface UseBridgeStateArgs {
+  /**
+   * Optional override for which deployed remote to treat as the active
+   * one. Used by the multi-remote picker in the remote panel header.
+   * When unset, falls back to the first L1 with a deployed remote.
+   */
+  preferredRemoteChainId?: string;
+}
+
+interface RemoteCandidate {
+  chain: L1ListItem;
+  address: string;
+  kind: TokenKind;
+}
+
 /**
  * Derives bridge phase state from existing stores + on-chain reads.
  *
@@ -35,7 +50,8 @@ const EMPTY_STATUS: RegistrationStatus = {
  * collateral state. No store schema changes — just a lightweight read
  * layer over what already exists.
  */
-export function useBridgeState() {
+export function useBridgeState(args: UseBridgeStateArgs = {}) {
+  const { preferredRemoteChainId } = args;
   const homeChain = useSelectedL1();
   const wrappedNative = useWrappedNativeToken();
   const l1List = useL1List();
@@ -63,37 +79,40 @@ export function useBridgeState() {
   // wrappedNative if native flow, else null. Stays null until user picks.
   const tokenAddress: string | null = exampleErc20Address || wrappedNative || null;
 
-  // Find the remote chain by scanning all toolbox stores in l1List.
-  // Returns the first L1 (other than home) that has a TokenRemote
-  // pointing at our home contract. v1 = 1:1, so first match wins.
-  const remoteChain = useMemo<L1ListItem | undefined>(() => {
-    if (!homeAddress || !homeChain) return undefined;
-    for (const candidate of l1List) {
-      if (candidate.id === homeChain.id) continue;
-      const candidateStore = getToolboxStore(candidate.id).getState();
-      if (candidateStore.erc20TokenRemoteAddress || candidateStore.nativeTokenRemoteAddress) {
-        return candidate;
+  // All deployed remotes — every L1 (other than home) with a TokenRemote
+  // address in its per-chain toolbox store. The picker UI uses this list;
+  // the active remote is selected from here.
+  const allRemotes = useMemo<RemoteCandidate[]>(() => {
+    if (!homeChain) return [];
+    const candidates: RemoteCandidate[] = [];
+    for (const l1 of l1List) {
+      if (l1.id === homeChain.id) continue;
+      const store = getToolboxStore(l1.id).getState();
+      if (store.nativeTokenRemoteAddress) {
+        candidates.push({ chain: l1, address: store.nativeTokenRemoteAddress, kind: 'native' });
+      } else if (store.erc20TokenRemoteAddress) {
+        candidates.push({ chain: l1, address: store.erc20TokenRemoteAddress, kind: 'erc20' });
       }
     }
-    return undefined;
-  }, [homeAddress, homeChain, l1List]);
+    return candidates;
+  }, [homeChain, l1List]);
 
-  // Look up the active remote on remoteChain's store. Falls back to the
-  // home-chain's stored value when remoteChain is the same chain (which
-  // shouldn't happen, but guards against bad state).
-  const activeRemote = useMemo(() => {
-    if (!remoteChain) {
-      return { address: remoteAddress, kind: remoteKind };
+  // Pick the active remote: explicit preference if it matches a deployed
+  // remote, otherwise the first deployed remote. Returns undefined when
+  // no remote has been deployed yet.
+  const activeRemoteEntry = useMemo<RemoteCandidate | undefined>(() => {
+    if (allRemotes.length === 0) return undefined;
+    if (preferredRemoteChainId) {
+      const preferred = allRemotes.find((r) => r.chain.id === preferredRemoteChainId);
+      if (preferred) return preferred;
     }
-    const remoteStore = getToolboxStore(remoteChain.id).getState();
-    if (remoteStore.nativeTokenRemoteAddress) {
-      return { address: remoteStore.nativeTokenRemoteAddress, kind: 'native' as TokenKind };
-    }
-    if (remoteStore.erc20TokenRemoteAddress) {
-      return { address: remoteStore.erc20TokenRemoteAddress, kind: 'erc20' as TokenKind };
-    }
-    return { address: null as string | null, kind: 'erc20' as TokenKind };
-  }, [remoteChain, remoteAddress, remoteKind]);
+    return allRemotes[0];
+  }, [allRemotes, preferredRemoteChainId]);
+
+  const remoteChain = activeRemoteEntry?.chain;
+  const activeRemote = activeRemoteEntry
+    ? { address: activeRemoteEntry.address, kind: activeRemoteEntry.kind }
+    : { address: remoteAddress, kind: remoteKind };
 
   // Poll the home contract for registration + collateral status whenever
   // we have a complete home/remote pair.
@@ -230,6 +249,9 @@ export function useBridgeState() {
   return {
     homeChain,
     remoteChain,
+    /** Every L1 (other than home) with a deployed TokenRemote. Used by
+     *  the remote panel's picker when more than one remote exists. */
+    allRemotes,
     walletEVMAddress,
     isTestnet,
     homeKind,

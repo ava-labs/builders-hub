@@ -15,6 +15,11 @@ interface ChainPanelProps {
   walletConnected: boolean;
   expandedDetails?: ReactNode;
   initiallyExpanded?: boolean;
+  /**
+   * Extra content rendered next to the role/chain-name in the header.
+   * Used by the right panel for the multi-remote picker dropdown.
+   */
+  headerExtra?: ReactNode;
 }
 
 /**
@@ -33,6 +38,7 @@ export function ChainPanel({
   walletConnected,
   expandedDetails,
   initiallyExpanded = false,
+  headerExtra,
 }: ChainPanelProps) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const color = chainColor(chain?.id);
@@ -65,6 +71,7 @@ export function ChainPanel({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {headerExtra}
           {walletConnected && (
             <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

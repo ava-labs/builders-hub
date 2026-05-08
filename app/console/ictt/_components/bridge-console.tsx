@@ -12,6 +12,7 @@ import { useBridgeActivity } from './use-bridge-activity';
 import { useHomeTokenSnapshot, useRemoteTokenSnapshot } from './use-token-snapshot';
 import { TokenSnapshotPanel } from './token-snapshot';
 import { PhaseStrip } from './phase-strip';
+import { RemotePicker } from './remote-picker';
 import { ChainPanel } from './chain-panel';
 import { ICMConnection } from './icm-connection';
 import { ActivityFeed } from './activity-feed';
@@ -48,7 +49,8 @@ const PHASE_TO_NEXT: Record<PhaseId, PhaseId | null> = {
  * from the old `/setup/[step]` and `/token-transfer/[step]` routes.
  */
 export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
-  const bridge = useBridgeState();
+  const [preferredRemoteChainId, setPreferredRemoteChainId] = useState<string | undefined>(undefined);
+  const bridge = useBridgeState({ preferredRemoteChainId });
   const { events, append, messageCount } = useBridgeActivity();
   const homeSnapshot = useHomeTokenSnapshot({
     homeChain: bridge.homeChain,
@@ -276,6 +278,15 @@ export function BridgeConsole({ initialPhase }: { initialPhase?: PhaseId }) {
               contracts={bridge.remoteContracts}
               dim={dimRight}
               walletConnected={remoteWalletConnected}
+              headerExtra={
+                bridge.allRemotes.length > 1 && bridge.remoteChain ? (
+                  <RemotePicker
+                    remotes={bridge.allRemotes}
+                    selected={bridge.remoteChain}
+                    onChange={setPreferredRemoteChainId}
+                  />
+                ) : null
+              }
               expandedDetails={
                 <>
                   {bridge.remoteAddress && (
