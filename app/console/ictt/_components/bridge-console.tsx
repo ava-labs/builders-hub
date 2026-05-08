@@ -6,6 +6,7 @@ import { ArrowLeftRight } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWalletSwitch } from '@/components/toolbox/hooks/useWalletSwitch';
 import { useL1List } from '@/components/toolbox/stores/l1ListStore';
+import { ConnectedWalletProvider } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { Note } from '@/components/toolbox/components/Note';
 import { useBridgeState } from './use-bridge-state';
 import { useBridgeActivity } from './use-bridge-activity';
@@ -364,7 +365,7 @@ export function BridgeConsole({
       )}
 
       {isWalletConnected && (
-        <>
+        <ConnectedWalletProvider>
           {/* Main two-pane layout: stacks vertically below `lg` (≥1024px). */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_8rem_1fr] gap-3 px-4 md:px-5 pt-4 pb-2 flex-shrink-0">
             <ChainPanel
@@ -454,7 +455,7 @@ export function BridgeConsole({
               <Note variant="default">Switching wallet network…</Note>
             </div>
           )}
-        </>
+        </ConnectedWalletProvider>
       )}
     </div>
   );
