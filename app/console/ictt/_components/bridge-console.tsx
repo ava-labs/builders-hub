@@ -337,12 +337,12 @@ export function BridgeConsole({
           </div>
         </div>
 
-        {/* Phase strip */}
+        {/* Phase strip — uses the same visual language as the shared
+            step-flow stepper across the rest of the console. */}
         <PhaseStrip
           activePhase={activePhase}
           phaseStatus={bridge.phaseStatus}
           onPhaseClick={(p) => setActivePhase(p)}
-          accent={ACCENT}
         />
       </div>
 
