@@ -1,17 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { zeroAddress } from 'viem';
-import ERC20TokenRemoteABI from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
-import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Note } from '@/components/toolbox/components/Note';
+import { useRegisterRemote } from '@/components/toolbox/console/ictt/hooks/useRegisterRemote';
 import { InspectorPanel } from '../inspector-panel';
 import { ChainMismatchBanner } from './preflight-banner';
 import { relativeTime } from '../relative-time';
@@ -45,62 +41,37 @@ export function RegisterInspector({
   appendActivity,
   switchChain,
 }: RegisterInspectorProps) {
-  const walletClient = useResolvedWalletClient();
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const viemChain = useViemChainStore();
-  const { notify } = useConsoleNotifications();
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { run: runRegister, isRegistering, error: registerError } = useRegisterRemote();
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleRegister = async () => {
-    setError(null);
-    if (!walletClient?.account || !viemChain) {
-      setError('Wallet not connected');
-      return;
-    }
+    setLocalError(null);
     if (!bridge.remoteAddress || !bridge.remoteChain) {
-      setError('Deploy TokenRemote first');
+      setLocalError('Deploy TokenRemote first');
       return;
     }
     if (walletChainId !== bridge.remoteChain.evmChainId) {
-      setError(`Switch wallet to ${bridge.remoteChain.name} first`);
+      setLocalError(`Switch wallet to ${bridge.remoteChain.name} first`);
       return;
     }
 
-    setIsRegistering(true);
     try {
-      const client = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
-      if (!client) throw new Error('Could not create RPC client for destination');
-
-      const feeInfo: readonly [`0x${string}`, bigint] = [zeroAddress, 0n];
-      const { request } = await client.simulateContract({
-        address: bridge.remoteAddress as `0x${string}`,
-        abi: ERC20TokenRemoteABI.abi,
-        functionName: 'registerWithHome',
-        args: [feeInfo],
-        chain: viemChain,
-        account: walletClient.account,
-      });
-
-      const writePromise = walletClient.writeContract(request);
-      notify({ type: 'call', name: 'Register With Home' }, writePromise, viemChain);
-      const hash = await writePromise;
-      await client.waitForTransactionReceipt({ hash });
-
+      const result = await runRegister({ remoteAddress: bridge.remoteAddress });
       appendActivity({
         kind: 'register',
-        label: `Remote → Home register message sent (${bridge.remoteChain.name} → ${bridge.homeChain?.name ?? 'home'})`,
-        txHash: hash,
-        chainId: viemChain.id,
+        label: `Remote → Home register message sent (${bridge.remoteChain.name} → ${
+          bridge.homeChain?.name ?? 'home'
+        })`,
+        txHash: result.hash,
+        chainId: viemChain?.id,
       });
       bridge.refresh();
       onAdvance();
     } catch (e: any) {
       const msg = e?.shortMessage ?? e?.message ?? 'Register failed';
-      setError(msg);
       appendActivity({ kind: 'error', label: `Register failed: ${msg}` });
-    } finally {
-      setIsRegistering(false);
     }
   };
 
@@ -108,6 +79,7 @@ export function RegisterInspector({
   const onSwitchToRemote = bridge.remoteChain
     ? () => switchChain(bridge.remoteChain!.evmChainId, !!bridge.remoteChain!.isTestnet)
     : undefined;
+  const error = localError || registerError;
 
   return (
     <InspectorPanel
@@ -175,7 +147,8 @@ export function RegisterInspector({
 
       {bridge.registered && (
         <Note variant="success">
-          Remote is registered with Home. Collateral status: {bridge.collateralNeeded === 0n ? 'fully funded' : `needs ${bridge.collateralNeeded.toString()} more`}.
+          Remote is registered with Home. Collateral status:{' '}
+          {bridge.collateralNeeded === 0n ? 'fully funded' : `needs ${bridge.collateralNeeded.toString()} more`}.
         </Note>
       )}
 
