@@ -14,6 +14,7 @@ import { TokenSnapshotPanel } from './token-snapshot';
 import { PhaseStrip } from './phase-strip';
 import { RemotePicker } from './remote-picker';
 import { ResetBridgeButton } from './reset-bridge-button';
+import { ShortcutsOverlay } from './shortcuts-overlay';
 import { ChainPanel } from './chain-panel';
 import { ICMConnection } from './icm-connection';
 import { ActivityFeed } from './activity-feed';
@@ -323,6 +324,7 @@ export function BridgeConsole({
                 setActivePhase('token');
               }}
             />
+            <ShortcutsOverlay />
             <WalletPill
               walletAddress={walletEVMAddress}
               walletChainId={walletChainId}
