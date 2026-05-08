@@ -1,17 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import ERC20TokenHome from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
-import NativeTokenHome from '@/contracts/icm-contracts/compiled/NativeTokenHome.json';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
-import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Note } from '@/components/toolbox/components/Note';
 import TeleporterRegistryAddressInput from '@/components/toolbox/components/TeleporterRegistryAddressInput';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
+import { useDeployTokenHome } from '@/components/toolbox/console/ictt/hooks/useDeployTokenHome';
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
 import { ChainMismatchBanner } from './preflight-banner';
@@ -28,10 +26,9 @@ interface HomeInspectorProps {
 }
 
 /**
- * Home phase: deploy the TokenHome contract on the origin chain. Fields
- * pulled from `DeployTokenHome.tsx` but condensed to the bare minimum —
- * registry, manager, min version, kind. Token address comes from the
- * previous (token) phase. Decimals auto-fetched.
+ * Home phase: deploy the TokenHome contract on the origin chain. Form
+ * fields collect kind/registry/manager/version; on-chain deployment
+ * lives in `useDeployTokenHome` so this component is purely UI + flow.
  */
 export function HomeInspector({
   bridge,
@@ -41,18 +38,17 @@ export function HomeInspector({
   appendActivity,
   switchChain,
 }: HomeInspectorProps) {
-  const { setErc20TokenHomeAddress, setNativeTokenHomeAddress } = useToolboxStore();
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const viemChain = useViemChainStore();
-  const { deploy, isDeploying } = useContractDeployer();
+  const { run: runDeploy, isDeploying, error: deployError } = useDeployTokenHome();
 
   const [kind, setKind] = useState<TokenKind>('erc20');
   const [registry, setRegistry] = useState(bridge.homeChain?.wellKnownTeleporterRegistryAddress ?? '');
   const [manager, setManager] = useState<string>(walletEVMAddress || '');
   const [minVersion, setMinVersion] = useState('1');
   const [decimals, setDecimals] = useState('18');
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Auto-fetch decimals from the chosen token.
   useEffect(() => {
@@ -67,7 +63,7 @@ export function HomeInspector({
         functionName: 'decimals',
       })
       .then((d) => !cancelled && setDecimals(String(d)))
-      .catch(() => !cancelled && setError('Could not read decimals from token'));
+      .catch(() => !cancelled && setLocalError('Could not read decimals from token'));
     return () => {
       cancelled = true;
     };
@@ -86,51 +82,31 @@ export function HomeInspector({
   }, [bridge.homeChain?.id, registry]);
 
   const handleDeploy = async () => {
-    setError(null);
-    if (!registry) {
-      setError('Teleporter Registry address is required');
-      return;
-    }
+    setLocalError(null);
     if (!bridge.tokenAddress) {
-      setError('Pick or deploy a token first (Token phase)');
+      setLocalError('Pick or deploy a token first (Token phase)');
       return;
     }
-    if (!viemChain) {
-      setError('Wallet not connected');
-      return;
-    }
-
     try {
-      const args: any[] = [
-        registry as `0x${string}`,
-        (manager || walletEVMAddress) as `0x${string}`,
-        BigInt(minVersion || '1'),
-        bridge.tokenAddress as `0x${string}`,
-      ];
-      if (kind === 'erc20') args.push(BigInt(decimals));
-
-      const result = await deploy({
-        abi: (kind === 'erc20' ? ERC20TokenHome.abi : NativeTokenHome.abi) as any,
-        bytecode: kind === 'erc20' ? ERC20TokenHome.bytecode.object : NativeTokenHome.bytecode.object,
-        args,
-        name: kind === 'erc20' ? 'ERC20TokenHome' : 'NativeTokenHome',
+      const result = await runDeploy({
+        kind,
+        registry,
+        manager,
+        minVersion,
+        tokenAddress: bridge.tokenAddress,
+        decimals,
       });
-
-      if (kind === 'erc20') {
-        setErc20TokenHomeAddress(result.contractAddress);
-      } else {
-        setNativeTokenHomeAddress(result.contractAddress);
-      }
       appendActivity({
         kind: 'deploy',
-        label: `${kind === 'erc20' ? 'ERC20TokenHome' : 'NativeTokenHome'} deployed on ${bridge.homeChain?.name ?? 'home'}`,
+        label: `${kind === 'erc20' ? 'ERC20TokenHome' : 'NativeTokenHome'} deployed on ${
+          bridge.homeChain?.name ?? 'home'
+        }`,
         txHash: result.hash,
-        chainId: viemChain.id,
+        chainId: viemChain?.id,
       });
       onAdvance();
     } catch (e: any) {
       const msg = e?.shortMessage ?? e?.message ?? 'Deployment failed';
-      setError(msg);
       appendActivity({ kind: 'error', label: `TokenHome deploy failed: ${msg}` });
     }
   };
@@ -138,6 +114,8 @@ export function HomeInspector({
   const onSwitchToHome = bridge.homeChain
     ? () => switchChain(bridge.homeChain!.evmChainId, !!bridge.homeChain!.isTestnet)
     : undefined;
+
+  const error = localError || deployError;
 
   return (
     <InspectorPanel
@@ -193,13 +171,7 @@ export function HomeInspector({
       />
 
       <div className="grid grid-cols-2 gap-3">
-        <Input
-          label="Min Teleporter Version"
-          value={minVersion}
-          onChange={setMinVersion}
-          type="number"
-          unit="v"
-        />
+        <Input label="Min Teleporter Version" value={minVersion} onChange={setMinVersion} type="number" unit="v" />
         {kind === 'erc20' && <Input label="Decimals" value={decimals} disabled helperText="Auto-fetched" />}
       </div>
 

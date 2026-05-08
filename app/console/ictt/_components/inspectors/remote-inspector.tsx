@@ -1,20 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import ERC20TokenRemote from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
-import NativeTokenRemote from '@/contracts/icm-contracts/compiled/NativeTokenRemote.json';
+import { useEffect, useState } from 'react';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
-import { useToolboxStore, useViemChainStore, getToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useL1List, useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Note } from '@/components/toolbox/components/Note';
 import TeleporterRegistryAddressInput from '@/components/toolbox/components/TeleporterRegistryAddressInput';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
-import { cb58ToHex } from '@/components/tools/common/utils/cb58';
+import { useDeployTokenRemote } from '@/components/toolbox/console/ictt/hooks/useDeployTokenRemote';
 import { InspectorPanel } from '../inspector-panel';
 import { SegmentControl } from '../segment-control';
 import { ChainMismatchBanner } from './preflight-banner';
@@ -47,13 +44,12 @@ export function RemoteInspector({
   appendActivity,
   switchChain,
 }: RemoteInspectorProps) {
-  const { setErc20TokenRemoteAddress, setNativeTokenRemoteAddress } = useToolboxStore();
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isTestnet = useWalletStore((s) => s.isTestnet);
   const viemChain = useViemChainStore();
   const l1List = useL1List();
-  const { deploy, isDeploying } = useContractDeployer();
+  const { run: runDeploy, isDeploying, error: deployError } = useDeployTokenRemote();
 
   const [kind, setKind] = useState<TokenKind>('erc20');
   // Destination chain to deploy on — defaults to "first non-home L1" so
@@ -140,15 +136,6 @@ export function RemoteInspector({
     };
   }, [sourceL1?.rpcUrl, bridge.homeAddress]);
 
-  const sourceBlockchainIDHex = useMemo(() => {
-    if (!sourceL1?.id) return null;
-    try {
-      return cb58ToHex(sourceL1.id);
-    } catch {
-      return null;
-    }
-  }, [sourceL1?.id]);
-
   const handleDeploy = async () => {
     setError(null);
     if (!sourceL1 || !bridge.homeAddress) {
@@ -159,74 +146,22 @@ export function RemoteInspector({
       setError('Pick a destination chain');
       return;
     }
-    if (sourceL1.id === destChain.id) {
-      setError('Source and destination must be different chains');
-      return;
-    }
-    if (!sourceBlockchainIDHex) {
-      setError('Could not encode source blockchain ID');
-      return;
-    }
-    if (!registry) {
-      setError('Teleporter Registry address required on destination chain');
-      return;
-    }
-    if (tokenDecimals === '0') {
-      setError('Token decimals not yet fetched');
-      return;
-    }
-    if (kind === 'native') {
-      const reserve = BigInt(initialReserve || '0');
-      if (reserve <= 0n) {
-        setError('Initial reserve imbalance must be greater than zero');
-        return;
-      }
-      const reward = parseInt(burnReward || '0');
-      if (reward < 0 || reward > 100) {
-        setError('Burned-fees reward percentage must be 0–100');
-        return;
-      }
-    }
 
     try {
-      const settings = {
-        teleporterRegistryAddress: registry as `0x${string}`,
-        teleporterManager: (manager || walletEVMAddress) as `0x${string}`,
-        minTeleporterVersion: BigInt(minVersion || '1'),
-        tokenHomeBlockchainID: sourceBlockchainIDHex as `0x${string}`,
-        tokenHomeAddress: bridge.homeAddress as `0x${string}`,
-        tokenHomeDecimals: parseInt(tokenDecimals),
-      };
-
-      const args =
-        kind === 'erc20'
-          ? [settings, tokenName || 'Bridged Token', tokenSymbol || 'BRDG', parseInt(tokenDecimals)]
-          : [settings, tokenSymbol || 'BRDG', BigInt(initialReserve || '1'), BigInt(burnReward || '0')];
-
-      const result = await deploy({
-        abi: (kind === 'erc20' ? ERC20TokenRemote.abi : NativeTokenRemote.abi) as any,
-        bytecode: kind === 'erc20' ? ERC20TokenRemote.bytecode.object : NativeTokenRemote.bytecode.object,
-        args,
-        name: kind === 'erc20' ? 'ERC20TokenRemote' : 'NativeTokenRemote',
+      const result = await runDeploy({
+        kind,
+        sourceChainId: sourceL1.id,
+        sourceHomeAddress: bridge.homeAddress,
+        sourceDecimals: tokenDecimals,
+        registry,
+        manager: manager || walletEVMAddress || '',
+        minVersion,
+        tokenName,
+        tokenSymbol,
+        initialReserveImbalance: kind === 'native' ? initialReserve : undefined,
+        burnedFeesReportingRewardPercentage: kind === 'native' ? burnReward : undefined,
+        destChainId: destChain.id,
       });
-
-      // Save to the destination chain's toolbox store, NOT the home
-      // chain's. Per-chain state model means the address belongs to
-      // whichever chain it was deployed on.
-      const destStore = getToolboxStore(destChain.id);
-      if (kind === 'erc20') {
-        destStore.getState().setErc20TokenRemoteAddress(result.contractAddress);
-      } else {
-        destStore.getState().setNativeTokenRemoteAddress(result.contractAddress);
-      }
-      // Also mirror to the home-chain store's "remote" slot so the home
-      // chain's UI can show what remote was paired (legacy compatibility
-      // with the old wizard flow that set it on the active chain).
-      if (kind === 'erc20') {
-        setErc20TokenRemoteAddress(result.contractAddress);
-      } else {
-        setNativeTokenRemoteAddress(result.contractAddress);
-      }
 
       appendActivity({
         kind: 'deploy',
@@ -237,7 +172,6 @@ export function RemoteInspector({
       onAdvance();
     } catch (e: any) {
       const msg = e?.shortMessage ?? e?.message ?? 'Deployment failed';
-      setError(msg);
       appendActivity({ kind: 'error', label: `TokenRemote deploy failed: ${msg}` });
     }
   };
@@ -347,9 +281,9 @@ export function RemoteInspector({
         </Note>
       ) : null}
 
-      {error && (
+      {(error || deployError) && (
         <Note variant="destructive">
-          <p>{error}</p>
+          <p>{error || deployError}</p>
         </Note>
       )}
     </InspectorPanel>
