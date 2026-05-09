@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { countries } from "@/constants/countries";
 import { hsEmploymentRoles } from "@/constants/hs_employment_role";
-import { X, Link2, Wallet, User, FileText, Zap } from "lucide-react";
+import { X, Link2, Wallet, User, FileText, Zap, Check } from "lucide-react";
 import { WalletConnectButton } from "./WalletConnectButton";
 import { SkillsAutocomplete } from "./SkillsAutocomplete";
 import type { UseFormReturn } from "react-hook-form";
@@ -418,6 +418,12 @@ export default function Profile({
                             <Input
                               placeholder="https://github.com/username"
                               {...field}
+                              value={
+                                githubConnected
+                                  ? (field.value || "").replace(/^https?:\/\/(?:www\.)?github\.com\//i, "")
+                                  : field.value
+                              }
+                              readOnly={githubConnected}
                             />
                           </FormControl>
                           {githubConnected ? (
@@ -425,10 +431,11 @@ export default function Profile({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="shrink-0"
+                              className="shrink-0 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 dark:text-green-400 dark:border-green-500 dark:hover:bg-green-950 dark:hover:text-green-300"
                               onClick={onGithubDisconnect}
                             >
-                              Desconectar
+                              <Check className="h-4 w-4 mr-2" />
+                              Connected
                             </Button>
                           ) : (
                             <Button
