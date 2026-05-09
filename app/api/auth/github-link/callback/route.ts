@@ -42,8 +42,8 @@ export async function GET(req: NextRequest) {
     return redirectAndClearState(errorRedirect);
   }
 
-  const clientId = process.env.GITHUB_LINK_ID!;
-  const clientSecret = process.env.GITHUB_LINK_SECRET!;
+  const clientId = process.env.GITHUB_ID!;
+  const clientSecret = process.env.GITHUB_SECRET!;
   const redirectUri = `${base}/api/auth/github-link/callback`;
 
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {

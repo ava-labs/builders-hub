@@ -10,7 +10,7 @@ export async function GET() {
 
   const state = crypto.randomUUID();
   const url = new URL('https://github.com/login/oauth/authorize');
-  url.searchParams.set('client_id', process.env.GITHUB_LINK_ID!);
+  url.searchParams.set('client_id', process.env.GITHUB_ID!);
   url.searchParams.set(
     'redirect_uri',
     `${process.env.NEXTAUTH_URL}/api/auth/github-link/callback`
