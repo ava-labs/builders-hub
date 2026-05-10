@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Copy, X } from "lucide-react";
+import { Copy, X } from "lucide-react";
 import { WalletIcon } from "./icons";
+import { WalletConnectButton } from "../components/WalletConnectButton";
 import type { ProfileWallet } from "./types";
 
 interface Props {
   wallets: ProfileWallet[];
-  onConnect: () => void;
+  onAddWallet: (address: string) => void;
   onRemove: (address: string) => void;
   onCopy?: (address: string) => void;
 }
@@ -17,13 +18,15 @@ function shorten(addr: string): string {
   return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
 }
 
-export function WalletPanel({ wallets, onConnect, onRemove, onCopy }: Props) {
+export function WalletPanel({ wallets, onAddWallet, onRemove, onCopy }: Props) {
   const handleCopy = (address: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       void navigator.clipboard.writeText(address);
     }
     onCopy?.(address);
   };
+
+  const lastAddress = wallets.length > 0 ? wallets[wallets.length - 1].address : undefined;
 
   if (wallets.length === 0) {
     return (
@@ -36,13 +39,10 @@ export function WalletPanel({ wallets, onConnect, onRemove, onCopy }: Props) {
           <div className="pr-empty">
             No EVM wallet connected yet — connect one to receive grants & rewards.
           </div>
-          <button
-            type="button"
-            className="pr-btn pr-btn--sm pr-empty-cta"
-            onClick={onConnect}
-          >
-            <Plus size={14} /> Connect Wallet
-          </button>
+          <WalletConnectButton
+            onWalletConnected={onAddWallet}
+            currentAddress={lastAddress}
+          />
         </div>
       </div>
     );
@@ -101,14 +101,12 @@ export function WalletPanel({ wallets, onConnect, onRemove, onCopy }: Props) {
           </div>
         </div>
       ))}
-      <button
-        type="button"
-        className="pr-btn pr-btn--outline pr-btn--sm"
-        onClick={onConnect}
-        style={{ alignSelf: "flex-start" }}
-      >
-        <Plus size={14} /> Add another wallet
-      </button>
+      <div style={{ alignSelf: "flex-start" }}>
+        <WalletConnectButton
+          onWalletConnected={onAddWallet}
+          currentAddress={lastAddress}
+        />
+      </div>
     </div>
   );
 }

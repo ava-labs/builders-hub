@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Settings, Check, Plus } from "lucide-react";
+import { Settings, Check } from "lucide-react";
 import { GitHubIcon, TelegramIcon, XIcon, LinkedInIcon } from "./icons";
 import { RoleCard } from "./RoleCard";
 import { CountrySelect } from "./CountrySelect";
@@ -16,7 +16,6 @@ import {
 } from "./adapter";
 import type { ProfileLink, ProfileRole, ProfileWallet } from "./types";
 
-const EVM_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const BIO_MAX = 240;
 
 interface Props {
@@ -93,34 +92,9 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
     onRemoveSkill,
   } = props;
 
-  const [walletDraft, setWalletDraft] = React.useState("");
-  const [walletError, setWalletError] = React.useState<string | null>(null);
-  const [showWalletInput, setShowWalletInput] = React.useState(false);
-
   const githubDisplay = extractGithubUsername(github);
   const xDisplay = extractXUsername(xAccount);
   const linkedinDisplay = extractLinkedInSlug(linkedinAccount);
-
-  const tryAddWallet = () => {
-    const address = walletDraft.trim();
-    if (!EVM_ADDRESS_RE.test(address)) {
-      setWalletError("Enter a valid EVM address (0x + 40 hex characters).");
-      return;
-    }
-    if (wallets.some((w) => w.address.toLowerCase() === address.toLowerCase())) {
-      setWalletError("This wallet is already connected.");
-      return;
-    }
-    onAddWallet(address);
-    setWalletDraft("");
-    setWalletError(null);
-    setShowWalletInput(false);
-  };
-
-  const openWalletInput = () => {
-    setShowWalletInput(true);
-    setWalletError(null);
-  };
 
   return (
     <div className="pr-card" ref={ref}>
@@ -322,63 +296,10 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
           </label>
           <WalletPanel
             wallets={wallets}
-            onConnect={openWalletInput}
+            onAddWallet={onAddWallet}
             onRemove={onRemoveWallet}
             onCopy={onCopyWallet}
           />
-          {showWalletInput && (
-            <div
-              style={{
-                marginTop: 8,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-              }}
-            >
-              <div className="pr-input-group">
-                <span className="pr-pre">0x</span>
-                <input
-                  value={walletDraft.replace(/^0x/i, "")}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/^0x/i, "");
-                    setWalletDraft(`0x${raw}`);
-                    setWalletError(null);
-                  }}
-                  placeholder="40 hex characters"
-                  aria-label="EVM wallet address"
-                  autoFocus
-                />
-                <span className="pr-post">
-                  <button
-                    type="button"
-                    className="pr-btn pr-btn--sm pr-btn--primary"
-                    onClick={tryAddWallet}
-                  >
-                    <Plus size={12} /> Add
-                  </button>
-                  <button
-                    type="button"
-                    className="pr-btn pr-btn--sm pr-btn--ghost"
-                    onClick={() => {
-                      setShowWalletInput(false);
-                      setWalletDraft("");
-                      setWalletError(null);
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </span>
-              </div>
-              {walletError && (
-                <div
-                  style={{ fontSize: 12, color: "var(--pr-error-text)" }}
-                  role="alert"
-                >
-                  {walletError}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="pr-field">
