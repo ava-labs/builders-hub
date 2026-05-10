@@ -13,6 +13,8 @@ import { useProfileForm, getProfileCompletionPercentage } from "./hooks/useProfi
 import { AvatarSeed } from "./DiceBearAvatar";
 import { NounAvatarConfig } from "./NounAvatarConfig";
 import { useUserAvatar } from "@/components/context/UserAvatarContext";
+import { useFeatureFlag } from "@/hooks/useFeatureFlag";
+import ProfilePage from "../redesign/ProfilePage";
 
 const validTabs = ['personal', 'projects', 'achievements', 'settings'];
 
@@ -23,6 +25,23 @@ interface ProfileTabProps {
 }
 
 export default function ProfileTab({ achievements, referralPanel, teamLabel }: ProfileTabProps) {
+  // Redesigned profile page (Avalanche dark theme). Gated behind a separate
+  // flag so we can ramp the redesign independently from the existing
+  // `new-profile-ui` flag that turned on the current four-tab layout.
+  const isProfileRedesignEnabled = useFeatureFlag('profile-redesign-ui', true);
+  if (isProfileRedesignEnabled) {
+    return (
+      <ProfilePage
+        achievements={achievements}
+        referralPanel={referralPanel}
+        teamLabel={teamLabel}
+      />
+    );
+  }
+  return <LegacyProfileTab achievements={achievements} referralPanel={referralPanel} teamLabel={teamLabel} />;
+}
+
+function LegacyProfileTab({ achievements, referralPanel, teamLabel }: ProfileTabProps) {
   const { data: session } = useSession();
   const avatarContext = useUserAvatar();
   const searchParams = useSearchParams();
