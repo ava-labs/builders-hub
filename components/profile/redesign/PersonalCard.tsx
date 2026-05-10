@@ -48,7 +48,6 @@ interface Props {
   wallets: ProfileWallet[];
   onAddWallet: (address: string) => void;
   onRemoveWallet: (address: string) => void;
-  onCopyWallet?: (address: string) => void;
   skills: string[];
   onAddSkill: (skill: string) => void;
   onRemoveSkill: (skill: string) => void;
@@ -86,7 +85,6 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
     wallets,
     onAddWallet,
     onRemoveWallet,
-    onCopyWallet,
     skills,
     onAddSkill,
     onRemoveSkill,
@@ -290,15 +288,11 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
         </div>
 
         <div className="pr-field">
-          <label>
-            EVM wallets{" "}
-            <span className="pr-opt">— Ethereum-style addresses (0x + 40 hex)</span>
-          </label>
+          <label>Your wallet</label>
           <WalletPanel
             wallets={wallets}
             onAddWallet={onAddWallet}
             onRemove={onRemoveWallet}
-            onCopy={onCopyWallet}
           />
         </div>
 

@@ -1,16 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Copy, X } from "lucide-react";
-import { WalletIcon } from "./icons";
+import { Check, Wallet } from "lucide-react";
 import { WalletConnectButton } from "../components/WalletConnectButton";
 import type { ProfileWallet } from "./types";
 
 interface Props {
   wallets: ProfileWallet[];
   onAddWallet: (address: string) => void;
+  /** Called once per existing wallet when the user disconnects. */
   onRemove: (address: string) => void;
-  onCopy?: (address: string) => void;
 }
 
 function shorten(addr: string): string {
@@ -18,35 +17,14 @@ function shorten(addr: string): string {
   return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
 }
 
-export function WalletPanel({ wallets, onAddWallet, onRemove, onCopy }: Props) {
-  const handleCopy = (address: string) => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      void navigator.clipboard.writeText(address);
-    }
-    onCopy?.(address);
+export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
+  const isConnected = wallets.length > 0;
+  const lastAddress = wallets[wallets.length - 1]?.address;
+
+  const handleDisconnectAll = () => {
+    // Iterate over a snapshot — onRemove may mutate the source array.
+    for (const w of [...wallets]) onRemove(w.address);
   };
-
-  const lastAddress = wallets.length > 0 ? wallets[wallets.length - 1].address : undefined;
-
-  if (wallets.length === 0) {
-    return (
-      <div
-        className="pr-wallet"
-        style={{ alignItems: "center", justifyContent: "center", textAlign: "center" }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-          <WalletIcon size={28} />
-          <div className="pr-empty">
-            No EVM wallet connected yet — connect one to receive grants & rewards.
-          </div>
-          <WalletConnectButton
-            onWalletConnected={onAddWallet}
-            currentAddress={lastAddress}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -71,41 +49,39 @@ export function WalletPanel({ wallets, onAddWallet, onRemove, onCopy }: Props) {
           <div className="pr-addr" title={w.address}>
             {shorten(w.address)}
           </div>
-          <div className="pr-bot">
-            {w.balance ? (
+          {w.balance && (
+            <div className="pr-bot">
               <span className="pr-bal">{w.balance} AVAX</span>
-            ) : (
-              <span style={{ fontFamily: "var(--pr-mono)", fontSize: 11, opacity: 0.6 }}>
-                {/* TODO(profile-redesign): persist wallet balance */}
-                Connected
-              </span>
-            )}
-            <div style={{ display: "flex", gap: 4 }}>
-              <button
-                type="button"
-                className="pr-btn pr-btn--sm pr-action-btn"
-                onClick={() => handleCopy(w.address)}
-                aria-label="Copy wallet address"
-              >
-                <Copy size={12} /> Copy
-              </button>
-              <button
-                type="button"
-                className="pr-btn pr-btn--sm pr-action-btn"
-                onClick={() => onRemove(w.address)}
-                aria-label="Remove wallet"
-              >
-                <X size={12} /> Remove
-              </button>
             </div>
-          </div>
+          )}
         </div>
       ))}
+
       <div style={{ alignSelf: "flex-start" }}>
-        <WalletConnectButton
-          onWalletConnected={onAddWallet}
-          currentAddress={lastAddress}
-        />
+        {isConnected ? (
+          <button
+            type="button"
+            className="pr-btn pr-btn--sm pr-btn--success"
+            onClick={handleDisconnectAll}
+            aria-label="Disconnect wallet"
+          >
+            <Check size={12} /> Connected
+          </button>
+        ) : (
+          <WalletConnectButton
+            onWalletConnected={onAddWallet}
+            currentAddress={lastAddress}
+            trigger={
+              <button
+                type="button"
+                className="pr-btn pr-btn--sm pr-btn--outline"
+              >
+                <Wallet size={14} />
+                Connect Wallet
+              </button>
+            }
+          />
+        )}
       </div>
     </div>
   );

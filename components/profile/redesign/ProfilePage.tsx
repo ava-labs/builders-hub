@@ -13,8 +13,8 @@ import type { AvatarSeed } from "../components/DiceBearAvatar";
 
 import { IdentityHero } from "./IdentityHero";
 import { PersonalCard } from "./PersonalCard";
-import { ProjectsCard } from "./ProjectsCard";
-import { AchievementsCard } from "./AchievementsCard";
+import { ProjectsCard, type ProjectsCardProject } from "./ProjectsCard";
+import { AchievementsCard, type AchievementsCardBadge } from "./AchievementsCard";
 import { CompletionWidget } from "./CompletionWidget";
 import { ReferralPanelShell } from "./ReferralPanelShell";
 import { SaveBar } from "./SaveBar";
@@ -28,7 +28,6 @@ import {
   roleFieldKey,
 } from "./adapter";
 import { computeCompletion, type CompletionStepKey } from "@/lib/profile/completion";
-import { BADGES } from "./data";
 import type { ProfileLink, ProfileRole } from "./types";
 
 type Tab = "personal" | "projects" | "achievements" | "referrals";
@@ -39,13 +38,39 @@ const TABS: ReadonlyArray<{ id: Tab; label: string }> = [
   { id: "referrals", label: "Referrals" },
 ];
 
+interface SummaryResponse {
+  projects: ProjectsCardProject[];
+  badges: AchievementsCardBadge[];
+  engagement: {
+    hasProject: boolean;
+    hasHackathonParticipation: boolean;
+    hasUsedConsole: boolean;
+  };
+  referralCount: number;
+  bhSignupCode: string | null;
+  bhSignupShareUrl: string | null;
+}
+
+const EMPTY_SUMMARY: SummaryResponse = {
+  projects: [],
+  badges: [],
+  engagement: {
+    hasProject: false,
+    hasHackathonParticipation: false,
+    hasUsedConsole: false,
+  },
+  referralCount: 0,
+  bhSignupCode: null,
+  bhSignupShareUrl: null,
+};
+
 interface Props {
   achievements?: ReactNode;
   referralPanel?: ReactNode;
   teamLabel?: string | null;
 }
 
-export default function ProfilePage({ achievements, referralPanel, teamLabel }: Props) {
+export default function ProfilePage({ referralPanel, teamLabel }: Props) {
   const { data: session } = useSession();
   const avatarContext = useUserAvatar();
   const {
@@ -69,6 +94,8 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
   const [isAvatarOpen, setIsAvatarOpen] = React.useState(false);
   const [nounAvatarSeed, setNounAvatarSeed] = React.useState<AvatarSeed | null>(null);
   const [nounAvatarEnabled, setNounAvatarEnabled] = React.useState(false);
+  const [summary, setSummary] = React.useState<SummaryResponse>(EMPTY_SUMMARY);
+  const [summaryLoading, setSummaryLoading] = React.useState(true);
   const personalCardRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -92,6 +119,27 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
       cancelled = true;
     };
   }, [avatarContext]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    if (!session?.user?.id) return;
+    setSummaryLoading(true);
+    fetch("/api/profile/summary")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data: SummaryResponse) => {
+        if (cancelled) return;
+        setSummary(data);
+      })
+      .catch((err) => {
+        console.error("[ProfilePage] failed to load summary:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setSummaryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
 
   const pushToast = React.useCallback((message: string, kind: ToastSpec["kind"] = "success") => {
     const id = Math.random().toString(36).slice(2);
@@ -126,6 +174,7 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
   const roles = rolesFromValues(watchedValues);
   const imageUrl = watchedValues.image || null;
   const email = watchedValues.email || session?.user?.email || "";
+
   const completion = computeCompletion({
     fullName,
     bio,
@@ -134,10 +183,9 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
     github,
     wallets,
     skills,
-    // TODO(profile-completion): wire engagement signals when data sources land.
-    hasHackathonParticipation: false,
-    hasProject: false,
-    hasUsedConsole: false,
+    hasHackathonParticipation: summary.engagement.hasHackathonParticipation,
+    hasProject: summary.engagement.hasProject,
+    hasUsedConsole: summary.engagement.hasUsedConsole,
   });
 
   const dirty = form.formState.isDirty;
@@ -165,8 +213,6 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
       pushToast("Wallet removed");
     }
   };
-
-  const onCopyWallet = () => pushToast("Address copied");
 
   const handleConnectGithub = () => {
     if (typeof window !== "undefined") {
@@ -274,6 +320,14 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
     );
   }
 
+  const tabCounts: Record<Tab, number | null> = {
+    personal:
+      completion.completed === completion.total ? null : completion.completed,
+    projects: summary.projects.length,
+    achievements: summary.badges.length,
+    referrals: summary.referralCount,
+  };
+
   return (
     <div className="profile-redesign">
       <div className="pr-page">
@@ -292,20 +346,25 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
           teamLabel={teamLabel ?? null}
           links={siteLinks}
           completion={completion}
+          inviteShareUrl={summary.bhSignupShareUrl}
+          onInviteCopy={() => pushToast("Invite link copied")}
           onEditAvatar={() => setIsAvatarOpen(true)}
         />
 
         <div className="pr-tabbar">
           <div className="pr-tabs" role="tablist">
             {TABS.map((t) => {
-              const count =
+              const count = tabCounts[t.id];
+              const showCount =
+                t.id === "personal"
+                  ? count !== null
+                  : typeof count === "number" && count > 0;
+              const display =
                 t.id === "personal"
                   ? `${completion.completed}/${completion.total}`
-                  : t.id === "achievements"
-                    ? String(BADGES.filter((b) => b.unlocked).length)
-                    : t.id === "projects"
-                      ? "3"
-                      : "·";
+                  : count != null
+                    ? count.toLocaleString()
+                    : "";
               return (
                 <button
                   key={t.id}
@@ -315,7 +374,8 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
                   className={`pr-tab${tab === t.id ? " pr-active" : ""}`}
                   onClick={() => setTab(t.id)}
                 >
-                  {t.label} <span className="pr-count">{count}</span>
+                  {t.label}
+                  {showCount && <span className="pr-count">{display}</span>}
                 </button>
               );
             })}
@@ -363,23 +423,28 @@ export default function ProfilePage({ achievements, referralPanel, teamLabel }: 
                 wallets={wallets}
                 onAddWallet={onAddWalletAndToast}
                 onRemoveWallet={onRemoveWallet}
-                onCopyWallet={onCopyWallet}
                 skills={skills}
                 onAddSkill={(s) => handleAddSkill(s, () => undefined)}
                 onRemoveSkill={handleRemoveSkill}
               />
             )}
-            {tab === "projects" && <ProjectsCard />}
-            {tab === "achievements" &&
-              (achievements ? (
-                <div className="pr-card">
-                  <div className="pr-body">{achievements}</div>
-                </div>
-              ) : (
-                <AchievementsCard />
-              ))}
+            {tab === "projects" && (
+              <ProjectsCard
+                projects={summary.projects}
+                loading={summaryLoading}
+              />
+            )}
+            {tab === "achievements" && (
+              <AchievementsCard
+                badges={summary.badges}
+                loading={summaryLoading}
+              />
+            )}
             {tab === "referrals" && referralPanel && (
-              <ReferralPanelShell panel={referralPanel} />
+              <ReferralPanelShell
+                panel={referralPanel}
+                referralCount={summary.referralCount}
+              />
             )}
           </div>
 

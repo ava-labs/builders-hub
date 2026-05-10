@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Plus } from "lucide-react";
+import { Plus, Send, Check } from "lucide-react";
 import {
   GitHubIcon,
   TelegramIcon,
@@ -35,6 +35,8 @@ interface Props {
   teamLabel?: string | null;
   links: ProfileLink[];
   completion: CompletionResult;
+  inviteShareUrl?: string | null;
+  onInviteCopy?: () => void;
   onEditAvatar?: () => void;
 }
 
@@ -67,6 +69,44 @@ function SitePill({ link }: { link: ProfileLink }) {
   );
 }
 
+function InviteButton({
+  shareUrl,
+  onCopy,
+}: {
+  shareUrl: string;
+  onCopy?: () => void;
+}) {
+  const [copied, setCopied] = React.useState(false);
+  const handleClick = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(shareUrl);
+    }
+    setCopied(true);
+    onCopy?.();
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="pr-chip pr-chip--avax"
+      style={{ cursor: "pointer", border: 0 }}
+      title={shareUrl}
+      aria-label="Copy your Builder Hub invite link"
+    >
+      {copied ? (
+        <>
+          <Check size={11} /> Copied
+        </>
+      ) : (
+        <>
+          <Send size={11} /> Invite a friend
+        </>
+      )}
+    </button>
+  );
+}
+
 export function IdentityHero({
   fullName,
   handle,
@@ -82,6 +122,8 @@ export function IdentityHero({
   teamLabel,
   links,
   completion,
+  inviteShareUrl,
+  onInviteCopy,
   onEditAvatar,
 }: Props) {
   const inits = initials(fullName);
@@ -133,14 +175,13 @@ export function IdentityHero({
               <GlobeIcon size={11} /> {country}
             </span>
           )}
+          {inviteShareUrl && (
+            <InviteButton shareUrl={inviteShareUrl} onCopy={onInviteCopy} />
+          )}
         </div>
         <div className="pr-pills">
           {email && (
-            <a
-              className="pr-pill-link"
-              href={`mailto:${email}`}
-              title={email}
-            >
+            <a className="pr-pill-link" href={`mailto:${email}`} title={email}>
               <MailIcon size={13} /> {email}
             </a>
           )}

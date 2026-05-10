@@ -1,61 +1,42 @@
 "use client";
 
 import * as React from "react";
-import { Plus, ExternalLink } from "lucide-react";
-import { PuzzleIcon } from "./icons";
+import { ExternalLink, Trophy } from "lucide-react";
+import { PuzzleIcon, GitHubIcon } from "./icons";
 
-interface ProjectVM {
-  id: string | number;
+export interface ProjectsCardProject {
+  id: string;
   name: string;
   description: string;
   tags: string[];
-  status: "live" | "wip";
+  isWinner: boolean;
+  hackathonTitle: string | null;
+  logoUrl: string | null;
+  demoLink: string | null;
+  githubRepository: string | null;
   role: string;
-  stars?: number;
 }
-
-const PLACEHOLDER_PROJECTS: ProjectVM[] = [
-  {
-    id: 1,
-    name: "Gold Mine Dex",
-    description:
-      "A liquidity hub built on Avalanche C-Chain with cross-subnet routing.",
-    tags: ["Solidity", "Subnets", "TypeScript"],
-    status: "live",
-    role: "Founder",
-    stars: 241,
-  },
-  {
-    id: 2,
-    name: "Ava Education Cohort",
-    description: "8-week onboarding for Latin American developers entering web3.",
-    tags: ["Education", "LatAm", "DevRel"],
-    status: "live",
-    role: "Lead",
-    stars: 88,
-  },
-  {
-    id: 3,
-    name: "Subnet Toolkit (alpha)",
-    description: "CLI for spinning up dev subnets in seconds.",
-    tags: ["Rust", "Subnets", "CLI"],
-    status: "wip",
-    role: "Maintainer",
-    stars: 32,
-  },
-];
-
-const MARK_GRADIENTS: Record<string | number, string> = {
-  1: "linear-gradient(135deg,#e84142,#9c2c2d)",
-  2: "linear-gradient(135deg,#6676b3,#4d5a8d)",
-  3: "linear-gradient(135deg,#1a1816,#3a3833)",
-};
 
 interface Props {
-  projects?: ProjectVM[];
+  projects: ProjectsCardProject[];
+  loading?: boolean;
 }
 
-export function ProjectsCard({ projects = PLACEHOLDER_PROJECTS }: Props) {
+function gradientFor(name: string): string {
+  // Stable per-name gradient so re-renders don't flash a different color.
+  const palette = [
+    "linear-gradient(135deg,#e84142,#9c2c2d)",
+    "linear-gradient(135deg,#6676b3,#4d5a8d)",
+    "linear-gradient(135deg,#3a3833,#1a1816)",
+    "linear-gradient(135deg,#b9eb7c,#668b22)",
+    "linear-gradient(135deg,#fdc85d,#8b6100)",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  return palette[Math.abs(hash) % palette.length];
+}
+
+export function ProjectsCard({ projects, loading = false }: Props) {
   return (
     <div className="pr-card">
       <div className="pr-head">
@@ -65,119 +46,170 @@ export function ProjectsCard({ projects = PLACEHOLDER_PROJECTS }: Props) {
         <div>
           <h3>Projects</h3>
           <div className="pr-desc">
-            Things you've built or shipped — link your repos and live URLs.
+            {loading
+              ? "Loading projects..."
+              : projects.length === 0
+                ? "No projects yet — submit one via Hackathons or the Showcase."
+                : "Things you've built or shipped."}
           </div>
-        </div>
-        <div className="pr-right">
-          <button type="button" className="pr-btn pr-btn--sm pr-btn--outline">
-            <Plus size={13} /> New project
-          </button>
         </div>
       </div>
       <div className="pr-body" style={{ gap: 12 }}>
-        {/* TODO(profile-redesign): persist projects */}
-        {projects.map((p) => (
-          <div className="pr-project-row" key={p.id}>
-            <div
-              className="pr-mark"
-              style={{
-                background:
-                  MARK_GRADIENTS[p.id] ?? "linear-gradient(135deg,#3a3833,#1a1816)",
-              }}
-            >
-              {p.name.charAt(0)}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+        {loading ? (
+          <>
+            {Array.from({ length: 2 }).map((_, i) => (
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  flexWrap: "wrap",
-                }}
+                key={i}
+                className="pr-project-row"
+                style={{ opacity: 0.4 }}
+                aria-hidden
               >
-                <span style={{ fontSize: 14, fontWeight: 500 }}>{p.name}</span>
-                {p.status === "live" ? (
-                  <span className="pr-chip pr-chip--success">
-                    <span className="pr-dot" /> Live
-                  </span>
-                ) : (
-                  <span className="pr-chip">
-                    <span
-                      className="pr-dot"
-                      style={{ background: "var(--pr-warning-main)" }}
-                    />{" "}
-                    WIP
-                  </span>
-                )}
-                <span className="pr-chip">{p.role}</span>
+                <div
+                  className="pr-mark"
+                  style={{ background: "var(--pr-g-300)" }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      width: "40%",
+                      height: 14,
+                      background: "var(--pr-g-300)",
+                      borderRadius: 4,
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: "70%",
+                      height: 12,
+                      background: "var(--pr-g-300)",
+                      borderRadius: 4,
+                      marginTop: 6,
+                    }}
+                  />
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "var(--pr-g-700)",
-                  lineHeight: 1.4,
-                  marginTop: 4,
-                }}
-              >
-                {p.description}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  marginTop: 8,
-                  flexWrap: "wrap",
-                }}
-              >
-                {p.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="pr-chip"
-                    style={{ height: 22, fontSize: 11 }}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                gap: 6,
-                flexShrink: 0,
-              }}
-            >
-              {typeof p.stars === "number" && (
-                <span
+            ))}
+          </>
+        ) : projects.length === 0 ? (
+          <div className="pr-empty">No projects yet.</div>
+        ) : (
+          projects.map((p) => {
+            const externalHref = p.demoLink || p.githubRepository || null;
+            return (
+              <div className="pr-project-row" key={p.id}>
+                <div
+                  className="pr-mark"
                   style={{
-                    fontFamily: "var(--pr-mono)",
-                    fontSize: 11,
-                    color: "var(--pr-g-700)",
+                    background: gradientFor(p.name),
+                    overflow: "hidden",
                   }}
                 >
-                  ★ {p.stars}
-                </span>
-              )}
-              <button
-                type="button"
-                className="pr-btn pr-btn--icon pr-btn--ghost"
-                aria-label="Open project"
-              >
-                <ExternalLink size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-        <button
-          type="button"
-          className="pr-btn pr-btn--outline"
-          style={{ alignSelf: "flex-start", borderStyle: "dashed" }}
-        >
-          <Plus size={14} /> Link another project
-        </button>
+                  {p.logoUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={p.logoUrl}
+                      alt=""
+                      width={44}
+                      height={44}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    p.name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{p.name}</span>
+                    {p.isWinner && (
+                      <span className="pr-chip pr-chip--gold">
+                        <Trophy size={11} /> Winner
+                      </span>
+                    )}
+                    {p.hackathonTitle && (
+                      <span className="pr-chip">{p.hackathonTitle}</span>
+                    )}
+                    {p.role && p.role !== "member" && (
+                      <span className="pr-chip">
+                        {p.role.charAt(0).toUpperCase() + p.role.slice(1)}
+                      </span>
+                    )}
+                  </div>
+                  {p.description && (
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--pr-g-700)",
+                        lineHeight: 1.4,
+                        marginTop: 4,
+                      }}
+                    >
+                      {p.description}
+                    </div>
+                  )}
+                  {p.tags.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        marginTop: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {p.tags.slice(0, 6).map((t) => (
+                        <span
+                          key={t}
+                          className="pr-chip"
+                          style={{ height: 22, fontSize: 11 }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 6,
+                    flexShrink: 0,
+                  }}
+                >
+                  {p.githubRepository && (
+                    <a
+                      href={p.githubRepository}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pr-btn pr-btn--icon pr-btn--ghost"
+                      aria-label="Open repository"
+                    >
+                      <GitHubIcon size={14} />
+                    </a>
+                  )}
+                  {externalHref && (
+                    <a
+                      href={externalHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pr-btn pr-btn--icon pr-btn--ghost"
+                      aria-label="Open project"
+                    >
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

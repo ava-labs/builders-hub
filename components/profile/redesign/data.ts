@@ -142,22 +142,3 @@ export const COUNTRIES: ReadonlyArray<string> = [
   "Vietnam",
 ];
 
-export interface BadgeSpec {
-  id: string;
-  name: string;
-  level: string;
-  icon: IconKind;
-  cls: "gold" | "red" | "indigo" | "green" | "dark";
-  unlocked: boolean;
-}
-
-export const BADGES: ReadonlyArray<BadgeSpec> = [
-  { id: "early", name: "Early Builder", level: "Tier 1", icon: "sparkle", cls: "gold", unlocked: true },
-  { id: "shipper", name: "First Ship", level: "Tier 1", icon: "rocket", cls: "red", unlocked: true },
-  { id: "hackathon", name: "Hackathon Vet", level: "x3", icon: "trophy", cls: "indigo", unlocked: true },
-  { id: "subnet", name: "Subnet Pioneer", level: "Locked", icon: "block", cls: "dark", unlocked: false },
-  { id: "mentor", name: "Mentor", level: "Locked", icon: "graduation", cls: "green", unlocked: false },
-  { id: "oss", name: "Open Source", level: "Tier 2", icon: "code", cls: "green", unlocked: true },
-  { id: "speaker", name: "Conference Voice", level: "Locked", icon: "compass", cls: "dark", unlocked: false },
-  { id: "grant", name: "Grant Recipient", level: "Locked", icon: "gift", cls: "dark", unlocked: false },
-];

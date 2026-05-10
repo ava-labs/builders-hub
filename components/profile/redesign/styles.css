@@ -293,10 +293,7 @@
   color: var(--pr-g-1000);
 }
 .profile-redesign .pr-completion .pr-big .pr-gold {
-  color: var(--pr-primary-dark);
-}
-:where(.dark) .profile-redesign .pr-completion .pr-big .pr-gold {
-  color: var(--pr-g-1000);
+  color: inherit;
 }
 .profile-redesign .pr-completion .pr-next {
   font-size: 12px;
@@ -805,14 +802,13 @@
   background: linear-gradient(135deg, #1a1816 0%, #232026 50%, #2a2236 100%);
   color: #fafafa;
   border-radius: 14px;
-  padding: 18px;
+  padding: 12px 16px;
   position: relative;
   overflow: hidden;
-  min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 .profile-redesign .pr-wallet::after {
   content: "";

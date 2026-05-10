@@ -5,18 +5,16 @@ import { LinkIcon } from "./icons";
 
 interface Props {
   panel: React.ReactNode;
+  /** Number of attributed signups credited to the user (any target_type). */
+  referralCount: number;
 }
 
 /**
- * Themed wrapper for the existing ReferralLinkGenerator component.
- * The redesigned UX matches the prototype's `ReferralPanel` skeleton
- * (header + chip), but the inner widget is the production implementation
- * so analytics, target validation, and link creation keep working.
- *
- * TODO(profile-redesign): port the inner widget to match the prototype's
- * referrals tab styling (target picker, generated URL preview, stats list).
+ * Themed wrapper for the existing ReferralLinkGenerator. The card head shows
+ * the user's referral count (people they've brought into Builder Hub) so it's
+ * visible even before they expand the link generator.
  */
-export function ReferralPanelShell({ panel }: Props) {
+export function ReferralPanelShell({ panel, referralCount }: Props) {
   return (
     <div className="pr-card">
       <div className="pr-head">
@@ -24,14 +22,21 @@ export function ReferralPanelShell({ panel }: Props) {
           <LinkIcon size={18} />
         </div>
         <div>
-          <h3>Referral links</h3>
+          <h3>Referrals</h3>
           <div className="pr-desc">
-            Share trackable links — earn rewards for every builder you bring in.
+            {referralCount > 0
+              ? `${referralCount.toLocaleString()} ${
+                  referralCount === 1 ? "person" : "people"
+                } have signed up through your links — keep sharing.`
+              : "Share trackable links — earn recognition for every builder you bring in."}
           </div>
         </div>
         <div className="pr-right">
-          <span className="pr-chip pr-chip--accent">
-            <span className="pr-dot" /> Active
+          <span
+            className="pr-chip pr-chip--avax"
+            title="People you've referred"
+          >
+            <span className="pr-dot" /> {referralCount.toLocaleString()} attributed
           </span>
         </div>
       </div>

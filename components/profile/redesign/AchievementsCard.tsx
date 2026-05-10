@@ -2,11 +2,33 @@
 
 import * as React from "react";
 import { SparkleIcon } from "./icons";
-import { RoleIconRender } from "./IconRender";
-import { BADGES } from "./data";
 
-export function AchievementsCard() {
-  const unlocked = BADGES.filter((b) => b.unlocked).length;
+export interface AchievementsCardBadge {
+  id: string;
+  name: string;
+  description: string;
+  imagePath: string;
+  category: string;
+  awardedAt: string;
+}
+
+interface Props {
+  badges: AchievementsCardBadge[];
+  loading?: boolean;
+}
+
+const CATEGORY_ACCENT: Record<string, string> = {
+  hackathon: "pr-red",
+  academy: "pr-gold",
+  console: "pr-indigo",
+  social: "pr-green",
+};
+
+function accentFor(category: string): string {
+  return CATEGORY_ACCENT[category.toLowerCase()] ?? "pr-dark";
+}
+
+export function AchievementsCard({ badges, loading = false }: Props) {
   return (
     <div className="pr-card">
       <div className="pr-head">
@@ -19,26 +41,75 @@ export function AchievementsCard() {
         <div>
           <h3>Achievements</h3>
           <div className="pr-desc">
-            {unlocked} of {BADGES.length} unlocked · keep building.
+            {loading
+              ? "Loading achievements..."
+              : badges.length === 0
+                ? "Earn badges by participating in hackathons, academies, and Builder Hub events."
+                : `${badges.length} unlocked · keep building.`}
           </div>
         </div>
       </div>
       <div className="pr-body">
-        <div className="pr-badge-grid">
-          {BADGES.map((b) => (
-            <div
-              key={b.id}
-              className={`pr-badge pr-${b.cls}${!b.unlocked ? " pr-locked" : ""}`}
-              title={b.name}
-            >
-              <span className="pr-glyph">
-                <RoleIconRender kind={b.icon} size={18} />
-              </span>
-              <span className="pr-nm">{b.name}</span>
-              <span className="pr-lvl">{b.level}</span>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="pr-badge-grid">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="pr-badge"
+                style={{ opacity: 0.35, pointerEvents: "none" }}
+                aria-hidden
+              >
+                <span
+                  className="pr-glyph"
+                  style={{ background: "var(--pr-g-300)" }}
+                />
+                <span className="pr-nm">&nbsp;</span>
+                <span className="pr-lvl">&nbsp;</span>
+              </div>
+            ))}
+          </div>
+        ) : badges.length === 0 ? (
+          <div className="pr-empty">No badges yet.</div>
+        ) : (
+          <div className="pr-badge-grid">
+            {badges.map((b) => (
+              <div
+                key={b.id}
+                className={`pr-badge ${accentFor(b.category)}`}
+                title={b.description}
+              >
+                <span
+                  className="pr-glyph"
+                  style={{
+                    background: "var(--pr-g-200)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {b.imagePath ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={b.imagePath}
+                      alt=""
+                      width={36}
+                      height={36}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <SparkleIcon size={18} />
+                  )}
+                </span>
+                <span className="pr-nm">{b.name}</span>
+                <span className="pr-lvl">
+                  {b.category.charAt(0).toUpperCase() + b.category.slice(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
