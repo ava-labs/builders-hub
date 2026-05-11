@@ -30,6 +30,10 @@ export interface EventParticipantPoint {
   event: string;
   participants: number;
   projects: number;
+  /** Number of RegisterForm rows for the hackathon — used as the
+   *  "Participants" stat for upcoming hackathons (where Project/Member
+   *  counts are still 0). */
+  registrations: number;
   startDate: string | null;
   endDate: string | null;
 }
@@ -67,6 +71,7 @@ export interface BuilderInsightsData {
   previous30DayVisits: number;
   rollingVisitsDeltaPercent: number;
   consoleUsers30d: number;
+  previousConsoleUsers30d: number;
   consoleUsersDeltaPercent: number;
   totalHackathonSubmissions: number;
   totalHackathonsHosted: number;
@@ -74,6 +79,7 @@ export interface BuilderInsightsData {
   totalHackathonProjects: number;
   topCountry30d: { country: string; countryCode: string | null; sharePct: number } | null;
   returningVisitorPct30d: number;
+  previousReturningVisitorPct30d: number;
   returningVisitorDeltaPercent: number;
   monthlySignups: MonthlySignupPoint[];
   monthlyVisits: MonthlyVisitPoint[];
@@ -273,6 +279,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
         event: string;
         participants: bigint;
         projects: bigint;
+        registrations: bigint;
         startDate: Date | null;
         endDate: Date | null;
       }>
@@ -285,19 +292,30 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
                COUNT(DISTINCT u."id")::bigint AS "participants",
                COUNT(DISTINCT p."id")::bigint AS "projects"
         FROM "Hackathon" h
-        INNER JOIN "Project" p ON p."hackaton_id" = h."id"
-        INNER JOIN "Member" m ON m."project_id" = p."id"
-        INNER JOIN "User" u ON u."id" = m."user_id"
+        LEFT JOIN "Project" p ON p."hackaton_id" = h."id"
+        LEFT JOIN "Member" m ON m."project_id" = p."id"
+        LEFT JOIN "User" u ON u."id" = m."user_id"
           OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
-        WHERE h."end_date" < NOW()
-          AND COALESCE(h."event", 'hackathon') = 'hackathon'
+        WHERE COALESCE(h."event", 'hackathon') = 'hackathon'
           AND (h."is_public" IS TRUE OR h."is_public" IS NULL)
         GROUP BY h."id", h."title", h."start_date", h."end_date"
-        HAVING COUNT(DISTINCT u."id") > 0
+      ),
+      event_registrations AS (
+        SELECT "hackathon_id" AS "eventId",
+               COUNT(*)::bigint AS "registrations"
+        FROM "RegisterForm"
+        GROUP BY "hackathon_id"
       )
-      SELECT "eventId", "event", "participants", "projects", "startDate", "endDate"
-      FROM event_participants
-      ORDER BY "participants" DESC, "projects" DESC
+      SELECT ep."eventId",
+             ep."event",
+             ep."participants",
+             ep."projects",
+             COALESCE(er."registrations", 0)::bigint AS "registrations",
+             ep."startDate",
+             ep."endDate"
+      FROM event_participants ep
+      LEFT JOIN event_registrations er ON er."eventId" = ep."eventId"
+      ORDER BY ep."startDate" DESC
       LIMIT 25
     `,
     prisma.$queryRaw<Array<{ referrals: bigint }>>`
@@ -437,6 +455,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     event: row.event,
     participants: toNumber(row.participants),
     projects: toNumber(row.projects),
+    registrations: toNumber(row.registrations),
     startDate: row.startDate ? row.startDate.toISOString() : null,
     endDate: row.endDate ? row.endDate.toISOString() : null,
   }));
@@ -539,6 +558,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     previous30DayVisits,
     rollingVisitsDeltaPercent,
     consoleUsers30d,
+    previousConsoleUsers30d,
     consoleUsersDeltaPercent,
     totalHackathonSubmissions,
     totalHackathonsHosted,
@@ -546,6 +566,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     totalHackathonProjects,
     topCountry30d,
     returningVisitorPct30d,
+    previousReturningVisitorPct30d: returningVisitorPctPrevious30d,
     returningVisitorDeltaPercent,
     monthlySignups,
     monthlyVisits,

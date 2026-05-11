@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { GlobeIcon } from "./icons";
+import { GlobeIcon, SparkleIcon, TrophyIcon } from "./icons";
 import type { BuilderInsightsData } from "@/server/services/builderInsights";
 import {
   countryNameToFlag,
@@ -97,22 +97,12 @@ function KPIStrip({ data }: { data: BuilderInsightsData }) {
         value={formatNumber(data.latest30DaySignups)}
         delta={data.rollingSignupDeltaPercent}
         sub={`vs ${formatNumber(data.previous30DaySignups)}`}
-        spark={{
-          data: data.monthlySignups.slice(-6),
-          accessor: (r) => r.signups,
-          accent: ACCENT_SIGNUPS,
-        }}
       />
       <KPI
         label="30d visits"
         value={formatNumber(data.latest30DayVisits)}
         delta={data.rollingVisitsDeltaPercent}
         sub={`vs ${formatNumber(data.previous30DayVisits)}`}
-        spark={{
-          data: data.monthlyVisits.slice(-6),
-          accessor: (r) => r.visitors,
-          accent: ACCENT_VISITS,
-        }}
       />
       {/* Row 2 — engagement and depth */}
       <KPI
@@ -141,11 +131,6 @@ function KPIStrip({ data }: { data: BuilderInsightsData }) {
         value={formatNumber(data.consoleUsers30d)}
         delta={data.consoleUsersDeltaPercent}
         sub="/console traffic"
-        spark={{
-          data: data.monthlyConsoleUsers.slice(-6),
-          accessor: (r) => r.visitors,
-          accent: ACCENT_CONSOLE,
-        }}
       />
       <KPI
         label="Returning visitors"
@@ -163,14 +148,9 @@ interface KPIProps {
   sub?: string;
   delta?: number;
   valueSmall?: boolean;
-  spark?: {
-    data: Array<{ month: string; signups?: number; visitors?: number }>;
-    accessor: (row: any) => number;
-    accent: string;
-  };
 }
 
-function KPI({ label, value, sub, delta, valueSmall, spark }: KPIProps) {
+function KPI({ label, value, sub, delta, valueSmall }: KPIProps) {
   return (
     <div className="pr-kpi">
       <div className="pr-kpi__label">{label}</div>
@@ -182,15 +162,6 @@ function KPI({ label, value, sub, delta, valueSmall, spark }: KPIProps) {
       <div className="pr-kpi__footer">
         {typeof delta === "number" && <Delta pct={delta} />}
         {sub && <span className="pr-kpi__sub">{sub}</span>}
-        {spark && (
-          <span className="pr-kpi__spark">
-            <Sparkline
-              data={spark.data}
-              accessor={spark.accessor}
-              accent={spark.accent}
-            />
-          </span>
-        )}
       </div>
     </div>
   );
@@ -205,60 +176,6 @@ function Delta({ pct }: { pct: number }) {
     >
       {up ? "↑" : "↓"} {Math.abs(pct).toFixed(1)}%
     </span>
-  );
-}
-
-// ───────────────────────────────────────────────────────────────────────────
-// Sparkline — tiny inline-SVG trend line for the KPI cards.
-// ───────────────────────────────────────────────────────────────────────────
-
-function Sparkline({
-  data,
-  accessor,
-  accent,
-  width = 110,
-  height = 36,
-}: {
-  data: any[];
-  accessor: (r: any) => number;
-  accent: string;
-  width?: number;
-  height?: number;
-}) {
-  const vals = data.map(accessor);
-  if (vals.length === 0) return null;
-  const max = Math.max(...vals);
-  const min = Math.min(...vals);
-  const span = max - min || 1;
-  const pad = 2;
-  const step = (width - pad * 2) / Math.max(vals.length - 1, 1);
-  const pts = vals.map(
-    (v, i) =>
-      `${pad + i * step},${height - pad - ((v - min) / span) * (height - pad * 2)}`,
-  );
-  const id = `pr-spk-${accent.replace(/\W/g, "")}-${vals.length}`;
-  const last = pts.at(-1)!.split(",").map(Number);
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <defs>
-        <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={accent} stopOpacity={0.28} />
-          <stop offset="100%" stopColor={accent} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path
-        d={`M${pts[0]} L${pts.join(" ")} L${pad + (vals.length - 1) * step},${height} L${pad},${height} Z`}
-        fill={`url(#${id})`}
-      />
-      <path
-        d={`M${pts.join(" L")}`}
-        fill="none"
-        stroke={accent}
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-      />
-      <circle cx={last[0]} cy={last[1]} r={2.2} fill={accent} />
-    </svg>
   );
 }
 
@@ -323,6 +240,9 @@ function ChartSection({ data }: { data: BuilderInsightsData }) {
       <header className="pr-insights__heading">
         <div className="pr-insights__heading-meta">
           <h4 className="pr-insights__title">
+            <span className="pr-insights__heading-icon">
+              <GlobeIcon size={16} />
+            </span>
             {tab === "all" ? "Growth signals (normalized)" : activeSeries[0]?.label}
           </h4>
           <span className="pr-insights__subtitle">{subtitle}</span>
@@ -367,8 +287,8 @@ function BigChart({
 }) {
   const W = 880;
   const H = 260;
-  const PAD_L = normalized ? 32 : 58;
-  const PAD_R = 18;
+  const PAD_L = normalized ? 14 : 34;
+  const PAD_R = 14;
   const PAD_T = 20;
   const PAD_B = 32;
   const innerW = W - PAD_L - PAD_R;
@@ -558,7 +478,12 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
     <section className="pr-insights__section">
       <header className="pr-insights__heading">
         <div className="pr-insights__heading-meta">
-          <h4 className="pr-insights__title">Referral leaderboard</h4>
+          <h4 className="pr-insights__title">
+            <span className="pr-insights__heading-icon">
+              <TrophyIcon size={16} />
+            </span>
+            Referral leaderboard
+          </h4>
           <span className="pr-insights__subtitle">
             {tab === "people"
               ? `${data.topReferrers.length} top contributors`
@@ -688,44 +613,64 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
   );
 }
 
-function MiniBar({
-  value,
-  max,
-  accent,
-}: {
-  value: number;
-  max: number;
-  accent?: string;
-}) {
-  const pct = max > 0 ? Math.max(2, (value / max) * 100) : 0;
-  return (
-    <div className="pr-minibar">
-      <span
-        className="pr-minibar__fill"
-        style={{
-          width: `${pct}%`,
-          ...(accent ? { background: accent } : null),
-        }}
-      />
-      <span className="pr-minibar__val">{formatNumber(value)}</span>
-    </div>
-  );
-}
-
 // ───────────────────────────────────────────────────────────────────────────
 // Hackathon history — past hackathons we've hosted with totals on top.
 // ───────────────────────────────────────────────────────────────────────────
 
+type HackathonStatus = "past" | "live" | "upcoming";
+
+function statusOf(
+  startDate: string | null,
+  endDate: string | null,
+  now = Date.now(),
+): HackathonStatus {
+  const start = startDate ? new Date(startDate).getTime() : null;
+  const end = endDate ? new Date(endDate).getTime() : start;
+  if (start && now < start) return "upcoming";
+  if (end && now > end) return "past";
+  return "live";
+}
+
+const STATUS_LABELS: Record<HackathonStatus, string> = {
+  past: "Past",
+  live: "Live",
+  upcoming: "Upcoming",
+};
+
 function HackathonHistorySection({ data }: { data: BuilderInsightsData }) {
-  const events = data.eventParticipants;
-  const peakParticipants = Math.max(...events.map((e) => e.participants), 1);
-  const peakProjects = Math.max(...events.map((e) => e.projects), 1);
+  // Order: live → upcoming → past. Live/upcoming sort by soonest start-date;
+  // past sorts by participants DESC (biggest first). Featured tile is the
+  // first entry — an upcoming/live event takes precedence, otherwise the
+  // biggest past hackathon.
+  const { sorted, featured } = React.useMemo(() => {
+    const events = data.eventParticipants;
+    if (events.length === 0) return { sorted: [], featured: null as null };
+    const decorated = events.map((e) => ({
+      e,
+      status: statusOf(e.startDate, e.endDate),
+      start: e.startDate ? new Date(e.startDate).getTime() : 0,
+    }));
+    const rank: Record<HackathonStatus, number> = { live: 0, upcoming: 1, past: 2 };
+    decorated.sort((a, b) => {
+      if (rank[a.status] !== rank[b.status]) return rank[a.status] - rank[b.status];
+      if (a.status === "past") return b.e.participants - a.e.participants;
+      // live/upcoming: soonest first
+      return a.start - b.start;
+    });
+    const featured = decorated[0];
+    return { sorted: decorated, featured };
+  }, [data.eventParticipants]);
 
   return (
     <section className="pr-insights__section">
       <header className="pr-insights__heading">
         <div className="pr-insights__heading-meta">
-          <h4 className="pr-insights__title">Hackathon history</h4>
+          <h4 className="pr-insights__title">
+            <span className="pr-insights__heading-icon">
+              <SparkleIcon size={16} />
+            </span>
+            Hackathon history
+          </h4>
           <span className="pr-insights__subtitle">
             {formatNumber(data.totalHackathonsHosted)} hosted ·{" "}
             {formatNumber(data.totalHackathonParticipants)} participants ·{" "}
@@ -733,32 +678,55 @@ function HackathonHistorySection({ data }: { data: BuilderInsightsData }) {
           </span>
         </div>
       </header>
-      {events.length === 0 ? (
-        <div className="pr-empty">No past hackathon participation yet.</div>
+      {sorted.length === 0 ? (
+        <div className="pr-empty">No hackathon participation yet.</div>
       ) : (
         <div className="pr-hack-grid">
-          {events.map((e) => (
-            <article key={e.eventId} className="pr-hack">
-              <div className="pr-hack__title">{e.event}</div>
-              {(e.startDate || e.endDate) && (
-                <div className="pr-hack__date">
-                  {formatHackathonRange(e.startDate, e.endDate)}
+          {sorted.map((d) => {
+            const isFeatured = d === featured;
+            // Upcoming / live hackathons haven't had project submissions yet,
+            // so show the RegisterForm count as the primary engagement stat.
+            const isUpcomingOrLive = d.status !== "past";
+            const peopleLabel = isUpcomingOrLive ? "Sign-ups" : "Participants";
+            const peopleValue = isUpcomingOrLive
+              ? d.e.registrations
+              : d.e.participants;
+            return (
+              <article
+                key={d.e.eventId}
+                className={`pr-hack${isFeatured ? " pr-hack--featured" : ""}`}
+              >
+                <span
+                  className={`pr-hack__status pr-hack__status--${d.status}`}
+                >
+                  <span className="pr-hack__status-dot" />
+                  {STATUS_LABELS[d.status]}
+                </span>
+                <div className="pr-hack__head">
+                  <h5 className="pr-hack__title">{d.e.event}</h5>
+                  {(d.e.startDate || d.e.endDate) && (
+                    <span className="pr-hack__date">
+                      {formatHackathonRange(d.e.startDate, d.e.endDate)}
+                    </span>
+                  )}
                 </div>
-              )}
-              <div className="pr-hack__metric">
-                <span className="pr-hack__metric-label">Participants</span>
-                <div className="pr-hack__metric-bar">
-                  <MiniBar value={e.participants} max={peakParticipants} />
+                <div className="pr-hack__stats">
+                  <div className="pr-hack__stat">
+                    <span className="pr-hack__stat-label">{peopleLabel}</span>
+                    <span className="pr-hack__stat-value">
+                      {formatNumber(peopleValue)}
+                    </span>
+                  </div>
+                  <div className="pr-hack__stat">
+                    <span className="pr-hack__stat-label">Projects</span>
+                    <span className="pr-hack__stat-value">
+                      {formatNumber(d.e.projects)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="pr-hack__metric">
-                <span className="pr-hack__metric-label">Projects</span>
-                <div className="pr-hack__metric-bar">
-                  <MiniBar value={e.projects} max={peakProjects} />
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

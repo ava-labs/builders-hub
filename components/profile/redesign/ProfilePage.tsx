@@ -11,6 +11,7 @@ import { useUserAvatar } from "@/components/context/UserAvatarContext";
 import { NounAvatarConfig } from "../components/NounAvatarConfig";
 import type { AvatarSeed } from "../components/DiceBearAvatar";
 
+import { MailIcon } from "./icons";
 import { IdentityHero } from "./IdentityHero";
 import { PersonalCard } from "./PersonalCard";
 import { ProjectsCard, type ProjectsCardProject } from "./ProjectsCard";
@@ -583,8 +584,32 @@ export default function ProfilePage({ teamLabel }: Props) {
               />
             )}
             {tab === "notifications" && showNotificationsTab && (
-              <div className="pr-card pr-notifications-card">
-                <SendNotificationsForm totalBuilders={summary.totalBuilders} />
+              <div className="pr-card">
+                <div className="pr-head">
+                  <div
+                    className="pr-ico"
+                    style={{
+                      background: "var(--pr-primary-light)",
+                      color: "var(--pr-accent-main)",
+                    }}
+                  >
+                    <MailIcon size={18} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3>Send notifications</h3>
+                    <div className="pr-desc">
+                      Compose and broadcast to all builders, hackathon cohorts,
+                      or a custom email list.
+                    </div>
+                  </div>
+                  <span className="pr-insights__devrel-pill">DevRel only</span>
+                </div>
+                <div className="pr-notifications-body">
+                  <SendNotificationsForm
+                    totalBuilders={summary.totalBuilders}
+                    hideHeader
+                  />
+                </div>
               </div>
             )}
           </div>

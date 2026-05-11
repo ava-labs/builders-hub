@@ -135,10 +135,15 @@ interface SendNotificationsFormProps {
   /** Total builder count for the "All" audience copy. Falls back to a
       conservative floor if not provided. */
   totalBuilders?: number;
+  /** When the form is embedded inside a host that already renders a
+      header (e.g. the profile redesign uses its own .pr-head chrome),
+      pass `hideHeader` to suppress the form's built-in title row. */
+  hideHeader?: boolean;
 }
 
 export default function SendNotificationsForm({
   totalBuilders,
+  hideHeader = false,
 }: SendNotificationsFormProps = {}) {
   const { toast } = useToast();
   const { data: hackathons } = useGetHackathons();
@@ -243,6 +248,7 @@ export default function SendNotificationsForm({
     <>
       <Toaster />
       <div>
+        {!hideHeader && (
         <header
           className={`pb-5 mb-1 border-b ${LINE}`}
           style={{
@@ -332,6 +338,7 @@ export default function SendNotificationsForm({
             DevRel only
           </span>
         </header>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           {/* ─── COMPOSE ─── */}

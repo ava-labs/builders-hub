@@ -119,19 +119,26 @@ export function initials(name: string): string {
     .toUpperCase();
 }
 
+const MONTHS_UPPER = [
+  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+];
+
+/** "AUG 2025" if single month, "NOV — DEC 2025" if same year,
+    "FEB 2026 — MAR 2026" across years. Matches the Hackathon History card
+    typography (mono uppercase). */
 export function formatHackathonRange(
   startISO: string | null,
   endISO: string | null,
 ): string {
   const start = startISO ? new Date(startISO) : null;
-  const end = endISO ? new Date(endISO) : null;
-  if (!start && !end) return "";
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
-  if (start && end) {
-    const sLabel = fmt(start);
-    const eLabel = fmt(end);
-    return sLabel === eLabel ? sLabel : `${sLabel} – ${eLabel}`;
+  const end = endISO ? new Date(endISO) : start;
+  if (!start) return "";
+  if (!end || (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth())) {
+    return `${MONTHS_UPPER[start.getMonth()]} ${start.getFullYear()}`;
   }
-  return fmt((start ?? end)!);
+  if (start.getFullYear() === end.getFullYear()) {
+    return `${MONTHS_UPPER[start.getMonth()]} — ${MONTHS_UPPER[end.getMonth()]} ${start.getFullYear()}`;
+  }
+  return `${MONTHS_UPPER[start.getMonth()]} ${start.getFullYear()} — ${MONTHS_UPPER[end.getMonth()]} ${end.getFullYear()}`;
 }
