@@ -73,7 +73,10 @@ export function BridgeLayout({ currentStep }: BridgeLayoutProps) {
         showCompletionModal={false}
         aboveBody={<BridgeRibbon />}
         navTrailing={
-          <div className="flex items-center gap-2">
+          // Pull the action group slightly away from the step pills with a
+          // hairline divider so it reads as a distinct "global controls" cluster
+          // rather than the tail of the stepper.
+          <div className="flex items-center gap-2 border-l border-zinc-200/70 pl-3 dark:border-zinc-800/70">
             {hasExistingBridges && <NewBridgeButton onClick={handleStartNewBridge} />}
             <ActivityChip events={activityEvents} onClear={clearScopedActivity} />
           </div>
