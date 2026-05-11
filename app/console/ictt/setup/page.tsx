@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  redirect("/console/ictt?phase=token");
+  redirect('/console/ictt/token');
 }

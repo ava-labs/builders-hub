@@ -45,6 +45,7 @@ export function useDeployTokenRemote(remoteL1Id: string | null) {
   const activeRemoteL1 = remoteL1 ?? selectedL1 ?? null;
   const upsertRemote = useIcttBridgeStore((s) => s.upsertRemote);
   const pushActivity = useIcttBridgeStore((s) => s.pushActivity);
+  const setPendingDestinationL1Id = useIcttBridgeStore((s) => s.setPendingDestinationL1Id);
   const [error, setError] = useState<Error | null>(null);
 
   const deployRemote = async (
@@ -89,6 +90,9 @@ export function useDeployTokenRemote(remoteL1Id: string | null) {
         address: result.contractAddress,
       };
       upsertRemote(params.bridgeId, remote);
+      // Bridge now owns this Remote — clear the pending destination so the
+      // ribbon flips from "Pending deploy" to the deployed variant.
+      setPendingDestinationL1Id(null);
 
       pushActivity({
         bridgeId: params.bridgeId,

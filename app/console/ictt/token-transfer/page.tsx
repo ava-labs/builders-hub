@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  redirect("/console/ictt?phase=live");
+  redirect('/console/ictt/live');
 }

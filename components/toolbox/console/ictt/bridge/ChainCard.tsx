@@ -137,7 +137,7 @@ interface ConnectionPillProps {
   disabled?: boolean;
 }
 
-function ConnectionPill({ isWalletOnChain, onSwitchChain, disabled }: ConnectionPillProps) {
+function ConnectionPill({ isWalletOnChain }: ConnectionPillProps) {
   if (isWalletOnChain) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
@@ -146,17 +146,10 @@ function ConnectionPill({ isWalletOnChain, onSwitchChain, disabled }: Connection
       </span>
     );
   }
-  return (
-    <button
-      type="button"
-      onClick={onSwitchChain}
-      disabled={disabled || !onSwitchChain}
-      className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 transition-colors hover:bg-zinc-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-    >
-      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
-      switch chain
-    </button>
-  );
+  // Per-phase chain enforcement lives in PhaseChainGate now — the inline button
+  // was always disabled (no consumer ever passed `onSwitchChain`) and read as
+  // a dead control. Render nothing when off-chain instead.
+  return null;
 }
 
 interface ChainCardRowProps {
@@ -167,6 +160,8 @@ interface ChainCardRowProps {
   l1?: L1ListItem | null;
   isActive?: boolean;
   rightSlot?: ReactNode;
+  /** Overrides the default "— not deployed —" copy when address is null. */
+  statusText?: string;
 }
 
 const STATUS_DOT: Record<ChainCardRowProps['status'], { color: string; label: string }> = {
@@ -176,9 +171,24 @@ const STATUS_DOT: Record<ChainCardRowProps['status'], { color: string; label: st
   error: { color: 'bg-red-500', label: 'error' },
 };
 
-export function ChainCardRow({ label, sublabel, address, status, l1, isActive, rightSlot }: ChainCardRowProps) {
+export function ChainCardRow({
+  label,
+  sublabel,
+  address,
+  status,
+  l1,
+  isActive,
+  rightSlot,
+  statusText,
+}: ChainCardRowProps) {
   const dot = STATUS_DOT[status];
   const url = buildAddressUrl(l1, address ?? undefined);
+  const STATUS_TONE: Record<ChainCardRowProps['status'], string> = {
+    deployed: 'text-emerald-700 dark:text-emerald-400',
+    pending: 'text-amber-700 dark:text-amber-400',
+    missing: 'text-zinc-500 dark:text-zinc-400',
+    error: 'text-red-600 dark:text-red-400',
+  };
 
   return (
     <div
@@ -212,6 +222,8 @@ export function ChainCardRow({ label, sublabel, address, status, l1, isActive, r
               </Link>
             )}
           </>
+        ) : statusText ? (
+          <span className={cn('text-xs font-medium', STATUS_TONE[status])}>{statusText}</span>
         ) : (
           <span className="text-xs italic text-zinc-400">— not deployed —</span>
         )}

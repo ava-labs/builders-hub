@@ -8,41 +8,58 @@ import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { InspectorShell } from './InspectorShell';
 import { useRegisterRemote } from '../hooks/useRegisterRemote';
 import { buildTxUrl, truncateAddress } from '../utils/explorer-url';
-import type { Address, Bridge, BridgePhase, BridgeStatus, Remote } from '../types';
+import type { Address, Bridge, BridgePhase, Remote } from '../types';
 
 interface RegisterInspectorProps {
   onPhaseChange: (next: BridgePhase) => void;
-  status: BridgeStatus;
   bridge: Bridge | null;
   remote: Remote | null;
 }
 
-export function RegisterInspector({ onPhaseChange, status, bridge, remote }: RegisterInspectorProps) {
+export function RegisterInspector({ onPhaseChange, bridge, remote }: RegisterInspectorProps) {
   const remoteL1 = useL1ByChainId(remote?.l1Id ?? '');
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '');
-  const { sendRegister, isRegistering, error, lastTxHash } = useRegisterRemote({
-    bridgeId: bridge?.id as Bridge['id'],
-    remote,
-  });
+  const { sendRegister, isRegistering, error, lastTxHash, homePollState, pollAttempts, pollMaxAttempts } =
+    useRegisterRemote({
+      bridgeId: bridge?.id as Bridge['id'],
+      remote,
+      homeAddress: (bridge?.homeAddress ?? null) as Address | null,
+      homeRpcUrl: homeL1?.rpcUrl ?? null,
+    });
   const [submittedTx, setSubmittedTx] = useState<Address | null>(null);
 
   const txUrl = buildTxUrl(remoteL1, submittedTx ?? lastTxHash ?? null);
+  const localTxConfirmed = Boolean(submittedTx || lastTxHash);
+  const isDelivered = homePollState === 'delivered' || Boolean(remote?.registeredAt);
+  const isPolling = homePollState === 'polling';
+  const isTimeout = homePollState === 'timeout';
 
   const handleRegister = async () => {
     const result = await sendRegister();
-    if (result) {
-      setSubmittedTx(result.txHash);
-      // Auto-advance only if remote was previously unregistered.
-      if (!remote?.registeredAt) onPhaseChange('collateral');
-    }
+    if (result) setSubmittedTx(result.txHash);
   };
+
+  const rowTwoState: RowState = isDelivered ? 'complete' : isPolling ? 'active' : isTimeout ? 'error' : 'idle';
+  const rowThreeState: RowState = isDelivered ? 'complete' : isTimeout ? 'error' : 'idle';
+
+  const rowTwoDetail = isDelivered
+    ? 'Relayer delivered the registration message to Home.'
+    : isPolling
+      ? `Waiting for delivery (${pollAttempts}/${pollMaxAttempts}). The relayer usually takes ~30 seconds on Fuji.`
+      : isTimeout
+        ? 'Timed out — re-send the registration below.'
+        : 'Waits for the ICM relayer to carry the message.';
+
+  const rowThreeDetail = isDelivered
+    ? remote?.registeredAt
+      ? `Registered at ${new Date(remote.registeredAt).toLocaleTimeString()}.`
+      : 'Home contract confirmed registration.'
+    : isTimeout
+      ? 'No on-chain confirmation yet — re-send to retry.'
+      : 'Status flips once the Home contract receives the message.';
 
   return (
     <InspectorShell
-      phase="register"
-      status={status}
-      onPhaseChange={onPhaseChange}
-      description={`Send a single tx on ${remoteL1?.name ?? 'Remote'} that asks ${homeL1?.name ?? 'Home'} to register this Remote. The relayer carries it across.`}
       banner={
         !remote?.address && (
           <Note variant="warning">
@@ -52,7 +69,7 @@ export function RegisterInspector({ onPhaseChange, status, bridge, remote }: Reg
       }
       footer={
         <>
-          {remote?.registeredAt && (
+          {isDelivered && (
             <button
               type="button"
               onClick={() => onPhaseChange('collateral')}
@@ -65,26 +82,30 @@ export function RegisterInspector({ onPhaseChange, status, bridge, remote }: Reg
           <button
             type="button"
             onClick={handleRegister}
-            disabled={!remote?.address || isRegistering}
+            disabled={!remote?.address || isRegistering || isPolling}
             className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
           >
-            {isRegistering ? (
+            {isRegistering || isPolling ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
             ) : (
               <RefreshCw className="h-3.5 w-3.5" aria-hidden />
             )}
-            {remote?.registeredAt ? 'Re-send registration' : 'Register Remote'}
+            {isTimeout ? 'Re-send registration' : isDelivered ? 'Re-send registration' : 'Register Remote'}
           </button>
         </>
       }
     >
+      <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+        Send a single transaction on {remoteL1?.name ?? 'the Remote chain'} that asks {homeL1?.name ?? 'Home'} to
+        register this Remote. The relayer carries it across.
+      </p>
       <ol className="flex flex-col gap-2 text-sm">
         <TrackerRow
           index={1}
           label={`Submit tx on ${remoteL1?.name ?? 'Remote'}`}
-          state={submittedTx || lastTxHash ? 'complete' : isRegistering ? 'active' : 'idle'}
+          state={localTxConfirmed ? 'complete' : isRegistering ? 'active' : 'idle'}
           detail={
-            submittedTx || lastTxHash ? (
+            localTxConfirmed ? (
               <code className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
                 {truncateAddress((submittedTx ?? lastTxHash) as Address)}
               </code>
@@ -94,45 +115,34 @@ export function RegisterInspector({ onPhaseChange, status, bridge, remote }: Reg
           }
           url={txUrl}
         />
-        <TrackerRow
-          index={2}
-          label="ICM relays the message"
-          state={remote?.registeredAt ? 'complete' : submittedTx || lastTxHash ? 'active' : 'idle'}
-          detail="Wait ~10 seconds for the relayer to deliver the registration to Home."
-        />
+        <TrackerRow index={2} label="ICM relays the message" state={rowTwoState} detail={rowTwoDetail} />
         <TrackerRow
           index={3}
           label={`${homeL1?.name ?? 'Home'} marks the Remote registered`}
-          state={remote?.registeredAt ? 'complete' : 'idle'}
-          detail={
-            remote?.registeredAt
-              ? `Registered at ${new Date(remote.registeredAt).toLocaleTimeString()}`
-              : 'Status will flip once the Home contract receives the message.'
-          }
+          state={rowThreeState}
+          detail={rowThreeDetail}
         />
       </ol>
+
+      {isTimeout && (
+        <Note variant="warning" className="mt-3">
+          <span className="text-xs">
+            The relayer didn&apos;t deliver in {Math.round((pollMaxAttempts * 4) / 60)} minutes. Re-send the
+            registration — the existing TokenRemote stays valid.
+          </span>
+        </Note>
+      )}
 
       {error && (
         <Note variant="destructive" className="mt-3">
           <span className="text-xs">{error.message}</span>
         </Note>
       )}
-
-      <div className="mt-4 flex items-center justify-between gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-        <span>Need to inspect ICM messages?</span>
-        <Link
-          href="/console/ictt/legacy/setup/register-with-home"
-          className="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100"
-        >
-          Open registration in legacy
-          <ExternalLink className="h-3 w-3" aria-hidden />
-        </Link>
-      </div>
     </InspectorShell>
   );
 }
 
-type RowState = 'idle' | 'active' | 'complete';
+type RowState = 'idle' | 'active' | 'complete' | 'error';
 
 interface TrackerRowProps {
   index: number;
@@ -148,7 +158,9 @@ function TrackerRow({ index, label, state, detail, url }: TrackerRowProps) {
       ? 'bg-emerald-500 text-white'
       : state === 'active'
         ? 'bg-amber-400 text-zinc-900 animate-pulse'
-        : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
+        : state === 'error'
+          ? 'bg-red-500 text-white'
+          : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
 
   return (
     <li className="flex items-start gap-3 rounded-xl border border-zinc-200/80 bg-white px-3.5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">

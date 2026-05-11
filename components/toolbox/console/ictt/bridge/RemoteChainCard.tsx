@@ -35,6 +35,7 @@ export function RemoteChainCard({
           sublabel="Cross-chain pairing"
           address={null}
           status={remote?.registeredAt ? 'deployed' : remote?.address ? 'pending' : 'missing'}
+          statusText={remote?.registeredAt ? 'Registered' : remote?.address ? 'Awaiting registration' : '—'}
           isActive={activePhase === 'register'}
           l1={remoteL1}
         />

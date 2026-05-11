@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowRight, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
@@ -12,16 +11,15 @@ import { Note } from '@/components/toolbox/components/Note';
 import { InspectorShell } from './InspectorShell';
 import { useDeployTokenHome } from '../hooks/useDeployTokenHome';
 import { truncateAddress } from '../utils/explorer-url';
-import type { Address, BridgePhase, BridgeStatus, Bridge } from '../types';
+import type { Address, BridgePhase, Bridge } from '../types';
 
 interface HomeInspectorProps {
   onPhaseChange: (next: BridgePhase) => void;
-  status: BridgeStatus;
   underlyingTokenAddress: Address | null;
   bridge: Bridge | null;
 }
 
-export function HomeInspector({ onPhaseChange, status, underlyingTokenAddress, bridge }: HomeInspectorProps) {
+export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }: HomeInspectorProps) {
   const selectedL1 = useSelectedL1();
   const viemChain = useViemChainStore();
   const { walletEVMAddress } = useWalletStore();
@@ -104,10 +102,6 @@ export function HomeInspector({ onPhaseChange, status, underlyingTokenAddress, b
 
   return (
     <InspectorShell
-      phase="home"
-      status={status}
-      onPhaseChange={onPhaseChange}
-      description={`Deploy ERC20TokenHome on ${selectedL1?.name ?? 'the Home chain'}. The constructor wires the contract to the Teleporter registry and your token in one tx.`}
       banner={
         !underlyingTokenAddress && (
           <Note variant="warning">
@@ -117,13 +111,6 @@ export function HomeInspector({ onPhaseChange, status, underlyingTokenAddress, b
       }
       footer={
         <>
-          <Link
-            href="/console/ictt/legacy/setup/deploy-token-home"
-            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
-          >
-            Native option in legacy
-            <ExternalLink className="h-3 w-3" aria-hidden />
-          </Link>
           <button
             type="button"
             onClick={handleDeploy}
@@ -138,6 +125,11 @@ export function HomeInspector({ onPhaseChange, status, underlyingTokenAddress, b
       }
     >
       <div className="flex flex-col gap-4">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Deploy ERC20TokenHome on {selectedL1?.name ?? 'the Home chain'}. The constructor wires the contract to the
+          Teleporter registry and your token in one transaction.
+        </p>
+
         <FormField label="Source token" hint="Auto-filled from Phase 1.">
           <code className="block rounded-md bg-zinc-100 px-2.5 py-1.5 font-mono text-[12px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
             {underlyingTokenAddress

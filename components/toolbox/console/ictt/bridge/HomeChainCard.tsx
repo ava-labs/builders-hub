@@ -49,6 +49,13 @@ export function HomeChainCard({ homeL1, bridge, activePhase, isWalletOnHome, onS
                 ? 'pending'
                 : 'missing'
           }
+          statusText={
+            bridge?.remotes.some((r) => r.collateralizedAt)
+              ? 'Collateralized'
+              : bridge?.remotes.length
+                ? 'Awaiting collateral'
+                : '—'
+          }
           isActive={activePhase === 'collateral'}
           l1={homeL1}
         />

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, ExternalLink } from 'lucide-react';
+import { Activity, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { buildIcmMessageUrl, buildTxUrl, truncateAddress } from '../utils/explorer-url';
@@ -91,9 +91,11 @@ export function ActivityItem({ event, nowMs }: ActivityItemProps) {
 export function ActivityItemEmptyState() {
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-      <ExternalLink aria-hidden className="h-5 w-5 text-zinc-300" />
-      <p className="text-xs font-medium text-zinc-500">No bridge activity yet</p>
-      <p className="text-[10px] text-zinc-400">Deploy your first contract to begin.</p>
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
+        <Activity aria-hidden className="h-4 w-4" />
+      </span>
+      <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">No bridge activity yet</p>
+      <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Deployments and ICM messages will appear here.</p>
     </div>
   );
 }

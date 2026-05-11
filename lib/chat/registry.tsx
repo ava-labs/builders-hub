@@ -52,8 +52,14 @@ export const componentRegistry: Record<ComponentName, React.LazyExoticComponent<
   MultisigSetup: lazyFlow("Multisig Setup", () => import("@/app/console/permissioned-l1s/multisig-setup/steps")),
   ICMSetup: lazyFlow("ICM Setup", () => import("@/app/console/icm/setup/steps")),
   ICMTestConnection: lazyFlow("ICM Test Connection", () => import("@/app/console/icm/test-connection/steps")),
-  ICTTSetup: lazyFlow("ICTT Setup", () => import("@/app/console/ictt/legacy/setup/steps")),
-  ICTTTokenTransfer: lazyFlow("ICTT Token Transfer", () => import("@/app/console/ictt/legacy/token-transfer/steps")),
+  ICTTSetup: lazyFlow("ICTT Setup", () =>
+    import("@/components/toolbox/console/ictt/bridge/bridge-steps").then((m) => ({ steps: m.bridgeSteps })),
+  ),
+  ICTTTokenTransfer: lazyFlow("ICTT Token Transfer", () =>
+    import("@/components/toolbox/console/ictt/bridge/bridge-steps").then((m) => ({
+      steps: m.bridgeSteps.filter((s) => s.key === 'collateral' || s.key === 'live'),
+    })),
+  ),
   VMCMigration: lazyFlow("VMC Migration", () => import("@/app/console/utilities/vmcMigrateFromV1/steps")),
 
   // Single-Page Console Tools

@@ -43,6 +43,7 @@ export function useDeployTokenHome() {
   const upsertBridge = useIcttBridgeStore((s) => s.upsertBridge);
   const setLastActiveBridge = useIcttBridgeStore((s) => s.setLastActiveBridge);
   const pushActivity = useIcttBridgeStore((s) => s.pushActivity);
+  const setPendingTokenAddress = useIcttBridgeStore((s) => s.setPendingTokenAddress);
   const [error, setError] = useState<Error | null>(null);
 
   const deployHome = async (
@@ -86,6 +87,8 @@ export function useDeployTokenHome() {
       };
       upsertBridge(bridge);
       setLastActiveBridge(bridgeId);
+      // Bridge owns `underlyingTokenAddress` now — clear the Phase 1 pending value.
+      setPendingTokenAddress(null);
 
       pushActivity({
         bridgeId,

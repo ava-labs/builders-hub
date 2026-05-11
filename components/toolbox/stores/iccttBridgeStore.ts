@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, combine } from 'zustand/middleware';
 import { localStorageComp, STORE_VERSION } from './utils';
-import type { ActivityEvent, Bridge, BridgeId, Remote, RemoteId } from '@/components/toolbox/console/ictt/bridge/types';
+import type {
+  ActivityEvent,
+  Address,
+  Bridge,
+  BridgeId,
+  Remote,
+  RemoteId,
+} from '@/components/toolbox/console/ictt/bridge/types';
 
 interface BridgeState {
   /** All bridges the user has ever set up in this browser, keyed by id. */
@@ -12,6 +19,14 @@ interface BridgeState {
   lastActiveBridgeId: BridgeId | null;
   /** Capped activity log (50 entries, FIFO). */
   activityLog: ActivityEvent[];
+  /** Phase 1 selection that hasn't been committed to a Bridge yet. Persists
+   *  across phase navigation and page reloads. Cleared by `useDeployTokenHome`
+   *  after a bridge is created (the bridge now owns `underlyingTokenAddress`). */
+  pendingTokenAddress: Address | null;
+  /** Phase 3 destination selection that hasn't been deployed yet. Single source
+   *  of truth shared by `BridgeRibbon` and `RemoteInspector`. Cleared by
+   *  `useDeployTokenRemote` after a Remote record is created. */
+  pendingDestinationL1Id: string | null;
 }
 
 const initialBridgeState: BridgeState = {
@@ -19,6 +34,8 @@ const initialBridgeState: BridgeState = {
   selectedRemoteByBridge: {},
   lastActiveBridgeId: null,
   activityLog: [],
+  pendingTokenAddress: null,
+  pendingDestinationL1Id: null,
 };
 
 const ACTIVITY_CAP = 50;
@@ -94,6 +111,10 @@ export const useIcttBridgeStore = create(
           selectedRemoteByBridge: { ...state.selectedRemoteByBridge, [bridgeId]: remoteId },
         })),
 
+      setPendingTokenAddress: (address: Address | null) => set({ pendingTokenAddress: address }),
+
+      setPendingDestinationL1Id: (id: string | null) => set({ pendingDestinationL1Id: id }),
+
       pushActivity: (
         event: Omit<ActivityEvent, 'id' | 'timestampMs'> & Partial<Pick<ActivityEvent, 'id' | 'timestampMs'>>,
       ) => {
@@ -161,6 +182,8 @@ export const useIcttBridgeStore = create(
         selectedRemoteByBridge: state.selectedRemoteByBridge,
         lastActiveBridgeId: state.lastActiveBridgeId,
         activityLog: state.activityLog,
+        pendingTokenAddress: state.pendingTokenAddress,
+        pendingDestinationL1Id: state.pendingDestinationL1Id,
       }),
     },
   ),
