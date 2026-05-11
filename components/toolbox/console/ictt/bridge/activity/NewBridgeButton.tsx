@@ -9,9 +9,10 @@ interface NewBridgeButtonProps {
 }
 
 /**
- * Top-right CTA paired with `ActivityChip` in the StepFlow nav row. Resets the
- * bridge flow to a clean Token-phase state without touching persisted bridges
- * (they stay in the store for a future "My bridges" picker).
+ * Top-right CTA in the StepFlow nav row. Resets the bridge flow to a clean
+ * Token-phase state without touching persisted bridges (they stay in the
+ * store for a future "My bridges" picker). Bridge activity is shown by the
+ * central `BridgeLogPill` inside `BridgeRibbon` so this button stands alone.
  *
  * Visual contract: `rounded-lg` action button with a `ring-1` border (sits
  * inside the box so the size stays exactly `h-9` regardless of theme). Subtle

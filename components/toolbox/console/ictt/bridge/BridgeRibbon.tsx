@@ -31,12 +31,16 @@ export function BridgeRibbon() {
   const ctx = useBridgeContext();
   const router = useRouter();
   const allActivity = useIcttBridgeStore((s) => s.activityLog);
-  const icmEvents = useMemo(() => {
+  // Show every bridge event (deploy, register, collateral, send, …) for the
+  // active bridge in the recent window — not just ICM-tagged ones. The
+  // previous `kind === 'icm' || icmMessageId` filter left the pill perma-empty
+  // because no hook ever populated those fields. ICM-bearing rows are still
+  // visually distinguished inside the sheet via `ActivityItem`'s `msg 0x…` chip.
+  const bridgeEvents = useMemo(() => {
     const now = Date.now();
     return allActivity
       .filter((e) => {
         if (ctx.activeBridgeId && e.bridgeId !== ctx.activeBridgeId) return false;
-        if (e.kind !== 'icm' && !e.icmMessageId) return false;
         return now - e.timestampMs <= RECENT_WINDOW_MS;
       })
       .sort((a, b) => b.timestampMs - a.timestampMs);
@@ -60,7 +64,7 @@ export function BridgeRibbon() {
     >
       <HomeSide />
       <Divider />
-      <ICMPill events={icmEvents} />
+      <BridgeLogPill events={bridgeEvents} />
       <Divider />
       <RemoteSide />
     </div>
@@ -265,10 +269,26 @@ function ChainAvatar({ l1, role }: { l1: L1ListItem | null; role: 'home' | 'remo
   );
 }
 
-function ICMPill({ events }: { events: ActivityEvent[] }) {
+/**
+ * Central ribbon affordance — the canonical entry point to the bridge's
+ * activity log. Replaces the old "ICM N" pill (which was always empty because
+ * no hook ever set the `kind: 'icm'` / `icmMessageId` fields it filtered on)
+ * and absorbs the role that used to live in the top-right Activity chip.
+ *
+ * Visual states:
+ *   - no events: muted icon, no count chip, hairline ring
+ *   - confirmed-only: zinc count chip
+ *   - has-pending: amber icon + pulsing accent dot + amber count chip
+ *
+ * ICM-specific rows are still highlighted inside the sheet via
+ * `ActivityItem`'s `msg 0x…` chip — captured from the Teleporter
+ * `SendCrossChainMessage` event in `useRegisterRemote` and `useSendTokens`.
+ */
+function BridgeLogPill({ events }: { events: ActivityEvent[] }) {
   const [open, setOpen] = useState(false);
   const count = events.length;
-  const hasRecent = count > 0;
+  const hasEvents = count > 0;
+  const hasPending = events.some((e) => e.status === 'pending');
   return (
     <div className="flex items-center justify-center md:px-1">
       <Sheet open={open} onOpenChange={setOpen}>
@@ -276,32 +296,62 @@ function ICMPill({ events }: { events: ActivityEvent[] }) {
           <button
             type="button"
             aria-haspopup="dialog"
-            aria-label={`ICM messaging log, ${count} recent ${count === 1 ? 'message' : 'messages'}`}
+            aria-label={`Bridge log, ${count} recent ${count === 1 ? 'event' : 'events'}${hasPending ? ', some pending' : ''}`}
+            title="Open bridge activity log"
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium shadow-sm transition-colors',
-              'hover:border-zinc-300 hover:bg-zinc-50',
-              'dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800/40',
+              'group inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-50 px-2.5 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200/80 transition-[transform,colors,box-shadow] duration-150',
+              'shadow-[0_1px_0_rgba(0,0,0,0.04)] hover:-translate-y-px hover:bg-zinc-100 hover:ring-zinc-300',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50',
+              'dark:bg-zinc-900/60 dark:text-zinc-200 dark:ring-zinc-700/80 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+              'dark:hover:bg-zinc-800/80 dark:hover:ring-zinc-600 dark:focus-visible:ring-offset-zinc-950',
+              'sm:px-3',
             )}
           >
-            <MessageSquare aria-hidden className="h-3 w-3 text-zinc-400" />
-            <span
-              aria-hidden
-              className={cn('h-1.5 w-1.5 rounded-full', hasRecent ? 'animate-pulse bg-emerald-500' : 'bg-zinc-400')}
-            />
-            <span className="font-mono text-zinc-700 dark:text-zinc-200">ICM {count}</span>
+            <span className="relative inline-flex items-center justify-center">
+              <MessageSquare
+                aria-hidden
+                className={cn(
+                  'h-3.5 w-3.5 transition-colors',
+                  hasPending
+                    ? 'text-amber-500 dark:text-amber-400'
+                    : hasEvents
+                      ? 'text-zinc-600 group-hover:text-zinc-800 dark:text-zinc-300 dark:group-hover:text-zinc-100'
+                      : 'text-zinc-400 group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300',
+                )}
+              />
+              {hasPending && (
+                <span aria-hidden className="absolute -right-1 -top-1 flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400 ring-2 ring-amber-500/40 dark:ring-amber-400/30" />
+                </span>
+              )}
+            </span>
+            <span className="sr-only sm:not-sr-only">Bridge log</span>
+            {hasEvents && (
+              <span
+                className={cn(
+                  'inline-flex h-4 min-w-[1rem] items-center justify-center rounded-md px-1 text-[10px] font-semibold tabular-nums',
+                  hasPending
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300',
+                )}
+              >
+                {count > 99 ? '99+' : count}
+              </span>
+            )}
           </button>
         </SheetTrigger>
         <SheetContent side="right" className="flex w-full max-w-md flex-col gap-0 p-0 sm:max-w-md">
           <SheetHeader className="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
             <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
               <MessageSquare aria-hidden className="h-4 w-4" />
-              Interchain Messaging log
+              Bridge activity
             </SheetTitle>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto px-4 py-4">
             {events.length === 0 ? (
               <p className="rounded-lg border border-dashed border-zinc-200 px-3 py-8 text-center text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                No ICM messages in the last hour.
+                No bridge activity in the last hour.
               </p>
             ) : (
               <ul className="flex flex-col gap-2">
