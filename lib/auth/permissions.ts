@@ -14,7 +14,17 @@ export function canAccessEvaluationTools(
 export function canAccessBuilderInsights(
   attributes: string[] | undefined | null
 ): boolean {
-  return hasAnyAttribute(attributes, ["builder_insights"]);
+  // Per the BuilderHub roles sheet, Builder Hub Insights is visible to
+  // DevRel and the entire Team One hierarchy (admin / member / technical).
+  // The legacy `builder_insights` tag remains supported for ad-hoc grants
+  // outside that group (foundation reviewers, etc.).
+  return hasAnyAttribute(attributes, [
+    "builder_insights",
+    "devrel",
+    "team1-admin",
+    "team1-member",
+    "team1-technical",
+  ]);
 }
 
 export function canSendNotifications(
