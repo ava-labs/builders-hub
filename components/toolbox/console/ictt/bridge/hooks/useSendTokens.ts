@@ -12,7 +12,9 @@ import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
-import { BaseError, ContractFunctionRevertedError, encodeFunctionData } from 'viem';
+import { BaseError, ContractFunctionRevertedError, encodeFunctionData, parseEventLogs } from 'viem';
+import TeleporterMessengerAbi from '@/contracts/icm-contracts/compiled/TeleporterMessenger.json';
+import { truncateAddress } from '../utils/explorer-url';
 import type { Address, Bridge, Remote } from '../types';
 
 interface SendParams {
@@ -227,10 +229,33 @@ export function useSendTokens({ bridge, remote }: UseSendTokensOptions) {
       setStage('sending');
       const sendTx = (await tokenHome.send(input, params.amount)) as Address;
 
+      // Best-effort: parse the Teleporter `SendCrossChainMessage` event out of
+      // the receipt so the activity log can link directly to the ICM message.
+      // The send itself is already confirmed at this point; failure to read
+      // the receipt just means the row falls back to the generic sublabel.
+      let icmMessageId: string | undefined;
+      if (homeL1?.rpcUrl) {
+        try {
+          const client = makePublicClientForChain(homeL1.rpcUrl);
+          if (client) {
+            const receipt = await client.waitForTransactionReceipt({ hash: sendTx, timeout: 60_000 });
+            const logs = parseEventLogs({
+              abi: TeleporterMessengerAbi.abi,
+              eventName: 'SendCrossChainMessage',
+              logs: receipt.logs,
+            }) as Array<{ args?: { messageID?: string } }>;
+            icmMessageId = logs[0]?.args?.messageID;
+          }
+        } catch {
+          // Best-effort — activity row still gets the txHash even on failure.
+        }
+      }
+
       updateActivity(activityId, {
         status: 'confirmed',
         txHash: sendTx,
-        sublabel: 'Send tx confirmed on Home',
+        icmMessageId,
+        sublabel: icmMessageId ? `ICM msg ${truncateAddress(icmMessageId, 8, 4)}` : 'Send tx confirmed on Home',
       });
       setStage('submitted');
       return { approveTx, sendTx };

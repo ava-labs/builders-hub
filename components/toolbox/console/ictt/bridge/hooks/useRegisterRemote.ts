@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { parseEventLogs } from 'viem';
 import { useTokenRemote } from '@/components/toolbox/hooks/contracts/bridge/useTokenRemote';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import ERC20TokenHomeAbi from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
+import TeleporterMessengerAbi from '@/contracts/icm-contracts/compiled/TeleporterMessenger.json';
+import { truncateAddress } from '../utils/explorer-url';
 import type { Address, BridgeId, Remote, RemoteId } from '../types';
 
 interface UseRegisterRemoteOptions {
@@ -39,6 +43,9 @@ export function useRegisterRemote({
   const pushActivity = useIcttBridgeStore((s) => s.pushActivity);
   const updateActivity = useIcttBridgeStore((s) => s.updateActivity);
   const walletChainId = useWalletStore((s) => s.walletChainId);
+  // The registerWithHome tx runs on the Remote chain — use its RPC to fetch
+  // the receipt and parse the Teleporter SendCrossChainMessage event.
+  const remoteL1 = useL1ByChainId(remote?.l1Id ?? '');
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastTxHash, setLastTxHash] = useState<Address | null>(null);
@@ -143,10 +150,36 @@ export function useRegisterRemote({
     try {
       const txHash = (await tokenRemote.registerWithHome([feeAddress, feeAmount])) as Address;
       setLastTxHash(txHash);
+
+      // Best-effort: parse the Teleporter `SendCrossChainMessage` event on the
+      // Remote chain so the activity entry carries the ICM message ID. The
+      // registration *is* an ICM message and is the most useful one to link
+      // from the log. Falls back to the generic sublabel on any failure.
+      let icmMessageId: string | undefined;
+      if (remoteL1?.rpcUrl) {
+        try {
+          const client = makePublicClientForChain(remoteL1.rpcUrl);
+          if (client) {
+            const receipt = await client.waitForTransactionReceipt({ hash: txHash, timeout: 60_000 });
+            const logs = parseEventLogs({
+              abi: TeleporterMessengerAbi.abi,
+              eventName: 'SendCrossChainMessage',
+              logs: receipt.logs,
+            }) as Array<{ args?: { messageID?: string } }>;
+            icmMessageId = logs[0]?.args?.messageID;
+          }
+        } catch {
+          // Best-effort — keep going so the poll still kicks off.
+        }
+      }
+
       updateActivity(activityId, {
         status: 'pending',
         txHash,
-        sublabel: 'Local tx broadcast — waiting for ICM delivery to Home',
+        icmMessageId,
+        sublabel: icmMessageId
+          ? `ICM msg ${truncateAddress(icmMessageId, 8, 4)} · waiting for delivery to Home`
+          : 'Local tx broadcast — waiting for ICM delivery to Home',
       });
       // Kick off the Home-side poll. The activity event stays pending until the
       // Home contract reports `registered: true` or we hit the timeout cap.
