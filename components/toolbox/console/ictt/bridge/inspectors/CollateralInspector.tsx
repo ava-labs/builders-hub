@@ -22,10 +22,20 @@ interface CollateralInspectorProps {
 export function CollateralInspector({ onPhaseChange, bridge, remote }: CollateralInspectorProps) {
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '');
   const { walletEVMAddress } = useWalletStore();
-  const { approve, addCollateral, stage, error, allowance, registered, collateralNeeded, refresh } = useAddCollateral({
-    bridge,
-    remote,
-  });
+  const {
+    approve,
+    addCollateral,
+    stage,
+    error,
+    allowance,
+    registered,
+    collateralNeeded,
+    refresh,
+    pollState,
+    pollAttempts,
+    pollMaxAttempts,
+    lastError,
+  } = useAddCollateral({ bridge, remote });
   const [amountInput, setAmountInput] = useState<string>('');
   const [balance, setBalance] = useState<bigint | null>(null);
 
@@ -87,15 +97,32 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
     if (result) onPhaseChange('live');
   };
 
+  // Banner priority: hard prereq (no Phase 4 yet) > Home RPC failure > waiting
+  // for ICM > "we're still polling but no signal yet". Each variant gives the
+  // user exactly one thing to do (or to wait for).
+  const isPollingForRegistration = pollState === 'polling' && registered !== true;
+  const rpcErrorVisible = pollState === 'rpc-error' && registered !== true;
+  const timeoutVisible = pollState === 'timeout' && registered !== true;
+
   return (
     <InspectorShell
       banner={
-        remoteNotRegistered ? (
+        !remote?.registeredAt ? (
           <Note variant="warning">
+            <span className="text-xs">Register the Remote in Phase 4 before adding collateral.</span>
+          </Note>
+        ) : rpcErrorVisible ? (
+          <Note variant="destructive">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
               <span>
-                Remote not registered on {homeL1?.name ?? 'Home'} yet — the ICM message may still be in flight. Wait a
-                moment or refresh.
+                Couldn&apos;t reach {homeL1?.name ?? 'Home'} RPC after {pollAttempts}/{pollMaxAttempts} attempts
+                {lastError ? (
+                  <>
+                    {' '}
+                    · <span className="font-mono text-[10px] opacity-80">{lastError.message}</span>
+                  </>
+                ) : null}
+                .
               </span>
               <button
                 type="button"
@@ -107,9 +134,54 @@ export function CollateralInspector({ onPhaseChange, bridge, remote }: Collatera
               </button>
             </div>
           </Note>
-        ) : !remote?.registeredAt ? (
+        ) : timeoutVisible ? (
           <Note variant="warning">
-            <span className="text-xs">Register the Remote in Phase 4 before adding collateral.</span>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span>
+                Still waiting on the ICM relayer after {pollAttempts}/{pollMaxAttempts} attempts. The registration
+                message might be delayed — try refreshing in a few seconds.
+              </span>
+              <button
+                type="button"
+                onClick={refresh}
+                className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
+              >
+                <RefreshCw className="h-3 w-3" aria-hidden />
+                Refresh
+              </button>
+            </div>
+          </Note>
+        ) : isPollingForRegistration ? (
+          <Note variant="warning">
+            <div className="flex items-center gap-2 text-xs">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              <span>
+                Waiting for the ICM relayer to deliver the registration message to {homeL1?.name ?? 'Home'}
+                {pollAttempts > 0 ? (
+                  <>
+                    {' '}
+                    · attempt {pollAttempts}/{pollMaxAttempts}
+                  </>
+                ) : null}
+                .
+              </span>
+            </div>
+          </Note>
+        ) : remoteNotRegistered ? (
+          <Note variant="warning">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span>
+                Remote not registered on {homeL1?.name ?? 'Home'} yet — the ICM message may still be in flight.
+              </span>
+              <button
+                type="button"
+                onClick={refresh}
+                className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
+              >
+                <RefreshCw className="h-3 w-3" aria-hidden />
+                Refresh
+              </button>
+            </div>
           </Note>
         ) : null
       }

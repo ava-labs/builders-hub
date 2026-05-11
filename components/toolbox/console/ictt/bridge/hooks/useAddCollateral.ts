@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTokenHome } from '@/components/toolbox/hooks/contracts/bridge/useTokenHome';
 import { useContractActions } from '@/components/toolbox/hooks/contracts';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
@@ -19,6 +19,15 @@ interface UseAddCollateralOptions {
 
 type Stage = 'idle' | 'approving' | 'depositing' | 'done' | 'error';
 
+export type CollateralPollState = 'idle' | 'polling' | 'delivered' | 'timeout' | 'rpc-error';
+
+// Same shape as `useRegisterRemote`'s Home-side poll: short backoff on the first
+// three attempts to catch fast-relayer cases, then a steady 4s tick up to the
+// cap. Tuned so the user sees an "almost there" wait without spinning forever.
+const INITIAL_BACKOFF_MS = [1_000, 3_000, 7_000];
+const STEADY_INTERVAL_MS = 4_000;
+const MAX_POLL_ATTEMPTS = 45;
+
 export function useAddCollateral({ bridge, remote }: UseAddCollateralOptions) {
   const tokenHome = useTokenHome(bridge?.homeAddress ?? null, bridge?.kind === 'native-home' ? 'native' : 'erc20');
   const erc20 = useContractActions(bridge?.underlyingTokenAddress ?? null, ExampleERC20.abi);
@@ -34,6 +43,20 @@ export function useAddCollateral({ bridge, remote }: UseAddCollateralOptions) {
   const [registered, setRegistered] = useState<boolean | null>(null);
   const [collateralNeeded, setCollateralNeeded] = useState<bigint | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [pollState, setPollState] = useState<CollateralPollState>('idle');
+  const [pollAttempts, setPollAttempts] = useState(0);
+  const [lastError, setLastError] = useState<Error | null>(null);
+
+  const pollAbortRef = useRef<{ cancelled: boolean } | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (pollAbortRef.current) pollAbortRef.current.cancelled = true;
+    };
+  }, []);
 
   const refresh = useCallback(() => setRefreshTick((t) => t + 1), []);
 
@@ -62,40 +85,95 @@ export function useAddCollateral({ bridge, remote }: UseAddCollateralOptions) {
     };
   }, [bridge?.underlyingTokenAddress, bridge?.homeAddress, walletEVMAddress, homeL1?.rpcUrl, refreshTick]);
 
-  // Verify the Remote is registered on the Home contract before allowing
-  // addCollateral — Phase 4's optimistic registeredAt marker is set the moment
-  // the local registerWithHome tx confirms, but the Home side only registers
-  // after the ICM relayer delivers the message. If the user reaches Phase 5
-  // before delivery, addCollateral reverts with "remote not registered".
+  // Poll the Home contract for `getRemoteTokenTransferrerSettings(remote)` so
+  // the UI tracks ICM delivery. Phase 4 marks the Remote registered locally
+  // the moment its registerWithHome tx confirms, but the Home contract only
+  // sees the registration after the ICM relayer delivers the message. Without
+  // a poll the user lands on Phase 5 with `registered = false` forever and no
+  // signal that the wait is normal.
+  //
+  // Backoff: 1s → 3s → 7s (catches fast relayers), then a steady 4s tick up to
+  // ~3 min total. Stops polling on delivered/timeout/error. Reset triggers via
+  // `refreshTick` so the Refresh button restarts cleanly.
   useEffect(() => {
-    if (!bridge?.homeAddress || !remote || bridge.kind !== 'erc20-home' || !homeL1?.rpcUrl) return;
-    let cancelled = false;
+    if (!bridge?.homeAddress || !remote || bridge.kind !== 'erc20-home' || !homeL1?.rpcUrl) {
+      setPollState('idle');
+      setPollAttempts(0);
+      return;
+    }
     const client = makePublicClientForChain(homeL1.rpcUrl);
-    if (!client) return;
+    if (!client) {
+      setPollState('rpc-error');
+      setLastError(new Error('Could not initialise Home RPC client.'));
+      return;
+    }
+
+    // Cancel any prior poll loop so we never have two alive at once.
+    if (pollAbortRef.current) pollAbortRef.current.cancelled = true;
+    const token = { cancelled: false };
+    pollAbortRef.current = token;
+
+    setPollState('polling');
+    setPollAttempts(0);
+    setLastError(null);
+
     const blockchainIDHex = cb58ToHex(remote.l1Id) as Address;
-    client
-      .readContract({
-        address: bridge.homeAddress,
-        abi: ERC20TokenHomeAbi.abi,
-        functionName: 'getRemoteTokenTransferrerSettings',
-        args: [blockchainIDHex, remote.address],
-      })
-      .then((settings) => {
-        if (!cancelled) {
-          const s = settings as { registered: boolean; collateralNeeded?: bigint };
-          setRegistered(Boolean(s?.registered));
-          setCollateralNeeded(typeof s?.collateralNeeded === 'bigint' ? s.collateralNeeded : null);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setRegistered(null);
-          setCollateralNeeded(null);
-        }
-      });
-    return () => {
-      cancelled = true;
+    let attempt = 0;
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    let sawError = false;
+
+    const scheduleNext = () => {
+      if (token.cancelled || !isMountedRef.current) return;
+      const delay = attempt < INITIAL_BACKOFF_MS.length ? INITIAL_BACKOFF_MS[attempt] : STEADY_INTERVAL_MS;
+      timeoutHandle = setTimeout(tick, delay);
     };
+
+    const tick = async () => {
+      if (token.cancelled || !isMountedRef.current) return;
+      attempt += 1;
+      setPollAttempts(attempt);
+      try {
+        const settings = (await client.readContract({
+          address: bridge.homeAddress,
+          abi: ERC20TokenHomeAbi.abi,
+          functionName: 'getRemoteTokenTransferrerSettings',
+          args: [blockchainIDHex, remote.address],
+        })) as { registered: boolean; collateralNeeded?: bigint };
+        if (token.cancelled || !isMountedRef.current) return;
+        const isRegistered = Boolean(settings?.registered);
+        const needed = typeof settings?.collateralNeeded === 'bigint' ? settings.collateralNeeded : null;
+        setRegistered(isRegistered);
+        setCollateralNeeded(needed);
+        setLastError(null);
+        sawError = false;
+        if (isRegistered) {
+          setPollState('delivered');
+          return;
+        }
+      } catch (err) {
+        if (token.cancelled || !isMountedRef.current) return;
+        sawError = true;
+        setLastError(err instanceof Error ? err : new Error(String(err)));
+        // Don't clear `registered`/`collateralNeeded` on transient RPC errors —
+        // a previous good read may still be valid. The poll keeps trying.
+      }
+      if (attempt >= MAX_POLL_ATTEMPTS) {
+        if (token.cancelled || !isMountedRef.current) return;
+        setPollState(sawError ? 'rpc-error' : 'timeout');
+        return;
+      }
+      scheduleNext();
+    };
+
+    // First read immediately so a delivered relay doesn't wait 1s.
+    void tick();
+
+    return () => {
+      token.cancelled = true;
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+    };
+    // `lastError` intentionally omitted from deps — it's a read-side derived
+    // signal and including it would loop the effect on every transient failure.
   }, [bridge?.homeAddress, bridge?.kind, remote, homeL1?.rpcUrl, refreshTick]);
 
   // Auto-mark the remote as collateralized when the contract reports no collateral
@@ -193,5 +271,9 @@ export function useAddCollateral({ bridge, remote }: UseAddCollateralOptions) {
     registered,
     collateralNeeded,
     refresh,
+    pollState,
+    pollAttempts,
+    pollMaxAttempts: MAX_POLL_ATTEMPTS,
+    lastError,
   };
 }
