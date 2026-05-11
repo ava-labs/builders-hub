@@ -136,8 +136,6 @@ export default async function EvaluatePage({
             previous_avalanche_grant: memberBgApp.previous_avalanche_grant,
             hackathon_experience: memberBgApp.hackathon_experience,
             hackathon_details: memberBgApp.hackathon_details,
-            how_did_you_hear: memberBgApp.how_did_you_hear,
-            how_did_you_hear_specify: memberBgApp.how_did_you_hear_specify,
           } as Record<string, unknown> : null,
         };
       });

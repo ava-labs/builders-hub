@@ -68,10 +68,14 @@ export default function ProfileForm({
   initialData,
   id,
   achievements,
+  referralPanel,
+  teamLabel,
 }: {
   initialData: ProfileFormProps;
   id: string;
   achievements?: ReactNode;
+  referralPanel?: ReactNode;
+  teamLabel?: string | null;
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -256,7 +260,7 @@ export default function ProfileForm({
 
   // If the feature flag is enabled, show the new version (ProfileTab)
   if (isNewProfileEnabled) {
-    return <ProfileTab achievements={achievements} />;
+    return <ProfileTab achievements={achievements} referralPanel={referralPanel} teamLabel={teamLabel} />;
   }
 
   // Old profile form

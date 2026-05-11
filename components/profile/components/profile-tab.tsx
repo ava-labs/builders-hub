@@ -18,9 +18,11 @@ const validTabs = ['personal', 'projects', 'achievements', 'settings'];
 
 interface ProfileTabProps {
   achievements?: ReactNode;
+  referralPanel?: ReactNode;
+  teamLabel?: string | null;
 }
 
-export default function ProfileTab({ achievements }: ProfileTabProps) {
+export default function ProfileTab({ achievements, referralPanel, teamLabel }: ProfileTabProps) {
   const { data: session } = useSession();
   const avatarContext = useUserAvatar();
   const searchParams = useSearchParams();
@@ -125,31 +127,40 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
                 completionPercentage={getProfileCompletionPercentage(watchedValues)}
               />
 
+              {teamLabel && (
+                <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                  <span>Team:</span>
+                  <span className="inline-flex items-center rounded-full border border-zinc-300 bg-zinc-100 px-2.5 py-0.5 font-medium text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+                    {teamLabel}
+                  </span>
+                </div>
+              )}
+
               {/* Separator */}
               <div className="border-t border-zinc-200 dark:border-zinc-800"></div>
 
               {/* Tabs Navigation */}
               <TabsList className="flex flex-col h-auto w-full p-1 bg-zinc-50 dark:bg-zinc-900">
-                <TabsTrigger 
-                  value="personal" 
+                <TabsTrigger
+                  value="personal"
                   className="w-full justify-start  dark:data-[state=active]:bg-zinc-950"
                 >
                   Personal
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="projects" 
+                <TabsTrigger
+                  value="projects"
                   className="w-full justify-start dark:data-[state=active]:bg-zinc-950"
                 >
                   Projects
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="achievements" 
+                <TabsTrigger
+                  value="achievements"
                   className="w-full justify-start  dark:data-[state=active]:bg-zinc-950"
                 >
                   Achievements
                 </TabsTrigger>
-                {/* <TabsTrigger 
-                  value="settings" 
+                {/* <TabsTrigger
+                  value="settings"
                   className="w-full justify-start  dark:data-[state=active]:bg-zinc-950"
                 >
                   Settings
@@ -188,6 +199,12 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
             <TabsContent value="settings" className="mt-1">
               <Settings />
             </TabsContent>
+
+            {referralPanel && (
+              <div className="mt-16 pt-10 pb-4 border-t border-zinc-200 dark:border-zinc-800">
+                {referralPanel}
+              </div>
+            )}
           </div>
         </Tabs>
       </div>

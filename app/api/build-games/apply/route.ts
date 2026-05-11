@@ -43,8 +43,6 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
   projectDescription: `${FIELD_GROUP_PREFIX}company_description_one_line`,
   areaOfFocus: `${FIELD_GROUP_PREFIX}area_of_focus`,
   whyYou: `${FIELD_GROUP_PREFIX}why_you`,
-  howDidYouHear: `${FIELD_GROUP_PREFIX}applicant_source`,
-  howDidYouHearSpecify: `${FIELD_GROUP_PREFIX}applicant_source_other`,
   universityAffiliation: 'university_affiliated',
   avalancheEcosystemMember: 'avalanche_ecosystem_member',
   privacyPolicyRead: 'gdpr',
@@ -123,16 +121,6 @@ export async function POST(request: Request) {
       fields.push({ name: githubFieldName, value: DEFAULT_GITHUB_URL });
     } else if (!fields[githubFieldIndex].value) {
       fields[githubFieldIndex].value = DEFAULT_GITHUB_URL;
-    }
-
-    // Use "how did you hear" selection as default for "specify" field if not provided
-    const specifyFieldName = HUBSPOT_FIELD_MAPPING['howDidYouHearSpecify'];
-    const specifyFieldIndex = fields.findIndex((f) => f.name === specifyFieldName);
-    const howDidYouHearValue = formData.howDidYouHear as string || '';
-    if (specifyFieldIndex === -1) {
-      fields.push({ name: specifyFieldName, value: howDidYouHearValue });
-    } else if (!fields[specifyFieldIndex].value) {
-      fields[specifyFieldIndex].value = howDidYouHearValue;
     }
 
     const hubspotPayload: {
@@ -300,8 +288,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
       project_description: (formData.projectDescription as string) || '',
       area_of_focus: (formData.areaOfFocus as string) || '',
       why_you: (formData.whyYou as string) || '',
-      how_did_you_hear: (formData.howDidYouHear as string) || '',
-      how_did_you_hear_specify: (formData.howDidYouHearSpecify as string) || null,
       university_affiliation: (formData.universityAffiliation as string) || '',
       avalanche_ecosystem_member: (formData.avalancheEcosystemMember as string) || '',
       privacy_policy_read: formData.privacyPolicyRead === true,
@@ -329,8 +315,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
         project_description: applicationData.project_description,
         area_of_focus: applicationData.area_of_focus,
         why_you: applicationData.why_you,
-        how_did_you_hear: applicationData.how_did_you_hear,
-        how_did_you_hear_specify: applicationData.how_did_you_hear_specify,
         university_affiliation: applicationData.university_affiliation,
         avalanche_ecosystem_member: applicationData.avalanche_ecosystem_member,
         privacy_policy_read: applicationData.privacy_policy_read,

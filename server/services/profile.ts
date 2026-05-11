@@ -12,7 +12,9 @@ export async function getProfile(id: string) {
             notification_email: true,
             notifications: true,
             profile_privacy: true,
-            social_media: true
+            social_media: true,
+            team_id: true,
+            country: true,
         }
     });
 

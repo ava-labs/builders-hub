@@ -28,11 +28,12 @@ import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
 import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { clearStoredReferralAttribution } from "@/lib/referrals/client";
 import {
-  captureReferralAttributionFromUrl,
-  clearStoredReferralAttribution,
-  getStoredReferralAttribution,
-} from "@/lib/referrals/client";
+  ReferralFormSection,
+  buildReferralAttributionPayload,
+} from "@/components/referrals/ReferralFormSection";
+import { EMPTY_REFERRER, type ReferrerPickerValue } from "@/components/referrals/ReferrerPicker";
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
@@ -80,7 +81,6 @@ export function RegisterForm({
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
   let hackathon_id = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
-  const utm = searchParams?.utm ?? "";
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
     null
@@ -89,14 +89,10 @@ export function RegisterForm({
   const router = useRouter();
   const [isSavingLater, setIsSavingLater] = useState(false);
   const isAdvancingStepRef = useRef(false);
+  const [referrer, setReferrer] = useState<ReferrerPickerValue>(EMPTY_REFERRER);
 
   // Use UTM preservation hook
-  const { getPreservedUTMs } = useUTMPreservation();
-
-  // Capture referral attribution from URL on mount
-  useEffect(() => {
-    captureReferralAttributionFromUrl();
-  }, []);
+  useUTMPreservation();
 
   // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
@@ -144,8 +140,7 @@ export function RegisterForm({
       const savedData = localStorage.getItem(`formData_${hackathon_id}`);
 
       if (savedData) {
-        const { utm: utm_local, hackathon_id: hackathon_id_local } =
-          JSON.parse(savedData);
+        const { hackathon_id: hackathon_id_local } = JSON.parse(savedData);
         try {
           const parsedData: RegisterFormValues = JSON.parse(savedData);
 
@@ -378,13 +373,9 @@ export function RegisterForm({
     if (step === 1) {
       await saveStep1ToProfile();
     }
-    const preservedUTMs = getPreservedUTMs();
-    const effectiveUTM = utm || preservedUTMs.utm || "";
-    
     const formValues = {
       ...form.getValues(),
       hackathon_id: hackathon_id,
-      utm: effectiveUTM,
     };
     if (typeof window !== "undefined") {
       localStorage.setItem(
@@ -424,14 +415,11 @@ export function RegisterForm({
         return;
       }
       setFormData((prevData) => ({ ...prevData, ...data }));
-      const preservedUTMs = getPreservedUTMs();
-      const effectiveUTM = utm || preservedUTMs.utm || "";
-      
+
       const finalData = {
         ...data,
         hackathon_id: hackathon_id,
-        utm: effectiveUTM,
-        referral_attribution: captureReferralAttributionFromUrl() ?? getStoredReferralAttribution(),
+        ...buildReferralAttributionPayload(referrer),
         interests: data.interests ?? [],
         languages: data.languages ?? [],
         roles: data.roles ?? [],
@@ -577,7 +565,12 @@ export function RegisterForm({
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {step === 1 && <RegisterFormStep1 user={session?.user} lang={lang} />}
+          {step === 1 && (
+            <>
+              <RegisterFormStep1 user={session?.user} lang={lang} />
+              <ReferralFormSection value={referrer} onChange={setReferrer} />
+            </>
+          )}
           {step === 2 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">

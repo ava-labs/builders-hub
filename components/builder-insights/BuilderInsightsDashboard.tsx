@@ -38,6 +38,7 @@ import {
   type ReferralLinkResponse,
 } from "@/lib/referrals/client";
 import type { ReferralTargetPreset } from "@/lib/referrals/targets";
+import { ReferralLinkGenerator } from "@/components/referrals/ReferralLinkGenerator";
 
 interface ReferralLinkSummary {
   id: string;
@@ -45,7 +46,7 @@ interface ReferralLinkSummary {
   target_type: string;
   target_id: string | null;
   destination_url: string;
-  created_at: string | Date;
+  created_at: string;
   shareUrl: string;
 }
 
@@ -56,6 +57,142 @@ interface BuilderInsightsDashboardProps {
 
 function formatNumber(value: number): string {
   return value.toLocaleString();
+}
+
+function countryCodeToFlag(code: string | null | undefined): string {
+  if (!code || code.length !== 2) return "";
+  const upper = code.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(upper)) return "";
+  const REGIONAL_INDICATOR_A = 0x1f1e6;
+  const A_CHAR_CODE = 65;
+  return String.fromCodePoint(
+    ...upper.split("").map((c) => REGIONAL_INDICATOR_A + (c.charCodeAt(0) - A_CHAR_CODE)),
+  );
+}
+
+const COUNTRY_NAME_TO_ISO2: Record<string, string> = {
+  india: "IN",
+  nigeria: "NG",
+  "united states": "US",
+  "united states of america": "US",
+  usa: "US",
+  turkey: "TR",
+  "türkiye": "TR",
+  indonesia: "ID",
+  argentina: "AR",
+  china: "CN",
+  philippines: "PH",
+  france: "FR",
+  kenya: "KE",
+  vietnam: "VN",
+  "viet nam": "VN",
+  mexico: "MX",
+  pakistan: "PK",
+  "united kingdom": "GB",
+  uk: "GB",
+  "great britain": "GB",
+  brazil: "BR",
+  brasil: "BR",
+  peru: "PE",
+  canada: "CA",
+  colombia: "CO",
+  rwanda: "RW",
+  russia: "RU",
+  "russian federation": "RU",
+  japan: "JP",
+  bolivia: "BO",
+  "south korea": "KR",
+  "korea (south)": "KR",
+  "republic of korea": "KR",
+  "united arab emirates": "AE",
+  "united arab emirates (uae)": "AE",
+  uae: "AE",
+  bangladesh: "BD",
+  spain: "ES",
+  ukraine: "UA",
+  germany: "DE",
+  chile: "CL",
+  italy: "IT",
+  netherlands: "NL",
+  australia: "AU",
+  singapore: "SG",
+  switzerland: "CH",
+  belgium: "BE",
+  sweden: "SE",
+  norway: "NO",
+  denmark: "DK",
+  poland: "PL",
+  portugal: "PT",
+  greece: "GR",
+  egypt: "EG",
+  "south africa": "ZA",
+  israel: "IL",
+  thailand: "TH",
+  malaysia: "MY",
+  "saudi arabia": "SA",
+  iran: "IR",
+  iraq: "IQ",
+  "hong kong": "HK",
+  taiwan: "TW",
+  "new zealand": "NZ",
+  ireland: "IE",
+  romania: "RO",
+  "czech republic": "CZ",
+  czechia: "CZ",
+  hungary: "HU",
+  austria: "AT",
+  finland: "FI",
+  estonia: "EE",
+  lithuania: "LT",
+  latvia: "LV",
+  bulgaria: "BG",
+  croatia: "HR",
+  serbia: "RS",
+  slovakia: "SK",
+  slovenia: "SI",
+  ecuador: "EC",
+  uruguay: "UY",
+  paraguay: "PY",
+  venezuela: "VE",
+  "costa rica": "CR",
+  panama: "PA",
+  guatemala: "GT",
+  honduras: "HN",
+  "dominican republic": "DO",
+  "puerto rico": "PR",
+  cuba: "CU",
+  ghana: "GH",
+  ethiopia: "ET",
+  uganda: "UG",
+  tanzania: "TZ",
+  morocco: "MA",
+  algeria: "DZ",
+  tunisia: "TN",
+  "sri lanka": "LK",
+  nepal: "NP",
+  cambodia: "KH",
+  laos: "LA",
+  myanmar: "MM",
+  mongolia: "MN",
+};
+
+function countryNameToFlag(name: string | null | undefined): string {
+  if (!name) return "";
+  const trimmed = name.trim();
+  if (trimmed.length === 2 && /^[A-Za-z]{2}$/.test(trimmed)) {
+    return countryCodeToFlag(trimmed);
+  }
+  const code = COUNTRY_NAME_TO_ISO2[trimmed.toLowerCase()];
+  return code ? countryCodeToFlag(code) : "";
+}
+
+function toTitleCase(input: string): string {
+  if (!input) return input;
+  return input
+    .toLowerCase()
+    .split(/(\s+|-|\/)/)
+    .map((part) => (/^[a-zà-ÿñ]/i.test(part) ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join("");
 }
 
 function shortLabel(label: string, maxLength = 22): string {
@@ -89,13 +226,8 @@ export function BuilderInsightsDashboard({
   data,
   referralLinks: initialReferralLinks,
 }: BuilderInsightsDashboardProps) {
-  const [referralLinks, setReferralLinks] = useState(initialReferralLinks);
-  const [creatingTargetKey, setCreatingTargetKey] = useState<string | null>(null);
-  const [qrLinkId, setQrLinkId] = useState<string | null>(null);
   const [topReferrerTeamFilter, setTopReferrerTeamFilter] = useState("all");
-  const { copiedId: copiedLinkId, copyToClipboard } = useCopyToClipboard({
-    resetDelay: 1600,
-  });
+  const [topReferrerPage, setTopReferrerPage] = useState(0);
 
   const monthlyData = data.monthlySignups;
   const referrerData = data.signupsByReferrer.map((row) => ({
@@ -125,6 +257,25 @@ export function BuilderInsightsDashboard({
     }
     return data.topReferrers.filter((row) => row.teamId === topReferrerTeamFilter);
   }, [data.topReferrers, topReferrerTeamFilter]);
+
+  const TOP_REFERRERS_INITIAL = 20;
+  const TOP_REFERRERS_PAGE_SIZE = 50;
+  const [topReferrerExpanded, setTopReferrerExpanded] = useState(false);
+  const topReferrerPageCount = Math.max(
+    1,
+    Math.ceil(filteredTopReferrers.length / TOP_REFERRERS_PAGE_SIZE),
+  );
+  const safeTopReferrerPage = Math.min(topReferrerPage, topReferrerPageCount - 1);
+  const isCompactView = !topReferrerExpanded && safeTopReferrerPage === 0;
+  const pagedTopReferrers = isCompactView
+    ? filteredTopReferrers.slice(0, TOP_REFERRERS_INITIAL)
+    : filteredTopReferrers.slice(
+        safeTopReferrerPage * TOP_REFERRERS_PAGE_SIZE,
+        (safeTopReferrerPage + 1) * TOP_REFERRERS_PAGE_SIZE,
+      );
+  const showLoadMore = isCompactView && filteredTopReferrers.length > TOP_REFERRERS_INITIAL;
+  const showPagination =
+    !isCompactView && filteredTopReferrers.length > TOP_REFERRERS_PAGE_SIZE;
   const targetsByGroup = useMemo(
     () => ({
       signup: data.referralTargets.filter((target) => target.group === "signup"),
@@ -133,42 +284,6 @@ export function BuilderInsightsDashboard({
     }),
     [data.referralTargets]
   );
-  const selectedQrLink = referralLinks.find((link) => link.id === qrLinkId) ?? null;
-
-  const getLatestLinkForTarget = (target: ReferralTargetPreset) =>
-    referralLinks.find(
-      (link) =>
-        link.target_type === target.targetType &&
-        (link.target_id ?? null) === target.targetId &&
-        link.destination_url === target.destinationUrl
-    );
-
-  const handleCopy = async (link: ReferralLinkSummary) => {
-    await copyToClipboard(link.shareUrl, link.id);
-  };
-
-  const handleGenerateAndCopy = async (target: ReferralTargetPreset) => {
-    const existingLink = getLatestLinkForTarget(target);
-    if (existingLink && /^[A-Z]{5}$/.test(existingLink.code)) {
-      await handleCopy(existingLink);
-      setQrLinkId(existingLink.id);
-      return;
-    }
-
-    setCreatingTargetKey(target.key);
-    try {
-      const link: ReferralLinkResponse = await createReferralLink({
-        targetType: target.targetType,
-        targetId: target.targetId,
-        destinationUrl: target.destinationUrl,
-      });
-      setReferralLinks((current) => [link, ...current.filter((item) => item.id !== link.id)].slice(0, 25));
-      setQrLinkId(link.id);
-      await handleCopy(link);
-    } finally {
-      setCreatingTargetKey(null);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-white px-4 py-8 text-neutral-950 dark:bg-neutral-950 dark:text-neutral-50 sm:px-6 lg:px-8">
@@ -180,77 +295,78 @@ export function BuilderInsightsDashboard({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <MetricCard label="Total BH accounts" value={data.totalAccounts} />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricCard label="Total Builder Hub accounts" value={data.totalAccounts} />
           <MetricCard
-            label="Your Builder Impact"
+            label="Your Builder Hub impact"
             value={data.userGeneratedReferralImpact}
           />
           <MetricCard
-            label="Latest monthly signups"
+            label="Builder Hub signups (last 30 days)"
             value={data.latest30DaySignups}
             deltaPercent={data.rollingSignupDeltaPercent}
           />
+          <MetricCard
+            label="Builder Hub visits (last 30 days)"
+            value={data.latest30DayVisits}
+            deltaPercent={data.rollingVisitsDeltaPercent}
+          />
         </div>
 
-        <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Referral Link Generator</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <ReferralTargetGroup
-              title="Builder Hub"
-              icon={<UserPlus className="h-4 w-4" />}
-              targets={targetsByGroup.signup}
-              getLatestLinkForTarget={getLatestLinkForTarget}
-              creatingTargetKey={creatingTargetKey}
-              copiedLinkId={copiedLinkId}
-              onGenerateAndCopy={handleGenerateAndCopy}
-            />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Top country (last 30 days)"
+            valueOverride={
+              data.topCountry30d
+                ? `${countryCodeToFlag(data.topCountry30d.countryCode)} ${data.topCountry30d.country}`.trim()
+                : "—"
+            }
+            compactValue
+            subText={
+              data.topCountry30d
+                ? `${data.topCountry30d.sharePct.toFixed(1)}% of last 30 days`
+                : "No data yet"
+            }
+          />
+          <MetricCard
+            label="Total hackathon submissions"
+            value={data.totalHackathonSubmissions}
+          />
+          <MetricCard
+            label="Console users (last 30 days)"
+            value={data.consoleUsers30d}
+            deltaPercent={data.consoleUsersDeltaPercent}
+          />
+          <MetricCard
+            label="Returning visitor %"
+            valueOverride={`${data.returningVisitorPct30d.toFixed(1)}%`}
+            deltaPercent={data.returningVisitorDeltaPercent}
+          />
+        </div>
 
-            <ReferralTargetGroup
-              title="Active And Upcoming Events"
-              icon={<CalendarDays className="h-4 w-4" />}
-              targets={targetsByGroup.event}
-              emptyLabel="No active or upcoming public events found."
-              getLatestLinkForTarget={getLatestLinkForTarget}
-              creatingTargetKey={creatingTargetKey}
-              copiedLinkId={copiedLinkId}
-              onGenerateAndCopy={handleGenerateAndCopy}
-            />
-
-            <ReferralTargetGroup
-              title="Active Grants"
-              icon={<Gift className="h-4 w-4" />}
-              targets={targetsByGroup.grant}
-              getLatestLinkForTarget={getLatestLinkForTarget}
-              creatingTargetKey={creatingTargetKey}
-              copiedLinkId={copiedLinkId}
-              onGenerateAndCopy={handleGenerateAndCopy}
-            />
-
-            {selectedQrLink && (
-              <div className="grid gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800 md:grid-cols-[auto_1fr_auto] md:items-center">
-                <div className="rounded-md bg-white p-3">
-                  <QRCodeSVG value={selectedQrLink.shareUrl} size={132} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium">QR Code</div>
-                  <div className="truncate text-sm text-neutral-600 dark:text-neutral-400">
-                    {selectedQrLink.shareUrl}
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => handleCopy(selectedQrLink)}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  {copiedLinkId === selectedQrLink.id ? "Copied" : "Copy link"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ReferralLinkGenerator initialLinks={initialReferralLinks} targets={targetsByGroup} />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ChartCard title="BH Signups By Month">
+          <ChartCard title="Builder Hub Visits By Month (unique visitors)">
+            {data.monthlyVisits.length ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={data.monthlyVisits}
+                  margin={{ top: 12, right: 12, bottom: 8, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} width={48} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="visitors" name="Unique visitors" fill="#0EA5E9" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState label="No website visit data yet (PostHog not configured?)" />
+            )}
+          </ChartCard>
+
+          <ChartCard title="Builder Hub Signups By Month">
             {monthlyData.length ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={monthlyData} margin={{ top: 12, right: 12, bottom: 8, left: 0 }}>
@@ -266,7 +382,7 @@ export function BuilderInsightsDashboard({
             )}
           </ChartCard>
 
-          <ChartCard title="BH Cumulative Signups By Month">
+          <ChartCard title="Builder Hub Cumulative Signups By Month">
             {monthlyData.length ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={monthlyData} margin={{ top: 12, right: 12, bottom: 8, left: 0 }}>
@@ -289,7 +405,7 @@ export function BuilderInsightsDashboard({
             )}
           </ChartCard>
 
-          <ChartCard title="BH Signups By Referrer">
+          <ChartCard title="Builder Hub Signups By Referrer">
             {referrerData.length ? (
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart
@@ -340,13 +456,39 @@ export function BuilderInsightsDashboard({
             )}
           </ChartCard>
 
+          <ChartCard title="Console Users By Month">
+            {data.monthlyConsoleUsers.length ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={data.monthlyConsoleUsers}
+                  margin={{ top: 12, right: 12, bottom: 8, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} width={48} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="visitors" name="Console users" fill="#7C3AED" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState label="No console usage data yet (PostHog not configured?)" />
+            )}
+          </ChartCard>
+
         </div>
 
         <div className="grid grid-cols-1 gap-4">
           <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-base">Top Referrers</CardTitle>
-              <Select value={topReferrerTeamFilter} onValueChange={setTopReferrerTeamFilter}>
+              <Select
+                value={topReferrerTeamFilter}
+                onValueChange={(v) => {
+                  setTopReferrerTeamFilter(v);
+                  setTopReferrerPage(0);
+                  setTopReferrerExpanded(false);
+                }}
+              >
                 <SelectTrigger className="h-9 w-full sm:w-56">
                   <SelectValue placeholder="Filter by team" />
                 </SelectTrigger>
@@ -365,23 +507,23 @@ export function BuilderInsightsDashboard({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Referrer</TableHead>
-                    <TableHead className="text-right">Builder Hub Sign Up</TableHead>
-                    <TableHead className="text-right">Events</TableHead>
-                    <TableHead className="text-right">Hackathons</TableHead>
-                    <TableHead className="text-right">Grants</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="w-32 text-right">Signups</TableHead>
+                    <TableHead className="w-32 text-right">Events</TableHead>
+                    <TableHead className="w-32 text-right">Hackathons</TableHead>
+                    <TableHead className="w-32 text-right">Grants</TableHead>
+                    <TableHead className="w-32 text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTopReferrers.length ? (
-                    filteredTopReferrers.map((row) => (
+                  {pagedTopReferrers.length ? (
+                    pagedTopReferrers.map((row) => (
                       <TableRow key={row.referrerId}>
-                        <TableCell className="font-medium">{row.referrer}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.builderHubSignups)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.eventRegistrations)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.hackathonRegistrations)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.grantApplications)}</TableCell>
-                        <TableCell className="text-right font-medium">{formatNumber(row.totalReferrals)}</TableCell>
+                        <TableCell className="font-medium">{toTitleCase(row.referrer)}</TableCell>
+                        <TableCell className="w-32 text-right">{formatNumber(row.builderHubSignups)}</TableCell>
+                        <TableCell className="w-32 text-right">{formatNumber(row.eventRegistrations)}</TableCell>
+                        <TableCell className="w-32 text-right">{formatNumber(row.hackathonRegistrations)}</TableCell>
+                        <TableCell className="w-32 text-right">{formatNumber(row.grantApplications)}</TableCell>
+                        <TableCell className="w-32 text-right font-medium">{formatNumber(row.totalReferrals)}</TableCell>
                       </TableRow>
                     ))
                   ) : (
@@ -393,23 +535,72 @@ export function BuilderInsightsDashboard({
                   )}
                 </TableBody>
               </Table>
+              {showLoadMore && (
+                <div className="flex justify-center pt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTopReferrerExpanded(true)}
+                  >
+                    Load{" "}
+                    {Math.min(TOP_REFERRERS_PAGE_SIZE, filteredTopReferrers.length) -
+                      TOP_REFERRERS_INITIAL}{" "}
+                    more
+                  </Button>
+                </div>
+              )}
+              {showPagination && (
+                <div className="flex items-center justify-between gap-2 pt-3 text-sm text-neutral-600 dark:text-neutral-400">
+                  <div>
+                    Showing {safeTopReferrerPage * TOP_REFERRERS_PAGE_SIZE + 1}–
+                    {Math.min(
+                      (safeTopReferrerPage + 1) * TOP_REFERRERS_PAGE_SIZE,
+                      filteredTopReferrers.length,
+                    )}{" "}
+                    of {filteredTopReferrers.length}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTopReferrerPage((p) => Math.max(0, p - 1))}
+                      disabled={safeTopReferrerPage === 0}
+                    >
+                      Previous
+                    </Button>
+                    <span>
+                      Page {safeTopReferrerPage + 1} of {topReferrerPageCount}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setTopReferrerPage((p) => Math.min(topReferrerPageCount - 1, p + 1))
+                      }
+                      disabled={safeTopReferrerPage >= topReferrerPageCount - 1}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
             <CardHeader>
-              <CardTitle className="text-base">Team Referrers</CardTitle>
+              <CardTitle className="text-base">Top Team Referrers</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Team</TableHead>
-                    <TableHead className="text-right">Builder Hub Sign Up</TableHead>
-                    <TableHead className="text-right">Events</TableHead>
-                    <TableHead className="text-right">Hackathons</TableHead>
-                    <TableHead className="text-right">Grants</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="w-32 text-right">Signups</TableHead>
+                    <TableHead className="w-32 text-right">Events</TableHead>
+                    <TableHead className="w-32 text-right">Hackathons</TableHead>
+                    <TableHead className="w-32 text-right">Grants</TableHead>
+                    <TableHead className="w-32 text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -417,11 +608,11 @@ export function BuilderInsightsDashboard({
                     data.topTeamReferrers.map((row) => (
                       <TableRow key={row.teamId}>
                         <TableCell className="font-medium">{row.team}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.builderHubSignups)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.eventRegistrations)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.hackathonRegistrations)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.grantApplications)}</TableCell>
-                        <TableCell className="text-right font-medium">{formatNumber(row.totalReferrals)}</TableCell>
+                        <TableCell className="w-32 text-right">{formatNumber(row.builderHubSignups)}</TableCell>
+                        <TableCell className="w-32 text-right">{formatNumber(row.eventRegistrations)}</TableCell>
+                        <TableCell className="w-32 text-right">{formatNumber(row.hackathonRegistrations)}</TableCell>
+                        <TableCell className="w-32 text-right">{formatNumber(row.grantApplications)}</TableCell>
+                        <TableCell className="w-32 text-right font-medium">{formatNumber(row.totalReferrals)}</TableCell>
                       </TableRow>
                     ))
                   ) : (
@@ -441,69 +632,20 @@ export function BuilderInsightsDashboard({
   );
 }
 
-function ReferralTargetGroup({
-  title,
-  icon,
-  targets,
-  emptyLabel = "No referral targets available.",
-  getLatestLinkForTarget,
-  creatingTargetKey,
-  copiedLinkId,
-  onGenerateAndCopy,
-}: {
-  title: string;
-  icon: ReactNode;
-  targets: ReferralTargetPreset[];
-  emptyLabel?: string;
-  getLatestLinkForTarget: (target: ReferralTargetPreset) => ReferralLinkSummary | undefined;
-  creatingTargetKey: string | null;
-  copiedLinkId: string | null;
-  onGenerateAndCopy: (target: ReferralTargetPreset) => Promise<void>;
-}) {
-  return (
-    <div className="grid gap-2">
-      <div className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-        {icon}
-        {title}
-      </div>
-      {targets.length ? (
-        <div className="flex flex-wrap gap-2">
-          {targets.map((target) => {
-            const existingLink = getLatestLinkForTarget(target);
-            const isCreating = creatingTargetKey === target.key;
-            const isCopied = existingLink ? copiedLinkId === existingLink.id : false;
-
-            return (
-              <Button
-                key={target.key}
-                size="sm"
-                onClick={() => onGenerateAndCopy(target)}
-                disabled={isCreating}
-                title={target.detail}
-              >
-                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isCopied ? "Copied" : target.label}
-              </Button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-md border border-dashed border-neutral-200 px-3 py-6 text-center text-sm text-neutral-500 dark:border-neutral-800">
-          {emptyLabel}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function MetricCard({
   label,
   value,
+  valueOverride,
   deltaPercent,
+  subText,
+  compactValue,
 }: {
   label: string;
-  value: number;
+  value?: number;
+  valueOverride?: string;
   deltaPercent?: number;
+  subText?: string;
+  compactValue?: boolean;
 }) {
   const hasDelta = typeof deltaPercent === "number";
   const deltaClass =
@@ -516,6 +658,9 @@ function MetricCard({
     ? `${deltaPercent > 0 ? "+" : ""}${Math.round(deltaPercent)}%`
     : null;
 
+  const display = valueOverride ?? formatNumber(value ?? 0);
+  const valueSizeClass = compactValue ? "text-2xl" : "text-4xl";
+
   return (
     <Card className="rounded-lg border-neutral-200 shadow-none dark:border-neutral-800">
       <CardHeader className="pb-2">
@@ -524,7 +669,10 @@ function MetricCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        <div className="text-4xl font-semibold tracking-tight">{formatNumber(value)}</div>
+        <div className={`${valueSizeClass} font-semibold tracking-tight`}>{display}</div>
+        {subText && (
+          <div className="text-sm text-neutral-500 dark:text-neutral-400">{subText}</div>
+        )}
         {formattedDelta && (
           <div className={`text-sm font-medium ${deltaClass}`}>
             {formattedDelta} vs previous 30 days

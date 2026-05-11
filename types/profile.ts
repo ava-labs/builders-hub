@@ -8,7 +8,9 @@ export type Profile = {
     social_media: string[],
     notifications: boolean | null,
     profile_privacy: string,
-    telegram_user: string | undefined
+    telegram_user: string | undefined,
+    team_id: string | null,
+    country: string | null,
 }
 
 

@@ -4,7 +4,6 @@ export type RegistrationForm=
 {
     id:string,
     hackathon_id:string,
-    utm:string
     city: string,
     company_name: string,
     dietary: string,

@@ -32,7 +32,6 @@ import type { ProfileFormValues } from "./hooks/useProfileForm";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Toaster } from "@/components/ui/toaster";
 import { ProfileChecklist } from "./ProfileChecklist";
-import { ProfileReferralLink } from "./ProfileReferralLink";
 import { z } from "zod";
 
 export interface ProfileProps {
@@ -87,7 +86,6 @@ export default function Profile({
                   <span>Saving...</span>
                 </div>
               )}
-              <ProfileReferralLink />
             </div>
           </div>
         </div>

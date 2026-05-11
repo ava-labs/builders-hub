@@ -30,15 +30,6 @@ export const ACTIVE_GRANT_TARGETS: ReferralTargetPreset[] = [
     targetId: "avalanche-research-proposals",
     destinationUrl: "/grants/avalanche-research-proposals",
   },
-  {
-    key: "grant-retro9000-returning",
-    group: "grant",
-    label: "Retro9000 Returning",
-    detail: "Active grant application",
-    targetType: "grant_application",
-    targetId: "retro9000-returning",
-    destinationUrl: "/grants/retro9000returning",
-  },
 ];
 
 export function getGrantReferralTarget(targetId: string | null | undefined) {

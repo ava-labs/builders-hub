@@ -81,9 +81,9 @@ model User {
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   badges                   UserBadge[]
   validatorAlerts          ValidatorAlert[]
-  referralLinks            ReferralLink[]           @relation("ReferralLinkOwner")
-  referralAttributionsMade ReferralAttribution[]    @relation("ReferralAttributionReferrer")
-  referralAttributions     ReferralAttribution[]    @relation("ReferralAttributionUser")
+  referralLinks            ReferralLink[]            @relation("ReferralLinkOwner")
+  referralAttributionsMade ReferralAttribution[]     @relation("ReferralAttributionReferrer")
+  referralAttributions     ReferralAttribution[]     @relation("ReferralAttributionUser")
 }
 
 model VerificationToken {
@@ -96,7 +96,6 @@ model VerificationToken {
 
 model RegisterForm {
   id                      String    @id @default(uuid())
-  utm                     String
   city                    String
   dietary                 String?
   email                   String
@@ -307,19 +306,20 @@ model ReferralLink {
 }
 
 model ReferralAttribution {
-  id               String        @id @default(uuid())
-  attribution_key  String        @unique
-  referral_link_id String?
-  user_id          String?
-  user_id_referrer String?
-  team_id_referrer String?
-  target_type      String
-  target_id        String?
-  path             String?
-  created_at       DateTime      @default(now()) @db.Timestamptz(3)
-  referralLink     ReferralLink? @relation(fields: [referral_link_id], references: [id], onDelete: SetNull)
-  referrer         User?         @relation("ReferralAttributionReferrer", fields: [user_id_referrer], references: [id], onDelete: SetNull)
-  user             User?         @relation("ReferralAttributionUser", fields: [user_id], references: [id], onDelete: SetNull)
+  id                     String        @id @default(uuid())
+  attribution_key        String        @unique
+  referral_link_id       String?
+  user_id                String?
+  user_id_referrer       String?
+  team_id_referrer       String?
+  team_id_referrer_other String?
+  target_type            String
+  target_id              String?
+  path                   String?
+  created_at             DateTime      @default(now()) @db.Timestamptz(3)
+  referralLink           ReferralLink? @relation(fields: [referral_link_id], references: [id], onDelete: SetNull)
+  referrer               User?         @relation("ReferralAttributionReferrer", fields: [user_id_referrer], references: [id], onDelete: SetNull)
+  user                   User?         @relation("ReferralAttributionUser", fields: [user_id], references: [id], onDelete: SetNull)
 
   @@index([referral_link_id])
   @@index([user_id])
@@ -429,8 +429,6 @@ model BuildGamesApplication {
   project_description        String
   area_of_focus              String
   why_you                    String
-  how_did_you_hear           String
-  how_did_you_hear_specify   String?
   university_affiliation     String
   avalanche_ecosystem_member String
   privacy_policy_read        Boolean  @default(false)

@@ -130,13 +130,6 @@ export const EVENT_CONFIGS: Record<string, EventConfig> = {
           { key: "hackathon_details", label: "Hackathon Details", long: true },
         ],
       },
-      {
-        title: "Referral & Discovery",
-        fields: [
-          { key: "how_did_you_hear", label: "How Did You Hear" },
-          { key: "how_did_you_hear_specify", label: "Specify" },
-        ],
-      },
     ],
   },
   infrabuild: {

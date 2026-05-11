@@ -33,8 +33,6 @@ const AREA_OF_FOCUS = [
   { value: "gaming", label: "Gaming" },
 ];
 
-const HOW_DID_YOU_HEAR = ["Referred by a friend", "Twitter/X", "Ava Labs staff member", "Discord", "Telegram", "AVAX partner or investor", "Team1", "Avalanche Marketing", "Other"];
-
 const STEPS = [
   { id: 1, name: "Personal Info", description: "Your contact details", icon: User },
   { id: 2, name: "Location", description: "Where are you based", icon: MapPin },
@@ -69,8 +67,6 @@ const formSchema = z.object({
 
   whyYou: z.string().min(1, "This field is required"),
 
-  howDidYouHear: z.string().min(1, "Please select an option"),
-  howDidYouHearSpecify: z.string().min(1, "Please specify how you heard about us"),
   universityAffiliation: z.enum(["yes", "no"], { message: "Please select an option" }),
   avalancheEcosystemMember: z.enum(["yes", "no"], { message: "Please select an option" }),
 
@@ -119,8 +115,6 @@ export default function BuildGamesApplyForm() {
       projectDescription: "",
       areaOfFocus: "",
       whyYou: "",
-      howDidYouHear: "",
-      howDidYouHearSpecify: "",
       universityAffiliation: undefined,
       avalancheEcosystemMember: undefined,
       privacyPolicyRead: false,
@@ -190,8 +184,6 @@ export default function BuildGamesApplyForm() {
     watchedValues.projectDescription &&
     watchedValues.areaOfFocus &&
     watchedValues.whyYou &&
-    watchedValues.howDidYouHear &&
-    watchedValues.howDidYouHearSpecify &&
     watchedValues.universityAffiliation &&
     watchedValues.avalancheEcosystemMember &&
     watchedValues.privacyPolicyRead
@@ -910,53 +902,6 @@ export default function BuildGamesApplyForm() {
                   {/* Step 6: Additional Info */}
                   {currentStep === 6 && (
                     <div className="space-y-6">
-                      <FormField
-                        control={form.control}
-                        name="howDidYouHear"
-                        render={({ field }) => (
-                          <FormItem className="space-y-2">
-                            <Label className="text-sm font-medium text-foreground">
-                              How did you hear about Build Games? <span className="text-destructive">*</span>
-                            </Label>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground">
-                                  <SelectValue placeholder="Select an option" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {HOW_DID_YOU_HEAR.map((option) => (
-                                  <SelectItem key={option} value={option.toLowerCase().replace(/[\s/]+/g, '_')}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage className="text-destructive" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="howDidYouHearSpecify"
-                        render={({ field }) => (
-                          <FormItem className="space-y-2">
-                            <Label className="text-sm font-medium text-foreground">
-                              Please specify <span className="text-destructive">*</span>
-                            </Label>
-                            <FormControl>
-                              <Input
-                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
-                                placeholder="Please specify"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-destructive" />
-                          </FormItem>
-                        )}
-                      />
-
                       <FormField
                         control={form.control}
                         name="universityAffiliation"
