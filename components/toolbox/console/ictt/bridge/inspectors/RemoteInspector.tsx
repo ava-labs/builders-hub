@@ -25,8 +25,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '');
   const { walletEVMAddress } = useWalletStore();
   const walletChainId = useWalletStore((s) => s.walletChainId);
-  const isTestnet = useWalletStore((s) => s.isTestnet);
-  const { switchChain } = useWallet();
+  const { switchChainOrAdd } = useWallet();
   const [isSwitching, setIsSwitching] = useState(false);
   const autoSwitchedFor = useRef<number | null>(null);
 
@@ -99,13 +98,16 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
 
   // Auto-switch once per destination change. If the user manually switches back,
   // we don't fight them — the deploy button just shows the Switch CTA again.
+  // Uses `switchChainOrAdd` so picking an L1 the wallet doesn't have yet (e.g.
+  // a freshly-created user L1) prompts add+switch in a single wallet popup
+  // rather than silently failing.
   useEffect(() => {
-    if (!destinationChainId || !walletEVMAddress) return;
+    if (!destinationChainId || !walletEVMAddress || !destinationL1) return;
     if (!chainMismatch) return;
     if (autoSwitchedFor.current === destinationChainId) return;
     autoSwitchedFor.current = destinationChainId;
-    void switchChain(destinationChainId, isTestnet).catch(() => {});
-  }, [destinationChainId, chainMismatch, walletEVMAddress, switchChain, isTestnet]);
+    void switchChainOrAdd(destinationL1).catch(() => {});
+  }, [destinationChainId, chainMismatch, walletEVMAddress, switchChainOrAdd, destinationL1]);
 
   // Reset auto-switch marker when the destination changes so a new pick triggers
   // a fresh switch attempt.
@@ -114,12 +116,10 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   }, [destinationChainId]);
 
   const handleManualSwitch = async () => {
-    if (!destinationChainId) return;
+    if (!destinationL1) return;
     setIsSwitching(true);
     try {
-      await switchChain(destinationChainId, isTestnet);
-    } catch {
-      // Best-effort; user can retry.
+      await switchChainOrAdd(destinationL1);
     } finally {
       setIsSwitching(false);
     }

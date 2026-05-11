@@ -528,8 +528,7 @@ interface ChangeHomeL1SectionProps {
  */
 function ChangeHomeL1Section({ currentHomeL1Id, locked, onStartNewBridge }: ChangeHomeL1SectionProps) {
   const l1List = useL1List();
-  const { switchChain } = useWallet();
-  const isTestnet = useWalletStore((s) => s.isTestnet);
+  const { switchChainOrAdd } = useWallet();
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const { openModal: openAddChainModal } = useModalTrigger();
   const [isSwitching, setIsSwitching] = useState<string | null>(null);
@@ -539,9 +538,10 @@ function ChangeHomeL1Section({ currentHomeL1Id, locked, onStartNewBridge }: Chan
     if (l1.evmChainId === walletChainId) return;
     setIsSwitching(l1.id);
     try {
-      await switchChain(l1.evmChainId, isTestnet);
-    } catch {
-      // Wallet may reject — keep the sheet open so the user sees no change.
+      // `switchChainOrAdd` falls back to wallet_addEthereumChain if the L1
+      // isn't already in the wallet — common for fresh user-created L1s.
+      // Errors are surfaced via toast inside the helper.
+      await switchChainOrAdd(l1);
     } finally {
       setIsSwitching(null);
     }

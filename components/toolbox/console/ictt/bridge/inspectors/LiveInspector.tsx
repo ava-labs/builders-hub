@@ -34,8 +34,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   const remoteL1 = useL1ByChainId(selectedRemote?.l1Id ?? '');
   const { walletEVMAddress } = useWalletStore();
   const walletChainId = useWalletStore((s) => s.walletChainId);
-  const isTestnet = useWalletStore((s) => s.isTestnet);
-  const { switchChain } = useWallet();
+  const { switchChainOrAdd } = useWallet();
   const setPendingDestinationL1Id = useIcttBridgeStore((s) => s.setPendingDestinationL1Id);
 
   const { send, resetError, stage, isBusy, error } = useSendTokens({ bridge, remote: selectedRemote });
@@ -167,12 +166,9 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   ]);
 
   const handleSwitchToHome = async () => {
-    if (!homeL1?.evmChainId) return;
-    try {
-      await switchChain(homeL1.evmChainId, isTestnet);
-    } catch {
-      // Wallet may have rejected — surface stays on the readiness row.
-    }
+    if (!homeL1) return;
+    // Use switch-or-add so a Home L1 that isn't in the wallet yet still works.
+    await switchChainOrAdd(homeL1);
   };
 
   return (

@@ -7,10 +7,11 @@ import { useMemo } from 'react';
 import { createAvalancheWalletClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 import { useWalletClient } from 'wagmi';
+import type { L1ListItem } from '../stores/l1ListStore';
 
 export function useWallet() {
   const walletStore = useWalletStore();
-  const { safelySwitch } = useWalletSwitch();
+  const { safelySwitch, safelySwitchOrAdd } = useWalletSwitch();
   const { openModal } = useModalTrigger<AddChainResult>();
   const { data: walletClient } = useWalletClient();
 
@@ -51,10 +52,20 @@ export function useWallet() {
     return safelySwitch(chainId, isTestnetChain);
   };
 
+  /**
+   * Switch to an L1, adding it to the wallet via `wallet_addEthereumChain`
+   * when the cheap switch fails. Use whenever the target L1 may not already
+   * be in the user's wallet (e.g. ICTT bridge pickers, phase gate).
+   */
+  const switchChainOrAdd = async (l1: L1ListItem): Promise<boolean> => {
+    return safelySwitchOrAdd(l1);
+  };
+
   return {
     // Actions
     addChain,
     switchChain,
+    switchChainOrAdd,
     // Clients exported for convenience and standardization
     client: walletClient ?? null,
     avalancheWalletClient,

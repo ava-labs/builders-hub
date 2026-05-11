@@ -3,10 +3,17 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import type { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Note } from '@/components/toolbox/components/Note';
 
 interface PhaseChainGateProps {
+  /**
+   * Resolved L1 the phase runs on. Preferred over `requiredChainId` because
+   * it lets the gate fall back to `wallet_addEthereumChain` when the wallet
+   * doesn't have the L1 yet (e.g. fresh user-created L1s).
+   */
+  requiredL1?: L1ListItem | null;
   /** EVM chainId required for this phase. `null`/`undefined` means no requirement. */
   requiredChainId?: number | null;
   /** Display name for the required chain (used in banner copy). */
@@ -16,30 +23,43 @@ interface PhaseChainGateProps {
 
 /**
  * Per-phase chain enforcement. On mount (or when the required chain changes),
- * attempts one programmatic `switchChain` so the user lands on the right chain
+ * attempts one programmatic switch so the user lands on the right chain
  * automatically. If the wallet rejects or fails, renders a clear "Switch to X"
  * banner instead of the form — physically preventing the user from signing
  * transactions on the wrong chain.
+ *
+ * When `requiredL1` is provided, uses `switchChainOrAdd` so missing chains are
+ * added to the wallet on the first attempt rather than silently failing.
  */
-export function PhaseChainGate({ requiredChainId, requiredChainName, children }: PhaseChainGateProps) {
+export function PhaseChainGate({ requiredL1, requiredChainId, requiredChainName, children }: PhaseChainGateProps) {
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isTestnet = useWalletStore((s) => s.isTestnet);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-  const { switchChain } = useWallet();
+  const { switchChain, switchChainOrAdd } = useWallet();
   const [isSwitching, setIsSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const attemptedRef = useRef<number | null>(null);
 
+  // Derive the effective chain ID + name. If an L1 is supplied it takes
+  // precedence; otherwise we fall back to the explicit chainId/name props.
+  const effectiveChainId = requiredL1?.evmChainId ?? requiredChainId ?? null;
+  const effectiveChainName = requiredL1?.name ?? requiredChainName ?? null;
+
   const isMismatched =
-    requiredChainId != null && walletChainId != null && walletChainId !== 0 && walletChainId !== requiredChainId;
+    effectiveChainId != null && walletChainId != null && walletChainId !== 0 && walletChainId !== effectiveChainId;
 
   const handleSwitch = useCallback(
     async (auto: boolean) => {
-      if (!requiredChainId) return;
+      if (!effectiveChainId) return;
       setIsSwitching(true);
       setError(null);
       try {
-        await switchChain(requiredChainId, isTestnet);
+        if (requiredL1) {
+          // switch-or-add: handles "chain not in wallet" without silent failure.
+          await switchChainOrAdd(requiredL1);
+        } else {
+          await switchChain(effectiveChainId, isTestnet);
+        }
       } catch (err) {
         // Auto-attempts swallow errors silently so the banner takes over.
         if (!auto) setError(err instanceof Error ? err.message : 'Could not switch chain.');
@@ -47,19 +67,19 @@ export function PhaseChainGate({ requiredChainId, requiredChainName, children }:
         setIsSwitching(false);
       }
     },
-    [requiredChainId, switchChain, isTestnet],
+    [effectiveChainId, requiredL1, switchChain, switchChainOrAdd, isTestnet],
   );
 
   // Attempt a single auto-switch per (requiredChainId, walletChainId) transition
   // to avoid fighting the user if they manually switch back.
   useEffect(() => {
-    if (!requiredChainId) return;
+    if (!effectiveChainId) return;
     if (!walletEVMAddress) return;
     if (!isMismatched) return;
-    if (attemptedRef.current === requiredChainId) return;
-    attemptedRef.current = requiredChainId;
+    if (attemptedRef.current === effectiveChainId) return;
+    attemptedRef.current = effectiveChainId;
     void handleSwitch(true);
-  }, [requiredChainId, isMismatched, walletEVMAddress, handleSwitch]);
+  }, [effectiveChainId, isMismatched, walletEVMAddress, handleSwitch]);
 
   // Reset the attempt marker when the required chain changes so a fresh
   // navigation triggers a fresh auto-switch.
@@ -67,9 +87,9 @@ export function PhaseChainGate({ requiredChainId, requiredChainName, children }:
     return () => {
       attemptedRef.current = null;
     };
-  }, [requiredChainId]);
+  }, [effectiveChainId]);
 
-  if (!isMismatched || !requiredChainId) {
+  if (!isMismatched || !effectiveChainId) {
     return <>{children}</>;
   }
 
@@ -78,7 +98,7 @@ export function PhaseChainGate({ requiredChainId, requiredChainName, children }:
       <Note variant="warning">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs">
-            This phase runs on {requiredChainName ?? `chain ${requiredChainId}`}. Switch your wallet to continue.
+            This phase runs on {effectiveChainName ?? `chain ${effectiveChainId}`}. Switch your wallet to continue.
           </span>
           <button
             type="button"
@@ -91,7 +111,7 @@ export function PhaseChainGate({ requiredChainId, requiredChainName, children }:
             ) : (
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             )}
-            {isSwitching ? 'Switching…' : `Switch to ${requiredChainName ?? 'required chain'}`}
+            {isSwitching ? 'Switching…' : `Switch to ${effectiveChainName ?? 'required chain'}`}
           </button>
         </div>
       </Note>

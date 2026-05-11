@@ -21,18 +21,17 @@ function useStepNavigator() {
 function useHomeChainGate(ctx: ReturnType<typeof useBridgeContext>) {
   const selectedL1 = useSelectedL1();
   const target = ctx.homeL1 ?? selectedL1 ?? null;
-  return {
-    requiredChainId: target?.evmChainId ?? null,
-    requiredChainName: target?.name ?? null,
-  };
+  // Pass the full L1 down to PhaseChainGate so it can fall back to
+  // wallet_addEthereumChain when the wallet doesn't have this chain yet.
+  return { requiredL1: target };
 }
 
 export function TokenStep() {
   const ctx = useBridgeContext({ step: 'token' });
   const navigate = useStepNavigator();
-  const { requiredChainId, requiredChainName } = useHomeChainGate(ctx);
+  const { requiredL1 } = useHomeChainGate(ctx);
   return (
-    <PhaseChainGate requiredChainId={requiredChainId} requiredChainName={requiredChainName}>
+    <PhaseChainGate requiredL1={requiredL1}>
       <TokenInspector
         onPhaseChange={navigate}
         underlyingTokenAddress={ctx.effectiveTokenAddress}
@@ -48,9 +47,9 @@ export function TokenStep() {
 export function HomeStep() {
   const ctx = useBridgeContext({ step: 'home' });
   const navigate = useStepNavigator();
-  const { requiredChainId, requiredChainName } = useHomeChainGate(ctx);
+  const { requiredL1 } = useHomeChainGate(ctx);
   return (
-    <PhaseChainGate requiredChainId={requiredChainId} requiredChainName={requiredChainName}>
+    <PhaseChainGate requiredL1={requiredL1}>
       <HomeInspector onPhaseChange={navigate} underlyingTokenAddress={ctx.effectiveTokenAddress} bridge={ctx.bridge} />
     </PhaseChainGate>
   );
@@ -70,7 +69,7 @@ export function RegisterStep() {
   const ctx = useBridgeContext({ step: 'register' });
   const navigate = useStepNavigator();
   return (
-    <PhaseChainGate requiredChainId={ctx.remoteL1?.evmChainId ?? null} requiredChainName={ctx.remoteL1?.name ?? null}>
+    <PhaseChainGate requiredL1={ctx.remoteL1}>
       <RegisterInspector onPhaseChange={navigate} bridge={ctx.bridge} remote={ctx.remote} />
     </PhaseChainGate>
   );
@@ -79,9 +78,9 @@ export function RegisterStep() {
 export function CollateralStep() {
   const ctx = useBridgeContext({ step: 'collateral' });
   const navigate = useStepNavigator();
-  const { requiredChainId, requiredChainName } = useHomeChainGate(ctx);
+  const { requiredL1 } = useHomeChainGate(ctx);
   return (
-    <PhaseChainGate requiredChainId={requiredChainId} requiredChainName={requiredChainName}>
+    <PhaseChainGate requiredL1={requiredL1}>
       <CollateralInspector onPhaseChange={navigate} bridge={ctx.bridge} remote={ctx.remote} />
     </PhaseChainGate>
   );
@@ -89,9 +88,9 @@ export function CollateralStep() {
 
 export function LiveStep() {
   const ctx = useBridgeContext({ step: 'live' });
-  const { requiredChainId, requiredChainName } = useHomeChainGate(ctx);
+  const { requiredL1 } = useHomeChainGate(ctx);
   return (
-    <PhaseChainGate requiredChainId={requiredChainId} requiredChainName={requiredChainName}>
+    <PhaseChainGate requiredL1={requiredL1}>
       <LiveInspector bridge={ctx.bridge} remote={ctx.remote} />
     </PhaseChainGate>
   );
