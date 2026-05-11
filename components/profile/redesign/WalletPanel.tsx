@@ -22,9 +22,25 @@ export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
   const lastAddress = wallets[wallets.length - 1]?.address;
 
   const handleDisconnectAll = () => {
-    // Iterate over a snapshot — onRemove may mutate the source array.
     for (const w of [...wallets]) onRemove(w.address);
   };
+
+  if (!isConnected) {
+    return (
+      <div style={{ alignSelf: "flex-start" }}>
+        <WalletConnectButton
+          onWalletConnected={onAddWallet}
+          currentAddress={lastAddress}
+          trigger={
+            <button type="button" className="pr-btn pr-btn--sm pr-btn--outline">
+              <Wallet size={14} />
+              Connect Wallet
+            </button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -46,43 +62,21 @@ export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
             </div>
             <span className="pr-label">EVM{w.label ? ` · ${w.label}` : ""}</span>
           </div>
-          <div className="pr-addr" title={w.address}>
-            {shorten(w.address)}
-          </div>
-          {w.balance && (
-            <div className="pr-bot">
-              <span className="pr-bal">{w.balance} AVAX</span>
+          <div className="pr-bot">
+            <div className="pr-addr" title={w.address}>
+              {shorten(w.address)}
             </div>
-          )}
+            <button
+              type="button"
+              className="pr-btn pr-btn--sm pr-btn--success"
+              onClick={handleDisconnectAll}
+              aria-label="Disconnect wallet"
+            >
+              <Check size={12} /> Connected
+            </button>
+          </div>
         </div>
       ))}
-
-      <div style={{ alignSelf: "flex-start" }}>
-        {isConnected ? (
-          <button
-            type="button"
-            className="pr-btn pr-btn--sm pr-btn--success"
-            onClick={handleDisconnectAll}
-            aria-label="Disconnect wallet"
-          >
-            <Check size={12} /> Connected
-          </button>
-        ) : (
-          <WalletConnectButton
-            onWalletConnected={onAddWallet}
-            currentAddress={lastAddress}
-            trigger={
-              <button
-                type="button"
-                className="pr-btn pr-btn--sm pr-btn--outline"
-              >
-                <Wallet size={14} />
-                Connect Wallet
-              </button>
-            }
-          />
-        )}
-      </div>
     </div>
   );
 }

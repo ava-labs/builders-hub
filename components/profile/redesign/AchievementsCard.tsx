@@ -80,26 +80,13 @@ export function AchievementsCard({ badges, loading = false }: Props) {
               >
                 <span
                   className="pr-glyph"
-                  style={{
-                    background: "var(--pr-g-200)",
-                    overflow: "hidden",
-                  }}
+                  style={{ background: "var(--pr-g-200)" }}
                 >
                   {b.imagePath ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={b.imagePath}
-                      alt=""
-                      width={36}
-                      height={36}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
+                    <img src={b.imagePath} alt="" width={96} height={96} />
                   ) : (
-                    <SparkleIcon size={18} />
+                    <SparkleIcon size={36} />
                   )}
                 </span>
                 <span className="pr-nm">{b.name}</span>

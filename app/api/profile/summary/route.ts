@@ -9,7 +9,10 @@ import {
   getUserBadgesForProfile,
   getProfileEngagement,
   getUserReferralCount,
-  getOrCreateBhSignupReferralCode,
+  getUserReferralLinks,
+  getReferralTargetCatalog,
+  ensureActiveReferralLinks,
+  getTotalBuilderCount,
 } from "@/server/services/profile-summary";
 
 async function getRequestOrigin(): Promise<string> {
@@ -27,23 +30,39 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
   }
 
   try {
-    const [origin, projects, badges, engagement, referralCount] = await Promise.all([
-      getRequestOrigin(),
+    const origin = await getRequestOrigin();
+    // Mint any missing active-target links first so they're present when
+    // we read `referralLinks` immediately after. Idempotent + sequential
+    // to avoid saturating the connection pool.
+    await ensureActiveReferralLinks(userId).catch((err) => {
+      console.error("[profile/summary] ensureActiveReferralLinks failed:", err);
+    });
+    const [
+      projects,
+      badges,
+      engagement,
+      referralCount,
+      referralLinks,
+      referralTargets,
+      totalBuilders,
+    ] = await Promise.all([
       getUserProjects(userId),
       getUserBadgesForProfile(userId),
       getProfileEngagement(userId),
       getUserReferralCount(userId),
+      getUserReferralLinks(userId, origin),
+      getReferralTargetCatalog(),
+      getTotalBuilderCount(),
     ]);
 
-    let bhSignupCode: string | null = null;
-    let bhSignupShareUrl: string | null = null;
-    try {
-      bhSignupCode = await getOrCreateBhSignupReferralCode(userId);
-      bhSignupShareUrl = buildReferralUrl(origin, "/", bhSignupCode);
-    } catch (err) {
-      // Non-fatal — the profile still renders without the invite link.
-      console.error("[profile/summary] failed to mint bh_signup code:", err);
-    }
+    // The bh_signup link was created/refreshed by ensureActiveReferralLinks
+    // and is now in `referralLinks` — pluck the code out to build the
+    // "Invite a friend" share URL.
+    const bhSignupLink = referralLinks.find((l) => l.targetType === "bh_signup");
+    const bhSignupCode = bhSignupLink?.code ?? null;
+    const bhSignupShareUrl = bhSignupCode
+      ? buildReferralUrl(origin, "/", bhSignupCode)
+      : null;
 
     return NextResponse.json({
       projects,
@@ -52,6 +71,10 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
       referralCount,
       bhSignupCode,
       bhSignupShareUrl,
+      referralLinks,
+      referralTargets,
+      totalBuilders,
+      origin,
     });
   } catch (err) {
     console.error("[profile/summary] error:", err);

@@ -33,27 +33,24 @@ import {
 } from "@/components/ui/select";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { BuilderInsightsData } from "@/server/services/builderInsights";
+import type { ProfileReferralLink } from "@/server/services/profile-summary";
 import {
-  createReferralLink,
-  type ReferralLinkResponse,
-} from "@/lib/referrals/client";
-import type { ReferralTargetPreset } from "@/lib/referrals/targets";
-import { ReferralLinkGenerator } from "@/components/referrals/ReferralLinkGenerator";
-
-interface ReferralLinkSummary {
-  id: string;
-  code: string;
-  target_type: string;
-  target_id: string | null;
-  destination_url: string;
-  created_at: string;
-  shareUrl: string;
-}
+  ReferralPanel,
+  type ReferralPanelLink,
+  type ReferralPanelTarget,
+  type ReferralTargetIcon,
+} from "@/components/referrals/ReferralPanel";
 
 interface BuilderInsightsDashboardProps {
   data: BuilderInsightsData;
-  referralLinks: ReferralLinkSummary[];
+  referralLinks: ProfileReferralLink[];
 }
+
+const REFERRAL_TARGET_ICON_BY_GROUP: Record<"signup" | "event" | "grant", ReferralTargetIcon> = {
+  signup: "rocket",
+  event: "trophy",
+  grant: "gift",
+};
 
 function formatNumber(value: number): string {
   return value.toLocaleString();
@@ -276,13 +273,45 @@ export function BuilderInsightsDashboard({
   const showLoadMore = isCompactView && filteredTopReferrers.length > TOP_REFERRERS_INITIAL;
   const showPagination =
     !isCompactView && filteredTopReferrers.length > TOP_REFERRERS_PAGE_SIZE;
-  const targetsByGroup = useMemo(
-    () => ({
-      signup: data.referralTargets.filter((target) => target.group === "signup"),
-      event: data.referralTargets.filter((target) => target.group === "event"),
-      grant: data.referralTargets.filter((target) => target.group === "grant"),
-    }),
-    [data.referralTargets]
+  const [liveReferralLinks, setLiveReferralLinks] = useState<ProfileReferralLink[]>(initialReferralLinks);
+
+  const referralCatalog: ReferralPanelTarget[] = useMemo(
+    () =>
+      data.referralTargets.map((t) => ({
+        key: t.key,
+        label: t.label,
+        detail: t.detail,
+        targetType: t.targetType,
+        targetId: t.targetId,
+        destinationUrl: t.destinationUrl,
+        icon: REFERRAL_TARGET_ICON_BY_GROUP[t.group],
+      })),
+    [data.referralTargets],
+  );
+
+  const referralPanelLinks: ReferralPanelLink[] = useMemo(() => {
+    const byKey = new Map<string, ReferralPanelTarget>();
+    for (const t of referralCatalog) {
+      byKey.set(`${t.targetType}|${t.targetId ?? ""}`, t);
+    }
+    return liveReferralLinks.map((l) => {
+      const sig = `${l.targetType}|${l.targetId ?? ""}`;
+      const t = byKey.get(sig);
+      return {
+        id: l.id,
+        shareUrl: l.shareUrl,
+        signups: l.signups,
+        targetType: l.targetType,
+        targetId: l.targetId,
+        targetLabel: t?.label ?? l.targetType.replace(/_/g, " "),
+        targetIcon: t?.icon ?? "rocket",
+      };
+    });
+  }, [liveReferralLinks, referralCatalog]);
+
+  const totalReferralSignups = useMemo(
+    () => liveReferralLinks.reduce((sum, l) => sum + (l.signups ?? 0), 0),
+    [liveReferralLinks],
   );
 
   return (
@@ -344,7 +373,37 @@ export function BuilderInsightsDashboard({
           />
         </div>
 
-        <ReferralLinkGenerator initialLinks={initialReferralLinks} targets={targetsByGroup} />
+        <ReferralPanel
+          links={referralPanelLinks}
+          targets={referralCatalog}
+          totalSignups={totalReferralSignups}
+          onCreate={async (target) => {
+            const res = await fetch("/api/referrals", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                targetType: target.targetType,
+                targetId: target.targetId,
+                destinationUrl: target.destinationUrl,
+              }),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const link = await res.json();
+            setLiveReferralLinks((prev) => [
+              ...prev,
+              {
+                id: link.id,
+                code: link.code,
+                shareUrl: link.shareUrl,
+                signups: 0,
+                targetType: link.target_type,
+                targetId: link.target_id ?? null,
+                destinationUrl: link.destination_url,
+                createdAt: new Date().toISOString(),
+              },
+            ]);
+          }}
+        />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ChartCard title="Builder Hub Visits By Month (unique visitors)">

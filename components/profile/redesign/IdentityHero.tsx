@@ -89,8 +89,8 @@ function InviteButton({
     <button
       type="button"
       onClick={handleClick}
-      className="pr-chip pr-chip--avax"
-      style={{ cursor: "pointer", border: 0 }}
+      className="pr-chip pr-chip--invite"
+      style={{ cursor: "pointer" }}
       title={shareUrl}
       aria-label="Copy your Builder Hub invite link"
     >

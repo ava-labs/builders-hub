@@ -11,7 +11,7 @@ import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import SignOutComponent from '../sign-out/SignOut';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
@@ -23,11 +23,22 @@ import { useRouter } from 'next/navigation';
 const AVATAR_SIZE = 32;
 
 import { canAccessBuilderInsights, canAccessEvaluationTools } from '@/lib/auth/permissions';
+
+function extractGithubUsername(value: string | null | undefined): string {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const match = trimmed.match(/github\.com\/([^/?#\s]+)/i);
+  if (match) return match[1];
+  return trimmed.replace(/^@/, '');
+}
+
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [localSeed, setLocalSeed] = useState<AvatarSeed | null>(null);
   const [localEnabled, setLocalEnabled] = useState(false);
+  const [githubUsername, setGithubUsername] = useState<string | null>(null);
   const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
@@ -38,7 +49,6 @@ export function UserButton() {
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
 
-  // Sincronizar avatar con API; actualizar contexto (si existe) o estado local
   useEffect(() => {
     if (!isAuthenticated) {
       avatarContext?.setNounAvatar(null, false);
@@ -69,37 +79,59 @@ export function UserButton() {
       cancelled = true;
     };
   }, [isAuthenticated, avatarContext?.setNounAvatar]);
-  
+
+  // Fetch the GitHub handle so the dropdown can show @username instead of email/name.
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!isAuthenticated || !userId) {
+      setGithubUsername(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/profile/extended/${userId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const handle = extractGithubUsername(data.github_account);
+        setGithubUsername(handle || null);
+      })
+      .catch(() => {
+        if (!cancelled) setGithubUsername(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, session?.user?.id]);
+
   const handleSignOut = (): void => {
-    // Clean up any stored redirect URLs before logout
     if (typeof window !== "undefined") {
       localStorage.removeItem("redirectAfterProfile");
-
-      // Clean up any form data stored in localStorage
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith("formData_")) {
           localStorage.removeItem(key);
         }
       });
     }
-
     signOut({ redirect: false }).then(() => {
       router.push('/');
     });
   };
+
   useEffect(() => {
     if (!session?.user) {
       localStorage.removeItem("session_payload");
       return;
     }
-
     const payload: { id: string; custom_attributes: string[] } = {
       id: session.user.id,
       custom_attributes: session.user.custom_attributes ?? [],
     };
-
     localStorage.setItem("session_payload", JSON.stringify(payload));
-  }, [session?.user])
+  }, [session?.user]);
+
+  const displayHandle = githubUsername
+    ? `@${githubUsername}`
+    : session?.user?.name || session?.user?.email || 'Account';
 
   return (
     <>
@@ -142,61 +174,27 @@ export function UserButton() {
           >
             <div className="px-2 py-1.5">
               <div
-                className="text-sm truncate cursor-default"
-                title={session.user.email || 'No email available'}
+                className="text-sm font-medium truncate cursor-default"
+                title={displayHandle}
               >
-                {session.user.email || 'No email available'}
+                {displayHandle}
               </div>
-
-              {session.user.name && session.user.name !== session.user.email && (
-                <p className="text-sm wrap-break-word mt-1">
-                  {session.user.name}
-                </p>
-              )}
             </div>
             <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
 
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile'>Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile?tab=achievements'>Achievements Board</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile?tab=projects'>Projects</Link>
-            </DropdownMenuItem>
-            {
-              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('notify_event')) && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/send-notifications'>Send notifications</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {
-              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('hackathonCreator')) && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/events/edit'>Event Management</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {
-              canAccessEvaluate && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/evaluate'>Evaluate Hackathons</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {
-              canAccessInsights && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/builder-insights'>Builder Insights</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {/* <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile?tab=settings'>Settings</Link>
-            </DropdownMenuItem> */}
-
+            {canAccessEvaluate && (
+              <DropdownMenuItem asChild className='cursor-pointer'>
+                <Link href='/evaluate'>Evaluate Hackathons</Link>
+              </DropdownMenuItem>
+            )}
+            {canAccessInsights && (
+              <DropdownMenuItem asChild className='cursor-pointer'>
+                <Link href='/builder-insights'>Builder Insights</Link>
+              </DropdownMenuItem>
+            )}
 
             <DropdownMenuItem
               onClick={() => setIsDialogOpen(true)}

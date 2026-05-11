@@ -3,11 +3,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { canAccessBuilderInsights } from "@/lib/auth/permissions";
-import { buildReferralUrl } from "@/server/services/referrals";
-import {
-  getBuilderInsightsData,
-  getBuilderInsightsReferralLinks,
-} from "@/server/services/builderInsights";
+import { getBuilderInsightsData } from "@/server/services/builderInsights";
+import { getUserReferralLinks } from "@/server/services/profile-summary";
 import { BuilderInsightsDashboard } from "@/components/builder-insights/BuilderInsightsDashboard";
 
 export const metadata: Metadata = {
@@ -31,24 +28,16 @@ export default async function BuilderInsightsPage() {
     redirect("/");
   }
 
-  const [data, referralLinks, origin] = await Promise.all([
+  const origin = await getRequestOrigin();
+  const [data, referralLinks] = await Promise.all([
     getBuilderInsightsData(session.user.id),
-    getBuilderInsightsReferralLinks(session.user.id),
-    getRequestOrigin(),
+    getUserReferralLinks(session.user.id, origin),
   ]);
 
   return (
     <BuilderInsightsDashboard
       data={data}
-      referralLinks={referralLinks.map((link) => ({
-        id: link.id,
-        code: link.code,
-        target_type: link.target_type,
-        target_id: link.target_id,
-        destination_url: link.destination_url,
-        created_at: link.created_at.toISOString(),
-        shareUrl: buildReferralUrl(origin, link.destination_url, link.code),
-      }))}
+      referralLinks={referralLinks}
     />
   );
 }

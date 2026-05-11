@@ -1,0 +1,375 @@
+/* Reusable referral panel — uses --pr-* tokens when nested under the profile
+   redesign, falls back to the avax dark palette otherwise. */
+
+.referral-panel {
+  --rp-bg: var(--pr-g-100, #141416);
+  --rp-elev: var(--pr-g-200, #1a1a1d);
+  --rp-fg: var(--pr-g-1000, #fafafa);
+  --rp-muted: var(--pr-g-650, #8b8b94);
+  --rp-mute2: var(--pr-g-700, #a3a3ad);
+  --rp-line: var(--pr-hairline, #2a2a2e);
+  --rp-line-strong: var(--pr-g-400, #3a3a3f);
+  --rp-accent: var(--pr-avax, #e84142);
+  --rp-accent-tint: var(--pr-avax-tint, #3a1416);
+  --rp-mono: var(--pr-mono, "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace);
+
+  background: var(--rp-bg);
+  color: var(--rp-fg);
+  border: 1px solid var(--rp-line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.referral-panel .rp-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--rp-line);
+  padding: 16px 18px 14px;
+}
+.referral-panel .rp-head-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--rp-accent-tint);
+  color: var(--rp-accent);
+  flex-shrink: 0;
+}
+.referral-panel .rp-head-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--rp-fg);
+}
+/* Pin the stat to the top-right of the card head, regardless of where
+   the title text ends. */
+.referral-panel .rp-head-stat {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  text-align: right;
+  font-family: var(--rp-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rp-muted);
+  line-height: 1;
+}
+.referral-panel .rp-head-stat b {
+  display: block;
+  margin-bottom: 2px;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--rp-accent);
+}
+
+.referral-panel .rp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px 18px;
+}
+
+.referral-panel .rp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.referral-panel .rp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--rp-line);
+  border-radius: 10px;
+  background: var(--rp-elev);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.referral-panel .rp-row:hover {
+  border-color: var(--rp-line-strong);
+}
+
+.referral-panel .rp-em {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: var(--rp-accent-tint);
+  color: var(--rp-accent);
+  flex-shrink: 0;
+}
+
+.referral-panel .rp-row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.referral-panel .rp-row-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--rp-fg);
+}
+.referral-panel .rp-row-url {
+  font-family: var(--rp-mono);
+  font-size: 10.5px;
+  color: var(--rp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.referral-panel .rp-row-stat {
+  flex-shrink: 0;
+  text-align: right;
+  font-family: var(--rp-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rp-muted);
+  line-height: 1;
+}
+.referral-panel .rp-row-stat b {
+  display: block;
+  margin-bottom: 2px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rp-fg);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.referral-panel .rp-row-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.referral-panel .rp-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--rp-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.referral-panel .rp-icon-btn:hover,
+.referral-panel .rp-icon-btn:focus-visible {
+  background: var(--rp-line);
+  color: var(--rp-fg);
+  outline: none;
+}
+.referral-panel .rp-icon-btn[aria-pressed="true"] {
+  background: var(--rp-accent-tint);
+  color: var(--rp-accent);
+}
+
+.referral-panel .rp-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--rp-elev);
+}
+.referral-panel .rp-empty-em {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--rp-accent-tint);
+  color: var(--rp-accent);
+  flex-shrink: 0;
+}
+.referral-panel .rp-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rp-fg);
+}
+.referral-panel .rp-empty-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--rp-muted);
+}
+
+.referral-panel .rp-skeleton .rp-skel {
+  display: inline-block;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--rp-line);
+}
+.referral-panel .rp-skeleton {
+  opacity: 0.5;
+}
+
+.referral-panel .rp-add {
+  margin-top: 2px;
+}
+.referral-panel .rp-add-btn {
+  display: flex;
+  width: 100%;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--rp-line-strong);
+  border-radius: 10px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rp-fg);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.referral-panel .rp-add-btn:hover,
+.referral-panel .rp-add-btn:focus-visible {
+  border-color: var(--rp-accent);
+  color: var(--rp-accent);
+  outline: none;
+}
+
+.referral-panel .rp-picker {
+  border: 1px solid var(--rp-line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--rp-elev);
+}
+.referral-panel .rp-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid var(--rp-line);
+  font-family: var(--rp-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rp-muted);
+}
+.referral-panel .rp-picker ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.referral-panel .rp-picker-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--rp-line);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  font-family: inherit;
+}
+.referral-panel .rp-picker li:last-child .rp-picker-item {
+  border-bottom: 0;
+}
+.referral-panel .rp-picker-item:hover,
+.referral-panel .rp-picker-item:focus-visible {
+  background: var(--rp-line);
+  outline: none;
+}
+.referral-panel .rp-picker-item[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+.referral-panel .rp-picker-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rp-fg);
+}
+.referral-panel .rp-picker-detail {
+  font-family: var(--rp-mono);
+  font-size: 10px;
+  color: var(--rp-muted);
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.referral-panel .rp-qr {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 14px;
+  margin-top: 6px;
+  border: 1px solid var(--rp-line);
+  border-radius: 10px;
+  background: var(--rp-elev);
+  align-items: center;
+}
+.referral-panel .rp-qr-canvas {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.referral-panel .rp-qr-meta {
+  min-width: 0;
+}
+.referral-panel .rp-qr-label {
+  font-family: var(--rp-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rp-muted);
+  margin-bottom: 4px;
+}
+.referral-panel .rp-qr-url {
+  font-family: var(--rp-mono);
+  font-size: 11px;
+  color: var(--rp-fg);
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+
+.referral-panel .rp-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--rp-line-strong);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--rp-fg);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  font-family: inherit;
+}
+.referral-panel .rp-text-btn:hover,
+.referral-panel .rp-text-btn:focus-visible {
+  background: var(--rp-line);
+  border-color: var(--rp-line-strong);
+  outline: none;
+}

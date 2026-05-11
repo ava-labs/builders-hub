@@ -16,7 +16,11 @@ import { PersonalCard } from "./PersonalCard";
 import { ProjectsCard, type ProjectsCardProject } from "./ProjectsCard";
 import { AchievementsCard, type AchievementsCardBadge } from "./AchievementsCard";
 import { CompletionWidget } from "./CompletionWidget";
-import { ReferralPanelShell } from "./ReferralPanelShell";
+import {
+  ReferralPanel,
+  type ReferralPanelLink,
+  type ReferralPanelTarget,
+} from "@/components/referrals/ReferralPanel";
 import { SaveBar } from "./SaveBar";
 import { ToastHost, type ToastSpec } from "./Toast";
 import {
@@ -28,15 +32,41 @@ import {
   roleFieldKey,
 } from "./adapter";
 import { computeCompletion, type CompletionStepKey } from "@/lib/profile/completion";
+import { canSendNotifications } from "@/lib/auth/permissions";
+import SendNotificationsForm from "@/components/notification/send-notifications-form";
 import type { ProfileLink, ProfileRole } from "./types";
 
-type Tab = "personal" | "projects" | "achievements" | "referrals";
-const TABS: ReadonlyArray<{ id: Tab; label: string }> = [
+type Tab = "personal" | "projects" | "achievements" | "notifications";
+interface TabSpec {
+  id: Tab;
+  label: string;
+}
+const BASE_TABS: ReadonlyArray<TabSpec> = [
   { id: "personal", label: "Personal" },
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
-  { id: "referrals", label: "Referrals" },
 ];
+
+interface SummaryReferralLink {
+  id: string;
+  code: string;
+  shareUrl: string;
+  signups: number;
+  targetType: string;
+  targetId: string | null;
+  destinationUrl: string;
+}
+
+interface SummaryReferralTarget {
+  key: string;
+  group: "signup" | "event" | "grant";
+  label: string;
+  detail: string;
+  targetType: string;
+  targetId: string | null;
+  destinationUrl: string;
+  icon: "rocket" | "trophy" | "code" | "gift";
+}
 
 interface SummaryResponse {
   projects: ProjectsCardProject[];
@@ -49,6 +79,10 @@ interface SummaryResponse {
   referralCount: number;
   bhSignupCode: string | null;
   bhSignupShareUrl: string | null;
+  referralLinks: SummaryReferralLink[];
+  referralTargets: SummaryReferralTarget[];
+  totalBuilders: number;
+  origin: string;
 }
 
 const EMPTY_SUMMARY: SummaryResponse = {
@@ -62,6 +96,10 @@ const EMPTY_SUMMARY: SummaryResponse = {
   referralCount: 0,
   bhSignupCode: null,
   bhSignupShareUrl: null,
+  referralLinks: [],
+  referralTargets: [],
+  totalBuilders: 0,
+  origin: "",
 };
 
 interface Props {
@@ -70,7 +108,7 @@ interface Props {
   teamLabel?: string | null;
 }
 
-export default function ProfilePage({ referralPanel, teamLabel }: Props) {
+export default function ProfilePage({ teamLabel }: Props) {
   const { data: session } = useSession();
   const avatarContext = useUserAvatar();
   const {
@@ -287,6 +325,43 @@ export default function ProfilePage({ referralPanel, teamLabel }: Props) {
     avatarContext?.setNounAvatar(seed, enabled);
   };
 
+  // Map server-side referral data into the ReferralPanel's view-model.
+  // IMPORTANT: useMemo must run on every render — keep these above any
+  // early-return below or React throws a hooks-order error.
+  const referralCatalog: ReferralPanelTarget[] = React.useMemo(
+    () =>
+      summary.referralTargets.map((t) => ({
+        key: t.key,
+        label: t.label,
+        detail: t.detail,
+        targetType: t.targetType,
+        targetId: t.targetId,
+        destinationUrl: t.destinationUrl,
+        icon: t.icon,
+      })),
+    [summary.referralTargets],
+  );
+
+  const referralLinks: ReferralPanelLink[] = React.useMemo(() => {
+    const targetByKey = new Map<string, SummaryReferralTarget>();
+    for (const t of summary.referralTargets) {
+      targetByKey.set(`${t.targetType}|${t.targetId ?? ""}`, t);
+    }
+    return summary.referralLinks.map((l) => {
+      const sig = `${l.targetType}|${l.targetId ?? ""}`;
+      const t = targetByKey.get(sig);
+      return {
+        id: l.id,
+        shareUrl: l.shareUrl,
+        signups: l.signups,
+        targetType: l.targetType,
+        targetId: l.targetId,
+        targetLabel: t?.label ?? l.targetType.replace(/_/g, " "),
+        targetIcon: t?.icon ?? "rocket",
+      };
+    });
+  }, [summary.referralLinks, summary.referralTargets]);
+
   if (isLoading) {
     return (
       <div className="profile-redesign">
@@ -320,13 +395,22 @@ export default function ProfilePage({ referralPanel, teamLabel }: Props) {
     );
   }
 
+  const showNotificationsTab = canSendNotifications(session?.user?.custom_attributes);
+  const tabs: ReadonlyArray<TabSpec> = showNotificationsTab
+    ? [...BASE_TABS, { id: "notifications", label: "Notifications" }]
+    : BASE_TABS;
+
   const tabCounts: Record<Tab, number | null> = {
     personal:
       completion.completed === completion.total ? null : completion.completed,
     projects: summary.projects.length,
     achievements: summary.badges.length,
-    referrals: summary.referralCount,
+    notifications: null,
   };
+
+  const showSidebar =
+    tab !== "notifications" &&
+    (completion.pct < 100 || referralLinks.length > 0 || referralCatalog.length > 0);
 
   return (
     <div className="profile-redesign">
@@ -353,7 +437,7 @@ export default function ProfilePage({ referralPanel, teamLabel }: Props) {
 
         <div className="pr-tabbar">
           <div className="pr-tabs" role="tablist">
-            {TABS.map((t) => {
+            {tabs.map((t) => {
               const count = tabCounts[t.id];
               const showCount =
                 t.id === "personal"
@@ -375,7 +459,11 @@ export default function ProfilePage({ referralPanel, teamLabel }: Props) {
                   onClick={() => setTab(t.id)}
                 >
                   {t.label}
-                  {showCount && <span className="pr-count">{display}</span>}
+                  {t.id === "notifications" ? (
+                    <span className="pr-devrel-badge">DevRel</span>
+                  ) : (
+                    showCount && <span className="pr-count">{display}</span>
+                  )}
                 </button>
               );
             })}
@@ -384,7 +472,7 @@ export default function ProfilePage({ referralPanel, teamLabel }: Props) {
 
         <div
           className="pr-grid"
-          data-no-sidebar={completion.pct >= 100 ? "true" : undefined}
+          data-no-sidebar={!showSidebar ? "true" : undefined}
         >
           <div className="pr-col">
             {tab === "personal" && (
@@ -440,17 +528,57 @@ export default function ProfilePage({ referralPanel, teamLabel }: Props) {
                 loading={summaryLoading}
               />
             )}
-            {tab === "referrals" && referralPanel && (
-              <ReferralPanelShell
-                panel={referralPanel}
-                referralCount={summary.referralCount}
-              />
+            {tab === "notifications" && showNotificationsTab && (
+              <SendNotificationsForm totalBuilders={summary.totalBuilders} />
             )}
           </div>
 
-          {completion.pct < 100 && (
+          {showSidebar && (
             <div className="pr-col">
-              <CompletionWidget completion={completion} onJump={handleJump} />
+              <ReferralPanel
+                links={referralLinks}
+                targets={referralCatalog}
+                totalSignups={summary.referralCount}
+                loading={summaryLoading}
+                onCreate={async (target) => {
+                  try {
+                    const res = await fetch("/api/referrals", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        targetType: target.targetType,
+                        targetId: target.targetId,
+                        destinationUrl: target.destinationUrl,
+                      }),
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const link = await res.json();
+                    setSummary((prev) => ({
+                      ...prev,
+                      referralLinks: [
+                        ...prev.referralLinks,
+                        {
+                          id: link.id,
+                          code: link.code,
+                          shareUrl: link.shareUrl,
+                          signups: 0,
+                          targetType: link.target_type,
+                          targetId: link.target_id ?? null,
+                          destinationUrl: link.destination_url,
+                        },
+                      ],
+                    }));
+                    pushToast("Referral link created");
+                  } catch (err) {
+                    console.error("[ProfilePage] failed to create link:", err);
+                    pushToast("Could not create referral link", "error");
+                  }
+                }}
+                onCopy={() => pushToast("Referral link copied")}
+              />
+              {completion.pct < 100 && (
+                <CompletionWidget completion={completion} onJump={handleJump} />
+              )}
             </div>
           )}
         </div>

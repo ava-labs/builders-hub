@@ -1,5 +1,11 @@
 import { prisma } from "@/prisma/prisma";
-import { createReferralLink } from "@/server/services/referrals";
+import {
+  createReferralLink,
+  listReferralLinksForUser,
+  getActiveReferralTargets,
+  buildReferralUrl,
+} from "@/server/services/referrals";
+import type { ReferralTargetPreset } from "@/lib/referrals/targets";
 import type { Prisma } from "@prisma/client";
 
 /**
@@ -189,4 +195,154 @@ export async function getOrCreateBhSignupReferralCode(
     targetType: "bh_signup",
   });
   return link.code;
+}
+
+/**
+ * Ensures the user has a referral link for every currently-active target
+ * (BH signup + every active event + every active grant). Idempotent: re-
+ * uses any existing matching link rather than minting a new code.
+ *
+ * Short-circuits when the user already has every active target — that's
+ * the steady-state case after first load, so the typical hot path is one
+ * cheap query against the indexed `owner_user_id` column.
+ *
+ * Mints sequentially when needed (not in parallel) to avoid saturating
+ * the Prisma connection pool — `createReferralLink` itself can issue
+ * up to ~16 DB round-trips per call, and the summary endpoint already
+ * runs many queries in parallel.
+ */
+export async function ensureActiveReferralLinks(userId: string): Promise<void> {
+  if (!userId) return;
+  const groups = await getActiveReferralTargets();
+  const all: ReferralTargetPreset[] = [
+    ...groups.signup,
+    ...groups.event,
+    ...groups.grant,
+  ];
+  if (all.length === 0) return;
+
+  const existing = await prisma.referralLink.findMany({
+    where: { owner_user_id: userId, disabled_at: null },
+    select: { target_type: true, target_id: true },
+  });
+  const has = new Set(existing.map((l) => `${l.target_type}|${l.target_id ?? ""}`));
+  const missing = all.filter(
+    (t) => !has.has(`${t.targetType}|${t.targetId ?? ""}`),
+  );
+  if (missing.length === 0) return;
+
+  for (const t of missing) {
+    try {
+      await createReferralLink({
+        ownerUserId: userId,
+        targetType: t.targetType,
+        targetId: t.targetId,
+        destinationUrl: t.destinationUrl,
+      });
+    } catch (err) {
+      console.error(
+        `[ensureActiveReferralLinks] mint failed for ${t.key}:`,
+        err,
+      );
+    }
+  }
+}
+
+/**
+ * Total count of users on the platform — used by the notifications form
+ * to show an honest reach number for the "All builders" audience.
+ */
+export async function getTotalBuilderCount(): Promise<number> {
+  return prisma.user.count();
+}
+
+export interface ProfileReferralLink {
+  id: string;
+  code: string;
+  targetType: string;
+  targetId: string | null;
+  destinationUrl: string;
+  shareUrl: string;
+  signups: number;
+  createdAt: string;
+}
+
+/**
+ * Returns the user's existing referral links with per-link attribution counts.
+ * Stats query is one grouped count keyed by `referral_link_id` so it scales
+ * with the number of links (typically <10 per user).
+ */
+export async function getUserReferralLinks(
+  userId: string,
+  origin: string,
+): Promise<ProfileReferralLink[]> {
+  if (!userId) return [];
+  const links = await listReferralLinksForUser(userId);
+  if (links.length === 0) return [];
+
+  const linkIds = links.map((l) => l.id);
+  const counts = await prisma.referralAttribution.groupBy({
+    by: ["referral_link_id"],
+    where: { referral_link_id: { in: linkIds } },
+    _count: { _all: true },
+  });
+  const byId = new Map<string, number>();
+  for (const row of counts) {
+    if (row.referral_link_id) byId.set(row.referral_link_id, row._count._all);
+  }
+
+  return links.map((l) => ({
+    id: l.id,
+    code: l.code,
+    targetType: l.target_type,
+    targetId: l.target_id,
+    destinationUrl: l.destination_url,
+    shareUrl: buildReferralUrl(origin, l.destination_url, l.code),
+    signups: byId.get(l.id) ?? 0,
+    createdAt: l.created_at.toISOString(),
+  }));
+}
+
+export interface ProfileReferralTarget {
+  key: string;
+  group: "signup" | "event" | "grant";
+  label: string;
+  detail: string;
+  targetType: string;
+  targetId: string | null;
+  destinationUrl: string;
+  /** Lucide-style icon key our UI can render. */
+  icon: "rocket" | "trophy" | "code" | "gift";
+}
+
+const TARGET_ICON_BY_GROUP: Record<
+  "signup" | "event" | "grant",
+  ProfileReferralTarget["icon"]
+> = {
+  signup: "rocket",
+  event: "trophy",
+  grant: "gift",
+};
+
+/**
+ * Flattens the existing target catalog (signup + event + grant groups) into
+ * a single ordered list with a UI-friendly icon picked from the group.
+ */
+export async function getReferralTargetCatalog(): Promise<ProfileReferralTarget[]> {
+  const groups = await getActiveReferralTargets();
+  const all: ReferralTargetPreset[] = [
+    ...groups.signup,
+    ...groups.event,
+    ...groups.grant,
+  ];
+  return all.map((t) => ({
+    key: t.key,
+    group: t.group,
+    label: t.label,
+    detail: t.detail,
+    targetType: t.targetType,
+    targetId: t.targetId,
+    destinationUrl: t.destinationUrl,
+    icon: TARGET_ICON_BY_GROUP[t.group],
+  }));
 }

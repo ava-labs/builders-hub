@@ -173,34 +173,34 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
               <GitHubIcon size={16} />
               <span className="pr-sr-only">GitHub</span>
             </label>
-            <div className="pr-input-group">
-              <span className="pr-pre">github.com/</span>
-              <input
-                id="pr-github"
-                value={githubDisplay}
-                onChange={(e) => onGithubChange(e.target.value.trim())}
-                placeholder="username"
-                disabled={githubConnected}
-              />
-              <span className="pr-post">
-                {githubConnected ? (
-                  <button
-                    type="button"
-                    className="pr-btn pr-btn--sm pr-btn--success"
-                    onClick={onGithubDisconnect}
-                  >
-                    <Check size={12} /> Connected
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="pr-btn pr-btn--sm pr-btn--outline"
-                    onClick={onGithubConnect}
-                  >
-                    Connect
-                  </button>
-                )}
-              </span>
+            <div className="pr-social-row">
+              <div className="pr-input-group" style={{ flex: 1, minWidth: 0 }}>
+                <span className="pr-pre">github.com/</span>
+                <input
+                  id="pr-github"
+                  value={githubDisplay}
+                  onChange={(e) => onGithubChange(e.target.value.trim())}
+                  placeholder="username"
+                  disabled={githubConnected}
+                />
+              </div>
+              {githubConnected ? (
+                <button
+                  type="button"
+                  className="pr-btn pr-btn--success"
+                  onClick={onGithubDisconnect}
+                >
+                  <Check size={14} /> Connected
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="pr-btn pr-btn--outline"
+                  onClick={onGithubConnect}
+                >
+                  Connect
+                </button>
+              )}
             </div>
           </div>
           <div className="pr-field">
@@ -208,37 +208,37 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
               <XIcon size={14} />
               <span className="pr-sr-only">X</span>
             </label>
-            <div className="pr-input-group">
-              <span className="pr-pre">x.com/</span>
-              <input
-                id="pr-x"
-                value={xDisplay}
-                onChange={(e) => {
-                  const u = e.target.value.trim().replace(/^@/, "");
-                  onXChange(u ? `https://x.com/${u}` : "");
-                }}
-                placeholder="username"
-                disabled={xConnected}
-              />
-              <span className="pr-post">
-                {xConnected ? (
-                  <button
-                    type="button"
-                    className="pr-btn pr-btn--sm pr-btn--success"
-                    onClick={onXDisconnect}
-                  >
-                    <Check size={12} /> Connected
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="pr-btn pr-btn--sm pr-btn--outline"
-                    onClick={onXConnect}
-                  >
-                    Connect
-                  </button>
-                )}
-              </span>
+            <div className="pr-social-row">
+              <div className="pr-input-group" style={{ flex: 1, minWidth: 0 }}>
+                <span className="pr-pre">x.com/</span>
+                <input
+                  id="pr-x"
+                  value={xDisplay}
+                  onChange={(e) => {
+                    const u = e.target.value.trim().replace(/^@/, "");
+                    onXChange(u ? `https://x.com/${u}` : "");
+                  }}
+                  placeholder="username"
+                  disabled={xConnected}
+                />
+              </div>
+              {xConnected ? (
+                <button
+                  type="button"
+                  className="pr-btn pr-btn--success"
+                  onClick={onXDisconnect}
+                >
+                  <Check size={14} /> Connected
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="pr-btn pr-btn--outline"
+                  onClick={onXConnect}
+                >
+                  Connect
+                </button>
+              )}
             </div>
           </div>
         </div>
