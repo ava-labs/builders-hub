@@ -1689,3 +1689,439 @@
     align-items: stretch;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+   Insights tab (DevRel-only Builder Insights, rendered inside .pr-card)
+   ────────────────────────────────────────────────────────────────────── */
+.profile-redesign .pr-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.profile-redesign .pr-insights__section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.profile-redesign .pr-insights__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.profile-redesign .pr-insights__heading-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.profile-redesign .pr-insights__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pr-g-1000);
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.profile-redesign .pr-insights__subtitle {
+  font-family: var(--pr-mono);
+  font-size: 11.5px;
+  color: var(--pr-g-650);
+}
+
+/* DevRel-only chip in the card head */
+.profile-redesign .pr-insights__devrel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pr-accent-main);
+  background: rgba(232, 65, 66, 0.10);
+  border: 1px solid rgba(232, 65, 66, 0.45);
+  white-space: nowrap;
+}
+.profile-redesign .pr-insights__devrel-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pr-avax);
+}
+:where(.dark) .profile-redesign .pr-insights__devrel-pill {
+  background: rgba(232, 65, 66, 0.16);
+  border-color: rgba(232, 65, 66, 0.55);
+}
+
+/* KPI strip — individual cards with gaps, 4 across × 2 down. */
+.profile-redesign .pr-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.profile-redesign .pr-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 22px;
+  min-width: 0;
+  min-height: 138px;
+  border: 1px solid var(--pr-hairline);
+  border-radius: 14px;
+  background: var(--pr-g-100);
+  justify-content: flex-start;
+}
+.profile-redesign .pr-kpi__label {
+  font-family: var(--pr-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pr-g-650);
+  font-weight: 500;
+}
+.profile-redesign .pr-kpi__value {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--pr-g-1000);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.profile-redesign .pr-kpi__value--small {
+  font-size: 22px;
+  font-weight: 600;
+}
+.profile-redesign .pr-kpi__footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 22px;
+  margin-top: auto;
+}
+.profile-redesign .pr-kpi__delta {
+  font-family: var(--pr-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+.profile-redesign .pr-kpi__delta--up {
+  color: var(--pr-success-text);
+}
+.profile-redesign .pr-kpi__delta--down {
+  color: var(--pr-warning-text);
+}
+.profile-redesign .pr-kpi__sub {
+  font-size: 12px;
+  color: var(--pr-g-650);
+}
+.profile-redesign .pr-kpi__spark {
+  margin-left: auto;
+  opacity: 0.95;
+  line-height: 0;
+}
+
+/* Segmented toggle — 2px of breathing room around the options, no more. */
+.profile-redesign .pr-seg {
+  display: inline-flex;
+  align-items: stretch;
+  padding: 2px;
+  background: var(--pr-g-200);
+  border: 1px solid var(--pr-hairline);
+  border-radius: 8px;
+  gap: 0;
+  width: max-content;
+  flex-shrink: 0;
+  line-height: 0;
+}
+.profile-redesign .pr-seg__btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  margin: 0;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pr-g-700);
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.profile-redesign .pr-seg__btn:hover {
+  color: var(--pr-g-1000);
+}
+.profile-redesign .pr-seg__btn.pr-on {
+  background: var(--pr-g-100);
+  color: var(--pr-g-1000);
+}
+:where(.dark) .profile-redesign .pr-seg__btn.pr-on {
+  background: var(--pr-g-300);
+}
+
+/* Big chart container */
+.profile-redesign .pr-chart {
+  border: 1px solid var(--pr-hairline);
+  border-radius: 14px;
+  background: var(--pr-g-100);
+  padding: 16px 18px 8px;
+}
+.profile-redesign .pr-chart svg {
+  display: block;
+  width: 100%;
+  height: 320px;
+}
+.profile-redesign .pr-chart__legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 8px 4px 2px;
+  font-family: var(--pr-mono);
+  font-size: 11px;
+  color: var(--pr-g-700);
+}
+.profile-redesign .pr-chart__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.profile-redesign .pr-chart__legend-swatch {
+  width: 10px;
+  height: 2px;
+  border-radius: 2px;
+}
+
+/* MiniBar — neon recipe (matches Share-with-a-friend / Connected). The
+   fill is bright + saturated so the value reads clearly inside it; the
+   track is a soft tint so short bars don't disappear. */
+.profile-redesign .pr-minibar {
+  position: relative;
+  height: 20px;
+  background: rgba(232, 65, 66, 0.12);
+  border: 1px solid rgba(232, 65, 66, 0.40);
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+:where(.dark) .profile-redesign .pr-minibar {
+  background: rgba(232, 65, 66, 0.16);
+  border-color: rgba(232, 65, 66, 0.50);
+}
+.profile-redesign .pr-minibar__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff6e6f, #ffa9aa);
+  box-shadow: 0 0 8px rgba(255, 110, 111, 0.45);
+  transition: width 0.2s ease;
+}
+:where(.dark) .profile-redesign .pr-minibar__fill {
+  background: linear-gradient(90deg, #ff5658, #ffb0b1);
+  box-shadow: 0 0 12px rgba(255, 110, 111, 0.55);
+}
+.profile-redesign .pr-minibar__val {
+  position: relative;
+  margin-left: 10px;
+  font-family: var(--pr-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1a0606;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+:where(.dark) .profile-redesign .pr-minibar__val {
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+/* Leaderboard table */
+.profile-redesign .pr-leaderboard {
+  border: 1px solid var(--pr-hairline);
+  border-radius: 14px;
+  background: var(--pr-g-100);
+  overflow-x: auto;
+}
+.profile-redesign .pr-leaderboard table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.profile-redesign .pr-leaderboard thead tr {
+  background: var(--pr-g-200);
+  border-bottom: 1px solid var(--pr-hairline);
+}
+.profile-redesign .pr-leaderboard th {
+  text-align: left;
+  font-family: var(--pr-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pr-g-650);
+  padding: 11px 14px;
+}
+.profile-redesign .pr-leaderboard th.pr-num {
+  text-align: right;
+}
+.profile-redesign .pr-leaderboard td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--pr-hairline);
+  color: var(--pr-g-1000);
+  vertical-align: middle;
+}
+.profile-redesign .pr-leaderboard tr:last-child td {
+  border-bottom: 0;
+}
+.profile-redesign .pr-leaderboard tr:hover td {
+  background: var(--pr-g-200);
+}
+.profile-redesign .pr-leaderboard td.pr-num {
+  text-align: right;
+  font-family: var(--pr-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--pr-g-800);
+}
+.profile-redesign .pr-leaderboard td.pr-rank {
+  font-family: var(--pr-mono);
+  font-size: 11px;
+  color: var(--pr-g-650);
+  width: 36px;
+}
+.profile-redesign .pr-leaderboard td.pr-leaderboard__total {
+  font-weight: 700;
+  color: var(--pr-g-1000);
+}
+.profile-redesign .pr-leaderboard__person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.profile-redesign .pr-leaderboard__avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--pr-g-300);
+  color: var(--pr-g-900);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.profile-redesign .pr-leaderboard__name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--pr-g-1000);
+  line-height: 1.2;
+}
+.profile-redesign .pr-leaderboard__country {
+  font-family: var(--pr-mono);
+  font-size: 10px;
+  color: var(--pr-g-650);
+  margin-top: 1px;
+}
+.profile-redesign .pr-leaderboard__team {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  background: var(--pr-g-200);
+  color: var(--pr-g-800);
+  border-radius: 999px;
+  font-size: 11px;
+}
+.profile-redesign .pr-leaderboard__empty {
+  padding: 22px;
+  text-align: center;
+  color: var(--pr-g-650);
+  font-size: 12.5px;
+}
+
+/* Hackathon history */
+.profile-redesign .pr-hack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+.profile-redesign .pr-hack {
+  border: 1px solid var(--pr-hairline);
+  border-radius: 12px;
+  background: var(--pr-g-100);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.profile-redesign .pr-hack__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pr-g-1000);
+  line-height: 1.25;
+}
+.profile-redesign .pr-hack__date {
+  font-family: var(--pr-mono);
+  font-size: 10.5px;
+  color: var(--pr-g-650);
+  margin-top: -4px;
+}
+.profile-redesign .pr-hack__metric {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.profile-redesign .pr-hack__metric-label {
+  font-family: var(--pr-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pr-g-650);
+  width: 76px;
+  flex-shrink: 0;
+}
+.profile-redesign .pr-hack__metric-bar {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Notifications card — gives the form the same chrome as Personal /
+   Projects / Achievements / Insights (border + rounded background). The
+   form's own composer/preview 2-column layout renders unchanged inside. */
+.profile-redesign .pr-notifications-card {
+  padding: 22px 24px;
+}
+
+/* Loading state */
+.profile-redesign .pr-insights__loading {
+  display: grid;
+  place-items: center;
+  height: 240px;
+  color: var(--pr-g-650);
+  font-size: 13px;
+  gap: 12px;
+}
+.profile-redesign .pr-insights__loading-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--pr-g-300);
+  border-top-color: var(--pr-avax);
+  animation: pr-spin 0.9s linear infinite;
+}
+
+@media (max-width: 1080px) {
+  .profile-redesign .pr-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .profile-redesign .pr-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

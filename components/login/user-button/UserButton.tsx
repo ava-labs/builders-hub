@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 
 const AVATAR_SIZE = 32;
 
-import { canAccessBuilderInsights, canAccessEvaluationTools } from '@/lib/auth/permissions';
+import { canAccessEvaluationTools } from '@/lib/auth/permissions';
 
 function extractGithubUsername(value: string | null | undefined): string {
   if (!value) return '';
@@ -43,7 +43,6 @@ export function UserButton() {
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
   const canAccessEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
-  const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
   const router = useRouter();
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
@@ -190,12 +189,6 @@ export function UserButton() {
                 <Link href='/evaluate'>Evaluate Hackathons</Link>
               </DropdownMenuItem>
             )}
-            {canAccessInsights && (
-              <DropdownMenuItem asChild className='cursor-pointer'>
-                <Link href='/builder-insights'>Builder Insights</Link>
-              </DropdownMenuItem>
-            )}
-
             <DropdownMenuItem
               onClick={() => setIsDialogOpen(true)}
               className='cursor-pointer'

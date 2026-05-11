@@ -30,6 +30,8 @@ export interface EventParticipantPoint {
   event: string;
   participants: number;
   projects: number;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 export interface TopReferrerRow {
@@ -67,6 +69,9 @@ export interface BuilderInsightsData {
   consoleUsers30d: number;
   consoleUsersDeltaPercent: number;
   totalHackathonSubmissions: number;
+  totalHackathonsHosted: number;
+  totalHackathonParticipants: number;
+  totalHackathonProjects: number;
   topCountry30d: { country: string; countryCode: string | null; sharePct: number } | null;
   returningVisitorPct30d: number;
   returningVisitorDeltaPercent: number;
@@ -263,12 +268,20 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       LIMIT 20
     `,
     prisma.$queryRaw<
-      Array<{ eventId: string; event: string; participants: bigint; projects: bigint }>
+      Array<{
+        eventId: string;
+        event: string;
+        participants: bigint;
+        projects: bigint;
+        startDate: Date | null;
+        endDate: Date | null;
+      }>
     >`
       WITH event_participants AS (
         SELECT h."id" AS "eventId",
                h."title" AS "event",
                h."start_date" AS "startDate",
+               h."end_date" AS "endDate",
                COUNT(DISTINCT u."id")::bigint AS "participants",
                COUNT(DISTINCT p."id")::bigint AS "projects"
         FROM "Hackathon" h
@@ -276,18 +289,16 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
         INNER JOIN "Member" m ON m."project_id" = p."id"
         INNER JOIN "User" u ON u."id" = m."user_id"
           OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
-        GROUP BY h."id", h."title", h."start_date"
+        WHERE h."end_date" < NOW()
+          AND COALESCE(h."event", 'hackathon') = 'hackathon'
+          AND (h."is_public" IS TRUE OR h."is_public" IS NULL)
+        GROUP BY h."id", h."title", h."start_date", h."end_date"
         HAVING COUNT(DISTINCT u."id") > 0
-      ),
-      latest_events AS (
-        SELECT *
-        FROM event_participants
-        ORDER BY "startDate" DESC
-        LIMIT 25
       )
-      SELECT "eventId", "event", "participants", "projects"
-      FROM latest_events
-      ORDER BY "startDate" ASC
+      SELECT "eventId", "event", "participants", "projects", "startDate", "endDate"
+      FROM event_participants
+      ORDER BY "participants" DESC, "projects" DESC
+      LIMIT 25
     `,
     prisma.$queryRaw<Array<{ referrals: bigint }>>`
       SELECT COUNT(*)::bigint AS "referrals"
@@ -421,12 +432,24 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     };
   });
 
-  const eventParticipants = eventParticipantRows.map((row) => ({
+  const eventParticipants: EventParticipantPoint[] = eventParticipantRows.map((row) => ({
     eventId: row.eventId,
     event: row.event,
     participants: toNumber(row.participants),
     projects: toNumber(row.projects),
+    startDate: row.startDate ? row.startDate.toISOString() : null,
+    endDate: row.endDate ? row.endDate.toISOString() : null,
   }));
+
+  const totalHackathonsHosted = eventParticipants.length;
+  const totalHackathonParticipants = eventParticipants.reduce(
+    (sum, row) => sum + row.participants,
+    0,
+  );
+  const totalHackathonProjects = eventParticipants.reduce(
+    (sum, row) => sum + row.projects,
+    0,
+  );
 
   const userGeneratedReferralImpact = toNumber(userGeneratedRows[0]?.referrals);
   const latest30DaySignups = toNumber(rollingSignupRows[0]?.latest30Days);
@@ -518,6 +541,9 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     consoleUsers30d,
     consoleUsersDeltaPercent,
     totalHackathonSubmissions,
+    totalHackathonsHosted,
+    totalHackathonParticipants,
+    totalHackathonProjects,
     topCountry30d,
     returningVisitorPct30d,
     returningVisitorDeltaPercent,

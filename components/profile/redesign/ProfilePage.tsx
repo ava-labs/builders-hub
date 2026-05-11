@@ -32,11 +32,16 @@ import {
   roleFieldKey,
 } from "./adapter";
 import { computeCompletion, type CompletionStepKey } from "@/lib/profile/completion";
-import { canSendNotifications } from "@/lib/auth/permissions";
+import {
+  canAccessBuilderInsights,
+  canSendNotifications,
+} from "@/lib/auth/permissions";
 import SendNotificationsForm from "@/components/notification/send-notifications-form";
+import { InsightsCard } from "./InsightsCard";
+import type { BuilderInsightsData } from "@/server/services/builderInsights";
 import type { ProfileLink, ProfileRole } from "./types";
 
-type Tab = "personal" | "projects" | "achievements" | "notifications";
+type Tab = "personal" | "projects" | "achievements" | "insights" | "notifications";
 interface TabSpec {
   id: Tab;
   label: string;
@@ -134,7 +139,15 @@ export default function ProfilePage({ teamLabel }: Props) {
   const [nounAvatarEnabled, setNounAvatarEnabled] = React.useState(false);
   const [summary, setSummary] = React.useState<SummaryResponse>(EMPTY_SUMMARY);
   const [summaryLoading, setSummaryLoading] = React.useState(true);
+  const [insightsData, setInsightsData] = React.useState<BuilderInsightsData | null>(
+    null,
+  );
+  const [insightsLoading, setInsightsLoading] = React.useState(false);
+  const [insightsError, setInsightsError] = React.useState<string | null>(null);
   const personalCardRef = React.useRef<HTMLDivElement>(null);
+  const showInsightsTab = canAccessBuilderInsights(
+    session?.user?.custom_attributes,
+  );
 
   React.useEffect(() => {
     let cancelled = false;
@@ -178,6 +191,36 @@ export default function ProfilePage({ teamLabel }: Props) {
       cancelled = true;
     };
   }, [session?.user?.id]);
+
+  // Builder Insights is heavy (PostHog HogQL queries take a few seconds each),
+  // so we lazy-load it in the background only for DevRel users who have the
+  // `builder_insights` attribute. Tab is hidden for everyone else.
+  React.useEffect(() => {
+    if (!showInsightsTab) return;
+    let cancelled = false;
+    setInsightsLoading(true);
+    setInsightsError(null);
+    fetch("/api/profile/insights")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data: BuilderInsightsData) => {
+        if (cancelled) return;
+        setInsightsData(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[ProfilePage] failed to load insights:", err);
+        setInsightsError("Could not load Builder Insights right now.");
+      })
+      .finally(() => {
+        if (!cancelled) setInsightsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showInsightsTab]);
 
   const pushToast = React.useCallback((message: string, kind: ToastSpec["kind"] = "success") => {
     const id = Math.random().toString(36).slice(2);
@@ -396,21 +439,25 @@ export default function ProfilePage({ teamLabel }: Props) {
   }
 
   const showNotificationsTab = canSendNotifications(session?.user?.custom_attributes);
-  const tabs: ReadonlyArray<TabSpec> = showNotificationsTab
-    ? [...BASE_TABS, { id: "notifications", label: "Notifications" }]
-    : BASE_TABS;
+  const tabs: ReadonlyArray<TabSpec> = [
+    ...BASE_TABS,
+    ...(showInsightsTab ? [{ id: "insights" as const, label: "Insights" }] : []),
+    ...(showNotificationsTab
+      ? [{ id: "notifications" as const, label: "Notifications" }]
+      : []),
+  ];
 
   const tabCounts: Record<Tab, number | null> = {
     personal:
       completion.completed === completion.total ? null : completion.completed,
     projects: summary.projects.length,
     achievements: summary.badges.length,
+    insights: insightsData?.latest30DaySignups ?? null,
     notifications: null,
   };
 
   const showSidebar =
-    tab !== "notifications" &&
-    (completion.pct < 100 || referralLinks.length > 0 || referralCatalog.length > 0);
+    completion.pct < 100 || referralLinks.length > 0 || referralCatalog.length > 0;
 
   return (
     <div className="profile-redesign">
@@ -459,7 +506,7 @@ export default function ProfilePage({ teamLabel }: Props) {
                   onClick={() => setTab(t.id)}
                 >
                   {t.label}
-                  {t.id === "notifications" ? (
+                  {t.id === "notifications" || t.id === "insights" ? (
                     <span className="pr-devrel-badge">DevRel</span>
                   ) : (
                     showCount && <span className="pr-count">{display}</span>
@@ -528,8 +575,17 @@ export default function ProfilePage({ teamLabel }: Props) {
                 loading={summaryLoading}
               />
             )}
+            {tab === "insights" && showInsightsTab && (
+              <InsightsCard
+                data={insightsData}
+                loading={insightsLoading}
+                error={insightsError}
+              />
+            )}
             {tab === "notifications" && showNotificationsTab && (
-              <SendNotificationsForm totalBuilders={summary.totalBuilders} />
+              <div className="pr-card pr-notifications-card">
+                <SendNotificationsForm totalBuilders={summary.totalBuilders} />
+              </div>
             )}
           </div>
 
