@@ -126,8 +126,10 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
     >
       <div className="flex flex-col gap-4">
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Deploy ERC20TokenHome on {selectedL1?.name ?? 'the Home chain'}. The constructor wires the contract to the
-          Teleporter registry and your token in one transaction.
+          Deploying <span className="font-medium text-zinc-900 dark:text-zinc-100">ERC20TokenHome</span> on{' '}
+          <span className="font-medium text-zinc-900 dark:text-zinc-100">{selectedL1?.name ?? 'the Home chain'}</span>.
+          Your wallet must be on this chain — we&apos;ll auto-switch if needed. The constructor wires the contract to
+          the Teleporter registry and your token in one transaction.
         </p>
 
         <FormField label="Source token" hint="Auto-filled from Phase 1.">

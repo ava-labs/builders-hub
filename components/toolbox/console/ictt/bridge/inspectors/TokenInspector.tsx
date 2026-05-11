@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, Copy, Loader2 } from 'lucide-react';
+import { ArrowRight, Check, Copy, Loader2, RotateCcw } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
@@ -15,7 +15,7 @@ import { useDeploySourceToken } from '../hooks/useDeploySourceToken';
 import { useDeployWrappedNative } from '../hooks/useDeployWrappedNative';
 import { useWrappedNativeToken } from '@/components/toolbox/hooks/useWrappedNativeToken';
 import { truncateAddress } from '../utils/explorer-url';
-import type { Address, BridgePhase } from '../types';
+import type { Address, Bridge, BridgePhase } from '../types';
 
 type Mode = 'existing' | 'deploy-test' | 'wrap-native';
 
@@ -25,14 +25,60 @@ interface TokenInspectorProps {
   underlyingTokenAddress: Address | null;
   /** Lift the chosen address to the parent so Phase 2 can read it. */
   onTokenSelected: (address: Address | null) => void;
+  /** Active bridge, if any — used to detect "editing an existing bridge". */
+  bridge: Bridge | null;
+  /** Reset the active bridge association so Phase 1 starts fresh. */
+  onStartNewBridge: () => void;
+  /** True when the user has explicitly chosen to start fresh. Suppresses the
+   *  "editing existing bridge" banner even if `bridge` momentarily appears
+   *  non-null during a re-render. */
+  newBridgeIntent: boolean;
 }
 
-export function TokenInspector({ onPhaseChange, underlyingTokenAddress, onTokenSelected }: TokenInspectorProps) {
+export function TokenInspector({
+  onPhaseChange,
+  underlyingTokenAddress,
+  onTokenSelected,
+  bridge,
+  onStartNewBridge,
+  newBridgeIntent,
+}: TokenInspectorProps) {
   const selectedL1 = useSelectedL1();
   const [mode, setMode] = useState<Mode>('deploy-test');
 
+  // When a bridge already exists, deploying a new token here would replace the
+  // underlying token used by downstream phases (via pending-overrides-bridge in
+  // useBridgeContext). Make that consequence explicit and offer a one-click reset.
+  //
+  // `newBridgeIntent` short-circuits the banner: if the user just clicked "+ New
+  // bridge", we mustn't taunt them with a "you're editing an existing bridge"
+  // message. The store guarantees `bridge === null` while intent is true, but
+  // we check intent explicitly so a future store change can't quietly regress.
+  const showExistingBridgeBanner = !newBridgeIntent && Boolean(bridge?.underlyingTokenAddress);
+
   return (
     <InspectorShell
+      banner={
+        showExistingBridgeBanner ? (
+          <Note variant="warning">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+              <span>
+                You&apos;re looking at an existing bridge (TokenHome already deployed). Deploying or selecting a new
+                token here will <strong>replace</strong> it for the next phases. Start a fresh bridge to keep the
+                current one intact.
+              </span>
+              <button
+                type="button"
+                onClick={onStartNewBridge}
+                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
+              >
+                <RotateCcw className="h-3 w-3" aria-hidden />
+                Start new bridge
+              </button>
+            </div>
+          </Note>
+        ) : null
+      }
       footer={
         <button
           type="button"

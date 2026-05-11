@@ -37,6 +37,9 @@ export function TokenStep() {
         onPhaseChange={navigate}
         underlyingTokenAddress={ctx.effectiveTokenAddress}
         onTokenSelected={ctx.setPendingTokenAddress}
+        bridge={ctx.bridge}
+        onStartNewBridge={ctx.startNewBridge}
+        newBridgeIntent={ctx.newBridgeIntent}
       />
     </PhaseChainGate>
   );

@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ChevronRight, Layers, MessageSquare, Plus } from 'lucide-react';
+import { ArrowRight, ChevronRight, Layers, MessageSquare, Plus, RotateCcw } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useWallet } from '@/components/toolbox/hooks/useWallet';
+import { useModalTrigger } from '@/components/toolbox/hooks/useModal';
 import { cn } from '@/lib/utils';
 import { useBridgeContext } from './hooks/useBridgeContext';
 import { HomeChainCard } from './HomeChainCard';
@@ -39,6 +42,14 @@ export function BridgeRibbon() {
       .sort((a, b) => b.timestampMs - a.timestampMs);
   }, [allActivity, ctx.activeBridgeId]);
 
+  // The "+ New bridge" CTA lives in `BridgeLayout`'s navTrailing now (next to
+  // the activity chip). Keep the handler here for the locked-Home-sheet
+  // suggestion which still needs to offer a reset path inline.
+  const handleStartNewBridge = () => {
+    ctx.startNewBridge();
+    router.push(`${BRIDGE_BASE_PATH}/token`);
+  };
+
   return (
     <div
       className={cn(
@@ -56,6 +67,10 @@ export function BridgeRibbon() {
   );
 
   function HomeSide() {
+    // The Home picker is disabled once TokenHome is deployed — `bridge.homeL1Id`
+    // is the contract's chain and can't be migrated without re-deploying. The
+    // user still gets the explainer + a "Start new bridge" suggestion below.
+    const homeIsLocked = Boolean(ctx.bridge?.homeAddress);
     return (
       <RibbonSide
         role="home"
@@ -66,12 +81,19 @@ export function BridgeRibbon() {
         emptyLabel="Setup pending"
         sheetTitle={ctx.homeL1 ? `${ctx.homeL1.name} · Home` : 'Home chain'}
         sheetBody={
-          <HomeChainCard
-            homeL1={ctx.homeL1 ?? null}
-            bridge={ctx.bridge}
-            activePhase={ctx.phase}
-            isWalletOnHome={ctx.isWalletOnHome}
-          />
+          <div className="flex flex-col gap-4">
+            <ChangeHomeL1Section
+              currentHomeL1Id={ctx.homeL1?.id ?? null}
+              locked={homeIsLocked}
+              onStartNewBridge={handleStartNewBridge}
+            />
+            <HomeChainCard
+              homeL1={ctx.homeL1 ?? null}
+              bridge={ctx.bridge}
+              activePhase={ctx.phase}
+              isWalletOnHome={ctx.isWalletOnHome}
+            />
+          </div>
         }
       />
     );
@@ -336,6 +358,7 @@ function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinat
   const [open, setOpen] = useState(false);
   const [pendingId, setPendingId] = useState<string>(pendingL1Id ?? '');
   const l1List = useL1List();
+  const { openModal: openAddChainModal } = useModalTrigger();
   const candidates = useMemo(() => l1List.filter((l1: L1ListItem) => l1.id !== homeL1Id), [l1List, homeL1Id]);
   const selected = candidates.find((l1: L1ListItem) => l1.id === pendingId) ?? null;
   const pendingChain = candidates.find((l1: L1ListItem) => l1.id === pendingL1Id) ?? null;
@@ -421,9 +444,17 @@ function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinat
             chain pre-selected.
           </p>
           {candidates.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-zinc-200 px-3 py-6 text-center text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-              You only have one L1 registered. Add another to bridge.
-            </p>
+            <div className="flex flex-col items-stretch gap-2 rounded-lg border border-dashed border-zinc-200 px-3 py-6 text-center text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              <p>You only have the Home L1 registered. Add another L1 to bridge to.</p>
+              <button
+                type="button"
+                onClick={() => void openAddChainModal()}
+                className="mx-auto inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-emerald-500"
+              >
+                <Plus className="h-3 w-3" aria-hidden />
+                Add a chain
+              </button>
+            </div>
           ) : (
             <ul className="flex flex-col gap-1">
               {candidates.map((l1: L1ListItem) => {
@@ -450,6 +481,16 @@ function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinat
               })}
             </ul>
           )}
+          {candidates.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void openAddChainModal()}
+              className="mt-2 inline-flex items-center gap-1 self-start rounded-md border border-dashed border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
+            >
+              <Plus className="h-3 w-3" aria-hidden />
+              Add a chain
+            </button>
+          )}
         </div>
         <footer className="flex items-center justify-end gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800/80">
           <button
@@ -469,6 +510,109 @@ function PickDestinationSheet({ homeL1Id, pendingL1Id, onConfirm }: PickDestinat
         </footer>
       </SheetContent>
     </Sheet>
+  );
+}
+
+interface ChangeHomeL1SectionProps {
+  currentHomeL1Id: string | null;
+  /** When true, the user can't switch home (TokenHome is already deployed). */
+  locked: boolean;
+  onStartNewBridge: () => void;
+}
+
+/**
+ * Inline "Change Home L1" picker shown inside the Home sheet. Lets the user
+ * pick any L1 from the store; selecting calls `walletClient.switchChain`, which
+ * updates `useSelectedL1()` reactively. When the bridge already has TokenHome
+ * deployed, the picker is read-only and points to "Start new bridge".
+ */
+function ChangeHomeL1Section({ currentHomeL1Id, locked, onStartNewBridge }: ChangeHomeL1SectionProps) {
+  const l1List = useL1List();
+  const { switchChain } = useWallet();
+  const isTestnet = useWalletStore((s) => s.isTestnet);
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const { openModal: openAddChainModal } = useModalTrigger();
+  const [isSwitching, setIsSwitching] = useState<string | null>(null);
+
+  const handlePick = async (l1: L1ListItem) => {
+    if (locked) return;
+    if (l1.evmChainId === walletChainId) return;
+    setIsSwitching(l1.id);
+    try {
+      await switchChain(l1.evmChainId, isTestnet);
+    } catch {
+      // Wallet may reject — keep the sheet open so the user sees no change.
+    } finally {
+      setIsSwitching(null);
+    }
+  };
+
+  return (
+    <section className="flex flex-col gap-2">
+      <header className="flex flex-col gap-1">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          Home L1
+        </span>
+        <p className="text-xs text-zinc-600 dark:text-zinc-300">
+          Home is the L1 where your token lives (or will be deployed). To bridge AVAX, leave Home on C-Chain. To bridge
+          a token from your own L1, switch Home to that L1 — your wallet will follow.
+        </p>
+      </header>
+      {locked && (
+        <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>TokenHome is already deployed on this Home L1, so it can&apos;t be switched here.</span>
+            <button
+              type="button"
+              onClick={onStartNewBridge}
+              className="inline-flex items-center gap-1 rounded-md border border-amber-300/80 bg-white px-2 py-0.5 text-[11px] font-medium text-amber-900 transition-colors hover:bg-amber-100/60 dark:border-amber-800/80 dark:bg-zinc-900 dark:text-amber-200"
+            >
+              <RotateCcw className="h-3 w-3" aria-hidden />
+              Start new bridge
+            </button>
+          </div>
+        </div>
+      )}
+      <ul className={cn('flex flex-col gap-1', locked && 'pointer-events-none opacity-60')}>
+        {l1List.map((l1: L1ListItem) => {
+          const active = l1.id === currentHomeL1Id;
+          return (
+            <li key={l1.id}>
+              <button
+                type="button"
+                onClick={() => handlePick(l1)}
+                aria-pressed={active}
+                disabled={locked || isSwitching !== null}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                  active
+                    ? 'bg-red-50 ring-1 ring-red-200 dark:bg-red-950/20 dark:ring-red-900/60'
+                    : 'hover:bg-zinc-100/70 dark:hover:bg-zinc-800/40',
+                  isSwitching === l1.id && 'opacity-60',
+                )}
+              >
+                <PickerAvatar l1={l1} />
+                <span className="flex-1 truncate font-medium text-zinc-900 dark:text-zinc-100">{l1.name}</span>
+                <span className="shrink-0 font-mono text-[10px] text-zinc-400">{l1.coinName}</span>
+                {active && (
+                  <span className="shrink-0 rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                    Current
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <button
+        type="button"
+        onClick={() => void openAddChainModal()}
+        className="inline-flex items-center gap-1 self-start rounded-md border border-dashed border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
+      >
+        <Plus className="h-3 w-3" aria-hidden />
+        Add a chain
+      </button>
+    </section>
   );
 }
 

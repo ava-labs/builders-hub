@@ -42,6 +42,13 @@ export interface BridgeContextValue {
   pendingDestinationL1Id: string | null;
   setPendingDestinationL1Id: (id: string | null) => void;
 
+  /** Reset the active bridge association so the user can start fresh. */
+  startNewBridge: () => void;
+  /** True while the user has explicitly chosen to start a fresh bridge.
+   *  Consumers can branch on this (e.g. suppress "editing existing bridge"
+   *  callouts) without re-checking bridge nullability. */
+  newBridgeIntent: boolean;
+
   // Migration / readiness flags.
   migrationReady: boolean;
 }
@@ -75,19 +82,27 @@ export function useBridgeContext({ step }: UseBridgeContextOptions = {}): Bridge
   const setSelectedRemoteAction = useIcttBridgeStore((s) => s.setSelectedRemote);
   const removeRemoteAction = useIcttBridgeStore((s) => s.removeRemote);
   const activityLog = useIcttBridgeStore((s) => s.activityLog);
+  const newBridgeIntent = useIcttBridgeStore((s) => s.newBridgeIntent);
 
   const visibleBridges = useMemo(() => Object.values(bridgesRecord).filter((b) => !b.archivedAt), [bridgesRecord]);
 
+  // When the user has explicitly asked for a fresh start (`newBridgeIntent`),
+  // bypass the auto-fallback completely. Otherwise we'd quietly re-promote the
+  // previous bridge — that's the exact bug the intent flag exists to prevent.
   const activeBridgeId = useMemo<Bridge['id'] | null>(() => {
+    if (newBridgeIntent) return null;
     if (lastActiveBridgeId && bridgesRecord[lastActiveBridgeId]) return lastActiveBridgeId;
     return visibleBridges[0]?.id ?? null;
-  }, [bridgesRecord, lastActiveBridgeId, visibleBridges]);
+  }, [bridgesRecord, lastActiveBridgeId, newBridgeIntent, visibleBridges]);
 
+  // Same guard on the sync effect — without it, the fallback would still leak
+  // back into `lastActiveBridgeId` once `newBridgeIntent` flips off.
   useEffect(() => {
+    if (newBridgeIntent) return;
     if (activeBridgeId && activeBridgeId !== lastActiveBridgeId) {
       setLastActiveBridge(activeBridgeId);
     }
-  }, [activeBridgeId, lastActiveBridgeId, setLastActiveBridge]);
+  }, [activeBridgeId, lastActiveBridgeId, newBridgeIntent, setLastActiveBridge]);
 
   const bridge = activeBridgeId ? (bridgesRecord[activeBridgeId] ?? null) : null;
   const remotes = bridge?.remotes ?? [];
@@ -109,14 +124,21 @@ export function useBridgeContext({ step }: UseBridgeContextOptions = {}): Bridge
   // Pre-bridge tentative token (Phase 1 with no bridge yet). Stored in Zustand
   // so it survives phase navigation — TokenStep unmounts when the user clicks
   // "Continue to Home", so React state would be lost otherwise.
+  //
+  // Resolution priority: a non-null `pendingTokenAddress` always wins. This lets
+  // a user start a new bridge (or re-pick a token in Phase 1) without the
+  // previously-deployed bridge's `underlyingTokenAddress` shadowing the fresh
+  // value. `useDeployTokenHome` clears `pendingTokenAddress` after `upsertBridge`,
+  // so once a bridge is created the bridge's value is authoritative again.
   const pendingTokenAddress = useIcttBridgeStore((s) => s.pendingTokenAddress);
   const setPendingTokenAddress = useIcttBridgeStore((s) => s.setPendingTokenAddress);
-  const effectiveTokenAddress = bridge?.underlyingTokenAddress ?? pendingTokenAddress ?? null;
+  const effectiveTokenAddress = pendingTokenAddress ?? bridge?.underlyingTokenAddress ?? null;
 
   // Pre-deploy destination selection (shared by the ribbon Sheet picker AND the
   // Remote inspector dropdown, so a pick in either surface updates both).
   const pendingDestinationL1Id = useIcttBridgeStore((s) => s.pendingDestinationL1Id);
   const setPendingDestinationL1Id = useIcttBridgeStore((s) => s.setPendingDestinationL1Id);
+  const startNewBridge = useIcttBridgeStore((s) => s.startNewBridge);
 
   const selectedL1 = useSelectedL1();
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '') ?? selectedL1 ?? null;
@@ -202,6 +224,8 @@ export function useBridgeContext({ step }: UseBridgeContextOptions = {}): Bridge
     effectiveTokenAddress,
     pendingDestinationL1Id,
     setPendingDestinationL1Id,
+    startNewBridge,
+    newBridgeIntent,
     migrationReady: migration.ran,
   };
 }

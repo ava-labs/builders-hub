@@ -27,6 +27,11 @@ interface BridgeState {
    *  of truth shared by `BridgeRibbon` and `RemoteInspector`. Cleared by
    *  `useDeployTokenRemote` after a Remote record is created. */
   pendingDestinationL1Id: string | null;
+  /** True when the user has explicitly asked to start fresh. Suppresses the
+   *  "auto-revive `visibleBridges[0]` as active" fallback in `useBridgeContext`
+   *  so the reset isn't immediately undone. Cleared automatically by
+   *  `upsertBridge` (a new bridge is being committed) or `selectBridge`. */
+  newBridgeIntent: boolean;
 }
 
 const initialBridgeState: BridgeState = {
@@ -36,6 +41,7 @@ const initialBridgeState: BridgeState = {
   activityLog: [],
   pendingTokenAddress: null,
   pendingDestinationL1Id: null,
+  newBridgeIntent: false,
 };
 
 const ACTIVITY_CAP = 50;
@@ -49,6 +55,9 @@ export const useIcttBridgeStore = create(
         set((state) => ({
           bridges: { ...state.bridges, [bridge.id]: bridge },
           lastActiveBridgeId: state.lastActiveBridgeId ?? bridge.id,
+          // Committing a bridge clears any "start fresh" intent — we now have
+          // a concrete bridge to be active on, so the fallback can resume.
+          newBridgeIntent: false,
         })),
 
       archiveBridge: (bridgeId: BridgeId) =>
@@ -114,6 +123,34 @@ export const useIcttBridgeStore = create(
       setPendingTokenAddress: (address: Address | null) => set({ pendingTokenAddress: address }),
 
       setPendingDestinationL1Id: (id: string | null) => set({ pendingDestinationL1Id: id }),
+
+      // Clears the per-flow state that ties the UI to an existing bridge so the
+      // user can start a fresh setup. Bridges themselves stay in `bridges` and
+      // remain reachable via a future "My bridges" picker.
+      //
+      // `newBridgeIntent: true` is load-bearing: without it, `useBridgeContext`
+      // would auto-fall-back to `visibleBridges[0]` and immediately re-promote
+      // it via the sync effect, undoing the reset within the same tick.
+      //
+      // TODO(my-bridges): wire up a `selectBridge(id)` action and a list view
+      // so users can switch back to any persisted bridge without going through
+      // a fresh start.
+      startNewBridge: () =>
+        set({
+          lastActiveBridgeId: null,
+          pendingTokenAddress: null,
+          pendingDestinationL1Id: null,
+          newBridgeIntent: true,
+        }),
+
+      // Future-proof: explicit bridge selection always lifts the new-bridge
+      // intent. Currently unused, but exporting the action now means the
+      // future "My bridges" picker is a one-line UI hook.
+      selectBridge: (bridgeId: BridgeId) =>
+        set({
+          lastActiveBridgeId: bridgeId,
+          newBridgeIntent: false,
+        }),
 
       pushActivity: (
         event: Omit<ActivityEvent, 'id' | 'timestampMs'> & Partial<Pick<ActivityEvent, 'id' | 'timestampMs'>>,
@@ -184,6 +221,9 @@ export const useIcttBridgeStore = create(
         activityLog: state.activityLog,
         pendingTokenAddress: state.pendingTokenAddress,
         pendingDestinationL1Id: state.pendingDestinationL1Id,
+        // Persist the intent so a "Start new bridge" survives reload — otherwise
+        // a refresh would revive the old bridge and look like the reset failed.
+        newBridgeIntent: state.newBridgeIntent,
       }),
     },
   ),

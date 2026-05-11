@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import StepFlow from '@/components/console/step-flow';
 import { BridgeRibbon } from './BridgeRibbon';
 import { ActivityChip } from './activity/ActivityChip';
+import { NewBridgeButton } from './activity/NewBridgeButton';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useBridgeContext } from './hooks/useBridgeContext';
 import { ChainCardSkeleton } from './ChainCardSkeleton';
@@ -15,11 +17,13 @@ interface BridgeLayoutProps {
 
 export function BridgeLayout({ currentStep }: BridgeLayoutProps) {
   const ctx = useBridgeContext({ step: currentStep });
+  const router = useRouter();
   // Subscribe to the raw activity log (stable array reference per store update),
   // then filter in useMemo. Filtering inside the selector returns a fresh array
   // every render and triggers an infinite re-subscribe loop.
   const allActivity = useIcttBridgeStore((s) => s.activityLog);
   const clearActivityRaw = useIcttBridgeStore((s) => s.clearActivity);
+  const bridgesRecord = useIcttBridgeStore((s) => s.bridges);
 
   const activityEvents = useMemo(() => {
     return allActivity.filter((e) => {
@@ -29,12 +33,24 @@ export function BridgeLayout({ currentStep }: BridgeLayoutProps) {
     });
   }, [allActivity, ctx.activeBridgeId, ctx.selectedRemoteId]);
 
+  // Show the "New bridge" CTA only once the user has something to reset from —
+  // before any bridge exists it would be a no-op offering.
+  const hasExistingBridges = useMemo(() => Object.values(bridgesRecord).some((b) => !b.archivedAt), [bridgesRecord]);
+
   const clearScopedActivity = useCallback(() => {
     clearActivityRaw({
       bridgeId: ctx.activeBridgeId ?? undefined,
       remoteId: ctx.selectedRemoteId ?? undefined,
     });
   }, [clearActivityRaw, ctx.activeBridgeId, ctx.selectedRemoteId]);
+
+  // TODO(my-bridges): pair this with a "My bridges" sheet so users can hop back
+  // to a previous bridge via `useIcttBridgeStore.selectBridge(id)` instead of
+  // only being able to start fresh.
+  const handleStartNewBridge = useCallback(() => {
+    ctx.startNewBridge();
+    router.push(`${BRIDGE_BASE_PATH}/token`);
+  }, [ctx, router]);
 
   if (!ctx.migrationReady) {
     return (
@@ -56,7 +72,12 @@ export function BridgeLayout({ currentStep }: BridgeLayoutProps) {
         compact
         showCompletionModal={false}
         aboveBody={<BridgeRibbon />}
-        navTrailing={<ActivityChip events={activityEvents} onClear={clearScopedActivity} />}
+        navTrailing={
+          <div className="flex items-center gap-2">
+            {hasExistingBridges && <NewBridgeButton onClick={handleStartNewBridge} />}
+            <ActivityChip events={activityEvents} onClear={clearScopedActivity} />
+          </div>
+        }
       />
     </section>
   );
