@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Plus, Send } from 'lucide-react';
+import { ArrowRight, Check, Loader2, Plus, Send } from 'lucide-react';
 import { Note } from '@/components/toolbox/components/Note';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
+import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
+import { cn } from '@/lib/utils';
 import { InspectorShell } from './InspectorShell';
 import { useSendTokens } from '../hooks/useSendTokens';
 import { useBridgeContext } from '../hooks/useBridgeContext';
@@ -31,6 +33,9 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '');
   const remoteL1 = useL1ByChainId(selectedRemote?.l1Id ?? '');
   const { walletEVMAddress } = useWalletStore();
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
+  const { switchChain } = useWallet();
   const setPendingDestinationL1Id = useIcttBridgeStore((s) => s.setPendingDestinationL1Id);
 
   const { send, resetError, stage, isBusy, error } = useSendTokens({ bridge, remote: selectedRemote });
@@ -101,6 +106,75 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   const hasRemotes = remotes.length > 0;
   const hasMultipleRemotes = remotes.length > 1;
 
+  // Consolidate every Send-blocking precondition into one readiness object so the
+  // button's disabled state and the user-facing card stay in sync. The previous
+  // scattered `disabled={... || ... || ...}` made it impossible to tell *why*
+  // the button was disabled, and a stale "warning" banner could lie to the user.
+  const readiness = useMemo(() => {
+    const isNativeHome = bridge?.kind === 'native-home';
+    const checks = [
+      {
+        id: 'bridge',
+        label: 'TokenHome deployed on Home',
+        ok: Boolean(bridge?.homeAddress),
+        actionLabel: 'Go to Phase 2 (Home)',
+        actionHref: `${BRIDGE_BASE_PATH}/home`,
+      },
+      {
+        id: 'remote',
+        label: 'TokenRemote deployed on Remote',
+        ok: Boolean(selectedRemote?.address),
+        actionLabel: 'Go to Phase 3 (Remote)',
+        actionHref: `${BRIDGE_BASE_PATH}/remote`,
+      },
+      {
+        id: 'registered',
+        label: 'Remote registered with Home',
+        ok: Boolean(selectedRemote?.registeredAt),
+        actionLabel: 'Go to Phase 4 (Register)',
+        actionHref: `${BRIDGE_BASE_PATH}/register`,
+      },
+      {
+        // Native-home bridges don't need explicit collateral — registration alone
+        // is sufficient to send. Mark this row OK to keep the card honest.
+        id: 'collateralized',
+        label: isNativeHome ? 'Collateral (not required for native home)' : 'Collateral funded on Home',
+        ok: isNativeHome ? Boolean(selectedRemote?.registeredAt) : Boolean(selectedRemote?.collateralizedAt),
+        actionLabel: 'Go to Phase 5 (Collateral)',
+        actionHref: `${BRIDGE_BASE_PATH}/collateral`,
+      },
+      {
+        id: 'wallet-on-home',
+        label: `Wallet on ${homeL1?.name ?? 'Home L1'}`,
+        ok: Boolean(homeL1 && walletChainId === homeL1.evmChainId),
+        actionLabel: `Switch to ${homeL1?.name ?? 'Home'}`,
+        actionHref: null,
+        switchTo: homeL1?.evmChainId ?? null,
+      },
+    ] as const;
+    return {
+      checks,
+      ok: checks.every((c) => c.ok),
+    };
+  }, [
+    bridge?.kind,
+    bridge?.homeAddress,
+    selectedRemote?.address,
+    selectedRemote?.registeredAt,
+    selectedRemote?.collateralizedAt,
+    homeL1,
+    walletChainId,
+  ]);
+
+  const handleSwitchToHome = async () => {
+    if (!homeL1?.evmChainId) return;
+    try {
+      await switchChain(homeL1.evmChainId, isTestnet);
+    } catch {
+      // Wallet may have rejected — surface stays on the readiness row.
+    }
+  };
+
   return (
     <InspectorShell
       banner={
@@ -118,25 +192,13 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
               </button>
             </div>
           </Note>
-        ) : !selectedRemote?.collateralizedAt && bridge?.kind !== 'native-home' ? (
-          <Note variant="warning">
-            <span className="text-xs">Add collateral in Phase 5 first — sends fail without it.</span>
-          </Note>
         ) : null
       }
       footer={
         <button
           type="button"
           onClick={handleSend}
-          disabled={
-            isBusy ||
-            !bridge?.homeAddress ||
-            !selectedRemote?.address ||
-            !parsed ||
-            parsed <= 0n ||
-            !validRecipient ||
-            amountExceedsBalance
-          }
+          disabled={isBusy || !readiness.ok || !parsed || parsed <= 0n || !validRecipient || amountExceedsBalance}
           className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
         >
           {isBusy ? (
@@ -153,6 +215,13 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
           Send {bridge?.symbol ?? 'tokens'} from {homeL1?.name ?? 'Home'} → {remoteL1?.name ?? 'Remote'}. The relayer
           delivers; wrapped tokens land in the recipient&apos;s wallet on the destination.
         </p>
+
+        <LiveReadinessCard
+          checks={readiness.checks}
+          allOk={readiness.ok}
+          onSwitchToHome={handleSwitchToHome}
+          onNavigate={(href) => router.push(href)}
+        />
 
         <DestinationPicker
           remotes={remotes}
@@ -338,8 +407,81 @@ function RemoteOption({ remote, homeL1Name }: { remote: Remote; homeL1Name: stri
   );
 }
 
+interface ReadinessCheck {
+  id: string;
+  label: string;
+  ok: boolean;
+  actionLabel: string;
+  actionHref: string | null;
+  switchTo?: number | null;
+}
+
+interface LiveReadinessCardProps {
+  checks: ReadonlyArray<ReadinessCheck>;
+  allOk: boolean;
+  onSwitchToHome: () => void;
+  onNavigate: (href: string) => void;
+}
+
+function LiveReadinessCard({ checks, allOk, onSwitchToHome, onNavigate }: LiveReadinessCardProps) {
+  if (allOk) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300">
+        <Check className="h-3.5 w-3.5" aria-hidden />
+        <span className="font-medium">Bridge ready · all preflight checks pass.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+        Preflight
+      </span>
+      <ul className="flex flex-col">
+        {checks.map((check) => (
+          <li key={check.id} className="flex items-center justify-between gap-2 py-1 text-xs">
+            <span className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className={cn(
+                  'flex h-4 w-4 items-center justify-center rounded-full',
+                  check.ok
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                    : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400',
+                )}
+              >
+                {check.ok ? (
+                  <Check className="h-2.5 w-2.5" />
+                ) : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-500 dark:bg-zinc-400" />
+                )}
+              </span>
+              <span className={cn('text-zinc-700 dark:text-zinc-200', check.ok && 'text-zinc-500 dark:text-zinc-400')}>
+                {check.label}
+              </span>
+            </span>
+            {!check.ok && (
+              <button
+                type="button"
+                onClick={() =>
+                  check.switchTo ? onSwitchToHome() : check.actionHref ? onNavigate(check.actionHref) : undefined
+                }
+                className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+              >
+                {check.actionLabel}
+                <ArrowRight className="h-3 w-3" aria-hidden />
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function stageLabel(stage: ReturnType<typeof useSendTokens>['stage'], isNative: boolean): string {
   if (stage === 'approving') return 'Approving…';
+  if (stage === 'confirming') return 'Confirming approval…';
   if (stage === 'sending') return 'Submitting…';
   if (stage === 'submitted') return 'Send another';
   return isNative ? 'Send native cross-chain' : 'Send tokens';

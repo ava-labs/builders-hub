@@ -12,7 +12,7 @@ import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
-import { BaseError, ContractFunctionRevertedError } from 'viem';
+import { BaseError, ContractFunctionRevertedError, encodeFunctionData } from 'viem';
 import type { Address, Bridge, Remote } from '../types';
 
 interface SendParams {
@@ -49,8 +49,9 @@ export function useSendTokens({ bridge, remote }: UseSendTokensOptions) {
   const updateActivity = useIcttBridgeStore((s) => s.updateActivity);
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '');
-  const [stage, setStage] = useState<'idle' | 'approving' | 'sending' | 'submitted' | 'error'>('idle');
+  const [stage, setStage] = useState<'idle' | 'approving' | 'confirming' | 'sending' | 'submitted' | 'error'>('idle');
   const [error, setError] = useState<Error | null>(null);
 
   const send = async (params: SendParams): Promise<{ approveTx?: Address; sendTx: Address } | null> => {
@@ -123,6 +124,25 @@ export function useSendTokens({ bridge, remote }: UseSendTokensOptions) {
           [bridge.homeAddress, params.amount],
           'Approve TokenHome to spend send amount',
         )) as Address;
+
+        // Wait for the approve to mine before simulating send. `erc20.write`
+        // returns on broadcast — without this wait, the simulate below races
+        // against pre-approve state on `homeL1.rpcUrl` and the token's
+        // `transferFrom` reverts (allowance still 0). Viem can't decode the
+        // underlying `ERC20InsufficientAllowance` selector against TokenHome's
+        // ABI, so it surfaces as the generic "FailedInnerCall" — accurate but
+        // useless to the user.
+        setStage('confirming');
+        if (homeL1?.rpcUrl) {
+          try {
+            const client = makePublicClientForChain(homeL1.rpcUrl);
+            if (client) await client.waitForTransactionReceipt({ hash: approveTx, timeout: 60_000 });
+          } catch {
+            // Best-effort: if the receipt wait fails (RPC blip or > 60s), fall
+            // through — the simulate below will catch any actual allowance
+            // problem and surface the real reason instead of silently stalling.
+          }
+        }
       }
 
       const input = {
@@ -155,6 +175,51 @@ export function useSendTokens({ bridge, remote }: UseSendTokensOptions) {
           }
         } catch (simErr) {
           const decoded = decodeSimulateRevert(simErr);
+          // On Fuji, fall back to `debug_traceCall` for richer revert context.
+          // `decodeSimulateRevert` only knows the errors in TokenHome's ABI, so
+          // bubbled-up errors like `ERC20InsufficientAllowance` from the
+          // underlying token can't be named here. The trace returns the actual
+          // revert reason from any depth in the call stack.
+          if (isTestnet) {
+            try {
+              const homeAbi = bridge.kind === 'native-home' ? NativeTokenHomeAbi.abi : ERC20TokenHomeAbi.abi;
+              const callData = encodeFunctionData({
+                abi: homeAbi,
+                functionName: 'send',
+                args: [input, params.amount],
+              });
+              const traceResp = await fetch('/api/debug-rpc', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  method: 'debug_traceCall',
+                  params: [
+                    {
+                      from: walletEVMAddress,
+                      to: bridge.homeAddress,
+                      data: callData,
+                      ...(bridge.kind === 'native-home' ? { value: `0x${params.amount.toString(16)}` } : {}),
+                    },
+                    'latest',
+                    { tracer: 'callTracer' },
+                  ],
+                }),
+              });
+              if (traceResp.ok) {
+                const traceData = await traceResp.json();
+                const reason: string | undefined = traceData?.result?.revertReason || traceData?.result?.error;
+                if (reason && (!decoded || !decoded.includes(reason))) {
+                  throw new Error(decoded ? `${decoded} (trace: ${reason})` : `Send simulation reverted: ${reason}`);
+                }
+              }
+            } catch (traceErr) {
+              // Re-throw if the trace produced our enhanced error; otherwise
+              // fall through and surface the plain decoded message below.
+              if (traceErr instanceof Error && traceErr.message.startsWith('Send simulation')) {
+                throw traceErr;
+              }
+            }
+          }
           throw new Error(decoded ?? 'Send simulation reverted with no decoded reason.');
         }
       }
@@ -187,7 +252,7 @@ export function useSendTokens({ bridge, remote }: UseSendTokensOptions) {
     send,
     resetError,
     stage,
-    isBusy: stage === 'approving' || stage === 'sending',
+    isBusy: stage === 'approving' || stage === 'confirming' || stage === 'sending',
     error,
   };
 }
