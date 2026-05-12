@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Loader2 } from 'lucide-react';
-import { useL1List, useL1ByChainId, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import {
+  useL1List,
+  useL1ByChainId,
+  useSetTeleporterRegistryAddress,
+  type L1ListItem,
+} from '@/components/toolbox/stores/l1ListStore';
+import { getToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Note } from '@/components/toolbox/components/Note';
@@ -41,6 +47,24 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   const destinationL1 = useL1ByChainId(destinationL1Id);
   const wellKnownRegistry = (destinationL1?.wellKnownTeleporterRegistryAddress ?? '') as Address;
 
+  // Read the destination L1's toolbox store as a fallback. The toolboxStore
+  // is keyed by L1 id, so we look up the destination explicitly (NOT the
+  // wallet's current selectedL1 — Remote phase is about the destination).
+  // Heals user-created destination L1s where ICM was deployed but the
+  // address never propagated to l1ListStore. The fallback chain matches
+  // HomeInspector: toolbox > well-known > empty.
+  const destinationToolboxRegistry = destinationL1Id
+    ? getToolboxStore(destinationL1Id)((s: { teleporterRegistryAddress: string }) => s.teleporterRegistryAddress)
+    : '';
+  const defaultRegistry = (destinationToolboxRegistry || wellKnownRegistry || '') as Address;
+  const setTeleporterRegistryOnDestinationL1 = useSetTeleporterRegistryAddress();
+
+  const registryHint = destinationToolboxRegistry
+    ? 'Defaults to the ICM Registry you deployed on this chain.'
+    : wellKnownRegistry
+      ? 'Defaults to the well-known address for this chain.'
+      : 'Run ICM setup on the destination L1 to get a default — or paste a known Registry address.';
+
   const [registry, setRegistry] = useState<string>('');
   const [manager, setManager] = useState<string>('');
   const [tokenName, setTokenName] = useState<string>('');
@@ -75,14 +99,32 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
       setTokenSymbol('');
       return;
     }
-    setRegistry(wellKnownRegistry);
+    setRegistry(defaultRegistry);
     setManager(walletEVMAddress);
     setTokenName(`${bridge?.symbol ?? 'Bridged'} on ${destinationL1.name}`);
     setTokenSymbol(bridge?.symbol ?? 'TOKEN');
     // We intentionally re-fill on every destinationL1Id change. If the user has
     // typed custom values then changes the chain, the new chain's defaults
     // take over — that's the documented behavior.
-  }, [destinationL1Id]);
+  }, [destinationL1Id, defaultRegistry]);
+
+  // One-time backfill: if the destination's toolbox store has a registry but
+  // the L1ListItem doesn't yet, propagate so the dashboard ICM signal and
+  // future bridge sessions on this destination see it. Only fires when the
+  // wallet is on the destination chain (the setter matches by walletChainId,
+  // which is the only safe case — writing while on a different chain would
+  // miss the right entry).
+  useEffect(() => {
+    if (!destinationToolboxRegistry || wellKnownRegistry) return;
+    if (!destinationL1 || destinationL1.evmChainId !== walletChainId) return;
+    setTeleporterRegistryOnDestinationL1(destinationToolboxRegistry);
+  }, [
+    destinationToolboxRegistry,
+    wellKnownRegistry,
+    destinationL1,
+    walletChainId,
+    setTeleporterRegistryOnDestinationL1,
+  ]);
 
   const { deployRemote, isDeploying, error } = useDeployTokenRemote(destinationL1Id);
 
@@ -133,7 +175,7 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
       await handleManualSwitch();
       return;
     }
-    const useRegistry = (registry || wellKnownRegistry) as Address;
+    const useRegistry = (registry || defaultRegistry) as Address;
     const useManager = (manager || walletEVMAddress) as Address;
     if (!/^0x[a-fA-F0-9]{40}$/.test(useRegistry)) return;
     if (!/^0x[a-fA-F0-9]{40}$/.test(useManager)) return;
@@ -260,15 +302,12 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
               />
             </FormField>
 
-            <FormField
-              label="Teleporter registry on destination"
-              hint="Defaults to the well-known address for the chosen chain."
-            >
+            <FormField label="Teleporter registry on destination" hint={registryHint}>
               <input
                 type="text"
                 value={registry}
                 onChange={(e) => setRegistry(e.target.value.trim())}
-                placeholder={wellKnownRegistry || '0x…'}
+                placeholder={defaultRegistry || '0x…'}
                 className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
             </FormField>

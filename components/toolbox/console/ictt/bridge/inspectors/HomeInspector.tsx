@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowRight, Loader2 } from 'lucide-react';
-import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useSelectedL1, useSetTeleporterRegistryAddress } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { Note } from '@/components/toolbox/components/Note';
@@ -25,16 +25,46 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
   const { walletEVMAddress } = useWalletStore();
   const { deployHome, isDeploying, error } = useDeployTokenHome();
 
+  // Priority chain mirrors the legacy `TeleporterRegistryAddressInput`:
+  //   1. user-typed value wins (handled inside `setRegistry`)
+  //   2. toolboxStore — the per-chain address written by the ICM setup flow
+  //      after a successful registry deploy. Catches the race window before
+  //      l1ListStore propagates (and legacy users who deployed before the
+  //      l1ListStore propagation existed).
+  //   3. wellKnownTeleporterRegistryAddress on the L1ListItem — seeded for
+  //      well-known chains (Fuji C-Chain, Echo, etc.) and now also written
+  //      by the ICM setup flow for user-created L1s.
+  const toolboxRegistry = useToolboxStore().teleporterRegistryAddress;
   const wellKnownRegistry = (selectedL1?.wellKnownTeleporterRegistryAddress ?? '') as Address;
-  const [registry, setRegistry] = useState<string>(wellKnownRegistry);
+  const defaultRegistry = (toolboxRegistry || wellKnownRegistry || '') as Address;
+  const setTeleporterRegistryOnL1 = useSetTeleporterRegistryAddress();
+  const [registry, setRegistry] = useState<string>(defaultRegistry);
   const [manager, setManager] = useState<string>(walletEVMAddress);
   const [decimals, setDecimals] = useState<string>('0');
   const [symbol, setSymbol] = useState<string>('');
   const [decimalsError, setDecimalsError] = useState<string | null>(null);
 
   useEffect(() => {
-    setRegistry((prev) => prev || wellKnownRegistry);
-  }, [wellKnownRegistry]);
+    setRegistry((prev) => prev || defaultRegistry);
+  }, [defaultRegistry]);
+
+  // One-time backfill: if the toolboxStore has a registry that the L1ListItem
+  // doesn't yet know about, propagate it now. Heals legacy state where the
+  // user ran ICM setup before the propagation in `TeleporterRegistry.tsx`
+  // existed. Skip when wallet isn't on this L1 — `useSetTeleporterRegistryAddress`
+  // matches by `walletChainId`, so writing while on the wrong chain would
+  // silently miss.
+  useEffect(() => {
+    if (!toolboxRegistry || wellKnownRegistry) return;
+    if (!selectedL1 || selectedL1.evmChainId !== useWalletStore.getState().walletChainId) return;
+    setTeleporterRegistryOnL1(toolboxRegistry);
+  }, [toolboxRegistry, wellKnownRegistry, selectedL1, setTeleporterRegistryOnL1]);
+
+  const registryHint = toolboxRegistry
+    ? 'Defaults to your deployed ICM Registry on this chain.'
+    : wellKnownRegistry
+      ? 'Defaults to the well-known address for this chain.'
+      : 'Run ICM setup on this L1 to get a default — or paste a known Registry address.';
 
   useEffect(() => {
     setManager((prev) => prev || walletEVMAddress);
@@ -157,7 +187,7 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
           {decimalsError && <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{decimalsError}</p>}
         </FormField>
 
-        <FormField label="Teleporter registry" hint="Defaults to the well-known address for this chain.">
+        <FormField label="Teleporter registry" hint={registryHint}>
           <input
             type="text"
             value={registry}
