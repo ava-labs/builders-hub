@@ -80,9 +80,11 @@ export function L1Details({
         <LiveCharts l1={l1} />
       </motion.div>
 
-      <DashboardSection title="Cross-chain">
+      {/* CrossChainSection is its own Collapsible header — no DashboardSection
+          wrapper needed (matches NetworkDetailsCard's pattern). */}
+      <motion.div variants={sectionItem}>
         <CrossChainSection l1={l1} />
-      </DashboardSection>
+      </motion.div>
 
       {isManaged && (
         // Always render for managed L1s — even when the node array is empty
