@@ -103,7 +103,6 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
 
   const sendTxUrl = buildTxUrl(homeL1, lastTx);
   const hasRemotes = remotes.length > 0;
-  const hasMultipleRemotes = remotes.length > 1;
 
   // Consolidate every Send-blocking precondition into one readiness object so the
   // button's disabled state and the user-facing card stay in sync. The previous
@@ -223,9 +222,7 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
           remotes={remotes}
           selectedRemoteId={selectedRemoteId}
           homeL1Name={homeL1?.name ?? 'Home'}
-          onSelect={ctx.selectRemote}
           onAddAnother={handleAddAnotherDestination}
-          hasMultiple={hasMultipleRemotes}
         />
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -316,30 +313,22 @@ interface DestinationPickerProps {
   remotes: Remote[];
   selectedRemoteId: Remote['id'] | null;
   homeL1Name: string;
-  onSelect: (id: Remote['id']) => void;
   onAddAnother: () => void;
-  hasMultiple: boolean;
 }
 
-function DestinationPicker({
-  remotes,
-  selectedRemoteId,
-  homeL1Name,
-  onSelect,
-  onAddAnother,
-  hasMultiple,
-}: DestinationPickerProps) {
+/**
+ * Read-only destination summary. Multi-remote switching is handled by the
+ * `RemoteTabs` row above the BridgeRibbon; this component only shows the
+ * currently-selected route + an "Add another destination" CTA.
+ */
+function DestinationPicker({ remotes, selectedRemoteId, homeL1Name, onAddAnother }: DestinationPickerProps) {
   if (remotes.length === 0) return null;
   const selected = remotes.find((r) => r.id === selectedRemoteId) ?? remotes[0];
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/40">
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-600 dark:text-zinc-300">
         <span className="font-medium text-zinc-500 dark:text-zinc-400">Direction</span>
-        {hasMultiple ? (
-          <RemoteSelect remotes={remotes} selectedId={selected.id} homeL1Name={homeL1Name} onSelect={onSelect} />
-        ) : (
-          <RemoteStaticRow remote={selected} homeL1Name={homeL1Name} />
-        )}
+        <RemoteLabel remote={selected} homeL1Name={homeL1Name} />
       </div>
       <button
         type="button"
@@ -353,10 +342,6 @@ function DestinationPicker({
   );
 }
 
-function RemoteStaticRow({ remote, homeL1Name }: { remote: Remote; homeL1Name: string }) {
-  return <RemoteLabel remote={remote} homeL1Name={homeL1Name} />;
-}
-
 function RemoteLabel({ remote, homeL1Name }: { remote: Remote; homeL1Name: string }) {
   const remoteL1 = useL1ByChainId(remote.l1Id);
   return (
@@ -366,40 +351,6 @@ function RemoteLabel({ remote, homeL1Name }: { remote: Remote; homeL1Name: strin
       <span>{remoteL1?.name ?? 'Remote'}</span>
       <code className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{truncateAddress(remote.address)}</code>
     </span>
-  );
-}
-
-function RemoteSelect({
-  remotes,
-  selectedId,
-  homeL1Name,
-  onSelect,
-}: {
-  remotes: Remote[];
-  selectedId: Remote['id'];
-  homeL1Name: string;
-  onSelect: (id: Remote['id']) => void;
-}) {
-  return (
-    <select
-      value={selectedId}
-      onChange={(e) => onSelect(e.target.value as Remote['id'])}
-      className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-      aria-label="Destination remote"
-    >
-      {remotes.map((r) => (
-        <RemoteOption key={r.id} remote={r} homeL1Name={homeL1Name} />
-      ))}
-    </select>
-  );
-}
-
-function RemoteOption({ remote, homeL1Name }: { remote: Remote; homeL1Name: string }) {
-  const remoteL1 = useL1ByChainId(remote.l1Id);
-  return (
-    <option value={remote.id}>
-      {homeL1Name} → {remoteL1?.name ?? 'Remote'} · {truncateAddress(remote.address, 6, 4)}
-    </option>
   );
 }
 
