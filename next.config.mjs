@@ -23,6 +23,16 @@ const config = {
     '/*': ['./tsconfig.json'],
   },
   transpilePackages: ["next-mdx-remote"],
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      'framer-motion',
+      '@radix-ui/react-icons',
+      'date-fns',
+      '@tabler/icons-react',
+    ],
+  },
   images: {
     remotePatterns: [
       {

@@ -762,11 +762,11 @@ function TransactionsTable({
             ) : (
               <>
                 Load More Transfers
-                {totalCount && (
+                {totalCount ? (
                   <span className="ml-2 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
                     (Showing {data.length} of {totalCount.toLocaleString()})
                   </span>
-                )}
+                ) : null}
               </>
             )}
           </Button>

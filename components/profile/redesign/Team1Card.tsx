@@ -95,6 +95,124 @@ const initials = (name: string) =>
 const pluralize = (n: number, word: string) =>
   `${n} ${word}${n === 1 ? "" : "s"}`;
 
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function joinedNow(): string {
+  const d = new Date();
+  return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function applyAssign(
+  prev: OrgRegion[],
+  builder: PoolBuilder,
+  teamId: string,
+  role: AssignableRole,
+): OrgRegion[] {
+  return prev.map((r) => {
+    if (r.teamId !== teamId) return r;
+
+    const base = {
+      id: builder.id,
+      name: builder.name,
+      handle: builder.handle,
+      email: builder.email,
+      country: builder.country,
+    };
+
+    if (role === "team1-admin") {
+      const newAdmin: OrgAdmin = {
+        ...base,
+        members: r.admins.length === 0 ? [...r.unassignedMembers] : [],
+      };
+      return {
+        ...r,
+        admins: [...r.admins, newAdmin],
+        unassignedMembers: r.admins.length === 0 ? [] : r.unassignedMembers,
+        counts: { ...r.counts, admins: r.counts.admins + 1 },
+      };
+    }
+
+    const memberRole = role === "team1-technical" ? "team1-technical" : "team1-member";
+    const newMember: OrgMember = {
+      ...base,
+      joined: joinedNow(),
+      role: memberRole,
+    };
+    const nextCounts = {
+      ...r.counts,
+      technical:
+        memberRole === "team1-technical" ? r.counts.technical + 1 : r.counts.technical,
+      members:
+        memberRole === "team1-member" ? r.counts.members + 1 : r.counts.members,
+    };
+
+    if (r.admins.length === 0) {
+      return {
+        ...r,
+        unassignedMembers: [...r.unassignedMembers, newMember],
+        counts: nextCounts,
+      };
+    }
+    const nextAdmins = r.admins.map((a, idx) =>
+      idx === 0 ? { ...a, members: [...a.members, newMember] } : a,
+    );
+    return { ...r, admins: nextAdmins, counts: nextCounts };
+  });
+}
+
+function applyRemove(prev: OrgRegion[], memberId: string): OrgRegion[] {
+  return prev.map((r) => {
+    const foundInAdmin = r.admins.find((a) =>
+      a.members.some((m) => m.id === memberId),
+    );
+    const foundInUnassigned = r.unassignedMembers.find((m) => m.id === memberId);
+    const removed: OrgMember | undefined =
+      foundInAdmin?.members.find((m) => m.id === memberId) ?? foundInUnassigned;
+    if (!removed) return r;
+
+    const nextAdmins = foundInAdmin
+      ? r.admins.map((a) =>
+          a.id === foundInAdmin.id
+            ? { ...a, members: a.members.filter((m) => m.id !== memberId) }
+            : a,
+        )
+      : r.admins;
+    const nextUnassigned = foundInUnassigned
+      ? r.unassignedMembers.filter((m) => m.id !== memberId)
+      : r.unassignedMembers;
+
+    return {
+      ...r,
+      admins: nextAdmins,
+      unassignedMembers: nextUnassigned,
+      counts: {
+        ...r.counts,
+        technical:
+          removed.role === "team1-technical"
+            ? Math.max(0, r.counts.technical - 1)
+            : r.counts.technical,
+        members:
+          removed.role === "team1-member"
+            ? Math.max(0, r.counts.members - 1)
+            : r.counts.members,
+      },
+    };
+  });
+}
+
 export function Team1Card({ onToast = () => {} }: Props) {
   const { data: session } = useSession();
   const canWrite = canEditTeam1(session?.user?.custom_attributes);
@@ -202,7 +320,7 @@ export function Team1Card({ onToast = () => {} }: Props) {
       }
       onToast(`Assigned ${builder.name} as ${ROLE_LABELS[role]}`);
       setPool((prev) => prev.filter((p) => p.id !== builder.id));
-      void loadOrg();
+      setRegions((prev) => applyAssign(prev, builder, teamId, role));
     } catch (err) {
       console.error("[Team1Card] assign failed:", err);
       onToast(
@@ -211,6 +329,7 @@ export function Team1Card({ onToast = () => {} }: Props) {
           : `Couldn't assign ${builder.name}`,
         "error",
       );
+      void loadOrg();
     }
   };
 
@@ -233,7 +352,7 @@ export function Team1Card({ onToast = () => {} }: Props) {
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       onToast(`Removed ${member.name} from Team 1`);
-      void loadOrg();
+      setRegions((prev) => applyRemove(prev, member.id));
     } catch (err) {
       console.error("[Team1Card] remove failed:", err);
       onToast(
@@ -242,6 +361,7 @@ export function Team1Card({ onToast = () => {} }: Props) {
           : `Couldn't remove ${member.name}`,
         "error",
       );
+      void loadOrg();
     }
   };
 
