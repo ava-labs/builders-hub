@@ -49,7 +49,19 @@ export interface Remote {
 
 export type ActivityKind = 'deploy' | 'register-sent' | 'register-received' | 'collateral' | 'send' | 'receive' | 'icm';
 
-export type ActivityStatus = 'pending' | 'confirmed' | 'failed';
+/**
+ * 4-state activity lifecycle:
+ *   pending   — tx broadcast, awaiting source-chain receipt
+ *   confirmed — source-chain receipt mined (locally final)
+ *   delivered — paired destination event observed (cross-chain final)
+ *   failed    — tx reverted or watcher gave up
+ *
+ * Only `send` and `register-sent` rows ever reach `delivered`. Standalone
+ * activity (`deploy`, `collateral`) skips the delivered state — `confirmed`
+ * is terminal for them. Paired receive rows (`receive`, `register-received`)
+ * are created with `status: 'delivered'` directly.
+ */
+export type ActivityStatus = 'pending' | 'confirmed' | 'delivered' | 'failed';
 
 export interface ActivityEvent {
   id: string;
@@ -64,11 +76,19 @@ export interface ActivityEvent {
   txHash?: Address;
   icmMessageId?: string;
   status: ActivityStatus;
+  /**
+   * For paired send↔receive / register-sent↔register-received events.
+   * Set on both sides when {@link useDeliveryWatcher} matches a destination
+   * `ReceiveCrossChainMessage` to a pending source row.
+   */
+  pairedWith?: string;
 }
 
 /**
- * Aggregated state returned by useBridgeState. Derived per-Home/per-Remote
- * from the new bridge store + on-chain reads.
+ * Aggregated state shape kept around for consumers that still reference
+ * BridgePhase + BridgeStatus tuples. Originally returned by useBridgeState
+ * (removed in the v2 cleanup) but the interface stays because
+ * `derive-status.ts` still exposes the same shape via `derivePhaseStatus`.
  */
 export interface BridgeState {
   homeL1: L1ListItem | null;

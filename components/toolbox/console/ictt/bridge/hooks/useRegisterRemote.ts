@@ -107,8 +107,13 @@ export function useRegisterRemote({
           upsertRemote(options.bridgeId, { ...target, registeredAt: Date.now() } as Remote);
           setHomePollState('delivered');
           if (options.activityId) {
+            // Flip status to `delivered` here so the activity log reflects the
+            // cross-chain final state even if the global delivery watcher hasn't
+            // observed the `ReceiveCrossChainMessage` event yet. The watcher
+            // will still push a paired `register-received` row when it catches
+            // the log (idempotent — won't double-bind once `pairedWith` is set).
             updateActivity(options.activityId, {
-              status: 'confirmed',
+              status: 'delivered',
               sublabel: 'Remote registered on Home',
             });
           }
@@ -173,23 +178,28 @@ export function useRegisterRemote({
         }
       }
 
+      // Local receipt mined (we just waited on it to parse the ICM message ID).
+      // Move the row to `confirmed`: the local tx is final, but delivery to
+      // Home is still pending — the row stays `confirmed` until the poll or
+      // the global delivery watcher flips it to `delivered`.
       updateActivity(activityId, {
-        status: 'pending',
+        status: icmMessageId ? 'confirmed' : 'pending',
         txHash,
         icmMessageId,
         sublabel: icmMessageId
           ? `ICM msg ${truncateAddress(icmMessageId, 8, 4)} · waiting for delivery to Home`
           : 'Local tx broadcast — waiting for ICM delivery to Home',
       });
-      // Kick off the Home-side poll. The activity event stays pending until the
-      // Home contract reports `registered: true` or we hit the timeout cap.
+      // Kick off the Home-side poll. The activity event stays `confirmed` until
+      // the Home contract reports `registered: true` (flips to `delivered`) or
+      // we hit the timeout cap.
       if (homeAddress && homeRpcUrl) {
         startHomePoll(remote, { activityId, bridgeId, homeAddress, homeRpcUrl });
       } else {
         // No way to verify — fall back to optimistic mark so the flow still works.
         upsertRemote(bridgeId, { ...remote, registeredAt: Date.now() } as Remote);
         setHomePollState('delivered');
-        updateActivity(activityId, { status: 'confirmed', sublabel: 'Local registration tx confirmed' });
+        updateActivity(activityId, { status: 'delivered', sublabel: 'Local registration tx confirmed' });
       }
       return { txHash, activityId };
     } catch (err) {

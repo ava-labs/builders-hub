@@ -11,7 +11,7 @@ export interface DeriveStatusInput {
 /**
  * Pure function: compute the per-phase status from the current bridge graph
  * and any in-flight activity. Has no side effects and no on-chain reads —
- * those are handled by `useBridgeState`, which calls into here.
+ * on-chain reads happen inside the individual phase hooks.
  */
 export function derivePhaseStatus({
   bridge,

@@ -3,6 +3,7 @@ import { persist, createJSONStorage, combine } from 'zustand/middleware';
 import { localStorageComp, STORE_VERSION } from './utils';
 import type {
   ActivityEvent,
+  ActivityStatus,
   Address,
   Bridge,
   BridgeId,
@@ -169,6 +170,7 @@ export const useIcttBridgeStore = create(
           icmMessageId: event.icmMessageId,
           remoteId: event.remoteId,
           status: event.status,
+          pairedWith: event.pairedWith,
         };
         set((state) => ({
           activityLog: [next, ...state.activityLog].slice(0, ACTIVITY_CAP),
@@ -179,6 +181,68 @@ export const useIcttBridgeStore = create(
       updateActivity: (id: string, patch: Partial<ActivityEvent>) =>
         set((state) => ({
           activityLog: state.activityLog.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+        })),
+
+      /**
+       * Pair a destination-chain delivery (`receive` or `register-received`)
+       * with a pending source event. Idempotent: if the source already has a
+       * `pairedWith`, the call is a no-op. The source row flips to `delivered`
+       * and both rows reference each other via `pairedWith`.
+       *
+       * Called by `useDeliveryWatcher` when it observes a matching
+       * `ReceiveCrossChainMessage` on the destination chain — either via the
+       * mount-time getLogs backfill or the live event subscription.
+       */
+      bindReceive: (input: {
+        sourceActivityId: string;
+        txHash: Address;
+        chainId?: string | number;
+        blockNumber?: bigint;
+        kind: 'receive' | 'register-received';
+        label?: string;
+        sublabel?: string;
+      }) => {
+        const source = get().activityLog.find((e) => e.id === input.sourceActivityId);
+        if (!source) return null;
+        if (source.pairedWith) return source.pairedWith;
+        const receiveId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const label =
+          input.label ?? (input.kind === 'receive' ? 'Tokens received on destination' : 'Remote registered with Home');
+        const receiveEvent: ActivityEvent = {
+          id: receiveId,
+          timestampMs: Date.now(),
+          bridgeId: source.bridgeId,
+          remoteId: source.remoteId,
+          kind: input.kind,
+          label,
+          sublabel: input.sublabel,
+          chainId: input.chainId,
+          txHash: input.txHash,
+          icmMessageId: source.icmMessageId,
+          status: 'delivered',
+          pairedWith: source.id,
+        };
+        set((state) => ({
+          activityLog: [
+            receiveEvent,
+            ...state.activityLog.map((e) =>
+              e.id === source.id ? { ...e, status: 'delivered' as ActivityStatus, pairedWith: receiveId } : e,
+            ),
+          ].slice(0, ACTIVITY_CAP),
+        }));
+        return receiveId;
+      },
+
+      /**
+       * Mark an activity row as failed with an optional reason. Currently used
+       * by the future delivery-timeout path and the ICM detail sheet's manual
+       * "mark as failed" affordance; not auto-emitted in this PR.
+       */
+      markFailed: (id: string, reason?: string) =>
+        set((state) => ({
+          activityLog: state.activityLog.map((e) =>
+            e.id === id ? { ...e, status: 'failed' as ActivityStatus, sublabel: reason ?? e.sublabel } : e,
+          ),
         })),
 
       removeActivity: (id: string) =>

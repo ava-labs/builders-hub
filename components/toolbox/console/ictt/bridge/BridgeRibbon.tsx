@@ -12,8 +12,11 @@ import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { useModalTrigger } from '@/components/toolbox/hooks/useModal';
 import { cn } from '@/lib/utils';
 import { useBridgeContext } from './hooks/useBridgeContext';
+import { useDeliveryWatcher } from './hooks/useDeliveryWatcher';
 import { HomeChainCard } from './HomeChainCard';
 import { RemoteChainCard } from './RemoteChainCard';
+import { RemoteTabs } from './RemoteTabs';
+import { IcmMessageSheet } from './activity/IcmMessageSheet';
 import { truncateAddress } from './utils/explorer-url';
 import { formatRelativeTime } from './utils/relative-time';
 import { BRIDGE_BASE_PATH } from './bridge-steps';
@@ -31,11 +34,13 @@ export function BridgeRibbon() {
   const ctx = useBridgeContext();
   const router = useRouter();
   const allActivity = useIcttBridgeStore((s) => s.activityLog);
+  // Closes the bridge delivery loop globally: backfills any pending `send` /
+  // `register-sent` activity rows against the destination chain's Teleporter
+  // and watches for new `ReceiveCrossChainMessage` events while mounted.
+  useDeliveryWatcher();
   // Show every bridge event (deploy, register, collateral, send, …) for the
-  // active bridge in the recent window — not just ICM-tagged ones. The
-  // previous `kind === 'icm' || icmMessageId` filter left the pill perma-empty
-  // because no hook ever populated those fields. ICM-bearing rows are still
-  // visually distinguished inside the sheet via `ActivityItem`'s `msg 0x…` chip.
+  // active bridge in the recent window — not just ICM-tagged ones. ICM-bearing
+  // rows surface a `msg 0x…` chip that opens the IcmMessageSheet detail view.
   const bridgeEvents = useMemo(() => {
     const now = Date.now();
     return allActivity
@@ -55,18 +60,30 @@ export function BridgeRibbon() {
   };
 
   return (
-    <div
-      className={cn(
-        'flex w-full flex-col gap-2 rounded-2xl border border-zinc-200/80 bg-white px-3 py-2 shadow-sm',
-        'md:flex-row md:items-stretch md:gap-3 md:px-2 md:py-2',
-        'dark:border-zinc-800 dark:bg-zinc-900',
+    <div className="flex w-full flex-col gap-2">
+      {ctx.remotes.length > 1 && (
+        <div className="flex justify-end">
+          <RemoteTabs
+            remotes={ctx.remotes}
+            selectedRemoteId={ctx.selectedRemoteId}
+            onSelect={ctx.selectRemote}
+            onRemoveFromView={ctx.removeRemoteFromView}
+          />
+        </div>
       )}
-    >
-      <HomeSide />
-      <Divider />
-      <BridgeLogPill events={bridgeEvents} />
-      <Divider />
-      <RemoteSide />
+      <div
+        className={cn(
+          'flex w-full flex-col gap-2 rounded-2xl border border-zinc-200/80 bg-white px-3 py-2 shadow-sm',
+          'md:flex-row md:items-stretch md:gap-3 md:px-2 md:py-2',
+          'dark:border-zinc-800 dark:bg-zinc-900',
+        )}
+      >
+        <HomeSide />
+        <Divider />
+        <BridgeLogPill events={bridgeEvents} />
+        <Divider />
+        <RemoteSide />
+      </div>
     </div>
   );
 
@@ -280,15 +297,22 @@ function ChainAvatar({ l1, role }: { l1: L1ListItem | null; role: 'home' | 'remo
  *   - confirmed-only: zinc count chip
  *   - has-pending: amber icon + pulsing accent dot + amber count chip
  *
- * ICM-specific rows are still highlighted inside the sheet via
- * `ActivityItem`'s `msg 0x…` chip — captured from the Teleporter
- * `SendCrossChainMessage` event in `useRegisterRemote` and `useSendTokens`.
+ * ICM-specific rows surface a `msg 0x…` chip that opens the
+ * `IcmMessageSheet` for deep inspection — message ID is captured from the
+ * Teleporter `SendCrossChainMessage` event in `useRegisterRemote` and
+ * `useSendTokens`.
  */
 function BridgeLogPill({ events }: { events: ActivityEvent[] }) {
   const [open, setOpen] = useState(false);
+  const [detailEvent, setDetailEvent] = useState<ActivityEvent | null>(null);
   const count = events.length;
   const hasEvents = count > 0;
-  const hasPending = events.some((e) => e.status === 'pending');
+  // "Pending" in the dot means any row that's not yet at terminal state
+  // (delivered / failed / standalone confirmed). Both `pending` and the new
+  // `confirmed-but-not-delivered` state should pulse.
+  const hasPending = events.some(
+    (e) => e.status === 'pending' || (e.status === 'confirmed' && (e.kind === 'send' || e.kind === 'register-sent')),
+  );
   return (
     <div className="flex items-center justify-center md:px-1">
       <Sheet open={open} onOpenChange={setOpen}>
@@ -354,28 +378,124 @@ function BridgeLogPill({ events }: { events: ActivityEvent[] }) {
                 No bridge activity in the last hour.
               </p>
             ) : (
-              <ul className="flex flex-col gap-2">
-                {events.map((e) => (
-                  <li
-                    key={e.id}
-                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950/40"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-zinc-900 dark:text-zinc-100">{e.label}</span>
-                      <span className="text-[11px] text-zinc-500">{formatRelativeTime(e.timestampMs)}</span>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                      {e.icmMessageId && <span>msg {truncateAddress(e.icmMessageId, 8, 4)}</span>}
-                      {e.txHash && <span>tx {truncateAddress(e.txHash)}</span>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <ActivityList events={events} onSelect={(e) => setDetailEvent(e)} />
             )}
           </div>
         </SheetContent>
       </Sheet>
+      <IcmMessageSheet
+        event={detailEvent}
+        open={detailEvent !== null}
+        onOpenChange={(o) => !o && setDetailEvent(null)}
+      />
     </div>
+  );
+}
+
+/**
+ * Groups paired events (`send + receive`, `register-sent + register-received`)
+ * into one expandable row; renders everything else as singletons. The source
+ * row is what the user actually cares about — the receive row is collapsed
+ * into a status pill until expanded.
+ */
+function ActivityList({ events, onSelect }: { events: ActivityEvent[]; onSelect: (event: ActivityEvent) => void }) {
+  // First pass: build pair map keyed by canonical source id. For sources the
+  // canonical id is itself; for receives the canonical id is `pairedWith`.
+  const pairs = useMemo(() => {
+    const byCanonical = new Map<string, { source: ActivityEvent; paired?: ActivityEvent }>();
+    for (const e of events) {
+      const isReceive = e.kind === 'receive' || e.kind === 'register-received';
+      const canonical = isReceive && e.pairedWith ? e.pairedWith : e.id;
+      const existing = byCanonical.get(canonical);
+      if (isReceive) {
+        if (existing) existing.paired = e;
+        else byCanonical.set(canonical, { source: e, paired: e });
+      } else {
+        if (existing) existing.source = e;
+        else byCanonical.set(canonical, { source: e });
+      }
+    }
+    return Array.from(byCanonical.values()).sort((a, b) => b.source.timestampMs - a.source.timestampMs);
+  }, [events]);
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {pairs.map(({ source, paired }) => (
+        <ActivityRow key={source.id} source={source} paired={paired ?? null} onSelect={onSelect} />
+      ))}
+    </ul>
+  );
+}
+
+function ActivityRow({
+  source,
+  paired,
+  onSelect,
+}: {
+  source: ActivityEvent;
+  paired: ActivityEvent | null;
+  onSelect: (event: ActivityEvent) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isPairable = source.kind === 'send' || source.kind === 'register-sent';
+  const statusForRow: ActivityEvent['status'] = paired ? 'delivered' : source.status;
+  return (
+    <li className="overflow-hidden rounded-lg border border-zinc-200 bg-white text-sm dark:border-zinc-800 dark:bg-zinc-950/40">
+      <button
+        type="button"
+        onClick={() => {
+          if (source.icmMessageId) {
+            onSelect(source);
+          } else if (isPairable) {
+            setExpanded((x) => !x);
+          }
+        }}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/40"
+        aria-label={source.icmMessageId ? `Open ICM message detail for ${source.label}` : source.label}
+      >
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">{source.label}</span>
+            <span className="shrink-0 text-[11px] text-zinc-500">{formatRelativeTime(source.timestampMs)}</span>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+            {source.icmMessageId && <span>msg {truncateAddress(source.icmMessageId, 8, 4)}</span>}
+            {source.txHash && <span>tx {truncateAddress(source.txHash)}</span>}
+            <RowStatusPill status={statusForRow} />
+          </div>
+        </div>
+      </button>
+      {expanded && paired && (
+        <div className="border-t border-dashed border-zinc-200 bg-zinc-50/40 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
+          <div className="font-medium text-zinc-700 dark:text-zinc-200">{paired.label}</div>
+          {paired.sublabel && <div className="mt-0.5">{paired.sublabel}</div>}
+          {paired.txHash && (
+            <div className="mt-1 font-mono text-[11px] text-zinc-500">tx {truncateAddress(paired.txHash, 8, 6)}</div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+function RowStatusPill({ status }: { status: ActivityEvent['status'] }) {
+  const tone =
+    status === 'delivered'
+      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+      : status === 'failed'
+        ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
+        : status === 'confirmed'
+          ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
+          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+  return (
+    <span
+      className={cn(
+        'inline-flex h-4 items-center rounded-full px-1.5 text-[9px] font-semibold uppercase tracking-wider',
+        tone,
+      )}
+    >
+      {status}
+    </span>
   );
 }
 
