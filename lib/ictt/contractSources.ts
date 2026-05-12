@@ -60,8 +60,15 @@ const WRAPPED_NATIVE: ContractSource = {
  *  ERC-20 and native side-by-side. */
 export const ICTT_HOME_SOURCES: ContractSource[] = [HOME_ERC20, HOME_NATIVE];
 
-/** Both Remote variants — surfaced together on the Remote phase. */
+/** Both Remote variants — surfaced together by default on the Remote phase
+ *  when no specific kind is selected. */
 export const ICTT_REMOTE_SOURCES: ContractSource[] = [REMOTE_ERC20, REMOTE_NATIVE];
+
+/** Single-source pane variants for the Remote phase. The v2 wizard switches
+ *  between these once the user has picked a remote kind, so the source pane
+ *  matches the contract the deploy form is configured to ship. */
+export const ICTT_REMOTE_ERC20_SOURCES: ContractSource[] = [REMOTE_ERC20];
+export const ICTT_REMOTE_NATIVE_SOURCES: ContractSource[] = [REMOTE_NATIVE];
 
 /** Register phase calls `registerWithHome` on the Remote and arrives on the
  *  Home — surface both sides of the registration handshake. */

@@ -19,12 +19,17 @@ export interface DeployTokenRemoteParams {
   teleporterRegistryAddress: Address;
   teleporterManager: Address;
   minTeleporterVersion: number;
+  /** Required only for `erc20-remote`. Ignored when deploying a native remote. */
   tokenName: string;
+  /** ERC20: mirrored token symbol. Native: the destination L1's native asset symbol. */
   tokenSymbol: string;
-  /** Optional initial reserve for native remote. */
+  /** Required for `native-remote`. Native supply already on the destination
+   *  L1 (e.g. from genesis allocations) that is not yet backed by locked home
+   *  tokens. The `NativeTokenRemote` constructor rejects zero. */
   initialReserveImbalance?: bigint;
-  /** Optional `multiplyOnRemote` flag for native remote. */
-  multiplyOnRemote?: boolean;
+  /** Required for `native-remote`. Percent (0-100) of burned transaction fees
+   *  rewarded to whoever reports them via the precompile. */
+  burnedFeesReportingRewardPercentage?: number;
   /** Optional decimal overrides. */
   decimals?: number;
 }
@@ -70,10 +75,21 @@ export function useDeployTokenRemote(remoteL1Id: string | null) {
         tokenHomeDecimals: params.homeDecimals,
       };
 
+      // NativeTokenRemote constructor:
+      //   (TeleporterRegistrySettings, string nativeAssetSymbol,
+      //    uint256 initialReserveImbalance, uint8 burnedFeesReportingRewardPercentage)
+      // The earlier version of this hook passed `tokenName` and `multiplyOnRemote`
+      // here, which mismatched both the field name and the bool/uint8 type. We
+      // now hand the asset symbol and the percentage straight through.
       const args: unknown[] =
         params.kind === 'erc20-remote'
           ? [settings, params.tokenName, params.tokenSymbol, decimals]
-          : [settings, params.tokenName, params.initialReserveImbalance ?? 0n, params.multiplyOnRemote ?? false];
+          : [
+              settings,
+              params.tokenSymbol,
+              params.initialReserveImbalance ?? 1n,
+              BigInt(params.burnedFeesReportingRewardPercentage ?? 0),
+            ];
 
       const result = (await deploy({
         abi: (params.kind === 'erc20-remote' ? ERC20TokenRemote.abi : NativeTokenRemote.abi) as unknown as never[],
@@ -102,7 +118,7 @@ export function useDeployTokenRemote(remoteL1Id: string | null) {
         sublabel:
           params.kind === 'erc20-remote'
             ? `ERC-20 remote · ${params.tokenSymbol} · ${decimals} decimals`
-            : 'Native remote',
+            : `Native remote · ${params.tokenSymbol}`,
         chainId: walletChainId,
         status: 'confirmed',
       });

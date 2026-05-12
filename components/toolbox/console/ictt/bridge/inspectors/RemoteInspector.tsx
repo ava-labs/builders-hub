@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import {
@@ -14,12 +14,14 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Note } from '@/components/toolbox/components/Note';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
-import { ICTT_REMOTE_SOURCES } from '@/lib/ictt/contractSources';
+import { ICTT_REMOTE_ERC20_SOURCES, ICTT_REMOTE_NATIVE_SOURCES } from '@/lib/ictt/contractSources';
+import { cn } from '@/lib/utils';
 import { InspectorShell } from './InspectorShell';
 import { useDeployTokenRemote } from '../hooks/useDeployTokenRemote';
 import { useBridgeContext } from '../hooks/useBridgeContext';
 import { truncateAddress } from '../utils/explorer-url';
-import type { Address, Bridge, BridgePhase, Remote } from '../types';
+import { detectNativeMinterPrecompile } from '../utils/native-minter';
+import type { Address, Bridge, BridgePhase, Remote, RemoteKind } from '../types';
 
 interface RemoteInspectorProps {
   onPhaseChange: (next: BridgePhase) => void;
@@ -71,6 +73,31 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   const [manager, setManager] = useState<string>('');
   const [tokenName, setTokenName] = useState<string>('');
   const [tokenSymbol, setTokenSymbol] = useState<string>('');
+  // Kind selector lets the user pick between ERC-20 (default) and native gas
+  // token remotes. The hook accepts both, but the v2 wizard only exposed the
+  // ERC-20 path until this commit. Native remote requires the Native Minter
+  // precompile on the destination L1 — see `nativeMinterStatus` below.
+  const [remoteKind, setRemoteKind] = useState<RemoteKind>('erc20-remote');
+  const [initialReserveImbalance, setInitialReserveImbalance] = useState<string>('1');
+  const [burnedFeesReward, setBurnedFeesReward] = useState<string>('0');
+
+  // Offline precompile detection so the radio is disabled-with-a-tooltip on
+  // chains without `contractNativeMinterConfig`. Returns `'unknown'` for
+  // imported/older L1s where genesis was never stored — those still allow the
+  // user to try (the deploy tx itself will revert if precompile is missing).
+  const nativeMinterStatus = useMemo(
+    () => detectNativeMinterPrecompile(destinationL1?.genesisData),
+    [destinationL1?.genesisData],
+  );
+  const nativeMinterUnknown = nativeMinterStatus === 'unknown';
+  const nativeMinterDisabled = nativeMinterStatus === false;
+  // Auto-revert to ERC-20 if the user picked native then switched to a chain
+  // without the precompile.
+  useEffect(() => {
+    if (remoteKind === 'native-remote' && nativeMinterDisabled) {
+      setRemoteKind('erc20-remote');
+    }
+  }, [remoteKind, nativeMinterDisabled]);
 
   // One-time seed: when the store has no destination yet, seed from the URL
   // param or the already-deployed remote's L1. After this the store is canonical
@@ -90,9 +117,10 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     router.replace(`${pathname}?${params.toString()}`);
   }, [ctx.pendingDestinationL1Id, requestedDestination, router, pathname, searchParams]);
 
-  // When the chain changes, pre-fill the user-edit fields with sensible defaults
-  // so the form looks finished — user can edit any field; otherwise the defaults
-  // are what's sent on deploy. Fields reset to empty when destination is cleared.
+  // When the chain or kind changes, pre-fill the user-edit fields with sensible
+  // defaults so the form looks finished — user can edit any field; otherwise
+  // the defaults are what's sent on deploy. Fields reset to empty when
+  // destination is cleared.
   useEffect(() => {
     if (!destinationL1) {
       setRegistry('');
@@ -103,12 +131,21 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     }
     setRegistry(defaultRegistry);
     setManager(walletEVMAddress);
-    setTokenName(`${bridge?.symbol ?? 'Bridged'} on ${destinationL1.name}`);
-    setTokenSymbol(bridge?.symbol ?? 'TOKEN');
-    // We intentionally re-fill on every destinationL1Id change. If the user has
-    // typed custom values then changes the chain, the new chain's defaults
-    // take over — that's the documented behavior.
-  }, [destinationL1Id, defaultRegistry]);
+    if (remoteKind === 'erc20-remote') {
+      setTokenName(`${bridge?.symbol ?? 'Bridged'} on ${destinationL1.name}`);
+      setTokenSymbol(bridge?.symbol ?? 'TOKEN');
+    } else {
+      // NativeTokenRemote stores only the asset symbol — there is no separate
+      // on-chain name. Default to the L1's existing coin name so the bridge
+      // visibly mints "the L1's gas token" rather than the bridge's home
+      // symbol (which would shadow the user's chosen native symbol).
+      setTokenName('');
+      setTokenSymbol(destinationL1.coinName?.toUpperCase() ?? bridge?.symbol ?? 'TOKEN');
+    }
+    // We intentionally re-fill on every destinationL1Id / remoteKind change.
+    // If the user has typed custom values then changes the chain or kind, the
+    // new defaults take over — that's the documented behavior.
+  }, [destinationL1Id, defaultRegistry, remoteKind]);
 
   // One-time backfill: if the destination's toolbox store has a registry but
   // the L1ListItem doesn't yet, propagate so the dashboard ICM signal and
@@ -181,23 +218,55 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     const useManager = (manager || walletEVMAddress) as Address;
     if (!/^0x[a-fA-F0-9]{40}$/.test(useRegistry)) return;
     if (!/^0x[a-fA-F0-9]{40}$/.test(useManager)) return;
+    if (remoteKind === 'native-remote') {
+      // NativeTokenRemote's constructor reverts on `initialReserveImbalance == 0`
+      // and on `burnedFeesReportingRewardPercentage > 100`. Surface the
+      // validation here rather than letting the wallet pop and revert.
+      const reserve = (() => {
+        try {
+          return BigInt(initialReserveImbalance || '0');
+        } catch {
+          return 0n;
+        }
+      })();
+      if (reserve <= 0n) return;
+      const reward = Number.parseInt(burnedFeesReward || '0', 10);
+      if (!Number.isFinite(reward) || reward < 0 || reward > 100) return;
+    }
+    const erc20DefaultName = `${bridge.symbol ?? 'Bridged'} on ${destinationL1.name}`;
+    const nativeDefaultSymbol = destinationL1.coinName?.toUpperCase() ?? bridge.symbol ?? 'TOKEN';
     const result = await deployRemote({
       bridgeId: bridge.id,
       homeL1Id: bridge.homeL1Id,
       homeAddress: bridge.homeAddress,
       homeDecimals: bridge.decimals,
-      kind: 'erc20-remote',
+      kind: remoteKind,
       teleporterRegistryAddress: useRegistry,
       teleporterManager: useManager,
       minTeleporterVersion: 1,
-      tokenName: tokenName || `${bridge.symbol ?? 'Bridged'} on ${destinationL1.name}`,
-      tokenSymbol: tokenSymbol || (bridge.symbol ?? 'TOKEN'),
+      tokenName: remoteKind === 'erc20-remote' ? tokenName || erc20DefaultName : '',
+      tokenSymbol:
+        remoteKind === 'erc20-remote' ? tokenSymbol || (bridge.symbol ?? 'TOKEN') : tokenSymbol || nativeDefaultSymbol,
       decimals: bridge.decimals,
+      initialReserveImbalance: remoteKind === 'native-remote' ? BigInt(initialReserveImbalance || '1') : undefined,
+      burnedFeesReportingRewardPercentage:
+        remoteKind === 'native-remote' ? Number.parseInt(burnedFeesReward || '0', 10) : undefined,
     });
     if (result) onPhaseChange('register');
   };
 
   const candidates = l1List.filter((l1: L1ListItem) => l1.id !== bridge?.homeL1Id);
+  const nativeRemoteFieldsValid =
+    remoteKind !== 'native-remote' ||
+    (() => {
+      try {
+        if (BigInt(initialReserveImbalance || '0') <= 0n) return false;
+      } catch {
+        return false;
+      }
+      const reward = Number.parseInt(burnedFeesReward || '0', 10);
+      return Number.isFinite(reward) && reward >= 0 && reward <= 100;
+    })();
   const canDeploy = Boolean(
     bridge?.id &&
     bridge?.homeAddress &&
@@ -206,11 +275,14 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     !sameChainError &&
     !isDeploying &&
     !chainMismatch &&
-    !isSwitching,
+    !isSwitching &&
+    nativeRemoteFieldsValid,
   );
 
   return (
-    <ContractDeployViewer contracts={ICTT_REMOTE_SOURCES}>
+    <ContractDeployViewer
+      contracts={remoteKind === 'native-remote' ? ICTT_REMOTE_NATIVE_SOURCES : ICTT_REMOTE_ERC20_SOURCES}
+    >
       <InspectorShell
         banner={
           !bridge?.homeAddress ? (
@@ -252,11 +324,12 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
             {(() => {
               if (chainMismatch)
                 return isSwitching ? 'Switching…' : `Switch to ${destinationL1?.name ?? 'destination'}`;
-              if (!remote?.address) return 'Deploy TokenRemote';
+              const contractLabel = remoteKind === 'native-remote' ? 'NativeTokenRemote' : 'ERC20TokenRemote';
+              if (!remote?.address) return `Deploy ${contractLabel}`;
               const switchingChain = destinationL1Id && remote.l1Id !== destinationL1Id;
               return switchingChain
                 ? `Deploy on ${destinationL1?.name ?? 'new chain'} (replaces existing)`
-                : 'Re-deploy TokenRemote';
+                : `Re-deploy ${contractLabel}`;
             })()}
             {!isDeploying && !isSwitching && <ArrowRight className="h-3.5 w-3.5" aria-hidden />}
           </button>
@@ -264,8 +337,9 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
       >
         <div className="flex flex-col gap-4">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Deploy ERC20TokenRemote on the destination L1. The constructor encodes the Home pair (
-            {homeL1?.name ?? 'Home'} → destination).
+            {remoteKind === 'native-remote'
+              ? `Deploy NativeTokenRemote on the destination L1 so the bridged asset becomes its native gas. The constructor encodes the Home pair (${homeL1?.name ?? 'Home'} → destination) and mints via the Native Minter precompile.`
+              : `Deploy ERC20TokenRemote on the destination L1. The constructor encodes the Home pair (${homeL1?.name ?? 'Home'} → destination) so users receive an ERC-20 representation of the bridged token.`}
           </p>
 
           <FormField label="Destination chain" hint="Switch your wallet to this chain before deploying.">
@@ -286,25 +360,98 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
 
           {destinationL1 ? (
             <>
-              <FormField label="Mirrored token name" hint="Shown on the Remote chain.">
-                <input
-                  type="text"
-                  value={tokenName}
-                  onChange={(e) => setTokenName(e.target.value)}
-                  placeholder={`${bridge?.symbol ?? 'Bridged'} on ${destinationL1.name}`}
-                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                />
+              <FormField
+                label="Remote token type"
+                hint={
+                  nativeMinterDisabled
+                    ? `Native gas token requires the Native Minter precompile, which is not enabled in ${destinationL1.name}'s genesis.`
+                    : nativeMinterUnknown
+                      ? 'Genesis for this chain is not stored locally — verify the Native Minter precompile is enabled before deploying the native variant.'
+                      : 'ERC-20 mints a wrapped token on the destination. Native uses the Minter precompile so the bridged asset becomes the L1’s gas token.'
+                }
+              >
+                <div className="flex gap-2" role="radiogroup" aria-label="Remote token type">
+                  <RemoteKindButton
+                    label="ERC-20 token"
+                    selected={remoteKind === 'erc20-remote'}
+                    onClick={() => setRemoteKind('erc20-remote')}
+                  />
+                  <RemoteKindButton
+                    label="Native gas token"
+                    selected={remoteKind === 'native-remote'}
+                    disabled={nativeMinterDisabled}
+                    onClick={() => setRemoteKind('native-remote')}
+                  />
+                </div>
               </FormField>
 
-              <FormField label="Mirrored token symbol">
-                <input
-                  type="text"
-                  value={tokenSymbol}
-                  onChange={(e) => setTokenSymbol(e.target.value.toUpperCase())}
-                  placeholder={bridge?.symbol ?? 'TOKEN'}
-                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                />
-              </FormField>
+              {remoteKind === 'erc20-remote' ? (
+                <>
+                  <FormField label="Mirrored token name" hint="Shown on the Remote chain.">
+                    <input
+                      type="text"
+                      value={tokenName}
+                      onChange={(e) => setTokenName(e.target.value)}
+                      placeholder={`${bridge?.symbol ?? 'Bridged'} on ${destinationL1.name}`}
+                      className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    />
+                  </FormField>
+
+                  <FormField label="Mirrored token symbol">
+                    <input
+                      type="text"
+                      value={tokenSymbol}
+                      onChange={(e) => setTokenSymbol(e.target.value.toUpperCase())}
+                      placeholder={bridge?.symbol ?? 'TOKEN'}
+                      className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    />
+                  </FormField>
+                </>
+              ) : (
+                <>
+                  <FormField
+                    label="Native asset symbol"
+                    hint={`Shown wherever ${destinationL1.name}'s gas token is displayed (wallets, explorers).`}
+                  >
+                    <input
+                      type="text"
+                      value={tokenSymbol}
+                      onChange={(e) => setTokenSymbol(e.target.value.toUpperCase())}
+                      placeholder={destinationL1.coinName?.toUpperCase() ?? 'GAS'}
+                      className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Initial reserve imbalance"
+                    hint="Native supply already on the destination L1 (e.g. from genesis allocations) that is not yet backed by locked home tokens. Must be greater than zero."
+                  >
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={initialReserveImbalance}
+                      onChange={(e) => setInitialReserveImbalance(e.target.value)}
+                      className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Burned fees reward %"
+                    hint="0–100. Percentage of burned transaction fees rewarded to whoever reports them via the precompile. Leave at 0 to disable rewards."
+                  >
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={burnedFeesReward}
+                      onChange={(e) => setBurnedFeesReward(e.target.value)}
+                      className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    />
+                  </FormField>
+                </>
+              )}
 
               <FormField label="Teleporter registry on destination" hint={registryHint}>
                 <input
@@ -367,5 +514,35 @@ function FormField({ label, hint, children }: FormFieldProps) {
       {children}
       {hint && <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{hint}</span>}
     </div>
+  );
+}
+
+interface RemoteKindButtonProps {
+  label: string;
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}
+
+function RemoteKindButton({ label, selected, disabled, onClick }: RemoteKindButtonProps) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60',
+        selected
+          ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+          : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800',
+        disabled &&
+          'cursor-not-allowed opacity-50 hover:border-zinc-200 hover:bg-white dark:hover:border-zinc-700 dark:hover:bg-zinc-900',
+      )}
+    >
+      {label}
+    </button>
   );
 }

@@ -257,7 +257,11 @@ const data = {
         },
       ],
     },
-    // Cross-Chain
+    // Cross-Chain. ICTT Setup is the one entry into the unified bridge wizard
+    // (deploy → register → collateral → live send). The legacy `/ictt/token-transfer`
+    // deep-link still works and is kept in the toolbox grid (tools.ts) for
+    // discoverability, but exposing it as a separate sidebar row was confusing
+    // because both URLs now redirect into the same flow at different steps.
     {
       id: "cross-chain",
       title: "Cross-Chain",
@@ -269,14 +273,9 @@ const data = {
           icon: MessagesSquare,
         },
         {
-          title: "Token Bridge",
+          title: "ICTT Setup",
           url: "/console/ictt/setup",
           icon: Workflow,
-        },
-        {
-          title: "Token Transfer",
-          url: "/console/ictt/token-transfer",
-          icon: ArrowLeftRight,
         },
       ],
     },
