@@ -17,6 +17,7 @@ import { PrimaryNetworkActions, QuickActionsCard, WalletOnlyActions } from './Qu
 import { NetworkDetailsCard } from './NetworkDetailsCard';
 import { NodeListCard } from './NodeList';
 import { PrecompilesSection } from './PrecompilesSection';
+import { CrossChainSection } from './CrossChainSection';
 
 // `health` is threaded in from `DashboardBody` so the page only owns one
 // `useL1Health` subscription — both the HeroCard pulse dot and the StatsGrid
@@ -78,6 +79,10 @@ export function L1Details({
       <motion.div variants={sectionItem}>
         <LiveCharts l1={l1} />
       </motion.div>
+
+      <DashboardSection title="Cross-chain">
+        <CrossChainSection l1={l1} />
+      </DashboardSection>
 
       {isManaged && (
         // Always render for managed L1s — even when the node array is empty
