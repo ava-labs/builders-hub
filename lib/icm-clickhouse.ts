@@ -153,7 +153,10 @@ function generateColor(name: string): string {
 const chainMap: Map<string, ChainInfo> = new Map();
 for (const c of l1ChainsData) {
   const typed = c as { chainId: string; chainName: string; chainLogoURI?: string; color?: string; isTestnet?: boolean };
-  if (typed.isTestnet) continue;
+  // Previously skipped testnets entirely, which made the dashboard's per-L1
+  // cross-chain card permanently zero on Fuji and other testnet L1s — the
+  // canonical surface that wants this data. Mainnet-only consumers should
+  // filter at their layer (e.g. `/api/icm-stats?network=mainnet`).
   chainMap.set(typed.chainId, {
     chainId: typed.chainId,
     chainName: typed.chainName,

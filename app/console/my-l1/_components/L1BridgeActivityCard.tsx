@@ -1,29 +1,44 @@
 'use client';
 
-import { ArrowDownLeft, ArrowUpRight, MessageSquare, Network } from 'lucide-react';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import {
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Check,
+  Loader2,
+  MessageSquare,
+  Network,
+  Send,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useL1CrossChainStats } from '@/hooks/useL1CrossChainStats';
+import { useUserActivityForL1 } from '@/hooks/useUserActivityForL1';
 import type { CombinedL1 } from '@/lib/console/my-l1/types';
 import { cn } from '@/lib/utils';
 
 /**
- * Aggregate per-L1 cross-chain metrics:
- *   - ICTT bridge transfers in/out (from /api/ictt-stats, filtered server-side)
- *   - ICM message counts 24h / 7d (from ClickHouse via /api/console/cross-chain-stats)
+ * Per-L1 cross-chain metrics card. Three sections:
+ *   - **Bridges (ICTT)** — ecosystem-wide ICTT transfers crossing this L1.
+ *   - **Your activity** — local activity from `iccttBridgeStore.activityLog`.
+ *     Reflects the user's own sends/registrations immediately, regardless of
+ *     upstream indexing latency (the canonical "did my test send work?" view).
+ *   - **ICM messages** — ecosystem-wide ICM volume from ClickHouse.
  *
- * Read-only summary card. Drill-down lives in /console/ictt (My bridges)
- * and /console/icm. Renders gracefully when either source returns null —
- * the cross-chain-stats route is designed to give partial results.
+ * Each ecosystem section carries a one-line attribution so users can tell
+ * which numbers move on their own actions vs. external indexer state.
  */
 export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
   const { data, isLoading, error } = useL1CrossChainStats(l1.blockchainId, l1.evmChainId);
+  const userActivity = useUserActivityForL1(l1.blockchainId);
 
   return (
     <Card className="h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold">Activity on {l1.chainName}</CardTitle>
         <CardDescription className="text-xs">
-          Aggregate bridge transfers and ICM traffic crossing this L1.
+          Aggregate bridge transfers and ICM traffic crossing this L1. Your own activity is tracked separately below.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -35,6 +50,7 @@ export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
 
         <section className="space-y-2">
           <SectionTitle>Bridges (ICTT)</SectionTitle>
+          <SourceHint>Ecosystem-wide, indexed externally — refreshes every 30 min.</SourceHint>
           {isLoading ? (
             <Skeleton rows={2} />
           ) : data?.ictt ? (
@@ -66,7 +82,45 @@ export function L1BridgeActivityCard({ l1 }: { l1: CombinedL1 }) {
         </section>
 
         <section className="space-y-2">
+          <SectionTitle>Your activity</SectionTitle>
+          <SourceHint>Live from your local bridge log — no indexer lag.</SourceHint>
+          {userActivity.total === 0 ? (
+            <EmptyLine>
+              No transfers yet. Send via{' '}
+              <Link href="/console/ictt/live" className="font-medium underline underline-offset-2">
+                /console/ictt/live
+              </Link>{' '}
+              to test.
+            </EmptyLine>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <StatCell
+                icon={<Send className="h-3.5 w-3.5" aria-hidden />}
+                label="Sends"
+                value={formatCount(userActivity.sends)}
+              />
+              <StatCell
+                icon={<Check className="h-3.5 w-3.5" aria-hidden />}
+                label="Delivered"
+                value={formatCount(userActivity.delivered)}
+              />
+              <StatCell
+                icon={<Loader2 className={cn('h-3.5 w-3.5', userActivity.inFlight > 0 && 'animate-spin')} aria-hidden />}
+                label="In flight"
+                value={formatCount(userActivity.inFlight)}
+              />
+              <StatCell
+                icon={<AlertTriangle className="h-3.5 w-3.5" aria-hidden />}
+                label="Failed"
+                value={formatCount(userActivity.failed)}
+              />
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-2">
           <SectionTitle>ICM messages</SectionTitle>
+          <SourceHint>Ecosystem-wide, indexed via ClickHouse.</SourceHint>
           {isLoading ? (
             <Skeleton rows={1} />
           ) : data?.icm ? (
@@ -104,6 +158,10 @@ function SectionTitle({ children }: { children: string }) {
   );
 }
 
+function SourceHint({ children }: { children: string }) {
+  return <p className="text-[10px] leading-tight text-zinc-500/80 dark:text-zinc-500">{children}</p>;
+}
+
 function StatCell({
   icon,
   label,
@@ -111,7 +169,7 @@ function StatCell({
   helper,
   wide,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
   helper?: string;
@@ -146,7 +204,7 @@ function Skeleton({ rows }: { rows: number }) {
   );
 }
 
-function EmptyLine({ children }: { children: string }) {
+function EmptyLine({ children }: { children: ReactNode }) {
   return (
     <p className="rounded-md border border-dashed border-zinc-200 bg-zinc-50/40 px-2.5 py-2 text-[11px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
       {children}

@@ -57,7 +57,7 @@ export function YourBridgesCard({ l1 }: { l1: CombinedL1 }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-stretch gap-2 rounded-lg border border-dashed border-zinc-200 px-3 py-5 text-center text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-      <p>No bridges yet.</p>
+      <p>No bridges yet. Create one, then test it via the Live phase.</p>
       <Link
         href={`${BRIDGE_BASE_PATH}/token`}
         className="mx-auto inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-emerald-500"
