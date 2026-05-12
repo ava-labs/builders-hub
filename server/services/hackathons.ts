@@ -347,7 +347,7 @@ export async function createHackathon(
     },
   });
   hackathonData.id = newHackathon.id;
-  revalidatePath("/api/hackathons/");
+  revalidatePath("/api/events/");
   return hackathonData as HackathonHeader;
 }
 
@@ -449,7 +449,7 @@ export async function updateHackathon(
     where: { id },
     data: updateData,
   });
-  revalidatePath(`/api/hackathons/${hackathonData.id}`);
-  revalidatePath("/api/hackathons/");
+  revalidatePath(`/api/events/${hackathonData.id}`);
+  revalidatePath("/api/events/");
   return hackathonData as HackathonHeader;
 }
