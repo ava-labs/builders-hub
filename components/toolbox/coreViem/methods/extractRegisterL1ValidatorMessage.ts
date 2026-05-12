@@ -1,12 +1,13 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
 import { getTx } from '@avalanche-sdk/client/methods/pChain';
 import { isTestnet } from './isTestnet';
-import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { networkIDs } from '@avalabs/avalanchejs';
 import {
-  unpackRegisterL1ValidatorPayload,
-  extractPayloadFromWarpMessage,
-  extractPayloadFromAddressedCall,
-} from '../utils/convertWarp';
+  parseWarpUnsignedMessage,
+  parseAddressedCallPayload,
+  parseRegisterL1ValidatorMessage,
+} from '@avalanche-sdk/interchain/warp';
+import { bytesToHex } from 'viem';
 
 export type ExtractRegisterL1ValidatorMessageParams = {
   txId: string;
@@ -55,26 +56,21 @@ export async function extractRegisterL1ValidatorMessage(
     throw new Error('Transaction does not contain a WarpMessage');
   }
 
-  // Parse the WarpMessage to extract the AddressedCall
-  const warpMessageBytes = Buffer.from(utils.hexToBuffer(unsignedTx.message));
-  const addressedCallBytes = extractPayloadFromWarpMessage(warpMessageBytes);
+  // Unwrap WarpUnsignedMessage → AddressedCall payload → inner RegisterL1ValidatorMessage
+  const warpUnsigned = parseWarpUnsignedMessage(unsignedTx.message);
+  const addressedCallHex = '0x' + warpUnsigned.payload.toString('hex');
+  const addressedCall = parseAddressedCallPayload(addressedCallHex);
+  const innerPayloadHex = '0x' + addressedCall.payload.toString('hex');
 
-  // Extract the actual RegisterL1ValidatorMessage payload from the AddressedCall
-  const registerL1ValidatorPayload = extractPayloadFromAddressedCall(addressedCallBytes);
-  if (!registerL1ValidatorPayload) {
-    throw new Error('Failed to extract RegisterL1ValidatorMessage payload from AddressedCall');
-  }
-
-  // Use the utility function to parse the RegisterL1ValidatorMessage
-  const parsedData = unpackRegisterL1ValidatorPayload(new Uint8Array(registerL1ValidatorPayload));
+  const parsed = parseRegisterL1ValidatorMessage(innerPayloadHex);
 
   return {
-    message: utils.bufferToHex(registerL1ValidatorPayload),
-    subnetID: utils.bufferToHex(Buffer.from(parsedData.subnetID)),
-    nodeID: utils.bufferToHex(Buffer.from(parsedData.nodeID)),
-    blsPublicKey: utils.bufferToHex(Buffer.from(parsedData.blsPublicKey)),
-    expiry: parsedData.registrationExpiry,
-    weight: parsedData.weight,
+    message: innerPayloadHex,
+    subnetID: bytesToHex(parsed.subnetId.toBytes()),
+    nodeID: bytesToHex(parsed.nodeId.toBytes()),
+    blsPublicKey: bytesToHex(parsed.blsPublicKey.toBytes()),
+    expiry: parsed.expiry.value(),
+    weight: parsed.weight.value(),
     networkId,
   };
 }

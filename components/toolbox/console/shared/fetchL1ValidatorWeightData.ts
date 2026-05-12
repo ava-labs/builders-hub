@@ -1,9 +1,10 @@
-import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { networkIDs } from '@avalabs/avalanchejs';
 import {
-  unpackL1ValidatorWeightPayload,
-  extractPayloadFromWarpMessage,
-  extractPayloadFromAddressedCall,
-} from '@/components/toolbox/coreViem/utils/convertWarp';
+  parseWarpUnsignedMessage,
+  parseAddressedCallPayload,
+  parseL1ValidatorWeightMessage,
+} from '@avalanche-sdk/interchain/warp';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 
 export interface L1ValidatorWeightData {
   message: string;
@@ -45,24 +46,19 @@ export async function fetchL1ValidatorWeightData(txId: string, isTestnet: boolea
     throw new Error('Transaction does not contain a WarpMessage');
   }
 
-  // Parse the WarpMessage to extract the AddressedCall
-  const warpMessageBytes = Buffer.from(utils.hexToBuffer(unsignedTx.message));
-  const addressedCallBytes = extractPayloadFromWarpMessage(warpMessageBytes);
+  // Unwrap WarpUnsignedMessage → AddressedCall payload → inner L1ValidatorWeightMessage
+  const warpUnsigned = parseWarpUnsignedMessage(unsignedTx.message);
+  const addressedCallHex = '0x' + warpUnsigned.payload.toString('hex');
+  const addressedCall = parseAddressedCallPayload(addressedCallHex);
+  const innerPayloadHex = '0x' + addressedCall.payload.toString('hex');
 
-  // Extract the actual L1ValidatorWeightMessage payload from the AddressedCall
-  const l1ValidatorWeightPayload = extractPayloadFromAddressedCall(addressedCallBytes);
-  if (!l1ValidatorWeightPayload) {
-    throw new Error('Failed to extract L1ValidatorWeightMessage payload from AddressedCall');
-  }
-
-  // Parse the L1ValidatorWeightMessage
-  const parsedData = unpackL1ValidatorWeightPayload(new Uint8Array(l1ValidatorWeightPayload));
+  const parsed = parseL1ValidatorWeightMessage(innerPayloadHex);
 
   return {
-    message: utils.bufferToHex(l1ValidatorWeightPayload),
-    validationID: utils.bufferToHex(Buffer.from(parsedData.validationID)),
-    nonce: parsedData.nonce,
-    weight: parsedData.weight,
+    message: innerPayloadHex,
+    validationID: CB58ToHex(parsed.validationId.value()),
+    nonce: parsed.nonce.value(),
+    weight: parsed.weight.value(),
     networkId,
   };
 }

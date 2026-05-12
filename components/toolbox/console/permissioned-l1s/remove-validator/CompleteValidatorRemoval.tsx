@@ -4,9 +4,13 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { bytesToHex, hexToBytes, encodeFunctionData, Abi } from 'viem';
-import { GetRegistrationJustification } from '../validator-manager/justification';
-import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { packWarpIntoAccessList } from '../validator-manager/packWarp';
+import {
+  getRegistrationJustification,
+  newL1ValidatorRegistrationMessage,
+  newWarpMessage,
+  packWarpIntoAccessList,
+} from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
@@ -134,7 +138,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       });
 
       // Step 2: Get justification for the validation (using the extracted validation ID)
-      const justification = await GetRegistrationJustification(
+      const justification = await getRegistrationJustification(
         weightMessageData.validationID,
         subnetIdL1,
         chainPublicClient,
@@ -145,13 +149,17 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       }
 
       // Step 3: Create P-Chain warp signature for validator removal
-      const validationIDBytes = hexToBytes(weightMessageData.validationID as `0x${string}`);
-      const removeValidatorMessage = packL1ValidatorRegistration(
-        validationIDBytes,
+      const innerRemovalMsg = newL1ValidatorRegistrationMessage(
+        hexToCB58(weightMessageData.validationID as `0x${string}`),
         false, // false for removal
+      );
+      const unsignedRemovalMsg = newWarpMessage(
         avalancheNetworkID,
         '11111111111111111111111111111111LpoYY', // always use P-Chain ID
+        '',
+        innerRemovalMsg.toHex(),
       );
+      const removeValidatorMessage = hexToBytes(unsignedRemovalMsg.toHex() as `0x${string}`);
 
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),

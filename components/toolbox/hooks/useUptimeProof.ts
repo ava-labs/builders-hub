@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { bytesToHex, hexToBytes } from 'viem';
-import { packValidationUptimeMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { newValidationUptimeMessage, newWarpMessage } from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 as sdkHexToCB58 } from '@avalanche-sdk/client/utils';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { cb58ToHex, hexToCB58 } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
@@ -134,11 +135,9 @@ export function useUptimeProof() {
     uptimeBlockchainID: string,
   ): Uint8Array {
     try {
-      return packValidationUptimeMessage(
-        { validationID, uptime: uptimeSeconds },
-        avalancheNetworkID,
-        uptimeBlockchainID,
-      );
+      const inner = newValidationUptimeMessage(sdkHexToCB58(bytesToHex(validationID) as `0x${string}`), uptimeSeconds);
+      const unsigned = newWarpMessage(avalancheNetworkID, uptimeBlockchainID, '', inner.toHex());
+      return hexToBytes(unsigned.toHex() as `0x${string}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`Failed to create uptime proof warp message: ${message}`);

@@ -1,12 +1,13 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
 import { getTx } from '@avalanche-sdk/client/methods/pChain';
 import { isTestnet } from './isTestnet';
-import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { networkIDs } from '@avalabs/avalanchejs';
 import {
-  unpackL1ValidatorWeightPayload,
-  extractPayloadFromWarpMessage,
-  extractPayloadFromAddressedCall,
-} from '../utils/convertWarp';
+  parseWarpUnsignedMessage,
+  parseAddressedCallPayload,
+  parseL1ValidatorWeightMessage,
+} from '@avalanche-sdk/interchain/warp';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 
 export type ExtractL1ValidatorWeightMessageParams = {
   txId: string;
@@ -53,24 +54,22 @@ export async function extractL1ValidatorWeightMessage(
     throw new Error('Transaction does not contain a WarpMessage');
   }
 
-  // Parse the WarpMessage to extract the AddressedCall
-  const warpMessageBytes = Buffer.from(utils.hexToBuffer(unsignedTx.message));
-  const addressedCallBytes = extractPayloadFromWarpMessage(warpMessageBytes);
+  // Unwrap WarpUnsignedMessage → AddressedCall payload (hex)
+  const warpUnsigned = parseWarpUnsignedMessage(unsignedTx.message);
+  const addressedCallHex = '0x' + warpUnsigned.payload.toString('hex');
 
-  // Extract the actual L1ValidatorWeightMessage payload from the AddressedCall
-  const l1ValidatorWeightPayload = extractPayloadFromAddressedCall(addressedCallBytes);
-  if (!l1ValidatorWeightPayload) {
-    throw new Error('Failed to extract L1ValidatorWeightMessage payload from AddressedCall');
-  }
+  // Unwrap AddressedCall → inner L1ValidatorWeightMessage payload (hex)
+  const addressedCall = parseAddressedCallPayload(addressedCallHex);
+  const innerPayloadHex = '0x' + addressedCall.payload.toString('hex');
 
-  // Use the utility function to parse the L1ValidatorWeightMessage
-  const parsedData = unpackL1ValidatorWeightPayload(new Uint8Array(l1ValidatorWeightPayload));
+  // Parse the inner L1ValidatorWeightMessage
+  const parsed = parseL1ValidatorWeightMessage(innerPayloadHex);
 
   return {
-    message: utils.bufferToHex(l1ValidatorWeightPayload),
-    validationID: utils.bufferToHex(Buffer.from(parsedData.validationID)),
-    nonce: parsedData.nonce,
-    weight: parsedData.weight,
+    message: innerPayloadHex,
+    validationID: CB58ToHex(parsed.validationId.value()),
+    nonce: parsed.nonce.value(),
+    weight: parsed.weight.value(),
     networkId,
   };
 }

@@ -9,7 +9,7 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import { CAST_COMMANDS } from '@/components/toolbox/console/shared/pchainCommands';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';

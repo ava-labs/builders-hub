@@ -1,9 +1,5 @@
-import { parseAbiItem, hexToBytes } from 'viem';
-import {
-  unpackRegisterL1ValidatorPayload,
-  calculateValidationID,
-  SolidityValidationPeriod,
-} from '@/components/toolbox/coreViem/utils/convertWarp';
+import { parseAbiItem, hexToBytes, bytesToHex } from 'viem';
+import { parseRegisterL1ValidatorMessage } from '@avalanche-sdk/interchain/warp';
 import { utils } from '@avalabs/avalanchejs';
 import { Buffer } from 'buffer';
 import { sha256 } from '@noble/hashes/sha256';
@@ -354,10 +350,12 @@ export async function GetRegistrationJustification(
             if (!payloadBytes) continue;
 
             try {
-              // Unpack the payload
-              const parsedPayload: SolidityValidationPeriod = unpackRegisterL1ValidatorPayload(payloadBytes);
-              // Calculate the validationID (hash) of this message payload
-              const logValidationIDBytes = calculateValidationID(parsedPayload);
+              // Validate the payload is a well-formed RegisterL1ValidatorMessage.
+              // The validationID is sha256(payloadBytes) by definition — repacking via
+              // the SDK to recompute the hash would be redundant since payloadBytes was
+              // taken directly from the AddressedCall and is the canonical preimage.
+              parseRegisterL1ValidatorMessage(bytesToHex(payloadBytes));
+              const logValidationIDBytes = sha256(payloadBytes);
 
               // Compare the calculated hash with the target validation ID
               if (compareBytes(logValidationIDBytes, targetValidationIDBytes)) {

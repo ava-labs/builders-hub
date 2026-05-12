@@ -14,9 +14,13 @@ import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValida
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
-import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
-import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import {
+  getRegistrationJustification,
+  newL1ValidatorRegistrationMessage,
+  newWarpMessage,
+  packWarpIntoAccessList,
+} from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
@@ -364,16 +368,17 @@ function RemoveExpiredValidatorRegistration() {
       if (!walletClient || !viemChain || !walletClient.account) throw new Error('Wallet/chain not initialized');
       if (!subnetId) throw new Error('Subnet ID required');
 
-      const justification = await GetRegistrationJustification(validationId, subnetId, chainPublicClient!);
+      const justification = await getRegistrationJustification(validationId, subnetId, chainPublicClient!);
       if (!justification) throw new Error('Could not build justification for this validation ID');
 
-      const validationIDBytes = hexToBytes(validationId as `0x${string}`);
-      const removeValidatorMessage = packL1ValidatorRegistration(
-        validationIDBytes,
-        false,
+      const innerRemovalMsg = newL1ValidatorRegistrationMessage(hexToCB58(validationId as `0x${string}`), false);
+      const unsignedRemovalMsg = newWarpMessage(
         avalancheNetworkID,
         '11111111111111111111111111111111LpoYY',
+        '',
+        innerRemovalMsg.toHex(),
       );
+      const removeValidatorMessage = hexToBytes(unsignedRemovalMsg.toHex() as `0x${string}`);
       const signaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),

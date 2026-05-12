@@ -257,6 +257,17 @@
   dependencies:
     json-canonicalize "^1.0.6"
 
+"@avalabs/avalanchejs@5.1.0-alpha.1":
+  version "5.1.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/@avalabs/avalanchejs/-/avalanchejs-5.1.0-alpha.1.tgz#94cc6f72654fb22539835deaa10547d5b1d95e46"
+  integrity sha512-nX8RDRrDvZv5SRGElD6FCYjHHeBR43iBHRoVtOmj5FQtHXNLjV2t8lLRD7/qoeV2LFIfG1b0pRk7bmEn305oZA==
+  dependencies:
+    "@noble/curves" "1.3.0"
+    "@noble/hashes" "1.3.3"
+    "@noble/secp256k1" "2.0.0"
+    "@scure/base" "1.1.5"
+    micro-eth-signer "0.7.2"
+
 "@avalabs/avalanchejs@^5.0.0":
   version "5.0.0"
   resolved "https://registry.npmjs.org/@avalabs/avalanchejs/-/avalanchejs-5.0.0.tgz"
@@ -277,6 +288,17 @@
     json-canonicalize "^1.0.6"
     zod "^3.25.0 || ^4.0.0"
 
+"@avalanche-sdk/client@^0.0.4-alpha.12":
+  version "0.0.4-alpha.16"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/client/-/client-0.0.4-alpha.16.tgz#642c5a04d26ac6c5552751503d8a2dfa66965bc5"
+  integrity sha512-rpOwBURNaV62rZSyacuQfPhTsuHWhnNNcoqTWEBXrGqIkUXoIdG4YqGrjKVVvNk/c7uRC1NX7FbmpOv7fgibJw==
+  dependencies:
+    "@avalabs/avalanchejs" "^5.0.0"
+    "@noble/hashes" "1.3.3"
+    "@noble/secp256k1" "2.0.0"
+    util "^0.12.5"
+    viem "^2.33.3"
+
 "@avalanche-sdk/client@^0.0.4-alpha.14":
   version "0.0.4-alpha.14"
   resolved "https://registry.npmjs.org/@avalanche-sdk/client/-/client-0.0.4-alpha.14.tgz"
@@ -287,6 +309,14 @@
     "@noble/secp256k1" "^3.0.0"
     util "^0.12.5"
     viem "^2.33.3"
+
+"@avalanche-sdk/interchain@^0.1.1-alpha.1":
+  version "0.1.1-alpha.1"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/interchain/-/interchain-0.1.1-alpha.1.tgz#0abf7ebfc31a87ce1ba43619ffb151857dc81764"
+  integrity sha512-wbzqg3ayJLAh051/K+oi3sRQRr3P4/4LqFbY2pTlfLqhxh+xFBTYmAr++Xv7RVzy7uvYA+0RD1X6ztioRY9lWw==
+  dependencies:
+    "@avalabs/avalanchejs" "5.1.0-alpha.1"
+    "@avalanche-sdk/client" "^0.0.4-alpha.12"
 
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.23.5":
   version "7.27.1"

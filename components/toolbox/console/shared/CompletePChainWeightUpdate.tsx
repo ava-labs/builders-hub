@@ -3,12 +3,16 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
 import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
-import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
+import {
+  getRegistrationJustification,
+  newL1ValidatorWeightMessage,
+  newWarpMessage,
+  packWarpIntoAccessList,
+} from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import {
@@ -188,22 +192,24 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
         weight: weightMessageData.weight,
       });
 
-      // Step 2: Create L1ValidatorWeightMessage for completion
-      const validationIDBytes = hexToBytes(weightMessageData.validationID as `0x${string}`);
-      const l1ValidatorWeightMessage = packL1ValidatorWeightMessage(
-        {
-          validationID: validationIDBytes,
-          nonce: weightMessageData.nonce,
-          weight: weightMessageData.weight,
-        },
+      // Step 2: Create L1ValidatorWeightMessage for completion (via @avalanche-sdk/interchain/warp)
+      const innerWeightMsg = newL1ValidatorWeightMessage(
+        hexToCB58(weightMessageData.validationID as `0x${string}`),
+        weightMessageData.nonce,
+        weightMessageData.weight,
+      );
+      const unsignedMsg = newWarpMessage(
         avalancheNetworkID,
         '11111111111111111111111111111111LpoYY',
+        '',
+        innerWeightMsg.toHex(),
       );
+      const l1ValidatorWeightMessage = hexToBytes(unsignedMsg.toHex() as `0x${string}`);
 
       // Step 3: Get justification (only for ChangeWeight, delegation doesn't need it)
       let justification: Uint8Array | undefined;
       if (isChangeWeight) {
-        const fetchedJustification = await GetRegistrationJustification(
+        const fetchedJustification = await getRegistrationJustification(
           weightMessageData.validationID,
           subnetIdL1,
           chainPublicClient!,

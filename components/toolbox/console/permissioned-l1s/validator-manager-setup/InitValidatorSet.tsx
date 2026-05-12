@@ -8,7 +8,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from 'viem';
-import { packWarpIntoAccessList } from '../validator-manager/packWarp';
+import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Button } from '@/components/toolbox/components/Button';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';

@@ -1,8 +1,9 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
 import { getTx } from '@avalanche-sdk/client/methods/pChain';
-import { packL1ConversionMessage, PackL1ConversionMessageArgs } from '../utils/convertWarp';
 import { isTestnet } from './isTestnet';
-import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { networkIDs } from '@avalabs/avalanchejs';
+import { newConversionData, newSubnetToL1ConversionMessage, newWarpMessage } from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 
 interface AddressObject {
   threshold: number;
@@ -101,25 +102,33 @@ export async function extractWarpMessageFromPChainTx(
     throw new Error('Invalid transaction data, are you sure this is a conversion transaction?');
   }
 
-  const conversionArgs: PackL1ConversionMessageArgs = {
-    subnetId: data.tx.unsignedTx.subnetID,
-    managerChainID: data.tx.unsignedTx.chainID,
-    managerAddress: data.tx.unsignedTx.address,
-    validators: data.tx.unsignedTx.validators.map((validator: any) => {
-      return {
-        nodeID: validator.nodeID,
-        nodePOP: validator.signer,
-        weight: validator.weight,
-      };
-    }),
-  };
+  // newConversionData sorts validators by nodeId internally for canonical conversionID hashing.
+  const validators = data.tx.unsignedTx.validators.map((v: any) => ({
+    nodeId: v.nodeID.startsWith('NodeID-') ? v.nodeID.split('-')[1] : v.nodeID,
+    blsPublicKey: v.signer.publicKey,
+    weight: BigInt(v.weight),
+  }));
 
-  const [message, justification] = packL1ConversionMessage(conversionArgs, networkId, data.tx.unsignedTx.blockchainID);
+  // Build ConversionData (preimage for the conversionID) and derive conversionID
+  const conversionData = newConversionData(
+    data.tx.unsignedTx.subnetID,
+    data.tx.unsignedTx.chainID,
+    data.tx.unsignedTx.address,
+    validators,
+  );
+  const conversionIdHex = conversionData.getConversionId();
+  const conversionIdCB58 = hexToCB58(conversionIdHex as `0x${string}`);
+
+  // Build the SubnetToL1ConversionMessage and wrap it in a WarpUnsignedMessage
+  const innerMsg = newSubnetToL1ConversionMessage(conversionIdCB58);
+  const unsigned = newWarpMessage(networkId, data.tx.unsignedTx.blockchainID, '', innerMsg.toHex());
+
   const network = networkId === networkIDs.FujiID ? 'fuji' : 'mainnet';
   const signingSubnetId = await getSubnetIdFromChainId(network, data.tx.unsignedTx.chainID);
+
   return {
-    message: utils.bufferToHex(message),
-    justification: utils.bufferToHex(justification),
+    message: unsigned.toHex(),
+    justification: conversionData.toHex(),
     subnetId: data.tx.unsignedTx.subnetID,
     signingSubnetId: signingSubnetId,
     networkId,

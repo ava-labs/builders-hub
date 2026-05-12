@@ -3,13 +3,17 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
 import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
+import {
+  getRegistrationJustification,
+  newL1ValidatorRegistrationMessage,
+  newWarpMessage,
+  packWarpIntoAccessList,
+} from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -220,16 +224,17 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       setExtractedData((prev) => (prev ? { ...prev, validationId } : null));
 
       // Step 4: Create L1ValidatorRegistrationMessage (P-Chain response)
-      const validationIDBytes = hexToBytes(validationId);
-      const l1ValidatorRegistrationMessage = packL1ValidatorRegistration(
-        validationIDBytes,
-        true,
+      const innerRegistrationMsg = newL1ValidatorRegistrationMessage(hexToCB58(validationId), true);
+      const unsignedRegistrationMsg = newWarpMessage(
         avalancheNetworkID,
         '11111111111111111111111111111111LpoYY',
+        '',
+        innerRegistrationMsg.toHex(),
       );
+      const l1ValidatorRegistrationMessage = hexToBytes(unsignedRegistrationMsg.toHex() as `0x${string}`);
 
       // Step 5: Get justification for the validation
-      const justification = await GetRegistrationJustification(validationId, subnetIdL1, chainPublicClient!);
+      const justification = await getRegistrationJustification(validationId, subnetIdL1, chainPublicClient!);
 
       if (!justification) {
         throw new Error(

@@ -1,5 +1,6 @@
-import { packL1ConversionMessage, PackL1ConversionMessageArgs } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { networkIDs } from '@avalabs/avalanchejs';
+import { newConversionData, newSubnetToL1ConversionMessage, newWarpMessage } from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 
 interface Validator {
   nodeID: string;
@@ -54,20 +55,23 @@ export async function fetchConversionData(txId: string, isTestnet: boolean): Pro
     throw new Error('Invalid transaction data — is this a ConvertSubnetToL1Tx?');
   }
 
-  const { subnetID, chainID, address, validators, blockchainID } = tx.unsignedTx;
+  const { subnetID, chainID, address, validators: rawValidators, blockchainID } = tx.unsignedTx;
 
-  const conversionArgs: PackL1ConversionMessageArgs = {
-    subnetId: subnetID,
-    managerChainID: chainID,
-    managerAddress: address,
-    validators: validators.map((v: any) => ({
-      nodeID: v.nodeID,
-      nodePOP: v.signer,
-      weight: v.weight,
-    })),
-  };
+  // newConversionData sorts validators by nodeId internally for canonical conversionID hashing.
+  const sdkValidators = rawValidators.map((v: any) => ({
+    nodeId: v.nodeID.startsWith('NodeID-') ? v.nodeID.split('-')[1] : v.nodeID,
+    blsPublicKey: v.signer.publicKey,
+    weight: BigInt(v.weight),
+  }));
 
-  const [message, justification] = packL1ConversionMessage(conversionArgs, networkId, blockchainID);
+  // Build ConversionData (preimage for the conversionID) and derive conversionID
+  const conversionData = newConversionData(subnetID, chainID, address, sdkValidators);
+  const conversionIdHex = conversionData.getConversionId();
+  const conversionIdCB58 = hexToCB58(conversionIdHex as `0x${string}`);
+
+  // Build the SubnetToL1ConversionMessage and wrap it in a WarpUnsignedMessage
+  const innerMsg = newSubnetToL1ConversionMessage(conversionIdCB58);
+  const unsigned = newWarpMessage(networkId, blockchainID, '', innerMsg.toHex());
 
   // Get signingSubnetId from Glacier
   const glacierRes = await fetch(`https://glacier-api.avax.network/v1/networks/${network}/blockchains/${chainID}`, {
@@ -78,12 +82,12 @@ export async function fetchConversionData(txId: string, isTestnet: boolean): Pro
   if (!glacierData.subnetId) throw new Error('No subnetId from Glacier');
 
   return {
-    message: utils.bufferToHex(message),
-    justification: utils.bufferToHex(justification),
+    message: unsigned.toHex(),
+    justification: conversionData.toHex(),
     subnetId: subnetID,
     signingSubnetId: glacierData.subnetId,
     networkId,
-    validators,
+    validators: rawValidators,
     chainId: chainID,
     managerAddress: address,
   };
