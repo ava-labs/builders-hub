@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Check, ChevronDown, Plus } from 'lucide-react';
+import { Check, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +42,7 @@ export function BridgesPicker() {
   const bridgesRecord = useIcttBridgeStore((s) => s.bridges);
   const selectBridge = useIcttBridgeStore((s) => s.selectBridge);
   const startNewBridge = useIcttBridgeStore((s) => s.startNewBridge);
+  const archiveBridge = useIcttBridgeStore((s) => s.archiveBridge);
   const l1List = useL1List();
 
   const visibleBridges = useMemo(() => Object.values(bridgesRecord).filter((b) => !b.archivedAt), [bridgesRecord]);
@@ -65,6 +66,24 @@ export function BridgesPicker() {
   const handleNew = () => {
     startNewBridge();
     router.push(`${BRIDGE_BASE_PATH}/token`);
+  };
+
+  const handleArchive = (bridge: Bridge, homeName: string) => {
+    if (typeof window === 'undefined') return;
+    const tokenLabel = bridge.symbol ?? (bridge.kind === 'native-home' ? 'native' : 'untitled');
+    const ok = window.confirm(
+      `Remove the "${homeName} · ${tokenLabel}" bridge from the console? This won't change anything on-chain.`,
+    );
+    if (!ok) return;
+    archiveBridge(bridge.id);
+    // If the active bridge was archived, re-point selection so the BridgeRibbon
+    // doesn't keep referring to a now-hidden entry. Picking the first remaining
+    // non-archived bridge mirrors the implicit fallback in `useBridgeContext`
+    // for `lastActiveBridgeId === null`.
+    if (ctx.activeBridgeId === bridge.id) {
+      const next = Object.values(bridgesRecord).find((b) => !b.archivedAt && b.id !== bridge.id);
+      if (next) selectBridge(next.id);
+    }
   };
 
   return (
@@ -107,16 +126,38 @@ export function BridgesPicker() {
           </DropdownMenuLabel>
           {visibleBridges.map((bridge) => {
             const active = ctx.activeBridgeId === bridge.id;
+            const homeL1 = l1List.find((l1: L1ListItem) => l1.id === bridge.homeL1Id) ?? null;
+            const isIncomplete =
+              bridge.remotes.length === 0 || bridge.remotes.every((r) => !r.registeredAt || !r.collateralizedAt);
             return (
               <DropdownMenuItem
                 key={bridge.id}
                 onSelect={() => handleSelect(bridge)}
-                className="flex cursor-pointer items-start gap-2 py-2"
+                className="group/row flex cursor-pointer items-start gap-2 py-2"
               >
                 <span aria-hidden className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
                   {active ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : null}
                 </span>
                 <BridgeRowLabel bridge={bridge} l1List={l1List} />
+                {isIncomplete && (
+                  <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    Incomplete
+                  </span>
+                )}
+                <button
+                  type="button"
+                  aria-label={`Archive ${homeL1?.name ?? 'bridge'}`}
+                  onClick={(event) => {
+                    // Stop the DropdownMenuItem's `onSelect` from firing — we
+                    // want the trash to delete, not select.
+                    event.preventDefault();
+                    event.stopPropagation();
+                    handleArchive(bridge, homeL1?.name ?? 'Unknown chain');
+                  }}
+                  className="ml-auto mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 opacity-0 transition-[opacity,colors] hover:bg-rose-100 hover:text-rose-600 group-hover/row:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-rose-400 dark:hover:bg-rose-900/40 dark:hover:text-rose-300"
+                >
+                  <Trash2 aria-hidden className="h-3 w-3" />
+                </button>
               </DropdownMenuItem>
             );
           })}
