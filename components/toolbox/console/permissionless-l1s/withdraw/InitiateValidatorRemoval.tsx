@@ -16,6 +16,12 @@ type TokenType = 'native' | 'erc20';
 interface InitiateValidatorRemovalProps {
   validationID: string;
   stakingManagerAddress: string;
+  /**
+   * Underlying ValidatorManager contract address. Required for preflight reads
+   * — see the same prop's doc on InitiateValidatorRemovalUptime. Defaults to
+   * stakingManagerAddress for inheritance-model L1s.
+   */
+  validatorManagerAddress?: string;
   rpcUrl: string;
   signingSubnetId: string;
   tokenType: TokenType;
@@ -26,6 +32,7 @@ interface InitiateValidatorRemovalProps {
 const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   validationID,
   stakingManagerAddress,
+  validatorManagerAddress,
   tokenType,
   onSuccess,
   onError,
@@ -41,8 +48,9 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   const preflight = useValidatorPreflight({
     validationID: validationID || undefined,
     stakingManagerAddress,
-    validatorManagerAddress: stakingManagerAddress,
+    validatorManagerAddress: validatorManagerAddress ?? stakingManagerAddress,
     walletAddress: walletEVMAddress || undefined,
+    stakingManagerType: tokenType,
   });
 
   const [messageIndex, setMessageIndex] = useState<string>('0');
@@ -50,7 +58,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
   const handleInitiateRemoval = async () => {
     setErrorState(null);
@@ -133,26 +140,20 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
       {validationID && <ValidatorPreflightChecklist preflight={preflight} currentFlow="initiate-removal" />}
 
-      <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-          Removal Parameters ({tokenLabel} Staking)
-        </h3>
-
-        <div className="space-y-3">
-          <Input label="Validation ID" value={validationID} onChange={() => {}} disabled={true} />
-
-          <Input
-            label="Message Index"
-            value={messageIndex}
-            onChange={setMessageIndex}
-            type="number"
-            min="0"
-            placeholder="0"
-            disabled={isProcessing}
-            helperText="Index of the warp message (usually 0)"
-          />
-        </div>
-      </div>
+      {/* Message Index is rarely non-zero, but the warp aggregator occasionally
+          returns a multi-message bundle where the uptime proof isn't at index 0.
+          Exposed as a single editable input — the parent step already shows the
+          selected Validation ID, so no need to repeat it here. */}
+      <Input
+        label="Message Index"
+        value={messageIndex}
+        onChange={setMessageIndex}
+        type="number"
+        min="0"
+        placeholder="0"
+        disabled={isProcessing}
+        helperText="Index of the warp message (usually 0)"
+      />
 
       <LockedContent
         isUnlocked={!validationID || (!preflight.isLoading && preflight.checks.initiateRemoval.status === 'met')}

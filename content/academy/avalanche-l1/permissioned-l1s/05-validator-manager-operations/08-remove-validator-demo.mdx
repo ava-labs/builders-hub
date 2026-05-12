@@ -6,11 +6,6 @@ authors: [nicolasarnedo]
 icon: Terminal
 ---
 
-import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
-import RemoveValidator from "@/components/toolbox/console/permissioned-l1s/RemoveValidator.tsx"
-
-<ToolboxMdxWrapper walletMode="l1">
-  <RemoveValidator />
-</ToolboxMdxWrapper>
+Open the [**Remove Validator** flow in the Builder Console](/console/remove-validator/select-subnet) and select your L1. The tool detects that this L1 is backed by a `ValidatorManager` (PoA) and walks you through `initiateValidatorRemoval` → P-Chain `SetL1ValidatorWeightTx` → `completeValidatorRemoval`.
 
 You can view the changes applied to the Validator Set [re-running the query in section 2](/academy/permissioned-l1s/05-validator-manager-operations/02-query-validator-set).

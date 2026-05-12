@@ -1,6 +1,6 @@
-import AddValidatorClientPage from "./client-page";
+import { redirect, RedirectType } from "next/navigation";
 
 export default async function Page({ params }: { params: Promise<{ step: string }> }) {
   const { step } = await params;
-  return <AddValidatorClientPage currentStepKey={step} />;
+  redirect(`/console/add-validator/${step}`, RedirectType.replace);
 }

@@ -6,13 +6,10 @@ authors: [nicolasarnedo]
 icon: Terminal
 ---
 
-import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
-import RemoveValidatorNative from "@/components/toolbox/console/permissionless-l1s/withdraw/RemoveValidatorNative.tsx"
-
 This demo walks you through removing a validator from your Permissionless L1, returning your staked tokens and claiming any earned rewards. The tool handles all phases including the optional delegation fee claim:
 
 1. **Select** - Choose the validator to remove
-2. **Initiate** - Start the removal process (with optional uptime proof)
+2. **Initiate** - Start the removal process. The unified flow attempts uptime-proof removal first (preserves rewards). If the validator is below the rewards-eligibility threshold, a "Force remove (forfeit rewards)" fallback is surfaced.
 3. **P-Chain** - Sign and submit the weight update to the P-Chain
 4. **Complete** - Finalize the removal and receive your stake + rewards
 5. **Claim Fees** (Optional) - Claim any accumulated delegation fees
@@ -21,8 +18,6 @@ This demo walks you through removing a validator from your Permissionless L1, re
 You can only remove a validator after its **minimum stake duration** has elapsed. Check the time remaining in the [PoS Validator Set query](/academy/permissionless-l1s/06-staking-manager-operations/02-query-pos-validator-set).
 </Callout>
 
-<ToolboxMdxWrapper walletMode="l1">
-  <RemoveValidatorNative />
-</ToolboxMdxWrapper>
+Open the [**Remove Validator** flow in the Builder Console](/console/remove-validator/select-subnet) and pick your Native PoS L1 — the tool will auto-detect it and run the uptime-proof variant of these steps.
 
 You can verify the removal by [re-running the query in section 2](/academy/permissionless-l1s/06-staking-manager-operations/02-query-pos-validator-set).

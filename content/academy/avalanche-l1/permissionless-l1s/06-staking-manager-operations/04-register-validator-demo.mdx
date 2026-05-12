@@ -6,17 +6,12 @@ authors: [nicolasarnedo]
 icon: Terminal
 ---
 
-import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
-import StakeNative from "@/components/toolbox/console/permissionless-l1s/stake/StakeNative.tsx"
-
 This demo walks you through registering a new validator on your Permissionless L1 by staking native tokens. The tool handles all three phases:
 
 1. **Initiate** - Lock your native tokens and start the registration
 2. **P-Chain** - Sign and submit the registration to the P-Chain
 3. **Complete** - Finalize the registration to activate your validator
 
-<ToolboxMdxWrapper walletMode="l1">
-  <StakeNative />
-</ToolboxMdxWrapper>
+Open the unified [**Add Validator** flow in the Builder Console](/console/add-validator/select-subnet) and pick your Native PoS L1 — the tool will auto-detect that it's backed by a Native Staking Manager and switch into the native-staking variant of these steps.
 
 You can view the changes applied to the validator set by [re-running the query in section 2](/academy/permissionless-l1s/06-staking-manager-operations/02-query-pos-validator-set).
