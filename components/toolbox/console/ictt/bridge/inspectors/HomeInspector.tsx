@@ -80,6 +80,12 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
     if (!/^0x[a-fA-F0-9]{40}$/.test(manager)) return;
     const dec = Number.parseInt(decimals, 10);
     if (!Number.isFinite(dec) || dec <= 0) return;
+    // ERC-20 home is the only deploy path exposed in v2. Native-home Bridge
+    // entries exist in `iccttBridgeStore` only via the legacy migration
+    // (`migrations/ictt-v1-to-v2.ts`); the rest of the pipeline (send,
+    // collateral) supports them so nothing breaks, but the new-bridge UX
+    // assumes erc20-home. Adding native-home back into the wizard is a
+    // follow-up — see plan §"Native-home decision".
     const result = await deployHome({
       kind: 'erc20-home',
       teleporterRegistryAddress: registry as Address,
