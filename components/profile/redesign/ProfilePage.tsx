@@ -270,25 +270,58 @@ export default function ProfilePage({ teamLabel }: Props) {
   const telegram = watchedValues.telegram_account ?? "";
   const xAccount = watchedValues.x_account ?? "";
   const linkedinAccount = watchedValues.linkedin_account ?? "";
-  const skills = skillsFromValues(watchedValues);
-  const wallets = walletsFromValues(watchedValues);
-  const siteLinks = siteLinksFromValues(watchedValues);
-  const roles = rolesFromValues(watchedValues);
+  const skills = React.useMemo(
+    () => skillsFromValues(watchedValues),
+    [watchedValues.skills],
+  );
+  const wallets = React.useMemo(
+    () => walletsFromValues(watchedValues),
+    [watchedValues.wallet],
+  );
+  const siteLinks = React.useMemo(
+    () => siteLinksFromValues(watchedValues),
+    [watchedValues.additional_social_media],
+  );
+  const roles = React.useMemo(
+    () => rolesFromValues(watchedValues),
+    [
+      watchedValues.is_student,
+      watchedValues.is_founder,
+      watchedValues.is_developer,
+      watchedValues.is_employee,
+      watchedValues.is_enthusiast,
+    ],
+  );
   const imageUrl = watchedValues.image || null;
   const email = watchedValues.email || session?.user?.email || "";
 
-  const completion = computeCompletion({
-    fullName,
-    bio,
-    country,
-    roles,
-    github,
-    wallets,
-    skills,
-    hasHackathonParticipation: summary.engagement.hasHackathonParticipation,
-    hasProject: summary.engagement.hasProject,
-    hasUsedConsole: summary.engagement.hasUsedConsole,
-  });
+  const completion = React.useMemo(
+    () =>
+      computeCompletion({
+        fullName,
+        bio,
+        country,
+        roles,
+        github,
+        wallets,
+        skills,
+        hasHackathonParticipation: summary.engagement.hasHackathonParticipation,
+        hasProject: summary.engagement.hasProject,
+        hasUsedConsole: summary.engagement.hasUsedConsole,
+      }),
+    [
+      fullName,
+      bio,
+      country,
+      roles,
+      github,
+      wallets,
+      skills,
+      summary.engagement.hasHackathonParticipation,
+      summary.engagement.hasProject,
+      summary.engagement.hasUsedConsole,
+    ],
+  );
 
   const dirty = form.formState.isDirty;
 
