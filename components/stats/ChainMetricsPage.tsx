@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback, useRef, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +18,10 @@ import {
   timeSeriesMetricToChartData,
 } from "@/utils/chart-utils";
 import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles, Monitor } from "lucide-react";
-import { ImageExportStudio } from "@/components/stats/image-export";
+const ImageExportStudio = dynamic(
+  () => import("@/components/stats/image-export").then((m) => m.ImageExportStudio),
+  { ssr: false },
+);
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";

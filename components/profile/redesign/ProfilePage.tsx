@@ -38,10 +38,21 @@ import {
   canSendNotifications,
 } from "@/lib/auth/permissions";
 import { canSeeTeam1Tab } from "@/lib/auth/roles";
-import SendNotificationsForm from "@/components/notification/send-notifications-form";
-import { InsightsCard } from "./InsightsCard";
-import { Team1Card } from "./Team1Card";
+import dynamic from "next/dynamic";
 import type { BuilderInsightsData } from "@/server/services/builderInsights";
+
+const SendNotificationsForm = dynamic(
+  () => import("@/components/notification/send-notifications-form"),
+  { ssr: false },
+);
+const InsightsCard = dynamic(
+  () => import("./InsightsCard").then((m) => m.InsightsCard),
+  { ssr: false },
+);
+const Team1Card = dynamic(
+  () => import("./Team1Card").then((m) => m.Team1Card),
+  { ssr: false },
+);
 import type { ProfileLink, ProfileRole } from "./types";
 
 type Tab =
