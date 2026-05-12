@@ -79,7 +79,15 @@ export const useIcttBridgeStore = create(
         set((state) => {
           const bridge = state.bridges[bridgeId];
           if (!bridge) return state;
-          const existingIndex = bridge.remotes.findIndex((r) => r.id === remote.id);
+          // Dedup by destination L1: the user's mental model is one remote per
+          // chain per bridge. A new TokenRemote deploy on the same L1 (whether
+          // by accident or by intent) REPLACES the existing entry rather than
+          // creating a duplicate. The merge below keeps incoming fields, which
+          // implicitly resets `registeredAt`/`collateralizedAt` for a fresh
+          // contract — correct semantics since the address changed.
+          // Falls back to `id` match so a `removeRemote` + `upsertRemote`
+          // round-trip with the same id still updates the right entry.
+          const existingIndex = bridge.remotes.findIndex((r) => r.l1Id === remote.l1Id || r.id === remote.id);
           const nextRemotes =
             existingIndex >= 0
               ? bridge.remotes.map((r, i) => (i === existingIndex ? { ...r, ...remote } : r))
@@ -289,6 +297,40 @@ export const useIcttBridgeStore = create(
         // a refresh would revive the old bridge and look like the reset failed.
         newBridgeIntent: state.newBridgeIntent,
       }),
+      // One-shot cleanup for legacy persisted state where the same
+      // destination L1 ended up as multiple `Remote` entries on a single
+      // bridge (one per redeploy address). The current `upsertRemote`
+      // prevents new dupes by dedup'ing on `l1Id`; this rehydrate pass
+      // collapses any historical ones too. Last entry per `l1Id` wins
+      // (typically the most recent deploy). When the previously-selected
+      // remote gets dropped, re-point `selectedRemoteByBridge` to the
+      // kept entry so the BridgeRibbon doesn't reference a missing id.
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        let mutated = false;
+        const nextBridges: Record<BridgeId, Bridge> = { ...state.bridges };
+        const nextSelected: Record<BridgeId, RemoteId> = { ...state.selectedRemoteByBridge };
+        for (const [id, bridge] of Object.entries(state.bridges) as [BridgeId, Bridge][]) {
+          const byL1 = new Map<string, Remote>();
+          for (const r of bridge.remotes) {
+            byL1.set(r.l1Id, r);
+          }
+          const deduped = Array.from(byL1.values());
+          if (deduped.length === bridge.remotes.length) continue;
+          mutated = true;
+          nextBridges[id] = { ...bridge, remotes: deduped };
+          const sel = nextSelected[id];
+          const stillThere = sel ? deduped.some((r) => r.id === sel) : false;
+          if (!stillThere) {
+            if (deduped[0]) nextSelected[id] = deduped[0].id;
+            else delete nextSelected[id];
+          }
+        }
+        if (mutated) {
+          state.bridges = nextBridges;
+          state.selectedRemoteByBridge = nextSelected;
+        }
+      },
     },
   ),
 );
