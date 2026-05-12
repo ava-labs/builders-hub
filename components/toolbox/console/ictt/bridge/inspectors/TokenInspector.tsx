@@ -313,12 +313,69 @@ interface WrapNativePanelProps {
 
 function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelProps) {
   const selectedL1 = useSelectedL1();
+  const { walletEVMAddress } = useWalletStore();
   const { deployWrappedNative, isDeploying, error } = useDeployWrappedNative();
   const wrappedAddress = (selectedL1?.wrappedTokenAddress ?? '') as Address | '';
   const hasExistingWrapped = Boolean(wrappedAddress && /^0x[a-fA-F0-9]{40}$/.test(wrappedAddress));
   const coinName = selectedL1?.coinName ?? 'native';
   const isAlreadyActive =
     hasExistingWrapped && (existingAddress ?? '').toLowerCase() === (wrappedAddress as string).toLowerCase();
+
+  // Single balance source-of-truth for the wrap panel: read native ALWAYS
+  // (regardless of Wtest deploy state) so users see their funds before
+  // deciding to wrap. Wrapped balance only reads when the contract exists.
+  // `refreshTick` is bumped after every successful wrap/unwrap by the
+  // child controls so balances re-fetch without a full unmount/remount.
+  const [nativeBalance, setNativeBalance] = useState<bigint | null>(null);
+  const [wrappedBalance, setWrappedBalance] = useState<bigint | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  useEffect(() => {
+    if (!selectedL1?.rpcUrl || !walletEVMAddress) return;
+    let cancelled = false;
+    const client = makePublicClientForChain(selectedL1.rpcUrl);
+    if (!client) return;
+
+    void client
+      .getBalance({ address: walletEVMAddress as `0x${string}` })
+      .then((nat) => {
+        if (!cancelled) setNativeBalance(nat as bigint);
+      })
+      .catch(() => {
+        if (!cancelled) setNativeBalance(null);
+      });
+
+    if (hasExistingWrapped) {
+      void (
+        client.readContract({
+          address: wrappedAddress as Address,
+          abi: [
+            {
+              inputs: [{ name: 'account', type: 'address' }],
+              name: 'balanceOf',
+              outputs: [{ name: '', type: 'uint256' }],
+              stateMutability: 'view',
+              type: 'function',
+            },
+          ],
+          functionName: 'balanceOf',
+          args: [walletEVMAddress],
+        }) as Promise<bigint>
+      )
+        .then((wrap) => {
+          if (!cancelled) setWrappedBalance(wrap as bigint);
+        })
+        .catch(() => {
+          if (!cancelled) setWrappedBalance(null);
+        });
+    } else {
+      setWrappedBalance(null);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedL1?.rpcUrl, walletEVMAddress, wrappedAddress, hasExistingWrapped, refreshTick]);
 
   const handleUseExisting = () => {
     if (hasExistingWrapped) onTokenSelected(wrappedAddress as Address);
@@ -331,6 +388,14 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Balance summary always visible — even when no Wtest is deployed yet
+          users can see how much native they hold to decide whether to wrap. */}
+      <BalanceSummary
+        coinName={coinName}
+        native={nativeBalance}
+        wrapped={hasExistingWrapped ? wrappedBalance : null}
+        showWrapped={hasExistingWrapped}
+      />
       {hasExistingWrapped ? (
         <>
           <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
@@ -347,7 +412,13 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
               <CopyTinyButton value={wrappedAddress as string} />
             </div>
           </div>
-          <WrapUnwrapControls wrappedAddress={wrappedAddress as Address} coinName={coinName} />
+          <WrapUnwrapControls
+            wrappedAddress={wrappedAddress as Address}
+            coinName={coinName}
+            nativeBalance={nativeBalance}
+            wrappedBalance={wrappedBalance}
+            onRefresh={() => setRefreshTick((t) => t + 1)}
+          />
           {isAlreadyActive ? (
             <div
               className={cn(
@@ -418,61 +489,24 @@ function WrapNativePanel({ existingAddress, onTokenSelected }: WrapNativePanelPr
 interface WrapUnwrapControlsProps {
   wrappedAddress: Address;
   coinName: string;
+  nativeBalance: bigint | null;
+  wrappedBalance: bigint | null;
+  onRefresh: () => void;
 }
 
-function WrapUnwrapControls({ wrappedAddress, coinName }: WrapUnwrapControlsProps) {
+function WrapUnwrapControls({
+  wrappedAddress: _wrappedAddress,
+  coinName,
+  nativeBalance,
+  wrappedBalance,
+  onRefresh,
+}: WrapUnwrapControlsProps) {
   const selectedL1 = useSelectedL1();
-  const { walletEVMAddress } = useWalletStore();
   const wrapped = useWrappedNativeToken();
-  const [nativeBalance, setNativeBalance] = useState<bigint | null>(null);
-  const [wrappedBalance, setWrappedBalance] = useState<bigint | null>(null);
   const [wrapAmount, setWrapAmount] = useState('');
   const [unwrapAmount, setUnwrapAmount] = useState('');
   const [busy, setBusy] = useState<'wrap' | 'unwrap' | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [refreshTick, setRefreshTick] = useState(0);
-
-  // Read both balances from the Home L1's RPC (independent of the wallet's
-  // current chain). PhaseChainGate will have switched the wallet, but the
-  // first render races the switch — go direct to the L1's RPC.
-  useEffect(() => {
-    if (!selectedL1?.rpcUrl || !walletEVMAddress) return;
-    let cancelled = false;
-    const client = makePublicClientForChain(selectedL1.rpcUrl);
-    if (!client) return;
-    void Promise.all([
-      client.getBalance({ address: walletEVMAddress as `0x${string}` }) as Promise<bigint>,
-      client.readContract({
-        address: wrappedAddress,
-        abi: [
-          {
-            inputs: [{ name: 'account', type: 'address' }],
-            name: 'balanceOf',
-            outputs: [{ name: '', type: 'uint256' }],
-            stateMutability: 'view',
-            type: 'function',
-          },
-        ],
-        functionName: 'balanceOf',
-        args: [walletEVMAddress],
-      }) as Promise<bigint>,
-    ])
-      .then(([nat, wrap]) => {
-        if (!cancelled) {
-          setNativeBalance(nat);
-          setWrappedBalance(wrap);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setNativeBalance(null);
-          setWrappedBalance(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedL1?.rpcUrl, walletEVMAddress, wrappedAddress, refreshTick]);
 
   const handleWrap = async () => {
     if (!wrapAmount || !/^\d+(\.\d+)?$/.test(wrapAmount)) return;
@@ -491,7 +525,7 @@ function WrapUnwrapControls({ wrappedAddress, coinName }: WrapUnwrapControlsProp
         }
       }
       setWrapAmount('');
-      setRefreshTick((t) => t + 1);
+      onRefresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -514,7 +548,7 @@ function WrapUnwrapControls({ wrappedAddress, coinName }: WrapUnwrapControlsProp
         }
       }
       setUnwrapAmount('');
-      setRefreshTick((t) => t + 1);
+      onRefresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -524,14 +558,6 @@ function WrapUnwrapControls({ wrappedAddress, coinName }: WrapUnwrapControlsProp
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-zinc-200/80 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-      <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
-        <span>
-          Native · {coinName} <span className="font-mono">{formatBalance(nativeBalance, 18)}</span>
-        </span>
-        <span>
-          Wrapped · W{coinName} <span className="font-mono">{formatBalance(wrappedBalance, 18)}</span>
-        </span>
-      </div>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         <WrapField
           label={`Wrap (deposit ${coinName})`}
@@ -556,6 +582,47 @@ function WrapUnwrapControls({ wrappedAddress, coinName }: WrapUnwrapControlsProp
         <Note variant="destructive">
           <span className="text-xs">{err}</span>
         </Note>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Renders the native (and optionally wrapped) balance row at the top of
+ * the Wrap-native panel. Always shown for connected wallets so the user
+ * can size their wrap intent against actual holdings — even before any
+ * Wtest contract is deployed.
+ */
+function BalanceSummary({
+  coinName,
+  native,
+  wrapped,
+  showWrapped,
+}: {
+  coinName: string;
+  native: bigint | null;
+  wrapped: bigint | null;
+  showWrapped: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-4 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300">
+      <span className="flex items-center gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          Native
+        </span>
+        <span className="font-mono">
+          {formatBalance(native, 18)} {coinName}
+        </span>
+      </span>
+      {showWrapped && (
+        <span className="flex items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+            Wrapped
+          </span>
+          <span className="font-mono">
+            {formatBalance(wrapped, 18)} W{coinName}
+          </span>
+        </span>
       )}
     </div>
   );
