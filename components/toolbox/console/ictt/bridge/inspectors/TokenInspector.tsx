@@ -10,6 +10,8 @@ import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicCl
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { Note } from '@/components/toolbox/components/Note';
 import { cn } from '@/lib/utils';
+import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
+import { ICTT_EXAMPLE_ERC20_SOURCES, ICTT_WRAPPED_NATIVE_SOURCES } from '@/lib/ictt/contractSources';
 import { InspectorShell } from './InspectorShell';
 import { useDeploySourceToken } from '../hooks/useDeploySourceToken';
 import { useDeployWrappedNative } from '../hooks/useDeployWrappedNative';
@@ -56,86 +58,93 @@ export function TokenInspector({
   // we check intent explicitly so a future store change can't quietly regress.
   const showExistingBridgeBanner = !newBridgeIntent && Boolean(bridge?.underlyingTokenAddress);
 
+  // Source pane reflects the active mode. `wrap-native` shows the wrapped
+  // contract; both `deploy-test` and `existing` show the canonical ERC-20
+  // mock as a reference for the interface the bridge expects.
+  const contracts = mode === 'wrap-native' ? ICTT_WRAPPED_NATIVE_SOURCES : ICTT_EXAMPLE_ERC20_SOURCES;
+
   return (
-    <InspectorShell
-      banner={
-        showExistingBridgeBanner ? (
-          <Note variant="warning">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-              <span>
-                You&apos;re looking at an existing bridge (TokenHome already deployed). Deploying or selecting a new
-                token here will <strong>replace</strong> it for the next phases. Start a fresh bridge to keep the
-                current one intact.
-              </span>
-              <button
-                type="button"
-                onClick={onStartNewBridge}
-                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
-              >
-                <RotateCcw className="h-3 w-3" aria-hidden />
-                Start new bridge
-              </button>
-            </div>
-          </Note>
-        ) : null
-      }
-      footer={
-        <button
-          type="button"
-          onClick={() => onPhaseChange('home')}
-          disabled={!underlyingTokenAddress}
-          className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
-          Continue to Home
-          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-        </button>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Pick the token you want to bridge from {selectedL1?.name ?? 'the Home chain'}. Paste an address you already
-          deployed or deploy a test ERC-20 to play with.
-        </p>
+    <ContractDeployViewer contracts={contracts}>
+      <InspectorShell
+        banner={
+          showExistingBridgeBanner ? (
+            <Note variant="warning">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                <span>
+                  You&apos;re looking at an existing bridge (TokenHome already deployed). Deploying or selecting a new
+                  token here will <strong>replace</strong> it for the next phases. Start a fresh bridge to keep the
+                  current one intact.
+                </span>
+                <button
+                  type="button"
+                  onClick={onStartNewBridge}
+                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60"
+                >
+                  <RotateCcw className="h-3 w-3" aria-hidden />
+                  Start new bridge
+                </button>
+              </div>
+            </Note>
+          ) : null
+        }
+        footer={
+          <button
+            type="button"
+            onClick={() => onPhaseChange('home')}
+            disabled={!underlyingTokenAddress}
+            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          >
+            Continue to Home
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Pick the token you want to bridge from {selectedL1?.name ?? 'the Home chain'}. Paste an address you already
+            deployed or deploy a test ERC-20 to play with.
+          </p>
 
-        <ToggleGroup
-          type="single"
-          value={mode}
-          onValueChange={(value) => {
-            if (value === 'existing' || value === 'deploy-test' || value === 'wrap-native') setMode(value);
-          }}
-          variant="outline"
-          className="w-full"
-        >
-          <ToggleGroupItem value="deploy-test" className="flex-1">
-            Deploy test ERC-20
-          </ToggleGroupItem>
-          <ToggleGroupItem value="wrap-native" className="flex-1">
-            Wrap native token
-          </ToggleGroupItem>
-          <ToggleGroupItem value="existing" className="flex-1">
-            Use existing token
-          </ToggleGroupItem>
-        </ToggleGroup>
+          <ToggleGroup
+            type="single"
+            value={mode}
+            onValueChange={(value) => {
+              if (value === 'existing' || value === 'deploy-test' || value === 'wrap-native') setMode(value);
+            }}
+            variant="outline"
+            className="w-full"
+          >
+            <ToggleGroupItem value="deploy-test" className="flex-1">
+              Deploy test ERC-20
+            </ToggleGroupItem>
+            <ToggleGroupItem value="wrap-native" className="flex-1">
+              Wrap native token
+            </ToggleGroupItem>
+            <ToggleGroupItem value="existing" className="flex-1">
+              Use existing token
+            </ToggleGroupItem>
+          </ToggleGroup>
 
-        {mode === 'deploy-test' && (
-          <DeployTestPanel
-            chainName={selectedL1?.name ?? 'Home chain'}
-            existingAddress={underlyingTokenAddress}
-            onTokenSelected={onTokenSelected}
-          />
-        )}
-        {mode === 'existing' && (
-          <ExistingTokenPanel
-            chainName={selectedL1?.name}
-            existingAddress={underlyingTokenAddress}
-            onTokenSelected={onTokenSelected}
-          />
-        )}
-        {mode === 'wrap-native' && (
-          <WrapNativePanel existingAddress={underlyingTokenAddress} onTokenSelected={onTokenSelected} />
-        )}
-      </div>
-    </InspectorShell>
+          {mode === 'deploy-test' && (
+            <DeployTestPanel
+              chainName={selectedL1?.name ?? 'Home chain'}
+              existingAddress={underlyingTokenAddress}
+              onTokenSelected={onTokenSelected}
+            />
+          )}
+          {mode === 'existing' && (
+            <ExistingTokenPanel
+              chainName={selectedL1?.name}
+              existingAddress={underlyingTokenAddress}
+              onTokenSelected={onTokenSelected}
+            />
+          )}
+          {mode === 'wrap-native' && (
+            <WrapNativePanel existingAddress={underlyingTokenAddress} onTokenSelected={onTokenSelected} />
+          )}
+        </div>
+      </InspectorShell>
+    </ContractDeployViewer>
   );
 }
 

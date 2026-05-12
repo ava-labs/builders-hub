@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { ArrowRight, Check, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 import { Note } from '@/components/toolbox/components/Note';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
+import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
+import { ICTT_HOME_PLUS_REMOTE_SOURCES } from '@/lib/ictt/contractSources';
 import { InspectorShell } from './InspectorShell';
 import { useRegisterRemote } from '../hooks/useRegisterRemote';
 import { buildTxUrl, truncateAddress } from '../utils/explorer-url';
@@ -59,86 +61,88 @@ export function RegisterInspector({ onPhaseChange, bridge, remote }: RegisterIns
       : 'Status flips once the Home contract receives the message.';
 
   return (
-    <InspectorShell
-      banner={
-        !remote?.address && (
-          <Note variant="warning">
-            <span className="text-xs">Deploy a TokenRemote in Phase 3 first.</span>
-          </Note>
-        )
-      }
-      footer={
-        <>
-          {isDelivered && (
+    <ContractDeployViewer contracts={ICTT_HOME_PLUS_REMOTE_SOURCES}>
+      <InspectorShell
+        banner={
+          !remote?.address && (
+            <Note variant="warning">
+              <span className="text-xs">Deploy a TokenRemote in Phase 3 first.</span>
+            </Note>
+          )
+        }
+        footer={
+          <>
+            {isDelivered && (
+              <button
+                type="button"
+                onClick={() => onPhaseChange('collateral')}
+                className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              >
+                Continue to Collateral
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => onPhaseChange('collateral')}
-              className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              onClick={handleRegister}
+              disabled={!remote?.address || isRegistering || isPolling}
+              className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
             >
-              Continue to Collateral
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              {isRegistering || isPolling ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+              )}
+              {isTimeout ? 'Re-send registration' : isDelivered ? 'Re-send registration' : 'Register Remote'}
             </button>
-          )}
-          <button
-            type="button"
-            onClick={handleRegister}
-            disabled={!remote?.address || isRegistering || isPolling}
-            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            {isRegistering || isPolling ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-            )}
-            {isTimeout ? 'Re-send registration' : isDelivered ? 'Re-send registration' : 'Register Remote'}
-          </button>
-        </>
-      }
-    >
-      <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-        Send a single transaction on {remoteL1?.name ?? 'the Remote chain'} that asks {homeL1?.name ?? 'Home'} to
-        register this Remote. The relayer carries it across.
-      </p>
-      <ol className="flex flex-col gap-2 text-sm">
-        <TrackerRow
-          index={1}
-          label={`Submit tx on ${remoteL1?.name ?? 'Remote'}`}
-          state={localTxConfirmed ? 'complete' : isRegistering ? 'active' : 'idle'}
-          detail={
-            localTxConfirmed ? (
-              <code className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-                {truncateAddress((submittedTx ?? lastTxHash) as Address)}
-              </code>
-            ) : (
-              'Calls registerWithHome on the Remote contract.'
-            )
-          }
-          url={txUrl}
-        />
-        <TrackerRow index={2} label="ICM relays the message" state={rowTwoState} detail={rowTwoDetail} />
-        <TrackerRow
-          index={3}
-          label={`${homeL1?.name ?? 'Home'} marks the Remote registered`}
-          state={rowThreeState}
-          detail={rowThreeDetail}
-        />
-      </ol>
+          </>
+        }
+      >
+        <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+          Send a single transaction on {remoteL1?.name ?? 'the Remote chain'} that asks {homeL1?.name ?? 'Home'} to
+          register this Remote. The relayer carries it across.
+        </p>
+        <ol className="flex flex-col gap-2 text-sm">
+          <TrackerRow
+            index={1}
+            label={`Submit tx on ${remoteL1?.name ?? 'Remote'}`}
+            state={localTxConfirmed ? 'complete' : isRegistering ? 'active' : 'idle'}
+            detail={
+              localTxConfirmed ? (
+                <code className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
+                  {truncateAddress((submittedTx ?? lastTxHash) as Address)}
+                </code>
+              ) : (
+                'Calls registerWithHome on the Remote contract.'
+              )
+            }
+            url={txUrl}
+          />
+          <TrackerRow index={2} label="ICM relays the message" state={rowTwoState} detail={rowTwoDetail} />
+          <TrackerRow
+            index={3}
+            label={`${homeL1?.name ?? 'Home'} marks the Remote registered`}
+            state={rowThreeState}
+            detail={rowThreeDetail}
+          />
+        </ol>
 
-      {isTimeout && (
-        <Note variant="warning" className="mt-3">
-          <span className="text-xs">
-            The relayer didn&apos;t deliver in {Math.round((pollMaxAttempts * 4) / 60)} minutes. Re-send the
-            registration — the existing TokenRemote stays valid.
-          </span>
-        </Note>
-      )}
+        {isTimeout && (
+          <Note variant="warning" className="mt-3">
+            <span className="text-xs">
+              The relayer didn&apos;t deliver in {Math.round((pollMaxAttempts * 4) / 60)} minutes. Re-send the
+              registration — the existing TokenRemote stays valid.
+            </span>
+          </Note>
+        )}
 
-      {error && (
-        <Note variant="destructive" className="mt-3">
-          <span className="text-xs">{error.message}</span>
-        </Note>
-      )}
-    </InspectorShell>
+        {error && (
+          <Note variant="destructive" className="mt-3">
+            <span className="text-xs">{error.message}</span>
+          </Note>
+        )}
+      </InspectorShell>
+    </ContractDeployViewer>
   );
 }
 

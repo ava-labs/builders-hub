@@ -13,6 +13,8 @@ import { getToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Note } from '@/components/toolbox/components/Note';
+import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
+import { ICTT_REMOTE_SOURCES } from '@/lib/ictt/contractSources';
 import { InspectorShell } from './InspectorShell';
 import { useDeployTokenRemote } from '../hooks/useDeployTokenRemote';
 import { useBridgeContext } from '../hooks/useBridgeContext';
@@ -208,144 +210,147 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   );
 
   return (
-    <InspectorShell
-      banner={
-        !bridge?.homeAddress ? (
-          <Note variant="warning">
-            <span className="text-xs">Deploy TokenHome in Phase 2 before deploying a Remote.</span>
-          </Note>
-        ) : chainMismatch && destinationL1 ? (
-          <Note variant="warning">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-xs">
-                Deploying to {destinationL1.name} requires your wallet to be on that chain. Pick a different L1 below or
-                switch.
-              </span>
-              <button
-                type="button"
-                onClick={handleManualSwitch}
-                disabled={isSwitching}
-                className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-              >
-                {isSwitching ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                ) : (
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                )}
-                {isSwitching ? 'Switching…' : `Switch to ${destinationL1.name}`}
-              </button>
-            </div>
-          </Note>
-        ) : null
-      }
-      footer={
-        <button
-          type="button"
-          onClick={chainMismatch ? handleManualSwitch : handleDeploy}
-          disabled={(!chainMismatch && !canDeploy) || isSwitching || isDeploying}
-          className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
-          {(isDeploying || isSwitching) && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
-          {(() => {
-            if (chainMismatch) return isSwitching ? 'Switching…' : `Switch to ${destinationL1?.name ?? 'destination'}`;
-            if (!remote?.address) return 'Deploy TokenRemote';
-            const switchingChain = destinationL1Id && remote.l1Id !== destinationL1Id;
-            return switchingChain
-              ? `Deploy on ${destinationL1?.name ?? 'new chain'} (replaces existing)`
-              : 'Re-deploy TokenRemote';
-          })()}
-          {!isDeploying && !isSwitching && <ArrowRight className="h-3.5 w-3.5" aria-hidden />}
-        </button>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Deploy ERC20TokenRemote on the destination L1. The constructor encodes the Home pair ({homeL1?.name ?? 'Home'}{' '}
-          → destination).
-        </p>
-
-        <FormField label="Destination chain" hint="Switch your wallet to this chain before deploying.">
-          <select
-            value={destinationL1Id}
-            onChange={(e) => ctx.setPendingDestinationL1Id(e.target.value || null)}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+    <ContractDeployViewer contracts={ICTT_REMOTE_SOURCES}>
+      <InspectorShell
+        banner={
+          !bridge?.homeAddress ? (
+            <Note variant="warning">
+              <span className="text-xs">Deploy TokenHome in Phase 2 before deploying a Remote.</span>
+            </Note>
+          ) : chainMismatch && destinationL1 ? (
+            <Note variant="warning">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs">
+                  Deploying to {destinationL1.name} requires your wallet to be on that chain. Pick a different L1 below
+                  or switch.
+                </span>
+                <button
+                  type="button"
+                  onClick={handleManualSwitch}
+                  disabled={isSwitching}
+                  className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+                >
+                  {isSwitching ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  {isSwitching ? 'Switching…' : `Switch to ${destinationL1.name}`}
+                </button>
+              </div>
+            </Note>
+          ) : null
+        }
+        footer={
+          <button
+            type="button"
+            onClick={chainMismatch ? handleManualSwitch : handleDeploy}
+            disabled={(!chainMismatch && !canDeploy) || isSwitching || isDeploying}
+            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
           >
-            <option value="">— Select a destination —</option>
-            {candidates.map((l1: L1ListItem) => (
-              <option key={l1.id} value={l1.id}>
-                {l1.name}
-              </option>
-            ))}
-          </select>
-          {sameChainError && <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{sameChainError}</p>}
-        </FormField>
-
-        {destinationL1 ? (
-          <>
-            <FormField label="Mirrored token name" hint="Shown on the Remote chain.">
-              <input
-                type="text"
-                value={tokenName}
-                onChange={(e) => setTokenName(e.target.value)}
-                placeholder={`${bridge?.symbol ?? 'Bridged'} on ${destinationL1.name}`}
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-            </FormField>
-
-            <FormField label="Mirrored token symbol">
-              <input
-                type="text"
-                value={tokenSymbol}
-                onChange={(e) => setTokenSymbol(e.target.value.toUpperCase())}
-                placeholder={bridge?.symbol ?? 'TOKEN'}
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-            </FormField>
-
-            <FormField label="Teleporter registry on destination" hint={registryHint}>
-              <input
-                type="text"
-                value={registry}
-                onChange={(e) => setRegistry(e.target.value.trim())}
-                placeholder={defaultRegistry || '0x…'}
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-            </FormField>
-
-            <FormField label="Teleporter manager" hint="Defaults to your wallet.">
-              <input
-                type="text"
-                value={manager}
-                onChange={(e) => setManager(e.target.value.trim())}
-                placeholder={walletEVMAddress || '0x…'}
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-            </FormField>
-          </>
-        ) : (
-          <p className="text-xs italic text-zinc-500 dark:text-zinc-400">
-            Pick a destination chain first to configure the mirrored token.
+            {(isDeploying || isSwitching) && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+            {(() => {
+              if (chainMismatch)
+                return isSwitching ? 'Switching…' : `Switch to ${destinationL1?.name ?? 'destination'}`;
+              if (!remote?.address) return 'Deploy TokenRemote';
+              const switchingChain = destinationL1Id && remote.l1Id !== destinationL1Id;
+              return switchingChain
+                ? `Deploy on ${destinationL1?.name ?? 'new chain'} (replaces existing)`
+                : 'Re-deploy TokenRemote';
+            })()}
+            {!isDeploying && !isSwitching && <ArrowRight className="h-3.5 w-3.5" aria-hidden />}
+          </button>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Deploy ERC20TokenRemote on the destination L1. The constructor encodes the Home pair (
+            {homeL1?.name ?? 'Home'} → destination).
           </p>
-        )}
 
-        {error && (
-          <Note variant="destructive">
-            <span className="text-xs">{error.message}</span>
-          </Note>
-        )}
+          <FormField label="Destination chain" hint="Switch your wallet to this chain before deploying.">
+            <select
+              value={destinationL1Id}
+              onChange={(e) => ctx.setPendingDestinationL1Id(e.target.value || null)}
+              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            >
+              <option value="">— Select a destination —</option>
+              {candidates.map((l1: L1ListItem) => (
+                <option key={l1.id} value={l1.id}>
+                  {l1.name}
+                </option>
+              ))}
+            </select>
+            {sameChainError && <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{sameChainError}</p>}
+          </FormField>
 
-        {remote?.address && destinationL1 && (
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50/60 px-3 py-2 text-xs dark:bg-emerald-950/20">
-            <span className="font-medium text-emerald-800 dark:text-emerald-300">
-              TokenRemote on {destinationL1.name}
-            </span>
-            <code className="font-mono text-[11px] text-emerald-800 dark:text-emerald-300">
-              {truncateAddress(remote.address, 10, 6)}
-            </code>
-          </div>
-        )}
-      </div>
-    </InspectorShell>
+          {destinationL1 ? (
+            <>
+              <FormField label="Mirrored token name" hint="Shown on the Remote chain.">
+                <input
+                  type="text"
+                  value={tokenName}
+                  onChange={(e) => setTokenName(e.target.value)}
+                  placeholder={`${bridge?.symbol ?? 'Bridged'} on ${destinationL1.name}`}
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+              </FormField>
+
+              <FormField label="Mirrored token symbol">
+                <input
+                  type="text"
+                  value={tokenSymbol}
+                  onChange={(e) => setTokenSymbol(e.target.value.toUpperCase())}
+                  placeholder={bridge?.symbol ?? 'TOKEN'}
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+              </FormField>
+
+              <FormField label="Teleporter registry on destination" hint={registryHint}>
+                <input
+                  type="text"
+                  value={registry}
+                  onChange={(e) => setRegistry(e.target.value.trim())}
+                  placeholder={defaultRegistry || '0x…'}
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+              </FormField>
+
+              <FormField label="Teleporter manager" hint="Defaults to your wallet.">
+                <input
+                  type="text"
+                  value={manager}
+                  onChange={(e) => setManager(e.target.value.trim())}
+                  placeholder={walletEVMAddress || '0x…'}
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+              </FormField>
+            </>
+          ) : (
+            <p className="text-xs italic text-zinc-500 dark:text-zinc-400">
+              Pick a destination chain first to configure the mirrored token.
+            </p>
+          )}
+
+          {error && (
+            <Note variant="destructive">
+              <span className="text-xs">{error.message}</span>
+            </Note>
+          )}
+
+          {remote?.address && destinationL1 && (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50/60 px-3 py-2 text-xs dark:bg-emerald-950/20">
+              <span className="font-medium text-emerald-800 dark:text-emerald-300">
+                TokenRemote on {destinationL1.name}
+              </span>
+              <code className="font-mono text-[11px] text-emerald-800 dark:text-emerald-300">
+                {truncateAddress(remote.address, 10, 6)}
+              </code>
+            </div>
+          )}
+        </div>
+      </InspectorShell>
+    </ContractDeployViewer>
   );
 }
 

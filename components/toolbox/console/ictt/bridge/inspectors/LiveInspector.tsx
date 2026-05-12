@@ -11,6 +11,8 @@ import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { cn } from '@/lib/utils';
+import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
+import { ICTT_HOME_SEND_SOURCES } from '@/lib/ictt/contractSources';
 import { InspectorShell } from './InspectorShell';
 import { useSendTokens } from '../hooks/useSendTokens';
 import { useBridgeContext } from '../hooks/useBridgeContext';
@@ -171,141 +173,143 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   };
 
   return (
-    <InspectorShell
-      banner={
-        !hasRemotes ? (
-          <Note variant="warning">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-xs">Deploy a Remote in Phase 3 before sending tokens.</span>
-              <button
-                type="button"
-                onClick={handleAddAnotherDestination}
-                className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                Deploy first Remote
-              </button>
-            </div>
-          </Note>
-        ) : null
-      }
-      footer={
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={isBusy || !readiness.ok || !parsed || parsed <= 0n || !validRecipient || amountExceedsBalance}
-          className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
-          {isBusy ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-          ) : (
-            <Send className="h-3.5 w-3.5" aria-hidden />
-          )}
-          {stageLabel(stage, bridge?.kind === 'native-home')}
-        </button>
-      }
-    >
-      <div className="flex flex-col gap-3">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Send {bridge?.symbol ?? 'tokens'} from {homeL1?.name ?? 'Home'} → {remoteL1?.name ?? 'Remote'}. The relayer
-          delivers; wrapped tokens land in the recipient&apos;s wallet on the destination.
-        </p>
-
-        <LiveReadinessCard
-          checks={readiness.checks}
-          allOk={readiness.ok}
-          onSwitchToHome={handleSwitchToHome}
-          onNavigate={(href) => router.push(href)}
-        />
-
-        <DestinationPicker
-          remotes={remotes}
-          selectedRemoteId={selectedRemoteId}
-          homeL1Name={homeL1?.name ?? 'Home'}
-          onAddAnother={handleAddAnotherDestination}
-        />
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
-              Amount {bridge?.symbol ? `(${bridge.symbol})` : ''}
-            </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.0"
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-              {balance !== null && (
+    <ContractDeployViewer contracts={ICTT_HOME_SEND_SOURCES}>
+      <InspectorShell
+        banner={
+          !hasRemotes ? (
+            <Note variant="warning">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs">Deploy a Remote in Phase 3 before sending tokens.</span>
                 <button
                   type="button"
-                  onClick={() => setAmount(formatAmount(balance, decimals))}
-                  className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+                  onClick={handleAddAnotherDestination}
+                  className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
                 >
-                  Max
+                  <Plus className="h-3.5 w-3.5" aria-hidden />
+                  Deploy first Remote
                 </button>
-              )}
-            </div>
-            {amountExceedsBalance && balance !== null ? (
-              <span className="text-[10px] text-red-600 dark:text-red-400">
-                Amount exceeds your balance of {formatAmount(balance, decimals)} {bridge?.symbol ?? ''}
-              </span>
-            ) : balance !== null ? (
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-                Balance · {formatAmount(balance, decimals)} {bridge?.symbol ?? ''}
-              </span>
-            ) : null}
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
-              Recipient on {remoteL1?.name ?? 'Remote'}
-            </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={recipient}
-                onChange={(e) => setRecipient(e.target.value.trim())}
-                placeholder="0x…"
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-              {walletEVMAddress && (
-                <button
-                  type="button"
-                  onClick={() => setRecipient(walletEVMAddress)}
-                  className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
-                >
-                  Self
-                </button>
-              )}
-            </div>
-            {!validRecipient && recipient && (
-              <span className="text-[10px] text-red-600 dark:text-red-400">Invalid EVM address.</span>
+              </div>
+            </Note>
+          ) : null
+        }
+        footer={
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={isBusy || !readiness.ok || !parsed || parsed <= 0n || !validRecipient || amountExceedsBalance}
+            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          >
+            {isBusy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Send className="h-3.5 w-3.5" aria-hidden />
             )}
-          </label>
+            {stageLabel(stage, bridge?.kind === 'native-home')}
+          </button>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Send {bridge?.symbol ?? 'tokens'} from {homeL1?.name ?? 'Home'} → {remoteL1?.name ?? 'Remote'}. The relayer
+            delivers; wrapped tokens land in the recipient&apos;s wallet on the destination.
+          </p>
+
+          <LiveReadinessCard
+            checks={readiness.checks}
+            allOk={readiness.ok}
+            onSwitchToHome={handleSwitchToHome}
+            onNavigate={(href) => router.push(href)}
+          />
+
+          <DestinationPicker
+            remotes={remotes}
+            selectedRemoteId={selectedRemoteId}
+            homeL1Name={homeL1?.name ?? 'Home'}
+            onAddAnother={handleAddAnotherDestination}
+          />
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
+                Amount {bridge?.symbol ? `(${bridge.symbol})` : ''}
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.0"
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+                {balance !== null && (
+                  <button
+                    type="button"
+                    onClick={() => setAmount(formatAmount(balance, decimals))}
+                    className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+                  >
+                    Max
+                  </button>
+                )}
+              </div>
+              {amountExceedsBalance && balance !== null ? (
+                <span className="text-[10px] text-red-600 dark:text-red-400">
+                  Amount exceeds your balance of {formatAmount(balance, decimals)} {bridge?.symbol ?? ''}
+                </span>
+              ) : balance !== null ? (
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                  Balance · {formatAmount(balance, decimals)} {bridge?.symbol ?? ''}
+                </span>
+              ) : null}
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
+                Recipient on {remoteL1?.name ?? 'Remote'}
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value.trim())}
+                  placeholder="0x…"
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+                {walletEVMAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setRecipient(walletEVMAddress)}
+                    className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+                  >
+                    Self
+                  </button>
+                )}
+              </div>
+              {!validRecipient && recipient && (
+                <span className="text-[10px] text-red-600 dark:text-red-400">Invalid EVM address.</span>
+              )}
+            </label>
+          </div>
+
+          {error && (
+            <Note variant="destructive">
+              <span className="text-xs">{error.message}</span>
+            </Note>
+          )}
+
+          {lastTx && sendTxUrl && (
+            <Note variant="success">
+              <span className="text-xs">
+                Send tx submitted on {homeL1?.name}. <code className="font-mono">{truncateAddress(lastTx)}</code> ·{' '}
+                <a href={sendTxUrl} target="_blank" rel="noreferrer" className="underline">
+                  explorer
+                </a>
+              </span>
+            </Note>
+          )}
         </div>
-
-        {error && (
-          <Note variant="destructive">
-            <span className="text-xs">{error.message}</span>
-          </Note>
-        )}
-
-        {lastTx && sendTxUrl && (
-          <Note variant="success">
-            <span className="text-xs">
-              Send tx submitted on {homeL1?.name}. <code className="font-mono">{truncateAddress(lastTx)}</code> ·{' '}
-              <a href={sendTxUrl} target="_blank" rel="noreferrer" className="underline">
-                explorer
-              </a>
-            </span>
-          </Note>
-        )}
-      </div>
-    </InspectorShell>
+      </InspectorShell>
+    </ContractDeployViewer>
   );
 }
 

@@ -88,12 +88,12 @@ export function ManageBridgesButton() {
         aria-label="Create your first bridge"
         title="Create your first bridge"
         className={cn(
-          'group inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-50 px-3 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200/80 transition-[transform,colors,box-shadow] duration-150',
+          'group inline-flex h-9 items-center gap-2.5 rounded-lg bg-zinc-50 px-4 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200/80 transition-[transform,colors,box-shadow] duration-150',
           'shadow-[0_1px_0_rgba(0,0,0,0.04)] hover:-translate-y-px hover:bg-zinc-100 hover:ring-zinc-300',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50',
           'dark:bg-zinc-900/60 dark:text-zinc-200 dark:ring-zinc-700/80 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
           'dark:hover:bg-zinc-800/80 dark:hover:ring-zinc-600 dark:focus-visible:ring-offset-zinc-950',
-          'sm:px-3.5',
+          'sm:px-4',
         )}
       >
         <Plus aria-hidden className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -111,12 +111,12 @@ export function ManageBridgesButton() {
           aria-label={`Manage bridges, ${count} ${count === 1 ? 'bridge' : 'bridges'}`}
           title="Manage your bridges"
           className={cn(
-            'group inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-50 px-3 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200/80 transition-[transform,colors,box-shadow] duration-150',
+            'group inline-flex h-9 items-center gap-2.5 rounded-lg bg-zinc-50 px-4 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200/80 transition-[transform,colors,box-shadow] duration-150',
             'shadow-[0_1px_0_rgba(0,0,0,0.04)] hover:-translate-y-px hover:bg-zinc-100 hover:ring-zinc-300',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50',
             'dark:bg-zinc-900/60 dark:text-zinc-200 dark:ring-zinc-700/80 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
             'dark:hover:bg-zinc-800/80 dark:hover:ring-zinc-600 dark:focus-visible:ring-offset-zinc-950',
-            'sm:px-3.5',
+            'sm:px-4',
           )}
         >
           <Layers aria-hidden className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />

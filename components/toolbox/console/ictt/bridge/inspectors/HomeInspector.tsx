@@ -8,6 +8,8 @@ import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { Note } from '@/components/toolbox/components/Note';
+import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
+import { ICTT_HOME_SOURCES } from '@/lib/ictt/contractSources';
 import { InspectorShell } from './InspectorShell';
 import { useDeployTokenHome } from '../hooks/useDeployTokenHome';
 import { truncateAddress } from '../utils/explorer-url';
@@ -137,92 +139,94 @@ export function HomeInspector({ onPhaseChange, underlyingTokenAddress, bridge }:
     !isDeploying;
 
   return (
-    <InspectorShell
-      banner={
-        !underlyingTokenAddress && (
-          <Note variant="warning">
-            <span className="text-xs">Pick a source token in Phase 1 first.</span>
-          </Note>
-        )
-      }
-      footer={
-        <>
-          <button
-            type="button"
-            onClick={handleDeploy}
-            disabled={!canDeploy}
-            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            {isDeploying && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
-            {bridge?.homeAddress ? 'Re-deploy TokenHome' : 'Deploy TokenHome'}
-            {!isDeploying && <ArrowRight className="h-3.5 w-3.5" aria-hidden />}
-          </button>
-        </>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Deploying <span className="font-medium text-zinc-900 dark:text-zinc-100">ERC20TokenHome</span> on{' '}
-          <span className="font-medium text-zinc-900 dark:text-zinc-100">{selectedL1?.name ?? 'the Home chain'}</span>.
-          Your wallet must be on this chain — we&apos;ll auto-switch if needed. The constructor wires the contract to
-          the Teleporter registry and your token in one transaction.
-        </p>
+    <ContractDeployViewer contracts={ICTT_HOME_SOURCES}>
+      <InspectorShell
+        banner={
+          !underlyingTokenAddress && (
+            <Note variant="warning">
+              <span className="text-xs">Pick a source token in Phase 1 first.</span>
+            </Note>
+          )
+        }
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={handleDeploy}
+              disabled={!canDeploy}
+              className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            >
+              {isDeploying && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+              {bridge?.homeAddress ? 'Re-deploy TokenHome' : 'Deploy TokenHome'}
+              {!isDeploying && <ArrowRight className="h-3.5 w-3.5" aria-hidden />}
+            </button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Deploying <span className="font-medium text-zinc-900 dark:text-zinc-100">ERC20TokenHome</span> on{' '}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">{selectedL1?.name ?? 'the Home chain'}</span>
+            . Your wallet must be on this chain — we&apos;ll auto-switch if needed. The constructor wires the contract
+            to the Teleporter registry and your token in one transaction.
+          </p>
 
-        <FormField label="Source token" hint="Auto-filled from Phase 1.">
-          <code className="block rounded-md bg-zinc-100 px-2.5 py-1.5 font-mono text-[12px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-            {underlyingTokenAddress
-              ? `${truncateAddress(underlyingTokenAddress, 10, 6)}${symbol ? ` · ${symbol}` : ''}`
-              : '—'}
-          </code>
-        </FormField>
-
-        <FormField label="Token decimals" hint="Read from the source token contract.">
-          <input
-            type="number"
-            min={0}
-            value={decimals}
-            onChange={(e) => setDecimals(e.target.value)}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-          />
-          {decimalsError && <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{decimalsError}</p>}
-        </FormField>
-
-        <FormField label="Teleporter registry" hint={registryHint}>
-          <input
-            type="text"
-            value={registry}
-            onChange={(e) => setRegistry(e.target.value.trim())}
-            placeholder="0x…"
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-          />
-        </FormField>
-
-        <FormField label="Teleporter manager" hint="Address that can pause/upgrade ICM. Defaults to your wallet.">
-          <input
-            type="text"
-            value={manager}
-            onChange={(e) => setManager(e.target.value.trim())}
-            placeholder="0x…"
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-          />
-        </FormField>
-
-        {error && (
-          <Note variant="destructive">
-            <span className="text-xs">{error.message}</span>
-          </Note>
-        )}
-
-        {bridge?.homeAddress && (
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50/60 px-3 py-2 text-xs dark:bg-emerald-950/20">
-            <span className="font-medium text-emerald-800 dark:text-emerald-300">TokenHome deployed</span>
-            <code className="font-mono text-[11px] text-emerald-800 dark:text-emerald-300">
-              {truncateAddress(bridge.homeAddress, 10, 6)}
+          <FormField label="Source token" hint="Auto-filled from Phase 1.">
+            <code className="block rounded-md bg-zinc-100 px-2.5 py-1.5 font-mono text-[12px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+              {underlyingTokenAddress
+                ? `${truncateAddress(underlyingTokenAddress, 10, 6)}${symbol ? ` · ${symbol}` : ''}`
+                : '—'}
             </code>
-          </div>
-        )}
-      </div>
-    </InspectorShell>
+          </FormField>
+
+          <FormField label="Token decimals" hint="Read from the source token contract.">
+            <input
+              type="number"
+              min={0}
+              value={decimals}
+              onChange={(e) => setDecimals(e.target.value)}
+              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+            {decimalsError && <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{decimalsError}</p>}
+          </FormField>
+
+          <FormField label="Teleporter registry" hint={registryHint}>
+            <input
+              type="text"
+              value={registry}
+              onChange={(e) => setRegistry(e.target.value.trim())}
+              placeholder="0x…"
+              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+          </FormField>
+
+          <FormField label="Teleporter manager" hint="Address that can pause/upgrade ICM. Defaults to your wallet.">
+            <input
+              type="text"
+              value={manager}
+              onChange={(e) => setManager(e.target.value.trim())}
+              placeholder="0x…"
+              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+          </FormField>
+
+          {error && (
+            <Note variant="destructive">
+              <span className="text-xs">{error.message}</span>
+            </Note>
+          )}
+
+          {bridge?.homeAddress && (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50/60 px-3 py-2 text-xs dark:bg-emerald-950/20">
+              <span className="font-medium text-emerald-800 dark:text-emerald-300">TokenHome deployed</span>
+              <code className="font-mono text-[11px] text-emerald-800 dark:text-emerald-300">
+                {truncateAddress(bridge.homeAddress, 10, 6)}
+              </code>
+            </div>
+          )}
+        </div>
+      </InspectorShell>
+    </ContractDeployViewer>
   );
 }
 
