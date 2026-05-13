@@ -32,7 +32,7 @@ export interface UserDataForHubSpot {
   linkedin_account?: string;
   telegram_account?: string;
   wallet?: string[];
-  additional_social_media?: string[];
+  additional_social_accounts?: string[];
   notifications?: boolean;
   gdpr?: boolean;
 }
@@ -61,7 +61,7 @@ function buildHubSpotUserProperties(userData: UserDataForHubSpot, includeEmail: 
     ...(userData.linkedin_account && { linkedin_url: userData.linkedin_account }),
     ...(userData.telegram_account && { telegram_handle: userData.telegram_account }),
     ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
-    ...(userData.additional_social_media && userData.additional_social_media.length > 0 && { contact_othersocials: userData.additional_social_media.join('; ') }),
+    ...(userData.additional_social_accounts && userData.additional_social_accounts.length > 0 && { contact_othersocials: userData.additional_social_accounts.join('; ') }),
     ...(userData.notifications !== undefined && { marketing_consent: userData.notifications }),
     ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
   };

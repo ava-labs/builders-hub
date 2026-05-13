@@ -54,10 +54,9 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         github_account: user.github_account || null,
         githubConnected: Boolean(user.github_access_token),
         x_account: user.x_account || null,
-        xConnected: Boolean(user.x_verified_at),
         linkedin_account: user.linkedin_account || null,
         wallet: Array.isArray(user.wallet) ? (user.wallet.length > 0 ? user.wallet : null) : (user.wallet ? [user.wallet] : null),
-        additional_social_media: user.additional_social_media || [],
+        additional_social_accounts: user.additional_social_accounts || [],
         skills: user.skills || [],
         notifications: user.notifications,
         profile_privacy: user.profile_privacy,
@@ -72,7 +71,7 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
  * Applies an explicit whitelist of fields (no request-body spread) and maps
  * frontend-facing names to their database column names:
  *   - username      -> user_name
- *   - additional_social_media -> additional_social_media
+ *   - additional_social_accounts -> additional_social_accounts
  *
  * GitHub and X are intentionally not handled here. Those fields are owned by
  * their OAuth link routes so users cannot self-attest verified accounts.
@@ -95,6 +94,7 @@ function buildUserUpdateData(
     if (profileData.notification_email !== undefined) updateData.notification_email = profileData.notification_email;
     if (profileData.image !== undefined) updateData.image = profileData.image;
     if (profileData.country !== undefined) updateData.country = profileData.country;
+    if (profileData.x_account !== undefined) updateData.x_account = nullableTrimmedString(profileData.x_account);
     if (profileData.linkedin_account !== undefined) updateData.linkedin_account = nullableTrimmedString(profileData.linkedin_account);
     if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
     if (profileData.skills !== undefined) updateData.skills = profileData.skills;
@@ -105,8 +105,8 @@ function buildUserUpdateData(
     if (profileData.username !== undefined) {
         updateData.user_name = profileData.username.trim();
     }
-    if (profileData.additional_social_media !== undefined) {
-        updateData.additional_social_media = profileData.additional_social_media;
+    if (profileData.additional_social_accounts !== undefined) {
+        updateData.additional_social_accounts = profileData.additional_social_accounts;
     }
     if (profileData.user_type !== undefined) {
         updateData.user_type = profileData.user_type as Prisma.InputJsonValue;
@@ -180,7 +180,7 @@ export async function updateExtendedProfile(
                 linkedin_account: updatedProfile.linkedin_account || undefined,
                 telegram_account: updatedProfile.telegram_account || undefined,
                 wallet: updatedProfile.wallet || undefined,
-                additional_social_media: updatedProfile.additional_social_media || undefined,
+                additional_social_accounts: updatedProfile.additional_social_accounts || undefined,
             });
         } catch (error) {
             console.error('[HubSpot UserData] Failed to sync updated profile:', error);

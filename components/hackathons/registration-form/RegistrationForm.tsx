@@ -34,6 +34,24 @@ import {
   buildReferralAttributionPayload,
 } from "@/components/referrals/ReferralFormSection";
 import { EMPTY_REFERRER, type ReferrerPickerValue } from "@/components/referrals/ReferrerPicker";
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+} from "@/lib/profile/socialAccountValidation";
+
+const optionalSocial = (pattern: RegExp, message: string) =>
+  z
+    .string()
+    .optional()
+    .default("")
+    .refine((value) => !value || pattern.test(value.trim()), { message });
+
+const requiredSocial = (pattern: RegExp, requiredMessage: string, formatMessage: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, requiredMessage)
+    .refine((value) => pattern.test(value), { message: formatMessage });
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
@@ -58,8 +76,15 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   languages: z.array(z.string()).optional(),
   hackathon_participation: z.string().optional(),
   dietary: z.string().optional().default(""),
-  github_portfolio: z.string().optional(),
-  telegram_account: z.string().optional().default(""),
+  github_portfolio: optionalSocial(
+    GITHUB_ACCOUNT_PATTERN,
+    "Enter your GitHub username or https://github.com/<username>",
+  ),
+  telegram_account: requiredSocial(
+    TELEGRAM_ACCOUNT_PATTERN,
+    "Telegram username is required",
+    "Enter a valid Telegram handle (5-32 chars, letters/digits/underscore)",
+  ),
   terms_event_conditions: z.boolean().optional(),
   newsletter_subscription: z.boolean().default(false).optional(),
   prohibited_items: z.boolean().optional(),
@@ -271,6 +296,7 @@ export function RegisterForm({
           is_enthusiast: loadedData.is_enthusiast || false,
           city: loadedData.city || "",
           dietary: loadedData.dietary || "",
+          telegram_account: loadedData.telegram_account || "",
           interests: loadedData.interests
             ? parseArrayField(loadedData.interests)
             : [],
@@ -466,6 +492,7 @@ export function RegisterForm({
         "company_name",
         "role",
         "city",
+        "telegram_account",
       ];
       const formValues = form.getValues();
       const errors: any = {};
@@ -488,6 +515,19 @@ export function RegisterForm({
         errors.city = {
           type: "custom",
           message: "City is required"
+        };
+      }
+
+      const telegramHandle = (formValues.telegram_account ?? "").trim();
+      if (!telegramHandle) {
+        errors.telegram_account = {
+          type: "custom",
+          message: "Telegram username is required",
+        };
+      } else if (!TELEGRAM_ACCOUNT_PATTERN.test(telegramHandle)) {
+        errors.telegram_account = {
+          type: "custom",
+          message: "Enter a valid Telegram handle (5-32 chars, letters/digits/underscore)",
         };
       }
 

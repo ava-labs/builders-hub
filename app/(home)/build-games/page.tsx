@@ -9,8 +9,6 @@ import BuildGamesPartners from "@/components/build-games/BuildGamesPartners";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
   title: "Build Games 2026 | $1,000,000 Builder Competition on Avalanche",
   description: "Join Build Games 2026, a $1,000,000 builder competition on Avalanche. Build innovative projects, compete for prizes, and become part of the Avalanche ecosystem.",

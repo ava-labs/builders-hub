@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 
 export default function Page() {
-  redirect("/console/permissioned-l1s/remove-validator/select-subnet");
+  redirect("/console/remove-validator", RedirectType.replace);
 }

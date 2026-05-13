@@ -1,23 +1,32 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React, { useState } from 'react';
+import { Check } from 'lucide-react';
+import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
+import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { CliAlternative } from '@/components/console/cli-alternative';
+import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
-import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
-import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
-import { CliAlternative } from '@/components/console/cli-alternative';
 
 type TokenType = 'native' | 'erc20';
+
+// StakingManager.completeValidatorRemoval expects exactly one warp at index 0.
+const WARP_MESSAGE_INDEX = 0;
 
 interface CompleteValidatorRemovalProps {
   validationID?: string;
@@ -30,6 +39,28 @@ interface CompleteValidatorRemovalProps {
   onError: (message: string) => void;
 }
 
+/**
+ * PoS Complete Validator Removal.
+ *
+ * The on-chain mechanics here mirror PoA's CompleteValidatorRemoval one-to-one,
+ * and they MUST. The previous implementation used L1ValidatorWeightMessage,
+ * which is the wrong primitive: once P-Chain finalizes a SetL1ValidatorWeightTx
+ * with weight=0, the validator is removed from P-Chain's active set entirely
+ * (s.state.GetL1Validator returns ErrNotFound). P-Chain validators then refuse
+ * to sign L1ValidatorWeight messages about non-existent validators — see
+ * avalanchego vms/platformvm/network/warp.go:332-340, which literally tells you
+ * to use L1ValidatorRegistration(registered=false) instead. The aggregator just
+ * hangs forever on signature collection.
+ *
+ * Correct flow (same as PoA, same as ICM-contracts' StakingManager expects per
+ * `unpackL1ValidatorRegistrationMessage` in completeValidatorRemoval):
+ *   1. Fetch the registration justification preimage from the L1's logs
+ *      (GetRegistrationJustification walks the WarpMessenger event history)
+ *   2. Pack L1ValidatorRegistration(validationID, registered=false) with
+ *      sourceChainID = P-Chain (zero ID)
+ *   3. Aggregate signatures against the L1's signing subnet
+ *   4. Submit to StakingManager.completeValidatorRemoval with the signed warp
+ */
 const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   validationID,
   stakingManagerAddress,
@@ -43,165 +74,134 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   const { avalancheNetworkID } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
-  const { aggregateSignature } = useAvalancheSDKChainkit();
   const viemChain = useViemChainStore();
+  const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
 
   const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
   const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
   const [pChainTxId, setPChainTxId] = useState<string>(initialPChainTxId || '');
-  const [messageIndex, setMessageIndex] = useState<string>('0');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setErrorState] = useState<string | null>(null);
+
+  const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
+  const [isAggregating, setIsAggregating] = useState(false);
+
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [pChainSignature, setPChainSignature] = useState<string | null>(null);
-  const [extractedData, setExtractedData] = useState<{
-    validationID: string;
-    nonce: bigint;
-    weight: bigint;
-  } | null>(null);
-  const [rewardInfo, setRewardInfo] = useState<{
-    stakeReturned: string;
-    rewardsDistributed: boolean;
-  } | null>(null);
-  const [castAccessList, setCastAccessList] = useState<any[] | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
+  const [error, setLocalError] = useState<string | null>(null);
 
-  // Update pChainTxId when prop changes
-  useEffect(() => {
-    if (initialPChainTxId && initialPChainTxId !== pChainTxId) {
-      setPChainTxId(initialPChainTxId);
-    }
-  }, [initialPChainTxId]);
+  // We don't need to parse the P-Chain tx — the L1ValidatorRegistration message
+  // only needs the validationID. The P-Chain tx ID stays in the UI as a
+  // confirmation breadcrumb that the user did the prior step.
+  const step1Complete = !!validationID;
+  const step2Complete = !!signedWarpMessage;
+  const step3Complete = !!txHash;
 
-  const handleCompleteRemoval = async () => {
-    setErrorState(null);
-    setTxHash(null);
-    setRewardInfo(null);
-    setPChainSignature(null);
-    setExtractedData(null);
+  const handleAggregate = async () => {
+    setLocalError(null);
 
-    if (!walletClient || !chainPublicClient || !viemChain) {
-      setErrorState('Wallet or chain configuration is not properly initialized.');
-      onError('Wallet or chain configuration is not properly initialized.');
+    if (!validationID) {
+      const msg = 'Validation ID missing — go back to the Initiate Removal step.';
+      setLocalError(msg);
+      onError(msg);
       return;
     }
-
-    if (!stakingManagerAddress) {
-      setErrorState('Staking Manager address is required.');
-      onError('Staking Manager address is required.');
-      return;
-    }
-
-    if (!pChainTxId.trim()) {
-      setErrorState('P-Chain transaction ID is required.');
-      onError('P-Chain transaction ID is required.');
-      return;
-    }
-
     if (!subnetIdL1) {
-      setErrorState('L1 Subnet ID is required.');
-      onError('L1 Subnet ID is required.');
+      const msg = 'L1 Subnet ID is required.';
+      setLocalError(msg);
+      onError(msg);
+      return;
+    }
+    if (!chainPublicClient) {
+      const msg = 'Chain client unavailable.';
+      setLocalError(msg);
+      onError(msg);
       return;
     }
 
-    const msgIndex = parseInt(messageIndex);
-    if (isNaN(msgIndex) || msgIndex < 0) {
-      setErrorState('Message index must be a non-negative number.');
-      onError('Message index must be a non-negative number.');
-      return;
-    }
-
-    setIsProcessing(true);
+    setIsAggregating(true);
     try {
-      // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const coreWalletClient = useWalletStore.getState().coreWalletClient;
-      if (!coreWalletClient) {
-        throw new Error('This operation requires Core Wallet');
+      // Fetch the registration justification from the L1's WarpMessenger logs.
+      // This is the preimage that proves the validationID corresponds to a
+      // validator that was previously registered — required by P-Chain's
+      // verifyL1ValidatorRegistration for the registered=false case.
+      const justification = await GetRegistrationJustification(validationID, subnetIdL1, chainPublicClient);
+      if (!justification) {
+        throw new Error(
+          'No registration justification found for this validation ID. The validator may not have been registered through the standard flow, or its registration logs may be on a chain we cannot reach.',
+        );
       }
-      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
-        txId: pChainTxId,
-      });
 
-      setExtractedData({
-        validationID: weightMessageData.validationID,
-        nonce: weightMessageData.nonce,
-        weight: weightMessageData.weight,
-      });
-
-      // Step 2: Create L1ValidatorWeightMessage for completion
-      const validationIDBytes = hexToBytes(weightMessageData.validationID as `0x${string}`);
-      const l1ValidatorWeightMessage = packL1ValidatorWeightMessage(
-        {
-          validationID: validationIDBytes,
-          nonce: weightMessageData.nonce,
-          weight: weightMessageData.weight,
-        },
+      const validationIDBytes = hexToBytes(validationID as `0x${string}`);
+      const removeValidatorMessage = packL1ValidatorRegistration(
+        validationIDBytes,
+        false, // registered = false → "this validator no longer exists on P-Chain"
         avalancheNetworkID,
-        '11111111111111111111111111111111LpoYY',
+        '11111111111111111111111111111111LpoYY', // sourceChainID = P-Chain (zero ID)
       );
 
-      // Step 3: Aggregate P-Chain signature
       const aggregateSignaturePromise = aggregateSignature({
-        message: bytesToHex(l1ValidatorWeightMessage),
+        message: bytesToHex(removeValidatorMessage),
+        justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetIdL1,
       });
 
-      notify(
-        {
-          type: 'local',
-          name: 'Aggregate P-Chain Signatures',
-        },
-        aggregateSignaturePromise,
-      );
+      notify({ type: 'local', name: 'Aggregate P-Chain Signatures' }, aggregateSignaturePromise);
 
-      const signature = await aggregateSignaturePromise;
+      const { signedMessage } = await aggregateSignaturePromise;
+      setSignedWarpMessage(signedMessage);
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : String(err);
+      setLocalError(`Signature aggregation failed: ${message}`);
+      onError(`Signature aggregation failed: ${message}`);
+    } finally {
+      setIsAggregating(false);
+    }
+  };
 
-      setPChainSignature(signature.signedMessage);
+  const handleSubmit = async () => {
+    setLocalError(null);
 
-      // Step 4: Package warp message into access list
-      const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
-      const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
-      setCastAccessList(accessList);
+    if (!signedWarpMessage) {
+      const msg = 'No signed warp message — aggregate signatures first.';
+      setLocalError(msg);
+      onError(msg);
+      return;
+    }
+    if (!walletClient || !chainPublicClient || !viemChain) {
+      const msg = 'Wallet or chain configuration is not properly initialized.';
+      setLocalError(msg);
+      onError(msg);
+      return;
+    }
 
-      // Step 5: Call completeValidatorRemoval via hook with warp message
+    setIsSubmitting(true);
+    try {
+      const signedWarpBytes = hexToBytes(`0x${signedWarpMessage}`);
+      const accessList = packWarpIntoAccessList(signedWarpBytes);
+
       const hash =
         tokenType === 'native'
-          ? await nativeStakingManager.completeValidatorRemoval(msgIndex, accessList)
-          : await erc20StakingManager.completeValidatorRemoval(msgIndex, accessList);
+          ? await nativeStakingManager.completeValidatorRemoval(WARP_MESSAGE_INDEX, accessList)
+          : await erc20StakingManager.completeValidatorRemoval(WARP_MESSAGE_INDEX, accessList);
 
       setTxHash(hash);
-
-      // Wait for confirmation
       const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
       if (receipt.status !== 'success') {
         throw new Error(`Transaction failed with status: ${receipt.status}`);
       }
 
-      // Check for ValidatorRemovalCompleted event
       const hasRemovalEvent = receipt.logs.some(
         (log) => log.topics[0]?.toLowerCase().includes('removal') || log.topics[0]?.toLowerCase().includes('complete'),
       );
-
-      setRewardInfo({
-        stakeReturned: 'Stake returned successfully',
-        rewardsDistributed: hasRemovalEvent,
-      });
-
       const successMsg = hasRemovalEvent
         ? 'Validator removal completed and rewards distributed successfully.'
         : 'Validator removal completed successfully.';
 
-      onSuccess({
-        txHash: hash,
-        message: successMsg,
-      });
+      onSuccess({ txHash: hash, message: successMsg });
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
-
-      // Provide more helpful error messages
       if (message.includes('User rejected')) {
         message = 'Transaction was rejected by user';
       } else if (message.includes('InvalidValidationID')) {
@@ -210,102 +210,145 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         message = 'Validator cannot be removed yet. Ensure you have initiated removal first.';
       } else if (message.includes('InvalidValidatorStatus')) {
         message = 'Validator is not in the correct status for completion. Check if removal was initiated.';
-      } else if (message.includes('InvalidNonce')) {
-        message = 'Invalid nonce. The P-Chain transaction may be outdated or incorrect.';
+      } else if (message.includes('UnexpectedRegistrationStatus')) {
+        message =
+          "Contract rejected the warp's registration status. Make sure the SetL1ValidatorWeightTx (weight=0) has been accepted by P-Chain before completing here.";
       }
-
-      setErrorState(`Failed to complete validator removal: ${message}`);
+      setLocalError(`Failed to complete validator removal: ${message}`);
       onError(`Failed to complete validator removal: ${message}`);
     } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
     }
   };
 
   function generateCastCommand(): string {
-    if (!pChainSignature || !castAccessList) return '';
+    if (!signedWarpMessage) return '';
     const rpcUrl = viemChain?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
     const addr = stakingManagerAddress || '<STAKING_MANAGER_ADDRESS>';
     const abi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
-    const msgIndex = parseInt(messageIndex) || 0;
-
+    const signedWarpBytes = hexToBytes(`0x${signedWarpMessage}`);
+    const accessList = packWarpIntoAccessList(signedWarpBytes);
     const calldata = encodeFunctionData({
       abi: abi as Abi,
       functionName: 'completeValidatorRemoval',
-      args: [msgIndex],
+      args: [WARP_MESSAGE_INDEX],
     });
-
-    return generateCastSendCommand({ address: addr, calldata, accessList: castAccessList, rpcUrl });
+    return generateCastSendCommand({ address: addr, calldata, accessList, rpcUrl });
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {error && <Alert variant="error">{error}</Alert>}
 
-      <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-          Complete Removal ({tokenLabel} Staking)
-        </h3>
-
-        <div className="space-y-3">
-          {validationID && (
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              <p>
-                <strong>Validation ID:</strong> {validationID}
-              </p>
+      {/* Step 1 — Confirm we have what we need from the previous step */}
+      <StepFlowCard
+        step={1}
+        title="Verify Prior Steps"
+        description="Confirm the validation ID and P-Chain transaction from earlier steps"
+        isComplete={step1Complete}
+      >
+        <div className="mt-2 space-y-2">
+          {validationID ? (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                <Check className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">Validation ID present</span>
+              </div>
+              <code className="block font-mono text-[11px] break-all bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                {validationID}
+              </code>
             </div>
+          ) : (
+            <Alert variant="warning">Validation ID missing — go back to Initiate Removal.</Alert>
           )}
-
           <Input
             label="P-Chain Transaction ID"
             value={pChainTxId}
             onChange={setPChainTxId}
-            placeholder="Enter the P-Chain transaction ID from the previous step"
-            disabled={isProcessing}
-            helperText="The transaction ID from the P-Chain weight update step"
+            placeholder="From the P-Chain Weight Update step"
+            disabled={isAggregating || isSubmitting || !!txHash}
+            helperText="For your reference — this Complete step uses the validation ID directly, not the tx contents."
           />
+        </div>
+      </StepFlowCard>
 
-          <Input
-            label="Message Index"
-            value={messageIndex}
-            onChange={setMessageIndex}
-            type="number"
-            min="0"
-            placeholder="0"
-            disabled={isProcessing}
-            helperText="Index of the warp message (usually 0)"
-          />
-
-          {subnetIdL1 && (
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-              <p>
-                <strong>Signing Subnet ID:</strong> {signingSubnetId || subnetIdL1}
-              </p>
+      {/* Step 2 — Aggregate signatures */}
+      <StepFlowCard
+        step={2}
+        title="Aggregate Signatures"
+        description="Build L1ValidatorRegistration(registered=false) + collect 67% quorum"
+        isComplete={step2Complete}
+        isActive={step1Complete && !step2Complete}
+      >
+        {step2Complete && !step3Complete && (
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+              <Check className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">Signatures aggregated</span>
             </div>
-          )}
-        </div>
-      </div>
-
-      {extractedData && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-          <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Extracted Weight Message Data</h4>
-          <div className="text-xs space-y-1 text-blue-700 dark:text-blue-300">
-            <p>
-              <strong>Validation ID:</strong> <code>{extractedData.validationID}</code>
-            </p>
-            <p>
-              <strong>Nonce:</strong> {extractedData.nonce.toString()}
-            </p>
-            <p>
-              <strong>Weight:</strong> {extractedData.weight.toString()}
-            </p>
+            <button
+              type="button"
+              onClick={handleAggregate}
+              disabled={isAggregating || isSubmitting}
+              className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+            >
+              Re-aggregate signatures
+            </button>
           </div>
-        </div>
-      )}
+        )}
+        {!step2Complete && step1Complete && !step3Complete && (
+          <div className="mt-2">
+            <Button
+              onClick={handleAggregate}
+              disabled={isAggregating || !validationID}
+              loading={isAggregating}
+              className="w-full"
+            >
+              {isAggregating ? 'Aggregating signatures…' : 'Aggregate Signatures'}
+            </Button>
+          </div>
+        )}
+      </StepFlowCard>
+
+      {/* Step 3 — Submit to L1 */}
+      <StepFlowCard
+        step={3}
+        title="Submit to L1"
+        description="Call completeValidatorRemoval on the Staking Manager"
+        isComplete={step3Complete}
+        isActive={step2Complete && !step3Complete}
+      >
+        {step3Complete && txHash && (
+          <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
+            <Check className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">
+              Removal complete:{' '}
+              <code className="font-mono text-[11px] bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
+                {txHash}
+              </code>
+            </span>
+          </div>
+        )}
+        {!step3Complete && step2Complete && (
+          <div className="mt-2">
+            <CoreWalletTransactionButton
+              onClick={handleSubmit}
+              loading={isSubmitting}
+              loadingText="Submitting…"
+              disabled={isSubmitting || !signedWarpMessage}
+              className="w-full"
+            >
+              Complete Removal & Distribute Rewards
+            </CoreWalletTransactionButton>
+            <div className="mt-3">
+              <CliAlternative command={generateCastCommand()} />
+            </div>
+          </div>
+        )}
+      </StepFlowCard>
 
       <Alert variant="info">
-        <p className="text-sm">
-          <strong>What happens when you complete removal:</strong>
-        </p>
+        <p className="text-sm font-medium">What happens when you complete removal:</p>
         <ul className="list-disc list-inside text-sm mt-2 space-y-1">
           <li>Validator stake will be returned</li>
           <li>Rewards will be calculated and distributed based on uptime</li>
@@ -313,24 +356,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
           <li>Validator will be removed from the active set</li>
         </ul>
       </Alert>
-
-      <Button
-        onClick={handleCompleteRemoval}
-        disabled={isProcessing || !!txHash || !pChainTxId.trim()}
-        loading={isProcessing}
-      >
-        {isProcessing ? 'Processing...' : 'Complete Validator Removal & Distribute Rewards'}
-      </Button>
-
-      {pChainSignature && !txHash && <CliAlternative command={generateCastCommand()} />}
-
-      {txHash && rewardInfo?.rewardsDistributed && (
-        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-          <p className="text-sm text-green-800 dark:text-green-200">
-            <strong>Success!</strong> Validator has been removed and rewards have been distributed.
-          </p>
-        </div>
-      )}
     </div>
   );
 };

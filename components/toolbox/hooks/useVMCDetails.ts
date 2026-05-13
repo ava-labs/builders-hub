@@ -29,6 +29,10 @@ interface VMCDetailsResult {
 export function useVMCDetails(
   validatorManagerAddress: string | null,
   chainPublicClient: PublicClient | null,
+  // When false, all reads are skipped and neutral state is returned. The unified
+  // Add Validator flow sets this to false on chain mismatch so we don't surface
+  // ugly viem errors from hitting the wrong RPC for a VMC that exists elsewhere.
+  enabled: boolean = true,
 ): VMCDetailsResult {
   const { walletEVMAddress } = useWalletStore();
 
@@ -53,7 +57,7 @@ export function useVMCDetails(
     let cancelled = false;
 
     const fetchWeightAndOwner = async () => {
-      if (!chainPublicClient || !validatorManagerAddress) {
+      if (!chainPublicClient || !validatorManagerAddress || !enabled) {
         if (!cancelled) {
           setContractTotalWeight(0n);
           setL1WeightError(null);
@@ -175,14 +179,14 @@ export function useVMCDetails(
     return () => {
       cancelled = true;
     };
-  }, [validatorManagerAddress, chainPublicClient, validatorManager.isReadReady, refetchCounter]);
+  }, [validatorManagerAddress, chainPublicClient, validatorManager.isReadReady, refetchCounter, enabled]);
 
   // Detect owner contract type when owner is a contract
   useEffect(() => {
     let cancelled = false;
 
     const detectOwnerType = async () => {
-      if (!isOwnerContract || !contractOwner || !chainPublicClient) {
+      if (!enabled || !isOwnerContract || !contractOwner || !chainPublicClient) {
         if (!cancelled) {
           setIsDetectingOwnerType(false);
         }
@@ -267,7 +271,7 @@ export function useVMCDetails(
     return () => {
       cancelled = true;
     };
-  }, [isOwnerContract, contractOwner, chainPublicClient, poaManager.isReadReady]);
+  }, [isOwnerContract, contractOwner, chainPublicClient, poaManager.isReadReady, enabled]);
 
   const refetchOwnership = useCallback(() => {
     setRefetchCounter((c) => c + 1);

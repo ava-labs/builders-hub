@@ -20,7 +20,7 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
   const getHackathon = async () => {
     if (!hackathonId) return;
     try {
-      const response = await axios.get(`/api/hackathons/${hackathonId}`);
+      const response = await axios.get(`/api/events/${hackathonId}`);
       setHackathon(response.data);
       if (response.data?.content?.submission_deadline) {
         setDeadline(new Date(response.data.content.submission_deadline).getTime());

@@ -167,7 +167,7 @@ export const consoleFlows: Record<string, FlowMetadata> = {
         priority: "recommended",
       },
       {
-        path: "/console/permissioned-l1s/add-validator",
+        path: "/console/add-validator",
         title: "Add Validators",
         description: "Register additional validators for your L1 network",
         priority: "recommended",
@@ -186,7 +186,7 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     completionSummary: "You've successfully configured multisig governance for your L1!",
     nextSteps: [
       {
-        path: "/console/permissioned-l1s/add-validator",
+        path: "/console/add-validator",
         title: "Add Validators",
         description: "Register validators using your new multisig setup",
         priority: "recommended",
@@ -300,7 +300,7 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     completionSummary: "You've successfully deployed and configured your Native Token Staking Manager!",
     nextSteps: [
       {
-        path: "/console/permissionless-l1s/stake/native",
+        path: "/console/add-validator",
         title: "Stake a Validator",
         description: "Register and stake a validator with native tokens",
         priority: "recommended",
@@ -319,7 +319,7 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     completionSummary: "You've successfully deployed and configured your ERC20 Token Staking Manager!",
     nextSteps: [
       {
-        path: "/console/permissionless-l1s/stake/erc20",
+        path: "/console/add-validator",
         title: "Stake a Validator",
         description: "Register and stake a validator with ERC20 tokens",
         priority: "recommended",
@@ -333,45 +333,7 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     ],
   },
 
-  "permissionless-l1s/stake/native": {
-    title: "Stake Validator (Native Token)",
-    completionSummary: "You've successfully registered and staked a validator with native tokens!",
-    nextSteps: [
-      {
-        path: "/console/permissionless-l1s/delegate",
-        title: "Delegate Tokens",
-        description: "Delegate native tokens to an active validator",
-        priority: "recommended",
-      },
-      {
-        path: "/console/permissionless-l1s/stake/native",
-        title: "Stake Another Validator",
-        description: "Register and stake another validator on your L1",
-        priority: "optional",
-      },
-    ],
-  },
-
-  "permissionless-l1s/stake/erc20": {
-    title: "Stake Validator (ERC20 Token)",
-    completionSummary: "You've successfully registered and staked a validator with ERC20 tokens!",
-    nextSteps: [
-      {
-        path: "/console/permissionless-l1s/delegate",
-        title: "Delegate Tokens",
-        description: "Delegate ERC20 tokens to an active validator",
-        priority: "recommended",
-      },
-      {
-        path: "/console/permissionless-l1s/stake/erc20",
-        title: "Stake Another Validator",
-        description: "Register and stake another validator on your L1",
-        priority: "optional",
-      },
-    ],
-  },
-
-  "permissioned-l1s/add-validator": {
+  "add-validator": {
     title: "Add Validator",
     completionSummary:
       "You've successfully added a new validator to your L1!",
@@ -383,21 +345,27 @@ export const consoleFlows: Record<string, FlowMetadata> = {
         priority: "optional",
       },
       {
-        path: "/console/permissioned-l1s/remove-validator",
+        path: "/console/remove-validator",
         title: "Remove Validator",
         description: "Remove a validator from your L1",
+        priority: "optional",
+      },
+      {
+        path: "/console/permissionless-l1s/delegate",
+        title: "Delegate Tokens",
+        description: "Delegate tokens to an active validator (PoS L1s only)",
         priority: "optional",
       },
     ],
   },
 
-  "permissioned-l1s/remove-validator": {
+  "remove-validator": {
     title: "Remove Validator",
     completionSummary:
       "You've successfully removed a validator from your L1!",
     nextSteps: [
       {
-        path: "/console/permissioned-l1s/add-validator",
+        path: "/console/add-validator",
         title: "Add Validator",
         description: "Register a new validator for your L1",
         priority: "optional",
@@ -417,13 +385,13 @@ export const consoleFlows: Record<string, FlowMetadata> = {
       "You've successfully changed the validator's consensus weight!",
     nextSteps: [
       {
-        path: "/console/permissioned-l1s/add-validator",
+        path: "/console/add-validator",
         title: "Add Validator",
         description: "Register a new validator for your L1",
         priority: "optional",
       },
       {
-        path: "/console/permissioned-l1s/remove-validator",
+        path: "/console/remove-validator",
         title: "Remove Validator",
         description: "Remove a validator from your L1",
         priority: "optional",

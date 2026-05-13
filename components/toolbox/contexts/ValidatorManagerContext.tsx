@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
-import { useVMCAddress } from '@/components/toolbox/hooks/useVMCAddress';
+import { useVMCAddress, type VMCChainMismatch } from '@/components/toolbox/hooks/useVMCAddress';
 import { useVMCDetails } from '@/components/toolbox/hooks/useVMCDetails';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
@@ -43,13 +43,15 @@ interface ValidatorManagerContextType extends ValidatorManagerDetailsReturn {
   staking: StakingDetails;
   churn: ChurnData | null;
   registrationExpirySeconds: bigint | null;
+  /** Non-null when the wallet's EVM chain doesn't match the VMC's home chain. */
+  chainMismatch: VMCChainMismatch | null;
 }
 
 const ValidatorManagerContext = createContext<ValidatorManagerContextType | null>(null);
 
 export function ValidatorManagerProvider({ subnetId, children }: { subnetId: string; children: React.ReactNode }) {
   const chainPublicClient = useChainPublicClient();
-  const { validatorManagerAddress, blockchainId, l1BlockchainId, signingSubnetId, isLoading, error } =
+  const { validatorManagerAddress, blockchainId, l1BlockchainId, signingSubnetId, isLoading, error, chainMismatch } =
     useVMCAddress(subnetId);
   const {
     contractTotalWeight,
@@ -63,7 +65,7 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
     isDetectingOwnerType,
     ownershipStatus,
     refetchOwnership,
-  } = useVMCDetails(validatorManagerAddress || null, chainPublicClient);
+  } = useVMCDetails(validatorManagerAddress || null, chainPublicClient, chainMismatch === null);
 
   // ── PoS staking details ──
   const [stakingType, setStakingType] = useState<StakingType>(null);
@@ -269,6 +271,7 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
       staking,
       churn,
       registrationExpirySeconds,
+      chainMismatch,
     };
   }, [
     validatorManagerAddress,
@@ -292,6 +295,7 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
     staking,
     churn,
     registrationExpirySeconds,
+    chainMismatch,
   ]);
 
   return <ValidatorManagerContext.Provider value={value}>{children}</ValidatorManagerContext.Provider>;

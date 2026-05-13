@@ -142,12 +142,12 @@ const data = {
         },
         {
           title: 'Add Validator',
-          url: '/console/permissioned-l1s/add-validator',
+          url: '/console/add-validator',
           icon: SquarePlus,
         },
         {
           title: 'Remove Validator',
-          url: '/console/permissioned-l1s/remove-validator',
+          url: '/console/remove-validator',
           icon: SquareMinus,
         },
         {

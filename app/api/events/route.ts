@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
       event: searchParams.get('event') || undefined,
     };
 
+    const managedOnly = searchParams.get('managed') === 'true';
+
     if (userId) {
       // Get user from database to validate permissions
       const user = await getUserById(userId);
@@ -41,17 +43,17 @@ export async function GET(req: NextRequest) {
       const isTeam1Admin = customAttributes.includes("team1-admin");
       const isHackathonCreator = customAttributes.includes("hackathonCreator");
 
-      // If user is devrel, show all hackathons; otherwise filter by user ID
-      const createdByFilter = isDevrel ? undefined : userId;
-
-      options.created_by = createdByFilter || undefined;
-      // Only narrow by cohost email for non-devrel users; devrel should see all
-      if (!isDevrel) {
-        options.cohost_email = user.email || undefined;
+      if (managedOnly) {
+        options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
+        if (!isDevrel) {
+          options.created_by = userId;
+          options.cohost_email = user.email || undefined;
+        }
+      } else {
+        options.include_private = false;
       }
-      options.include_private = isDevrel || isTeam1Admin || isHackathonCreator; // These roles can see private hackathons
 
-      console.log('API GET /events:', { userId, isDevrel, isTeam1Admin, isHackathonCreator, createdByFilter, options });
+      console.log('API GET /events:', { userId, isDevrel, isTeam1Admin, isHackathonCreator, managedOnly, options });
     } else {
       options.include_private = false;
       console.log('API GET /events (no userId):', { options });

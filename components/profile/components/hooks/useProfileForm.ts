@@ -36,27 +36,29 @@ export const profileSchema = z.object({
   // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
+  // All four typed social fields are optional. Regex still applies when a
+  // non-empty value is present; an empty string passes through as "clear."
   github_account: z
-    .string()
-    .min(1, "GitHub profile is required")
-    .regex(GITHUB_ACCOUNT_PATTERN, "Enter a valid GitHub username or github.com URL"),
+    .union([z.string().regex(GITHUB_ACCOUNT_PATTERN, "Enter a valid GitHub username or github.com URL"), z.literal("")])
+    .optional()
+    .default(""),
   x_account: z
-    .string()
-    .min(1, "X (Twitter) profile URL is required")
-    .regex(X_ACCOUNT_PATTERN, "Enter a URL like https://x.com/yourhandle"),
+    .union([z.string().regex(X_ACCOUNT_PATTERN, "Enter a URL like https://x.com/yourhandle"), z.literal("")])
+    .optional()
+    .default(""),
   linkedin_account: z
-    .string()
-    .min(1, "LinkedIn URL is required")
-    .regex(LINKEDIN_ACCOUNT_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"),
+    .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"), z.literal("")])
+    .optional()
+    .default(""),
   wallet: z.array(z.string()).optional().default([]),
-  additional_social_media: z.array(z.url("Must be a valid URL")).optional().default([]),
+  additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
   telegram_account: z
-    .string()
-    .min(1, "Telegram username is required")
-    .regex(TELEGRAM_ACCOUNT_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"),
+    .union([z.string().regex(TELEGRAM_ACCOUNT_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"), z.literal("")])
+    .optional()
+    .default(""),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -86,7 +88,7 @@ export function getProfileCompletionPercentage(values: Partial<ProfileFormValues
   if (has(v.github_account)) completed++;
   if (Array.isArray(v.wallet) && v.wallet.filter((w) => has(w)).length > 0) completed++;
   if (has(v.telegram_account)) completed++;
-  if (Array.isArray(v.additional_social_media) && v.additional_social_media.length > 0) completed++;
+  if (Array.isArray(v.additional_social_accounts) && v.additional_social_accounts.length > 0) completed++;
   if (Array.isArray(v.skills) && v.skills.length > 0) completed++;
   return Math.round((completed / PROFILE_COMPLETION_CRITERIA) * 100);
 }
@@ -105,7 +107,6 @@ export function useProfileForm() {
   const isInitialLoadRef = useRef(true);
   const lastSavedDataRef = useRef<string>("");
   const [githubConnected, setGithubConnected] = useState(false);
-  const [xConnected, setXConnected] = useState(false);
 
   // Initialize form with react-hook-form and Zod
   const form = useForm<ProfileFormValues>({
@@ -133,7 +134,7 @@ export function useProfileForm() {
       x_account: "",
       linkedin_account: "",
       wallet: [],
-      additional_social_media: [],
+      additional_social_accounts: [],
       skills: [],
       notifications: false,
       profile_privacy: "public",
@@ -192,7 +193,7 @@ export function useProfileForm() {
           x_account: profile.x_account || "",
           linkedin_account: profile.linkedin_account || "",
           wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
-          additional_social_media: profile.additional_social_media || [],
+          additional_social_accounts: profile.additional_social_accounts || [],
           skills: profile.skills || [],
           notifications: profile.notifications || false,
           profile_privacy: profile.profile_privacy || "public",
@@ -200,7 +201,6 @@ export function useProfileForm() {
         };
 
         setGithubConnected(Boolean(profile.githubConnected));
-        setXConnected(Boolean(profile.xConnected));
         form.reset(formValues);
         lastSavedDataRef.current = JSON.stringify(formValues);
         setTimeout(() => { isInitialLoadRef.current = false; }, 500);
@@ -313,7 +313,6 @@ export function useProfileForm() {
         role,
         wallet,
         github_account: _githubAccount,
-        x_account: _xAccount,
         ...restData
       } = data;
 
@@ -482,7 +481,6 @@ export function useProfileForm() {
         role,
         wallet,
         github_account: _githubAccount,
-        x_account: _xAccount,
         ...restData
       } = data;
 
@@ -555,7 +553,7 @@ export function useProfileForm() {
         x_account: updatedProfile.x_account || "",
         linkedin_account: updatedProfile.linkedin_account || "",
         wallet: Array.isArray(updatedProfile.wallet) ? updatedProfile.wallet : (updatedProfile.wallet ? [updatedProfile.wallet] : []),
-        additional_social_media: updatedProfile.additional_social_media || [],
+        additional_social_accounts: updatedProfile.additional_social_accounts || [],
         skills: updatedProfile.skills || [],
         notifications: updatedProfile.notifications || false,
         profile_privacy: updatedProfile.profile_privacy || "public",
@@ -594,13 +592,13 @@ export function useProfileForm() {
 
   // Social handlers
   const handleAddSocial = () => {
-    const currentSocials = watchedValues.additional_social_media || [];
-    setValue("additional_social_media", [...currentSocials, ""], { shouldDirty: true });
+    const currentSocials = watchedValues.additional_social_accounts || [];
+    setValue("additional_social_accounts", [...currentSocials, ""], { shouldDirty: true });
   };
 
   const handleRemoveSocial = (index: number) => {
-    const currentSocials = watchedValues.additional_social_media || [];
-    setValue("additional_social_media", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
+    const currentSocials = watchedValues.additional_social_accounts || [];
+    setValue("additional_social_accounts", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
   };
 
   // Wallet handlers
@@ -630,8 +628,6 @@ export function useProfileForm() {
     isAutoSaving,
     githubConnected,
     setGithubConnected,
-    xConnected,
-    setXConnected,
     handleFileSelect,
     handleAddSkill,
     handleRemoveSkill,

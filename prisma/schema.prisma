@@ -39,54 +39,53 @@ model Hackathon {
 }
 
 model User {
-  id                       String                    @id @default(cuid())
-  name                     String?
-  email                    String                    @unique
-  image                    String?
-  authentication_mode      String?
-  integration              String?
-  last_login               DateTime?
-  user_name                String?
-  bio                      String?
-  notification_email       String?
-  telegram_account         String?
-  github_account           String?
-  x_account                String?
-  linkedin_account         String?
-  additional_social_media  String[]                  @default([])
-  notifications            Boolean?
-  profile_privacy          String?                   @default("public")
-  custom_attributes        String[]
-  team_id                  String?
-  created_at               DateTime                  @default(now()) @db.Timestamptz(3)
-  country                  String?
-  noun_avatar_enabled      Boolean                   @default(false)
-  noun_avatar_seed         Json?
-  skills                   String[]                  @default([])
-  user_type                Json?
-  wallet                   String[]                  @default([])
-  notification_means       Json?                     @default("{}")
-  github_access_token      String?
-  x_verified_at            DateTime?                 @db.Timestamptz(3)
-  chatConversations        ChatConversation[]
-  consoleLog               ConsoleLog[]
-  evaluations              Evaluation[]              @relation("Evaluations")
-  faucetClaims             FaucetClaim[]
-  hackathons               Hackathon[]
-  updated_hackathons       Hackathon[]               @relation("HackathonUpdatedBy")
-  memberships              Member[]
-  managedTestnetNodes      NodeRegistration[]
-  Notification             Notification[]
-  oauthCodes               OAuthCode[]
-  registrations            RegisterForm[]
-  Repository               Repository[]
-  statsPlaygrounds         StatsPlayground[]
-  statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
-  badges                   UserBadge[]
-  validatorAlerts          ValidatorAlert[]
-  referralLinks            ReferralLink[]            @relation("ReferralLinkOwner")
-  referralAttributionsMade ReferralAttribution[]     @relation("ReferralAttributionReferrer")
-  referralAttributions     ReferralAttribution[]     @relation("ReferralAttributionUser")
+  id                         String                    @id @default(cuid())
+  name                       String?
+  email                      String                    @unique
+  image                      String?
+  authentication_mode        String?
+  integration                String?
+  last_login                 DateTime?
+  user_name                  String?
+  bio                        String?
+  notification_email         String?
+  telegram_account           String?
+  github_account             String?
+  x_account                  String?
+  linkedin_account           String?
+  additional_social_accounts String[]                  @default([])
+  notifications              Boolean?
+  profile_privacy            String?                   @default("public")
+  custom_attributes          String[]
+  team_id                    String?
+  created_at                 DateTime                  @default(now()) @db.Timestamptz(3)
+  country                    String?
+  noun_avatar_enabled        Boolean                   @default(false)
+  noun_avatar_seed           Json?
+  skills                     String[]                  @default([])
+  user_type                  Json?
+  wallet                     String[]                  @default([])
+  notification_means         Json?                     @default("{}")
+  github_access_token        String?
+  chatConversations          ChatConversation[]
+  consoleLog                 ConsoleLog[]
+  evaluations                Evaluation[]              @relation("Evaluations")
+  faucetClaims               FaucetClaim[]
+  hackathons                 Hackathon[]
+  updated_hackathons         Hackathon[]               @relation("HackathonUpdatedBy")
+  memberships                Member[]
+  managedTestnetNodes        NodeRegistration[]
+  Notification               Notification[]
+  oauthCodes                 OAuthCode[]
+  registrations              RegisterForm[]
+  Repository                 Repository[]
+  statsPlaygrounds           StatsPlayground[]
+  statsPlaygroundFavorites   StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
+  badges                     UserBadge[]
+  validatorAlerts            ValidatorAlert[]
+  referralLinks              ReferralLink[]            @relation("ReferralLinkOwner")
+  referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
+  referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
 }
 
 model VerificationToken {
@@ -446,6 +445,7 @@ model OAuthCode {
 
   @@index([expires_at])
 }
+
 model ResearchProposalApplication {
   id                          String   @id @default(uuid())
   submitted_by_user_id        String
