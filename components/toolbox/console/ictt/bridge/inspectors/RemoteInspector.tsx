@@ -190,11 +190,14 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
     void switchChainOrAdd(destinationL1).catch(() => {});
   }, [destinationChainId, chainMismatch, walletEVMAddress, switchChainOrAdd, destinationL1]);
 
-  // Reset auto-switch marker when the destination changes so a new pick triggers
-  // a fresh switch attempt.
-  useEffect(() => {
-    autoSwitchedFor.current = null;
-  }, [destinationChainId]);
+  // No reset effect needed: the `autoSwitchedFor.current === destinationChainId`
+  // guard in the effect above already short-circuits re-runs on the same
+  // destination. When the user picks a different destination, the stored ref
+  // no longer matches the new chain id, so the guard naturally fails and a
+  // fresh switch is triggered. A previous version nulled the ref in a
+  // sibling effect that ran AFTER the auto-switch in the same commit — that
+  // wiped the guard out and let any subsequent re-render fire a second wallet
+  // popup, jamming Core.
 
   const handleManualSwitch = async () => {
     if (!destinationL1) return;
