@@ -7,10 +7,15 @@ import { cn } from '@/lib/utils';
 /**
  * Shared visual contract for trailing pills in the StepFlow nav row.
  *
- * Replaces two near-identical hand-rolled buttons that drifted apart:
- *   - `ManageBridgesButton` (used `gap-2.5 px-4`, which crowded the icon
- *     against the rounded edge once a label and count badge were added)
- *   - `BridgeLogPill` (already `gap-1.5 px-2.5 sm:px-3` — visually correct)
+ * Used by ICTT's `ManageBridgesButton` and `BridgeLogPill`, ICM's
+ * `IcmNetworkButton` and `IcmLogPill`, and any other flow that needs a
+ * compact icon+label+badge button to live in the StepFlow `navTrailing` slot.
+ *
+ * Base layout is `h-9 gap-2 px-3.5 sm:px-4 rounded-lg` so the icon and any
+ * trailing badge sit ~14-16px from the rounded edges and ~8px from the label.
+ * Stays balanced when the label is on the longer side (e.g. "Manage bridges")
+ * and when the badge is a wider digit (e.g. "6", "12"), where denser icons
+ * like `Layers` would otherwise visually hug the corners.
  *
  * The pill takes a leading icon (optionally decorated with a status dot),
  * a label that hides on narrow viewports, and an optional trailing badge.
@@ -24,10 +29,10 @@ export type NavTrailingPillProps = {
   badge?: ReactNode;
   badgeClassName?: string;
   /** Override the default `focus-visible:ring-zinc-400/60` to match the
-   *  pill's role (e.g. amber for the bridge log, emerald for new-bridge CTA). */
+   *  pill's role (e.g. amber for activity logs, emerald for new-bridge CTA). */
   focusRingClassName?: string;
-  /** Extra element rendered absolutely inside the icon wrapper. Used by
-   *  `BridgeLogPill` for the pulsing status dot. */
+  /** Extra element rendered absolutely inside the icon wrapper. Used for
+   *  pulsing status dots and similar overlays. */
   decoration?: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
@@ -40,13 +45,13 @@ export const NavTrailingPill = forwardRef<HTMLButtonElement, NavTrailingPillProp
       ref={ref}
       type={type ?? 'button'}
       className={cn(
-        'group inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-50 px-2.5 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200/80 transition-[transform,colors,box-shadow] duration-150',
+        'group inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-50 px-3.5 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200/80 transition-[transform,colors,box-shadow] duration-150',
         'shadow-[0_1px_0_rgba(0,0,0,0.04)] hover:-translate-y-px hover:bg-zinc-100 hover:ring-zinc-300',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50',
         focusRingClassName ?? 'focus-visible:ring-zinc-400/60',
         'dark:bg-zinc-900/60 dark:text-zinc-200 dark:ring-zinc-700/80 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
         'dark:hover:bg-zinc-800/80 dark:hover:ring-zinc-600 dark:focus-visible:ring-offset-zinc-950',
-        'sm:px-3',
+        'sm:px-4',
         className,
       )}
       {...rest}

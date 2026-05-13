@@ -13,7 +13,7 @@ import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { cn } from '@/lib/utils';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_HOME_SEND_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from './InspectorShell';
+import { InspectorShell } from '@/components/console/inspector-shell';
 import { useSendTokens } from '../hooks/useSendTokens';
 import { useBridgeContext } from '../hooks/useBridgeContext';
 import { buildTxUrl, truncateAddress } from '../utils/explorer-url';

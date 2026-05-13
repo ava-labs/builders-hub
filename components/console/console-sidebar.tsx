@@ -269,7 +269,7 @@ const data = {
       items: [
         {
           title: "ICM Setup",
-          url: "/console/icm/setup",
+          url: "/console/icm",
           icon: MessagesSquare,
         },
         {

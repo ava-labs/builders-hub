@@ -17,7 +17,7 @@ import { HomeChainCard } from './HomeChainCard';
 import { RemoteChainCard } from './RemoteChainCard';
 import { RemoteTabs } from './RemoteTabs';
 import { IcmMessageSheet } from './activity/IcmMessageSheet';
-import { NavTrailingPill } from './activity/NavTrailingPill';
+import { NavTrailingPill } from '@/components/console/nav-trailing-pill';
 import { truncateAddress } from './utils/explorer-url';
 import { formatRelativeTime } from './utils/relative-time';
 import { BRIDGE_BASE_PATH } from './bridge-steps';

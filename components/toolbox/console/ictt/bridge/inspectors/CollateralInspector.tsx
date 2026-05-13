@@ -10,7 +10,7 @@ import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { cn } from '@/lib/utils';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_COLLATERAL_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from './InspectorShell';
+import { InspectorShell } from '@/components/console/inspector-shell';
 import { useAddCollateral } from '../hooks/useAddCollateral';
 import { truncateAddress } from '../utils/explorer-url';
 import type { Bridge, BridgePhase, Remote } from '../types';

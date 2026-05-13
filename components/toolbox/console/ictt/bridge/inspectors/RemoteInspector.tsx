@@ -16,7 +16,7 @@ import { Note } from '@/components/toolbox/components/Note';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_REMOTE_ERC20_SOURCES, ICTT_REMOTE_NATIVE_SOURCES } from '@/lib/ictt/contractSources';
 import { cn } from '@/lib/utils';
-import { InspectorShell } from './InspectorShell';
+import { InspectorShell } from '@/components/console/inspector-shell';
 import { useDeployTokenRemote } from '../hooks/useDeployTokenRemote';
 import { useBridgeContext } from '../hooks/useBridgeContext';
 import { truncateAddress } from '../utils/explorer-url';

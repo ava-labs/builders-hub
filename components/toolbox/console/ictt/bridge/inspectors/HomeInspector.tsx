@@ -10,7 +10,7 @@ import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { Note } from '@/components/toolbox/components/Note';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_HOME_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from './InspectorShell';
+import { InspectorShell } from '@/components/console/inspector-shell';
 import { useDeployTokenHome } from '../hooks/useDeployTokenHome';
 import { truncateAddress } from '../utils/explorer-url';
 import type { Address, BridgePhase, Bridge } from '../types';

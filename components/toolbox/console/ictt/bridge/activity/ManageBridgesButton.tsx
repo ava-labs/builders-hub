@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { useBridgeContext } from '../hooks/useBridgeContext';
 import { BRIDGE_BASE_PATH } from '../bridge-steps';
 import { derivePhaseStatus, highestReachablePhase } from '../utils/derive-status';
-import { NavTrailingPill } from './NavTrailingPill';
+import { NavTrailingPill } from '@/components/console/nav-trailing-pill';
 import type { ActivityEvent, Bridge, BridgeId } from '../types';
 
 /**

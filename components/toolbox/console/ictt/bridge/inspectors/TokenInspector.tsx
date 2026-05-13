@@ -12,7 +12,7 @@ import { Note } from '@/components/toolbox/components/Note';
 import { cn } from '@/lib/utils';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_EXAMPLE_ERC20_SOURCES, ICTT_WRAPPED_NATIVE_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from './InspectorShell';
+import { InspectorShell } from '@/components/console/inspector-shell';
 import { useDeploySourceToken } from '../hooks/useDeploySourceToken';
 import { useDeployWrappedNative } from '../hooks/useDeployWrappedNative';
 import { useWrappedNativeToken } from '@/components/toolbox/hooks/useWrappedNativeToken';

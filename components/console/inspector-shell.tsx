@@ -10,17 +10,20 @@ export interface InspectorShellProps {
   /** Optional banner above the form (errors, precompile gates, prerequisites). */
   banner?: ReactNode;
   className?: string;
+  /** Optional DOM id for anchoring/scroll targeting. */
+  id?: string;
 }
 
 /**
- * Lean inspector frame. The phase title and status are already conveyed by
- * the StepFlow nav strip, so this component is just a focused card with
- * optional banner / footer slots wrapping the active form.
+ * Lean inspector frame shared across the console step flows. The phase/step
+ * title and status are already conveyed by the StepFlow nav strip, so this
+ * component is just a focused card with optional banner / footer slots
+ * wrapping the active form.
  */
-export function InspectorShell({ children, footer, banner, className }: InspectorShellProps) {
+export function InspectorShell({ children, footer, banner, className, id }: InspectorShellProps) {
   return (
     <article
-      id="ictt-inspector"
+      id={id}
       className={cn(
         'rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900',
         className,

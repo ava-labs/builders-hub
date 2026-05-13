@@ -7,14 +7,14 @@ import type { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Note } from '@/components/toolbox/components/Note';
 
-interface PhaseChainGateProps {
+interface AutoSwitchChainGateProps {
   /**
-   * Resolved L1 the phase runs on. Preferred over `requiredChainId` because
+   * Resolved L1 the step runs on. Preferred over `requiredChainId` because
    * it lets the gate fall back to `wallet_addEthereumChain` when the wallet
    * doesn't have the L1 yet (e.g. fresh user-created L1s).
    */
   requiredL1?: L1ListItem | null;
-  /** EVM chainId required for this phase. `null`/`undefined` means no requirement. */
+  /** EVM chainId required for this step. `null`/`undefined` means no requirement. */
   requiredChainId?: number | null;
   /** Display name for the required chain (used in banner copy). */
   requiredChainName?: string | null;
@@ -22,7 +22,7 @@ interface PhaseChainGateProps {
 }
 
 /**
- * Per-phase chain enforcement. On mount (or when the required chain changes),
+ * Per-step chain enforcement. On mount (or when the required chain changes),
  * attempts one programmatic switch so the user lands on the right chain
  * automatically. If the wallet rejects or fails, renders a clear "Switch to X"
  * banner instead of the form — physically preventing the user from signing
@@ -31,7 +31,12 @@ interface PhaseChainGateProps {
  * When `requiredL1` is provided, uses `switchChainOrAdd` so missing chains are
  * added to the wallet on the first attempt rather than silently failing.
  */
-export function PhaseChainGate({ requiredL1, requiredChainId, requiredChainName, children }: PhaseChainGateProps) {
+export function AutoSwitchChainGate({
+  requiredL1,
+  requiredChainId,
+  requiredChainName,
+  children,
+}: AutoSwitchChainGateProps) {
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isTestnet = useWalletStore((s) => s.isTestnet);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
@@ -98,7 +103,7 @@ export function PhaseChainGate({ requiredL1, requiredChainId, requiredChainName,
       <Note variant="warning">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs">
-            This phase runs on {effectiveChainName ?? `chain ${effectiveChainId}`}. Switch your wallet to continue.
+            This step runs on {effectiveChainName ?? `chain ${effectiveChainId}`}. Switch your wallet to continue.
           </span>
           <button
             type="button"

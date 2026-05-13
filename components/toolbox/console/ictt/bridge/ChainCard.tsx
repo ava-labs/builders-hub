@@ -146,7 +146,7 @@ function ConnectionPill({ isWalletOnChain }: ConnectionPillProps) {
       </span>
     );
   }
-  // Per-phase chain enforcement lives in PhaseChainGate now — the inline button
+  // Per-step chain enforcement lives in AutoSwitchChainGate now — the inline button
   // was always disabled (no consumer ever passed `onSwitchChain`) and read as
   // a dead control. Render nothing when off-chain instead.
   return null;

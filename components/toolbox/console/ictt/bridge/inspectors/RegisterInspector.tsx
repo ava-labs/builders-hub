@@ -7,7 +7,7 @@ import { Note } from '@/components/toolbox/components/Note';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_HOME_PLUS_REMOTE_SOURCES } from '@/lib/ictt/contractSources';
-import { InspectorShell } from './InspectorShell';
+import { InspectorShell } from '@/components/console/inspector-shell';
 import { useRegisterRemote } from '../hooks/useRegisterRemote';
 import { buildTxUrl, truncateAddress } from '../utils/explorer-url';
 import type { Address, Bridge, BridgePhase, Remote } from '../types';
