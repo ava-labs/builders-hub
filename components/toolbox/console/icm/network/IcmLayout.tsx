@@ -3,8 +3,8 @@
 import StepFlow from '@/components/console/step-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIcmContext } from './hooks/useIcmContext';
-import { IcmRibbon } from './IcmRibbon';
 import { IcmNetworkButton } from './IcmNetworkButton';
+import { IcmLogButton } from './activity/IcmLogButton';
 import { ICM_BASE_PATH, icmSteps } from './icm-steps';
 
 interface IcmLayoutProps {
@@ -17,11 +17,7 @@ export function IcmLayout({ currentStep }: IcmLayoutProps) {
   if (!ctx.migrationReady) {
     return (
       <section className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Skeleton className="h-24 rounded-2xl" />
-          <Skeleton className="h-24 rounded-2xl" />
-          <Skeleton className="h-24 rounded-2xl" />
-        </div>
+        <Skeleton className="h-24 rounded-2xl" />
       </section>
     );
   }
@@ -34,8 +30,12 @@ export function IcmLayout({ currentStep }: IcmLayoutProps) {
         currentStepKey={currentStep}
         compact
         showCompletionModal={false}
-        aboveBody={<IcmRibbon />}
-        navTrailing={<IcmNetworkButton />}
+        navTrailing={
+          <div className="flex items-center gap-2">
+            <IcmLogButton />
+            <IcmNetworkButton />
+          </div>
+        }
       />
     </section>
   );
