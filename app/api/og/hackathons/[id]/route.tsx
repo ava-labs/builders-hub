@@ -116,7 +116,7 @@ export async function GET(
 
   try {
     const res = await axios.get(
-      `${process.env.NEXTAUTH_URL}/api/hackathons/${id}`,
+      `${process.env.NEXTAUTH_URL}/api/events/${id}`,
       {
         headers: {
           'Cache-Control': 'no-store',

@@ -5,7 +5,7 @@ interface RemoveValidatorState {
   subnetIdL1: string;
   nodeId: string;
   validationId: string;
-  initiateRemovalTxHash: string;
+  evmTxHash: string;
   pChainTxId: string;
   globalError: string | null;
   globalSuccess: string | null;
@@ -13,7 +13,7 @@ interface RemoveValidatorState {
   setSubnetIdL1: (subnetIdL1: string) => void;
   setNodeId: (nodeId: string) => void;
   setValidationId: (validationId: string) => void;
-  setInitiateRemovalTxHash: (initiateRemovalTxHash: string) => void;
+  setEvmTxHash: (evmTxHash: string) => void;
   setPChainTxId: (pChainTxId: string) => void;
   setGlobalError: (globalError: string | null) => void;
   setGlobalSuccess: (globalSuccess: string | null) => void;
@@ -24,7 +24,7 @@ const initialValues = {
   subnetIdL1: '',
   nodeId: '',
   validationId: '',
-  initiateRemovalTxHash: '',
+  evmTxHash: '',
   pChainTxId: '',
   globalError: null as string | null,
   globalSuccess: null as string | null,
@@ -40,7 +40,7 @@ const { getStore: getRemoveValidatorStore, useStore: useRemoveValidatorStore } =
         subnetIdL1,
         nodeId: '',
         validationId: '',
-        initiateRemovalTxHash: '',
+        evmTxHash: '',
         pChainTxId: '',
         globalError: null,
         globalSuccess: null,
@@ -49,10 +49,9 @@ const { getStore: getRemoveValidatorStore, useStore: useRemoveValidatorStore } =
     setNodeId: (nodeId: string) => set({ nodeId }),
 
     setValidationId: (validationId: string) =>
-      set({ validationId, initiateRemovalTxHash: '', pChainTxId: '', globalError: null, globalSuccess: null }),
+      set({ validationId, evmTxHash: '', pChainTxId: '', globalError: null, globalSuccess: null }),
 
-    setInitiateRemovalTxHash: (initiateRemovalTxHash: string) =>
-      set({ initiateRemovalTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
+    setEvmTxHash: (evmTxHash: string) => set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
 
     setPChainTxId: (pChainTxId: string) => set({ pChainTxId, globalError: null, globalSuccess: null }),
 

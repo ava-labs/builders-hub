@@ -24,6 +24,16 @@ type TokenType = 'native' | 'erc20';
 interface InitiateValidatorRemovalUptimeProps {
   validationID: string;
   stakingManagerAddress: string;
+  /**
+   * Underlying ValidatorManager contract address. Required for preflight reads
+   * (`getValidator`, `l1TotalWeight`, `getChurnTracker`). For inheritance-model
+   * L1s where the StakingManager IS the VMC these will be the same; for the
+   * composition model they're different contracts and reads against the wrong
+   * one return zero-data → the validator looks "Unknown" and the button stays
+   * locked. Defaults to stakingManagerAddress for backwards compatibility but
+   * the unified flow passes the real VMC explicitly.
+   */
+  validatorManagerAddress?: string;
   rpcUrl: string;
   uptimeBlockchainID: string;
   tokenType: TokenType;
@@ -34,6 +44,7 @@ interface InitiateValidatorRemovalUptimeProps {
 const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimeProps> = ({
   validationID,
   stakingManagerAddress,
+  validatorManagerAddress,
   rpcUrl,
   uptimeBlockchainID,
   tokenType,
@@ -53,8 +64,9 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   const preflight = useValidatorPreflight({
     validationID: validationID || undefined,
     stakingManagerAddress,
-    validatorManagerAddress: stakingManagerAddress,
+    validatorManagerAddress: validatorManagerAddress ?? stakingManagerAddress,
     walletAddress: walletEVMAddress || undefined,
+    stakingManagerType: tokenType,
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -63,8 +75,6 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   const [uptimeInfo, setUptimeInfo] = useState<{ seconds: number; signed: boolean } | null>(null);
   const [customValidatorsUrl, setCustomValidatorsUrl] = useState<string>('');
   const [showCustomUrl, setShowCustomUrl] = useState(false);
-
-  const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
   const handleInitiateRemoval = async () => {
     if (isProcessing) return;
@@ -170,16 +180,6 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
       {error && <Alert variant="error">{error}</Alert>}
 
       {validationID && <ValidatorPreflightChecklist preflight={preflight} currentFlow="initiate-removal" />}
-
-      <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-          Removal with Uptime Proof ({tokenLabel} Staking)
-        </h3>
-
-        <div className="space-y-3">
-          <Input label="Validation ID" value={validationID} onChange={() => {}} disabled={true} />
-        </div>
-      </div>
 
       {/* Custom validators URL — collapsed by default, auto-shown on endpoint failure */}
       <div className="space-y-2">

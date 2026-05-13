@@ -333,12 +333,12 @@ export default function HackathonForm({
         ],
       };
       if (isEditing) {
-        await axios.put(`/api/hackathons/${initialData!.id}`, payload);
+        await axios.put(`/api/events/${initialData!.id}`, payload);
         toast({
           title: 'Hackathon updated successfully',
         });
       } else {
-        await axios.post(`/api/hackathons/`, payload);
+        await axios.post(`/api/events/`, payload);
         toast({
           title: 'Hackathon created successfully',
         });

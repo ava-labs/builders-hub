@@ -4,6 +4,18 @@ import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from '../coreVie
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
 
+/**
+ * Set when the connected wallet's EVM chain doesn't match the chain where the
+ * VMC contract is deployed (its "home chain"). All EVM reads + writes against
+ * the VMC must happen on this chain — typically the L1 itself for the
+ * inheritance-model contracts, or C-Chain when the VMC is composed cross-chain.
+ */
+export interface VMCChainMismatch {
+  expectedChainId: number;
+  expectedChainName: string;
+  currentChainId: number;
+}
+
 interface VMCAddressResult {
   validatorManagerAddress: string;
   /** Blockchain where the VMC contract is deployed (home chain) */
@@ -13,6 +25,8 @@ interface VMCAddressResult {
   signingSubnetId: string;
   isLoading: boolean;
   error: string | null;
+  /** Non-null when the wallet is on a different EVM chain than the VMC's home chain. */
+  chainMismatch: VMCChainMismatch | null;
 }
 
 /**
@@ -29,6 +43,7 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
   const [signingSubnetId, setSigningSubnetId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [chainMismatch, setChainMismatch] = useState<VMCChainMismatch | null>(null);
 
   // Cache to store fetched details for each subnetId to avoid redundant API calls
   const subnetCache = useRef<
@@ -39,6 +54,8 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
         blockchainId: string;
         l1BlockchainId: string;
         signingSubnetId: string;
+        expectedChainId: number;
+        expectedChainName: string;
       }
     >
   >({});
@@ -51,6 +68,7 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
         setL1BlockchainId('');
         setSigningSubnetId('');
         setError('Please select a valid subnet ID.');
+        setChainMismatch(null);
         setIsLoading(false);
         return;
       }
@@ -59,12 +77,31 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
       setError(null);
 
       const cacheKey = `${avalancheNetworkID}-${subnetId}`;
-      if (subnetCache.current[cacheKey]) {
-        const cached = subnetCache.current[cacheKey];
+      const applyCachedAndMismatch = (cached: {
+        validatorManagerAddress: string;
+        blockchainId: string;
+        l1BlockchainId: string;
+        signingSubnetId: string;
+        expectedChainId: number;
+        expectedChainName: string;
+      }) => {
         setValidatorManagerAddress(cached.validatorManagerAddress);
         setBlockchainId(cached.blockchainId);
         setL1BlockchainId(cached.l1BlockchainId);
         setSigningSubnetId(cached.signingSubnetId);
+        if (viemChain && viemChain.id !== cached.expectedChainId) {
+          setChainMismatch({
+            expectedChainId: cached.expectedChainId,
+            expectedChainName: cached.expectedChainName,
+            currentChainId: viemChain.id,
+          });
+        } else {
+          setChainMismatch(null);
+        }
+      };
+
+      if (subnetCache.current[cacheKey]) {
+        applyCachedAndMismatch(subnetCache.current[cacheKey]);
         setIsLoading(false);
         return;
       }
@@ -80,6 +117,7 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
           setL1BlockchainId('');
           setSigningSubnetId('');
           setError("Selected subnet is not an L1 or doesn\'t have a Validator Manager Contract.");
+          setChainMismatch(null);
           setIsLoading(false);
           return;
         }
@@ -89,11 +127,7 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
 
         const blockchainInfoForVMC = await getBlockchainInfoForNetwork(network, vmcBlockchainId);
         const expectedChainIdForVMC = blockchainInfoForVMC.evmChainId;
-
-        if (viemChain && viemChain.id !== expectedChainIdForVMC) {
-          setError(`Switch to chain ${expectedChainIdForVMC} to write to this Validator Manager`);
-          // Don't return — still resolve the address for read-only consumers
-        }
+        const expectedChainName = blockchainInfoForVMC.blockchainName;
 
         // The signing subnet is the parent subnet of the chain where the VMC
         // is deployed. Warp messages originate from that chain, so its subnet's
@@ -112,12 +146,26 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
         setL1BlockchainId(l1ChainId);
         setSigningSubnetId(vmcSubnetId);
 
-        // Cache the fetched details
+        // Promote mismatch out of `error` so the UI can render a CTA banner
+        // instead of letting downstream contract reads fail noisily on the
+        // wrong RPC.
+        if (viemChain && viemChain.id !== expectedChainIdForVMC) {
+          setChainMismatch({
+            expectedChainId: expectedChainIdForVMC,
+            expectedChainName,
+            currentChainId: viemChain.id,
+          });
+        } else {
+          setChainMismatch(null);
+        }
+
         subnetCache.current[cacheKey] = {
           validatorManagerAddress: vmcAddress,
           blockchainId: vmcBlockchainId,
           l1BlockchainId: l1ChainId,
           signingSubnetId: vmcSubnetId,
+          expectedChainId: expectedChainIdForVMC,
+          expectedChainName,
         };
         setError(null);
       } catch (e: any) {
@@ -126,6 +174,7 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
         setL1BlockchainId('');
         setSigningSubnetId('');
         setError(e.message || 'Failed to fetch Validator Manager information for this subnet.');
+        setChainMismatch(null);
       } finally {
         setIsLoading(false);
       }
@@ -141,5 +190,6 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
     signingSubnetId,
     isLoading,
     error,
+    chainMismatch,
   };
 }

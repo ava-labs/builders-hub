@@ -259,7 +259,7 @@ function normalizeUser(user: Partial<User>): User {
     custom_attributes: user.custom_attributes ?? [],
     bio: user.bio ?? null,
     profile_privacy: user.profile_privacy ?? null,
-    additional_social_media: user.additional_social_media ?? [],
+    additional_social_accounts: user.additional_social_accounts ?? [],
     notifications: user.notifications ?? null,
     created_at: user.created_at ?? new Date(),
     country: user.country ?? null,

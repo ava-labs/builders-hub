@@ -69,13 +69,17 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
   const { submitPChainTx } = useSubmitPChainTx();
 
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isAggregating, setIsAggregating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
   const [eventData, setEventData] = useState<WeightUpdateEventData | null>(null);
   const [_manualPChainTxId, setManualPChainTxId] = useState('');
+
+  // Combined flag for places that don't care which on-chain op is in flight.
+  const isProcessing = isAggregating || isSubmitting;
 
   // Update evmTxHash when initialEvmTxHash prop changes
   useEffect(() => {
@@ -168,14 +172,13 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
     };
   }, [evmTxHash, chainPublicClient]);
 
-  const handleSubmitPChainTx = async () => {
+  /**
+   * Step 2: aggregate BLS signatures from the warp's signing subnet.
+   * Independent from submission so the user can retry aggregation (e.g. on a
+   * partial-quorum result) without committing to a P-Chain transaction.
+   */
+  const handleAggregateSignatures = async () => {
     setErrorState(null);
-    setTxSuccess(null);
-
-    if (isCoreWallet && !coreWalletClient) {
-      setErrorState('Core wallet not found');
-      return;
-    }
 
     if (!evmTxHash.trim()) {
       setErrorState('EVM transaction hash is required.');
@@ -192,66 +195,80 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
       onError('Unsigned warp message not found.');
       return;
     }
-    if (isCoreWallet && !pChainAddress) {
-      setErrorState('P-Chain address is missing. Please connect your wallet.');
-      onError('P-Chain address is missing.');
+    if (!signingSubnetId) {
+      const msg =
+        'Signing subnet ID not available. The validator manager details may still be loading — wait a moment and retry.';
+      setErrorState(msg);
+      onError(msg);
       return;
     }
 
-    setIsProcessing(true);
+    setIsAggregating(true);
     try {
-      if (!signingSubnetId) {
-        throw new Error(
-          'Signing subnet ID not available. The validator manager details may still be loading — wait a moment and retry.',
-        );
-      }
-
-      // Step 1: Sign the warp message
       const aggregateSignaturePromise = aggregateSignature({
         message: unsignedWarpMessage,
         signingSubnetId,
         quorumPercentage: 67,
       });
 
-      notify(
-        {
-          type: 'local',
-          name: 'Aggregate Signatures',
-        },
-        aggregateSignaturePromise,
-      );
+      notify({ type: 'local', name: 'Aggregate Signatures' }, aggregateSignaturePromise);
 
       const { signedMessage } = await aggregateSignaturePromise;
       setSignedWarpMessage(signedMessage);
+    } catch (err: any) {
+      const message = parsePChainError(err);
+      setErrorState(`Signature aggregation failed: ${message}`);
+      onError(`Signature aggregation failed: ${message}`);
+    } finally {
+      setIsAggregating(false);
+    }
+  };
 
-      if (!isCoreWallet) {
-        // Generic wallet: aggregation done, CLI command shown in render
-        return;
-      }
+  /**
+   * Step 3: submit the signed warp to P-Chain via setL1ValidatorWeight.
+   * Only enabled once aggregation has produced a signed message. Core wallets
+   * use this button; non-Core wallets fall back to the CLI panel.
+   */
+  const handleSubmitToPChain = async () => {
+    setErrorState(null);
+    setTxSuccess(null);
 
-      // Step 2: Submit to P-Chain using setL1ValidatorWeight
+    if (!signedWarpMessage) {
+      const msg = 'No signed warp message — aggregate signatures first.';
+      setErrorState(msg);
+      onError(msg);
+      return;
+    }
+    if (isCoreWallet && !coreWalletClient) {
+      setErrorState('Core wallet not found');
+      return;
+    }
+    if (isCoreWallet && !pChainAddress) {
+      setErrorState('P-Chain address is missing. Please connect your wallet.');
+      onError('P-Chain address is missing.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
       const pChainTxId = await submitPChainTx(async (client) => {
         const pChainTxIdPromise = client.setL1ValidatorWeight({
-          signedWarpMessage: signedMessage,
+          signedWarpMessage: signedWarpMessage,
         });
-
         notify('setL1ValidatorWeight', pChainTxIdPromise);
-
         return pChainTxIdPromise;
       });
 
-      // Wait for P-Chain confirmation before declaring success
       await waitForPChainConfirmation(pChainTxId, isTestnet);
 
       setTxSuccess(pChainTxId);
       onSuccess(pChainTxId, eventData || undefined);
     } catch (err: any) {
       const message = parsePChainError(err);
-
-      setErrorState(`P-Chain transaction failed: ${message}`);
-      onError(`P-Chain transaction failed: ${message}`);
+      setErrorState(`P-Chain submission failed: ${message}`);
+      onError(`P-Chain submission failed: ${message}`);
     } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -345,15 +362,15 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         )}
       </StepFlowCard>
 
-      {/* Step 2: Aggregate Signatures */}
+      {/* Step 2: Aggregate BLS signatures from the warp's signing subnet. */}
       <StepFlowCard
         step={2}
-        title="Sign & Submit to P-Chain"
-        description="Aggregate BLS signatures from L1 validators and submit the weight update"
+        title="Aggregate Signatures"
+        description="Collect BLS signatures from the signing subnet's validators (67% quorum required)"
         isComplete={step2Complete}
-        isActive={step1Complete}
+        isActive={step1Complete && !step2Complete}
       >
-        {step2Complete ? (
+        {step2Complete && (
           <div className="mt-2 space-y-1">
             <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
               <Check className="w-3.5 h-3.5" />
@@ -367,34 +384,77 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                 <DynamicCodeBlock lang="text" code={signedWarpMessage || ''} />
               </div>
             </details>
+            {!step3Complete && (
+              <button
+                type="button"
+                onClick={handleAggregateSignatures}
+                disabled={isProcessing}
+                className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+              >
+                Re-aggregate signatures
+              </button>
+            )}
           </div>
-        ) : step1Complete && !step3Complete ? (
+        )}
+        {!step2Complete && step1Complete && !step3Complete && (
+          <div className="mt-2">
+            <Button
+              onClick={handleAggregateSignatures}
+              disabled={isAggregating || !unsignedWarpMessage}
+              loading={isAggregating}
+              className="w-full"
+            >
+              {isAggregating ? 'Aggregating signatures…' : 'Aggregate Signatures'}
+            </Button>
+          </div>
+        )}
+      </StepFlowCard>
+
+      {/* Step 3: Submit the signed warp to P-Chain. Distinct from aggregation
+          so a partial-quorum aggregation can be retried independently without
+          re-prompting the wallet for a P-Chain signature. */}
+      <StepFlowCard
+        step={3}
+        title="Submit to P-Chain"
+        description="Send the signed warp message in a setL1ValidatorWeight transaction"
+        isComplete={step3Complete}
+        isActive={step2Complete && !step3Complete}
+      >
+        {step3Complete && txSuccess && (
+          <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
+            <Check className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">
+              P-Chain tx confirmed:{' '}
+              <code className="font-mono text-[11px] bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
+                {txSuccess}
+              </code>
+            </span>
+          </div>
+        )}
+        {!step3Complete && step2Complete && (
           <div className="mt-2">
             {isCoreWallet ? (
               <CoreWalletTransactionButton
-                onClick={handleSubmitPChainTx}
-                loading={isProcessing}
-                loadingText="Processing..."
-                disabled={isProcessing || !unsignedWarpMessage}
+                onClick={handleSubmitToPChain}
+                loading={isSubmitting}
+                loadingText="Submitting to P-Chain…"
+                disabled={isSubmitting || !signedWarpMessage}
                 className="w-full"
               >
-                Sign & Submit to P-Chain
+                Submit to P-Chain
               </CoreWalletTransactionButton>
             ) : (
-              <Button
-                onClick={handleSubmitPChainTx}
-                disabled={isProcessing || !unsignedWarpMessage}
-                loading={isProcessing}
-                className="w-full"
-              >
-                {isProcessing ? 'Processing...' : 'Aggregate Signatures'}
-              </Button>
+              // Non-Core wallets don't sign P-Chain txs directly — the CLI
+              // panel below handles submission and accepts a manual tx ID.
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Submit via the CLI command below, then paste the resulting P-Chain transaction ID.
+              </p>
             )}
           </div>
-        ) : null}
+        )}
       </StepFlowCard>
 
-      {/* Non-Core: CLI command */}
+      {/* Non-Core: CLI command for manual submission */}
       {!isCoreWallet && signedWarpMessage && !txSuccess && (
         <PChainManualSubmit cliCommand={generateCLICommand()} onSubmit={handleContinueWithManualTxId} />
       )}

@@ -38,27 +38,29 @@ import {
   X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
 
-// Form schema
+// Form schema. Social fields are optional; only name + country + at least
+// one role are required to complete the basic setup. When a social field is
+// filled in, the value must match its platform pattern.
 const basicProfileSchema = z
   .object({
     name: z.string().min(1, 'Full name is required'),
     country: z.string().min(1, 'Country is required'),
     x_account: z
-      .string()
-      .min(1, 'X profile URL is required')
-      .regex(X_ACCOUNT_PATTERN, 'Enter a URL like https://x.com/yourhandle'),
+      .union([z.string().regex(X_ACCOUNT_PATTERN, 'Enter a URL like https://x.com/yourhandle'), z.literal('')])
+      .optional()
+      .default(''),
     linkedin_account: z
-      .string()
-      .min(1, 'LinkedIn URL is required')
-      .regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter valid LinkedIn URL'),
+      .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter valid LinkedIn URL'), z.literal('')])
+      .optional()
+      .default(''),
     github_account: z
-      .string()
-      .min(1, 'GitHub profile is required')
-      .regex(GITHUB_ACCOUNT_PATTERN, 'Enter a valid GitHub username or github.com URL'),
+      .union([z.string().regex(GITHUB_ACCOUNT_PATTERN, 'Enter a valid GitHub username or github.com URL'), z.literal('')])
+      .optional()
+      .default(''),
     telegram_account: z
-      .string()
-      .min(1, 'Telegram username is required')
-      .regex(TELEGRAM_ACCOUNT_PATTERN, 'Enter valid username'),
+      .union([z.string().regex(TELEGRAM_ACCOUNT_PATTERN, 'Enter valid username'), z.literal('')])
+      .optional()
+      .default(''),
     is_student: z.boolean().default(false),
     student_institution: z.string().optional(),
     is_founder: z.boolean().default(false),
@@ -102,7 +104,6 @@ interface BasicProfileSetupProps {
 export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [githubConnected, setGithubConnected] = useState(false);
-  const [xConnected, setXConnected] = useState(false);
   const pathname = usePathname();
   const { update } = useSession();
 
@@ -162,7 +163,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
           is_enthusiast: Boolean(userType.is_enthusiast),
         });
         setGithubConnected(Boolean(profile.githubConnected));
-        setXConnected(Boolean(profile.xConnected));
       } catch {
         // silent: blank defaults are fine if the fetch fails
       }
@@ -182,37 +182,9 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
     }
   };
 
-  const handleXDisconnect = async () => {
-    try {
-      await axios.delete('/api/auth/x-link/disconnect');
-      setXConnected(false);
-      form.setValue('x_account', '', { shouldDirty: false, shouldValidate: true });
-    } catch (error) {
-      console.error('Error disconnecting X:', error);
-    }
-  };
-
   const githubConnectHref = `/api/auth/github-link?returnTo=${encodeURIComponent(pathname || '/')}`;
-  const xConnectHref = `/api/auth/x-link?returnTo=${encodeURIComponent(pathname || '/')}`;
 
   const handleSave = async (data: BasicProfileFormValues) => {
-    let hasConnectionError = false;
-    if (!xConnected) {
-      form.setError('x_account', {
-        type: 'manual',
-        message: 'Connect your X account to continue',
-      });
-      hasConnectionError = true;
-    }
-    if (!githubConnected) {
-      form.setError('github_account', {
-        type: 'manual',
-        message: 'Connect your GitHub account to continue',
-      });
-      hasConnectionError = true;
-    }
-    if (hasConnectionError) return;
-
     setIsSaving(true);
     try {
       // Format data to match the API expected format
@@ -228,6 +200,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
         is_enthusiast,
         name,
         country,
+        x_account,
         linkedin_account,
         telegram_account,
       } = data;
@@ -236,6 +209,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
       const profileData = {
         name,
         country,
+        x_account,
         linkedin_account,
         telegram_account,
         user_type: {
@@ -357,47 +331,21 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
               </div>
             </div>
 
-            {/* Required social handles */}
+            {/* Optional social handles */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <FormField
                 control={form.control}
                 name="x_account"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm sm:text-base">X *</FormLabel>
-                    <div>
-                      {xConnected ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="w-full border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 dark:text-green-400 dark:border-green-500 dark:hover:bg-green-950 dark:hover:text-green-300"
-                          onClick={handleXDisconnect}
-                        >
-                          <Check className="h-4 w-4 mr-2" />
-                          Connected
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          asChild
-                        >
-                          <a href={xConnectHref}>
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="h-4 w-4 mr-2 fill-current"
-                              aria-hidden="true"
-                            >
-                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                            </svg>
-                            Connect
-                          </a>
-                        </Button>
-                      )}
-                    </div>
+                    <FormLabel className="text-sm sm:text-base">X</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://x.com/yourhandle"
+                        {...field}
+                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -407,7 +355,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                 name="linkedin_account"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm sm:text-base">LinkedIn *</FormLabel>
+                    <FormLabel className="text-sm sm:text-base">LinkedIn</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="https://www.linkedin.com/in/username"
@@ -424,7 +372,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                 name="github_account"
                 render={() => (
                   <FormItem>
-                    <FormLabel className="text-sm sm:text-base">GitHub *</FormLabel>
+                    <FormLabel className="text-sm sm:text-base">GitHub</FormLabel>
                     <div>
                       {githubConnected ? (
                         <Button
@@ -467,7 +415,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                 name="telegram_account"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm sm:text-base">Telegram *</FormLabel>
+                    <FormLabel className="text-sm sm:text-base">Telegram</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter your Telegram username (without @)"

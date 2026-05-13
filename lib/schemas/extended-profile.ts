@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   LINKEDIN_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
 
 /**
@@ -66,13 +67,17 @@ export const UpdateExtendedProfileSchema = z
       .optional(),
     image: z.string().nullable().optional(),
     country: z.string().nullable().optional(),
-    // GitHub and X are OAuth-owned; manual writes are intentionally stripped.
+    // github_account is owned by the GitHub OAuth link route and is
+    // intentionally not writable via this endpoint. The other three social
+    // fields accept manual entry; each value must match its platform
+    // pattern when present (empty string is allowed to mean "clear").
+    x_account: nullableProfileAccount(X_ACCOUNT_PATTERN, "Invalid X URL."),
     linkedin_account: nullableProfileAccount(
       LINKEDIN_ACCOUNT_PATTERN,
       "Invalid LinkedIn URL.",
     ),
     wallet: z.array(z.string()).nullable().optional(),
-    additional_social_media: z.array(z.string()).optional(),
+    additional_social_accounts: z.array(z.string()).optional(),
     skills: z.array(z.string()).optional(),
     notifications: z.boolean().nullable().optional(),
     profile_privacy: z.string().nullable().optional(),

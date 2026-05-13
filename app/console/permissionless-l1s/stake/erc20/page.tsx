@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 
 export default function Page() {
-  redirect("/console/permissionless-l1s/stake/erc20/select-subnet");
+  redirect("/console/add-validator", RedirectType.replace);
 }

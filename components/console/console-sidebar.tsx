@@ -221,30 +221,33 @@ const data = {
         },
       ],
     },
-    // Validators — flat list of the highest-traffic actions. Add Validator
-    // is the canonical entry point for a freshly created PoA L1; Stake is
-    // the equivalent for PoS-Native; Disable Validator is the consensus-
-    // agnostic P-Chain exit. The full matrix (force-remove, change-weight,
-    // delegations, ERC20-flavored variants, etc.) lives in /console/toolbox
-    // so power users can still find them while the sidebar stays focused.
+    // L1 Validators — flat list of the highest-traffic actions for L1-side
+    // validator operations, ordered by validator lifecycle: Node Setup runs
+    // the AvalancheGo container that backs the validator; Add Validator
+    // registers it (unified across PoA/PoS-Native/PoS-ERC20); Remove Validator
+    // tears it down (unified — PoS attempts uptime-proof removal first and
+    // falls back to force-removal on ineligibility). Validator Balance is the
+    // running-cost top-up. The remaining matrix (disable, force-remove,
+    // change-weight, delegations, etc.) lives in /console/toolbox so power
+    // users can still find them while the sidebar stays focused.
     {
       id: "validators",
-      title: "Validators",
+      title: "L1 Validators",
       icon: Hexagon,
       items: [
         {
+          title: "Node Setup",
+          url: "/console/layer-1/l1-node-setup",
+          icon: Server,
+        },
+        {
           title: "Add Validator",
-          url: "/console/permissioned-l1s/add-validator",
+          url: "/console/add-validator",
           icon: SquarePlus,
         },
         {
-          title: "Stake",
-          url: "/console/permissionless-l1s/stake/native",
-          icon: HandCoins,
-        },
-        {
-          title: "Disable Validator",
-          url: "/console/permissioned-l1s/disable-validator",
+          title: "Remove Validator",
+          url: "/console/remove-validator",
           icon: ShieldOff,
         },
         {
