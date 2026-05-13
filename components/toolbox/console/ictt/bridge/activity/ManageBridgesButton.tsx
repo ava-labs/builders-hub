@@ -100,6 +100,7 @@ export function ManageBridgesButton() {
       <SheetTrigger asChild>
         <NavTrailingPill
           icon={Layers}
+          iconClassName="ml-0.5 text-zinc-500 dark:text-zinc-400"
           label="Manage bridges"
           badge={count > 99 ? '99+' : count}
           aria-haspopup="dialog"
