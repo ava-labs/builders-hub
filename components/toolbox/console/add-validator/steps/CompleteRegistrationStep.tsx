@@ -33,9 +33,7 @@ export default function CompleteRegistrationStep() {
         ? 'PoS-ERC20'
         : 'PoA';
 
-  const managerAddress = isStaking
-    ? stakingManagerAddress || ''
-    : vmcCtx.validatorManagerAddress || '';
+  const managerAddress = isStaking ? stakingManagerAddress || '' : vmcCtx.validatorManagerAddress || '';
 
   // Only PoS persists a validationID (set on initiate). PoA derives it locally
   // from the warp message inside CompletePChainRegistration, so we leave it
@@ -53,11 +51,7 @@ export default function CompleteRegistrationStep() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">Complete Registration</h2>
-          <ManagerTypeBadge
-            ownerType={vmcCtx.ownerType}
-            stakingType={vmcCtx.staking.stakingType}
-            isDetecting={false}
-          />
+          <ManagerTypeBadge ownerType={vmcCtx.ownerType} stakingType={vmcCtx.staking.stakingType} isDetecting={false} />
         </div>
         {vmcCtx.chainMismatch && <VmcChainSwitchBanner mismatch={vmcCtx.chainMismatch} />}
         {!store.pChainTxId && (
@@ -66,13 +60,17 @@ export default function CompleteRegistrationStep() {
             <strong>P-Chain Registration</strong>.
           </Alert>
         )}
-        {isStaking && store.validationID && !preflight.isLoading && preflight.status !== 1 && preflight.status !== 0 && (
-          <Alert variant="info">
-            {preflight.status === 2
-              ? 'This validator is already active -- registration was completed.'
-              : `Unexpected validator status: ${preflight.statusLabel}.`}
-          </Alert>
-        )}
+        {isStaking &&
+          store.validationID &&
+          !preflight.isLoading &&
+          preflight.status !== 1 &&
+          preflight.status !== 0 && (
+            <Alert variant="info">
+              {preflight.status === 2
+                ? 'This validator is already active -- registration was completed.'
+                : `Unexpected validator status: ${preflight.statusLabel}.`}
+            </Alert>
+          )}
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="p-4 space-y-3">
             <CompletePChainRegistration

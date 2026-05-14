@@ -14,6 +14,7 @@ import {
   useNewUserLoginListener,
   triggerLoginComplete,
 } from '@/hooks/useLoginModal';
+import { hasCompleteRequiredProfileAccounts } from '@/lib/profile/socialAccountValidation';
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
@@ -113,6 +114,39 @@ export function LoginModalWrapper() {
       closeLoginModal();
     }
   }, [isOpen, status, session?.user?.id, session?.user?.is_new_user, showTerms, showBasicProfile, closeLoginModal]);
+
+  // Enforce mandatory profile accounts on authenticated users.
+  // New users are caught via is_new_user -> Terms -> BasicProfileSetup.
+  // This extra check covers anyone who dismissed the modal or predates the
+  // requirement: on any authenticated page mount, reopen BasicProfileSetup
+  // if any required profile account is still null.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (status !== "authenticated") return;
+    if (!session?.user?.id) return;
+    if (session.user.id.startsWith("pending_")) return;
+    if (showTerms || showBasicProfile) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/profile/extended/${session.user.id}`);
+        if (!res.ok) return;
+        const profile = await res.json();
+        if (cancelled) return;
+        if (!hasCompleteRequiredProfileAccounts(profile)) {
+          setTermsUserId(session.user.id);
+          setShowBasicProfile(true);
+        }
+      } catch {
+        // silent: enforcement is a best-effort gate on navigation
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status, session?.user?.id, showTerms, showBasicProfile]);
 
   const handleTermsSuccess = async (createdUserId?: string) => {
     const firstUpdatedSession = await update();
@@ -253,20 +287,21 @@ export function LoginModalWrapper() {
         </>
       )}
 
-      {/* Basic Profile Modal - Shows after accepting terms */}
+      {/* Basic Profile Modal - Shows after accepting terms.
+          Intentionally non-dismissible: the gate effect above re-opens it
+          whenever required social accounts are missing, so allowing outside
+          click / Escape would just flicker the modal closed-and-back-open. */}
       {showBasicProfile && (termsUserId || session?.user?.id) && (
         <>
-          <Dialog.Root open={true} onOpenChange={(open) => {
-            if (!open) {
-              setShowBasicProfile(false);
-              closeLoginModal();
-            }
-          }}>
+          <Dialog.Root open={true}>
             <Dialog.Portal>
               <DialogOverlay />
               <DialogContent
                 className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[500px] max-h-[90vh] overflow-hidden z-10000 p-0"
                 showCloseButton={false}
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
               >
                 <VisuallyHidden>
                   <DialogTitle>Basic Profile Setup</DialogTitle>

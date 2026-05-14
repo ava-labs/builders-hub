@@ -88,7 +88,6 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     include: {
       members: true,
       hackathon: true,
-      prizes: true,
       badges: {
         where: {
           status: 1, // BadgeAwardStatus.approved
@@ -136,7 +135,6 @@ export async function getProject(id: string): Promise<Project> {
         },
       },
       hackathon: true,
-      prizes: true,
     },
     where: { id },
   });
@@ -184,11 +182,6 @@ export async function getProject(id: string): Promise<Project> {
     updated_at: row.updated_at.toISOString(),
     is_winner: row.is_winner ?? undefined,
     members,
-    prizes: row.prizes.map((p) => ({
-      icon: p.icon,
-      prize: p.prize,
-      track: p.track,
-    })),
     hackathon,
     origin: row.origin,
   };
@@ -219,13 +212,6 @@ export async function createProject(
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
       hackaton_id: projectData.hackaton_id ?? null,
-      // prizes: {
-      //   create: projectData.prizes?.map((prize) => ({
-      //     icon: prize.icon,
-      //     prize: prize.prize,
-      //     track: prize.track,
-      //   })),
-      // },
       members: {
         create: projectData.members?.map((member) => ({
           user_id: member.user_id,
@@ -281,13 +267,6 @@ export async function updateProject(
           status: member.status,
         })),
       },
-      // prizes: {
-      //   create: projectData.prizes?.map((prize) => ({
-      //     icon: prize.icon,
-      //     prize: prize.prize,
-      //     track: prize.track,
-      //   })),
-      // },
       updated_at: new Date(),
     },
   });

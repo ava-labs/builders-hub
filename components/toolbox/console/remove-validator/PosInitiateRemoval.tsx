@@ -129,8 +129,7 @@ export function PosInitiateRemoval({
     });
   }, [validationID, rpcUrl, customValidatorsUrl]);
 
-  const isLocked =
-    preflight.isLoading || preflight.checks.initiateRemoval.status !== 'met' || probe.kind === 'probing';
+  const isLocked = preflight.isLoading || preflight.checks.initiateRemoval.status !== 'met' || probe.kind === 'probing';
 
   const handleRemove = async () => {
     if (isProcessing || probe.kind === 'idle' || probe.kind === 'probing') return;
@@ -168,18 +167,8 @@ export function PosInitiateRemoval({
         const accessList = packWarpIntoAccessList(signedWarpBytes);
 
         const hash = await (tokenType === 'native'
-          ? nativeStakingManager.initiateValidatorRemoval(
-              validationID as `0x${string}`,
-              true,
-              0,
-              accessList,
-            )
-          : erc20StakingManager.initiateValidatorRemoval(
-              validationID as `0x${string}`,
-              true,
-              0,
-              accessList,
-            ));
+          ? nativeStakingManager.initiateValidatorRemoval(validationID as `0x${string}`, true, 0, accessList)
+          : erc20StakingManager.initiateValidatorRemoval(validationID as `0x${string}`, true, 0, accessList));
 
         setTxHash(hash);
         const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
@@ -273,12 +262,10 @@ function ProbeBanner({ probe, onRetry }: { probe: ProbeState; onRetry: () => voi
           <Shield className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
         </div>
         <div className="flex-1 min-w-0 space-y-0.5">
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-            Removal will preserve staking rewards
-          </p>
+          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Removal will preserve staking rewards</p>
           <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            L1 reported {hours.toFixed(1)} hours of uptime. We'll aggregate a signed proof and include it in the
-            removal transaction.
+            L1 reported {hours.toFixed(1)} hours of uptime. We'll aggregate a signed proof and include it in the removal
+            transaction.
           </p>
         </div>
       </div>
@@ -343,9 +330,7 @@ function CustomUrlDetails({
         className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
       >
         <span>Custom Validators API URL (optional)</span>
-        <ChevronDown
-          className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
-        />
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="px-4 pb-4 border-t border-zinc-200/80 dark:border-zinc-800">

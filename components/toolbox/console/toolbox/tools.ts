@@ -194,7 +194,8 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Remove Validator',
-    description: 'Remove a validator from your L1. Auto-detects PoA / PoS-Native / PoS-ERC20 and the right initiate path.',
+    description:
+      'Remove a validator from your L1. Auto-detects PoA / PoS-Native / PoS-ERC20 and the right initiate path.',
     path: '/console/remove-validator',
     category: 'Permissioned L1s',
     icon: SquareMinus,
@@ -266,7 +267,8 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Remove Validator (PoS)',
-    description: 'End validation and withdraw staked tokens. Same flow as Remove Validator — uptime-proof first, force-remove fallback.',
+    description:
+      'End validation and withdraw staked tokens. Same flow as Remove Validator — uptime-proof first, force-remove fallback.',
     path: '/console/remove-validator',
     category: 'Permissionless L1s',
     icon: SquareMinus,

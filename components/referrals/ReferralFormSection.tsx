@@ -16,6 +16,7 @@ import {
   ReferrerPicker,
   type ReferrerPickerValue,
 } from "./ReferrerPicker";
+import { type EventsLang } from "@/lib/events/i18n";
 
 export interface ReferralFormSectionProps {
   value: ReferrerPickerValue;
@@ -28,6 +29,7 @@ export interface ReferralFormSectionProps {
   title?: string;
   description?: string;
   className?: string;
+  lang?: EventsLang;
 }
 
 // Drop-in section for any submission form. Wraps:
@@ -43,8 +45,9 @@ export function ReferralFormSection({
   value,
   onChange,
   title = "Referral",
-  description = "Were you referred by a Team1 ambassador or someone on the Avalanche team? (Optional)",
+  description = "Were you referred by a Team1 Member or someone on the Avalanche team? (Optional)",
   className,
+  lang,
 }: ReferralFormSectionProps) {
   // Side-effect: keeps the existing 30-day cookie/localStorage flow alive
   // for code-based attribution even if the visitor clicks away. Mirrors
@@ -74,6 +77,7 @@ export function ReferralFormSection({
           lockedDisplay={lockedDisplay}
           loading={loading}
           disabled={locked}
+          lang={lang}
         />
       </div>
     </section>

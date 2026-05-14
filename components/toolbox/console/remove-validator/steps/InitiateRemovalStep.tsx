@@ -38,10 +38,10 @@ export default function InitiateRemovalStep() {
     vmcCtx.isDetectingOwnerType ||
     vmcCtx.isLoadingOwnership ||
     (vmcCtx.ownerType === 'StakingManager' && vmcCtx.staking.isLoading);
-  const flavor = useMemo(() => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType), [
-    vmcCtx.ownerType,
-    vmcCtx.staking.stakingType,
-  ]);
+  const flavor = useMemo(
+    () => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType),
+    [vmcCtx.ownerType, vmcCtx.staking.stakingType],
+  );
   const stepConfig = useMemo(() => buildStepConfig(flavor), [flavor]);
   const isStaking = flavor !== 'PoA';
 

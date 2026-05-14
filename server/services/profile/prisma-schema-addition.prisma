@@ -1,7 +1,7 @@
 // ============================================================================
 // INSTRUCCIONES: 
 // Copia estas líneas y agrégalas al modelo User en tu archivo prisma/schema.prisma
-// Agrega estas líneas DESPUÉS de la línea "telegram_user" y ANTES de "created_at"
+// Agrega estas líneas DESPUÉS de la línea "telegram_account" y ANTES de "created_at"
 // ============================================================================
 
 // Nuevos campos para perfil extendido (agregados 2025-12-03)
@@ -12,7 +12,7 @@ is_employee          Boolean   @default(false)
 is_enthusiast        Boolean   @default(false)
 company_name         String?
 role                 String?
-github               String?
+github_account       String?
 wallet               String?
 student_institution  String?
 skills               String[]
@@ -34,10 +34,10 @@ model User {
   bio                      String?
   notification_email       String?
   profile_privacy          String?                   @default("public")
-  social_media             String[]
+  additional_social_accounts             String[] @default([])
   notifications            Boolean?
   custom_attributes        String[]
-  telegram_user            String?
+  telegram_account            String?
   
   // ⬇️ AGREGAR AQUÍ LAS NUEVAS COLUMNAS ⬇️
   country              String?
@@ -47,7 +47,7 @@ model User {
   is_enthusiast        Boolean   @default(false)
   company_name         String?
   role                 String?
-  github               String?
+  github_account       String?
   wallet               String?
   student_institution  String?
   skills               String[]
@@ -81,4 +81,3 @@ model User {
 
 // 4. Para aplicar en producción (después de probar en dev):
 // npx prisma migrate deploy
-

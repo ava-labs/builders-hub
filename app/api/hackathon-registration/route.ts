@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     processedFormData["country_dropdown"] = formData.city || "N/A"; // use as country TODO: Rename city variable in dB
     processedFormData["hs_role"] = formData.role || "N/A";
     processedFormData["name"] = formData.company_name || ""; // To check if "name" is correct in HS form
-    processedFormData["telegram_handle"] = formData.telegram_user || "";
+    processedFormData["telegram_handle"] = formData.telegram_account || "";
     processedFormData["github_url"] = formData.github_portfolio || "";
     processedFormData["hackathon_interests"] = Array.isArray(formData.interests) ? formData.interests.join(";") : formData.interests || "";
     processedFormData["programming_language_familiarity"] = Array.isArray(formData.languages) ? formData.languages.join(";") : formData.languages || "";

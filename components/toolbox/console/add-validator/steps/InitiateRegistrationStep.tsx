@@ -68,10 +68,10 @@ export default function InitiateRegistrationStep() {
     vmcCtx.isDetectingOwnerType ||
     vmcCtx.isLoadingOwnership ||
     (vmcCtx.ownerType === 'StakingManager' && vmcCtx.staking.isLoading);
-  const flavor = useMemo(() => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType), [
-    vmcCtx.ownerType,
-    vmcCtx.staking.stakingType,
-  ]);
+  const flavor = useMemo(
+    () => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType),
+    [vmcCtx.ownerType, vmcCtx.staking.stakingType],
+  );
   const stepConfig = useMemo(() => buildStepConfig(flavor), [flavor]);
   const contractSources = contractSourcesFor(flavor);
 
@@ -134,7 +134,9 @@ export default function InitiateRegistrationStep() {
                   blsPublicKey={validator?.nodePOP?.publicKey || ''}
                   stakingManagerAddress={stakingManagerAddress}
                   tokenType={flavor === 'PoS-Native' ? 'native' : 'erc20'}
-                  erc20TokenAddress={flavor === 'PoS-ERC20' ? vmcCtx.staking.erc20TokenAddress ?? undefined : undefined}
+                  erc20TokenAddress={
+                    flavor === 'PoS-ERC20' ? (vmcCtx.staking.erc20TokenAddress ?? undefined) : undefined
+                  }
                   remainingBalanceOwner={validator?.remainingBalanceOwner}
                   disableOwner={validator?.deactivationOwner}
                   onSuccess={(data) => {

@@ -14,7 +14,7 @@ import {
 } from '@/components/toolbox/components/AlertDialog';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useFaucetRateLimit } from '@/hooks/useFaucetRateLimit';
-import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 export function PChainFaucetMenuItem() {
   const pChainAddress = useWalletStore((s) => s.pChainAddress);

@@ -2,7 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Project } from "@/types/showcase";
-import { MapPin, Trophy } from "lucide-react";
+import { MapPin } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -55,15 +55,6 @@ export default function Info({ project }: Props) {
             {project.project_name.slice(0, 55)}
             {project.project_name.length > 55 ? "..." : ""}
           </h1>
-          {project.prizes.length > 1 && (
-            <div className="p-2 bg-red-500 rounded-full">
-              <Trophy
-                size={30}
-                color="white"
-                className="w-6 h-6 md:w-8 md:h-8"
-              />
-            </div>
-          )}
         </div>
         <div className="max-w-[60%] flex items-center gap-3 md:gap-6">
           <MapPin

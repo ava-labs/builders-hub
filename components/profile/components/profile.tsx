@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { countries } from "@/constants/countries";
 import { hsEmploymentRoles } from "@/constants/hs_employment_role";
-import { X, Link2, Wallet, User, FileText, Zap } from "lucide-react";
+import { X, Link2, Wallet, User, FileText, Zap, Check } from "lucide-react";
 import { WalletConnectButton } from "./WalletConnectButton";
 import { SkillsAutocomplete } from "./SkillsAutocomplete";
 import type { UseFormReturn } from "react-hook-form";
@@ -408,7 +408,7 @@ export default function Profile({
                 {/* GitHub */}
                 <FormField
                   control={form.control}
-                  name="github"
+                  name="github_account"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center gap-4">
                       <FormLabel className="w-32 shrink-0">GitHub</FormLabel>
@@ -416,8 +416,12 @@ export default function Profile({
                         <div className="flex items-center gap-2">
                           <FormControl>
                             <Input
-                              placeholder="https://github.com/username"
+                              placeholder="username"
                               {...field}
+                              value={(field.value || "")
+                                .replace(/^(?:https?:\/\/)?(?:www\.)?github\.com\//i, "")
+                                .replace(/\/+$/, "")}
+                              readOnly
                             />
                           </FormControl>
                           {githubConnected ? (
@@ -425,10 +429,11 @@ export default function Profile({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="shrink-0"
+                              className="shrink-0 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 dark:text-green-400 dark:border-green-500 dark:hover:bg-green-950 dark:hover:text-green-300"
                               onClick={onGithubDisconnect}
                             >
-                              Desconectar
+                              <Check className="h-4 w-4 mr-2" />
+                              Connected
                             </Button>
                           ) : (
                             <Button
@@ -446,7 +451,7 @@ export default function Profile({
                                 >
                                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
                                 </svg>
-                                Conectar
+                                Connect
                               </a>
                             </Button>
                           )}
@@ -457,66 +462,76 @@ export default function Profile({
                   )}
                 />
 
-                {/* Wallets */}
+                {/* X handle */}
                 <FormField
                   control={form.control}
-                  name="wallet"
+                  name="x_account"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start gap-4">
-                      <FormLabel className="w-32 shrink-0 pt-2">EVM Wallet</FormLabel>
-                      <div className="flex-1">
-                        <FormControl>
-                          <div className="space-y-2">
-                            {field.value?.map((walletAddress, index) => (
-                              <div key={index} className="flex items-center gap-2">
+                    <FormItem className="flex flex-row items-center gap-4">
+                      <FormLabel className="w-32 shrink-0">X</FormLabel>
+                      <div className="flex-1 space-y-2">
                         <FormControl>
                           <Input
-                                    value={walletAddress}
-                                    readOnly
-                            className="font-mono text-sm"
-                                    placeholder="0x... (Wallet address)"
+                            placeholder="https://x.com/yourhandle"
+                            {...field}
                           />
                         </FormControl>
-                          <Button
-                            type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRemoveWallet(index)}
-                          >
-                                  <X className="h-4 w-4" />
-                          </Button>
-                              </div>
-                            ))}
-                          <div className="shrink-0">
-                            <WalletConnectButton
-                              onWalletConnected={(address) => {
-                                  handleAddWallet(address);
-                              }}
-                                currentAddress={field.value?.[field.value.length - 1]}
-                            />
-                            </div>
-                          </div>
-                        </FormControl>
                         <FormMessage />
-                        <FormDescription className="text-sm text-zinc-500 dark:text-zinc-400">
-                          Connect multiple wallets to receive rewards. Each wallet address must be a valid Ethereum address (0x + 40 hex characters).
-                        </FormDescription>
                       </div>
                     </FormItem>
                   )}
                 />
 
+                {/* LinkedIn URL */}
+                <FormField
+                  control={form.control}
+                  name="linkedin_account"
+                  render={({ field }) => {
+                    const hasLinkedin = typeof field.value === "string" && field.value.trim() !== "";
+                    return (
+                      <FormItem className="flex flex-row items-center gap-4">
+                        <FormLabel className="w-32 shrink-0">LinkedIn</FormLabel>
+                        <div className="flex-1">
+                          <FormControl>
+                            <Input
+                              placeholder="username"
+                              value={(field.value ?? "")
+                                .replace(/^(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|pub)\//i, "")
+                                .replace(/\/+$/, "")}
+                              readOnly={hasLinkedin}
+                              onChange={(e) => {
+                                if (hasLinkedin) return;
+                                const v = e.target.value.trim();
+                                if (!v) {
+                                  field.onChange("");
+                                  return;
+                                }
+                                if (/^https?:\/\//i.test(v)) {
+                                  field.onChange(v);
+                                } else {
+                                  field.onChange(`https://www.linkedin.com/in/${v}`);
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    );
+                  }}
+                />
+
                 {/* Telegram */}
                 <FormField
                   control={form.control}
-                  name="telegram_user"
+                  name="telegram_account"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center gap-4">
                       <FormLabel className="w-32 shrink-0">Telegram</FormLabel>
                       <div className="flex-1">
                         <FormControl>
                           <Input
-                            placeholder="Enter your Telegram username (without @)"
+                            placeholder="username"
                             {...field}
                           />
                         </FormControl>
@@ -529,7 +544,7 @@ export default function Profile({
                 {/* Other accounts */}
                 <FormField
                   control={form.control}
-                  name="socials"
+                  name="additional_social_accounts"
                   render={({ field }) => {
                     const handleAddNewSocial = () => {
                       const socialLink = newSocial.trim();
@@ -537,7 +552,7 @@ export default function Profile({
 
                       const isValidUrl = z.url("Must be a valid URL").safeParse(socialLink);
                       if (!isValidUrl.success) {
-                        form.setError("socials", {
+                        form.setError("additional_social_accounts", {
                           type: "manual",
                           message: "Must be a valid URL",
                         });
@@ -548,7 +563,7 @@ export default function Profile({
                       if (!currentSocials.includes(socialLink)) {
                         field.onChange([...currentSocials, socialLink]);
                       }
-                      form.clearErrors("socials");
+                      form.clearErrors("additional_social_accounts");
                       setNewSocial("");
                     };
 
@@ -558,7 +573,7 @@ export default function Profile({
                         <div className="flex-1">
                           <FormControl>
                             <div className="space-y-2">
-                              {/* Display existing socials as tags */}
+                              {/* Display existing additional accounts as tags */}
                               {field.value && field.value.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mb-2">
                                   {field.value.map((social, index) => (
@@ -584,8 +599,8 @@ export default function Profile({
                                 value={newSocial}
                                 onChange={(e) => {
                                   setNewSocial(e.target.value);
-                                  if (form.formState.errors.socials) {
-                                    form.clearErrors("socials");
+                                  if (form.formState.errors.additional_social_accounts) {
+                                    form.clearErrors("additional_social_accounts");
                                   }
                                 }}
                                 onKeyDown={(e) => {
@@ -594,7 +609,7 @@ export default function Profile({
                                     handleAddNewSocial();
                                   }
                                 }}
-                                placeholder="Add Twitter, LinkedIn or other links (Press Enter or Tab to add)"
+                                placeholder="Add other social links (Press Enter or Tab to add)"
                               />
                             </div>
                           </FormControl>
@@ -604,6 +619,56 @@ export default function Profile({
                     );
                   }}
                 />
+
+                {/* Wallets */}
+                <FormField
+                  control={form.control}
+                  name="wallet"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start gap-4">
+                      <FormLabel className="w-32 shrink-0 pt-2">EVM Wallet</FormLabel>
+                      <div className="flex-1">
+                        <FormControl>
+                          <div className="space-y-2">
+                            {field.value?.map((walletAddress, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <FormControl>
+                                  <Input
+                                    value={walletAddress}
+                                    readOnly
+                                    className="font-mono text-sm"
+                                    placeholder="0x... (Wallet address)"
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveWallet(index)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            <div className="shrink-0">
+                              <WalletConnectButton
+                                onWalletConnected={(address) => {
+                                  handleAddWallet(address);
+                                }}
+                                currentAddress={field.value?.[field.value.length - 1]}
+                              />
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                        <FormDescription className="text-sm text-zinc-500 dark:text-zinc-400">
+                          Connect any wallets you'd like to receive rewards on.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
               </div>
 
               {/* Skills Section */}

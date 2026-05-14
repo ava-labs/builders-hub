@@ -31,16 +31,15 @@ export default function ClaimDelegationFeesStep() {
   const store = useRemoveValidatorStore();
   const vmcCtx = useValidatorManagerContext();
 
-  const flavor = useMemo(() => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType), [
-    vmcCtx.ownerType,
-    vmcCtx.staking.stakingType,
-  ]);
+  const flavor = useMemo(
+    () => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType),
+    [vmcCtx.ownerType, vmcCtx.staking.stakingType],
+  );
   const stepConfig = useMemo(() => buildStepConfig(flavor), [flavor]);
   const isStaking = flavor !== 'PoA';
 
   const stakingManagerAddress = vmcCtx.staking.stakingManagerAddress || vmcCtx.validatorManagerAddress || '';
-  const tokenType: 'native' | 'erc20' =
-    vmcCtx.staking.stakingType === 'erc20' ? 'erc20' : 'native';
+  const tokenType: 'native' | 'erc20' = vmcCtx.staking.stakingType === 'erc20' ? 'erc20' : 'native';
 
   if (!isStaking) {
     return (
@@ -59,15 +58,9 @@ export default function ClaimDelegationFeesStep() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">Claim Delegation Fees</h2>
-          <ManagerTypeBadge
-            ownerType={vmcCtx.ownerType}
-            stakingType={vmcCtx.staking.stakingType}
-            isDetecting={false}
-          />
+          <ManagerTypeBadge ownerType={vmcCtx.ownerType} stakingType={vmcCtx.staking.stakingType} isDetecting={false} />
         </div>
-        {!store.validationId && (
-          <Alert variant="warning">No validation ID found. Go back to the previous step.</Alert>
-        )}
+        {!store.validationId && <Alert variant="warning">No validation ID found. Go back to the previous step.</Alert>}
         <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="p-4">
             <ClaimDelegationFees

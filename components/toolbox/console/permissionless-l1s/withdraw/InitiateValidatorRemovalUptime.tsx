@@ -76,7 +76,6 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   const [customValidatorsUrl, setCustomValidatorsUrl] = useState<string>('');
   const [showCustomUrl, setShowCustomUrl] = useState(false);
 
-
   const handleInitiateRemoval = async () => {
     if (isProcessing) return;
     setIsProcessing(true);

@@ -62,7 +62,7 @@ export default async function EvaluatePage({
               members: {
               include: {
                 user: {
-                  select: { id: true, name: true, email: true, country: true, github: true, telegram_user: true },
+                  select: { id: true, name: true, email: true, country: true, github_account: true, telegram_account: true },
                 },
               },
             },
@@ -153,8 +153,8 @@ export default async function EvaluatePage({
         applicantName: leadUser?.name ?? applicantName ?? (bgApp ? `${bgApp.first_name} ${bgApp.last_name}` : "Unknown"),
         applicantEmail: leadUser?.email ?? bgApp?.email ?? (applicantData?.email as string) ?? lead?.email ?? "",
         country: leadUser?.country ?? bgApp?.country ?? (applicantData?.country as string) ?? "",
-        telegram: leadUser?.telegram_user ?? bgApp?.telegram ?? (applicantData?.telegram as string) ?? null,
-        github: leadUser?.github ?? bgApp?.github ?? (applicantData?.github as string) ?? null,
+        telegram: leadUser?.telegram_account ?? bgApp?.telegram ?? (applicantData?.telegram as string) ?? null,
+        github: leadUser?.github_account ?? bgApp?.github ?? (applicantData?.github as string) ?? null,
         areaOfFocus,
         stageProgress,
         memberApplications,

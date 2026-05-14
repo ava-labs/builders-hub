@@ -46,6 +46,7 @@ export const POST = withAuth(async (
     // Check if user already exists (shouldn't happen, but safety check)
     const existingUser = await prisma.user.findUnique({
       where: { email },
+      select: { id: true, email: true, created_at: true },
     });
 
     if (existingUser) {
@@ -66,6 +67,7 @@ export const POST = withAuth(async (
 
     // Create the new user
     const newUser = await prisma.user.create({
+      select: { id: true, email: true, name: true, notifications: true },
       data: {
         email: email || '',
         notification_email: email,

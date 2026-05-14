@@ -27,10 +27,12 @@ export interface UserDataForHubSpot {
   employee_role?: string;
   is_developer?: boolean;
   is_enthusiast?: boolean;
-  github?: string;
-  telegram_user?: string;
+  github_account?: string;
+  x_account?: string;
+  linkedin_account?: string;
+  telegram_account?: string;
   wallet?: string[];
-  socials?: string[];
+  additional_social_accounts?: string[];
   notifications?: boolean;
   gdpr?: boolean;
 }
@@ -54,10 +56,12 @@ function buildHubSpotUserProperties(userData: UserDataForHubSpot, includeEmail: 
     ...(userData.employee_company_name && { company: userData.employee_company_name }),
     ...(userData.employee_role && { hs_role: userData.employee_role }),
     ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
-    ...(userData.github && { github_url: userData.github }),
-    ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
+    ...(userData.github_account && { github_url: userData.github_account }),
+    ...(userData.x_account && { x_handle: userData.x_account }),
+    ...(userData.linkedin_account && { linkedin_url: userData.linkedin_account }),
+    ...(userData.telegram_account && { telegram_handle: userData.telegram_account }),
     ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
-    ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),
+    ...(userData.additional_social_accounts && userData.additional_social_accounts.length > 0 && { contact_othersocials: userData.additional_social_accounts.join('; ') }),
     ...(userData.notifications !== undefined && { marketing_consent: userData.notifications }),
     ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
   };

@@ -79,6 +79,7 @@ const dict: Record<EventsLang, Dict> = {
     "join.registered": "You're In",
     "join.chat": "Join the Hackathon Chat",
     "join.default": "Join now",
+    "join.editRegistration": "Edit registration",
     "overview.learnMore": "LEARN MORE",
     "overview.hackathonTitleFallback": "Hackathon Title",
     "overview.type.hackathon": "Hackathon",
@@ -309,6 +310,15 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step1.country.hint": "This will help us bring in-person events closer to you.",
     "reg.step1.telegram.label": "Telegram Username *",
     "reg.step1.telegram.placeholder": "Enter your Telegram username (without @)",
+    "reg.step1.roles.label": "Select all roles that apply.",
+    "reg.step1.roles.university": "University Affiliate",
+    "reg.step1.roles.university.placeholder": "Enter your university or institution name",
+    "reg.step1.roles.developer": "Developer",
+    "reg.step1.roles.enthusiast": "Enthusiast",
+    "reg.step1.roles.founder": "Founder",
+    "reg.step1.roles.companyName.placeholder": "Company name",
+    "reg.step1.roles.employee": "Employee",
+    "reg.step1.roles.employeeRole.placeholder": "Select your role",
     "reg.step1.additional.title": "Additional Information",
     "reg.step1.founder.label": "Are you a founder or co-founder of a blockchain project?",
     "reg.step1.ecosystem.label": "Consider yourself an Avalanche ecosystem member?",
@@ -336,6 +346,23 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step2.github.placeholder": "Enter your GitHub or Portfolio link (optional)",
     "reg.step2.github.hint": "Provide a link to showcase your past work (optional).",
 
+    // Referral
+    "reg.referral.title": "Referral",
+    "reg.referral.description": "Were you referred by a Team1 Member or someone on the Avalanche team? (Optional)",
+    "reg.referral.referredBy": "Referred by:",
+    "reg.referral.loading": "Loading referral…",
+    "reg.referral.teamLabel": "Referrer team",
+    "reg.referral.teamPlaceholder": "Select a team (optional)",
+    "reg.referral.noTeam": "— No team —",
+    "reg.referral.otherLabel": "Tell us who referred you",
+    "reg.referral.otherPlaceholder": "e.g. Pedro from the Lisbon hackerhouse",
+    "reg.referral.personLabel": "Specific person (optional)",
+    "reg.referral.noPersonPlaceholder": "No specific person",
+    "reg.referral.noPerson": "No specific person",
+    "reg.referral.unnamedMember": "Unnamed member",
+    "reg.referral.loadingMembers": "Loading…",
+    "reg.referral.membersError": "Couldn't load team members",
+
     // Step 3
     "reg.step3.title": "Step 3: Terms & Agreements",
     "reg.step3.subtitle": "Review and agree to the terms to complete your registration. For information about our privacy practices and commitment to protecting your privacy, please review our",
@@ -353,6 +380,8 @@ const dict: Record<EventsLang, Dict> = {
     "reg.dialog.body": "Your application has been Approved. Join the",
     "reg.dialog.telegramLink": "Telegram group",
     "reg.dialog.bodyEnd": "to get all the support you need.",
+    "reg.dialog.updateTitle": "Registration Updated",
+    "reg.dialog.updateBody": "Your registration has been updated successfully.",
 
     // Referral
     "referral.button.label": "Refer a Friend",
@@ -365,6 +394,16 @@ const dict: Record<EventsLang, Dict> = {
     "referral.modal.shareOn": "Share on",
     "referral.share.xText": "Join me at {title} — a hackathon on Avalanche! Register here: {link}",
     "referral.share.linkedinText": "Join me at {title} — a hackathon on Avalanche! Register here: {link}",
+
+    // Registration confirmation email
+    "reg.email.subject": "Hackathon Registration",
+    "reg.email.h2": "Hackathon registration",
+    "reg.email.yourRegFor": "Your registration for",
+    "reg.email.hasBeenApproved": "has been approved. Please",
+    "reg.email.chatLinkText": "join the hackathon chat",
+    "reg.email.automated": "This is an automated message — please do not reply.",
+    "reg.email.ignore": "If you did not expect this invitation, you can safely ignore this email.",
+    "reg.email.footer": "Avalanche Builder's Hub © 2025",
 
     // Invitation email
     "invitation.email.subject": "You're invited to collaborate on \"{projectName}\"",
@@ -467,6 +506,7 @@ const dict: Record<EventsLang, Dict> = {
     "join.registered": "Ya estás dentro",
     "join.chat": "Únete al chat del hackathon",
     "join.default": "Unirse ahora",
+    "join.editRegistration": "Editar registro",
     "overview.learnMore": "SABER MÁS",
     "overview.hackathonTitleFallback": "Título del hackathon",
     "overview.type.hackathon": "Hackathon",
@@ -700,6 +740,15 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step1.country.hint": "Esto nos ayudará a acercar eventos presenciales a tu ubicación.",
     "reg.step1.telegram.label": "Usuario de Telegram *",
     "reg.step1.telegram.placeholder": "Ingresa tu usuario de Telegram (sin @)",
+    "reg.step1.roles.label": "Selecciona todos los roles que apliquen.",
+    "reg.step1.roles.university": "Afiliado universitario",
+    "reg.step1.roles.university.placeholder": "Ingresa el nombre de tu universidad o institución",
+    "reg.step1.roles.developer": "Desarrollador",
+    "reg.step1.roles.enthusiast": "Entusiasta",
+    "reg.step1.roles.founder": "Fundador",
+    "reg.step1.roles.companyName.placeholder": "Nombre de la empresa",
+    "reg.step1.roles.employee": "Empleado",
+    "reg.step1.roles.employeeRole.placeholder": "Selecciona tu rol",
     "reg.step1.additional.title": "Información adicional",
     "reg.step1.founder.label": "¿Eres fundador o cofundador de un proyecto blockchain?",
     "reg.step1.ecosystem.label": "¿Te consideras miembro del ecosistema Avalanche?",
@@ -727,6 +776,23 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step2.github.placeholder": "Ingresa tu link de GitHub o portafolio (opcional)",
     "reg.step2.github.hint": "Incluye un link para mostrar tu trabajo anterior (opcional).",
 
+    // Referral
+    "reg.referral.title": "Referido",
+    "reg.referral.description": "¿Fuiste referido por un miembro de Team1 o alguien del equipo de Avalanche? (Opcional)",
+    "reg.referral.referredBy": "Referido por:",
+    "reg.referral.loading": "Cargando referido…",
+    "reg.referral.teamLabel": "Equipo referidor",
+    "reg.referral.teamPlaceholder": "Selecciona un equipo (opcional)",
+    "reg.referral.noTeam": "— Sin equipo —",
+    "reg.referral.otherLabel": "Cuéntanos quién te refirió",
+    "reg.referral.otherPlaceholder": "ej. Pedro del hackerhouse de Lisboa",
+    "reg.referral.personLabel": "Persona específica (opcional)",
+    "reg.referral.noPersonPlaceholder": "Sin persona específica",
+    "reg.referral.noPerson": "Sin persona específica",
+    "reg.referral.unnamedMember": "Miembro sin nombre",
+    "reg.referral.loadingMembers": "Cargando…",
+    "reg.referral.membersError": "No se pudieron cargar los miembros del equipo",
+
     // Step 3
     "reg.step3.title": "Paso 2: Términos y acuerdos",
     "reg.step3.subtitle": "Revisa y acepta los términos para completar tu registro. Para más información sobre nuestras prácticas de privacidad, consulta nuestra",
@@ -744,6 +810,8 @@ const dict: Record<EventsLang, Dict> = {
     "reg.dialog.body": "Tu solicitud ha sido aprobada. Únete al",
     "reg.dialog.telegramLink": "grupo de Telegram",
     "reg.dialog.bodyEnd": "para obtener todo el apoyo que necesitas.",
+    "reg.dialog.updateTitle": "Registro actualizado",
+    "reg.dialog.updateBody": "Tu registro ha sido actualizado exitosamente.",
 
     // Referral
     "referral.button.label": "Invitar a un amigo",
@@ -756,6 +824,16 @@ const dict: Record<EventsLang, Dict> = {
     "referral.modal.shareOn": "Compartir en",
     "referral.share.xText": "Únete a {title} — un hackathon en Avalanche. Regístrate aquí: {link}",
     "referral.share.linkedinText": "Únete a {title} — un hackathon en Avalanche. Regístrate aquí: {link}",
+
+    // Registration confirmation email
+    "reg.email.subject": "Registro de Hackathon",
+    "reg.email.h2": "Registro de hackathon",
+    "reg.email.yourRegFor": "Tu registro para",
+    "reg.email.hasBeenApproved": "ha sido aprobado. Por favor",
+    "reg.email.chatLinkText": "únete al chat del hackathon",
+    "reg.email.automated": "Este es un mensaje automático — por favor no respondas.",
+    "reg.email.ignore": "Si no esperabas esta invitación, puedes ignorar este correo con seguridad.",
+    "reg.email.footer": "Avalanche Builder's Hub © 2025",
 
     // Invitation email
     "invitation.email.subject": "Te invitaron a colaborar en \"{projectName}\"",

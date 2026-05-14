@@ -51,14 +51,16 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         image: user.image,
         country: user.country || null,
         user_type: userType,
-        github: user.github || null,
+        github_account: user.github_account || null,
         githubConnected: Boolean(user.github_access_token),
+        x_account: user.x_account || null,
+        linkedin_account: user.linkedin_account || null,
         wallet: Array.isArray(user.wallet) ? (user.wallet.length > 0 ? user.wallet : null) : (user.wallet ? [user.wallet] : null),
-        socials: user.social_media || [],
+        additional_social_accounts: user.additional_social_accounts || [],
         skills: user.skills || [],
         notifications: user.notifications,
         profile_privacy: user.profile_privacy,
-        telegram_user: user.telegram_user || null,
+        telegram_account: user.telegram_account || null,
         notification_means: user.notification_means || null,
     } as ExtendedProfile;
 }
@@ -69,8 +71,17 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
  * Applies an explicit whitelist of fields (no request-body spread) and maps
  * frontend-facing names to their database column names:
  *   - username      -> user_name
- *   - socials       -> social_media
+ *   - additional_social_accounts -> additional_social_accounts
+ *
+ * GitHub and X are intentionally not handled here. Those fields are owned by
+ * their OAuth link routes so users cannot self-attest verified accounts.
  */
+function nullableTrimmedString(value: string | null | undefined): string | null {
+    if (value == null) return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+
 function buildUserUpdateData(
     profileData: UpdateExtendedProfileData
 ): Prisma.UserUpdateInput {
@@ -83,18 +94,19 @@ function buildUserUpdateData(
     if (profileData.notification_email !== undefined) updateData.notification_email = profileData.notification_email;
     if (profileData.image !== undefined) updateData.image = profileData.image;
     if (profileData.country !== undefined) updateData.country = profileData.country;
-    if (profileData.github !== undefined) updateData.github = profileData.github;
+    if (profileData.x_account !== undefined) updateData.x_account = nullableTrimmedString(profileData.x_account);
+    if (profileData.linkedin_account !== undefined) updateData.linkedin_account = nullableTrimmedString(profileData.linkedin_account);
     if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
     if (profileData.skills !== undefined) updateData.skills = profileData.skills;
     if (profileData.notifications !== undefined) updateData.notifications = profileData.notifications;
     if (profileData.profile_privacy !== undefined) updateData.profile_privacy = profileData.profile_privacy;
-    if (profileData.telegram_user !== undefined) updateData.telegram_user = profileData.telegram_user;
+    if (profileData.telegram_account !== undefined) updateData.telegram_account = nullableTrimmedString(profileData.telegram_account);
 
     if (profileData.username !== undefined) {
         updateData.user_name = profileData.username.trim();
     }
-    if (profileData.socials !== undefined) {
-        updateData.social_media = profileData.socials;
+    if (profileData.additional_social_accounts !== undefined) {
+        updateData.additional_social_accounts = profileData.additional_social_accounts;
     }
     if (profileData.user_type !== undefined) {
         updateData.user_type = profileData.user_type as Prisma.InputJsonValue;
@@ -163,10 +175,12 @@ export async function updateExtendedProfile(
                 employee_role: updatedProfile.user_type?.employee_role,
                 is_developer: updatedProfile.user_type?.is_developer,
                 is_enthusiast: updatedProfile.user_type?.is_enthusiast,
-                github: updatedProfile.github || undefined,
-                telegram_user: updatedProfile.telegram_user || undefined,
+                github_account: updatedProfile.github_account || undefined,
+                x_account: updatedProfile.x_account || undefined,
+                linkedin_account: updatedProfile.linkedin_account || undefined,
+                telegram_account: updatedProfile.telegram_account || undefined,
                 wallet: updatedProfile.wallet || undefined,
-                socials: updatedProfile.socials || undefined,
+                additional_social_accounts: updatedProfile.additional_social_accounts || undefined,
             });
         } catch (error) {
             console.error('[HubSpot UserData] Failed to sync updated profile:', error);
@@ -237,4 +251,3 @@ export async function getPopularSkills(): Promise<PopularSkill[]> {
 
     return popularSkills;
 }
-
