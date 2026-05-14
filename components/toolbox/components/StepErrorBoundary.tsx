@@ -11,17 +11,20 @@ interface StepErrorBoundaryProps {
 interface State {
   hasError: boolean;
   error: Error | null;
-  retriedOnce: boolean;
+  retryCount: number;
 }
 
 const AUTO_RETRY_DELAY_MS = 500;
+const MAX_AUTO_RETRIES = 5;
+const RETRY_BUDGET_RESET_MS = 10_000;
 
 export class StepErrorBoundary extends React.Component<StepErrorBoundaryProps, State> {
   private retryTimeout: ReturnType<typeof setTimeout> | null = null;
+  private resetTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(props: StepErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null, retriedOnce: false };
+    this.state = { hasError: false, error: null, retryCount: 0 };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -31,17 +34,42 @@ export class StepErrorBoundary extends React.Component<StepErrorBoundaryProps, S
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('StepErrorBoundary caught:', error, errorInfo);
 
-    // Transient first-mount errors (notably the brief window during which
-    // wagmi has torn down its wallet client mid-`switchChain` and viem
-    // internals throw on partially-resolved chain state) recover cleanly on
-    // the next render. Auto-retry exactly once per boundary instance so the
-    // user doesn't see a flash of the error UI; if the error reproduces, the
-    // manual "Try again" affordance still appears.
-    if (!this.state.retriedOnce && this.retryTimeout === null) {
+    // Cancel any pending budget-reset timer — we just hit an error, so the
+    // retry budget should not refill yet.
+    if (this.resetTimeout !== null) {
+      clearTimeout(this.resetTimeout);
+      this.resetTimeout = null;
+    }
+
+    // Transient errors during chain transitions (viem/wagmi internals seeing
+    // partially-resolved state) recover cleanly on the next render. Auto-retry
+    // up to `MAX_AUTO_RETRIES` times before falling back to the manual UI so
+    // multi-switch flows aren't interrupted by every brief transition. A
+    // genuine persistent error consumes the budget within ~3 seconds and
+    // surfaces visibly.
+    if (this.state.retryCount < MAX_AUTO_RETRIES && this.retryTimeout === null) {
       this.retryTimeout = setTimeout(() => {
         this.retryTimeout = null;
-        this.setState({ hasError: false, error: null, retriedOnce: true });
+        this.setState((prev) => ({
+          hasError: false,
+          error: null,
+          retryCount: prev.retryCount + 1,
+        }));
       }, AUTO_RETRY_DELAY_MS);
+    }
+  }
+
+  componentDidUpdate(_: StepErrorBoundaryProps, prevState: State) {
+    // After a successful recovery (just cleared an error and the next render
+    // didn't throw again), schedule a budget-reset so a long session that
+    // survives several transients refills its retry budget instead of using
+    // it up permanently.
+    const justRecovered = prevState.hasError && !this.state.hasError && this.state.retryCount > 0;
+    if (justRecovered && this.resetTimeout === null) {
+      this.resetTimeout = setTimeout(() => {
+        this.resetTimeout = null;
+        this.setState({ retryCount: 0 });
+      }, RETRY_BUDGET_RESET_MS);
     }
   }
 
@@ -50,18 +78,22 @@ export class StepErrorBoundary extends React.Component<StepErrorBoundaryProps, S
       clearTimeout(this.retryTimeout);
       this.retryTimeout = null;
     }
+    if (this.resetTimeout !== null) {
+      clearTimeout(this.resetTimeout);
+      this.resetTimeout = null;
+    }
   }
 
   private handleManualRetry = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, retryCount: 0 });
   };
 
   render() {
     if (this.state.hasError) {
-      // During the brief auto-retry window we render nothing so the user
-      // doesn't see a flash of the error UI. If the retry fails, the next
-      // catch lands with `retriedOnce: true` and the manual UI shows.
-      if (!this.state.retriedOnce) {
+      // While an auto-retry is in flight (budget not exhausted yet, timer
+      // pending), render nothing so the user doesn't see a flash of the
+      // error UI. Once the budget is exhausted, fall through to the manual UI.
+      if (this.state.retryCount < MAX_AUTO_RETRIES) {
         return null;
       }
 
