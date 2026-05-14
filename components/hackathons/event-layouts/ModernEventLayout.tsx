@@ -138,7 +138,7 @@ export default function ModernEventLayout({
           hackathonId={id}
           customLink={hackathon.content.join_custom_link}
           customText={hackathon.content.join_custom_text}
-          className="w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer"
+          className="cursor-pointer"
           variant="red"
           showChatWhenRegistered={true}
           utm={utm}
@@ -206,7 +206,7 @@ export default function ModernEventLayout({
             </div>
 
             {/* Register Button */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex flex-col items-end gap-1">
               <JoinButton
                 isRegistered={isRegistered}
                 hackathonId={id}
@@ -218,6 +218,14 @@ export default function ModernEventLayout({
                 utm={utm}
                 lang={lang}
               />
+              {isRegistered && (
+                <a
+                  href={`/events/registration-form?event=${id}`}
+                  className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 underline underline-offset-2 transition-colors"
+                >
+                  {t(lang, "join.editRegistration")}
+                </a>
+              )}
             </div>
           </div>
 

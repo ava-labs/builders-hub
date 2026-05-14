@@ -135,7 +135,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
 
         {/* Full width below email & telegram: roles in 2 columns */}
         <div className="col-span-12 space-y-4">
-          <FormLabel className="text-base font-medium">Select all roles that apply.</FormLabel>
+          <FormLabel className="text-base font-medium">{t(lang, "reg.step1.roles.label")}</FormLabel>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-x-8">
             {/* Column A */}
             <div className="space-y-5">
@@ -171,7 +171,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                       }
                     }}
                   >
-                    University Affiliate
+                    {t(lang, "reg.step1.roles.university")}
                   </FormLabel>
                 </div>
                 {watchedValues.is_student && (
@@ -182,7 +182,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                       <FormItem className="w-full sm:flex-1 sm:min-w-0">
                         <FormControl>
                           <Input
-                            placeholder="Enter your university or institution name"
+                            placeholder={t(lang, "reg.step1.roles.university.placeholder")}
                             className="bg-transparent placeholder-zinc-600"
                             {...field}
                           />
@@ -216,7 +216,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                     form.setValue("is_developer", !watchedValues.is_developer, { shouldDirty: true });
                   }}
                 >
-                  Developer
+                  {t(lang, "reg.step1.roles.developer")}
                 </FormLabel>
               </div>
 
@@ -242,7 +242,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                     form.setValue("is_enthusiast", !watchedValues.is_enthusiast, { shouldDirty: true });
                   }}
                 >
-                  Enthusiast
+                  {t(lang, "reg.step1.roles.enthusiast")}
                 </FormLabel>
               </div>
             </div>
@@ -281,7 +281,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                       }
                     }}
                   >
-                    Founder
+                    {t(lang, "reg.step1.roles.founder")}
                   </FormLabel>
                 </div>
                 {watchedValues.is_founder && (
@@ -291,7 +291,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                     render={({ field }) => (
                       <FormItem className="w-full sm:flex-1 sm:min-w-0">
                         <FormControl>
-                          <Input placeholder="Company name" className="bg-transparent placeholder-zinc-600" {...field} />
+                          <Input placeholder={t(lang, "reg.step1.roles.companyName.placeholder")} className="bg-transparent placeholder-zinc-600" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -334,7 +334,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                       }
                     }}
                   >
-                    Employee
+                    {t(lang, "reg.step1.roles.employee")}
                   </FormLabel>
                 </div>
                 {watchedValues.is_employee && (
@@ -345,7 +345,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                       render={({ field }) => (
                         <FormItem className="flex-1 w-full min-w-0">
                           <FormControl>
-                            <Input placeholder="Company name" className="bg-transparent placeholder-zinc-600" {...field} />
+                            <Input placeholder={t(lang, "reg.step1.roles.companyName.placeholder")} className="bg-transparent placeholder-zinc-600" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -359,7 +359,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select your role" />
+                                <SelectValue placeholder={t(lang, "reg.step1.roles.employeeRole.placeholder")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>

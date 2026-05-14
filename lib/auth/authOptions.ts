@@ -126,7 +126,9 @@ export const AuthOptions: NextAuthOptions = {
             notification_means: null,
             chatConversations: [], consoleLog: [], faucetClaims: [], hackathons: [], updated_hackathons: [], memberships: [],
             managedTestnetNodes: [], Notification: [], registrations: [], Repository: [], statsPlaygrounds: [], statsPlaygroundFavorites: [], badges: [],
-            github_access_token: null
+            github_access_token: null,
+            linkedin_url: null,
+            x_handle: null,
           } as PrismaUser
         }
 

@@ -58,6 +58,8 @@ model User {
   created_at               DateTime                  @default(now()) @db.Timestamptz(3)
   country                  String?
   github                   String?
+  linkedin_url             String?
+  x_handle                 String?
   noun_avatar_enabled      Boolean                   @default(false)
   noun_avatar_seed         Json?
   skills                   String[]                  @default([])
