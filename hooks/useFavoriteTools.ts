@@ -6,6 +6,12 @@ import { createLocalPref } from '@/lib/console/local-pref';
 // Tools always pinned to the sidebar — the canonical navigation, not
 // promotable/demotable by the user. Starring exists to lift OTHER toolbox
 // tools into the sidebar; the mandatory list is the floor, not a default.
+// Keep this list in sync with the actual sidebar URLs in
+// `components/console/console-sidebar.tsx` — entries here that aren't
+// in the sidebar render as stars without matching nav items, which
+// confuses users (e.g. the legacy `/console/ictt/token-transfer` URL
+// was consolidated into the bridge wizard's `live` phase and is no
+// longer a standalone sidebar entry).
 const MANDATORY_PATHS = new Set<string>([
   '/console',
   '/console/toolbox',
@@ -21,9 +27,10 @@ const MANDATORY_PATHS = new Set<string>([
   '/console/add-validator',
   '/console/permissioned-l1s/disable-validator',
   '/console/layer-1/l1-validator-balance',
+  '/console/icm',
   '/console/icm/setup',
+  '/console/ictt',
   '/console/ictt/setup',
-  '/console/ictt/token-transfer',
   '/console/encrypted-erc/overview',
   '/console/encrypted-erc/deploy',
 ]);
