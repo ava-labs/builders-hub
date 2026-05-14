@@ -33,7 +33,10 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   const ctx = useBridgeContext({ step: 'remote' });
   const l1List = useL1List();
   const homeL1 = useL1ByChainId(bridge?.homeL1Id ?? '');
-  const { walletEVMAddress } = useWalletStore();
+  // Granular selectors so this inspector doesn't re-render on every wallet
+  // store mutation — the destructure pattern (`const { x } = useWalletStore()`)
+  // subscribes to the whole store and amplified mid-switch render churn.
+  const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const { switchChainOrAdd } = useWallet();
   const [isSwitching, setIsSwitching] = useState(false);
