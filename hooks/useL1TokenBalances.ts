@@ -50,9 +50,11 @@ export interface UseL1TokenBalancesResult {
    *  for already-validated addresses). */
   refresh: () => void;
   /** Validates the address on-chain, persists, and triggers a refresh.
-   *  Resolves to `{ ok: true }` on success or `{ ok: false, error }` if
-   *  the address isn't an ERC-20 on this L1. */
-  addToken: (address: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+   *  On success resolves to `{ ok: true, persisted }` — `persisted` is
+   *  `false` when the browser rejected the localStorage write (Safari
+   *  private mode, quota exceeded) but the token is still added to the
+   *  current session. On failure resolves to `{ ok: false, error }`. */
+  addToken: (address: string) => Promise<{ ok: true; persisted: boolean } | { ok: false; error: string }>;
   removeToken: (address: string) => void;
   /** True when the wallet isn't connected to this L1 — the UI uses this
    *  to render a "switch your wallet" placeholder rather than a list. */
@@ -339,7 +341,7 @@ export function useL1TokenBalances({
   }, [enabled, userAddress, l1, l1List, wrappedAddress, refreshCounter]);
 
   const addToken = useCallback(
-    async (address: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    async (address: string): Promise<{ ok: true; persisted: boolean } | { ok: false; error: string }> => {
       const normalized = normalizeAddress(address);
       if (!normalized) {
         return { ok: false, error: 'Not a valid contract address' };
@@ -374,9 +376,12 @@ export function useL1TokenBalances({
       metadataCacheRef.current.set(normalized, meta);
       invalidCacheRef.current.delete(normalized);
 
-      addUserToken(l1.evmChainId, userAddress, normalized);
+      const stored = addUserToken(l1.evmChainId, userAddress, normalized);
+      if (!stored) {
+        return { ok: false, error: 'Failed to save token' };
+      }
       refresh();
-      return { ok: true };
+      return { ok: true, persisted: stored.persisted };
     },
     [l1.rpcUrl, l1.evmChainId, l1.chainName, l1List, userAddress, refresh],
   );
