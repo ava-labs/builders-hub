@@ -37,12 +37,20 @@ import {
   canAccessBuilderInsights,
   canSendNotifications,
 } from "@/lib/auth/permissions";
+import { canSeeTeam1Tab } from "@/lib/auth/roles";
 import SendNotificationsForm from "@/components/notification/send-notifications-form";
 import { InsightsCard } from "./InsightsCard";
+import { Team1Card } from "./Team1Card";
 import type { BuilderInsightsData } from "@/server/services/builderInsights";
 import type { ProfileLink, ProfileRole } from "./types";
 
-type Tab = "personal" | "projects" | "achievements" | "insights" | "notifications";
+type Tab =
+  | "personal"
+  | "projects"
+  | "achievements"
+  | "insights"
+  | "notifications"
+  | "team1";
 interface TabSpec {
   id: Tab;
   label: string;
@@ -149,6 +157,7 @@ export default function ProfilePage({ teamLabel }: Props) {
   const showInsightsTab = canAccessBuilderInsights(
     session?.user?.custom_attributes,
   );
+  const showTeam1Tab = canSeeTeam1Tab(session?.user?.custom_attributes);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -443,6 +452,7 @@ export default function ProfilePage({ teamLabel }: Props) {
   const tabs: ReadonlyArray<TabSpec> = [
     ...BASE_TABS,
     ...(showInsightsTab ? [{ id: "insights" as const, label: "Insights" }] : []),
+    ...(showTeam1Tab ? [{ id: "team1" as const, label: "Team 1" }] : []),
     ...(showNotificationsTab
       ? [{ id: "notifications" as const, label: "Notifications" }]
       : []),
@@ -455,6 +465,7 @@ export default function ProfilePage({ teamLabel }: Props) {
     achievements: summary.badges.length,
     insights: insightsData?.latest30DaySignups ?? null,
     notifications: null,
+    team1: null,
   };
 
   const showSidebar =
@@ -507,8 +518,12 @@ export default function ProfilePage({ teamLabel }: Props) {
                   onClick={() => setTab(t.id)}
                 >
                   {t.label}
-                  {t.id === "notifications" || t.id === "insights" ? (
+                  {t.id === "insights" ? (
+                    <span className="pr-devrel-badge">Members</span>
+                  ) : t.id === "notifications" ? (
                     <span className="pr-devrel-badge">DevRel</span>
+                  ) : t.id === "team1" ? (
+                    <span className="pr-devrel-badge">Admin</span>
                   ) : (
                     showCount && <span className="pr-count">{display}</span>
                   )}
@@ -582,6 +597,9 @@ export default function ProfilePage({ teamLabel }: Props) {
                 loading={insightsLoading}
                 error={insightsError}
               />
+            )}
+            {tab === "team1" && showTeam1Tab && (
+              <Team1Card onToast={pushToast} />
             )}
             {tab === "notifications" && showNotificationsTab && (
               <div className="pr-card">

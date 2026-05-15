@@ -17,6 +17,19 @@
  */
 
 /**
+ * Team One hierarchy tags, stored as values inside `custom_attributes`.
+ * Treat them as mutually exclusive at the service layer: a user can hold
+ * exactly one of these at a time. Membership in a specific Team One country
+ * is encoded by `User.team_id` (e.g. `team1-latam`, `team1-india`).
+ */
+export const TEAM1_HIERARCHY_ROLES = [
+  "team1-admin",
+  "team1-member",
+  "team1-technical",
+] as const satisfies readonly string[];
+export type Team1Role = (typeof TEAM1_HIERARCHY_ROLES)[number];
+
+/**
  * Named policies for role groups that recur across the codebase.
  * Add a new entry here when a new "who can access X?" rule appears and is
  * used in more than one place.
@@ -30,6 +43,12 @@ export const ROLE_GROUPS = {
   judge: ["devrel", "judge"],
   /** Access to notification sending flows. */
   notifications: ["devrel", "notify_event"],
+  /** Who can see the Team One profile tab. */
+  team1Tab: ["devrel", "team1-admin"],
+  /** Who can mutate Team One membership (assign / remove). */
+  team1Edit: ["devrel", "team1-admin"],
+  /** Anyone "in" Team One — admins, regular members, and technical. */
+  team1Membership: TEAM1_HIERARCHY_ROLES,
 } as const satisfies Record<string, readonly string[]>;
 
 export type RoleGroupName = keyof typeof ROLE_GROUPS;
@@ -84,3 +103,13 @@ export const hasJudgeRole = (
 export const hasNotificationsRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasRoleGroup(customAttributes, "notifications");
+
+/** Shortcut: user can see the Team One profile tab. */
+export const canSeeTeam1Tab = (
+  customAttributes: readonly string[] | null | undefined,
+): boolean => hasRoleGroup(customAttributes, "team1Tab");
+
+/** Shortcut: user can assign / remove Team One membership. */
+export const canEditTeam1 = (
+  customAttributes: readonly string[] | null | undefined,
+): boolean => hasRoleGroup(customAttributes, "team1Edit");
