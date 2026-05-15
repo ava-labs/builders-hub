@@ -8,13 +8,14 @@ import { VERDICT_BUTTON_COLORS, VERDICT_BADGE_COLORS, VERDICT_LABELS } from "./c
 import type { EvaluationData, Verdict } from "./types";
 
 interface Props {
-  formDataId: string;
+  formDataId?: string;
+  projectId?: string;
   origin: string;
   evaluations: EvaluationData[];
   currentUserId: string;
   stage: number;
   currentStage: number;
-  onEvaluationSaved: (formDataId: string, evaluation: EvaluationData) => void;
+  onEvaluationSaved: (key: string, evaluation: EvaluationData) => void;
 }
 
 const VERDICTS: { value: Verdict; label: string; color: string }[] = (
@@ -52,6 +53,7 @@ const STAGE_LABELS: Record<number, string> = {
 
 export function EvaluationPanel({
   formDataId,
+  projectId,
   origin,
   evaluations,
   currentUserId,
@@ -59,6 +61,9 @@ export function EvaluationPanel({
   currentStage,
   onEvaluationSaved,
 }: Props) {
+  if (!formDataId && !projectId) {
+    throw new Error("EvaluationPanel requires either formDataId or projectId");
+  }
   const myEvaluation = evaluations.find(
     (e) => e.evaluatorId === currentUserId && e.stage === stage
   );
@@ -104,12 +109,13 @@ export function EvaluationPanel({
       }
 
       const body: Record<string, unknown> = {
-        formDataId,
         verdict: selectedVerdict,
         comment: comment.trim() || undefined,
         scoreOverall: finalScore ?? undefined,
         stage,
       };
+      if (projectId) body.projectId = projectId;
+      else body.formDataId = formDataId;
 
       if (Object.keys(scoresPayload).length > 0) {
         body.scores = scoresPayload;
@@ -127,9 +133,9 @@ export function EvaluationPanel({
       }
 
       const data = await res.json();
-      onEvaluationSaved(formDataId, {
+      onEvaluationSaved(projectId ?? formDataId!, {
         id: data.id,
-        formDataId,
+        formDataId: formDataId ?? projectId!,
         evaluatorId: currentUserId,
         evaluatorName: "You",
         verdict: selectedVerdict,
@@ -152,7 +158,6 @@ export function EvaluationPanel({
 
   return (
     <div className="p-4 space-y-4 bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-md mx-4 mt-4">
-      {/* Verdict + Comment + Save */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">Your Verdict</h3>
         <div className="flex gap-2 flex-wrap items-center">
@@ -192,10 +197,8 @@ export function EvaluationPanel({
         {error && <p className="text-xs text-red-400">{error}</p>}
       </div>
 
-      {/* Final Score */}
       <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
         <div className="flex gap-6 items-start">
-          {/* Score criteria */}
           {scoreCriteria.length > 0 && (
             <div className="flex-1 space-y-3">
               <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 mb-3">
@@ -231,7 +234,6 @@ export function EvaluationPanel({
             </div>
           )}
 
-          {/* Final Score */}
           <div className="border-l border-zinc-200 dark:border-zinc-800 pl-6 flex flex-col items-center min-w-[220px]">
             <span className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-1">
               Final Score
@@ -270,7 +272,6 @@ export function EvaluationPanel({
         </div>
       </div>
 
-      {/* Other evaluations */}
       {otherEvaluations.length > 0 && (
         <div className="space-y-2 border-t border-zinc-200 dark:border-zinc-800 pt-3">
           <h3 className="text-xs text-zinc-500">
@@ -297,7 +298,6 @@ export function EvaluationPanel({
         </div>
       )}
 
-      {/* Vote summary */}
       {stageEvaluations.length > 0 && <VoteSummary evaluations={stageEvaluations} />}
     </div>
   );
