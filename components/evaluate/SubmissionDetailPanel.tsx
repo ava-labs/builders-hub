@@ -16,35 +16,40 @@ interface Props {
   evaluations?: EvaluationData[];
   currentUserId: string;
   isDevrel?: boolean;
+  showStages?: boolean;
+  projectId?: string;
   onClose: () => void;
-  onEvaluationSaved?: (formDataId: string, evaluation: EvaluationData) => void;
+  onEvaluationSaved?: (key: string, evaluation: EvaluationData) => void;
   onStageAdvanced?: (formDataId: string, newStage: number) => void;
 }
 
-const TABS = [
+const ALL_TABS = [
   { id: "project" as const, label: "Project & Team" },
   { id: "submission" as const, label: "Stage Submissions" },
   { id: "evaluation" as const, label: "Evaluation" },
 ];
 
-type TabId = (typeof TABS)[number]["id"];
+type TabId = (typeof ALL_TABS)[number]["id"];
 
 export function SubmissionDetailPanel({
   row,
   evaluations: evalsProp,
   currentUserId,
   isDevrel = false,
+  showStages = true,
+  projectId,
   onClose,
   onEvaluationSaved: onParentEvalSaved,
   onStageAdvanced,
 }: Props) {
   const { project, formData, origin } = row;
+  const tabs = showStages ? ALL_TABS : ALL_TABS.filter((t) => t.id !== "submission");
   const [activeTab, setActiveTab] = useState<TabId>("project");
   const evaluations = evalsProp ?? row.evaluations;
 
   const handleEvaluationSaved = useCallback(
-    (formDataId: string, evaluation: EvaluationData) => {
-      onParentEvalSaved?.(formDataId, evaluation);
+    (key: string, evaluation: EvaluationData) => {
+      onParentEvalSaved?.(key, evaluation);
     },
     [onParentEvalSaved]
   );
@@ -66,7 +71,6 @@ export function SubmissionDetailPanel({
         className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl w-full max-w-5xl mx-4 max-h-[85vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-3 min-w-0">
             <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100 truncate" title={row.projectName}>
@@ -83,9 +87,8 @@ export function SubmissionDetailPanel({
           </Button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 px-6 pt-3 border-b border-zinc-200 dark:border-zinc-800">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -100,9 +103,7 @@ export function SubmissionDetailPanel({
           ))}
         </div>
 
-        {/* Scrollable content */}
         <div className="overflow-auto max-h-[70vh] p-4 scroll-smooth">
-          {/* Tab: Project & Team */}
           {activeTab === "project" && (
             <div className="space-y-4">
               {!project ? (
@@ -189,8 +190,7 @@ export function SubmissionDetailPanel({
             </div>
           )}
 
-          {/* Tab: Stage Submissions */}
-          {activeTab === "submission" && (
+          {showStages && activeTab === "submission" && (
             <div className="space-y-4">
               {eventConfig?.stageFields ? (
                 Object.entries(eventConfig.stageFields).map(
@@ -217,19 +217,21 @@ export function SubmissionDetailPanel({
             </div>
           )}
 
-          {/* Tab: Evaluation */}
           {activeTab === "evaluation" && (
             <div className="space-y-4">
-              <AdvanceStageControls
-                formDataId={row.formDataId}
-                currentStage={row.currentStage}
-                isDevrel={isDevrel}
-                onStageAdvanced={(id, stage) => onStageAdvanced?.(id, stage)}
-              />
+              {showStages && (
+                <AdvanceStageControls
+                  formDataId={row.formDataId}
+                  currentStage={row.currentStage}
+                  isDevrel={isDevrel}
+                  onStageAdvanced={(id, stage) => onStageAdvanced?.(id, stage)}
+                />
+              )}
 
               <EvaluationPanel
-                key={`${row.formDataId}-${row.currentStage}`}
-                formDataId={row.formDataId}
+                key={`${projectId ?? row.formDataId}-${row.currentStage}`}
+                formDataId={projectId ? undefined : row.formDataId}
+                projectId={projectId}
                 origin={origin}
                 evaluations={evaluations}
                 currentUserId={currentUserId}
@@ -238,10 +240,12 @@ export function SubmissionDetailPanel({
                 onEvaluationSaved={handleEvaluationSaved}
               />
 
-              <StageHistory
-                evaluations={evaluations}
-                currentStage={row.currentStage}
-              />
+              {showStages && (
+                <StageHistory
+                  evaluations={evaluations}
+                  currentStage={row.currentStage}
+                />
+              )}
             </div>
           )}
         </div>

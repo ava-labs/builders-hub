@@ -69,6 +69,7 @@ export default async function EvaluatePage({
             },
           },
           evaluations: {
+            where: { form_data_id: { not: null }, verdict: { not: null } },
             include: {
               evaluator: { select: { id: true, name: true } },
             },
@@ -90,7 +91,6 @@ export default async function EvaluatePage({
       const bgFormData = (rawFormData?.build_games ?? rawFormData) as Record<string, unknown>;
       const applicantData = (rawFormData?.applicant as Record<string, unknown>) ?? null;
 
-      // Find BG application for lead member (for area, name fallbacks)
       const bgApp = fd.project.members.reduce<(typeof bgApplications)[number] | null>((found, m) => {
         if (found) return found;
         const email = m.user?.email ?? m.email;
@@ -107,7 +107,6 @@ export default async function EvaluatePage({
         ? `${applicantData.first_name ?? ""} ${applicantData.last_name ?? ""}`.trim()
         : bgApp ? `${bgApp.first_name} ${bgApp.last_name}` : null;
 
-      // Per-member applications
       const memberApplications = fd.project.members.map((m) => {
         const email = m.user?.email ?? m.email ?? "";
         const memberBgApp = email ? bgAppByEmail.get(email.toLowerCase()) : null;
@@ -182,14 +181,14 @@ export default async function EvaluatePage({
         currentStage: fd.current_stage ?? 0,
         evaluations: fd.evaluations.map((e) => ({
           id: e.id,
-          formDataId: e.form_data_id,
+          formDataId: e.form_data_id!,
           evaluatorId: e.evaluator_id,
           evaluatorName: e.evaluator.name ?? "Unknown",
           verdict: e.verdict as EvaluationData["verdict"],
           comment: e.comment,
           scoreOverall: e.score_overall,
           scores: e.scores as Record<string, number> | null,
-          stage: e.stage ?? 0,
+          stage: e.stage,
           createdAt: e.created_at.toISOString(),
         })),
       };

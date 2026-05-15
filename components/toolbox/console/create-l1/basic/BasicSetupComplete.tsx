@@ -254,6 +254,12 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
         // brand-new chain yet (in which case it would otherwise fall back
         // to mainnet and mislabel the chain in the dashboard).
         isTestnet: job.request.network === 'fuji',
+        // Persist the per-L1 Firn URL the user just saw on this screen so
+        // the My L1 dashboard's ExplorerMenu picks it as default even on
+        // the wallet-only fallback path (managed-side data unavailable,
+        // mid-load, post-Firn-TTL). Undefined when the orchestrator did
+        // not return an explorer (e.g. the local mock path).
+        explorerUrl: result.explorer?.url,
       });
     } finally {
       setAddingToWallet(false);
