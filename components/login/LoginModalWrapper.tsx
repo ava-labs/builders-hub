@@ -14,7 +14,7 @@ import {
   useNewUserLoginListener,
   triggerLoginComplete,
 } from '@/hooks/useLoginModal';
-import { hasCompleteRequiredProfileAccounts } from '@/lib/profile/socialAccountValidation';
+import { hasCompleteBasicProfile } from '@/lib/profile/socialAccountValidation';
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
@@ -115,11 +115,8 @@ export function LoginModalWrapper() {
     }
   }, [isOpen, status, session?.user?.id, session?.user?.is_new_user, showTerms, showBasicProfile, closeLoginModal]);
 
-  // Enforce mandatory profile accounts on authenticated users.
-  // New users are caught via is_new_user -> Terms -> BasicProfileSetup.
-  // This extra check covers anyone who dismissed the modal or predates the
-  // requirement: on any authenticated page mount, reopen BasicProfileSetup
-  // if any required profile account is still null.
+  // Reopen BasicProfileSetup on any authenticated mount when the user is
+  // missing name, country, or at least one role flag. Socials are optional.
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (status !== "authenticated") return;
@@ -134,7 +131,7 @@ export function LoginModalWrapper() {
         if (!res.ok) return;
         const profile = await res.json();
         if (cancelled) return;
-        if (!hasCompleteRequiredProfileAccounts(profile)) {
+        if (!hasCompleteBasicProfile(profile)) {
           setTermsUserId(session.user.id);
           setShowBasicProfile(true);
         }

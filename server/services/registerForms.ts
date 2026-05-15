@@ -11,6 +11,7 @@ import { prisma } from "@/prisma/prisma";
 import { RegistrationForm } from "@/types/registrationForm";
 import { sendMail } from "./mail";
 import { recordReferralAttribution } from "./referrals";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 export const registerValidations: Validation[] = [
   {
@@ -136,6 +137,16 @@ export async function createRegisterForm(
     throw new ValidationError("Validation failed", errors);
   }
 
+  const isNewRegistration = !(await prisma.registerForm.findUnique({
+    where: {
+      hackathon_id_email: {
+        hackathon_id: registerData.hackathon_id as string,
+        email: registerData.email as string,
+      },
+    },
+    select: { id: true },
+  }));
+
   const content = { ...registerData } as Prisma.JsonObject;
   const newRegisterFormData = await prisma.registerForm.upsert({
     where: {
@@ -210,10 +221,12 @@ export async function createRegisterForm(
     // Continue with registration even if HubSpot fails
   }
   
-  await sendConfirmationMail(
-    newRegisterFormData.email,
-    newRegisterFormData.hackathon_id as string
-  );
+  if (isNewRegistration) {
+    await sendConfirmationMail(
+      newRegisterFormData.email,
+      newRegisterFormData.hackathon_id as string
+    );
+  }
   revalidatePath("/api/register-form/");
 
   return {
@@ -222,16 +235,26 @@ export async function createRegisterForm(
   } as unknown as RegistrationForm & { referralAttributed: boolean };
 }
 export async function getRegisterForm(email: string, hackathon_id: string) {
-  const registeredData = await prisma.registerForm.findFirst({
-    where: {
-      user: {
-        email: email,
+  const [registeredData, attribution] = await Promise.all([
+    prisma.registerForm.findFirst({
+      where: { user: { email }, hackathon_id },
+    }),
+    prisma.referralAttribution.findFirst({
+      where: {
+        target_type: "hackathon_registration",
+        target_id: hackathon_id,
+        user: { email },
       },
-      hackathon_id: hackathon_id,
-    },
-  });
+      select: {
+        team_id_referrer: true,
+        team_id_referrer_other: true,
+        user_id_referrer: true,
+      },
+    }),
+  ]);
 
-  return registeredData || null;
+  if (!registeredData) return null;
+  return { ...registeredData, referralAttribution: attribution ?? null };
 }
 export async function sendConfirmationMail(
   email: string,
@@ -240,24 +263,25 @@ export async function sendConfirmationMail(
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathon_id },
   });
-  const text = `your registration application for ${hackathon?.title} has been approved.`;
-  const subject = `Hackathon Registration`;
+  const lang = normalizeEventsLang((hackathon?.content as any)?.language);
+  const subject = t(lang, "reg.email.subject");
+  const text = `${t(lang, "reg.email.yourRegFor")} ${hackathon?.title} ${t(lang, "reg.email.hasBeenApproved")} ${t(lang, "reg.email.chatLinkText")}.`;
   const html = `
     <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">
-      <h2 style="color: white; font-size: 20px; margin-bottom: 16px;">Hackathon registration</h2>
+      <h2 style="color: white; font-size: 20px; margin-bottom: 16px;">${t(lang, "reg.email.h2")}</h2>
 
       <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">Your registration for</p>
+        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.yourRegFor")}</p>
         <p style="font-size: 20px; font-weight: bold; color: #EF4444; margin: 8px 0;">${hackathon?.title}</p>
-        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;"> has been approved. Please <a href="https://t.me/c/avalancheacademy/4337" style="color: #3B82F6; text-decoration: underline;">join the hackathon chat</a>. </p>
-        <p style="font-size: 10px; font-weight: bold; color: #ffffff; margin: 8px 0;">This is an automated message — please do not reply.</p>
+        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.hasBeenApproved")} <a href="https://t.me/avalancheacademy" style="color: #3B82F6; text-decoration: underline;">${t(lang, "reg.email.chatLinkText")}</a>.</p>
+        <p style="font-size: 10px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.automated")}</p>
       </div>
 
-      <p style="font-size: 12px; color: #A1A1AA;">If you did not expect this invitation, you can safely ignore this email.</p>
+      <p style="font-size: 12px; color: #A1A1AA;">${t(lang, "reg.email.ignore")}</p>
 
       <div style="margin-top: 20px;">
         <img src="https://build.avax.network/logo-white.png" alt="Company Logo" style="max-width: 120px; margin-bottom: 10px;">
-        <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builder's Hub © 2025</p>
+        <p style="font-size: 12px; color: #A1A1AA;">${t(lang, "reg.email.footer")}</p>
       </div>
     </div>
     `;

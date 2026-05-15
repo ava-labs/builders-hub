@@ -3,28 +3,37 @@ export const LINKEDIN_ACCOUNT_PATTERN = /^https?:\/\/(?:www\.)?linkedin\.com\/(?
 export const GITHUB_ACCOUNT_PATTERN = /^(?:[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}|https?:\/\/(?:www\.)?github\.com\/[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\/?)$/i;
 export const TELEGRAM_ACCOUNT_PATTERN = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
 
-type RequiredProfileAccounts = {
-  github_account?: unknown;
-  githubConnected?: unknown;
-  x_account?: unknown;
-  xConnected?: unknown;
-  linkedin_account?: unknown;
-  telegram_account?: unknown;
+type BasicProfileShape = {
+  name?: unknown;
+  country?: unknown;
+  user_type?: {
+    is_student?: unknown;
+    is_founder?: unknown;
+    is_employee?: unknown;
+    is_developer?: unknown;
+    is_enthusiast?: unknown;
+  } | null;
 };
 
-function isValidAccountValue(value: unknown, pattern: RegExp): boolean {
-  return typeof value === "string" && pattern.test(value.trim());
+function isNonEmptyString(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
-export function hasCompleteRequiredProfileAccounts(
-  profile: RequiredProfileAccounts | null | undefined
+// Matches the BasicProfileSetup zod schema: name + country + at least one
+// role flag are required; social handles are optional. Used by
+// LoginModalWrapper to decide whether to re-open the basic-setup modal.
+export function hasCompleteBasicProfile(
+  profile: BasicProfileShape | null | undefined,
 ): boolean {
-  return (
-    profile?.githubConnected === true &&
-    isValidAccountValue(profile?.github_account, GITHUB_ACCOUNT_PATTERN) &&
-    profile?.xConnected === true &&
-    isValidAccountValue(profile?.x_account, X_ACCOUNT_PATTERN) &&
-    isValidAccountValue(profile?.linkedin_account, LINKEDIN_ACCOUNT_PATTERN) &&
-    isValidAccountValue(profile?.telegram_account, TELEGRAM_ACCOUNT_PATTERN)
+  if (!isNonEmptyString(profile?.name)) return false;
+  if (!isNonEmptyString(profile?.country)) return false;
+  const t = profile?.user_type;
+  const hasRole = Boolean(
+    t?.is_student ||
+      t?.is_founder ||
+      t?.is_employee ||
+      t?.is_developer ||
+      t?.is_enthusiast,
   );
+  return hasRole;
 }
