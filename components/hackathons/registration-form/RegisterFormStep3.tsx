@@ -53,12 +53,12 @@ export function RegisterFormStep3({ isOnlineHackathon, lang = "en" }: RegisterFo
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Have you participated in any other hackathons before? (Optional)
+                {t(lang, "reg.step2.hackathon.label")}
               </FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="text-zinc-600">
-                    <SelectValue placeholder="Select an option (optional)" />
+                    <SelectValue placeholder={t(lang, "reg.step2.hackathon.placeholder")} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-black dark:text-zinc-600 rounded-md shadow-md">
@@ -70,7 +70,7 @@ export function RegisterFormStep3({ isOnlineHackathon, lang = "en" }: RegisterFo
                 </SelectContent>
               </Select>
               <FormMessage className="text-zinc-600">
-                Let us know if this is your first hackathon or if you have prior experience.
+                {t(lang, "reg.step2.hackathon.hint")}
               </FormMessage>
             </FormItem>
           )}

@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
           },
         },
         evaluations: {
+          where: { form_data_id: { not: null }, verdict: { not: null } },
           include: {
             evaluator: { select: { id: true, name: true } },
           },
@@ -112,14 +113,14 @@ export async function GET(request: NextRequest) {
         currentStage: fd.current_stage ?? 0,
         evaluations: fd.evaluations.map((e) => ({
           id: e.id,
-          formDataId: e.form_data_id,
+          formDataId: e.form_data_id!,
           evaluatorId: e.evaluator_id,
           evaluatorName: e.evaluator.name ?? "Unknown",
           verdict: e.verdict,
           comment: e.comment,
           scoreOverall: e.score_overall,
           scores: e.scores as Record<string, number> | null,
-          stage: e.stage ?? 0,
+          stage: e.stage,
           createdAt: e.created_at.toISOString(),
         })),
       };

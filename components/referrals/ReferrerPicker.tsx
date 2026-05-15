@@ -17,6 +17,7 @@ import {
   isOtherTeam,
   isReferralTeamId,
 } from "@/lib/referrals/team-labels";
+import { type EventsLang, normalizeEventsLang, t } from "@/lib/events/i18n";
 
 export interface ReferrerPickerValue {
   teamId: string | null;
@@ -40,6 +41,7 @@ export interface ReferrerPickerProps {
   lockedDisplay?: ReferrerPickerLockedDisplay | null;
   loading?: boolean;
   disabled?: boolean;
+  lang?: EventsLang;
 }
 
 export const EMPTY_REFERRER: ReferrerPickerValue = {
@@ -62,7 +64,9 @@ export function ReferrerPicker({
   lockedDisplay,
   loading,
   disabled,
+  lang: langProp,
 }: ReferrerPickerProps) {
+  const lang = normalizeEventsLang(langProp);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [membersLoading, setMembersLoading] = useState<boolean>(false);
   const [membersError, setMembersError] = useState<string | null>(null);
@@ -91,7 +95,7 @@ export function ReferrerPicker({
         if (cancelled) return;
         if (!res.ok) {
           setMembers([]);
-          setMembersError("Couldn't load team members");
+          setMembersError(t(lang, "reg.referral.membersError"));
           return;
         }
         const data = (await res.json()) as { members: TeamMember[] };
@@ -101,7 +105,7 @@ export function ReferrerPicker({
       .catch(() => {
         if (!cancelled) {
           setMembers([]);
-          setMembersError("Couldn't load team members");
+          setMembersError(t(lang, "reg.referral.membersError"));
         }
       })
       .finally(() => {
@@ -120,7 +124,7 @@ export function ReferrerPicker({
   if (lockedDisplay) {
     return (
       <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
-        Referred by:{" "}
+        {t(lang, "reg.referral.referredBy")}{" "}
         <strong>{lockedDisplay.teamLabel}</strong>
         {lockedDisplay.userName ? <> · {lockedDisplay.userName}</> : null}
       </div>
@@ -130,7 +134,7 @@ export function ReferrerPicker({
   if (loading) {
     return (
       <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-        Loading referral…
+        {t(lang, "reg.referral.loading")}
       </div>
     );
   }
@@ -138,7 +142,7 @@ export function ReferrerPicker({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label>Referrer team</Label>
+        <Label>{t(lang, "reg.referral.teamLabel")}</Label>
         <Select
           value={selectedTeamId ?? TEAM_NONE_VALUE}
           onValueChange={(next) => {
@@ -155,10 +159,10 @@ export function ReferrerPicker({
           disabled={disabled}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select a team (optional)" />
+            <SelectValue placeholder={t(lang, "reg.referral.teamPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={TEAM_NONE_VALUE}>— No team —</SelectItem>
+            <SelectItem value={TEAM_NONE_VALUE}>{t(lang, "reg.referral.noTeam")}</SelectItem>
             {TEAM_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
@@ -170,10 +174,10 @@ export function ReferrerPicker({
 
       {showOtherInput && (
         <div className="space-y-2">
-          <Label>Tell us who referred you</Label>
+          <Label>{t(lang, "reg.referral.otherLabel")}</Label>
           <Input
             maxLength={100}
-            placeholder="e.g. Pedro from the Lisbon hackerhouse"
+            placeholder={t(lang, "reg.referral.otherPlaceholder")}
             value={value.teamIdOther ?? ""}
             onChange={(e) =>
               onChange({ ...value, teamIdOther: e.target.value, userId: null })
@@ -185,7 +189,7 @@ export function ReferrerPicker({
 
       {showUserSelect && (
         <div className="space-y-2">
-          <Label>Specific person (optional)</Label>
+          <Label>{t(lang, "reg.referral.personLabel")}</Label>
           <Select
             value={userSelectValue}
             onValueChange={(next) => {
@@ -198,14 +202,14 @@ export function ReferrerPicker({
           >
             <SelectTrigger>
               <SelectValue
-                placeholder={membersLoading ? "Loading…" : "No specific person"}
+                placeholder={membersLoading ? t(lang, "reg.referral.loadingMembers") : t(lang, "reg.referral.noPersonPlaceholder")}
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={USER_NONE_VALUE}>No specific person</SelectItem>
+              <SelectItem value={USER_NONE_VALUE}>{t(lang, "reg.referral.noPerson")}</SelectItem>
               {members.map((m) => (
                 <SelectItem key={m.id} value={m.id}>
-                  {m.name?.trim() || "Unnamed member"}
+                  {m.name?.trim() || t(lang, "reg.referral.unnamedMember")}
                 </SelectItem>
               ))}
             </SelectContent>

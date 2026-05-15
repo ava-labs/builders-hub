@@ -40,6 +40,8 @@ export const UserTypeSchema = z.object({
   employee_role: z.string().optional(),
   company_name: z.string().optional(),
   role: z.string().optional(),
+  founder_check: z.boolean().optional(),
+  avalanche_ecosystem_member: z.boolean().optional(),
 });
 
 /**
