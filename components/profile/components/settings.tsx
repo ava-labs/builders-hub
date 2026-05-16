@@ -33,12 +33,36 @@ const formatLabel = (text: string): string => {
     .join(' ');
 };
 
+type PrivacyKey = "notifications" | "consent_sharing";
+type PrivacyState = Record<PrivacyKey, boolean | null>;
+
+const PRIVACY_COPY: Record<
+  PrivacyKey,
+  { title: string; description: string }
+> = {
+  notifications: {
+    title: "Receive Avalanche news and updates",
+    description:
+      "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+  },
+  consent_sharing: {
+    title: "Allow Team1 to contact me",
+    description:
+      "Share your contact info with Avalanche Team1 so they can reach out for local support or invite you to regional initiatives.",
+  },
+};
+
 export default function Settings() {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [notificationMeans, setNotificationMeans] = useState<NotificationPreferences>({});
+  const [privacy, setPrivacy] = useState<PrivacyState>({
+    notifications: null,
+    consent_sharing: null,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [savingPrivacyKey, setSavingPrivacyKey] = useState<PrivacyKey | null>(null);
 
   // Merge default values with user's saved preferences
   const mergeWithDefaults = (userPreferences: NotificationPreferences | null): NotificationPreferences => {
@@ -75,6 +99,12 @@ export default function Settings() {
           const userPreferences = profile.notification_means || null;
           const mergedPreferences = mergeWithDefaults(userPreferences);
           setNotificationMeans(mergedPreferences);
+          setPrivacy({
+            notifications:
+              typeof profile.notifications === "boolean" ? profile.notifications : null,
+            consent_sharing:
+              typeof profile.consent_sharing === "boolean" ? profile.consent_sharing : null,
+          });
         } else {
           console.error("Failed to load notification preferences");
           // Use defaults if API fails
@@ -145,6 +175,41 @@ export default function Settings() {
     }
   };
 
+  const handlePrivacyToggle = async (key: PrivacyKey, newValue: boolean) => {
+    if (!session?.user?.id || savingPrivacyKey) return;
+
+    const previousValue = privacy[key];
+    setSavingPrivacyKey(key);
+    setPrivacy((prev) => ({ ...prev, [key]: newValue }));
+
+    try {
+      const response = await fetch(`/api/profile/extended/${session.user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: newValue }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save privacy preference");
+      }
+
+      toast({
+        title: "Preferences saved",
+        description: "Your privacy preferences have been updated.",
+      });
+    } catch (error) {
+      console.error("Error saving privacy preference:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save preferences. Please try again.",
+        variant: "destructive",
+      });
+      setPrivacy((prev) => ({ ...prev, [key]: previousValue }));
+    } finally {
+      setSavingPrivacyKey(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -158,6 +223,48 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 p-6">
+      <div>
+        <h2 className="text-2xl font-semibold mb-2">Privacy &amp; Communications</h2>
+        <p className="text-muted-foreground">
+          Control how Avalanche communicates with you and what we can share.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {(Object.keys(PRIVACY_COPY) as PrivacyKey[]).map((key) => {
+          const copy = PRIVACY_COPY[key];
+          const value = privacy[key] === true;
+          const isThisSaving = savingPrivacyKey === key;
+          return (
+            <div
+              key={key}
+              className="flex flex-row items-start justify-between gap-4 p-4 border rounded-lg bg-card"
+            >
+              <div className="space-y-1">
+                <Label
+                  htmlFor={`privacy-${key}`}
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  {copy.title}
+                </Label>
+                <p className="text-xs text-muted-foreground">{copy.description}</p>
+              </div>
+              <div className={isThisSaving ? "pointer-events-none" : ""}>
+                <Switch
+                  id={`privacy-${key}`}
+                  checked={value}
+                  onCheckedChange={(checked) => handlePrivacyToggle(key, checked)}
+                  className="data-[state=unchecked]:bg-zinc-300 dark:data-[state=unchecked]:bg-zinc-600 data-[state=checked]:bg-primary opacity-100 disabled:opacity-100 cursor-pointer"
+                  style={{ opacity: 1 }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Separator />
+
       <div>
         <h2 className="text-2xl font-semibold mb-2">Notification Settings</h2>
         <p className="text-muted-foreground">

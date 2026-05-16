@@ -100,6 +100,7 @@ function buildUserUpdateData(
     if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
     if (profileData.skills !== undefined) updateData.skills = profileData.skills;
     if (profileData.notifications !== undefined) updateData.notifications = profileData.notifications;
+    if (profileData.consent_sharing !== undefined) updateData.consent_sharing = profileData.consent_sharing;
     if (profileData.profile_privacy !== undefined) updateData.profile_privacy = profileData.profile_privacy;
     if (profileData.telegram_account !== undefined) updateData.telegram_account = nullableTrimmedString(profileData.telegram_account);
 
