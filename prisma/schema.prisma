@@ -8,45 +8,56 @@ datasource db {
 }
 
 model Hackathon {
-  id                 String         @id @default(uuid())
+  id                 String                   @id @default(uuid())
   title              String
   description        String
   location           String
   total_prizes       Int
   tags               String[]
-  content            Json           @default("{}")
-  end_date           DateTime       @default(now()) @db.Timestamptz(3)
-  start_date         DateTime       @default(now()) @db.Timestamptz(3)
-  timezone           String         @default("UTC")
-  banner             String         @default("")
-  icon               String         @default("")
-  small_banner       String         @default("")
+  content            Json                     @default("{}")
+  end_date           DateTime                 @default(now()) @db.Timestamptz(3)
+  start_date         DateTime                 @default(now()) @db.Timestamptz(3)
+  timezone           String                   @default("UTC")
+  banner             String                   @default("")
+  icon               String                   @default("")
+  small_banner       String                   @default("")
   participants       Int
   organizers         String?
-  top_most           Boolean?       @default(false)
+  top_most           Boolean?                 @default(false)
   custom_link        String?
   created_by         String?
   is_public          Boolean?
   updated_by         String?
-  event              String?        @default("hackathon")
-  cohosts            String[]       @default([])
-  new_layout         Boolean?       @default(false)
+  event              String?                  @default("hackathon")
+  cohosts            String[]                 @default([])
+  new_layout         Boolean?                 @default(false)
   google_calendar_id String?
-  created_by_user    User?          @relation(fields: [created_by], references: [id])
-  updated_by_user    User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
+  evaluation_phase   HackathonEvaluationPhase @default(EVALUATION)
+  created_by_user    User?                    @relation(fields: [created_by], references: [id])
+  updated_by_user    User?                    @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects           Project[]
   registrations      RegisterForm[]
   judges             HackathonJudge[]
 }
 
+enum HackathonEvaluationPhase {
+  EVALUATION
+  PICKING
+}
+
+enum ProjectWinnerRank {
+  FIRST_PLACE
+  WINNER
+}
+
 model HackathonJudge {
-  id            String    @id @default(uuid())
-  hackathon_id  String
-  user_id       String
-  assigned_by   String
-  assigned_at   DateTime  @default(now()) @db.Timestamptz(3)
-  hackathon     Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
-  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid())
+  hackathon_id String
+  user_id      String
+  assigned_by  String
+  assigned_at  DateTime  @default(now()) @db.Timestamptz(3)
+  hackathon    Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([hackathon_id, user_id])
   @@index([hackathon_id])
@@ -161,6 +172,7 @@ model Project {
   small_cover_url     String?             @default("")
   tags                String[]            @default([])
   is_winner           Boolean?            @default(false)
+  winner_rank         ProjectWinnerRank?
   categories          String[]            @default([])
   origin              String              @default("unknown")
   other_category      String?

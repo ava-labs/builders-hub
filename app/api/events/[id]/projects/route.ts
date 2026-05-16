@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { HackathonEvaluationPhase } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
 import {
@@ -27,6 +28,7 @@ const projectMetaSelect = {
   website: true,
   socials: true,
   is_winner: true,
+  winner_rank: true,
   created_at: true,
   updated_at: true,
 } as const;
@@ -52,13 +54,16 @@ export async function GET(request: NextRequest, context: Params) {
 
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathonId },
-    select: { id: true, title: true },
+    select: { id: true, title: true, evaluation_phase: true },
   });
   if (!hackathon) {
     return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
   }
 
   if (internalAuthorized) {
+    const session = await getAuthSession();
+    const viewerId = session?.user?.id ?? null;
+
     const projects = await prisma.project.findMany({
       where: { hackaton_id: hackathonId },
       orderBy: { created_at: "asc" },
@@ -80,6 +85,8 @@ export async function GET(request: NextRequest, context: Params) {
             id: true,
             evaluator_id: true,
             score_overall: true,
+            scores: true,
+            verdict: true,
             comment: true,
             created_at: true,
             updated_at: true,
@@ -90,7 +97,40 @@ export async function GET(request: NextRequest, context: Params) {
         },
       },
     });
-    return NextResponse.json({ hackathon, projects, scope: "internal" });
+
+    // Invisible judging: while the hackathon is in the EVALUATION phase,
+    // strip every other judge's scoring data so reviewers cannot anchor on
+    // each other. The viewer's own evaluation remains intact, and the
+    // evaluator stub stays so "X judges reviewed" counts work. Once devrel
+    // advances to PICKING, every judge + devrel sees the full picture.
+    const isEvaluationPhase =
+      hackathon.evaluation_phase === HackathonEvaluationPhase.EVALUATION;
+
+    const projectsForViewer = projects.map((project) => {
+      if (!isEvaluationPhase) return project;
+      return {
+        ...project,
+        evaluations: project.evaluations.map((evaluation) => {
+          if (viewerId && evaluation.evaluator_id === viewerId) {
+            return evaluation;
+          }
+          return {
+            ...evaluation,
+            score_overall: null,
+            scores: null,
+            verdict: null,
+            comment: null,
+          };
+        }),
+      };
+    });
+
+    return NextResponse.json({
+      hackathon,
+      projects: projectsForViewer,
+      scope: "internal",
+      evaluation_phase: hackathon.evaluation_phase,
+    });
   }
 
   const projects = await prisma.project.findMany({

@@ -1,66 +1,106 @@
+import {
+  HackathonEvaluationPhase,
+  ProjectWinnerRank,
+} from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { badgeAssignmentService } from "./badgeAssignmentService";
 import { AssignBadgeResult, BadgeCategory } from "./badge";
 
+export class WinnerOperationError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "WinnerOperationError";
+  }
+}
+
 export async function SetWinner(
   project_id: string,
-  isWinner: boolean,
-  awardedBy: string
+  winnerRank: ProjectWinnerRank | null,
+  awardedBy: string,
 ) {
-  // Check if project exists and get current winner status
   const existingProject = await prisma.project.findUnique({
     where: { id: project_id },
-    select: { is_winner: true },
+    select: { is_winner: true, winner_rank: true, hackaton_id: true },
   });
 
   if (!existingProject) {
     throw new Error("Project not found");
   }
 
-  // Check if project is already a winner
-  if (existingProject.is_winner === true && isWinner === true) {
-    return {
-      success: false,
-      message: "Project is already set as winner",
-      alreadyWinner: true,
-      badge_id: "",
-      user_id: "",
-      badges: [],
-    };
+  if (!existingProject.hackaton_id) {
+    throw new WinnerOperationError(
+      "Project is not attached to a hackathon",
+      400,
+    );
   }
+
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: existingProject.hackaton_id },
+    select: { id: true, evaluation_phase: true },
+  });
+  if (!hackathon) {
+    throw new WinnerOperationError("Hackathon not found", 404);
+  }
+  if (hackathon.evaluation_phase !== HackathonEvaluationPhase.PICKING) {
+    throw new WinnerOperationError(
+      "Winners can only be set once the hackathon is in the picking phase",
+      409,
+    );
+  }
+
+  // Promoting another project to FIRST_PLACE? Demote the existing first-place
+  // winner (if any) to a regular WINNER so the "at most one FIRST_PLACE per
+  // hackathon" invariant holds.
+  if (winnerRank === ProjectWinnerRank.FIRST_PLACE) {
+    await prisma.project.updateMany({
+      where: {
+        hackaton_id: existingProject.hackaton_id,
+        winner_rank: ProjectWinnerRank.FIRST_PLACE,
+        NOT: { id: project_id },
+      },
+      data: { winner_rank: ProjectWinnerRank.WINNER },
+    });
+  }
+
+  const isWinner = winnerRank !== null;
+  const wasWinner = existingProject.is_winner === true;
 
   const project = await prisma.project.update({
     where: { id: project_id },
-    data: { is_winner: isWinner },
+    data: { winner_rank: winnerRank, is_winner: isWinner },
   });
-  const body = {
-    projectId: project_id,
-    userId: "",
-    hackathonId: project.hackaton_id,
-    awardedBy: awardedBy,
-    category: BadgeCategory.project,
-  };
+
   let result: AssignBadgeResult & { alreadyWinner?: boolean } = {
     success: true,
-    message: "Project winner status updated successfully",
+    message: isWinner
+      ? "Project winner status updated successfully"
+      : "Project winner status cleared",
     badge_id: "",
     user_id: "",
     badges: [],
   };
 
-  if (isWinner === true) {
-    // HackathonId must be string or undefined, not null
-    const sanitizedBody = {
-      ...body,
-      hackathonId: project.hackaton_id ?? undefined,
-    };
-
-    const badge = await badgeAssignmentService.assignBadge(sanitizedBody, awardedBy);
-    result = {
-      ...badge,
-      success: true,
-    };
+  // Only mint a badge the first time a project becomes a winner. Re-ranking
+  // (e.g. WINNER → FIRST_PLACE) keeps the existing badge.
+  if (isWinner && !wasWinner) {
+    const badge = await badgeAssignmentService.assignBadge(
+      {
+        projectId: project_id,
+        userId: "",
+        hackathonId: project.hackaton_id ?? undefined,
+        category: BadgeCategory.project,
+      },
+      awardedBy,
+    );
+    result = { ...badge, success: true };
   }
 
-  return result;
+  return {
+    ...result,
+    winnerRank: project.winner_rank,
+    isWinner: project.is_winner ?? false,
+  };
 }

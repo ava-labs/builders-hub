@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
+import { HackathonEvaluationPhase } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import {
   canEvaluateHackathon,
+  canManageEvaluationPhase,
   canManageHackathonJudges,
 } from "@/lib/auth/permissions";
 import { HackathonEvaluateDashboard } from "@/components/evaluate/HackathonEvaluateDashboard";
@@ -22,7 +24,13 @@ export default async function HackathonEvaluatePage({
 
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathonId },
-    select: { id: true, title: true, start_date: true, end_date: true },
+    select: {
+      id: true,
+      title: true,
+      start_date: true,
+      end_date: true,
+      evaluation_phase: true,
+    },
   });
   if (!hackathon) {
     redirect("/events");
@@ -46,6 +54,7 @@ export default async function HackathonEvaluatePage({
       categories: true,
       tags: true,
       is_winner: true,
+      winner_rank: true,
       created_at: true,
       members: {
         select: {
@@ -76,6 +85,29 @@ export default async function HackathonEvaluatePage({
     },
   });
 
+  const viewerId = session!.user!.id;
+  const isEvaluationPhase =
+    hackathon.evaluation_phase === HackathonEvaluationPhase.EVALUATION;
+
+  // Mirror the API filter (defence in depth): every other judge's scoring
+  // data is hidden until devrel advances to PICKING. We still need the
+  // evaluator stub so reviewer-count UI keeps working.
+  const projectsForViewer = projects.map((p) => ({
+    ...p,
+    evaluations: p.evaluations.map((e) => {
+      if (!isEvaluationPhase || e.evaluator_id === viewerId) return e;
+      return {
+        ...e,
+        score_overall: null,
+        scores: null,
+        verdict: null,
+        comment: null,
+      };
+    }),
+  }));
+
+  const reviewedCount = projects.filter((p) => p.evaluations.length > 0).length;
+
   return (
     <main className="container relative px-4 py-8 lg:py-12">
       <div className="mb-6 flex flex-col gap-1">
@@ -90,9 +122,12 @@ export default async function HackathonEvaluatePage({
       </div>
       <HackathonEvaluateDashboard
         hackathonId={hackathon.id}
-        viewerId={session!.user!.id}
+        viewerId={viewerId}
         canPickWinners={canManageHackathonJudges(session)}
-        projects={projects.map((p) => ({
+        canManagePhase={canManageEvaluationPhase(session)}
+        initialPhase={hackathon.evaluation_phase}
+        initialReviewed={reviewedCount}
+        projects={projectsForViewer.map((p) => ({
           ...p,
           created_at: p.created_at.toISOString(),
           evaluations: p.evaluations.map((e) => ({
