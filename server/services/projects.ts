@@ -1,7 +1,18 @@
-import { Project, ProjectHackathonInfo, ProjectMemberUser } from "@/types/showcase";
+import {
+  Project,
+  ProjectHackathonInfo,
+  ProjectMemberUser,
+  PROJECT_VISIBILITY,
+  isProjectVisibility,
+  type ProjectVisibility,
+} from "@/types/showcase";
 import { PrismaClient } from "@prisma/client";
 import { validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
+
+function resolveVisibility(value: unknown): ProjectVisibility {
+  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.SEMI_PUBLIC;
+}
 
 const prisma = new PrismaClient();
 
@@ -35,7 +46,13 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   const pageSize = options.pageSize ?? 12;
   const offset = (page - 1) * pageSize;
 
-  let filters: any = {};
+  // Showcase only surfaces semi-public and public projects.
+  // Private projects are visible only to their owners and to evaluators.
+  let filters: any = {
+    visibility: {
+      in: [PROJECT_VISIBILITY.SEMI_PUBLIC, PROJECT_VISIBILITY.PUBLIC],
+    },
+  };
 
   if (options.event) {
     filters.hackaton_id = options.event;
@@ -107,19 +124,35 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   });
 
   return {
-    projects: projects.map((project) => ({
-      ...project,
-      members: [],
-      hackathon: project.hackathon ? {
-        ...project.hackathon,
-        content: project.hackathon.content as any,
-      } : null,
-      badges: project.badges?.map((projectBadge: any) => ({
-        ...projectBadge,
-        name: projectBadge.badge.name,
-        image_path: projectBadge.badge.image_path,
-      })),
-    })),
+    projects: projects.map((project) => {
+      const isSemiPublic = project.visibility === PROJECT_VISIBILITY.SEMI_PUBLIC;
+      return {
+        ...project,
+        members: [],
+        hackathon: project.hackathon ? {
+          ...project.hackathon,
+          content: project.hackathon.content as any,
+        } : null,
+        badges: project.badges?.map((projectBadge: any) => ({
+          ...projectBadge,
+          name: projectBadge.badge.name,
+          image_path: projectBadge.badge.image_path,
+        })),
+        // Semi-public projects expose only name / short_description / members.
+        // Strip the rest so the public showcase respects user consent.
+        ...(isSemiPublic && {
+          full_description: "",
+          tech_stack: "",
+          github_repository: "",
+          demo_link: "",
+          demo_video_link: "",
+          screenshots: [],
+          deployed_addresses: [],
+          website: null,
+          socials: null,
+        }),
+      };
+    }),
     total: totalProjects,
     page,
     pageSize,
@@ -184,6 +217,7 @@ export async function getProject(id: string): Promise<Project> {
     members,
     hackathon,
     origin: row.origin,
+    visibility: resolveVisibility(row.visibility),
   };
 
   console.log("GET project:", project.project_name);
@@ -212,6 +246,7 @@ export async function createProject(
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
       hackaton_id: projectData.hackaton_id ?? null,
+      visibility: resolveVisibility(projectData.visibility),
       members: {
         create: projectData.members?.map((member) => ({
           user_id: member.user_id,
@@ -260,6 +295,9 @@ export async function updateProject(
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
+      ...(projectData.visibility !== undefined && {
+        visibility: resolveVisibility(projectData.visibility),
+      }),
       members: {
         create: projectData.members?.map((member) => ({
           user_id: member.user_id,

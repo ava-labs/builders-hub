@@ -10,6 +10,11 @@ import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
 import { NotificationMeans } from "@/lib/notificationDefaults";
+import { PROJECT_VISIBILITY, isProjectVisibility } from "@/types/showcase";
+
+function resolveVisibility(value: unknown): string {
+  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.SEMI_PUBLIC;
+}
 
 export const projectValidations: Validation[] = [
   {
@@ -176,6 +181,9 @@ export async function createProject(
           socials: isNonEmptyObject(projectData.socials)
             ? projectData.socials
             : Prisma.JsonNull,
+          ...(projectData.visibility !== undefined && {
+            visibility: resolveVisibility(projectData.visibility),
+          }),
         },
       });
 
@@ -206,6 +214,7 @@ export async function createProject(
         socials: isNonEmptyObject(projectData.socials)
           ? projectData.socials
           : Prisma.JsonNull,
+        visibility: resolveVisibility(projectData.visibility),
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly
@@ -311,6 +320,9 @@ export async function getProject(projectId: string): Promise<Project | null> {
     other_category: projectData.other_category ?? undefined,
     deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
     is_winner: false,
+    visibility: isProjectVisibility(projectData.visibility)
+      ? projectData.visibility
+      : PROJECT_VISIBILITY.SEMI_PUBLIC,
 
     members: projectData.members?.map((member) => {
       const user = member.user;

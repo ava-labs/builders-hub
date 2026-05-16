@@ -6,6 +6,7 @@ import {
   verifyHackathonProjectsApiKey,
 } from "@/lib/auth/permissions";
 import type { RouteParams } from "@/lib/protectedRoute";
+import { PROJECT_VISIBILITY } from "@/types/showcase";
 
 type Params = RouteParams<{ id: string }>;
 
@@ -27,6 +28,16 @@ const projectMetaSelect = {
   website: true,
   socials: true,
   is_winner: true,
+  visibility: true,
+  created_at: true,
+  updated_at: true,
+} as const;
+
+const semiPublicSelect = {
+  id: true,
+  project_name: true,
+  short_description: true,
+  visibility: true,
   created_at: true,
   updated_at: true,
 } as const;
@@ -93,8 +104,15 @@ export async function GET(request: NextRequest, context: Params) {
     return NextResponse.json({ hackathon, projects, scope: "internal" });
   }
 
-  const projects = await prisma.project.findMany({
-    where: { hackaton_id: hackathonId },
+  // External view: respect per-project visibility consent (issue #4198).
+  // - private:     omitted entirely
+  // - semi-public: name, members (no email), description only
+  // - public:      full meta select
+  const externalProjects = await prisma.project.findMany({
+    where: {
+      hackaton_id: hackathonId,
+      visibility: { in: [PROJECT_VISIBILITY.SEMI_PUBLIC, PROJECT_VISIBILITY.PUBLIC] },
+    },
     orderBy: { created_at: "asc" },
     select: {
       ...projectMetaSelect,
@@ -107,5 +125,20 @@ export async function GET(request: NextRequest, context: Params) {
       },
     },
   });
+
+  const projects = externalProjects.map((p) => {
+    if (p.visibility === PROJECT_VISIBILITY.PUBLIC) return p;
+    // semi-public: strip everything beyond name, description, members
+    return {
+      id: p.id,
+      project_name: p.project_name,
+      short_description: p.short_description,
+      visibility: p.visibility,
+      created_at: p.created_at,
+      updated_at: p.updated_at,
+      members: p.members,
+    };
+  });
+
   return NextResponse.json({ hackathon, projects, scope: "external" });
 }
