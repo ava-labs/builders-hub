@@ -183,6 +183,8 @@ export async function updateExtendedProfile(
                 telegram_account: updatedProfile.telegram_account || undefined,
                 wallet: updatedProfile.wallet || undefined,
                 additional_social_accounts: updatedProfile.additional_social_accounts || undefined,
+                notifications: updatedProfile.notifications ?? undefined,
+                consent_sharing: updatedProfile.consent_sharing ?? undefined,
             });
         } catch (error) {
             console.error('[HubSpot UserData] Failed to sync updated profile:', error);

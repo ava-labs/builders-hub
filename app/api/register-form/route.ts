@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Session } from "next-auth";
 import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
+import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
 
 type UserConsentsInput = {
   notifications?: unknown;
@@ -19,6 +20,16 @@ async function persistUserConsents(email: string, input: UserConsentsInput) {
   } catch (err) {
     // Don't block registration on consent persistence failure.
     console.error("[Consent] Failed to update user consents during registration:", err);
+    return;
+  }
+  try {
+    await syncUserDataToHubSpot({
+      email,
+      notifications: update.notifications,
+      consent_sharing: update.consent_sharing,
+    });
+  } catch (err) {
+    console.error("[HubSpot] Failed to sync updated consents during registration:", err);
   }
 }
 

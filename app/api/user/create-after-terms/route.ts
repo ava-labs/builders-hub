@@ -71,7 +71,7 @@ export const POST = withAuth(async (
 
     // Create the new user
     const newUser = await prisma.user.create({
-      select: { id: true, email: true, name: true, notifications: true },
+      select: { id: true, email: true, name: true, notifications: true, consent_sharing: true },
       data: {
         email: email || '',
         notification_email: email,
@@ -92,6 +92,7 @@ export const POST = withAuth(async (
           email: newUser.email,
           name: newUser.name || undefined,
           notifications: newUser.notifications ?? undefined,
+          consent_sharing: newUser.consent_sharing ?? undefined,
           gdpr: true, // User accepted terms and conditions
         });
       } catch (error) {

@@ -6,6 +6,11 @@
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_USER_DATA_LIST_ID = process.env.HUBSPOT_USER_DATA_LIST_ID || '2605';
 
+// HubSpot custom property name for the Team1 outreach consent.
+// Override via HUBSPOT_TEAM1_CONSENT_PROPERTY if the property is renamed in HubSpot.
+const HUBSPOT_TEAM1_CONSENT_PROPERTY =
+  process.env.HUBSPOT_TEAM1_CONSENT_PROPERTY || 'team1_outreach_consent';
+
 if (!HUBSPOT_API_KEY) {
   console.warn('[HubSpot UserData] HUBSPOT_API_KEY environment variable is not set');
 }
@@ -34,6 +39,7 @@ export interface UserDataForHubSpot {
   wallet?: string[];
   additional_social_accounts?: string[];
   notifications?: boolean;
+  consent_sharing?: boolean;
   gdpr?: boolean;
 }
 
@@ -63,6 +69,9 @@ function buildHubSpotUserProperties(userData: UserDataForHubSpot, includeEmail: 
     ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
     ...(userData.additional_social_accounts && userData.additional_social_accounts.length > 0 && { contact_othersocials: userData.additional_social_accounts.join('; ') }),
     ...(userData.notifications !== undefined && { marketing_consent: userData.notifications }),
+    ...(userData.consent_sharing !== undefined && {
+      [HUBSPOT_TEAM1_CONSENT_PROPERTY]: userData.consent_sharing,
+    }),
     ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
   };
 
