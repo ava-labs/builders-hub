@@ -59,6 +59,7 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         additional_social_accounts: user.additional_social_accounts || [],
         skills: user.skills || [],
         notifications: user.notifications,
+        consent_sharing: user.consent_sharing ?? null,
         profile_privacy: user.profile_privacy,
         telegram_account: user.telegram_account || null,
         notification_means: user.notification_means || null,

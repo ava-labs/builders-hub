@@ -17,6 +17,7 @@ import {
 import { useFormContext } from "react-hook-form";
 import { RegisterFormValues } from "./RegistrationForm";
 import { Checkbox } from "@/components/ui/checkbox";
+import { GroupedUserConsents, type GroupedConsentItem } from "@/components/common/grouped-user-consents";
 
 const hackathonParticipationOptions = [
   { value: "yes", label: "Yes" },
@@ -27,10 +28,39 @@ import { EventsLang, t } from "@/lib/events/i18n";
 interface RegisterFormStep3Props {
   isOnlineHackathon: boolean;
   lang?: EventsLang;
+  showNotificationsConsent?: boolean;
+  showSharingConsent?: boolean;
 }
 
-export function RegisterFormStep3({ isOnlineHackathon, lang = "en" }: RegisterFormStep3Props) {
+export function RegisterFormStep3({
+  isOnlineHackathon,
+  lang = "en",
+  showNotificationsConsent = false,
+  showSharingConsent = false,
+}: RegisterFormStep3Props) {
   const form = useFormContext<RegisterFormValues>();
+
+  const consentItems: GroupedConsentItem[] = [];
+  if (showNotificationsConsent) {
+    consentItems.push({
+      key: "user_notifications",
+      label: t(lang, "consents.notifications.label"),
+      hint: t(lang, "consents.notifications.hint"),
+      checked: form.watch("user_notifications") ?? false,
+      onCheckedChange: (next) =>
+        form.setValue("user_notifications", next, { shouldDirty: true }),
+    });
+  }
+  if (showSharingConsent) {
+    consentItems.push({
+      key: "user_consent_sharing",
+      label: t(lang, "consents.consentSharing.label"),
+      hint: t(lang, "consents.consentSharing.hint"),
+      checked: form.watch("user_consent_sharing") ?? false,
+      onCheckedChange: (next) =>
+        form.setValue("user_consent_sharing", next, { shouldDirty: true }),
+    });
+  }
 
   return (
     <>
@@ -46,6 +76,16 @@ export function RegisterFormStep3({ isOnlineHackathon, lang = "en" }: RegisterFo
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
+      {consentItems.length > 0 && (
+        <div className="mb-6">
+          <GroupedUserConsents
+            groupLabel={t(lang, "consents.group.label")}
+            groupHint={t(lang, "consents.group.hint")}
+            items={consentItems}
+          />
+          <div className="w-full h-px bg-zinc-300 mt-6" />
+        </div>
+      )}
       <div className="space-y-6">
         <FormField
           control={form.control}

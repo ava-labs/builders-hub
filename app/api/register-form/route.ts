@@ -1,11 +1,39 @@
 import { createRegisterForm, getRegisterForm } from "@/server/services/registerForms";
 import { NextRequest, NextResponse } from "next/server";
+import { Session } from "next-auth";
 import { withAuth } from "@/lib/protectedRoute";
+import { prisma } from "@/prisma/prisma";
 
-export const POST = withAuth(async (req: NextRequest) => {
+type UserConsentsInput = {
+  notifications?: unknown;
+  consent_sharing?: unknown;
+};
+
+async function persistUserConsents(email: string, input: UserConsentsInput) {
+  const update: { notifications?: boolean; consent_sharing?: boolean } = {};
+  if (typeof input.notifications === "boolean") update.notifications = input.notifications;
+  if (typeof input.consent_sharing === "boolean") update.consent_sharing = input.consent_sharing;
+  if (Object.keys(update).length === 0) return;
+  try {
+    await prisma.user.update({ where: { email }, data: update });
+  } catch (err) {
+    // Don't block registration on consent persistence failure.
+    console.error("[Consent] Failed to update user consents during registration:", err);
+  }
+}
+
+export const POST = withAuth(async (
+  req: NextRequest,
+  _context: unknown,
+  session: Session,
+) => {
   try {
     const body = await req.json();
-    const newHackathon = await createRegisterForm(body);
+    const { user_consents, ...registerData } = body ?? {};
+    if (user_consents && typeof user_consents === "object" && session.user?.email) {
+      await persistUserConsents(session.user.email, user_consents as UserConsentsInput);
+    }
+    const newHackathon = await createRegisterForm(registerData);
 
     return NextResponse.json(
       {
