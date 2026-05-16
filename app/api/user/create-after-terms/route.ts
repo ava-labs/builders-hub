@@ -41,7 +41,11 @@ export const POST = withAuth(async (
   try {
     const email = session.user.email;
     const body = await req.json();
-    const { notifications = false, referral_attribution = null } = body;
+    const {
+      notifications = false,
+      consent_sharing = false,
+      referral_attribution = null,
+    } = body;
 
     // Check if user already exists (shouldn't happen, but safety check)
     const existingUser = await prisma.user.findUnique({
@@ -76,6 +80,7 @@ export const POST = withAuth(async (
         authentication_mode: 'credentials',
         last_login: new Date(),
         notifications: notifications,
+        consent_sharing: consent_sharing,
         notification_means: getDefaultNotificationMeans(),
       }
     });
