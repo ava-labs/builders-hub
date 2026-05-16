@@ -759,6 +759,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
+      consent_sharing: !!project.consent_sharing,
     });
   }, [form, state.isEditing]);
 
