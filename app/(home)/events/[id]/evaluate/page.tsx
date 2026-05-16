@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { HackathonEvaluationPhase } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import {
@@ -7,6 +6,7 @@ import {
   canManageEvaluationPhase,
   canManageHackathonJudges,
 } from "@/lib/auth/permissions";
+import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import { HackathonEvaluateDashboard } from "@/components/evaluate/HackathonEvaluateDashboard";
 
 export default async function HackathonEvaluatePage({
@@ -86,25 +86,11 @@ export default async function HackathonEvaluatePage({
   });
 
   const viewerId = session!.user!.id;
-  const isEvaluationPhase =
-    hackathon.evaluation_phase === HackathonEvaluationPhase.EVALUATION;
-
-  // Mirror the API filter (defence in depth): every other judge's scoring
-  // data is hidden until devrel advances to PICKING. We still need the
-  // evaluator stub so reviewer-count UI keeps working.
-  const projectsForViewer = projects.map((p) => ({
-    ...p,
-    evaluations: p.evaluations.map((e) => {
-      if (!isEvaluationPhase || e.evaluator_id === viewerId) return e;
-      return {
-        ...e,
-        score_overall: null,
-        scores: null,
-        verdict: null,
-        comment: null,
-      };
-    }),
-  }));
+  const projectsForViewer = stripEvaluationsForViewer(
+    projects,
+    hackathon.evaluation_phase,
+    viewerId,
+  );
 
   const reviewedCount = projects.filter((p) => p.evaluations.length > 0).length;
 

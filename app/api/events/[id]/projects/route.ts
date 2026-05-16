@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { HackathonEvaluationPhase } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
 import {
   canEvaluateHackathon,
   verifyHackathonProjectsApiKey,
 } from "@/lib/auth/permissions";
+import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import type { RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
@@ -98,32 +98,11 @@ export async function GET(request: NextRequest, context: Params) {
       },
     });
 
-    // Invisible judging: while the hackathon is in the EVALUATION phase,
-    // strip every other judge's scoring data so reviewers cannot anchor on
-    // each other. The viewer's own evaluation remains intact, and the
-    // evaluator stub stays so "X judges reviewed" counts work. Once devrel
-    // advances to PICKING, every judge + devrel sees the full picture.
-    const isEvaluationPhase =
-      hackathon.evaluation_phase === HackathonEvaluationPhase.EVALUATION;
-
-    const projectsForViewer = projects.map((project) => {
-      if (!isEvaluationPhase) return project;
-      return {
-        ...project,
-        evaluations: project.evaluations.map((evaluation) => {
-          if (viewerId && evaluation.evaluator_id === viewerId) {
-            return evaluation;
-          }
-          return {
-            ...evaluation,
-            score_overall: null,
-            scores: null,
-            verdict: null,
-            comment: null,
-          };
-        }),
-      };
-    });
+    const projectsForViewer = stripEvaluationsForViewer(
+      projects,
+      hackathon.evaluation_phase,
+      viewerId,
+    );
 
     return NextResponse.json({
       hackathon,

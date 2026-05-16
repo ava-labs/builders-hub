@@ -9,9 +9,6 @@ import BuildGamesPartners from "@/components/build-games/BuildGamesPartners";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
-// Downstream components hit Prisma at render time, which fails during
-// static export. Originally added in c22d798d6 and accidentally removed
-// in 029ae97d0 — keep this opt-in so the build stays green.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {

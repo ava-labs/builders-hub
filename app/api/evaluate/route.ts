@@ -168,9 +168,6 @@ export async function POST(request: NextRequest) {
         scores: scores ? (scores as Record<string, number>) : undefined,
       },
     });
-    // Defence in depth: this endpoint only ever echoes back the caller's
-    // own evaluation. The phase-aware leak-prevention happens in
-    // /api/events/[id]/projects (which aggregates other judges' work).
     return NextResponse.json({
       id: evaluation.id,
       verdict: evaluation.verdict,

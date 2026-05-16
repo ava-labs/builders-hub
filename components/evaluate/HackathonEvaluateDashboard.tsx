@@ -208,8 +208,6 @@ export function HackathonEvaluateDashboard({
     () => projects.filter((p) => p.evaluations.length > 0).length,
     [projects],
   );
-  // Trust the live aggregate once we've recomputed it client-side. The
-  // server-provided initialReviewed only exists to seed the first paint.
   const reviewed = projects.length === 0 ? initialReviewed : reviewedCount;
   const allReviewed = totalProjects > 0 && reviewed >= totalProjects;
 
@@ -236,7 +234,6 @@ export function HackathonEvaluateDashboard({
     setProjects((prev) =>
       prev.map((p) => {
         if (p.id !== projectId) {
-          // Demote any existing FIRST_PLACE to WINNER when promoting another.
           if (
             next === ProjectWinnerRank.FIRST_PLACE &&
             p.winner_rank === ProjectWinnerRank.FIRST_PLACE
@@ -524,7 +521,6 @@ function WinnerControl({
   onSelect,
   rankStyles,
 }: WinnerControlProps) {
-  // Read-only badge for judges (and for devrel while still in evaluation).
   if (!canPickWinners || !isPickingPhase) {
     if (rankStyles) {
       return (

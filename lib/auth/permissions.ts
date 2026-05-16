@@ -55,11 +55,6 @@ export function canManageHackathonJudges(
   return hasAnyAttribute(session.user.custom_attributes, ["devrel"]);
 }
 
-/**
- * True when the user may advance a hackathon's evaluation phase
- * (EVALUATION → PICKING). Devrel-only — judges can review during
- * EVALUATION but cannot reveal other judges' scores.
- */
 export function canManageEvaluationPhase(
   session: { user?: { custom_attributes?: string[] } } | null | undefined,
 ): boolean {

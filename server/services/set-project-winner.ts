@@ -51,9 +51,6 @@ export async function SetWinner(
     );
   }
 
-  // Promoting another project to FIRST_PLACE? Demote the existing first-place
-  // winner (if any) to a regular WINNER so the "at most one FIRST_PLACE per
-  // hackathon" invariant holds.
   if (winnerRank === ProjectWinnerRank.FIRST_PLACE) {
     await prisma.project.updateMany({
       where: {
@@ -83,8 +80,6 @@ export async function SetWinner(
     badges: [],
   };
 
-  // Only mint a badge the first time a project becomes a winner. Re-ranking
-  // (e.g. WINNER → FIRST_PLACE) keeps the existing badge.
   if (isWinner && !wasWinner) {
     const badge = await badgeAssignmentService.assignBadge(
       {
