@@ -3,6 +3,8 @@
  * Manages syncing user data to HubSpot CRM and adding users to specific lists
  */
 
+import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
+
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_USER_DATA_LIST_ID = process.env.HUBSPOT_USER_DATA_LIST_ID || '2605';
 
@@ -90,6 +92,9 @@ export async function syncUserDataToHubSpot(
   userData: UserDataForHubSpot,
   listId?: string
 ): Promise<boolean> {
+  if (!isHubSpotEnabled()) {
+    return skipHubSpot(`syncUserDataToHubSpot(${userData.email})`);
+  }
   const targetListId = listId || HUBSPOT_USER_DATA_LIST_ID;
 
   if (!HUBSPOT_API_KEY) {

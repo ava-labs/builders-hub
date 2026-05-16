@@ -12,6 +12,7 @@ import { RegistrationForm } from "@/types/registrationForm";
 import { sendMail } from "./mail";
 import { recordReferralAttribution } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
 
 export const registerValidations: Validation[] = [
   {
@@ -297,6 +298,10 @@ export async function sendRegistrationToHubSpot(
   registrationData: any,
   hackathon: any
 ): Promise<void> {
+  if (!isHubSpotEnabled()) {
+    skipHubSpot(`sendRegistrationToHubSpot(${registrationData?.email ?? "unknown"})`);
+    return;
+  }
   const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
   const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
   const HUBSPOT_HACKATHON_FORM_GUID = process.env.HUBSPOT_HACKATHON_FORM_GUID;
