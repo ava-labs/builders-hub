@@ -201,6 +201,8 @@ const BaseFormSchema = z.object({
   user_id: z.string().optional(),
   is_winner: z.boolean().optional(),
   isDraft: z.boolean().optional(),
+  // Opt-in: share project info with Team1 for local support.
+  consent_sharing: z.boolean().optional(),
 });
 
 // Step schemas created from base schema (before refinements)
@@ -327,6 +329,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: [],
       explanation: '',
       demo_video_link: '',
+      consent_sharing: false,
     },
   });
 

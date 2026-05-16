@@ -6,6 +6,7 @@ import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import {
   FormControl,
@@ -502,6 +503,32 @@ const SubmitStep1: FC<projectProps> = (project) => {
           {t(lang, "submission.step1.team.title")}
         </h3>
         <MembersComponent {...project} />
+      </section>
+
+      {/* Project-level Team1 sharing consent */}
+      <section className='space-y-4'>
+        <FormField
+          control={form.control}
+          name='consent_sharing'
+          render={({ field }) => (
+            <FormItem className='flex flex-row items-start space-x-3 space-y-0'>
+              <FormControl>
+                <Checkbox
+                  checked={!!field.value}
+                  onCheckedChange={(value) => field.onChange(value === true)}
+                />
+              </FormControl>
+              <div className='space-y-1 leading-none'>
+                <FormLabel className='text-sm cursor-pointer'>
+                  {t(lang, "submission.step1.consentSharing.label")}
+                </FormLabel>
+                <p className='text-xs text-zinc-500 dark:text-zinc-400'>
+                  {t(lang, "submission.step1.consentSharing.hint")}
+                </p>
+              </div>
+            </FormItem>
+          )}
+        />
       </section>
     </div>
   );
