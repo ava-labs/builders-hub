@@ -263,6 +263,12 @@ export default function Settings() {
         })}
       </div>
 
+      {/*
+        Notification categories (Academy / Events / Infrastructure) hidden by
+        request. The logic (handleToggle, notificationMeans state, JSON
+        defaults) is intentionally kept above so this block can be restored
+        without further wiring.
+
       <Separator />
 
       <div>
@@ -307,7 +313,7 @@ export default function Settings() {
                         {NOTIFICATION_CHANNELS.map((channelName, channelIndex) => {
                           const toggleKey = `${notificationKey}-${channelIndex}`;
                           const isThisSaving = savingKey === toggleKey;
-                          
+
                           return (
                             <div
                               key={channelIndex}
@@ -346,6 +352,7 @@ export default function Settings() {
           );
         })}
       </div>
+      */}
     </div>
   );
 }
