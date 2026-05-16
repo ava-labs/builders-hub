@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
+import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   const controller = new AbortController();
@@ -51,6 +52,14 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
+    if (!isHubSpotEnabled()) {
+      skipHubSpot('POST /api/build-games/apply');
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        message: 'HubSpot disabled in this environment; application not pushed.',
+      });
+    }
     if (!HUBSPOT_API_KEY) {
       console.error('Missing environment variable: HUBSPOT_API_KEY');
       return NextResponse.json(

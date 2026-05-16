@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
+import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -7,6 +8,14 @@ const RETRO9000_FORM_GUID = process.env.RETRO9000_FORM_GUID;
 
 export async function POST(request: Request) {
   try {
+    if (!isHubSpotEnabled()) {
+      skipHubSpot('POST /api/retro9000');
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        message: 'HubSpot disabled in this environment; submission not pushed.',
+      });
+    }
     if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID || !RETRO9000_FORM_GUID) {
       console.error('Missing environment variables: HUBSPOT_API_KEY, HUBSPOT_PORTAL_ID, or RETRO9000_FORM_GUID');
       return NextResponse.json(
