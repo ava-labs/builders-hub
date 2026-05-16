@@ -590,7 +590,6 @@ export function RegisterForm({
       fieldsToValidate = [
         "newsletter_subscription",
         "terms_event_conditions",
-        "hackathon_participation",
       ];
       if (!isOnlineHackathon) {
         fieldsToValidate.push("prohibited_items");

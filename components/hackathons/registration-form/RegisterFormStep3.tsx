@@ -7,22 +7,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useFormContext } from "react-hook-form";
 import { RegisterFormValues } from "./RegistrationForm";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GroupedUserConsents, type GroupedConsentItem } from "@/components/common/grouped-user-consents";
-
-const hackathonParticipationOptions = [
-  { value: "yes", label: "Yes" },
-  { value: "no", label: "No" },
-];
 import { EventsLang, t } from "@/lib/events/i18n";
 
 interface RegisterFormStep3Props {
@@ -87,37 +75,6 @@ export function RegisterFormStep3({
         </div>
       )}
       <div className="space-y-6">
-        <FormField
-          control={form.control}
-          name="hackathon_participation"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {t(lang, "reg.step2.hackathon.label")}
-              </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className="text-zinc-600">
-                    <SelectValue placeholder={t(lang, "reg.step2.hackathon.placeholder")} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-black dark:text-zinc-600 rounded-md shadow-md">
-                  {hackathonParticipationOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage className="text-zinc-600">
-                {t(lang, "reg.step2.hackathon.hint")}
-              </FormMessage>
-            </FormItem>
-          )}
-        />
-
-        <div className="w-full h-px bg-zinc-300" />
-
         <FormField
           control={form.control}
           name="terms_event_conditions"
