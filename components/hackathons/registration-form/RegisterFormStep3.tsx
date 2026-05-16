@@ -64,16 +64,6 @@ export function RegisterFormStep3({
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
-      {consentItems.length > 0 && (
-        <div className="mb-6">
-          <GroupedUserConsents
-            groupLabel={t(lang, "consents.group.label")}
-            groupHint={t(lang, "consents.group.hint")}
-            items={consentItems}
-          />
-          <div className="w-full h-px bg-zinc-300 mt-6" />
-        </div>
-      )}
       <div className="space-y-6">
         <FormField
           control={form.control}
@@ -92,6 +82,10 @@ export function RegisterFormStep3({
                   {t(lang, "reg.step3.terms.label")}{" "}
                   <a href="https://assets.website-files.com/602e8e4411398ca20cfcafd3/63fe6be7e0d14da8cbdb9984_Avalanche%20Events%20Participation%20Terms%20and%20Conditions%20(Final_28Feb2023).docx.pdf" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
                     {t(lang, "reg.step3.terms.link")}
+                  </a>
+                  {t(lang, "reg.step3.terms.connector")}
+                  <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                    {t(lang, "reg.step3.privacyLink")}
                   </a> *
                 </FormLabel>
                 <FormMessage className="text-zinc-400">
@@ -102,8 +96,13 @@ export function RegisterFormStep3({
           )}
         />
 
-        {/* Newsletter consent moved to the grouped User-level block at the top
-            of this step (notifications + Team1 outreach). */}
+        {consentItems.length > 0 && (
+          <GroupedUserConsents
+            groupLabel={t(lang, "consents.group.label")}
+            groupHint={t(lang, "consents.group.hint")}
+            items={consentItems}
+          />
+        )}
 
         {/* Only show prohibited items for in-person hackathons */}
         {!isOnlineHackathon && (
