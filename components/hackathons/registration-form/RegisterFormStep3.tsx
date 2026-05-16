@@ -145,27 +145,8 @@ export function RegisterFormStep3({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="newsletter_subscription"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-black rounded"
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>{t(lang, "reg.step3.newsletter.label")}</FormLabel>
-                <FormMessage className="text-zinc-400">
-                  {t(lang, "reg.step3.newsletter.hint")}
-                </FormMessage>
-              </div>
-            </FormItem>
-          )}
-        />
+        {/* Newsletter consent moved to the grouped User-level block at the top
+            of this step (notifications + Team1 outreach). */}
 
         {/* Only show prohibited items for in-person hackathons */}
         {!isOnlineHackathon && (
