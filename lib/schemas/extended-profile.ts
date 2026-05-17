@@ -82,6 +82,7 @@ export const UpdateExtendedProfileSchema = z
     additional_social_accounts: z.array(z.string()).optional(),
     skills: z.array(z.string()).optional(),
     notifications: z.boolean().nullable().optional(),
+    consent_sharing: z.boolean().nullable().optional(),
     profile_privacy: z.string().nullable().optional(),
     telegram_account: nullableProfileAccount(
       TELEGRAM_ACCOUNT_PATTERN,
