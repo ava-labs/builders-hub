@@ -170,6 +170,12 @@ function AvalanchegoDockerInner({
   // has debug trace flipped back on without touching the checkbox.
   const debugTraceUserSet = useRef(false);
 
+  // Same pattern for nodeType: Fuji defaults to 'archival' (Both validator +
+  // RPC) since that's the common single-box testnet shape. A manual click on
+  // any of the three role buttons sets this ref so the user's choice survives
+  // Mainnet ↔ Fuji round-trips.
+  const nodeTypeUserSet = useRef(false);
+
   const { addToWallet, isAdding: isAddingToWallet } = useAddToWallet();
   const l1ListStore = useL1ListStore();
 
@@ -273,6 +279,16 @@ function AvalanchegoDockerInner({
     setCfg((c) => ({ ...c, enableDebugTrace: selectedNetwork === 'fuji' }));
   }, [selectedNetwork]);
 
+  // Auto-select Both (validator + RPC) when the user is on Fuji and hasn't
+  // explicitly picked a role yet. Honours `forceNodeType` (the Create L1
+  // wizard pins this to 'validator') and respects manual overrides.
+  useEffect(() => {
+    if (forceNodeType) return;
+    if (selectedNetwork === 'fuji' && !nodeTypeUserSet.current) {
+      setNodeType('archival');
+    }
+  }, [selectedNetwork, forceNodeType]);
+
   // L1 lookup — refetch on subnet/network change, with AbortController.
   useEffect(() => {
     setSubnetIdError(null);
@@ -336,6 +352,7 @@ function AvalanchegoDockerInner({
     setConfigJson('');
     setShowAdvancedSettings(false);
     debugTraceUserSet.current = false;
+    nodeTypeUserSet.current = false;
     setCfg({
       enableDebugTrace: selectedNetwork === 'fuji',
       adminApiEnabled: false,
@@ -543,7 +560,10 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
-                      onClick={() => setNodeType('validator')}
+                      onClick={() => {
+                        nodeTypeUserSet.current = true;
+                        setNodeType('validator');
+                      }}
                       className={`p-3 rounded-xl border-2 text-left transition-all ${
                         nodeType === 'validator'
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -555,7 +575,10 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                     </button>
                     <button
                       type="button"
-                      onClick={() => setNodeType('rpc')}
+                      onClick={() => {
+                        nodeTypeUserSet.current = true;
+                        setNodeType('rpc');
+                      }}
                       className={`p-3 rounded-xl border-2 text-left transition-all ${
                         nodeType === 'rpc'
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -567,7 +590,10 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                     </button>
                     <button
                       type="button"
-                      onClick={() => setNodeType('archival')}
+                      onClick={() => {
+                        nodeTypeUserSet.current = true;
+                        setNodeType('archival');
+                      }}
                       className={`p-3 rounded-xl border-2 text-left transition-all ${
                         nodeType === 'archival'
                           ? isTestnet
