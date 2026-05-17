@@ -832,7 +832,10 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                 </div>
               </div>
 
-              {/* Storage Requirements Visualization (matches Primary Network setup) */}
+              {/* Storage Requirements Visualization (matches Primary Network setup).
+                  variant="l1" anchors the baseline on the ~40 GB Fuji / ~200 GB
+                  Mainnet figures shown in the Set up Instance tile — Primary
+                  Network's 13 TB archival numbers don't apply to L1s. */}
               <StorageRequirements
                 nodeType={nodeType}
                 pruningEnabled={cfg.pruningEnabled}
@@ -840,6 +843,7 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                 stateSyncEnabled={cfg.stateSyncEnabled}
                 debugEnabled={cfg.enableDebugTrace}
                 network={selectedNetwork}
+                variant="l1"
               />
             </div>
           </div>
