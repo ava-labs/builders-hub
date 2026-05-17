@@ -77,6 +77,16 @@ export default function MediaUploader({
     if (e.target.files && selectedIndex !== null) {
       const newFile = e.target.files[0];
       if (!newFile) return;
+      const maxBytes = maxSizeMB * 1024 * 1024;
+      if (newFile.size > maxBytes) {
+        form.setError(name as any, {
+          type: 'manual',
+          message: t(lang, 'submission.media.fileTooLarge', { size: maxSizeMB }),
+        });
+        e.target.value = '';
+        return;
+      }
+      form.clearErrors(name as any);
       const currentValue = form.getValues(name);
       if (maxItems === 1) {
         form.setValue(name, newFile);
@@ -215,6 +225,19 @@ export default function MediaUploader({
                   if (!e.target.files) return;
 
                   const files = Array.from(e.target.files);
+                  const maxBytes = maxSizeMB * 1024 * 1024;
+                  const oversized = files.filter(f => f.size > maxBytes);
+
+                  if (oversized.length > 0) {
+                    form.setError(name as any, {
+                      type: 'manual',
+                      message: t(lang, 'submission.media.fileTooLarge', { size: maxSizeMB }),
+                    });
+                    e.target.value = '';
+                    return;
+                  }
+
+                  form.clearErrors(name as any);
 
                   if (maxItems === 1) {
                     field.onChange(files[0]);
