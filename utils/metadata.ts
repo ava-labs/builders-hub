@@ -24,7 +24,7 @@ export function createMetadata(override: Metadata): Metadata {
 export const baseUrl = (() => {
   switch (process.env.VERCEL_ENV) {
     case 'production':
-      return new URL('https://build.avax.network'); // hardcodeado, no hay otra forma confiable
+      return new URL('https://build.avax.network');
     case 'preview':
       return new URL(`https://${process.env.VERCEL_URL}`);
     default:
