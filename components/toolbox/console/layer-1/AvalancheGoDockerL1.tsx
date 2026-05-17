@@ -15,6 +15,7 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { SyntaxHighlightedJSON } from '../../components/genesis/SyntaxHighlightedJSON';
 import { ReverseProxySetup } from '../../components/ReverseProxySetup';
 import { DockerInstallation } from '../../components/DockerInstallation';
+import { StorageRequirements } from '../../components/StorageRequirements';
 import { GenesisHighlightProvider, useGenesisHighlight } from '../../components/genesis/GenesisHighlightContext';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import {
@@ -416,97 +417,6 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
       githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx"
     >
       <Steps>
-        {showPrerequisites && (
-          <Step>
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Set up Instance</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-              Provision a server with the following specifications.
-            </p>
-
-            {/* Hardware requirements - compact grid (matches Primary Network setup) */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
-                    />
-                  </svg>
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">CPU</span>
-                </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">4 vCPU</div>
-              </div>
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">RAM</span>
-                </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">8 GB</div>
-              </div>
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
-                    />
-                  </svg>
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
-                </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {isTestnet ? '~40 GB Fuji' : '~200 GB Mainnet'}
-                </div>
-              </div>
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <ShieldCheck className="w-4 h-4 text-zinc-500" />
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Open ports</span>
-                </div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">9651 P2P · 9650 RPC</div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-              <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-zinc-500" />
-              <span>
-                For a production L1 we recommend <strong>5+ validator nodes</strong> spread across regions. A single
-                node is fine for local dev and quick demos.
-              </span>
-            </div>
-          </Step>
-        )}
-
-        {showPrerequisites && (
-          <Step>
-            <DockerInstallation includeCompose={false} />
-
-            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-              If you do not want to use Docker, you can follow the{' '}
-              <a
-                href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
-                target="_blank"
-                className="text-blue-500 hover:underline"
-                rel="noreferrer"
-              >
-                manual installation instructions
-              </a>
-              .
-            </p>
-          </Step>
-        )}
-
         <Step>
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
@@ -921,9 +831,110 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                   )}
                 </div>
               </div>
+
+              {/* Storage Requirements Visualization (matches Primary Network setup) */}
+              <StorageRequirements
+                nodeType={nodeType}
+                pruningEnabled={cfg.pruningEnabled}
+                skipTxIndexing={cfg.skipTxIndexing}
+                stateSyncEnabled={cfg.stateSyncEnabled}
+                debugEnabled={cfg.enableDebugTrace}
+                network={selectedNetwork}
+              />
             </div>
           </div>
         </Step>
+
+        {showPrerequisites && (
+          <Step>
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Set up Instance</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+              Provision a server with the following specifications.
+            </p>
+
+            {/* Hardware requirements - compact grid (matches Primary Network setup) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+                    />
+                  </svg>
+                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">CPU</span>
+                </div>
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">4 vCPU</div>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">RAM</span>
+                </div>
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">8 GB</div>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
+                    />
+                  </svg>
+                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
+                </div>
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {isTestnet ? '~40 GB Fuji' : '~200 GB Mainnet'}
+                </div>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <ShieldCheck className="w-4 h-4 text-zinc-500" />
+                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Open ports</span>
+                </div>
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">9651 P2P · 9650 RPC</div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-zinc-500" />
+              <span>
+                For a production L1 we recommend <strong>5+ validator nodes</strong> spread across regions. A single
+                node is fine for local dev and quick demos.
+              </span>
+            </div>
+          </Step>
+        )}
+
+        {showPrerequisites && (
+          <Step>
+            <DockerInstallation includeCompose={false} />
+
+            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+              If you do not want to use Docker, you can follow the{' '}
+              <a
+                href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
+                target="_blank"
+                className="text-blue-500 hover:underline"
+                rel="noreferrer"
+              >
+                manual installation instructions
+              </a>
+              .
+            </p>
+          </Step>
+        )}
 
         <Step>
           <h3 className="text-xl font-bold mb-4">Select L1</h3>
