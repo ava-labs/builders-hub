@@ -1,0 +1,526 @@
+{
+  "title": "Technical Team1 Member",
+  "quizzes": {
+    "4011": {
+      "question": "Why does the Technical Team1 course require *all* members (technical or not) to understand blockchain fundamentals?",
+      "options": [
+        "Because everyone in Team1 is expected to write production smart contracts",
+        "Because without a shared mental model of what blockchains are and why they exist, it’s hard to explain Avalanche accurately or support builders effectively",
+        "Because Avalanche requires a formal exam on consensus algorithms before joining Team1",
+        "Because fundamentals are only relevant for validators, not for community members"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about how the course ties Sections 1–2 to *all* contribution types.",
+      "explanation": "Sections 1–2 of the Technical Team1 course are foundational: members need a clear, shared understanding of what blockchains are, why they were created, and how Avalanche works to speak accurately about the ecosystem and support technical work, even if they’re not writing contracts full-time.",
+      "chapter": "Section 1–2: Foundations"
+    },
+    "4012": {
+      "question": "What is one key reason Avalanche’s architecture section asks you to distinguish between the network and the C‑Chain?",
+      "options": [
+        "Because the C‑Chain is the only chain that will exist after future upgrades",
+        "Because the Avalanche network can host many L1s, and the C‑Chain is just one EVM chain within that multi‑chain architecture",
+        "Because the P‑Chain and X‑Chain are deprecated and no longer relevant",
+        "Because only the C‑Chain supports staking and validator management"
+      ],
+      "correctAnswers": [1],
+      "hint": "Recall how the course describes L1s and the role of each chain.",
+      "explanation": "The course explains that Avalanche is a multi‑chain platform: the C‑Chain is an EVM chain on the primary network, but many other L1s can exist. Understanding this distinction helps Technical Team1 members reason about custom L1s, interoperability, and where particular contracts live.",
+      "chapter": "Section 2: Avalanche & Its Ecosystem"
+    },
+    "4031": {
+      "question": "What best describes a virtual machine in blockchain development?",
+      "options": [
+        "A physical server that stores private keys for validators",
+        "A software execution environment that runs code deterministically across nodes",
+        "A wallet extension used to sign transactions",
+        "A compiler plugin for Solidity"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about deterministic execution.",
+      "explanation": "A VM is software that executes instructions in an isolated, deterministic way so every node reaches the same result.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4032": {
+      "question": "Why are smart contracts important in Web3 systems?",
+      "options": [
+        "They remove all need for cryptography",
+        "They execute programmable rules on-chain without relying on a centralized server",
+        "They only store images for NFTs",
+        "They are required only for validators, not apps"
+      ],
+      "correctAnswers": [1],
+      "hint": "Focus on trust minimization.",
+      "explanation": "Smart contracts make application logic verifiable and automated on-chain, reducing dependence on centralized intermediaries.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4033": {
+      "question": "Which toolchain combination is commonly used to program Solidity contracts?",
+      "options": [
+        "Remix, VS Code, Foundry, and Hardhat",
+        "Photoshop, Figma, and Blender",
+        "Docker only, without any compiler",
+        "GitHub Issues and Discord"
+      ],
+      "correctAnswers": [0],
+      "hint": "Choose dev environments and frameworks.",
+      "explanation": "Remix, VS Code, Foundry, and Hardhat are common environments/toolchains for Solidity development.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4034": {
+      "question": "What is the purpose of SPDX license identifiers and `pragma` in Solidity files?",
+      "options": [
+        "SPDX sets compiler version; pragma sets token supply",
+        "SPDX declares licensing terms; pragma declares allowed compiler versions",
+        "Both are optional comments with no tooling impact",
+        "Both only affect frontend frameworks"
+      ],
+      "correctAnswers": [1],
+      "hint": "One is legal metadata, one is compiler compatibility.",
+      "explanation": "SPDX communicates code licensing, while `pragma solidity ...` constrains which compiler versions can compile the file.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4035": {
+      "question": "What does the Solidity compiler output that is essential for deployment and integration?",
+      "options": [
+        "Bytecode only; ABI is optional",
+        "ABI only; bytecode is generated on-chain",
+        "Bytecode to deploy and ABI for external interaction",
+        "A private key and RPC endpoint"
+      ],
+      "correctAnswers": [2],
+      "hint": "Separate on-chain code from off-chain interface.",
+      "explanation": "Bytecode is executed on-chain by the EVM; ABI tells clients how to encode calls and decode responses.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4036": {
+      "question": "What happens during contract deployment on an EVM chain like an Avalanche L1?",
+      "options": [
+        "The contract is uploaded to IPFS and auto-runs",
+        "A transaction with empty `to` and bytecode in `data` is executed to create a contract account",
+        "The wallet mints an NFT that represents the contract",
+        "Only validators can deploy contracts"
+      ],
+      "correctAnswers": [1],
+      "hint": "Deployment is a special transaction type.",
+      "explanation": "Deployment sends creation bytecode in a transaction; the EVM executes constructor logic and creates a new contract address.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4037": {
+      "question": "Which statement correctly distinguishes EOA and contract addresses?",
+      "options": [
+        "EOAs have code; contracts never have state",
+        "EOAs are controlled by private keys; contract accounts are controlled by code execution",
+        "Contract addresses can sign transactions directly with private keys",
+        "EOA and contract address formats are different lengths"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think key-controlled vs code-controlled.",
+      "explanation": "Both are 20-byte addresses, but EOAs are key-controlled while contract accounts execute deployed bytecode.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4038": {
+      "question": "Which statement about Solidity types is accurate?",
+      "options": [
+        "`uint` can store negative values",
+        "`uint8` and `uint256` have the same numeric range",
+        "`uint` is an alias of `uint256`, and larger bit sizes allow larger max values",
+        "`string` is fixed-length like `bytes32`"
+      ],
+      "correctAnswers": [2],
+      "hint": "Recall integer bit widths.",
+      "explanation": "`uint` defaults to `uint256`; `uint8`, `uint16`, ... `uint256` differ by range based on bit size.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4039": {
+      "question": "How are `bytes`, `keccak256`, and SHA-256 best characterized in Solidity?",
+      "options": [
+        "`bytes` is dynamic binary data; `keccak256` is the native EVM hash; SHA-256 is available but different",
+        "`bytes` is always text; SHA-256 and keccak256 produce identical outputs",
+        "`bytes32` cannot store hashes",
+        "keccak256 is only available off-chain"
+      ],
+      "correctAnswers": [0],
+      "hint": "Native EVM hashing matters.",
+      "explanation": "`bytes` handles binary payloads, and `keccak256` is the native EVM hash function; SHA-256 is separate and not interchangeable.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4040": {
+      "question": "What are `abi.encode` and `abi.decode` used for?",
+      "options": [
+        "Encrypting private keys",
+        "Packing typed values into bytes and unpacking them by ABI schema",
+        "Generating wallet addresses",
+        "Compiling Solidity into bytecode"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think call payloads and message parsing.",
+      "explanation": "They serialize and deserialize data according to ABI rules for contract calls, messaging, and low-level payload handling.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4041": {
+      "question": "Which option correctly pairs Solidity concepts?",
+      "options": [
+        "State variables persist on-chain; local variables exist only during function execution",
+        "Global variables are user-defined in each contract",
+        "`view` functions can update storage",
+        "`pure` functions can read storage but not memory"
+      ],
+      "correctAnswers": [0],
+      "hint": "Persistence vs temporary scope.",
+      "explanation": "State variables are persisted in contract storage, while local variables are temporary within function execution context.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4042": {
+      "question": "Which statement about functions, mutability, modifiers, and data locations is correct?",
+      "options": [
+        "`view` and `pure` describe state mutability, while custom modifiers wrap reusable checks",
+        "`calldata` is writable and persists after execution",
+        "`storage` on parameters always creates a copy",
+        "Mappings can be iterated natively like arrays"
+      ],
+      "correctAnswers": [0],
+      "hint": "Differentiate mutability specifiers from modifiers.",
+      "explanation": "`view`/`pure` are mutability specifiers; modifiers like `onlyOwner` enforce reusable preconditions. `calldata` is read-only.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4043": {
+      "question": "Which data-structure statement is correct?",
+      "options": [
+        "Mappings track all keys and are directly iterable",
+        "Arrays cannot be dynamic in Solidity",
+        "Enums represent named finite states",
+        "Enums can only be used in frontend code"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think lifecycle states.",
+      "explanation": "Enums model discrete states (for example, Pending/Active/Closed), while mappings are not natively iterable.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4044": {
+      "question": "What is ERC20?",
+      "options": [
+        "A standard for fungible tokens with common transfer and allowance interfaces",
+        "A standard for unique NFTs only",
+        "A standard for validator staking on P-Chain",
+        "A wallet protocol for QR connections"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think interchangeable units.",
+      "explanation": "ERC20 defines a common interface for fungible token balances, transfers, and approvals.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4045": {
+      "question": "What best defines ERC721 and ERC1155?",
+      "options": [
+        "ERC721 is non-fungible by tokenId; ERC1155 supports multiple token types in one contract",
+        "ERC721 and ERC1155 are both fungible-only standards",
+        "ERC1155 replaces all need for ERC20",
+        "ERC721 cannot expose metadata"
+      ],
+      "correctAnswers": [0],
+      "hint": "Unique ownership vs multi-token model.",
+      "explanation": "ERC721 tracks unique NFTs, while ERC1155 supports fungible, non-fungible, and semi-fungible assets under one contract.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4046": {
+      "question": "Which difference is most accurate across ERC20, ERC721, and ERC1155?",
+      "options": [
+        "Only ERC20 can be transferred",
+        "ERC1155 natively supports batch operations; ERC721 tracks ownership per tokenId; ERC20 tracks balances per address",
+        "ERC721 has no approval model",
+        "ERC20 and ERC721 share identical storage semantics"
+      ],
+      "correctAnswers": [1],
+      "hint": "Focus on token accounting model.",
+      "explanation": "ERC20 tracks fungible balances, ERC721 tracks owner per NFT id, and ERC1155 supports per-id balances plus batching.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4047": {
+      "question": "In ERC20 flow, what do `approve`, `allowance`, and `transferFrom` enable?",
+      "options": [
+        "They let a third party spend up to a user-approved amount",
+        "They permanently transfer private-key ownership",
+        "They deploy new token contracts",
+        "They disable all token transfers"
+      ],
+      "correctAnswers": [0],
+      "hint": "This is core to DeFi interactions.",
+      "explanation": "Users authorize spending with `approve`, protocols check remaining amount with `allowance`, and move funds via `transferFrom`.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4048": {
+      "question": "What is a reentrancy attack?",
+      "options": [
+        "Calling another chain through RPC",
+        "Repeatedly re-entering vulnerable contract logic before state updates complete",
+        "Using too much calldata",
+        "Deploying multiple contracts in one transaction"
+      ],
+      "correctAnswers": [1],
+      "hint": "External call before state update is a red flag.",
+      "explanation": "Reentrancy exploits external calls that happen before state is updated, enabling repeated withdrawals or inconsistent state.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4049": {
+      "question": "Which OpenZeppelin resources are commonly used with these token standards?",
+      "options": [
+        "Audited base contracts, security utilities (like ReentrancyGuard), and Contracts Wizard",
+        "Only frontend CSS themes",
+        "Only validator monitoring tools",
+        "Only Bitcoin script templates"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think secure contract building blocks.",
+      "explanation": "OpenZeppelin provides audited token implementations, security modules, access control, and code-generation tooling.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4050": {
+      "question": "What is IPFS mainly used for in ERC721/ERC1155 ecosystems?",
+      "options": [
+        "Running consensus for validators",
+        "Content-addressed storage for metadata/assets referenced by token URIs",
+        "Replacing smart contracts",
+        "Generating private keys"
+      ],
+      "correctAnswers": [1],
+      "hint": "NFT metadata and media storage.",
+      "explanation": "IPFS stores content by CID, commonly used for NFT metadata and media to avoid mutable centralized URLs.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4051": {
+      "question": "To deploy your own ERC20/ERC721/ERC1155 quickly and safely, what is best practice?",
+      "options": [
+        "Rewrite every standard from scratch",
+        "Inherit OpenZeppelin implementations and deploy with a toolchain like Foundry",
+        "Only use frontend code without contracts",
+        "Skip ABI generation"
+      ],
+      "correctAnswers": [1],
+      "hint": "Prioritize audited primitives.",
+      "explanation": "Using audited OpenZeppelin contracts plus a standard deployment flow is safer and faster than custom rewrites.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4052": {
+      "question": "What is a frontend framework/library and what is a hook in React-based dApps?",
+      "options": [
+        "A framework/library structures UI development; hooks are functions like `useState`/`useEffect` for state and lifecycle logic",
+        "Hooks are Solidity opcodes",
+        "Frontend frameworks only render static HTML with no state",
+        "Hooks are wallet signatures"
+      ],
+      "correctAnswers": [0],
+      "hint": "UI architecture + state management.",
+      "explanation": "React/Next.js structure dApp frontends, and hooks encapsulate component state, side effects, and reusable logic.",
+      "chapter": "Section 5: Frontend Integration"
+    },
+    "4053": {
+      "question": "Which are common Next.js/React hook patterns relevant to Web3 apps?",
+      "options": [
+        "`useState`, `useEffect`, plus routing hooks like `useRouter`, and custom hooks for contract reads/writes",
+        "Only class components; hooks are unsupported",
+        "`pragma`, `modifier`, and `mapping`",
+        "`balanceOf`, `approve`, `transferFrom`"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think React runtime patterns.",
+      "explanation": "Web3 UIs commonly combine built-in hooks, routing hooks, and custom hooks for wallet/contract interactions.",
+      "chapter": "Section 5: Frontend Integration"
+    },
+    "4054": {
+      "question": "What minimum inputs are required for frontend-to-contract interaction?",
+      "options": [
+        "Contract address, ABI, RPC/network config, and a signer/wallet for writes",
+        "Only token symbol and decimals",
+        "Only private key and chain logo",
+        "Only an IPFS CID"
+      ],
+      "correctAnswers": [0],
+      "hint": "Address + interface + network + signer.",
+      "explanation": "Without contract address, ABI, chain transport (RPC), and wallet signing, the frontend cannot reliably call/write contract functions.",
+      "chapter": "Section 5: Frontend Integration"
+    },
+    "4055": {
+      "question": "What are wagmi and WalletConnect in a modern dApp stack?",
+      "options": [
+        "wagmi is a React hooks library for EVM interactions; WalletConnect is a wallet connection protocol used by many providers",
+        "Both are consensus protocols",
+        "wagmi compiles Solidity; WalletConnect stores NFTs",
+        "Both are only for backend services"
+      ],
+      "correctAnswers": [0],
+      "hint": "Library vs connectivity protocol.",
+      "explanation": "wagmi offers typed React hooks for contracts and wallets, while WalletConnect handles secure wallet-to-dApp connectivity.",
+      "chapter": "Section 5: Frontend Integration"
+    },
+    "4056": {
+      "question": "Which frontend interaction flow is correct?",
+      "options": [
+        "Read contract state, batch reads when useful, submit writes via wallet, watch events, then wait for confirmations",
+        "Write first, then generate ABI later",
+        "Only use polling with no transaction receipt checks",
+        "Never listen to events"
+      ],
+      "correctAnswers": [0],
+      "hint": "End-to-end UX requires all steps.",
+      "explanation": "A robust dApp flow includes reads, multicalls, signed writes, event watching, and receipt confirmation handling.",
+      "chapter": "Section 5: Frontend Integration"
+    },
+    "4057": {
+      "question": "Which account abstraction patterns are common through WalletConnect-compatible providers?",
+      "options": [
+        "Embedded wallets, paymasters/gas sponsorship, session keys, and batched user operations",
+        "Only seed-phrase wallets with no smart account features",
+        "Disabling signatures completely",
+        "Replacing RPC with IPFS"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think ERC-4337-style UX improvements.",
+      "explanation": "Common AA features include gas sponsorship, smart account UX, delegated/session permissions, and batching.",
+      "chapter": "Section 5: Frontend Integration"
+    },
+    "4058": {
+      "question": "How does an Avalanche custom L1 differ from a typical L2 rollup?",
+      "options": [
+        "An L1 has its own validator set/consensus, while an L2 relies on a parent L1 for settlement/security",
+        "L1 and L2 are identical terms",
+        "L2 always has lower trust assumptions than L1",
+        "Only L2 can support smart contracts"
+      ],
+      "correctAnswers": [0],
+      "hint": "Focus on consensus and settlement location.",
+      "explanation": "Custom Avalanche L1s are sovereign chains with independent validator sets; L2s inherit settlement from a parent chain.",
+      "chapter": "Section 6: Custom L1s"
+    },
+    "4059": {
+      "question": "What is a precompile and what is AWM?",
+      "options": [
+        "A precompile is native node-implemented contract logic at known addresses; AWM is Avalanche’s validator-verified cross-chain messaging primitive",
+        "Both are frontend design patterns",
+        "AWM is a wallet extension only",
+        "Precompiles can only be written in React"
+      ],
+      "correctAnswers": [0],
+      "hint": "Native execution + cross-chain messaging.",
+      "explanation": "Precompiles expose native functionality to EVM contracts; AWM enables trust-minimized interchain messaging.",
+      "chapter": "Section 6: Custom L1s"
+    },
+    "4060": {
+      "question": "Which mapping of Avalanche L1 governance/config concepts is correct?",
+      "options": [
+        "Admin > Manager > Enabled role hierarchy; `deployerAllowList` controls deployers; `nativeMinter` controls native minting; `txAllowList` gates tx senders; `feeManager` adjusts fee params; `rewardManager` controls fee/reward routing; `warpConfig` enables warp messaging",
+        "All precompiles do the same job",
+        "Manager has higher privilege than Admin",
+        "`warpConfig` is used only for local file storage"
+      ],
+      "correctAnswers": [0],
+      "hint": "Match each precompile to its purpose.",
+      "explanation": "Each precompile governs a distinct operational surface area, and the role hierarchy enforces least-privilege administration.",
+      "chapter": "Section 6: Custom L1s"
+    },
+    "4061": {
+      "question": "In Solidity, what does the `external` function visibility specifier imply?",
+      "options": [
+        "The function can only be called from outside the contract; internal calls must go through `this.` (with gas tradeoffs)",
+        "The function is hidden from the ABI and cannot be called by users",
+        "The function is exactly the same as `internal` for inheritance",
+        "The function can only be called by the contract’s constructor"
+      ],
+      "correctAnswers": [0],
+      "hint": "Contrast `external` with `public` for same-contract calls.",
+      "explanation": "`external` functions take calldata arguments and are intended for outside callers; calling them from inside the same contract typically uses `this.f()` rather than a direct internal jump.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4062": {
+      "question": "In ERC20, what does `balanceOf(account)` return?",
+      "options": [
+        "The spender’s remaining allowance for `account`",
+        "The number of token units held by `account` according to the contract ledger",
+        "Whether `account` has approved the caller",
+        "The contract’s admin role for `account`"
+      ],
+      "correctAnswers": [1],
+      "hint": "Separate balances from approvals.",
+      "explanation": "`balanceOf` reads the fungible token balance stored in the contract’s mapping; allowances are queried with `allowance(owner, spender)`.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4063": {
+      "question": "What best describes what the Solidity compiler (`solc`) does before emitting bytecode and an ABI?",
+      "options": [
+        "It only minifies comments and ignores types",
+        "It parses the source, type-checks it, and runs optimization passes, surfacing errors if the code is invalid",
+        "It executes the contract on-chain to verify gas costs",
+        "It replaces Solidity with JavaScript automatically"
+      ],
+      "correctAnswers": [1],
+      "hint": "Compilation is analysis plus code generation.",
+      "explanation": "`solc` builds an AST, enforces Solidity semantics (including visibility and mutability), optimizes where configured, then outputs bytecode and metadata such as the ABI.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4064": {
+      "question": "When should you prefer `int256` (or other signed integer sizes) over `uint` in Solidity?",
+      "options": [
+        "Never—`uint` is always sufficient",
+        "When negative values are meaningful for your logic (for example deltas, debts, or directional quantities)",
+        "Only inside `pure` functions",
+        "Only for contract addresses"
+      ],
+      "correctAnswers": [1],
+      "hint": "Signed types exist for semantics, not syntax sugar.",
+      "explanation": "Use signed integers when the domain model includes values below zero; `uint` types cannot represent negatives.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4065": {
+      "question": "How is an RPC endpoint typically wired into a wagmi `createConfig` setup?",
+      "options": [
+        "As the `transports` map: each chain id maps to an HTTP or WebSocket transport pointing at a node URL",
+        "As a replacement for the contract ABI",
+        "Only inside Solidity `pragma` lines",
+        "RPC URLs are ignored; wallets always guess the network"
+      ],
+      "correctAnswers": [0],
+      "hint": "Chains + transports.",
+      "explanation": "wagmi pairs declared chains with transports (for example `http('https://.../rpc')`) so reads and writes go through your chosen node.",
+      "chapter": "Section 5: Frontend Integration"
+    },
+    "4066": {
+      "question": "Which wagmi hooks match these jobs: read a single contract function, submit a write, subscribe to an event, and wait for a receipt?",
+      "options": [
+        "`useReadContract`, `useWriteContract`, `useWatchContractEvent`, `useWaitForTransactionReceipt`",
+        "`useEffect`, `useState`, `useMemo`, `useCallback` only",
+        "`pragma`, `modifier`, `mapping`, `enum`",
+        "`transfer`, `approve`, `allowance`, `balanceOf`"
+      ],
+      "correctAnswers": [0],
+      "hint": "These are the core contract-interaction hooks in wagmi v2-style apps.",
+      "explanation": "wagmi exposes typed hooks for reads, writes, log subscriptions, and confirmation polling—often composed with viem ABIs.",
+      "chapter": "Section 5: Frontend Integration"
+    },
+    "4067": {
+      "question": "What does Avalanche guidance recommend for the minimum number of validators on a **production** custom L1?",
+      "options": [
+        "Exactly one validator is always enough",
+        "At least five validators for resilience and liveness",
+        "Validators are optional if you use IPFS",
+        "Twenty validators are forbidden by consensus rules"
+      ],
+      "correctAnswers": [1],
+      "hint": "Fault tolerance vs tiny testnets.",
+      "explanation": "The course cites at least **5 validators** for production-style deployments; smaller sets are fragile if a node drops offline.",
+      "chapter": "Section 6: Custom L1s"
+    },
+    "4068": {
+      "question": "Which examples does the Custom L1s lesson highlight as real Avalanche sovereign chains?",
+      "options": [
+        "Only Bitcoin and Solana mainnet",
+        "Beam, GUNZ, FIFA’s dedicated chain, Dexalot, SK Planet’s UPTN, plus other ecosystem L1s mentioned in passing",
+        "Only Ethereum L2 rollups",
+        "Chains that cannot use the EVM"
+      ],
+      "correctAnswers": [1],
+      "hint": "Scan the case-study section of the lesson.",
+      "explanation": "The lesson uses those deployments to show app-specific block space, tokenomics, permissioning, and migration realities on Avalanche L1s.",
+      "chapter": "Section 6: Custom L1s"
+    }
+  }
+}
+

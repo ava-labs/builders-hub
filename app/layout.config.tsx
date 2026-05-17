@@ -28,6 +28,7 @@ import {
   DraftingCompass,
   Gamepad2,
   Flame,
+  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -363,6 +364,13 @@ export const academyMenu: LinkItemType = {
       description:
         'Build a rock-solid foundation in blockchain fundamentals, smart contracts, and privacy-preserving tech.',
       url: '/academy?path=blockchain',
+    },
+    {
+      icon: <Users />,
+      text: 'Team1 Academy',
+      description:
+        'Explore Team1 learning paths from fundamentals to advanced technical leadership and event organizing.',
+      url: '/academy/team1',
     },
   ],
 };

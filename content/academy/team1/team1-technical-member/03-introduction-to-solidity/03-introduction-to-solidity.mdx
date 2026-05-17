@@ -1,0 +1,392 @@
+---
+title: Introduction to Solidity
+description: Understand smart contracts, the EVM, and the core language features of Solidity needed to build on Avalanche.
+updated: 2026-03-31
+authors: [team1]
+icon: BookOpen
+---
+
+Solidity is the primary language used to write smart contracts on the Avalanche C-Chain and on any custom Avalanche L1 that runs the Ethereum Virtual Machine. Before writing a single line of code it is worth understanding the execution environment it runs inside, why it matters, and how a plain text file becomes a live contract on a blockchain.
+
+For guided modules, quizzes, and hands-on exercises that follow this material end-to-end, work through Avalanche Academy’s **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** course (Solidity, Foundry, and deployment workflows).
+
+## The Ethereum Virtual Machine
+
+A **virtual machine (VM)** is a software-based computer that runs inside another computer. It provides an isolated, deterministic execution environment: given the same instructions and the same starting state, a VM always produces the same result, regardless of the hardware or operating system underneath it.
+
+The **Ethereum Virtual Machine (EVM)** is a specific virtual machine specification shared by Ethereum, the Avalanche C-Chain, and many custom Avalanche L1s. Every validator node in the network runs an identical copy of the EVM. When a transaction triggers contract logic, every node executes those instructions independently and arrives at the same new state.
+
+The EVM operates on a stack-based architecture and understands a low-level language called **bytecode**: a series of numeric opcodes. Developers generally don't write bytecode by hand; they write Solidity (or another high-level language) and let a compiler translate it.
+
+## Smart Contracts and Why They Matter
+
+A **smart contract** is a program deployed on a blockchain that executes automatically when its conditions are met. Because it lives inside the EVM, it is:
+
+- **Immutable by default**: once deployed, the code at that address cannot be altered. (Upgradeable proxy patterns are an explicit architecture choice, not the default behavior.)
+- **Deterministic**: every node reaches the same result when running the same contract logic.
+- **Trustless**: users interact with the code itself, not with a company or server that could change behavior or go offline.
+- **Transparent**: the code and its full execution history are publicly verifiable by anyone.
+
+On Avalanche, smart contracts are the building blocks of DeFi protocols, NFT markets, on-chain games, governance systems, and nearly every decentralized application. Understanding Solidity is therefore essential for anyone who wants to build or explain what is happening under the hood of these applications.
+
+## Development Environments
+
+Before writing Solidity you need a place to edit, compile, and test code. The most common options are:
+
+**Remix IDE** is a browser-based environment at [remix.ethereum.org](https://remix.ethereum.org). It requires no installation, lets you compile and deploy to testnets or a local simulated network in seconds, and is the fastest way to experiment with small contracts. It is ideal for learning and quick prototyping.
+
+**Visual Studio Code** with the [Solidity extension](https://marketplace.visualstudio.com/items?itemName=NomicFoundation.hardhat-solidity) provides syntax highlighting, inline error detection, and integration with build tools. Most professional Solidity projects are written here.
+
+**Foundry** is a fast, command-line-native development toolkit written in Rust. It includes `forge` for compiling and testing, `cast` for interacting with live contracts, and `anvil` for running a local EVM node. It is widely used for professional contract development on Avalanche.
+
+**Hardhat** is a JavaScript/TypeScript-based framework that offers a similar feature set to Foundry and integrates well with Node.js tooling. Many existing projects and tutorials use Hardhat.
+
+The Academy course walks through **Remix**, **Foundry**, and writing your first contracts in structured lessons: use it alongside this page when you want step-by-step checkpoints: [Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry) → [Smart contracts](https://build.avax.network/academy/blockchain/solidity-foundry/03-smart-contracts/01-building-programs-on-blockchain).
+
+## Licenses and the SPDX Identifier
+
+Every Solidity source file should begin with an SPDX license identifier. This tells other developers — and automated tools — how they are permitted to use and modify your code. The identifier takes the form:
+
+```solidity
+// SPDX-License-Identifier: MIT
+```
+
+Common choices include:
+
+| Identifier | Meaning |
+|---|---|
+| `MIT` | Anyone can use, modify, and redistribute, even commercially, with attribution. Most permissive. |
+| `GPL-3.0` | Any derivative work must also be open-source under the same license. |
+| `UNLICENSED` | Source is not open-source; all rights reserved. |
+| `Apache-2.0` | Permissive, with an explicit patent grant. |
+
+If you omit the SPDX identifier the compiler emits a warning, but the contract still compiles.
+
+## Solidity Versions and the Pragma Statement
+
+Solidity is actively developed and new versions can introduce breaking changes. The `pragma` statement pins the compiler version a file requires:
+
+```solidity
+pragma solidity ^0.8.20;
+```
+
+The caret (`^`) means "any compiler whose minor version starts with 0.8". So `0.8.20`, `0.8.24`, and `0.8.28` are all accepted, but `0.9.0` is not. You can also express exact versions or ranges:
+
+```solidity
+pragma solidity 0.8.28;            // exact version only
+pragma solidity >=0.8.0 <0.9.0;   // any 0.8.x
+```
+
+Pinning a version (or a narrow range) prevents unexpected behavior when the project is compiled months later with a newer compiler that may have different semantics. Starting from Solidity 0.8.0, arithmetic overflow and underflow revert automatically, which eliminated an entire class of bugs that plagued earlier contracts.
+
+## The Compiler: From Solidity to Bytecode and ABI
+
+When you run the Solidity compiler (`solc`) on a `.sol` file, it **parses** the source into a syntax tree, performs **semantic checks** (types, visibility, mutability), applies **optimization** passes, and then **emits** EVM bytecode plus contract metadata. Compile-time errors stop you from deploying code that violates Solidity or EVM rules.
+
+When compilation succeeds, the main artifacts you use day to day are:
+
+**Bytecode** is a sequence of low-level opcodes expressed as hexadecimal digits. This is what the EVM actually runs. It is the "machine code" of the smart contract world. You never read bytecode directly, but you do need to deploy it onto the blockchain.
+
+**ABI (Application Binary Interface)** is a JSON description of every public function and event in the contract — their names, parameter types, return types, and whether they modify state. The ABI tells external tools (wallets, frontends, test suites) exactly how to encode a function call and decode its response. Without the ABI, a caller has no way to know what arguments a function expects or what it returns.
+
+The relationship between the two: the bytecode goes on-chain and runs inside the EVM; the ABI stays off-chain and is used by clients to construct valid calls to the bytecode.
+
+## The Deployment Process
+
+Deploying a smart contract is a special kind of transaction. Here is what happens, step by step:
+
+1. **Compile**: the `.sol` file is compiled into bytecode and an ABI.
+2. **Create transaction**: a deployment transaction is constructed. Instead of a recipient address it has a blank `to` field, and the `data` field contains the contract bytecode (plus any constructor arguments, ABI-encoded).
+3. **Sign and broadcast**: your wallet signs the transaction with your private key and broadcasts it to the network.
+4. **Execution by the EVM**: every validator node receives the transaction, executes the bytecode as the constructor runs, and sets up the contract's initial state in the EVM's state trie.
+5. **Address assignment**: for the usual `CREATE` deployment path, the new contract's address is deterministically derived from the deployer's address and their current **nonce**: the EVM hashes the **RLP-encoded** pair `[sender, nonce]` with Keccak-256 and takes the last 20 bytes. No one chooses this address — it is computed. (The `CREATE2` opcode uses a different formula based on deployer, salt, and init code hash.)
+6. **Immutability**: from this point on, the code at that address cannot be changed. Users interact with the contract by sending transactions to its address.
+
+### Types of Addresses
+
+On the EVM there are two kinds of addresses:
+
+- **Externally Owned Accounts (EOA)**: accounts controlled by a private key. A human uses a wallet to sign transactions and initiate interactions. EOAs have no code.
+- **Contract Accounts**: addresses where the EVM has stored bytecode. These accounts hold state and code, but they cannot initiate transactions on their own — they can only respond to calls or messages sent to them.
+
+Both types share the same 20-byte address format. The distinction matters in practice because certain operations (like receiving ETH via `transfer`) behave differently, and the `address payable` type exists specifically to mark addresses that are meant to receive native currency.
+
+## Creating, Compiling, and Deploying to an Avalanche L1
+
+The workflow using Foundry (the recommended toolchain for Avalanche development) is:
+
+```bash
+# 1. Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# 2. Create a new project
+forge init my-contract && cd my-contract
+
+# 3. Write your contract in src/MyContract.sol
+# 4. Compile
+forge build
+
+# 5. Deploy to the Avalanche Fuji testnet (or your own L1)
+forge create src/MyContract.sol:MyContract \
+  --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
+  --private-key $PRIVATE_KEY
+```
+
+Replace the `--rpc-url` with the RPC endpoint of your custom L1 to deploy there instead. The ABI and bytecode are written to the `out/` directory after `forge build`, so you can copy the ABI into your frontend.
+
+To practice this flow with Academy-hosted exercises and solutions, use the **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** course (Foundry quickstart and Hello World parts).
+
+---
+
+## Core Language Features
+
+The summaries below are a compact reference. For progressive drills on types, control flow, and patterns, continue in the same **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** course.
+
+### Visibility
+
+Every function and state variable in a Solidity contract has a **visibility** specifier that controls who can call it:
+
+| Visibility | Functions | State variables | Who can access |
+|---|---|---|---|
+| `public` | ✓ | ✓ | Anyone — the contract itself, derived contracts, and external callers |
+| `private` | ✓ | ✓ | Only the contract that defines it |
+| `internal` | ✓ | ✓ | The defining contract and any contract that inherits from it |
+| `external` | ✓ | — | External callers only; cannot be called from inside the same contract without `this.` |
+
+```solidity
+contract Example {
+    uint256 public counter;          // readable by anyone
+    address private owner;           // only this contract
+    uint256 internal baseValue;      // this contract and children
+
+    function increment() public { counter++; }
+    function reset() external { counter = 0; }
+    function _helper() internal returns (uint256) { return baseValue; }
+}
+```
+
+### Value Types: uint, int, string, bool, address, bytes
+
+**Unsigned integers (`uint`)** represent non-negative whole numbers. The type is parameterized by bit width in multiples of 8: `uint8`, `uint16`, `uint32`, `uint64`, `uint128`, `uint256`. `uint` without a suffix is an alias for `uint256`, which is the most common.
+
+The bit width determines the maximum value: a `uint8` holds values from 0 to 255 (2⁸ − 1), while `uint256` holds values from 0 to 2²⁵⁶ − 1. Choosing a smaller type does not automatically save gas in memory or on the stack — the EVM always works with 32-byte (256-bit) slots — but it does save gas in storage when multiple small values are packed into the same slot.
+
+```solidity
+uint8  smallCounter;    // 0–255
+uint16 mediumValue;     // 0–65,535
+uint256 largeBalance;   // 0–(2^256 - 1), most common
+```
+
+**Signed integers (`int`)** can be negative or positive. `int8` ranges from −128 to 127, `int256` from −2²⁵⁵ to 2²⁵⁵ − 1. Use signed integers only when negative values are semantically meaningful.
+
+**`string`** is a dynamically-sized UTF-8 encoded byte sequence. Strings are stored in memory or storage and cannot be indexed or compared directly with `==` (you must hash them first). They are expensive if long.
+
+**`address`** holds a 20-byte Ethereum address. The `address payable` variant adds `transfer()` and `send()` methods for sending native currency. Convert between them with `payable(someAddress)`.
+
+**`bool`** is either `true` or `false`.
+
+### `bytes` and Its Fixed-Size Variants
+
+`bytes` is a dynamically-sized raw byte array, similar to `string` but for arbitrary binary data rather than text. The fixed-size variants `bytes1` through `bytes32` each hold exactly that many bytes and are value types (cheaper to handle than dynamic arrays). `bytes32` is particularly common for hashes, identifiers, and packed data.
+
+```solidity
+bytes32 id = keccak256(abi.encodePacked("hello"));
+bytes memory data = abi.encode(address(this), 42);
+bytes4 selector = bytes4(keccak256("transfer(address,uint256)"));
+```
+
+### keccak256 vs SHA-256
+
+**`keccak256`** is the EVM's native hash function. It uses the Keccak family that won the NIST SHA-3 competition, but Ethereum’s version keeps the **original Keccak padding**—so outputs differ from the **NIST-standard SHA-3** variant with the same name in some libraries. It is used everywhere on-chain: computing contract addresses, creating storage slot keys for mappings, signing data, generating identifiers, and more. Call it as:
+
+```solidity
+bytes32 hash = keccak256(abi.encodePacked(msg.sender, block.timestamp));
+```
+
+**SHA-256** is the hash function used by Bitcoin and much of traditional cryptography. On the EVM it is available as a precompile (`sha256(bytes memory data)`) but costs more gas than `keccak256`. Use `keccak256` for everything on-chain unless you specifically need SHA-256 compatibility with an off-chain system.
+
+The two functions produce different outputs for the same input — they are not interchangeable.
+
+### ABI Encoding and Decoding
+
+`abi.encode` and `abi.decode` are low-level utilities for packing and unpacking Solidity values according to the ABI specification. They are used when passing data between contracts, when constructing call payloads, and when working with cross-chain messaging systems like Avalanche Warp.
+
+```solidity
+// Encode two values into a single bytes blob
+bytes memory payload = abi.encode(msg.sender, 1000);
+
+// Decode it back
+(address sender, uint256 amount) = abi.decode(payload, (address, uint256));
+```
+
+`abi.encodePacked` produces a more compact encoding without padding — useful as input to hash functions, but not safe for decoding because values of different lengths can produce collisions.
+
+### State, Local, and Global Variables
+
+**State variables** are declared at the contract level and stored permanently in the blockchain's state trie. Reading them costs a small amount of gas; writing them costs significantly more. They persist between function calls.
+
+**Local variables** are declared inside a function body. They live in the EVM's memory or on the stack and are discarded when the function returns. They cost much less gas than state variables.
+
+**Global variables** are built-in variables provided by the EVM that describe the current execution context:
+
+| Variable | Type | Meaning |
+|---|---|---|
+| `msg.sender` | `address` | The address that called the current function |
+| `msg.value` | `uint256` | Amount of native currency (in wei) sent with the call |
+| `block.timestamp` | `uint256` | Unix timestamp of the current block |
+| `block.number` | `uint256` | Current block height |
+| `block.chainid` | `uint256` | Chain ID of the network |
+
+```solidity
+contract Vault {
+    address public owner;           // state variable
+    uint256 public balance;         // state variable
+
+    constructor() {
+        owner = msg.sender;         // global variable assigned to state
+    }
+
+    function deposit() public payable {
+        uint256 amount = msg.value; // local variable
+        balance += amount;          // modifies state
+    }
+}
+```
+
+### Functions and Parameters
+
+A function groups executable logic. The full signature is:
+
+```solidity
+function functionName(Type param1, Type param2)
+    visibility
+    stateMutability
+    returns (Type)
+{
+    // body
+}
+```
+
+Parameters are the typed inputs the function receives. Return types follow the `returns` keyword. A function can return multiple values using a tuple:
+
+```solidity
+function divmod(uint256 a, uint256 b) public pure returns (uint256 quotient, uint256 remainder) {
+    quotient = a / b;
+    remainder = a % b;
+}
+```
+
+### State-Changing vs Read-Only Functions
+
+Solidity functions are classified by their **state mutability**:
+
+- **State-changing** (no keyword): the function can read and write state variables. Calling it requires a transaction, which costs gas and is recorded on-chain.
+- **`view`**: the function reads state but does not modify it. Calling it off-chain (via `eth_call`) is free. It cannot alter state variables, send ether, or call state-changing functions.
+- **`pure`**: the function neither reads nor writes state. It operates only on its inputs. Useful for math helpers and encoding utilities.
+
+```solidity
+uint256 public count;
+
+function increment() public { count++; }               // state-changing
+function getCount() public view returns (uint256) { return count; } // read-only
+function double(uint256 x) public pure returns (uint256) { return x * 2; } // pure
+```
+
+### Modifiers
+
+A **modifier** is a piece of reusable logic that wraps a function. The `_;` placeholder inside the modifier marks where the original function body executes. Modifiers are most commonly used for access control and input validation:
+
+```solidity
+address public owner;
+
+modifier onlyOwner() {
+    require(msg.sender == owner, "Not the owner");
+    _;
+}
+
+modifier validAmount(uint256 amount) {
+    require(amount > 0, "Amount must be positive");
+    _;
+}
+
+function withdraw(uint256 amount) public onlyOwner validAmount(amount) {
+    payable(owner).transfer(amount);
+}
+```
+
+`view` and `pure` are function state-mutability specifiers. They are enforced at compile time: if you try to write to a state variable inside a `view` function, the compiler will reject it.
+
+### calldata, memory, and storage
+
+Reference types (`bytes`, `string`, arrays, structs) require a location specifier when used as function parameters or local variables:
+
+- **`storage`**: a reference to a slot in the contract's permanent state. Modifications through a `storage` pointer persist after the function returns. Using `storage` for a local variable is only possible for state variables.
+- **`memory`**: a temporary copy allocated for the duration of the function call. Modifications do not affect the original state variable.
+- **`calldata`**: a read-only, non-modifiable area containing the raw input data of the external call. Using `calldata` instead of `memory` for `external` function parameters saves gas because no copy is made.
+
+```solidity
+function sumArray(uint256[] calldata numbers) external pure returns (uint256 total) {
+    for (uint256 i = 0; i < numbers.length; i++) {
+        total += numbers[i];
+    }
+}
+
+function processString(string memory text) public pure returns (uint256) {
+    return bytes(text).length;
+}
+
+function appendToStorage() internal {
+    uint256[] storage arr = myStorageArray; // direct reference, no copy
+    arr.push(99);
+}
+```
+
+### Mappings, Arrays, and Enums
+
+**Mappings** are the EVM's equivalent of hash maps. They associate keys to values but do not maintain a list of keys and cannot be iterated over:
+
+```solidity
+mapping(address => uint256) public balances;
+mapping(address => mapping(address => uint256)) public allowances; // nested
+
+balances[msg.sender] = 1000;
+uint256 b = balances[someAddress]; // returns 0 if never set
+```
+
+**Arrays** come in fixed-size and dynamic variants:
+
+```solidity
+uint256[5] fixed;           // always 5 elements
+uint256[] dynamic;          // grows with push/pop
+dynamic.push(42);
+uint256 len = dynamic.length;
+```
+
+**Enums** define a named set of discrete states, useful for representing the lifecycle of a contract or the status of an order:
+
+```solidity
+enum Status { Pending, Active, Completed, Cancelled }
+
+Status public currentStatus;
+
+function activate() public {
+    require(currentStatus == Status.Pending, "Not pending");
+    currentStatus = Status.Active;
+}
+```
+
+Enums are stored as `uint8` values starting at zero and can be cast to and from integers.
+
+---
+
+## Key Takeaways
+
+- The EVM is a deterministic, shared virtual machine that runs identically on every node. Solidity compiles to EVM bytecode.
+- Smart contracts are immutable, transparent, and trustless programs stored on the blockchain. Their importance lies in removing the need for intermediaries.
+- A Solidity file needs an SPDX license identifier, a pragma version constraint, and at least one contract definition.
+- The compiler produces bytecode (what runs on-chain) and an ABI (what the frontend uses to communicate with the contract).
+- Deployment is a transaction with no `to` field; the resulting contract address is deterministically computed.
+- EOAs are human-controlled accounts; contract accounts hold code.
+- Visibility (`public`, `private`, `internal`, `external`), state mutability (`view`, `pure`), and data locations (`calldata`, `memory`, `storage`) control how data flows through a contract.
+- The core data structures — mappings, arrays, and enums — cover most on-chain storage patterns.

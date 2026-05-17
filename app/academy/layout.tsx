@@ -21,6 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const avalancheTree = getAcademyTree('/academy/avalanche-l1');
   const blockchainTree = getAcademyTree('/academy/blockchain');
   const entrepreneurTree = getAcademyTree('/academy/entrepreneur');
+  const team1Tree = getAcademyTree('/academy/team1');
 
   return (
     <LayoutWrapper baseOptions={baseOptions}>
@@ -30,6 +31,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           avalancheTree={avalancheTree}
           blockchainTree={blockchainTree}
           entrepreneurTree={entrepreneurTree}
+          team1Tree={team1Tree}
         >
           {children}
         </AcademyDocsLayoutWrapper>
