@@ -274,6 +274,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.media.deleteTitle": "Delete Image",
     "submission.media.deleteConfirm": "Are you sure you want to delete this image?",
     "submission.media.viewTitle": "View Image",
+    "submission.media.fileTooLarge": "File exceeds the {size}MB limit and was not added.",
 
     // Save toasts
     "submission.save.savedTitle": "Project saved",
@@ -704,6 +705,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.media.deleteTitle": "Eliminar imagen",
     "submission.media.deleteConfirm": "¿Estás seguro de que quieres eliminar esta imagen?",
     "submission.media.viewTitle": "Ver imagen",
+    "submission.media.fileTooLarge": "El archivo supera el límite de {size}MB y no fue agregado.",
 
     // Save toasts
     "submission.save.savedTitle": "Proyecto guardado",
