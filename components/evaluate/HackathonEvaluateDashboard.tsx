@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trophy } from "lucide-react";
+import { CheckCircle2, Trophy } from "lucide-react";
 import { SubmissionDetailPanel } from "./SubmissionDetailPanel";
 import type { EvaluationData, SubmissionRow, Verdict } from "./types";
 
@@ -150,18 +150,28 @@ export function HackathonEvaluateDashboard({
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [winnerSaving, setWinnerSaving] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "evaluated">("all");
+
+  const evaluatedCount = useMemo(
+    () => projects.filter((p) => p.evaluations.some((e) => e.evaluator_id === viewerId)).length,
+    [projects, viewerId],
+  );
+  const pendingCount = projects.length - evaluatedCount;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return projects;
-    return projects.filter((p) =>
-      [p.project_name, p.short_description, p.tech_stack, p.tracks.join(" "), p.tags.join(" ")]
+    return projects.filter((p) => {
+      const hasMine = p.evaluations.some((e) => e.evaluator_id === viewerId);
+      if (statusFilter === "evaluated" && !hasMine) return false;
+      if (statusFilter === "pending" && hasMine) return false;
+      if (!q) return true;
+      return [p.project_name, p.short_description, p.tech_stack, p.tracks.join(" "), p.tags.join(" ")]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-        .includes(q),
-    );
-  }, [projects, query]);
+        .includes(q);
+    });
+  }, [projects, query, statusFilter, viewerId]);
 
   const openProject = projects.find((p) => p.id === openProjectId) ?? null;
 
@@ -213,26 +223,64 @@ export function HackathonEvaluateDashboard({
 
   return (
     <>
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search projects…"
           className="max-w-md"
         />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              { key: "all", label: "All", count: projects.length },
+              { key: "pending", label: "Pending", count: pendingCount },
+              { key: "evaluated", label: "Evaluated", count: evaluatedCount },
+            ] as const
+          ).map((opt) => {
+            const active = statusFilter === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setStatusFilter(opt.key)}
+                aria-pressed={active}
+                className={
+                  "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors " +
+                  (active
+                    ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                    : "border-zinc-200 bg-transparent text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900")
+                }
+              >
+                {opt.key === "evaluated" && <CheckCircle2 className="size-3.5" />}
+                {opt.label}
+                <span
+                  className={
+                    "rounded px-1.5 py-0.5 text-[10px] font-semibold " +
+                    (active
+                      ? "bg-zinc-50/20 text-zinc-50 dark:bg-zinc-900/20 dark:text-zinc-900"
+                      : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400")
+                  }
+                >
+                  {opt.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[32%]">Project</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead className="w-[120px] text-right">Submitted</TableHead>
+              <TableHead className="w-[28%] min-w-[200px]">Project</TableHead>
+              <TableHead className="w-[100px]">Team</TableHead>
+              <TableHead className="w-[110px] text-right">Submitted</TableHead>
               <TableHead className="w-[80px] text-right">Reviews</TableHead>
               <TableHead className="w-[100px] text-right">Avg score</TableHead>
-              <TableHead className="w-[110px] text-right">My score</TableHead>
-              <TableHead className="w-[100px] text-right">Winner</TableHead>
+              <TableHead className="w-[100px] text-right">My score</TableHead>
+              <TableHead className="w-[110px] text-right">Winner</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -246,22 +294,37 @@ export function HackathonEvaluateDashboard({
             {filtered.map((p) => {
               const avg = averageScore(p.evaluations);
               const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
+              const evaluatedByMe = Boolean(mine);
               return (
                 <TableRow
                   key={p.id}
-                  className="cursor-pointer"
+                  className={
+                    "cursor-pointer " +
+                    (evaluatedByMe ? "bg-emerald-50/40 dark:bg-emerald-500/5" : "")
+                  }
                   onClick={() => setOpenProjectId(p.id)}
                 >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
+                  <TableCell className="overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0">
                       {p.logo_url ? (
                         <img src={p.logo_url} alt="" className="size-9 shrink-0 rounded object-cover" />
                       ) : (
                         <div className="size-9 shrink-0 rounded bg-zinc-200 dark:bg-zinc-800" />
                       )}
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {p.project_name}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            {p.project_name}
+                          </div>
+                          {evaluatedByMe && (
+                            <span
+                              title="You have evaluated this project"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
+                            >
+                              <CheckCircle2 className="size-3" />
+                              Evaluated
+                            </span>
+                          )}
                         </div>
                         <div className="truncate text-xs text-zinc-500 dark:text-zinc-600 dark:text-zinc-500">
                           {p.short_description}
