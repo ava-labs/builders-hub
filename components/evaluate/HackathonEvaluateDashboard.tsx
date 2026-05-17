@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle2, Trophy } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Trophy } from "lucide-react";
 import { SubmissionDetailPanel } from "./SubmissionDetailPanel";
 import type { EvaluationData, SubmissionRow, Verdict } from "./types";
 
@@ -140,6 +140,39 @@ function averageScore(evals: Evaluation[]): number | null {
   return scored.reduce((a, e) => a + (e.score_overall ?? 0), 0) / scored.length;
 }
 
+function SortHeader({
+  label,
+  active,
+  direction,
+  onClick,
+  align = "right",
+}: {
+  label: string;
+  active: boolean;
+  direction: "asc" | "desc";
+  onClick: () => void;
+  align?: "left" | "right";
+}) {
+  const Icon = !active ? ArrowUpDown : direction === "asc" ? ArrowUp : ArrowDown;
+  const justify = align === "left" ? "justify-start -ml-2" : "justify-end -mr-2";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "inline-flex w-full items-center gap-1 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors " +
+        justify +
+        " " +
+        (active ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-600 dark:text-zinc-400")
+      }
+      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+    >
+      {label}
+      <Icon className={"size-3.5 " + (active ? "opacity-100" : "opacity-50")} />
+    </button>
+  );
+}
+
 export function HackathonEvaluateDashboard({
   hackathonId,
   viewerId,
@@ -151,6 +184,20 @@ export function HackathonEvaluateDashboard({
   const [query, setQuery] = useState("");
   const [winnerSaving, setWinnerSaving] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "evaluated">("all");
+  const [sort, setSort] = useState<{
+    key: "project" | "reviews" | "avg" | "mine" | null;
+    direction: "asc" | "desc";
+  }>({ key: null, direction: "desc" });
+
+  function toggleSort(key: "project" | "reviews" | "avg" | "mine") {
+    setSort((prev) => {
+      if (prev.key !== key) {
+        return { key, direction: key === "project" ? "asc" : "desc" };
+      }
+      if (prev.direction === "desc") return { key, direction: "asc" };
+      return { key: null, direction: "desc" };
+    });
+  }
 
   const evaluatedCount = useMemo(
     () => projects.filter((p) => p.evaluations.some((e) => e.evaluator_id === viewerId)).length,
@@ -172,6 +219,34 @@ export function HackathonEvaluateDashboard({
         .includes(q);
     });
   }, [projects, query, statusFilter, viewerId]);
+
+  const sorted = useMemo(() => {
+    if (sort.key === null) return filtered;
+    const dir = sort.direction === "asc" ? 1 : -1;
+    if (sort.key === "project") {
+      return [...filtered].sort(
+        (a, b) =>
+          a.project_name.localeCompare(b.project_name, undefined, { sensitivity: "base" }) * dir,
+      );
+    }
+    const valueOf = (p: Project): number | null => {
+      if (sort.key === "reviews") return p.evaluations.length;
+      if (sort.key === "avg") return averageScore(p.evaluations);
+      if (sort.key === "mine") {
+        const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
+        return mine?.score_overall ?? null;
+      }
+      return null;
+    };
+    return [...filtered].sort((a, b) => {
+      const av = valueOf(a);
+      const bv = valueOf(b);
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return (av - bv) * dir;
+    });
+  }, [filtered, sort, viewerId]);
 
   const openProject = projects.find((p) => p.id === openProjectId) ?? null;
 
@@ -274,24 +349,53 @@ export function HackathonEvaluateDashboard({
         <Table className="table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[28%] min-w-[200px]">Project</TableHead>
+              <TableHead className="w-[28%] min-w-[200px]">
+                <SortHeader
+                  label="Project"
+                  align="left"
+                  active={sort.key === "project"}
+                  direction={sort.direction}
+                  onClick={() => toggleSort("project")}
+                />
+              </TableHead>
               <TableHead className="w-[100px]">Team</TableHead>
               <TableHead className="w-[110px] text-right">Submitted</TableHead>
-              <TableHead className="w-[80px] text-right">Reviews</TableHead>
-              <TableHead className="w-[100px] text-right">Avg score</TableHead>
-              <TableHead className="w-[100px] text-right">My score</TableHead>
+              <TableHead className="w-[80px] text-right">
+                <SortHeader
+                  label="Reviews"
+                  active={sort.key === "reviews"}
+                  direction={sort.direction}
+                  onClick={() => toggleSort("reviews")}
+                />
+              </TableHead>
+              <TableHead className="w-[100px] text-right">
+                <SortHeader
+                  label="Avg score"
+                  active={sort.key === "avg"}
+                  direction={sort.direction}
+                  onClick={() => toggleSort("avg")}
+                />
+              </TableHead>
+              <TableHead className="w-[100px] text-right">
+                <SortHeader
+                  label="My score"
+                  active={sort.key === "mine"}
+                  direction={sort.direction}
+                  onClick={() => toggleSort("mine")}
+                />
+              </TableHead>
               <TableHead className="w-[110px] text-right">Winner</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 && (
+            {sorted.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-600 dark:text-zinc-500">
                   No projects yet.
                 </TableCell>
               </TableRow>
             )}
-            {filtered.map((p) => {
+            {sorted.map((p) => {
               const avg = averageScore(p.evaluations);
               const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
               const evaluatedByMe = Boolean(mine);
