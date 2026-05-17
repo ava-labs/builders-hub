@@ -52,15 +52,10 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
-    if (!isHubSpotEnabled()) {
+    const hubspotEnabled = isHubSpotEnabled();
+    if (!hubspotEnabled) {
       skipHubSpot('POST /api/build-games/apply');
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        message: 'HubSpot disabled in this environment; application not pushed.',
-      });
-    }
-    if (!HUBSPOT_API_KEY) {
+    } else if (!HUBSPOT_API_KEY) {
       console.error('Missing environment variable: HUBSPOT_API_KEY');
       return NextResponse.json(
         { success: false, message: 'Server configuration error' },
@@ -178,47 +173,56 @@ export async function POST(request: Request) {
     const hubspotUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${BUILD_GAMES_FORM_GUID}`;
     console.log('[Build Games Apply] HubSpot URL:', hubspotUrl);
 
-    const hubspotPromise = fetchWithTimeout(hubspotUrl,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
-        },
-        body: JSON.stringify(hubspotPayload),
-      },
-      60000 // 60 second timeout
-    );
+    type HubspotResult = {
+      success: boolean;
+      status: number;
+      data: unknown;
+      error?: string;
+    };
+    const hubspotPromise: Promise<HubspotResult> = hubspotEnabled
+      ? fetchWithTimeout(hubspotUrl,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
+            },
+            body: JSON.stringify(hubspotPayload),
+          },
+          60000 // 60 second timeout
+        )
+          .then(async (response) => {
+            const status = response.status;
+            console.log('[Build Games Apply] HubSpot response status:', status);
+            let data;
+            try {
+              const responseText = await response.text();
+              console.log('[Build Games Apply] HubSpot response body:', responseText);
+              try {
+                data = JSON.parse(responseText);
+              } catch {
+                data = { message: responseText || 'Could not parse response' };
+              }
+            } catch (e) {
+              console.error('[Build Games Apply] Error reading HubSpot response:', e);
+              data = { message: 'Could not read response' };
+            }
+            return { success: response.ok, status, data };
+          })
+          .catch((err) => {
+            console.error('[Build Games Apply] HubSpot request failed:', err);
+            return { success: false, status: 0, data: null, error: err.message };
+          })
+      : Promise.resolve({
+          success: true,
+          status: 0,
+          data: { skipped: true, reason: 'HubSpot disabled in this environment' },
+        });
 
-    // Save to database (runs in parallel with HubSpot)
+    // Save to database (runs in parallel with HubSpot when enabled)
     const dbPromise = saveToDatabase(formData);
 
-    const [hubspotResult, dbResult] = await Promise.all([
-      hubspotPromise
-        .then(async (response) => {
-          const status = response.status;
-          console.log('[Build Games Apply] HubSpot response status:', status);
-          let data;
-          try {
-            const responseText = await response.text();
-            console.log('[Build Games Apply] HubSpot response body:', responseText);
-            try {
-              data = JSON.parse(responseText);
-            } catch {
-              data = { message: responseText || 'Could not parse response' };
-            }
-          } catch (e) {
-            console.error('[Build Games Apply] Error reading HubSpot response:', e);
-            data = { message: 'Could not read response' };
-          }
-          return { success: response.ok, status, data };
-        })
-        .catch((err) => {
-          console.error('[Build Games Apply] HubSpot request failed:', err);
-          return { success: false, status: 0, data: null, error: err.message };
-        }),
-      dbPromise,
-    ]);
+    const [hubspotResult, dbResult] = await Promise.all([hubspotPromise, dbPromise]);
 
     const hubspotSuccess = hubspotResult.success;
     const dbSuccess = dbResult.success;
