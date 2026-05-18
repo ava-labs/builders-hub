@@ -129,6 +129,10 @@ const BaseFormSchema = z.object({
     .string()
     .optional()
     .or(z.literal('')),
+  // Discrete tech-stack tokens for the gallery filter. Coexists with the
+  // free-form `tech_stack` string; admins seed the option list via
+  // Hackathon.content.tech_stack_options.
+  stack: z.array(z.string()).optional().default([]),
   github_repository: z.preprocess(
     normalizeLinkArray,
     buildUrlArraySchema({
@@ -321,6 +325,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       short_description: '',
       full_description: '',
       tech_stack: '',
+      stack: [],
       tracks: [],
       categories: [],
       other_category: '',
@@ -711,6 +716,11 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       short_description: project.short_description ?? '',
       full_description: project.full_description ?? '',
       tech_stack: project.tech_stack ?? '',
+      stack: Array.isArray(project.stack)
+        ? project.stack
+        : (project.stack && typeof project.stack === 'string'
+            ? project.stack.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : []),
       github_repository: project.github_repository ? project.github_repository.split(',').filter(Boolean) : [],
       explanation: project.explanation ?? '',
       demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],
