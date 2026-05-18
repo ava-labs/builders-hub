@@ -34,6 +34,7 @@ export interface Project {
   members?:Member[]
   user_id?:string
   isDraft?:boolean
+  consent_sharing?: boolean | null;
 }
 
 export type ProjectFilters = {
