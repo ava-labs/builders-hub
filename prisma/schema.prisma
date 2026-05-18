@@ -70,6 +70,7 @@ model User {
   linkedin_account           String?
   additional_social_accounts String[]                  @default([])
   notifications              Boolean?
+  consent_sharing            Boolean?
   profile_privacy            String?                   @default("public")
   custom_attributes          String[]
   team_id                    String?
@@ -168,6 +169,7 @@ model Project {
   website             Json?
   socials             Json?
   visibility          String              @default("semi-public")
+  consent_sharing     Boolean?
   formData            FormData[]
   members             Member[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)

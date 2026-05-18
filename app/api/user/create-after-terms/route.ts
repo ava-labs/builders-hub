@@ -41,7 +41,11 @@ export const POST = withAuth(async (
   try {
     const email = session.user.email;
     const body = await req.json();
-    const { notifications = false, referral_attribution = null } = body;
+    const {
+      notifications = false,
+      consent_sharing = false,
+      referral_attribution = null,
+    } = body;
 
     // Check if user already exists (shouldn't happen, but safety check)
     const existingUser = await prisma.user.findUnique({
@@ -67,7 +71,7 @@ export const POST = withAuth(async (
 
     // Create the new user
     const newUser = await prisma.user.create({
-      select: { id: true, email: true, name: true, notifications: true },
+      select: { id: true, email: true, name: true, notifications: true, consent_sharing: true },
       data: {
         email: email || '',
         notification_email: email,
@@ -76,6 +80,7 @@ export const POST = withAuth(async (
         authentication_mode: 'credentials',
         last_login: new Date(),
         notifications: notifications,
+        consent_sharing: consent_sharing,
         notification_means: getDefaultNotificationMeans(),
       }
     });
@@ -87,6 +92,7 @@ export const POST = withAuth(async (
           email: newUser.email,
           name: newUser.name || undefined,
           notifications: newUser.notifications ?? undefined,
+          consent_sharing: newUser.consent_sharing ?? undefined,
           gdpr: true, // User accepted terms and conditions
         });
       } catch (error) {

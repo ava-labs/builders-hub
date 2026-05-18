@@ -35,6 +35,7 @@ export interface Project {
   user_id?:string
   isDraft?:boolean
   visibility?: 'private' | 'semi-public' | 'public';
+  consent_sharing?: boolean | null;
 }
 
 export type ProjectFilters = {

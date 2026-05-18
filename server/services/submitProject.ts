@@ -184,6 +184,9 @@ export async function createProject(
           ...(projectData.visibility !== undefined && {
             visibility: resolveVisibility(projectData.visibility),
           }),
+          ...(typeof projectData.consent_sharing === "boolean"
+            ? { consent_sharing: projectData.consent_sharing }
+            : {}),
         },
       });
 
@@ -215,6 +218,9 @@ export async function createProject(
           ? projectData.socials
           : Prisma.JsonNull,
         visibility: resolveVisibility(projectData.visibility),
+        ...(typeof projectData.consent_sharing === "boolean"
+          ? { consent_sharing: projectData.consent_sharing }
+          : {}),
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly

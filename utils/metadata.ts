@@ -21,7 +21,13 @@ export function createMetadata(override: Metadata): Metadata {
   };
 }
 
-export const baseUrl =
-  process.env.NODE_ENV === 'development'
-    ? new URL('http://localhost:3000')
-    : new URL(`https://${process.env.VERCEL_URL!}`);
+export const baseUrl = (() => {
+  switch (process.env.VERCEL_ENV) {
+    case 'production':
+      return new URL('https://build.avax.network');
+    case 'preview':
+      return new URL(`https://${process.env.VERCEL_URL}`);
+    default:
+      return new URL('http://localhost:3000');
+  }
+})();
