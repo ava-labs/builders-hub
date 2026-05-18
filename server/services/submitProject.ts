@@ -16,6 +16,14 @@ function resolveVisibility(value: unknown): string {
   return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.SEMI_PUBLIC;
 }
 
+// consent_sharing (Andrea, PR #4204) is the "share project info with Team1"
+// signal that mirrors to a HubSpot custom property. visibility supersedes
+// that opt-in as the single source of truth — anything other than "private"
+// implies the user is OK with sharing.
+function consentSharingFor(visibility: string): boolean {
+  return visibility !== PROJECT_VISIBILITY.PRIVATE;
+}
+
 export const projectValidations: Validation[] = [
   {
     field: "project_name",
@@ -183,10 +191,10 @@ export async function createProject(
             : Prisma.JsonNull,
           ...(projectData.visibility !== undefined && {
             visibility: resolveVisibility(projectData.visibility),
+            consent_sharing: consentSharingFor(
+              resolveVisibility(projectData.visibility),
+            ),
           }),
-          ...(typeof projectData.consent_sharing === "boolean"
-            ? { consent_sharing: projectData.consent_sharing }
-            : {}),
         },
       });
 
@@ -218,9 +226,9 @@ export async function createProject(
           ? projectData.socials
           : Prisma.JsonNull,
         visibility: resolveVisibility(projectData.visibility),
-        ...(typeof projectData.consent_sharing === "boolean"
-          ? { consent_sharing: projectData.consent_sharing }
-          : {}),
+        consent_sharing: consentSharingFor(
+          resolveVisibility(projectData.visibility),
+        ),
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly

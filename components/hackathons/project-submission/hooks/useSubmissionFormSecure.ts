@@ -204,8 +204,6 @@ const BaseFormSchema = z.object({
   visibility: z
     .enum(['private', 'semi-public', 'public'])
     .default('semi-public'),
-  // Opt-in: share project info with Team1 for local support.
-  consent_sharing: z.boolean().optional(),
 });
 
 // Step schemas created from base schema (before refinements)
@@ -333,7 +331,6 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       explanation: '',
       demo_video_link: '',
       visibility: 'semi-public',
-      consent_sharing: false,
     },
   });
 
@@ -769,7 +766,6 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
-      consent_sharing: !!project.consent_sharing,
     });
   }, [form, state.isEditing]);
 
