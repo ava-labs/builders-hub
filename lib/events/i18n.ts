@@ -163,6 +163,10 @@ const dict: Record<EventsLang, Dict> = {
     "submission.step1.deployedAddresses.label": "Deployed Addresses",
     "submission.step1.deployedAddresses.addButton": "+ new address",
     "submission.step1.team.title": "Team & Collaboration",
+    "submission.step1.consentSharing.label":
+      "I consent to share this project's information with Avalanche Team1 so they can reach out to offer local support.",
+    "submission.step1.consentSharing.hint":
+      "Team1 may contact your team about local programs, partnerships, or mentorship opportunities.",
 
     // Step 2 — Technical Details
     "submission.step2.technical.title": "Technical Details",
@@ -274,6 +278,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.media.deleteTitle": "Delete Image",
     "submission.media.deleteConfirm": "Are you sure you want to delete this image?",
     "submission.media.viewTitle": "View Image",
+    "submission.media.fileTooLarge": "File exceeds the {size}MB limit and was not added.",
 
     // Save toasts
     "submission.save.savedTitle": "Project saved",
@@ -368,12 +373,26 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step3.subtitle": "Review and agree to the terms to complete your registration. For information about our privacy practices and commitment to protecting your privacy, please review our",
     "reg.step3.privacyLink": "Avalanche Privacy Policy.",
     "reg.step3.terms.label": "I have read and agree to the Event Participation",
-    "reg.step3.terms.link": "Terms and Conditions.",
+    "reg.step3.terms.link": "Terms and Conditions",
+    "reg.step3.terms.connector": " and the ",
     "reg.step3.terms.hint": "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
     "reg.step3.newsletter.label": "I wish to stay informed about Avalanche news and events.",
     "reg.step3.newsletter.hint": "Subscribe to newsletters and promotional materials. You can opt out anytime.",
     "reg.step3.prohibited.label": "I agree not to bring any of the following prohibited items. *",
     "reg.step3.prohibited.hint": "Review the list of restricted items before attending in-person events.",
+
+    // Grouped User-level consents (used in account creation and event registration)
+    "consents.group.label": "Stay connected with Avalanche",
+    "consents.group.hint":
+      "Choose how you'd like to hear from us. You can change these anytime in your profile settings.",
+    "consents.notifications.label":
+      "I wish to stay informed about Avalanche news and events.",
+    "consents.notifications.hint":
+      "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+    "consents.consentSharing.label":
+      "I consent to share my contact information with Avalanche Team1 so they can reach out for local support or invite me to regional initiatives.",
+    "consents.consentSharing.hint":
+      "Team1 may contact you about local events, mentorship opportunities, or regional ecosystem programs.",
 
     // Completed dialog
     "reg.dialog.title": "Application Submitted",
@@ -593,6 +612,10 @@ const dict: Record<EventsLang, Dict> = {
     "submission.step1.deployedAddresses.label": "Direcciones desplegadas",
     "submission.step1.deployedAddresses.addButton": "+ nueva dirección",
     "submission.step1.team.title": "Equipo y colaboración",
+    "submission.step1.consentSharing.label":
+      "Acepto compartir la información de este proyecto con Avalanche Team1 para que puedan contactarme y ofrecer apoyo local.",
+    "submission.step1.consentSharing.hint":
+      "Team1 podría contactar a tu equipo sobre programas locales, alianzas u oportunidades de mentoría.",
 
     // Step 2 — Technical Details
     "submission.step2.technical.title": "Detalles técnicos",
@@ -704,6 +727,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.media.deleteTitle": "Eliminar imagen",
     "submission.media.deleteConfirm": "¿Estás seguro de que quieres eliminar esta imagen?",
     "submission.media.viewTitle": "Ver imagen",
+    "submission.media.fileTooLarge": "El archivo supera el límite de {size}MB y no fue agregado.",
 
     // Save toasts
     "submission.save.savedTitle": "Proyecto guardado",
@@ -798,12 +822,26 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step3.subtitle": "Revisa y acepta los términos para completar tu registro. Para más información sobre nuestras prácticas de privacidad, consulta nuestra",
     "reg.step3.privacyLink": "Política de privacidad de Avalanche.",
     "reg.step3.terms.label": "He leído y acepto los",
-    "reg.step3.terms.link": "Términos y condiciones de participación en el evento.",
+    "reg.step3.terms.link": "Términos y condiciones de participación en el evento",
+    "reg.step3.terms.connector": " y la ",
     "reg.step3.terms.hint": "Debes aceptar los términos para participar en eventos de Builder Hub.",
     "reg.step3.newsletter.label": "Deseo mantenerme informado sobre noticias y eventos de Avalanche.",
     "reg.step3.newsletter.hint": "Suscríbete a boletines y materiales promocionales. Puedes cancelar en cualquier momento.",
     "reg.step3.prohibited.label": "Acepto no traer ninguno de los artículos prohibidos. *",
     "reg.step3.prohibited.hint": "Revisa la lista de artículos restringidos antes de asistir a eventos presenciales.",
+
+    // Consentimientos a nivel usuario (creación de cuenta y registro a eventos)
+    "consents.group.label": "Mantente conectado con Avalanche",
+    "consents.group.hint":
+      "Elige cómo te gustaría recibir noticias. Puedes cambiar estas opciones en cualquier momento desde tu perfil.",
+    "consents.notifications.label":
+      "Deseo mantenerme informado sobre noticias y eventos de Avalanche.",
+    "consents.notifications.hint":
+      "Suscríbete a boletines y materiales promocionales. Puedes cancelar en cualquier momento.",
+    "consents.consentSharing.label":
+      "Acepto compartir mi información de contacto con Avalanche Team1 para que puedan contactarme para apoyo local o invitarme a iniciativas regionales.",
+    "consents.consentSharing.hint":
+      "Team1 podría contactarte sobre eventos locales, oportunidades de mentoría o programas regionales del ecosistema.",
 
     // Completed dialog
     "reg.dialog.title": "Solicitud enviada",

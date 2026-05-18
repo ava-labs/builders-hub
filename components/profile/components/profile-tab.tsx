@@ -178,12 +178,12 @@ function LegacyProfileTab({ achievements, referralPanel, teamLabel }: ProfileTab
                 >
                   Achievements
                 </TabsTrigger>
-                {/* <TabsTrigger
+                <TabsTrigger
                   value="settings"
                   className="w-full justify-start  dark:data-[state=active]:bg-zinc-950"
                 >
                   Settings
-                </TabsTrigger> */}
+                </TabsTrigger>
               </TabsList>
             </div>
           </div>
