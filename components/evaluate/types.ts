@@ -24,6 +24,10 @@ export interface ProjectData {
   demoVideoLink: string;
   tracks: string[];
   categories: string[];
+  tags?: string[];
+  deployedAddresses?: Array<{ address: string; tag?: string }>;
+  website?: Record<string, string> | null;
+  socials?: Record<string, string> | null;
   isPreexistingIdea: boolean;
   createdAt: string;
   members: ProjectMember[];

@@ -45,6 +45,9 @@ export default async function HackathonEvaluatePage({
       tracks: true,
       categories: true,
       tags: true,
+      deployed_addresses: true,
+      website: true,
+      socials: true,
       is_winner: true,
       created_at: true,
       members: {

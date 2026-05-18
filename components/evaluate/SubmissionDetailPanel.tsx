@@ -136,6 +136,18 @@ export function SubmissionDetailPanel({
                       label="Categories"
                       value={project.categories.join(", ")}
                     />
+                    {project.tags && project.tags.length > 0 && (
+                      <div className="flex gap-2 items-baseline">
+                        <span className="text-xs text-zinc-500 shrink-0">Tags:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {project.tags.map((t) => (
+                            <Badge key={t} variant="secondary" className="text-xs">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <Field
                       label="Pre-existing Idea"
                       value={project.isPreexistingIdea ? "Yes" : "No"}
@@ -149,7 +161,45 @@ export function SubmissionDetailPanel({
                     />
                     <LinkField label="Demo" url={project.demoLink} />
                     <LinkField label="Video" url={project.demoVideoLink} />
+                    {project.website &&
+                      Object.entries(project.website).map(([key, url]) => (
+                        <LinkField
+                          key={`website-${key}`}
+                          label={key || "Website"}
+                          url={url}
+                        />
+                      ))}
+                    {project.socials &&
+                      Object.entries(project.socials).map(([key, url]) => (
+                        <LinkField
+                          key={`social-${key}`}
+                          label={key || "Social"}
+                          url={url}
+                        />
+                      ))}
                   </FieldGroup>
+
+                  {project.deployedAddresses && project.deployedAddresses.length > 0 && (
+                    <FieldGroup title="Deployed Addresses">
+                      <div className="space-y-1.5">
+                        {project.deployedAddresses.map((d, idx) => (
+                          <div
+                            key={`${d.address}-${idx}`}
+                            className="flex flex-wrap items-baseline gap-2 text-sm"
+                          >
+                            {d.tag && (
+                              <Badge variant="outline" className="text-xs">
+                                {d.tag}
+                              </Badge>
+                            )}
+                            <code className="font-mono text-xs text-zinc-700 dark:text-zinc-200 break-all">
+                              {d.address}
+                            </code>
+                          </div>
+                        ))}
+                      </div>
+                    </FieldGroup>
+                  )}
 
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-1">
