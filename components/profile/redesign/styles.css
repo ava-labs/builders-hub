@@ -1232,6 +1232,66 @@
 }
 
 /* Achievement badges */
+.profile .pr-achievements {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+.profile .pr-achievement-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.profile .pr-achievement-group + .pr-achievement-group {
+  padding-top: 30px;
+  border-top: 1px solid rgba(10, 10, 10, 0.08);
+}
+:where(.dark) .profile .pr-achievement-group + .pr-achievement-group {
+  border-top-color: rgba(250, 250, 250, 0.10);
+}
+.profile .pr-achievement-group__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.profile .pr-achievement-group__head h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--pr-g-1000);
+  letter-spacing: -0.005em;
+}
+.profile .pr-achievement-group__head span {
+  font-family: var(--pr-mono);
+  font-size: 11px;
+  color: var(--pr-g-650);
+  white-space: nowrap;
+}
+.profile .pr-achievement-tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.profile .pr-achievement-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.profile .pr-achievement-tier__label {
+  width: fit-content;
+  border: 1px solid var(--pr-hairline);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: var(--pr-g-200);
+  color: var(--pr-g-700);
+  font-family: var(--pr-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .profile .pr-badge-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -1252,11 +1312,16 @@
   border: 1px solid var(--pr-hairline);
   background: var(--pr-g-100);
 }
+.profile .pr-badge.pr-unlocked {
+  box-shadow: inset 0 0 0 1px rgba(232, 65, 66, 0.10);
+}
 .profile .pr-badge:hover {
   transform: translateY(-2px);
 }
 .profile .pr-badge.pr-locked {
-  opacity: 0.55;
+  opacity: 0.68;
+}
+.profile .pr-badge.pr-locked .pr-glyph {
   filter: grayscale(1);
 }
 .profile .pr-badge .pr-glyph {
@@ -1269,6 +1334,11 @@
   color: #fff;
   flex-shrink: 0;
   overflow: hidden;
+}
+.profile .pr-badge__secret {
+  font-size: 38px;
+  font-weight: 600;
+  color: var(--pr-g-650);
 }
 .profile .pr-badge .pr-glyph img {
   width: 100%;
@@ -1680,6 +1750,11 @@
   .profile .pr-field-row,
   .profile .pr-field-row.pr-three {
     grid-template-columns: 1fr;
+  }
+  .profile .pr-achievement-group__head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
   }
   .profile .pr-page {
     padding: 24px 16px 80px;

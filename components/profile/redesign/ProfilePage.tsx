@@ -433,7 +433,7 @@ export default function ProfilePage({ teamLabel }: Props) {
     personal:
       completion.completed === completion.total ? null : completion.completed,
     projects: summary.projects.length,
-    achievements: summary.badges.length,
+    achievements: summary.badges.filter((badge) => badge.isUnlocked).length,
     insights: insightsData?.latest30DaySignups ?? null,
     notifications: null,
   };

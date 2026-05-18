@@ -5,6 +5,9 @@ import {
   getActiveReferralTargets,
   buildReferralUrl,
 } from "@/server/services/referrals";
+import { getAllBadges } from "@/server/services/badge";
+import { getRewardBoard } from "@/server/services/rewardBoard";
+import type { Badge, UserBadge, Requirement } from "@/types/badge";
 import type { ReferralTargetPreset } from "@/lib/referrals/targets";
 import type { Prisma } from "@prisma/client";
 
@@ -90,32 +93,104 @@ export interface ProfileBadgeSummary {
   description: string;
   imagePath: string;
   category: string;
-  awardedAt: string;
+  group: "console" | "blockchain" | "avalanche-l1" | "entrepreneur" | "hackathon" | "unknown";
+  tier: string | null;
+  isUnlocked: boolean;
+  isSecret: boolean;
+  awardedAt: string | null;
+  requirements: Requirement[];
 }
 
 /**
- * Returns the user's awarded badges (status=1, "approved"). One row per
- * UserBadge, with the joined Badge metadata flattened so the UI doesn't
- * have to deal with the relation shape.
+ * Returns every displayable badge with the user's unlock status overlaid.
+ * This keeps the legacy achievements information architecture: Console
+ * badges are grouped by tier, academy badges by academy track, and locked
+ * badges remain visible.
  */
 export async function getUserBadgesForProfile(
   userId: string,
 ): Promise<ProfileBadgeSummary[]> {
   if (!userId) return [];
-  const rows = await prisma.userBadge.findMany({
-    where: { user_id: userId, status: 1 },
-    include: { badge: true },
-    orderBy: { awarded_at: "desc" },
-  });
-  return rows.map((r) => ({
-    id: r.id,
-    badgeId: r.badge_id,
-    name: r.badge.name,
-    description: r.badge.description,
-    imagePath: r.badge.image_path,
-    category: r.badge.category,
-    awardedAt: r.awarded_at.toISOString(),
-  }));
+  const [badges, userBadges] = await Promise.all([
+    getAllBadges(),
+    getRewardBoard(userId),
+  ]);
+
+  return badges
+    .map((badge) => resolveProfileBadge(badge, userBadges))
+    .filter((badge) => badge.group !== "hackathon" && badge.group !== "unknown")
+    .sort((a, b) => {
+      const groupDelta = groupOrder(a.group) - groupOrder(b.group);
+      if (groupDelta !== 0) return groupDelta;
+      const tierDelta = Number(a.tier ?? 0) - Number(b.tier ?? 0);
+      if (tierDelta !== 0) return tierDelta;
+      return badgeCourseOrder(a.badgeId) - badgeCourseOrder(b.badgeId);
+    });
+}
+
+function resolveProfileBadge(
+  badge: Badge,
+  userBadges: UserBadge[],
+): ProfileBadgeSummary {
+  const userBadge = userBadges.find((ub) => ub.badge_id === badge.id);
+  const requirements = userBadge?.requirements ?? badge.requirements ?? [];
+  const allRequirementsCompleted =
+    requirements.length > 0 &&
+    requirements.every((requirement) => requirement.unlocked === true);
+  const hasNoRequirements = requirements.length === 0;
+
+  return {
+    id: badge.id,
+    badgeId: badge.id,
+    name: badge.name,
+    description: badge.description,
+    imagePath: badge.image_path,
+    category: badge.category,
+    group: getBadgeGroup(badge),
+    tier: getConsoleTier(badge),
+    isUnlocked: userBadge ? hasNoRequirements || allRequirementsCompleted : false,
+    isSecret: getConsoleTier(badge) === "4",
+    awardedAt: userBadge?.awarded_at?.toISOString() ?? null,
+    requirements,
+  };
+}
+
+function getBadgeGroup(badge: Badge): ProfileBadgeSummary["group"] {
+  const id = badge.id.toLowerCase();
+  if (id.includes("console")) return "console";
+  if (id.includes("blockchainacademy")) return "blockchain";
+  if (id.includes("entrepreneuracademy")) return "entrepreneur";
+  if (id.includes("avalanchel1academy")) return "avalanche-l1";
+  if (id.includes("hackathon")) return "hackathon";
+  return "unknown";
+}
+
+function getConsoleTier(badge: Badge): string | null {
+  if (getBadgeGroup(badge) !== "console") return null;
+  const match = badge.id.toLowerCase().match(/(\d+)tier/);
+  return match ? match[1] : "0";
+}
+
+function badgeCourseOrder(id: string): number {
+  const match = id.match(/-(\d+)/);
+  return match ? Number(match[1]) : 999;
+}
+
+function groupOrder(group: ProfileBadgeSummary["group"]): number {
+  switch (group) {
+    case "console":
+      return 0;
+    case "blockchain":
+      return 1;
+    case "avalanche-l1":
+      return 2;
+    case "entrepreneur":
+      return 3;
+    case "hackathon":
+      return 4;
+    case "unknown":
+      return 5;
+  }
 }
 
 export interface ProfileEngagementFlags {
