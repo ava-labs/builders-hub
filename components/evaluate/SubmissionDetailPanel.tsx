@@ -220,7 +220,9 @@ export function SubmissionDetailPanel({
                             key={m.id}
                             className="flex items-center gap-2 text-sm"
                           >
-                            <span className="text-zinc-600 dark:text-zinc-300">{m.email}</span>
+                            <span className="text-zinc-600 dark:text-zinc-300">
+                              {m.name?.trim() || "Unnamed member"}
+                            </span>
                             <Badge variant="outline" className="text-xs">
                               {m.role}
                             </Badge>

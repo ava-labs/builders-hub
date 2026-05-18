@@ -54,9 +54,9 @@ export default async function HackathonEvaluatePage({
         select: {
           id: true,
           user_id: true,
-          email: true,
           status: true,
           role: true,
+          user: { select: { name: true } },
         },
       },
       evaluations: {

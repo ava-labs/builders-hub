@@ -35,6 +35,7 @@ export interface ProjectData {
 
 export interface ProjectMember {
   id: string;
+  name?: string | null;
   email: string;
   role: string;
   status: string;

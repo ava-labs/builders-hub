@@ -37,9 +37,9 @@ type Evaluation = {
 type Member = {
   id: string;
   user_id: string | null;
-  email: string | null;
   status: string;
   role: string;
+  user?: { name: string | null } | null;
 };
 
 type Project = {
@@ -87,10 +87,6 @@ function toEvaluationData(e: Evaluation): EvaluationData {
   };
 }
 
-function teamLead(members: Member[]): Member | null {
-  return members.find((m) => m.role === "Lead") ?? members[0] ?? null;
-}
-
 function normalizeStringMap(value: unknown): Record<string, string> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const out: Record<string, string> = {};
@@ -115,7 +111,6 @@ function normalizeDeployedAddresses(
 }
 
 function toSubmissionRow(project: Project, hackathonId: string): SubmissionRow {
-  const lead = teamLead(project.members);
   return {
     formDataId: project.id,
     projectId: project.id,
@@ -145,14 +140,15 @@ function toSubmissionRow(project: Project, hackathonId: string): SubmissionRow {
       createdAt: project.created_at,
       members: project.members.map((m) => ({
         id: m.id,
-        email: m.email ?? "",
+        name: m.user?.name ?? null,
+        email: "",
         role: m.role,
         status: m.status,
       })),
     },
     evaluations: project.evaluations.map(toEvaluationData),
-    applicantName: lead?.email ?? "Team",
-    applicantEmail: lead?.email ?? "",
+    applicantName: "",
+    applicantEmail: "",
     country: "",
     telegram: null,
     github: null,
