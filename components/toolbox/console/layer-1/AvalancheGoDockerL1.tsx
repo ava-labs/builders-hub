@@ -340,7 +340,7 @@ function AvalanchegoDockerInner({
     setSubnetId(defaultSubnetId ?? createChainSubnetId ?? '');
     setSubnet(null);
     setBlockchainInfo(null);
-    setNodeType(forceNodeType ?? 'validator');
+    setNodeType(forceNodeType ?? (walletIsTestnet ? 'archival' : 'validator'));
     setDomain('');
     setSubnetIdError(null);
     setSelectedRPCBlockchainId('');
