@@ -1,9 +1,11 @@
 import React from "react";
+import { notFound } from "next/navigation";
 import { getProject } from "@/server/services/projects";
 import { getUserBadgesByProjectId } from "@/server/services/project-badge";
 import { ShowcaseProjectAuthWrapper } from "@/components/showcase/ShowcaseProjectAuthWrapper";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { hasShowcaseRole } from "@/lib/auth/roles";
+import { PROJECT_VISIBILITY } from "@/types/showcase";
 
 export default async function ProjectPage({
   params,
@@ -48,11 +50,32 @@ export default async function ProjectPage({
   }
 
   const project = await getProject(id);
+
+  // Respect per-project visibility (issue #4198):
+  // - private projects are invisible to the showcase entirely
+  // - semi-public projects expose only name / short_description / members
+  if (project.visibility === PROJECT_VISIBILITY.PRIVATE) {
+    notFound();
+  }
+
+  const visibleProject =
+    project.visibility === PROJECT_VISIBILITY.SEMI_PUBLIC
+      ? {
+          ...project,
+          full_description: "",
+          tech_stack: "",
+          github_repository: "",
+          demo_link: "",
+          demo_video_link: "",
+          screenshots: [],
+        }
+      : project;
+
   const badges = await getUserBadgesByProjectId(id);
 
   return (
     <ShowcaseProjectAuthWrapper
-      project={project}
+      project={visibleProject}
       badges={badges}
       projectId={id}
     />

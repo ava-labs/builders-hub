@@ -168,6 +168,7 @@ model Project {
   deployed_addresses  Json[]              @default([])
   website             Json?
   socials             Json?
+  visibility          String              @default("public")
   consent_sharing     Boolean?
   formData            FormData[]
   members             Member[]

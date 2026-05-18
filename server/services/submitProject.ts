@@ -10,6 +10,19 @@ import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
 import { NotificationMeans } from "@/lib/notificationDefaults";
+import { PROJECT_VISIBILITY, isProjectVisibility } from "@/types/showcase";
+
+function resolveVisibility(value: unknown): string {
+  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.PUBLIC;
+}
+
+// consent_sharing (Andrea, PR #4204) is the "share project info with Team1"
+// signal that mirrors to a HubSpot custom property. visibility supersedes
+// that opt-in as the single source of truth — anything other than "private"
+// implies the user is OK with sharing.
+function consentSharingFor(visibility: string): boolean {
+  return visibility !== PROJECT_VISIBILITY.PRIVATE;
+}
 
 export const projectValidations: Validation[] = [
   {
@@ -176,9 +189,12 @@ export async function createProject(
           socials: isNonEmptyObject(projectData.socials)
             ? projectData.socials
             : Prisma.JsonNull,
-          ...(typeof projectData.consent_sharing === "boolean"
-            ? { consent_sharing: projectData.consent_sharing }
-            : {}),
+          ...(projectData.visibility !== undefined && {
+            visibility: resolveVisibility(projectData.visibility),
+            consent_sharing: consentSharingFor(
+              resolveVisibility(projectData.visibility),
+            ),
+          }),
         },
       });
 
@@ -209,9 +225,10 @@ export async function createProject(
         socials: isNonEmptyObject(projectData.socials)
           ? projectData.socials
           : Prisma.JsonNull,
-        ...(typeof projectData.consent_sharing === "boolean"
-          ? { consent_sharing: projectData.consent_sharing }
-          : {}),
+        visibility: resolveVisibility(projectData.visibility),
+        consent_sharing: consentSharingFor(
+          resolveVisibility(projectData.visibility),
+        ),
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly
@@ -317,6 +334,9 @@ export async function getProject(projectId: string): Promise<Project | null> {
     other_category: projectData.other_category ?? undefined,
     deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
     is_winner: false,
+    visibility: isProjectVisibility(projectData.visibility)
+      ? projectData.visibility
+      : PROJECT_VISIBILITY.PUBLIC,
 
     members: projectData.members?.map((member) => {
       const user = member.user;

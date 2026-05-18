@@ -201,8 +201,9 @@ const BaseFormSchema = z.object({
   user_id: z.string().optional(),
   is_winner: z.boolean().optional(),
   isDraft: z.boolean().optional(),
-  // Opt-in: share project info with Team1 for local support.
-  consent_sharing: z.boolean().optional(),
+  visibility: z
+    .enum(['private', 'semi-public', 'public'])
+    .default('public'),
 });
 
 // Step schemas created from base schema (before refinements)
@@ -329,7 +330,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: [],
       explanation: '',
       demo_video_link: '',
-      consent_sharing: false,
+      visibility: 'public',
     },
   });
 
@@ -712,6 +713,12 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],
       is_preexisting_idea: !!project.is_preexisting_idea,
       demo_video_link: project.demo_video_link ?? '',
+      visibility:
+        project.visibility === 'private' ||
+        project.visibility === 'semi-public' ||
+        project.visibility === 'public'
+          ? project.visibility
+          : 'public',
       tracks: project.tracks ?? (typeof project.tracks === 'string' ? project.tracks.split(',').filter(Boolean) : []),
       categories: Array.isArray(project.categories) 
         ? project.categories 
@@ -759,7 +766,6 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
-      consent_sharing: !!project.consent_sharing,
     });
   }, [form, state.isEditing]);
 
