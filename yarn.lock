@@ -1921,9 +1921,9 @@
   resolved "https://registry.npmjs.org/@posthog/core/-/core-1.0.2.tgz"
   integrity sha512-hWk3rUtJl2crQK0WNmwg13n82hnTwB99BT99/XI5gZSvIlYZ1TPmMZE8H2dhJJ98J/rm9vYJ/UXNzw3RV5HTpQ==
 
-"@prisma/client@^6.16.1":
+"@prisma/client@6.19.0":
   version "6.19.0"
-  resolved "https://registry.npmjs.org/@prisma/client/-/client-6.19.0.tgz"
+  resolved "https://registry.yarnpkg.com/@prisma/client/-/client-6.19.0.tgz#25d5387cbcf1d92f234f6b07d6a1bb787ed71391"
   integrity sha512-QXFT+N/bva/QI2qoXmjBzL7D6aliPffIwP+81AdTGq0FXDoLxLkWivGMawG8iM5B9BKfxLIXxfWWAF6wbuJU6g==
 
 "@prisma/config@6.19.0":

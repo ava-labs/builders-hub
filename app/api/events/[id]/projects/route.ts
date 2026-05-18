@@ -106,8 +106,11 @@ export async function GET(request: NextRequest, context: Params) {
 
   // External view: respect per-project visibility consent (issue #4198).
   // - private:     omitted entirely
-  // - semi-public: name, members (no email), description only
-  // - public:      full meta select
+  // - semi-public: name, description, members (name only)
+  // - public:      full meta select + members (name only)
+  // Member contact info (email) is never exposed externally regardless
+  // of project visibility. Member-level consent (User.consent_sharing
+  // from PR #4204) will gate richer member fields in a follow-up PR.
   const externalProjects = await prisma.project.findMany({
     where: {
       hackaton_id: hackathonId,
@@ -121,14 +124,25 @@ export async function GET(request: NextRequest, context: Params) {
           id: true,
           status: true,
           role: true,
+          user: { select: { name: true } },
         },
       },
     },
   });
 
   const projects = externalProjects.map((p) => {
-    if (p.visibility === PROJECT_VISIBILITY.PUBLIC) return p;
-    // semi-public: strip everything beyond name, description, members
+    const members = p.members.map((m) => ({
+      id: m.id,
+      status: m.status,
+      role: m.role,
+      name: m.user?.name ?? null,
+    }));
+
+    if (p.visibility === PROJECT_VISIBILITY.PUBLIC) {
+      const { members: _omit, ...rest } = p;
+      return { ...rest, members };
+    }
+    // semi-public: keep only name, description, and members (name only).
     return {
       id: p.id,
       project_name: p.project_name,
@@ -136,7 +150,7 @@ export async function GET(request: NextRequest, context: Params) {
       visibility: p.visibility,
       created_at: p.created_at,
       updated_at: p.updated_at,
-      members: p.members,
+      members,
     };
   });
 
