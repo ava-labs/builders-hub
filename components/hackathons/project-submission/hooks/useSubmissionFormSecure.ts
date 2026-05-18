@@ -203,7 +203,7 @@ const BaseFormSchema = z.object({
   isDraft: z.boolean().optional(),
   visibility: z
     .enum(['private', 'semi-public', 'public'])
-    .default('semi-public'),
+    .default('public'),
 });
 
 // Step schemas created from base schema (before refinements)
@@ -330,7 +330,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: [],
       explanation: '',
       demo_video_link: '',
-      visibility: 'semi-public',
+      visibility: 'public',
     },
   });
 
@@ -718,7 +718,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
         project.visibility === 'semi-public' ||
         project.visibility === 'public'
           ? project.visibility
-          : 'semi-public',
+          : 'public',
       tracks: project.tracks ?? (typeof project.tracks === 'string' ? project.tracks.split(',').filter(Boolean) : []),
       categories: Array.isArray(project.categories) 
         ? project.categories 

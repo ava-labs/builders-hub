@@ -513,29 +513,10 @@ const SubmitStep1: FC<projectProps> = (project) => {
             <FormItem>
               <FormControl>
                 <RadioGroup
-                  value={field.value ?? 'semi-public'}
+                  value={field.value ?? 'public'}
                   onValueChange={field.onChange}
                   className='gap-3'
                 >
-                  <label
-                    htmlFor='visibility-semi-public'
-                    className='flex items-start gap-3 rounded-md border border-zinc-200 dark:border-zinc-800 p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900'
-                  >
-                    <RadioGroupItem
-                      value='semi-public'
-                      id='visibility-semi-public'
-                      className='mt-1'
-                    />
-                    <div className='space-y-1'>
-                      <div className='text-sm font-medium'>Semi-public (recommended)</div>
-                      <div className='text-xs text-muted-foreground'>
-                        Discoverable on Builders Hub and may be displayed by partners
-                        (e.g. Team1). Only your project name, members, and description
-                        are shared — GitHub, demo links, and video stay private.
-                      </div>
-                    </div>
-                  </label>
-
                   <label
                     htmlFor='visibility-public'
                     className='flex items-start gap-3 rounded-md border border-zinc-200 dark:border-zinc-800 p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900'
@@ -551,6 +532,25 @@ const SubmitStep1: FC<projectProps> = (project) => {
                         Discoverable on Builders Hub and may be displayed by partners
                         (e.g. Team1). All your project details are shared, including
                         GitHub, demo, video, target users, and screenshots.
+                      </div>
+                    </div>
+                  </label>
+
+                  <label
+                    htmlFor='visibility-semi-public'
+                    className='flex items-start gap-3 rounded-md border border-zinc-200 dark:border-zinc-800 p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900'
+                  >
+                    <RadioGroupItem
+                      value='semi-public'
+                      id='visibility-semi-public'
+                      className='mt-1'
+                    />
+                    <div className='space-y-1'>
+                      <div className='text-sm font-medium'>Semi-public</div>
+                      <div className='text-xs text-muted-foreground'>
+                        Discoverable on Builders Hub and may be displayed by partners
+                        (e.g. Team1). Only your project name, members, and description
+                        are shared — GitHub, demo links, and video stay private.
                       </div>
                     </div>
                   </label>

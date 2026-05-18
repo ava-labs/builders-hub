@@ -11,7 +11,7 @@ import { validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 
 function resolveVisibility(value: unknown): ProjectVisibility {
-  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.SEMI_PUBLIC;
+  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.PUBLIC;
 }
 
 const prisma = new PrismaClient();

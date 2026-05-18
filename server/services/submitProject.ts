@@ -13,7 +13,7 @@ import { NotificationMeans } from "@/lib/notificationDefaults";
 import { PROJECT_VISIBILITY, isProjectVisibility } from "@/types/showcase";
 
 function resolveVisibility(value: unknown): string {
-  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.SEMI_PUBLIC;
+  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.PUBLIC;
 }
 
 // consent_sharing (Andrea, PR #4204) is the "share project info with Team1"
@@ -336,7 +336,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
     is_winner: false,
     visibility: isProjectVisibility(projectData.visibility)
       ? projectData.visibility
-      : PROJECT_VISIBILITY.SEMI_PUBLIC,
+      : PROJECT_VISIBILITY.PUBLIC,
 
     members: projectData.members?.map((member) => {
       const user = member.user;
