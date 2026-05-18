@@ -20,6 +20,7 @@ interface Props {
 
 type ChartKey = "signups" | "visits" | "console" | "all";
 type LeaderboardKey = "people" | "teams";
+type HackathonSortKey = "recent" | "top";
 
 const ACCENT_SIGNUPS = "#E84142";
 const ACCENT_VISITS = "#7FA6FF";
@@ -638,10 +639,10 @@ const STATUS_LABELS: Record<HackathonStatus, string> = {
 };
 
 function HackathonHistorySection({ data }: { data: BuilderInsightsData }) {
-  // Order: live → upcoming → past. Live/upcoming sort by soonest start-date;
-  // past sorts by participants DESC (biggest first). Featured tile is the
-  // first entry — an upcoming/live event takes precedence, otherwise the
-  // biggest past hackathon.
+  const [sortBy, setSortBy] = React.useState<HackathonSortKey>("recent");
+
+  // Default: chronological newest-first by start date. Toggle to "top" sorts
+  // by participants DESC. Featured tile is the first item under either sort.
   const { sorted, featured } = React.useMemo(() => {
     const events = data.eventParticipants;
     if (events.length === 0) return { sorted: [], featured: null as null };
@@ -650,16 +651,14 @@ function HackathonHistorySection({ data }: { data: BuilderInsightsData }) {
       status: statusOf(e.startDate, e.endDate),
       start: e.startDate ? new Date(e.startDate).getTime() : 0,
     }));
-    const rank: Record<HackathonStatus, number> = { live: 0, upcoming: 1, past: 2 };
-    decorated.sort((a, b) => {
-      if (rank[a.status] !== rank[b.status]) return rank[a.status] - rank[b.status];
-      if (a.status === "past") return b.e.participants - a.e.participants;
-      // live/upcoming: soonest first
-      return a.start - b.start;
-    });
+    if (sortBy === "top") {
+      decorated.sort((a, b) => b.e.participants - a.e.participants);
+    } else {
+      decorated.sort((a, b) => b.start - a.start);
+    }
     const featured = decorated[0];
     return { sorted: decorated, featured };
-  }, [data.eventParticipants]);
+  }, [data.eventParticipants, sortBy]);
 
   return (
     <section className="pr-insights__section">
@@ -677,6 +676,14 @@ function HackathonHistorySection({ data }: { data: BuilderInsightsData }) {
             {formatNumber(data.totalHackathonProjects)} projects
           </span>
         </div>
+        <Segmented<HackathonSortKey>
+          value={sortBy}
+          onChange={setSortBy}
+          options={[
+            { value: "recent", label: "Recent" },
+            { value: "top", label: "Top" },
+          ]}
+        />
       </header>
       {sorted.length === 0 ? (
         <div className="pr-empty">No hackathon participation yet.</div>

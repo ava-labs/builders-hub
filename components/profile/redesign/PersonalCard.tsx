@@ -37,9 +37,6 @@ interface Props {
   xAccount: string;
   /** Receives the rebuilt full URL (or empty when cleared). */
   onXChange: (url: string) => void;
-  xConnected: boolean;
-  onXConnect: () => void;
-  onXDisconnect: () => void;
   linkedinAccount: string;
   /** Receives the rebuilt full URL (or empty when cleared). */
   onLinkedinChange: (url: string) => void;
@@ -75,9 +72,6 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
     onTelegramChange,
     xAccount,
     onXChange,
-    xConnected,
-    onXConnect,
-    onXDisconnect,
     linkedinAccount,
     onLinkedinChange,
     siteLinks,
@@ -208,37 +202,17 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
               <XIcon size={14} />
               <span className="pr-sr-only">X</span>
             </label>
-            <div className="pr-social-row">
-              <div className="pr-input-group" style={{ flex: 1, minWidth: 0 }}>
-                <span className="pr-pre">x.com/</span>
-                <input
-                  id="pr-x"
-                  value={xDisplay}
-                  onChange={(e) => {
-                    const u = e.target.value.trim().replace(/^@/, "");
-                    onXChange(u ? `https://x.com/${u}` : "");
-                  }}
-                  placeholder="username"
-                  disabled={xConnected}
-                />
-              </div>
-              {xConnected ? (
-                <button
-                  type="button"
-                  className="pr-btn pr-btn--success"
-                  onClick={onXDisconnect}
-                >
-                  <Check size={14} /> Connected
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="pr-btn pr-btn--outline"
-                  onClick={onXConnect}
-                >
-                  Connect
-                </button>
-              )}
+            <div className="pr-input-group">
+              <span className="pr-pre">x.com/</span>
+              <input
+                id="pr-x"
+                value={xDisplay}
+                onChange={(e) => {
+                  const u = e.target.value.trim().replace(/^@/, "");
+                  onXChange(u ? `https://x.com/${u}` : "");
+                }}
+                placeholder="username"
+              />
             </div>
           </div>
         </div>

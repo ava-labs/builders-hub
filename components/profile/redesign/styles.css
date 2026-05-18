@@ -1715,8 +1715,10 @@
 .profile-redesign .pr-insights__heading-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
   min-width: 0;
+  width: max-content;
+  max-width: 100%;
 }
 .profile-redesign .pr-insights__heading-icon {
   display: inline-flex;
@@ -1835,7 +1837,7 @@
    rounded buttons). */
 .profile-redesign .pr-seg {
   display: inline-flex;
-  padding: 3px;
+  padding: 0;
   background: var(--pr-g-200);
   border: 1px solid var(--pr-hairline);
   border-radius: 6px;

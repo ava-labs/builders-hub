@@ -127,15 +127,25 @@ export function ReferralPanel({
   const [qrLinkId, setQrLinkId] = React.useState<string | null>(null);
 
   // Only surface link types we currently market — drops legacy types like
-  // build_games_application from the user-facing list. Then sort so
+  // build_games_application from the user-facing list. Also hide links whose
+  // specific target is no longer in the active catalog (e.g., a referral
+  // link for a hackathon that has ended). `bh_signup` has `targetId: null`
+  // and is always in the catalog, so it survives this check. Sorted so
   // Builder Hub Sign Up always appears first.
+  const catalogSignatures = React.useMemo(
+    () => new Set(targets.map((t) => `${t.targetType}|${t.targetId ?? ""}`)),
+    [targets],
+  );
   const visibleLinks = React.useMemo(
     () =>
       links
-        .filter((l) => l.targetType in TARGET_TYPE_RANK)
+        .filter((l) => {
+          if (!(l.targetType in TARGET_TYPE_RANK)) return false;
+          return catalogSignatures.has(`${l.targetType}|${l.targetId ?? ""}`);
+        })
         .slice()
         .sort((a, b) => rankForTargetType(a.targetType) - rankForTargetType(b.targetType)),
-    [links],
+    [links, catalogSignatures],
   );
 
   const usedTargetSignatures = new Set(

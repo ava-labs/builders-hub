@@ -124,8 +124,6 @@ export default function ProfilePage({ teamLabel }: Props) {
     isSaving,
     githubConnected,
     setGithubConnected,
-    xConnected,
-    setXConnected,
     handleAddSkill,
     handleRemoveSkill,
     handleAddWallet,
@@ -310,23 +308,6 @@ export default function ProfilePage({ teamLabel }: Props) {
       pushToast("GitHub disconnected");
     } catch {
       pushToast("Could not disconnect GitHub", "error");
-    }
-  };
-
-  const handleConnectX = () => {
-    if (typeof window !== "undefined") {
-      window.location.href = "/api/auth/x-link";
-    }
-  };
-
-  const handleDisconnectX = async () => {
-    try {
-      await fetch("/api/auth/x-link/disconnect", { method: "DELETE" });
-      setXConnected(false);
-      form.setValue("x_account", "", { shouldDirty: false });
-      pushToast("X disconnected");
-    } catch {
-      pushToast("Could not disconnect X", "error");
     }
   };
 
@@ -547,9 +528,6 @@ export default function ProfilePage({ teamLabel }: Props) {
                 }
                 xAccount={xAccount}
                 onXChange={(v) => setField("x_account" as never, v as never)}
-                xConnected={xConnected}
-                onXConnect={handleConnectX}
-                onXDisconnect={handleDisconnectX}
                 linkedinAccount={linkedinAccount}
                 onLinkedinChange={(v) =>
                   setField("linkedin_account" as never, v as never)
