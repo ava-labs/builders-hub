@@ -46,7 +46,6 @@ export function InsightsCard({ data, loading, error }: Props) {
             last 30 days vs. previous 30.
           </div>
         </div>
-        <span className="pr-insights__devrel-pill">DevRel only</span>
       </div>
       <div className="pr-body">
         {error ? (

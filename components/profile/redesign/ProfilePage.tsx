@@ -488,7 +488,9 @@ export default function ProfilePage({ teamLabel }: Props) {
                   onClick={() => setTab(t.id)}
                 >
                   {t.label}
-                  {t.id === "notifications" || t.id === "insights" ? (
+                  {t.id === "insights" ? (
+                    <span className="pr-devrel-badge">Team</span>
+                  ) : t.id === "notifications" ? (
                     <span className="pr-devrel-badge">DevRel</span>
                   ) : (
                     showCount && <span className="pr-count">{display}</span>
