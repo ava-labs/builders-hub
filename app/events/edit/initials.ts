@@ -65,7 +65,17 @@ export interface IDataMain {
     submission_custom_link: string | null;
     judging_guidelines: string;
     submission_deadline: string;
+    /** Optional submission open timestamp (ISO). When set, submission form is locked with countdown until this time. */
+    submission_open?: string;
     registration_deadline: string;
+    /** Optional cap on members per project (Solo=1, Duo=2, etc.). When undefined, no cap. */
+    team_size_max?: number;
+    /** Admin-defined tech-stack tokens shown in the submission multi-select. */
+    tech_stack_options?: string[];
+    /** "full" (legacy long form) or "simple" (slim registration). Defaults to "full". */
+    registration_mode?: "full" | "simple";
+    /** When true, registration shows Solo/Duo + teammate input (TeamPartnerInput). */
+    team_partner_enabled?: boolean;
   }
   
   export interface IDataLatest {
@@ -140,7 +150,12 @@ export interface IDataMain {
           submission_custom_link: null,
           judging_guidelines: '',
           submission_deadline: '',
+          submission_open: '',
           registration_deadline: '',
+          team_size_max: undefined,
+          tech_stack_options: [],
+          registration_mode: 'full',
+          team_partner_enabled: false,
       },
       latest: {
           start_date: '',
