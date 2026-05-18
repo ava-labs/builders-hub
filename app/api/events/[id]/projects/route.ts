@@ -106,7 +106,7 @@ export async function GET(request: NextRequest, context: Params) {
 
   // External view: respect per-project visibility consent (issue #4198).
   // - private:     omitted entirely
-  // - semi-public: name, description, members (name only)
+  // - semi-public: name, description, logo/cover, members (name only)
   // - public:      full meta select + members (name only)
   // Member contact info (email) is never exposed externally regardless
   // of project visibility. Member-level consent (User.consent_sharing
@@ -142,11 +142,13 @@ export async function GET(request: NextRequest, context: Params) {
       const { members: _omit, ...rest } = p;
       return { ...rest, members };
     }
-    // semi-public: keep only name, description, and members (name only).
+    // semi-public: keep name, description, project imagery, and members.
     return {
       id: p.id,
       project_name: p.project_name,
       short_description: p.short_description,
+      logo_url: p.logo_url,
+      cover_url: p.cover_url,
       visibility: p.visibility,
       created_at: p.created_at,
       updated_at: p.updated_at,
