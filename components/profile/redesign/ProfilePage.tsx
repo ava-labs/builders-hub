@@ -389,7 +389,7 @@ export default function ProfilePage({ teamLabel }: Props) {
 
   if (isLoading) {
     return (
-      <div className="profile-redesign">
+      <div className="profile">
         <div className="pr-page">
           <div
             style={{
@@ -442,7 +442,7 @@ export default function ProfilePage({ teamLabel }: Props) {
     completion.pct < 100 || referralLinks.length > 0 || referralCatalog.length > 0;
 
   return (
-    <div className="profile-redesign">
+    <div className="profile">
       <div className="pr-page">
         <IdentityHero
           fullName={fullName}

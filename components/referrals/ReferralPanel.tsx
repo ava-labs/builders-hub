@@ -7,7 +7,7 @@
  * contained: renders its own card chrome (header + body), uses scoped CSS via
  * the `referral-panel` class so it picks up the same dark/light tokens as the
  * profile redesign. Falls back to the avax dark theme when used outside the
- * `.profile-redesign` scope.
+ * `.profile` scope.
  *
  * QR code is a per-link add-on: each row has a QR button that toggles an
  * inline panel showing the QR + a copy-to-clipboard.

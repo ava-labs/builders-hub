@@ -1,9 +1,9 @@
 /* Scoped Avalanche-theme tokens + component styles for the redesigned profile page.
-   All rules nest under `.profile-redesign` so they don't leak into the rest of the app.
+   All rules nest under `.profile` so they don't leak into the rest of the app.
    Light theme is the default; the `.dark` ancestor (used by Builder Hub for dark mode)
    swaps in the prototype's `avax` dark tokens. */
 
-.profile-redesign {
+.profile {
   /* Light theme tokens (Builder Hub default look) */
   --pr-bg: #f6f6f6;
   --pr-surface: #ffffff;
@@ -48,7 +48,7 @@
   text-rendering: optimizeLegibility;
 }
 
-:where(.dark) .profile-redesign {
+:where(.dark) .profile {
   /* Dark theme overrides (prototype's `avax` block, scoped) */
   --pr-bg: #0a0a0c;
   --pr-surface: #141416;
@@ -80,30 +80,30 @@
   font-weight: 300;
 }
 
-.profile-redesign *,
-.profile-redesign *::before,
-.profile-redesign *::after {
+.profile *,
+.profile *::before,
+.profile *::after {
   box-sizing: border-box;
 }
 
-.profile-redesign button {
+.profile button {
   font-family: inherit;
 }
 
 /* Page shell */
-.profile-redesign .pr-page {
+.profile .pr-page {
   max-width: none;
   margin: 0;
   padding: 8px 0 96px;
 }
-.profile-redesign .pr-page-head {
+.profile .pr-page-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   margin-bottom: 24px;
   gap: 24px;
 }
-.profile-redesign .pr-page-head .pr-ttl {
+.profile .pr-page-head .pr-ttl {
   font-size: 32px;
   font-weight: 500;
   letter-spacing: -0.012em;
@@ -111,20 +111,20 @@
   margin: 0;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-page-head .pr-sub {
+.profile .pr-page-head .pr-sub {
   font-size: 14px;
   color: var(--pr-g-700);
   margin-top: 6px;
   max-width: 640px;
 }
-.profile-redesign .pr-page-head .pr-actions {
+.profile .pr-page-head .pr-actions {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
 /* Identity hero */
-.profile-redesign .pr-identity {
+.profile .pr-identity {
   background: var(--pr-g-100);
   border: 1px solid var(--pr-hairline);
   border-radius: 20px;
@@ -136,7 +136,7 @@
   position: relative;
   overflow: hidden;
 }
-.profile-redesign .pr-identity::before {
+.profile .pr-identity::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -148,7 +148,7 @@
     radial-gradient(circle 180px at 38% -20%, rgba(232, 65, 66, 0.08) 0%, transparent 70%);
   pointer-events: none;
 }
-:where(.dark) .profile-redesign .pr-identity::before {
+:where(.dark) .profile .pr-identity::before {
   background:
     radial-gradient(circle 380px at 96% 8%, rgba(232, 65, 66, 0.22) 0%, transparent 65%),
     radial-gradient(circle 300px at 6% 92%, rgba(232, 65, 66, 0.16) 0%, transparent 65%),
@@ -156,10 +156,10 @@
     radial-gradient(circle 240px at 50% 130%, rgba(232, 65, 66, 0.12) 0%, transparent 70%),
     radial-gradient(circle 200px at 38% -20%, rgba(232, 65, 66, 0.10) 0%, transparent 70%);
 }
-.profile-redesign .pr-av-stack {
+.profile .pr-av-stack {
   position: relative;
 }
-.profile-redesign .pr-av-stack .pr-ring {
+.profile .pr-av-stack .pr-ring {
   position: absolute;
   inset: -6px;
   border-radius: 50%;
@@ -170,7 +170,7 @@
   -webkit-mask: radial-gradient(circle, transparent 50px, #000 51px);
   mask: radial-gradient(circle, transparent 50px, #000 51px);
 }
-.profile-redesign .pr-av-stack .pr-av {
+.profile .pr-av-stack .pr-av {
   width: 104px;
   height: 104px;
   border-radius: 50%;
@@ -185,16 +185,16 @@
   box-shadow: inset 0 0 0 3px var(--pr-g-100);
   overflow: hidden;
 }
-:where(.dark) .profile-redesign .pr-av-stack .pr-av {
+:where(.dark) .profile .pr-av-stack .pr-av {
   background: linear-gradient(135deg, #3a1416, #0a0a0c);
 }
-.profile-redesign .pr-av-stack .pr-av img {
+.profile .pr-av-stack .pr-av img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
 }
-.profile-redesign .pr-av-stack .pr-pct-pill {
+.profile .pr-av-stack .pr-pct-pill {
   position: absolute;
   bottom: -6px;
   left: 50%;
@@ -208,7 +208,7 @@
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
-.profile-redesign .pr-av-stack .pr-edit {
+.profile .pr-av-stack .pr-edit {
   position: absolute;
   right: -2px;
   top: -2px;
@@ -223,26 +223,26 @@
   color: var(--pr-g-700);
   z-index: 1;
 }
-.profile-redesign .pr-av-stack .pr-edit:hover {
+.profile .pr-av-stack .pr-edit:hover {
   background: var(--pr-g-1000);
   color: var(--pr-g-100);
   border-color: var(--pr-g-1000);
 }
 
-.profile-redesign .pr-id-meta {
+.profile .pr-id-meta {
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-width: 0;
   position: relative;
 }
-.profile-redesign .pr-id-meta .pr-name-row {
+.profile .pr-id-meta .pr-name-row {
   display: flex;
   align-items: baseline;
   gap: 14px;
   flex-wrap: wrap;
 }
-.profile-redesign .pr-id-meta h1 {
+.profile .pr-id-meta h1 {
   font-size: 32px;
   font-weight: 500;
   letter-spacing: -0.012em;
@@ -250,24 +250,24 @@
   line-height: 1.1;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-id-meta .pr-handle {
+.profile .pr-id-meta .pr-handle {
   font-family: var(--pr-mono);
   font-size: 13px;
   color: var(--pr-g-650);
 }
-.profile-redesign .pr-id-meta .pr-chips {
+.profile .pr-id-meta .pr-chips {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   align-items: center;
 }
-.profile-redesign .pr-id-meta .pr-bio {
+.profile .pr-id-meta .pr-bio {
   font-size: 14px;
   color: var(--pr-g-700);
   max-width: 600px;
   line-height: 1.5;
 }
-.profile-redesign .pr-id-meta .pr-pills {
+.profile .pr-id-meta .pr-pills {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
@@ -275,7 +275,7 @@
   margin-top: 2px;
 }
 
-.profile-redesign .pr-completion {
+.profile .pr-completion {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -284,36 +284,36 @@
   padding-left: 24px;
   position: relative;
 }
-.profile-redesign .pr-completion .pr-lbl {
+.profile .pr-completion .pr-lbl {
   font-family: var(--pr-mono);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--pr-g-650);
 }
-.profile-redesign .pr-completion .pr-big {
+.profile .pr-completion .pr-big {
   font-size: 38px;
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-completion .pr-big .pr-gold {
+.profile .pr-completion .pr-big .pr-gold {
   color: inherit;
 }
-.profile-redesign .pr-completion .pr-next {
+.profile .pr-completion .pr-next {
   font-size: 12px;
   color: var(--pr-g-700);
   margin-top: 4px;
 }
-.profile-redesign .pr-completion .pr-bar {
+.profile .pr-completion .pr-bar {
   height: 4px;
   background: var(--pr-g-300);
   border-radius: 999px;
   overflow: hidden;
   margin-top: 6px;
 }
-.profile-redesign .pr-completion .pr-bar > div {
+.profile .pr-completion .pr-bar > div {
   height: 100%;
   background: linear-gradient(90deg, var(--pr-primary-main), var(--pr-accent-dark));
   border-radius: 999px;
@@ -321,7 +321,7 @@
 }
 
 /* Chips & pills */
-.profile-redesign .pr-chip {
+.profile .pr-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -334,57 +334,57 @@
   color: var(--pr-g-800);
   border: 1px solid var(--pr-hairline);
 }
-.profile-redesign .pr-chip--accent {
+.profile .pr-chip--accent {
   background: var(--pr-accent-light);
   color: var(--pr-accent-main);
   border-color: transparent;
 }
-.profile-redesign .pr-chip--gold {
+.profile .pr-chip--gold {
   background: var(--pr-primary-light);
   color: var(--pr-accent-main);
   border-color: transparent;
 }
-.profile-redesign .pr-chip--avax {
+.profile .pr-chip--avax {
   background: var(--pr-avax-tint);
   color: var(--pr-accent-main);
   border-color: transparent;
 }
 /* Invite-a-friend chip — neon blue, theme-aware. Light reads as a calm
    electric blue; dark reads as full neon for a "shareable" call-out. */
-.profile-redesign .pr-chip--invite {
+.profile .pr-chip--invite {
   background: rgba(59, 130, 246, 0.10);
   color: #1d4ed8;
   border: 1px solid rgba(59, 130, 246, 0.45);
 }
-.profile-redesign .pr-chip--invite:hover {
+.profile .pr-chip--invite:hover {
   background: rgba(59, 130, 246, 0.18);
   border-color: rgba(59, 130, 246, 0.65);
 }
-:where(.dark) .profile-redesign .pr-chip--invite {
+:where(.dark) .profile .pr-chip--invite {
   background: rgba(96, 165, 250, 0.18);
   color: #7dd3fc;
   border: 1px solid rgba(125, 211, 252, 0.55);
 }
-:where(.dark) .profile-redesign .pr-chip--invite:hover {
+:where(.dark) .profile .pr-chip--invite:hover {
   background: rgba(96, 165, 250, 0.26);
   border-color: rgba(125, 211, 252, 0.75);
 }
-.profile-redesign .pr-chip--success {
+.profile .pr-chip--success {
   background: rgba(155, 224, 85, 0.18);
   color: var(--pr-success-text);
   border-color: transparent;
 }
-:where(.dark) .profile-redesign .pr-chip--success {
+:where(.dark) .profile .pr-chip--success {
   background: rgba(155, 224, 85, 0.12);
 }
-.profile-redesign .pr-chip .pr-dot {
+.profile .pr-chip .pr-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: currentColor;
   opacity: 0.7;
 }
-.profile-redesign .pr-pill-link {
+.profile .pr-pill-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -399,29 +399,29 @@
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.profile-redesign .pr-pill-link:hover {
+.profile .pr-pill-link:hover {
   background: var(--pr-g-200);
   color: var(--pr-g-1000);
   border-color: var(--pr-g-400);
 }
-.profile-redesign .pr-pill-link svg {
+.profile .pr-pill-link svg {
   width: 14px;
   height: 14px;
 }
 
 /* Tabs */
-.profile-redesign .pr-tabbar {
+.profile .pr-tabbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin: 24px 0 20px;
   border-bottom: 1px solid var(--pr-hairline);
 }
-.profile-redesign .pr-tabs {
+.profile .pr-tabs {
   display: flex;
   gap: 0;
 }
-.profile-redesign .pr-tab {
+.profile .pr-tab {
   padding: 12px 0;
   margin-right: 28px;
   font-size: 14px;
@@ -438,7 +438,7 @@
   align-items: center;
   gap: 8px;
 }
-.profile-redesign .pr-tab .pr-count {
+.profile .pr-tab .pr-count {
   font-family: var(--pr-mono);
   font-size: 10px;
   padding: 1px 6px;
@@ -450,7 +450,7 @@
 
 /* DevRel-only "lit-up" badge — red glow chip. Shown next to the
    Notifications tab label so it reads as a privileged feature. */
-.profile-redesign .pr-tab .pr-devrel-badge {
+.profile .pr-tab .pr-devrel-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -469,7 +469,7 @@
     inset 0 0 6px rgba(232, 65, 66, 0.18);
   animation: pr-devrel-pulse 2.4s ease-in-out infinite;
 }
-.profile-redesign .pr-tab .pr-devrel-badge::before {
+.profile .pr-tab .pr-devrel-badge::before {
   content: "";
   width: 6px;
   height: 6px;
@@ -477,7 +477,7 @@
   background: var(--pr-avax);
   box-shadow: 0 0 6px rgba(232, 65, 66, 0.85);
 }
-:where(.dark) .profile-redesign .pr-tab .pr-devrel-badge {
+:where(.dark) .profile .pr-tab .pr-devrel-badge {
   background: rgba(232, 65, 66, 0.20);
   color: #ff8a8b;
   border-color: rgba(232, 65, 66, 0.65);
@@ -494,30 +494,30 @@
       inset 0 0 8px rgba(232, 65, 66, 0.28);
   }
 }
-.profile-redesign .pr-tab.pr-active {
+.profile .pr-tab.pr-active {
   color: var(--pr-g-1000);
   border-bottom-color: var(--pr-g-1000);
   font-weight: 600;
 }
-.profile-redesign .pr-tab.pr-active .pr-count {
+.profile .pr-tab.pr-active .pr-count {
   background: var(--pr-g-1000);
   color: var(--pr-bg);
 }
-.profile-redesign .pr-tab:hover {
+.profile .pr-tab:hover {
   color: var(--pr-g-1000);
 }
 
 /* Grid */
-.profile-redesign .pr-grid {
+.profile .pr-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 461px;
   gap: 24px;
   align-items: start;
 }
-.profile-redesign .pr-grid[data-no-sidebar="true"] {
+.profile .pr-grid[data-no-sidebar="true"] {
   grid-template-columns: minmax(0, 1fr);
 }
-.profile-redesign .pr-col {
+.profile .pr-col {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -525,20 +525,20 @@
 }
 
 /* Card */
-.profile-redesign .pr-card {
+.profile .pr-card {
   background: var(--pr-g-100);
   border: 1px solid var(--pr-hairline);
   border-radius: 16px;
   overflow: hidden;
 }
-.profile-redesign .pr-card .pr-head {
-  padding: 18px 24px 14px;
+.profile .pr-card .pr-head {
+  padding: 14px 20px 12px;
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 12px;
   border-bottom: 1px solid var(--pr-hairline);
 }
-.profile-redesign .pr-card .pr-head .pr-ico {
+.profile .pr-card .pr-head .pr-ico {
   width: 36px;
   height: 36px;
   border-radius: 10px;
@@ -548,38 +548,38 @@
   color: var(--pr-g-800);
   flex-shrink: 0;
 }
-.profile-redesign .pr-card .pr-head h3 {
+.profile .pr-card .pr-head h3 {
   font-size: 15px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.005em;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-card .pr-head .pr-desc {
+.profile .pr-card .pr-head .pr-desc {
   font-size: 12px;
   color: var(--pr-g-650);
   margin-top: 3px;
 }
-.profile-redesign .pr-card .pr-head .pr-right {
+.profile .pr-card .pr-head .pr-right {
   margin-left: auto;
 }
-.profile-redesign .pr-card .pr-body {
+.profile .pr-card .pr-body {
   padding: 22px 24px;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
-.profile-redesign .pr-card.pr-flush .pr-body {
+.profile .pr-card.pr-flush .pr-body {
   padding: 0;
 }
 
 /* Inputs */
-.profile-redesign .pr-field {
+.profile .pr-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.profile-redesign .pr-field label {
+.profile .pr-field label {
   font-size: 12px;
   font-weight: 500;
   color: var(--pr-g-800);
@@ -588,15 +588,15 @@
   align-items: center;
   gap: 6px;
 }
-.profile-redesign .pr-field label .pr-req {
+.profile .pr-field label .pr-req {
   color: var(--pr-avax);
 }
-.profile-redesign .pr-field label .pr-opt {
+.profile .pr-field label .pr-opt {
   color: var(--pr-g-650);
   font-weight: 400;
   font-size: 11px;
 }
-.profile-redesign .pr-sr-only {
+.profile .pr-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -607,7 +607,7 @@
   white-space: nowrap;
   border: 0;
 }
-.profile-redesign .pr-input {
+.profile .pr-input {
   height: 40px;
   padding: 0 14px;
   border: 1px solid var(--pr-g-400);
@@ -621,21 +621,21 @@
   width: 100%;
   font-weight: 400;
 }
-.profile-redesign .pr-input::placeholder {
+.profile .pr-input::placeholder {
   color: var(--pr-g-600);
 }
-.profile-redesign .pr-input:focus {
+.profile .pr-input:focus {
   border-color: var(--pr-avax);
   box-shadow: 0 0 0 3px rgba(232, 65, 66, 0.18);
 }
-.profile-redesign textarea.pr-input {
+.profile textarea.pr-input {
   height: auto;
   padding: 10px 14px;
   resize: vertical;
   min-height: 84px;
   line-height: 1.5;
 }
-.profile-redesign .pr-helper {
+.profile .pr-helper {
   font-size: 12px;
   color: var(--pr-g-650);
   display: flex;
@@ -643,16 +643,16 @@
   align-items: center;
   gap: 12px;
 }
-.profile-redesign .pr-field-row {
+.profile .pr-field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
-.profile-redesign .pr-field-row.pr-three {
+.profile .pr-field-row.pr-three {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
-.profile-redesign .pr-input-group {
+.profile .pr-input-group {
   display: flex;
   align-items: stretch;
   border: 1px solid var(--pr-g-400);
@@ -661,11 +661,11 @@
   background: var(--pr-g-100);
   transition: border 0.15s, box-shadow 0.15s;
 }
-.profile-redesign .pr-input-group:focus-within {
+.profile .pr-input-group:focus-within {
   border-color: var(--pr-avax);
   box-shadow: 0 0 0 3px rgba(232, 65, 66, 0.18);
 }
-.profile-redesign .pr-input-group .pr-pre {
+.profile .pr-input-group .pr-pre {
   display: flex;
   align-items: center;
   padding: 0 12px;
@@ -676,7 +676,7 @@
   font-family: var(--pr-mono);
   white-space: nowrap;
 }
-.profile-redesign .pr-input-group input {
+.profile .pr-input-group input {
   flex: 1;
   border: 0;
   outline: 0;
@@ -689,10 +689,10 @@
   font-weight: 400;
   min-width: 0;
 }
-.profile-redesign .pr-input-group input::placeholder {
+.profile .pr-input-group input::placeholder {
   color: var(--pr-g-600);
 }
-.profile-redesign .pr-input-group .pr-post {
+.profile .pr-input-group .pr-post {
   display: flex;
   align-items: center;
   padding: 0 6px;
@@ -701,14 +701,14 @@
 
 /* Row for socials with an OAuth Connect button: input-group on the left,
    button as a sibling on the right at the same height. */
-.profile-redesign .pr-social-row {
+.profile .pr-social-row {
   display: flex;
   align-items: stretch;
   gap: 8px;
 }
 
 /* Buttons */
-.profile-redesign .pr-btn {
+.profile .pr-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -726,89 +726,89 @@
   color: inherit;
   background: transparent;
 }
-.profile-redesign .pr-btn:active {
+.profile .pr-btn:active {
   transform: scale(0.98);
 }
-.profile-redesign .pr-btn svg {
+.profile .pr-btn svg {
   width: 16px;
   height: 16px;
 }
-.profile-redesign .pr-btn--primary {
+.profile .pr-btn--primary {
   background: var(--pr-avax);
   color: #fff;
 }
-.profile-redesign .pr-btn--primary:hover {
+.profile .pr-btn--primary:hover {
   background: var(--pr-avax-hover);
 }
-.profile-redesign .pr-btn--outline {
+.profile .pr-btn--outline {
   background: var(--pr-g-100);
   color: var(--pr-g-1000);
   border-color: var(--pr-g-400);
 }
-.profile-redesign .pr-btn--outline:hover {
+.profile .pr-btn--outline:hover {
   background: var(--pr-g-200);
   border-color: var(--pr-g-500);
 }
-.profile-redesign .pr-btn--gold {
+.profile .pr-btn--gold {
   background: var(--pr-avax);
   color: #fff;
 }
-.profile-redesign .pr-btn--gold:hover {
+.profile .pr-btn--gold:hover {
   background: var(--pr-avax-hover);
 }
-.profile-redesign .pr-btn--ghost {
+.profile .pr-btn--ghost {
   background: transparent;
   color: var(--pr-g-800);
 }
-.profile-redesign .pr-btn--ghost:hover {
+.profile .pr-btn--ghost:hover {
   background: var(--pr-g-200);
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-btn--sm {
+.profile .pr-btn--sm {
   height: 32px;
   padding: 0 14px;
   font-size: 13px;
   border-radius: 8px;
 }
-.profile-redesign .pr-btn--icon {
+.profile .pr-btn--icon {
   width: 32px;
   height: 32px;
   padding: 0;
   border-radius: 8px;
 }
-.profile-redesign .pr-btn[disabled] {
+.profile .pr-btn[disabled] {
   opacity: 0.5;
   cursor: default;
 }
 /* Tinted "Connected" treatment — same visual recipe in both themes
    (subtle green bg + green text + thin green border) so it always reads
    as a "success" state rather than a CTA. */
-.profile-redesign .pr-btn--success {
+.profile .pr-btn--success {
   background: rgba(102, 139, 34, 0.12);
   color: #4f7619;
   border: 1px solid rgba(102, 139, 34, 0.45);
 }
-.profile-redesign .pr-btn--success:hover {
+.profile .pr-btn--success:hover {
   background: rgba(102, 139, 34, 0.18);
   border-color: rgba(102, 139, 34, 0.6);
 }
-:where(.dark) .profile-redesign .pr-btn--success {
+:where(.dark) .profile .pr-btn--success {
   background: rgba(155, 224, 85, 0.18);
   color: #b9eb7c;
   border-color: rgba(155, 224, 85, 0.45);
 }
-:where(.dark) .profile-redesign .pr-btn--success:hover {
+:where(.dark) .profile .pr-btn--success:hover {
   background: rgba(155, 224, 85, 0.26);
   border-color: rgba(155, 224, 85, 0.6);
 }
 
 /* Role checkbox card */
-.profile-redesign .pr-role-grid {
+.profile .pr-role-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
 }
-.profile-redesign .pr-role-card {
+.profile .pr-role-card {
   border: 1px solid var(--pr-g-400);
   border-radius: 12px;
   padding: 14px 12px;
@@ -825,22 +825,22 @@
   justify-content: space-between;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-role-card:hover {
+.profile .pr-role-card:hover {
   border-color: var(--pr-g-700);
 }
 /* Selected role uses a tinted-red treatment that mirrors the "Connected"
    success button — soft background, brand-colored text + border. */
-.profile-redesign .pr-role-card.pr-on {
+.profile .pr-role-card.pr-on {
   background: rgba(232, 65, 66, 0.10);
   color: var(--pr-primary-dark);
   border-color: rgba(232, 65, 66, 0.45);
 }
-:where(.dark) .profile-redesign .pr-role-card.pr-on {
+:where(.dark) .profile .pr-role-card.pr-on {
   background: rgba(232, 65, 66, 0.16);
   color: var(--pr-accent-main);
   border-color: rgba(232, 65, 66, 0.45);
 }
-.profile-redesign .pr-role-card .pr-role-ico {
+.profile .pr-role-card .pr-role-ico {
   width: 28px;
   height: 28px;
   border-radius: 8px;
@@ -849,28 +849,28 @@
   place-items: center;
   color: var(--pr-g-800);
 }
-.profile-redesign .pr-role-card.pr-on .pr-role-ico {
+.profile .pr-role-card.pr-on .pr-role-ico {
   background: rgba(232, 65, 66, 0.18);
   color: var(--pr-primary-dark);
 }
-:where(.dark) .profile-redesign .pr-role-card.pr-on .pr-role-ico {
+:where(.dark) .profile .pr-role-card.pr-on .pr-role-ico {
   background: rgba(232, 65, 66, 0.22);
   color: var(--pr-accent-main);
 }
-.profile-redesign .pr-role-card .pr-nm {
+.profile .pr-role-card .pr-nm {
   font-size: 13px;
   font-weight: 600;
 }
-.profile-redesign .pr-role-card .pr-dsc {
+.profile .pr-role-card .pr-dsc {
   font-size: 11px;
   color: var(--pr-g-650);
   line-height: 1.3;
 }
-.profile-redesign .pr-role-card.pr-on .pr-dsc {
+.profile .pr-role-card.pr-on .pr-dsc {
   color: inherit;
   opacity: 0.85;
 }
-.profile-redesign .pr-role-card .pr-check {
+.profile .pr-role-card .pr-check {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -883,15 +883,15 @@
   color: transparent;
   transition: all 0.15s;
 }
-.profile-redesign .pr-role-card.pr-on .pr-check {
+.profile .pr-role-card.pr-on .pr-check {
   background: var(--pr-avax);
   border-color: var(--pr-avax);
   color: #fff;
 }
-.profile-redesign .pr-role-card.pr-on .pr-check svg {
+.profile .pr-role-card.pr-on .pr-check svg {
   display: block;
 }
-.profile-redesign .pr-role-card .pr-check svg {
+.profile .pr-role-card .pr-check svg {
   display: none;
   width: 10px;
   height: 10px;
@@ -899,7 +899,7 @@
 
 /* Wallet card — light variant by default with a subtle red wash, dark
    "credit-card" gradient in dark mode. */
-.profile-redesign .pr-wallet {
+.profile .pr-wallet {
   background: linear-gradient(135deg, #fafafa 0%, #f4f4f4 100%);
   color: var(--pr-g-1000);
   border: 1px solid var(--pr-hairline);
@@ -912,7 +912,7 @@
   justify-content: space-between;
   gap: 8px;
 }
-:where(.dark) .profile-redesign .pr-wallet {
+:where(.dark) .profile .pr-wallet {
   background: linear-gradient(135deg, #1a1816 0%, #232026 50%, #2a2236 100%);
   color: #fafafa;
   border-color: transparent;
@@ -920,7 +920,7 @@
 /* Red glow stays in the left-half + center areas so it never sits behind
    the Connected button (anchored bottom-right). The brightest blob lives
    between the left edge and the center to draw the eye to the middle. */
-.profile-redesign .pr-wallet::after {
+.profile .pr-wallet::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -930,13 +930,13 @@
     radial-gradient(circle 160px at 55% 110%, rgba(232, 65, 66, 0.08) 0%, transparent 65%);
   pointer-events: none;
 }
-:where(.dark) .profile-redesign .pr-wallet::after {
+:where(.dark) .profile .pr-wallet::after {
   background:
     radial-gradient(circle 280px at 42% 35%, rgba(232, 65, 66, 0.42) 0%, transparent 60%),
     radial-gradient(circle 220px at 0% 60%, rgba(232, 65, 66, 0.24) 0%, transparent 60%),
     radial-gradient(circle 180px at 55% 110%, rgba(232, 65, 66, 0.18) 0%, transparent 65%);
 }
-.profile-redesign .pr-wallet .pr-wallet-side {
+.profile .pr-wallet .pr-wallet-side {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -944,7 +944,7 @@
   position: relative;
   z-index: 1;
 }
-.profile-redesign .pr-wallet .pr-top {
+.profile .pr-wallet .pr-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -953,14 +953,14 @@
   position: relative;
   z-index: 1;
 }
-.profile-redesign .pr-wallet .pr-top .pr-label {
+.profile .pr-wallet .pr-top .pr-label {
   font-family: var(--pr-mono);
   font-size: 9px;
   opacity: 0.65;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.profile-redesign .pr-wallet .pr-net {
+.profile .pr-wallet .pr-net {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -973,17 +973,17 @@
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
-:where(.dark) .profile-redesign .pr-wallet .pr-net {
+:where(.dark) .profile .pr-wallet .pr-net {
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
 }
-.profile-redesign .pr-wallet .pr-net .pr-d {
+.profile .pr-wallet .pr-net .pr-d {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--pr-avax);
 }
-.profile-redesign .pr-wallet .pr-addr {
+.profile .pr-wallet .pr-addr {
   font-family: var(--pr-mono);
   font-size: 13px;
   letter-spacing: 0.04em;
@@ -991,7 +991,7 @@
   position: relative;
   z-index: 1;
 }
-.profile-redesign .pr-wallet .pr-bot {
+.profile .pr-wallet .pr-bot {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1001,37 +1001,37 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-.profile-redesign .pr-wallet .pr-bal {
+.profile .pr-wallet .pr-bal {
   font-family: var(--pr-mono);
   font-size: 14px;
   color: #ff6e6f;
 }
-.profile-redesign .pr-wallet .pr-empty {
+.profile .pr-wallet .pr-empty {
   font-size: 12px;
   opacity: 0.7;
   font-style: italic;
 }
-.profile-redesign .pr-wallet .pr-empty-cta {
+.profile .pr-wallet .pr-empty-cta {
   background: rgba(255, 255, 255, 0.1);
   color: #fafafa;
   border: 1px dashed rgba(255, 255, 255, 0.3);
 }
-.profile-redesign .pr-wallet .pr-empty-cta:hover {
+.profile .pr-wallet .pr-empty-cta:hover {
   background: rgba(255, 255, 255, 0.16);
 }
-.profile-redesign .pr-wallet .pr-action-btn {
+.profile .pr-wallet .pr-action-btn {
   background: rgba(0, 0, 0, 0.06);
   color: var(--pr-g-900);
   border: 0;
 }
-.profile-redesign .pr-wallet .pr-action-btn:hover {
+.profile .pr-wallet .pr-action-btn:hover {
   background: rgba(0, 0, 0, 0.12);
 }
-:where(.dark) .profile-redesign .pr-wallet .pr-action-btn {
+:where(.dark) .profile .pr-wallet .pr-action-btn {
   background: rgba(255, 255, 255, 0.1);
   color: #fafafa;
 }
-:where(.dark) .profile-redesign .pr-wallet .pr-action-btn:hover {
+:where(.dark) .profile .pr-wallet .pr-action-btn:hover {
   background: rgba(255, 255, 255, 0.18);
 }
 /* Wallet's Connected button inherits the general tinted-green look —
@@ -1040,7 +1040,7 @@
    the button sits). */
 
 /* Skill picker */
-.profile-redesign .pr-skill-input-wrap {
+.profile .pr-skill-input-wrap {
   border: 1px solid var(--pr-g-400);
   border-radius: 12px;
   background: var(--pr-g-100);
@@ -1052,11 +1052,11 @@
   min-height: 80px;
   transition: border 0.15s, box-shadow 0.15s;
 }
-.profile-redesign .pr-skill-input-wrap:focus-within {
+.profile .pr-skill-input-wrap:focus-within {
   border-color: var(--pr-avax);
   box-shadow: 0 0 0 3px rgba(232, 65, 66, 0.18);
 }
-.profile-redesign .pr-skill-tag {
+.profile .pr-skill-tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1068,7 +1068,7 @@
   font-size: 12px;
   font-weight: 500;
 }
-.profile-redesign .pr-skill-tag .pr-x {
+.profile .pr-skill-tag .pr-x {
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -1081,27 +1081,27 @@
   border: 0;
   font-size: 14px;
 }
-.profile-redesign .pr-skill-tag .pr-x:hover {
+.profile .pr-skill-tag .pr-x:hover {
   opacity: 1;
   background: rgba(232, 65, 66, 0.18);
 }
-.profile-redesign .pr-skill-tag.pr-cat-lang {
+.profile .pr-skill-tag.pr-cat-lang {
   background: rgba(102, 118, 179, 0.16);
   color: #2b3a73;
 }
-:where(.dark) .profile-redesign .pr-skill-tag.pr-cat-lang {
+:where(.dark) .profile .pr-skill-tag.pr-cat-lang {
   background: rgba(102, 118, 179, 0.2);
   color: #a8b3d8;
 }
-.profile-redesign .pr-skill-tag.pr-cat-chain {
+.profile .pr-skill-tag.pr-cat-chain {
   background: var(--pr-primary-light);
   color: var(--pr-accent-main);
 }
-.profile-redesign .pr-skill-tag.pr-cat-tool {
+.profile .pr-skill-tag.pr-cat-tool {
   background: var(--pr-g-200);
   color: var(--pr-g-900);
 }
-.profile-redesign .pr-skill-input {
+.profile .pr-skill-input {
   flex: 1;
   min-width: 140px;
   border: 0;
@@ -1113,16 +1113,16 @@
   height: 28px;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-skill-input::placeholder {
+.profile .pr-skill-input::placeholder {
   color: var(--pr-g-600);
 }
-.profile-redesign .pr-skill-suggest {
+.profile .pr-skill-suggest {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
 }
-.profile-redesign .pr-sgst {
+.profile .pr-sgst {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1136,22 +1136,22 @@
   cursor: pointer;
   font-family: inherit;
 }
-.profile-redesign .pr-sgst:hover {
+.profile .pr-sgst:hover {
   border-style: solid;
   color: var(--pr-g-1000);
   border-color: var(--pr-g-1000);
 }
-.profile-redesign .pr-sgst::before {
+.profile .pr-sgst::before {
   content: "+";
   font-family: var(--pr-mono);
 }
 
 /* Sidebar checklist */
-.profile-redesign .pr-checklist {
+.profile .pr-checklist {
   display: flex;
   flex-direction: column;
 }
-.profile-redesign .pr-checklist .pr-item {
+.profile .pr-checklist .pr-item {
   display: flex;
   gap: 12px;
   padding: 12px 0;
@@ -1167,13 +1167,13 @@
   font-family: inherit;
   color: inherit;
 }
-.profile-redesign .pr-checklist .pr-item:last-child {
+.profile .pr-checklist .pr-item:last-child {
   border-bottom: 0;
 }
-.profile-redesign .pr-checklist .pr-item:hover .pr-lbl {
+.profile .pr-checklist .pr-item:hover .pr-lbl {
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-checklist .pr-check-circ {
+.profile .pr-checklist .pr-check-circ {
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -1185,44 +1185,44 @@
   margin-top: 1px;
   color: transparent;
 }
-.profile-redesign .pr-checklist .pr-item.pr-done .pr-check-circ {
+.profile .pr-checklist .pr-item.pr-done .pr-check-circ {
   background: var(--pr-success-text);
   border-color: var(--pr-success-text);
   color: #fff;
 }
-:where(.dark) .profile-redesign .pr-checklist .pr-item.pr-done .pr-check-circ {
+:where(.dark) .profile .pr-checklist .pr-item.pr-done .pr-check-circ {
   color: #0a0a0c;
 }
-.profile-redesign .pr-checklist .pr-item.pr-done .pr-check-circ svg {
+.profile .pr-checklist .pr-item.pr-done .pr-check-circ svg {
   width: 11px;
   height: 11px;
 }
-.profile-redesign .pr-checklist .pr-item.pr-done .pr-lbl {
+.profile .pr-checklist .pr-item.pr-done .pr-lbl {
   text-decoration: line-through;
   color: var(--pr-g-650);
 }
-.profile-redesign .pr-checklist .pr-item:not(.pr-done) .pr-check-circ svg {
+.profile .pr-checklist .pr-item:not(.pr-done) .pr-check-circ svg {
   display: none;
 }
-.profile-redesign .pr-checklist .pr-meta {
+.profile .pr-checklist .pr-meta {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
   flex: 1;
 }
-.profile-redesign .pr-checklist .pr-lbl {
+.profile .pr-checklist .pr-lbl {
   font-size: 13px;
   color: var(--pr-g-900);
   font-weight: 500;
   transition: color 0.15s;
 }
-.profile-redesign .pr-checklist .pr-desc {
+.profile .pr-checklist .pr-desc {
   font-size: 11px;
   color: var(--pr-g-650);
   line-height: 1.4;
 }
-.profile-redesign .pr-checklist .pr-pts {
+.profile .pr-checklist .pr-pts {
   font-family: var(--pr-mono);
   font-size: 10px;
   color: var(--pr-g-650);
@@ -1232,12 +1232,12 @@
 }
 
 /* Achievement badges */
-.profile-redesign .pr-badge-grid {
+.profile .pr-badge-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
 }
-.profile-redesign .pr-badge {
+.profile .pr-badge {
   border-radius: 14px;
   padding: 18px 12px 14px;
   display: flex;
@@ -1252,14 +1252,14 @@
   border: 1px solid var(--pr-hairline);
   background: var(--pr-g-100);
 }
-.profile-redesign .pr-badge:hover {
+.profile .pr-badge:hover {
   transform: translateY(-2px);
 }
-.profile-redesign .pr-badge.pr-locked {
+.profile .pr-badge.pr-locked {
   opacity: 0.55;
   filter: grayscale(1);
 }
-.profile-redesign .pr-badge .pr-glyph {
+.profile .pr-badge .pr-glyph {
   width: 96px;
   height: 96px;
   border-radius: 50%;
@@ -1270,35 +1270,35 @@
   flex-shrink: 0;
   overflow: hidden;
 }
-.profile-redesign .pr-badge .pr-glyph img {
+.profile .pr-badge .pr-glyph img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.profile-redesign .pr-badge.pr-gold .pr-glyph {
+.profile .pr-badge.pr-gold .pr-glyph {
   background: linear-gradient(135deg, var(--pr-primary-main), var(--pr-primary-dark));
   color: #fff;
 }
-.profile-redesign .pr-badge.pr-indigo .pr-glyph {
+.profile .pr-badge.pr-indigo .pr-glyph {
   background: linear-gradient(135deg, #6676b3, #4d5a8d);
 }
-.profile-redesign .pr-badge.pr-red .pr-glyph {
+.profile .pr-badge.pr-red .pr-glyph {
   background: linear-gradient(135deg, #ff6e6f, var(--pr-avax));
 }
-.profile-redesign .pr-badge.pr-green .pr-glyph {
+.profile .pr-badge.pr-green .pr-glyph {
   background: linear-gradient(135deg, #b9eb7c, #668b22);
 }
-.profile-redesign .pr-badge.pr-dark .pr-glyph {
+.profile .pr-badge.pr-dark .pr-glyph {
   background: linear-gradient(135deg, var(--pr-g-800), var(--pr-g-1000));
   color: var(--pr-g-100);
 }
-.profile-redesign .pr-badge .pr-nm {
+.profile .pr-badge .pr-nm {
   font-size: 11px;
   font-weight: 600;
   line-height: 1.2;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-badge .pr-lvl {
+.profile .pr-badge .pr-lvl {
   font-family: var(--pr-mono);
   font-size: 9px;
   color: var(--pr-g-700);
@@ -1306,7 +1306,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-:where(.dark) .profile-redesign .pr-badge .pr-lvl {
+:where(.dark) .profile .pr-badge .pr-lvl {
   color: #fafafa;
   opacity: 0.85;
 }
@@ -1315,21 +1315,21 @@
    match the pill aesthetic of the IdentityHero contact pills. The widget
    itself is the production component (handles target validation + analytics);
    we only restyle its outer chrome. */
-.profile-redesign .pr-referral-shell {
+.profile .pr-referral-shell {
   padding: 0;
 }
-.profile-redesign .pr-referral-shell > div {
+.profile .pr-referral-shell > div {
   /* The shadcn Card wrapper inside the widget — flatten it. */
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
 }
-.profile-redesign .pr-referral-shell h3,
-.profile-redesign .pr-referral-shell [class*="CardTitle"] {
+.profile .pr-referral-shell h3,
+.profile .pr-referral-shell [class*="CardTitle"] {
   /* The "Referral Link Generator" heading is redundant with our card head. */
   display: none;
 }
-.profile-redesign .pr-referral-shell button {
+.profile .pr-referral-shell button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1346,28 +1346,28 @@
   white-space: nowrap;
   box-shadow: none;
 }
-.profile-redesign .pr-referral-shell button:hover:not(:disabled) {
+.profile .pr-referral-shell button:hover:not(:disabled) {
   background: var(--pr-g-200);
   color: var(--pr-g-1000);
   border-color: var(--pr-g-400);
 }
-.profile-redesign .pr-referral-shell button[disabled] {
+.profile .pr-referral-shell button[disabled] {
   opacity: 0.55;
   cursor: default;
 }
-.profile-redesign .pr-referral-shell button svg {
+.profile .pr-referral-shell button svg {
   width: 12px;
   height: 12px;
   flex-shrink: 0;
 }
 
 /* Original referral panel (when ported) */
-.profile-redesign .pr-ref-targets {
+.profile .pr-ref-targets {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-.profile-redesign .pr-ref-target {
+.profile .pr-ref-target {
   border: 1px solid var(--pr-g-400);
   padding: 8px 14px;
   border-radius: 10px;
@@ -1381,15 +1381,15 @@
   gap: 8px;
   font-family: inherit;
 }
-.profile-redesign .pr-ref-target:hover {
+.profile .pr-ref-target:hover {
   border-color: var(--pr-g-700);
 }
-.profile-redesign .pr-ref-target.pr-on {
+.profile .pr-ref-target.pr-on {
   background: var(--pr-avax);
   color: #fff;
   border-color: var(--pr-avax);
 }
-.profile-redesign .pr-ref-target .pr-em {
+.profile .pr-ref-target .pr-em {
   width: 22px;
   height: 22px;
   border-radius: 6px;
@@ -1399,13 +1399,13 @@
   color: var(--pr-accent-main);
   flex-shrink: 0;
 }
-.profile-redesign .pr-ref-target.pr-on .pr-em {
+.profile .pr-ref-target.pr-on .pr-em {
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
 
 /* Save bar */
-.profile-redesign .pr-savebar {
+.profile .pr-savebar {
   position: sticky;
   bottom: 24px;
   z-index: 30;
@@ -1422,15 +1422,15 @@
   max-width: 600px;
   margin: 24px auto 0;
 }
-:where(.dark) .profile-redesign .pr-savebar {
+:where(.dark) .profile .pr-savebar {
   box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.5);
 }
-.profile-redesign .pr-savebar.pr-hidden {
+.profile .pr-savebar.pr-hidden {
   opacity: 0;
   transform: translateY(20px);
   pointer-events: none;
 }
-.profile-redesign .pr-savebar .pr-dot {
+.profile .pr-savebar .pr-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -1446,32 +1446,32 @@
     opacity: 0.4;
   }
 }
-.profile-redesign .pr-savebar .pr-msg {
+.profile .pr-savebar .pr-msg {
   font-size: 13px;
   flex: 1;
   color: rgba(255, 255, 255, 0.9);
 }
-.profile-redesign .pr-savebar .pr-msg b {
+.profile .pr-savebar .pr-msg b {
   color: #fff;
   font-weight: 600;
 }
-.profile-redesign .pr-savebar .pr-btn--primary {
+.profile .pr-savebar .pr-btn--primary {
   background: #fff;
   color: var(--pr-avax);
 }
-.profile-redesign .pr-savebar .pr-btn--primary:hover {
+.profile .pr-savebar .pr-btn--primary:hover {
   background: rgba(255, 255, 255, 0.92);
 }
-.profile-redesign .pr-savebar .pr-btn--ghost {
+.profile .pr-savebar .pr-btn--ghost {
   color: rgba(255, 255, 255, 0.9);
 }
-.profile-redesign .pr-savebar .pr-btn--ghost:hover {
+.profile .pr-savebar .pr-btn--ghost:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.18);
 }
 
 /* Toast */
-.profile-redesign .pr-toast-host {
+.profile .pr-toast-host {
   position: fixed;
   bottom: 24px;
   right: 24px;
@@ -1480,7 +1480,7 @@
   flex-direction: column;
   gap: 10px;
 }
-.profile-redesign .pr-toast {
+.profile .pr-toast {
   background: var(--pr-g-100);
   color: var(--pr-g-1000);
   padding: 12px 18px;
@@ -1494,20 +1494,20 @@
   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.15);
   animation: pr-toast-in 0.25s ease;
 }
-:where(.dark) .profile-redesign .pr-toast {
+:where(.dark) .profile .pr-toast {
   border-color: var(--pr-g-700);
   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.4);
 }
-.profile-redesign .pr-toast.pr-success {
+.profile .pr-toast.pr-success {
   border-color: var(--pr-success-main);
 }
-.profile-redesign .pr-toast.pr-success .pr-ti {
+.profile .pr-toast.pr-success .pr-ti {
   color: var(--pr-success-text);
 }
-.profile-redesign .pr-toast.pr-error {
+.profile .pr-toast.pr-error {
   border-color: var(--pr-error-main);
 }
-.profile-redesign .pr-toast.pr-error .pr-ti {
+.profile .pr-toast.pr-error .pr-ti {
   color: var(--pr-error-text);
 }
 @keyframes pr-toast-in {
@@ -1518,7 +1518,7 @@
 }
 
 /* Country select trigger */
-.profile-redesign .pr-select-fake {
+.profile .pr-select-fake {
   height: 40px;
   padding: 0 14px;
   border: 1px solid var(--pr-g-400);
@@ -1535,18 +1535,18 @@
   font-family: inherit;
   font-weight: 400;
 }
-.profile-redesign .pr-select-fake:hover {
+.profile .pr-select-fake:hover {
   border-color: var(--pr-g-700);
 }
-.profile-redesign .pr-select-fake .pr-ph {
+.profile .pr-select-fake .pr-ph {
   color: var(--pr-g-600);
 }
-.profile-redesign .pr-select-fake svg {
+.profile .pr-select-fake svg {
   width: 16px;
   height: 16px;
   color: var(--pr-g-700);
 }
-.profile-redesign .pr-country-popover {
+.profile .pr-country-popover {
   position: absolute;
   top: 44px;
   left: 0;
@@ -1558,10 +1558,10 @@
   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.15);
   overflow: hidden;
 }
-:where(.dark) .profile-redesign .pr-country-popover {
+:where(.dark) .profile .pr-country-popover {
   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
 }
-.profile-redesign .pr-country-popover .pr-search-row {
+.profile .pr-country-popover .pr-search-row {
   padding: 8px 10px;
   border-bottom: 1px solid var(--pr-hairline);
   display: flex;
@@ -1569,7 +1569,7 @@
   gap: 6px;
   color: var(--pr-g-700);
 }
-.profile-redesign .pr-country-popover .pr-search-row input {
+.profile .pr-country-popover .pr-search-row input {
   border: 0;
   outline: 0;
   background: transparent;
@@ -1578,12 +1578,12 @@
   flex: 1;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-country-popover .pr-list {
+.profile .pr-country-popover .pr-list {
   max-height: 240px;
   overflow: auto;
   padding: 4px 0;
 }
-.profile-redesign .pr-country-popover .pr-list-item {
+.profile .pr-country-popover .pr-list-item {
   padding: 8px 14px;
   font-size: 13px;
   cursor: pointer;
@@ -1597,18 +1597,18 @@
   text-align: left;
   font-family: inherit;
 }
-.profile-redesign .pr-country-popover .pr-list-item:hover,
-.profile-redesign .pr-country-popover .pr-list-item:focus-visible {
+.profile .pr-country-popover .pr-list-item:hover,
+.profile .pr-country-popover .pr-list-item:focus-visible {
   background: var(--pr-g-200);
   outline: none;
 }
-.profile-redesign .pr-country-popover .pr-list-item .pr-check-r {
+.profile .pr-country-popover .pr-list-item .pr-check-r {
   margin-left: auto;
   color: var(--pr-success-text);
 }
 
 /* Empty state */
-.profile-redesign .pr-empty {
+.profile .pr-empty {
   padding: 24px;
   text-align: center;
   color: var(--pr-g-650);
@@ -1617,7 +1617,7 @@
 }
 
 /* Project row */
-.profile-redesign .pr-project-row {
+.profile .pr-project-row {
   border: 1px solid var(--pr-hairline);
   border-radius: 12px;
   padding: 16px;
@@ -1625,7 +1625,7 @@
   gap: 14px;
   align-items: flex-start;
 }
-.profile-redesign .pr-project-row .pr-mark {
+.profile .pr-project-row .pr-mark {
   width: 44px;
   height: 44px;
   border-radius: 10px;
@@ -1638,53 +1638,53 @@
 }
 
 /* Focus rings */
-.profile-redesign .pr-av-stack .pr-edit:focus-visible,
-.profile-redesign .pr-btn:focus-visible,
-.profile-redesign .pr-skill-tag .pr-x:focus-visible,
-.profile-redesign .pr-checklist .pr-item:focus-visible,
-.profile-redesign .pr-role-card:focus-visible,
-.profile-redesign .pr-ref-target:focus-visible,
-.profile-redesign .pr-select-fake:focus-visible,
-.profile-redesign .pr-country-popover .pr-list-item:focus-visible,
-.profile-redesign .pr-tab:focus-visible {
+.profile .pr-av-stack .pr-edit:focus-visible,
+.profile .pr-btn:focus-visible,
+.profile .pr-skill-tag .pr-x:focus-visible,
+.profile .pr-checklist .pr-item:focus-visible,
+.profile .pr-role-card:focus-visible,
+.profile .pr-ref-target:focus-visible,
+.profile .pr-select-fake:focus-visible,
+.profile .pr-country-popover .pr-list-item:focus-visible,
+.profile .pr-tab:focus-visible {
   outline: 2px solid var(--pr-avax);
   outline-offset: 2px;
 }
 
 /* Responsive */
 @media (max-width: 1080px) {
-  .profile-redesign .pr-grid {
+  .profile .pr-grid {
     grid-template-columns: 1fr;
   }
-  .profile-redesign .pr-role-grid {
+  .profile .pr-role-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-  .profile-redesign .pr-badge-grid {
+  .profile .pr-badge-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 @media (max-width: 640px) {
-  .profile-redesign .pr-identity {
+  .profile .pr-identity {
     grid-template-columns: 1fr;
     gap: 18px;
   }
-  .profile-redesign .pr-completion {
+  .profile .pr-completion {
     border-left: 0;
     padding-left: 0;
     border-top: 1px solid var(--pr-hairline);
     padding-top: 18px;
   }
-  .profile-redesign .pr-role-grid {
+  .profile .pr-role-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .profile-redesign .pr-field-row,
-  .profile-redesign .pr-field-row.pr-three {
+  .profile .pr-field-row,
+  .profile .pr-field-row.pr-three {
     grid-template-columns: 1fr;
   }
-  .profile-redesign .pr-page {
+  .profile .pr-page {
     padding: 24px 16px 80px;
   }
-  .profile-redesign .pr-page-head {
+  .profile .pr-page-head {
     flex-direction: column;
     align-items: stretch;
   }
@@ -1693,58 +1693,71 @@
 /* ──────────────────────────────────────────────────────────────────────
    Insights tab (DevRel-only Builder Insights, rendered inside .pr-card)
    ────────────────────────────────────────────────────────────────────── */
-.profile-redesign .pr-insights {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-.profile-redesign .pr-insights__section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.profile-redesign .pr-insights__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.profile-redesign .pr-insights__heading > .pr-seg {
-  flex: 0 0 auto;
-}
-.profile-redesign .pr-insights__heading-meta {
+.profile .pr-insights {
   display: flex;
   flex-direction: column;
   gap: 0;
-  min-width: 0;
-  width: max-content;
-  max-width: 100%;
 }
-.profile-redesign .pr-insights__heading-icon {
+.profile .pr-insights__section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.profile .pr-insights__section + .pr-insights__section {
+  margin-top: 21px;
+  padding-top: 21px;
+  border-top: 1px solid rgba(10, 10, 10, 0.08);
+}
+:where(.dark) .profile .pr-insights__section + .pr-insights__section {
+  border-top-color: rgba(250, 250, 250, 0.10);
+}
+.profile .pr-insights__heading {
+  display: inline-grid;
+  grid-template-columns: 32px max-content;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: center;
+  align-self: flex-start;
+}
+.profile .pr-insights__heading-icon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: var(--pr-primary-light);
   color: var(--pr-accent-main);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
 }
-.profile-redesign .pr-insights__title {
-  font-size: 15px;
+.profile .pr-insights__title {
+  grid-column: 2;
+  grid-row: 1;
+  display: block;
+  font-size: 16px;
   font-weight: 600;
   color: var(--pr-g-1000);
   margin: 0;
+  padding: 0;
   letter-spacing: -0.005em;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  line-height: 1.2;
 }
-.profile-redesign .pr-insights__subtitle {
+.profile .pr-insights__subtitle {
+  grid-column: 2;
+  grid-row: 2;
   font-family: var(--pr-mono);
   font-size: 11.5px;
   color: var(--pr-g-650);
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
 }
 
 /* DevRel-only chip in the card head */
-.profile-redesign .pr-insights__devrel-pill {
+.profile .pr-insights__devrel-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1757,25 +1770,26 @@
   border: 1px solid rgba(232, 65, 66, 0.45);
   white-space: nowrap;
 }
-.profile-redesign .pr-insights__devrel-pill::before {
+.profile .pr-insights__devrel-pill::before {
   content: "";
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--pr-avax);
 }
-:where(.dark) .profile-redesign .pr-insights__devrel-pill {
+:where(.dark) .profile .pr-insights__devrel-pill {
   background: rgba(232, 65, 66, 0.16);
   border-color: rgba(232, 65, 66, 0.55);
 }
 
 /* KPI strip — individual cards with gaps, 4 across × 2 down. */
-.profile-redesign .pr-kpi-grid {
+.profile .pr-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  margin-bottom: 36px;
 }
-.profile-redesign .pr-kpi {
+.profile .pr-kpi {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1787,7 +1801,7 @@
   background: var(--pr-g-100);
   justify-content: flex-start;
 }
-.profile-redesign .pr-kpi__label {
+.profile .pr-kpi__label {
   font-family: var(--pr-mono);
   font-size: 10.5px;
   letter-spacing: 0.1em;
@@ -1795,7 +1809,7 @@
   color: var(--pr-g-650);
   font-weight: 500;
 }
-.profile-redesign .pr-kpi__value {
+.profile .pr-kpi__value {
   font-size: 34px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -1804,11 +1818,11 @@
   font-variant-numeric: tabular-nums;
   margin-top: 2px;
 }
-.profile-redesign .pr-kpi__value--small {
+.profile .pr-kpi__value--small {
   font-size: 22px;
   font-weight: 600;
 }
-.profile-redesign .pr-kpi__footer {
+.profile .pr-kpi__footer {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1816,18 +1830,18 @@
   min-height: 22px;
   margin-top: auto;
 }
-.profile-redesign .pr-kpi__delta {
+.profile .pr-kpi__delta {
   font-family: var(--pr-mono);
   font-size: 12px;
   font-weight: 600;
 }
-.profile-redesign .pr-kpi__delta--up {
+.profile .pr-kpi__delta--up {
   color: var(--pr-success-text);
 }
-.profile-redesign .pr-kpi__delta--down {
+.profile .pr-kpi__delta--down {
   color: var(--pr-warning-text);
 }
-.profile-redesign .pr-kpi__sub {
+.profile .pr-kpi__sub {
   font-size: 12px;
   color: var(--pr-g-650);
 }
@@ -1835,59 +1849,65 @@
 /* Segmented toggle — exact metrics copied from the SendNotificationsForm
    Segmented (inline-flex p-[3px] rounded-md, px-2.5 py-1 text-[11.5px]
    rounded buttons). */
-.profile-redesign .pr-seg {
-  display: inline-flex;
-  padding: 0;
-  background: var(--pr-g-200);
+.profile .pr-seg {
+  display: grid;
+  grid-template-columns: repeat(var(--pr-seg-cols, 2), minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  background: var(--pr-g-100);
   border: 1px solid var(--pr-hairline);
-  border-radius: 6px;
-  gap: 0;
-  width: max-content;
-  flex-shrink: 0;
+  border-radius: 8px;
+  width: 100%;
 }
-.profile-redesign .pr-seg__btn {
+:where(.dark) .profile .pr-seg {
+  background: var(--pr-g-200);
+}
+.profile .pr-seg__btn {
   appearance: none;
   border: 0;
   background: transparent;
   font-family: inherit;
   margin: 0;
-  padding: 4px 10px;
-  font-size: 11.5px;
+  padding: 6px 10px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--pr-g-650);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: background 0.12s, color 0.12s;
   white-space: nowrap;
   line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.profile-redesign .pr-seg__btn:hover {
+.profile .pr-seg__btn:hover {
   color: var(--pr-g-900);
 }
-.profile-redesign .pr-seg__btn.pr-on {
+.profile .pr-seg__btn.pr-on {
   background: var(--pr-g-100);
   color: var(--pr-g-1000);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
-:where(.dark) .profile-redesign .pr-seg__btn.pr-on {
+:where(.dark) .profile .pr-seg__btn.pr-on {
   background: var(--pr-g-300);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* Big chart container — minimal horizontal padding so the y-axis labels
    live flush with the section heading on the left. */
-.profile-redesign .pr-chart {
+.profile .pr-chart {
   border: 1px solid var(--pr-hairline);
   border-radius: 14px;
   background: var(--pr-g-100);
   padding: 14px 4px 4px;
 }
-.profile-redesign .pr-chart svg {
+.profile .pr-chart svg {
   display: block;
   width: 100%;
   height: 320px;
 }
-.profile-redesign .pr-chart__legend {
+.profile .pr-chart__legend {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
@@ -1896,34 +1916,34 @@
   font-size: 11px;
   color: var(--pr-g-700);
 }
-.profile-redesign .pr-chart__legend-item {
+.profile .pr-chart__legend-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
-.profile-redesign .pr-chart__legend-swatch {
+.profile .pr-chart__legend-swatch {
   width: 10px;
   height: 2px;
   border-radius: 2px;
 }
 
 /* Leaderboard table */
-.profile-redesign .pr-leaderboard {
+.profile .pr-leaderboard {
   border: 1px solid var(--pr-hairline);
   border-radius: 14px;
   background: var(--pr-g-100);
   overflow-x: auto;
 }
-.profile-redesign .pr-leaderboard table {
+.profile .pr-leaderboard table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
 }
-.profile-redesign .pr-leaderboard thead tr {
+.profile .pr-leaderboard thead tr {
   background: var(--pr-g-200);
   border-bottom: 1px solid var(--pr-hairline);
 }
-.profile-redesign .pr-leaderboard th {
+.profile .pr-leaderboard th {
   text-align: left;
   font-family: var(--pr-mono);
   font-size: 10.5px;
@@ -1933,47 +1953,47 @@
   color: var(--pr-g-650);
   padding: 11px 14px;
 }
-.profile-redesign .pr-leaderboard th:first-child,
-.profile-redesign .pr-leaderboard td:first-child {
+.profile .pr-leaderboard th:first-child,
+.profile .pr-leaderboard td:first-child {
   padding-left: 8px;
 }
-.profile-redesign .pr-leaderboard th.pr-num {
+.profile .pr-leaderboard th.pr-num {
   text-align: right;
 }
-.profile-redesign .pr-leaderboard td {
+.profile .pr-leaderboard td {
   padding: 12px 14px;
   border-bottom: 1px solid var(--pr-hairline);
   color: var(--pr-g-1000);
   vertical-align: middle;
 }
-.profile-redesign .pr-leaderboard tr:last-child td {
+.profile .pr-leaderboard tr:last-child td {
   border-bottom: 0;
 }
-.profile-redesign .pr-leaderboard tr:hover td {
+.profile .pr-leaderboard tr:hover td {
   background: var(--pr-g-200);
 }
-.profile-redesign .pr-leaderboard td.pr-num {
+.profile .pr-leaderboard td.pr-num {
   text-align: right;
   font-family: var(--pr-mono);
   font-variant-numeric: tabular-nums;
   color: var(--pr-g-800);
 }
-.profile-redesign .pr-leaderboard td.pr-rank {
+.profile .pr-leaderboard td.pr-rank {
   font-family: var(--pr-mono);
   font-size: 11px;
   color: var(--pr-g-650);
   width: 36px;
 }
-.profile-redesign .pr-leaderboard td.pr-leaderboard__total {
+.profile .pr-leaderboard td.pr-leaderboard__total {
   font-weight: 700;
   color: var(--pr-g-1000);
 }
-.profile-redesign .pr-leaderboard__person {
+.profile .pr-leaderboard__person {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.profile-redesign .pr-leaderboard__avatar {
+.profile .pr-leaderboard__avatar {
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -1986,19 +2006,19 @@
   letter-spacing: 0.04em;
   flex-shrink: 0;
 }
-.profile-redesign .pr-leaderboard__name {
+.profile .pr-leaderboard__name {
   font-size: 12.5px;
   font-weight: 500;
   color: var(--pr-g-1000);
   line-height: 1.2;
 }
-.profile-redesign .pr-leaderboard__country {
+.profile .pr-leaderboard__country {
   font-family: var(--pr-mono);
   font-size: 10px;
   color: var(--pr-g-650);
   margin-top: 1px;
 }
-.profile-redesign .pr-leaderboard__team {
+.profile .pr-leaderboard__team {
   display: inline-flex;
   align-items: center;
   height: 20px;
@@ -2008,7 +2028,7 @@
   border-radius: 999px;
   font-size: 11px;
 }
-.profile-redesign .pr-leaderboard__empty {
+.profile .pr-leaderboard__empty {
   padding: 22px;
   text-align: center;
   color: var(--pr-g-650);
@@ -2017,12 +2037,12 @@
 
 /* Hackathon history — 4-up grid with one wide featured tile. Each card
    shows title + date + status pill + a 2-cell stat row at the bottom. */
-.profile-redesign .pr-hack-grid {
+.profile .pr-hack-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
-.profile-redesign .pr-hack {
+.profile .pr-hack {
   position: relative;
   border: 1px solid var(--pr-hairline);
   border-radius: 12px;
@@ -2034,23 +2054,23 @@
   overflow: hidden;
   transition: border-color 0.15s ease;
 }
-.profile-redesign .pr-hack:hover {
+.profile .pr-hack:hover {
   border-color: var(--pr-g-500);
 }
-.profile-redesign .pr-hack--featured {
+.profile .pr-hack--featured {
   grid-column: span 2;
 }
-.profile-redesign .pr-hack__head {
+.profile .pr-hack__head {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-height: 40px;
   padding-right: 66px;
 }
-.profile-redesign .pr-hack--featured .pr-hack__head {
+.profile .pr-hack--featured .pr-hack__head {
   min-height: 44px;
 }
-.profile-redesign .pr-hack__title {
+.profile .pr-hack__title {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--pr-g-1000);
@@ -2059,39 +2079,39 @@
   margin: 0;
   text-wrap: pretty;
 }
-.profile-redesign .pr-hack--featured .pr-hack__title {
+.profile .pr-hack--featured .pr-hack__title {
   font-size: 14.5px;
 }
-.profile-redesign .pr-hack__date {
+.profile .pr-hack__date {
   font-family: var(--pr-mono);
   font-size: 9.5px;
   color: var(--pr-g-650);
   letter-spacing: 0.02em;
 }
-.profile-redesign .pr-hack__stats {
+.profile .pr-hack__stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
   margin: 0 -13px -13px;
   border-top: 1px solid var(--pr-hairline);
 }
-.profile-redesign .pr-hack__stat {
+.profile .pr-hack__stat {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 9px 14px 11px;
   min-width: 0;
 }
-.profile-redesign .pr-hack__stat + .pr-hack__stat {
+.profile .pr-hack__stat + .pr-hack__stat {
   border-left: 1px solid var(--pr-hairline);
 }
-.profile-redesign .pr-hack__stat-label {
+.profile .pr-hack__stat-label {
   font-family: var(--pr-mono);
   font-size: 8.5px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--pr-g-650);
 }
-.profile-redesign .pr-hack__stat-value {
+.profile .pr-hack__stat-value {
   font-size: 18px;
   font-weight: 500;
   letter-spacing: -0.01em;
@@ -2099,12 +2119,12 @@
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
-.profile-redesign .pr-hack--featured .pr-hack__stat-value {
+.profile .pr-hack--featured .pr-hack__stat-value {
   font-size: 22px;
 }
 
 /* Status pill — anchored top-right of each card. */
-.profile-redesign .pr-hack__status {
+.profile .pr-hack__status {
   position: absolute;
   top: 11px;
   right: 11px;
@@ -2119,41 +2139,41 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.profile-redesign .pr-hack__status-dot {
+.profile .pr-hack__status-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: currentColor;
 }
-.profile-redesign .pr-hack__status--past {
+.profile .pr-hack__status--past {
   background: var(--pr-g-200);
   color: var(--pr-g-650);
 }
-.profile-redesign .pr-hack__status--live {
+.profile .pr-hack__status--live {
   background: rgba(155, 224, 85, 0.18);
   color: var(--pr-success-text);
 }
-.profile-redesign .pr-hack__status--live .pr-hack__status-dot {
+.profile .pr-hack__status--live .pr-hack__status-dot {
   box-shadow: 0 0 0 2px rgba(155, 224, 85, 0.22);
 }
-.profile-redesign .pr-hack__status--upcoming {
+.profile .pr-hack__status--upcoming {
   background: var(--pr-avax-tint);
   color: var(--pr-accent-main);
 }
 
 @media (max-width: 1080px) {
-  .profile-redesign .pr-hack-grid {
+  .profile .pr-hack-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .profile-redesign .pr-hack--featured {
+  .profile .pr-hack--featured {
     grid-column: span 2;
   }
 }
 @media (max-width: 640px) {
-  .profile-redesign .pr-hack-grid {
+  .profile .pr-hack-grid {
     grid-template-columns: 1fr;
   }
-  .profile-redesign .pr-hack--featured {
+  .profile .pr-hack--featured {
     grid-column: auto;
   }
 }
@@ -2161,12 +2181,12 @@
 /* Notifications card — gives the form the same .pr-head + body chrome as
    Insights. The form's composer/preview 2-col layout renders unchanged
    inside `.pr-notifications-body`. */
-.profile-redesign .pr-notifications-body {
+.profile .pr-notifications-body {
   padding: 8px 24px 22px;
 }
 
 /* Loading state */
-.profile-redesign .pr-insights__loading {
+.profile .pr-insights__loading {
   display: grid;
   place-items: center;
   height: 240px;
@@ -2174,7 +2194,7 @@
   font-size: 13px;
   gap: 12px;
 }
-.profile-redesign .pr-insights__loading-spinner {
+.profile .pr-insights__loading-spinner {
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -2184,12 +2204,12 @@
 }
 
 @media (max-width: 1080px) {
-  .profile-redesign .pr-kpi-grid {
+  .profile .pr-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 640px) {
-  .profile-redesign .pr-kpi-grid {
+  .profile .pr-kpi-grid {
     grid-template-columns: 1fr;
   }
 }

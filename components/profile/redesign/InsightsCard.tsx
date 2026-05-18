@@ -238,26 +238,24 @@ function ChartSection({ data }: { data: BuilderInsightsData }) {
   return (
     <section className="pr-insights__section">
       <header className="pr-insights__heading">
-        <div className="pr-insights__heading-meta">
-          <h4 className="pr-insights__title">
-            <span className="pr-insights__heading-icon">
-              <GlobeIcon size={16} />
-            </span>
-            {tab === "all" ? "Growth signals (normalized)" : activeSeries[0]?.label}
-          </h4>
-          <span className="pr-insights__subtitle">{subtitle}</span>
-        </div>
-        <Segmented<ChartKey>
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "signups", label: "Signups" },
-            { value: "visits", label: "Visits" },
-            { value: "console", label: "Console" },
-            { value: "all", label: "All" },
-          ]}
-        />
+        <span className="pr-insights__heading-icon">
+          <GlobeIcon size={18} />
+        </span>
+        <h4 className="pr-insights__title">
+          {tab === "all" ? "Growth signals (normalized)" : activeSeries[0]?.label}
+        </h4>
+        <span className="pr-insights__subtitle">{subtitle}</span>
       </header>
+      <Segmented<ChartKey>
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "signups", label: "Signups" },
+          { value: "visits", label: "Visits" },
+          { value: "console", label: "Console" },
+          { value: "all", label: "All" },
+        ]}
+      />
       <div className="pr-chart">
         <BigChart series={activeSeries} normalized={tab === "all"} />
         {tab === "all" && (
@@ -287,7 +285,7 @@ function BigChart({
 }) {
   const W = 880;
   const H = 260;
-  const PAD_L = normalized ? 14 : 34;
+  const PAD_L = normalized ? 14 : 52;
   const PAD_R = 14;
   const PAD_T = 20;
   const PAD_B = 32;
@@ -450,7 +448,11 @@ function Segmented<T extends string>({
   options: { value: T; label: string }[];
 }) {
   return (
-    <div className="pr-seg" role="tablist">
+    <div
+      className="pr-seg"
+      role="tablist"
+      style={{ "--pr-seg-cols": options.length } as React.CSSProperties}
+    >
       {options.map((o) => (
         <button
           key={o.value}
@@ -477,28 +479,24 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
   return (
     <section className="pr-insights__section">
       <header className="pr-insights__heading">
-        <div className="pr-insights__heading-meta">
-          <h4 className="pr-insights__title">
-            <span className="pr-insights__heading-icon">
-              <TrophyIcon size={16} />
-            </span>
-            Referral leaderboard
-          </h4>
-          <span className="pr-insights__subtitle">
-            {tab === "people"
-              ? `${data.topReferrers.length} top contributors`
-              : `${data.topTeamReferrers.length} teams`}
-          </span>
-        </div>
-        <Segmented<LeaderboardKey>
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "people", label: "People" },
-            { value: "teams", label: "Teams" },
-          ]}
-        />
+        <span className="pr-insights__heading-icon">
+          <TrophyIcon size={18} />
+        </span>
+        <h4 className="pr-insights__title">Referral leaderboard</h4>
+        <span className="pr-insights__subtitle">
+          {tab === "people"
+            ? `${data.topReferrers.length} top contributors`
+            : `${data.topTeamReferrers.length} teams`}
+        </span>
       </header>
+      <Segmented<LeaderboardKey>
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "people", label: "People" },
+          { value: "teams", label: "Teams" },
+        ]}
+      />
 
       {tab === "people" ? (
         <div className="pr-leaderboard">
@@ -662,28 +660,24 @@ function HackathonHistorySection({ data }: { data: BuilderInsightsData }) {
   return (
     <section className="pr-insights__section">
       <header className="pr-insights__heading">
-        <div className="pr-insights__heading-meta">
-          <h4 className="pr-insights__title">
-            <span className="pr-insights__heading-icon">
-              <SparkleIcon size={16} />
-            </span>
-            Hackathon history
-          </h4>
-          <span className="pr-insights__subtitle">
-            {formatNumber(data.totalHackathonsHosted)} hosted ·{" "}
-            {formatNumber(data.totalHackathonParticipants)} participants ·{" "}
-            {formatNumber(data.totalHackathonProjects)} projects
-          </span>
-        </div>
-        <Segmented<HackathonSortKey>
-          value={sortBy}
-          onChange={setSortBy}
-          options={[
-            { value: "recent", label: "Recent" },
-            { value: "top", label: "Top" },
-          ]}
-        />
+        <span className="pr-insights__heading-icon">
+          <SparkleIcon size={18} />
+        </span>
+        <h4 className="pr-insights__title">Hackathon history</h4>
+        <span className="pr-insights__subtitle">
+          {formatNumber(data.totalHackathonsHosted)} hosted ·{" "}
+          {formatNumber(data.totalHackathonParticipants)} participants ·{" "}
+          {formatNumber(data.totalHackathonProjects)} projects
+        </span>
       </header>
+      <Segmented<HackathonSortKey>
+        value={sortBy}
+        onChange={setSortBy}
+        options={[
+          { value: "recent", label: "Recent" },
+          { value: "top", label: "Top" },
+        ]}
+      />
       {sorted.length === 0 ? (
         <div className="pr-empty">No hackathon participation yet.</div>
       ) : (
