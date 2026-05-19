@@ -1159,6 +1159,44 @@
 .profile .pr-skill-input::placeholder {
   color: var(--pr-g-600);
 }
+.profile .pr-skill-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  background: var(--pr-avax);
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.profile .pr-skill-add:hover {
+  filter: brightness(1.05);
+}
+.profile .pr-skill-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-family: var(--pr-mono);
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  line-height: 1;
+}
+.profile .pr-helper .pr-skill-kbd {
+  background: var(--pr-g-200);
+  color: var(--pr-g-900);
+  border: 1px solid var(--pr-hairline);
+}
 .profile .pr-skill-suggest {
   display: flex;
   flex-wrap: wrap;

@@ -118,9 +118,33 @@ export function SkillPicker({ skills, onAdd, onRemove }: Props) {
               onRemove(skills[skills.length - 1]);
             }
           }}
-          placeholder={skills.length ? "Add another..." : "Type a skill and press Enter"}
+          placeholder={
+            skills.length
+              ? "Add another skill…"
+              : "Type a skill (e.g. Solidity, Rust)…"
+          }
           aria-label="Add a skill"
         />
+        {value.trim() && (
+          <button
+            type="button"
+            className="pr-skill-add"
+            onClick={() =>
+              tryAdd(
+                suggestions.length > 0 ? suggestions[0].name : value,
+              )
+            }
+            aria-label={`Add ${value.trim()}`}
+          >
+            Add <kbd className="pr-skill-kbd">↵</kbd>
+          </button>
+        )}
+      </div>
+      <div className="pr-helper">
+        <span>
+          Press <kbd className="pr-skill-kbd">Enter</kbd> to add, or pick from
+          the suggestions below.
+        </span>
       </div>
       {suggestions.length > 0 && (
         <div className="pr-skill-suggest">

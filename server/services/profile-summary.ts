@@ -80,7 +80,7 @@ export interface ProfileBadgeSummary {
   description: string;
   imagePath: string;
   category: string;
-  group: "console" | "blockchain" | "avalanche-l1" | "entrepreneur" | "hackathon" | "unknown";
+  group: "console" | "developer" | "blockchain" | "avalanche-l1" | "entrepreneur" | "hackathon" | "unknown";
   tier: string | null;
   isUnlocked: boolean;
   isSecret: boolean;
@@ -138,16 +138,18 @@ function resolveProfileBadge(
 
 function getBadgeGroup(badge: Badge): ProfileBadgeSummary["group"] {
   const id = badge.id.toLowerCase();
-  if (id.includes("console")) return "console";
-  if (id.includes("blockchainacademy")) return "blockchain";
-  if (id.includes("entrepreneuracademy")) return "entrepreneur";
-  if (id.includes("avalanchel1academy")) return "avalanche-l1";
+  const category = badge.category?.toLowerCase() ?? "";
+  // Console badges may be seeded with auto-generated UUIDs (no "console" in
+  // the id), so check the category column too.
+  if (id.includes("console") || category === "console") return "console";
   if (id.includes("hackathon")) return "hackathon";
-  // Console badges are seeded with auto-generated UUIDs, so the id-based
-  // matching above misses them. Fall back to the category column, which the
-  // seed sets to "console" explicitly. Academies share category="academy",
-  // so we can only safely catch console here.
-  if (badge.category?.toLowerCase() === "console") return "console";
+  // The unified Avalanche Developer Academy uses ids like `1devAcademy-*`.
+  if (id.includes("devacademy")) return "developer";
+  if (id.includes("blockchainacademy")) return "blockchain";
+  if (id.includes("avalanchel1academy")) return "avalanche-l1";
+  // Entrepreneur Academy ids: prod has `entrepreneurAcademy`, the preview DB
+  // has the bare `entrepreneur-*` prefix — match both.
+  if (id.includes("entrepreneur")) return "entrepreneur";
   return "unknown";
 }
 
@@ -171,16 +173,18 @@ function groupOrder(group: ProfileBadgeSummary["group"]): number {
   switch (group) {
     case "console":
       return 0;
-    case "blockchain":
+    case "developer":
       return 1;
-    case "avalanche-l1":
+    case "blockchain":
       return 2;
-    case "entrepreneur":
+    case "avalanche-l1":
       return 3;
-    case "hackathon":
+    case "entrepreneur":
       return 4;
-    case "unknown":
+    case "hackathon":
       return 5;
+    case "unknown":
+      return 6;
   }
 }
 

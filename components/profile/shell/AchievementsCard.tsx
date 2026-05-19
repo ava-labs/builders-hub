@@ -14,6 +14,7 @@ import { SparkleIcon } from "./icons";
 
 type AchievementGroup =
   | "console"
+  | "developer"
   | "blockchain"
   | "avalanche-l1"
   | "entrepreneur"
@@ -60,6 +61,7 @@ const CONSOLE_TIER_LABELS: Record<string, string> = {
 
 const GROUP_LABELS: Record<AchievementGroup, string> = {
   console: "Console Badges",
+  developer: "Avalanche Developer Academy",
   blockchain: "Blockchain Academy Badges",
   "avalanche-l1": "Avalanche L1 Academy Badges",
   entrepreneur: "Entrepreneur Academy Badges",
@@ -69,6 +71,7 @@ const GROUP_LABELS: Record<AchievementGroup, string> = {
 
 const GROUP_ORDER: AchievementGroup[] = [
   "console",
+  "developer",
   "blockchain",
   "avalanche-l1",
   "entrepreneur",
