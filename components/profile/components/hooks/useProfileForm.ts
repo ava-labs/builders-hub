@@ -506,6 +506,7 @@ export function useProfileForm() {
         is_student: updatedProfile.user_type?.is_student || false,
         is_founder: updatedProfile.user_type?.is_founder || false,
         is_employee: updatedProfile.user_type?.is_employee || false,
+        is_developer: updatedProfile.user_type?.is_developer || false,
         is_enthusiast: updatedProfile.user_type?.is_enthusiast || false,
         founder_company_name: updatedProfile.user_type?.founder_company_name || "",
         employee_company_name: updatedProfile.user_type?.employee_company_name || "",
