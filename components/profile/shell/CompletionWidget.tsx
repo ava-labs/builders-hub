@@ -16,6 +16,16 @@ interface Props {
 
 export function CompletionWidget({ completion, onJump }: Props) {
   const stepsRemaining = completion.total - completion.completed;
+  const sortedSteps = React.useMemo(
+    () =>
+      [...COMPLETION_STEPS].sort((a, b) => {
+        const aDone = completion.status[a.key];
+        const bDone = completion.status[b.key];
+        if (aDone === bDone) return 0;
+        return aDone ? 1 : -1;
+      }),
+    [completion.status],
+  );
 
   return (
     <div className="pr-card">
@@ -36,7 +46,7 @@ export function CompletionWidget({ completion, onJump }: Props) {
       </div>
       <div className="pr-body" style={{ paddingTop: 18 }}>
         <div className="pr-checklist">
-          {COMPLETION_STEPS.map((step) => {
+          {sortedSteps.map((step) => {
             const done = completion.status[step.key];
             return (
               <button

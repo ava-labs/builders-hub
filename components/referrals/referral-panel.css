@@ -51,7 +51,10 @@
   position: absolute;
   top: 16px;
   right: 18px;
-  text-align: right;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
   font-family: var(--rp-mono);
   font-size: 10px;
   text-transform: uppercase;
@@ -60,8 +63,7 @@
   line-height: 1;
 }
 .referral-panel .rp-head-stat b {
-  display: block;
-  margin-bottom: 2px;
+  display: inline;
   font-family: inherit;
   font-size: 22px;
   font-weight: 500;
@@ -134,7 +136,10 @@
 
 .referral-panel .rp-row-stat {
   flex-shrink: 0;
-  text-align: right;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
   font-family: var(--rp-mono);
   font-size: 9.5px;
   text-transform: uppercase;
@@ -143,8 +148,7 @@
   line-height: 1;
 }
 .referral-panel .rp-row-stat b {
-  display: block;
-  margin-bottom: 2px;
+  display: inline;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;

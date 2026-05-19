@@ -35,7 +35,6 @@ import {
   GITHUB_ACCOUNT_PATTERN,
   LINKEDIN_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
-  X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
 
 // Form schema. Social fields are optional; only name + country + at least
@@ -45,10 +44,6 @@ const basicProfileSchema = z
   .object({
     name: z.string().min(1, 'Full name is required'),
     country: z.string().min(1, 'Country is required'),
-    x_account: z
-      .union([z.string().regex(X_ACCOUNT_PATTERN, 'Enter a URL like https://x.com/yourhandle'), z.literal('')])
-      .optional()
-      .default(''),
     linkedin_account: z
       .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter valid LinkedIn URL'), z.literal('')])
       .optional()
@@ -113,7 +108,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
     defaultValues: {
       name: '',
       country: '',
-      x_account: '',
       linkedin_account: '',
       github_account: '',
       telegram_account: '',
@@ -132,7 +126,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
   const watchedValues = form.watch();
 
   // Prefill from the current extended profile so existing users who open the
-  // modal to backfill X / LinkedIn don't wipe their existing name, country,
+  // modal to backfill LinkedIn don't wipe their existing name, country,
   // or user_type flags. Brand-new users will get mostly-null values here,
   // which keeps the current blank-default behavior.
   useEffect(() => {
@@ -148,7 +142,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
         form.reset({
           name: profile.name ?? '',
           country: profile.country ?? '',
-          x_account: profile.x_account ?? '',
           linkedin_account: profile.linkedin_account ?? '',
           github_account: profile.github_account ?? '',
           telegram_account: profile.telegram_account ?? '',
@@ -200,7 +193,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
         is_enthusiast,
         name,
         country,
-        x_account,
         linkedin_account,
         telegram_account,
       } = data;
@@ -209,7 +201,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
       const profileData = {
         name,
         country,
-        x_account,
         linkedin_account,
         telegram_account,
         user_type: {
@@ -333,23 +324,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
 
             {/* Optional social handles */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-              <FormField
-                control={form.control}
-                name="x_account"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm sm:text-base">X</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://x.com/yourhandle"
-                        {...field}
-                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="linkedin_account"

@@ -199,8 +199,8 @@ export function ReferralPanel({
         </span>
         <h3 className="rp-head-title">Referrals</h3>
         <div className="rp-head-stat" aria-label="Total signups">
-          <b>{loading ? "—" : computedTotal.toLocaleString()}</b>
           <span>signups</span>
+          <b>{loading ? "—" : computedTotal.toLocaleString()}</b>
         </div>
       </header>
 
@@ -240,8 +240,8 @@ export function ReferralPanel({
                       <span className="rp-row-title">{l.targetLabel}</span>
                     </div>
                     <div className="rp-row-stat" aria-label="Signups">
-                      <b>{l.signups.toLocaleString()}</b>
                       <span>signups</span>
+                      <b>{l.signups.toLocaleString()}</b>
                     </div>
                     <div className="rp-row-actions">
                       <button

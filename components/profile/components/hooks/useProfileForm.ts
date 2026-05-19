@@ -313,6 +313,7 @@ export function useProfileForm() {
         role,
         wallet,
         github_account: _githubAccount,
+        x_account: _xAccount,
         ...restData
       } = data;
 
@@ -481,6 +482,7 @@ export function useProfileForm() {
         role,
         wallet,
         github_account: _githubAccount,
+        x_account: _xAccount,
         ...restData
       } = data;
 

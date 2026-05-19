@@ -311,6 +311,23 @@ export default function ProfilePage({ teamLabel }: Props) {
     }
   };
 
+  const handleConnectX = () => {
+    if (typeof window !== "undefined") {
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      window.location.href = `/api/auth/x-link?returnTo=${encodeURIComponent(returnTo)}`;
+    }
+  };
+
+  const handleDisconnectX = async () => {
+    try {
+      await fetch("/api/auth/x-link/disconnect", { method: "DELETE" });
+      form.setValue("x_account", "", { shouldDirty: false });
+      pushToast("X disconnected");
+    } catch {
+      pushToast("Could not disconnect X", "error");
+    }
+  };
+
   const handleSave = async () => {
     try {
       await onSubmit();
@@ -529,7 +546,9 @@ export default function ProfilePage({ teamLabel }: Props) {
                   setField("telegram_account" as never, v as never)
                 }
                 xAccount={xAccount}
-                onXChange={(v) => setField("x_account" as never, v as never)}
+                xConnected={Boolean(xAccount)}
+                onXConnect={handleConnectX}
+                onXDisconnect={handleDisconnectX}
                 linkedinAccount={linkedinAccount}
                 onLinkedinChange={(v) =>
                   setField("linkedin_account" as never, v as never)
