@@ -637,6 +637,9 @@ export default function ProfilePage({ teamLabel }: Props) {
 
           {showSidebar && (
             <div className="pr-col">
+              {tab === "personal" && completion.pct < 100 && (
+                <CompletionWidget completion={completion} onJump={handleJump} />
+              )}
               <ReferralPanel
                 links={referralLinks}
                 targets={referralCatalog}
@@ -678,9 +681,6 @@ export default function ProfilePage({ teamLabel }: Props) {
                 }}
                 onCopy={() => pushToast("Referral link copied")}
               />
-              {completion.pct < 100 && (
-                <CompletionWidget completion={completion} onJump={handleJump} />
-              )}
             </div>
           )}
         </div>

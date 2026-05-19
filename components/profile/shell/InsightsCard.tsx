@@ -20,7 +20,7 @@ interface Props {
 
 type ChartKey = "signups" | "visits" | "console" | "all";
 type LeaderboardKey = "people" | "teams";
-type HackathonSortKey = "recent" | "top";
+type EventSortKey = "recent" | "top";
 
 const ACCENT_SIGNUPS = "#E84142";
 const ACCENT_VISITS = "#7FA6FF";
@@ -69,7 +69,7 @@ function InsightsBody({ data }: { data: BuilderInsightsData }) {
       <KPIStrip data={data} />
       <ChartSection data={data} />
       <LeaderboardSection data={data} />
-      <HackathonHistorySection data={data} />
+      <EventHistorySection data={data} />
     </div>
   );
 }
@@ -612,50 +612,18 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Hackathon history — past hackathons we've hosted with totals on top.
+// Event history — flat table view, newest first. Mirrors the referral
+// leaderboard styling so the two sections feel like a matched pair.
 // ───────────────────────────────────────────────────────────────────────────
 
-type HackathonStatus = "past" | "live" | "upcoming";
-
-function statusOf(
-  startDate: string | null,
-  endDate: string | null,
-  now = Date.now(),
-): HackathonStatus {
-  const start = startDate ? new Date(startDate).getTime() : null;
-  const end = endDate ? new Date(endDate).getTime() : start;
-  if (start && now < start) return "upcoming";
-  if (end && now > end) return "past";
-  return "live";
-}
-
-const STATUS_LABELS: Record<HackathonStatus, string> = {
-  past: "Past",
-  live: "Live",
-  upcoming: "Upcoming",
-};
-
-function HackathonHistorySection({ data }: { data: BuilderInsightsData }) {
-  const [sortBy, setSortBy] = React.useState<HackathonSortKey>("recent");
-
-  // Default: chronological newest-first by start date. Toggle to "top" sorts
-  // by participants DESC. Featured tile is the first item under either sort.
-  const { sorted, featured } = React.useMemo(() => {
-    const events = data.eventParticipants;
-    if (events.length === 0) return { sorted: [], featured: null as null };
-    const decorated = events.map((e) => ({
-      e,
-      status: statusOf(e.startDate, e.endDate),
-      start: e.startDate ? new Date(e.startDate).getTime() : 0,
-    }));
-    if (sortBy === "top") {
-      decorated.sort((a, b) => b.e.participants - a.e.participants);
-    } else {
-      decorated.sort((a, b) => b.start - a.start);
-    }
-    const featured = decorated[0];
-    return { sorted: decorated, featured };
-  }, [data.eventParticipants, sortBy]);
+function EventHistorySection({ data }: { data: BuilderInsightsData }) {
+  const sorted = React.useMemo(() => {
+    return [...data.eventParticipants].sort((a, b) => {
+      const aStart = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const bStart = b.startDate ? new Date(b.startDate).getTime() : 0;
+      return bStart - aStart;
+    });
+  }, [data.eventParticipants]);
 
   return (
     <section className="pr-insights__section">
@@ -663,72 +631,49 @@ function HackathonHistorySection({ data }: { data: BuilderInsightsData }) {
         <span className="pr-insights__heading-icon">
           <SparkleIcon size={18} />
         </span>
-        <h4 className="pr-insights__title">Hackathon history</h4>
+        <h4 className="pr-insights__title">Event history</h4>
         <span className="pr-insights__subtitle">
           {formatNumber(data.totalHackathonsHosted)} hosted ·{" "}
           {formatNumber(data.totalHackathonParticipants)} participants ·{" "}
           {formatNumber(data.totalHackathonProjects)} projects
         </span>
       </header>
-      <Segmented<HackathonSortKey>
-        value={sortBy}
-        onChange={setSortBy}
-        options={[
-          { value: "recent", label: "Recent" },
-          { value: "top", label: "Top" },
-        ]}
-      />
-      {sorted.length === 0 ? (
-        <div className="pr-empty">No hackathon participation yet.</div>
-      ) : (
-        <div className="pr-hack-grid">
-          {sorted.map((d) => {
-            const isFeatured = d === featured;
-            // Upcoming / live hackathons haven't had project submissions yet,
-            // so show the RegisterForm count as the primary engagement stat.
-            const isUpcomingOrLive = d.status !== "past";
-            const peopleLabel = isUpcomingOrLive ? "Sign-ups" : "Participants";
-            const peopleValue = isUpcomingOrLive
-              ? d.e.registrations
-              : d.e.participants;
-            return (
-              <article
-                key={d.e.eventId}
-                className={`pr-hack${isFeatured ? " pr-hack--featured" : ""}`}
-              >
-                <span
-                  className={`pr-hack__status pr-hack__status--${d.status}`}
-                >
-                  <span className="pr-hack__status-dot" />
-                  {STATUS_LABELS[d.status]}
-                </span>
-                <div className="pr-hack__head">
-                  <h5 className="pr-hack__title">{d.e.event}</h5>
-                  {(d.e.startDate || d.e.endDate) && (
-                    <span className="pr-hack__date">
-                      {formatHackathonRange(d.e.startDate, d.e.endDate)}
-                    </span>
-                  )}
-                </div>
-                <div className="pr-hack__stats">
-                  <div className="pr-hack__stat">
-                    <span className="pr-hack__stat-label">{peopleLabel}</span>
-                    <span className="pr-hack__stat-value">
-                      {formatNumber(peopleValue)}
-                    </span>
-                  </div>
-                  <div className="pr-hack__stat">
-                    <span className="pr-hack__stat-label">Projects</span>
-                    <span className="pr-hack__stat-value">
-                      {formatNumber(d.e.projects)}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+
+      <div className="pr-leaderboard">
+        <table>
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th className="pr-num">Inscriptions</th>
+              <th className="pr-num">Projects submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="pr-leaderboard__empty">
+                  No events recorded yet.
+                </td>
+              </tr>
+            ) : (
+              sorted.map((e) => (
+                <tr key={e.eventId}>
+                  <td>
+                    <div className="pr-leaderboard__name">{e.event}</div>
+                    {(e.startDate || e.endDate) && (
+                      <div className="pr-leaderboard__country">
+                        {formatHackathonRange(e.startDate, e.endDate)}
+                      </div>
+                    )}
+                  </td>
+                  <td className="pr-num">{formatNumber(e.registrations)}</td>
+                  <td className="pr-num">{formatNumber(e.projects)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

@@ -1,8 +1,11 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { ExternalLink, Trophy } from "lucide-react";
 import { PuzzleIcon, GitHubIcon } from "./icons";
+
+const BUILD_GAMES_HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
 
 export interface ProjectsCardProject {
   id: string;
@@ -10,11 +13,19 @@ export interface ProjectsCardProject {
   description: string;
   tags: string[];
   isWinner: boolean;
+  hackathonId: string | null;
   hackathonTitle: string | null;
   logoUrl: string | null;
   demoLink: string | null;
   githubRepository: string | null;
   role: string;
+}
+
+function projectEditHref(project: ProjectsCardProject): string {
+  if (project.hackathonId === BUILD_GAMES_HACKATHON_ID) {
+    return "/build-games/submit?stage=1";
+  }
+  return `/events/project-submission?project=${encodeURIComponent(project.id)}`;
 }
 
 interface Props {
@@ -37,6 +48,7 @@ function gradientFor(name: string): string {
 }
 
 export function ProjectsCard({ projects, loading = false }: Props) {
+  const router = useRouter();
   return (
     <div className="pr-card">
       <div className="pr-head">
@@ -95,8 +107,30 @@ export function ProjectsCard({ projects, loading = false }: Props) {
         ) : (
           projects.map((p) => {
             const externalHref = p.demoLink || p.githubRepository || null;
+            const editHref = projectEditHref(p);
+            const handleRowClick = (e: React.MouseEvent<HTMLDivElement>) => {
+              // Skip when the click started on an inner link/button so the
+              // external repo / demo anchors keep working.
+              const target = e.target as HTMLElement;
+              if (target.closest('a, button')) return;
+              router.push(editHref);
+            };
             return (
-              <div className="pr-project-row" key={p.id}>
+              <div
+                className="pr-project-row"
+                key={p.id}
+                role="button"
+                tabIndex={0}
+                onClick={handleRowClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(editHref);
+                  }
+                }}
+                style={{ cursor: "pointer" }}
+                aria-label={`Edit ${p.name} submission`}
+              >
                 <div
                   className="pr-mark"
                   style={{
