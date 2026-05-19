@@ -383,6 +383,25 @@
 :where(.dark) .profile .pr-chip--success {
   background: rgba(155, 224, 85, 0.12);
 }
+.profile .pr-chip--signout {
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  cursor: pointer;
+}
+.profile .pr-chip--signout:hover {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.55);
+}
+:where(.dark) .profile .pr-chip--signout {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+}
+:where(.dark) .profile .pr-chip--signout:hover {
+  background: rgba(248, 113, 113, 0.20);
+  border-color: rgba(248, 113, 113, 0.65);
+}
 .profile .pr-chip .pr-dot {
   width: 6px;
   height: 6px;

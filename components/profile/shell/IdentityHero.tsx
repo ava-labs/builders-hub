@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Plus, Send, Check } from "lucide-react";
+import { Plus, Send, Check, LogOut } from "lucide-react";
 import {
   GitHubIcon,
   TelegramIcon,
@@ -38,6 +38,7 @@ interface Props {
   inviteShareUrl?: string | null;
   onInviteCopy?: () => void;
   onEditAvatar?: () => void;
+  onSignOut?: () => void;
 }
 
 function initials(name: string | null | undefined): string {
@@ -125,6 +126,7 @@ export function IdentityHero({
   inviteShareUrl,
   onInviteCopy,
   onEditAvatar,
+  onSignOut,
 }: Props) {
   const inits = initials(fullName);
   const next = completion.next;
@@ -177,6 +179,16 @@ export function IdentityHero({
           )}
           {inviteShareUrl && (
             <InviteButton shareUrl={inviteShareUrl} onCopy={onInviteCopy} />
+          )}
+          {onSignOut && (
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="pr-chip pr-chip--signout"
+              aria-label="Sign out"
+            >
+              <LogOut size={11} /> Sign out
+            </button>
           )}
         </div>
         <div className="pr-pills">

@@ -1,8 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { toast as sonnerToast } from "sonner";
+
+import SignOutComponent from "@/components/login/sign-out/SignOut";
 
 import "./styles.css";
 
@@ -113,7 +116,9 @@ interface Props {
 
 export default function ProfilePage({ teamLabel }: Props) {
   const { data: session } = useSession();
+  const router = useRouter();
   const avatarContext = useUserAvatar();
+  const [signOutOpen, setSignOutOpen] = React.useState(false);
   const {
     form,
     watchedValues,
@@ -366,6 +371,17 @@ export default function ProfilePage({ teamLabel }: Props) {
     });
   };
 
+  const handleSignOutConfirm = async () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("redirectAfterProfile");
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("formData_")) localStorage.removeItem(key);
+      });
+    }
+    await signOut({ redirect: false });
+    router.push("/");
+  };
+
   const handleNounAvatarSave = async (seed: AvatarSeed, enabled: boolean) => {
     setNounAvatarSeed(seed);
     setNounAvatarEnabled(enabled);
@@ -484,6 +500,7 @@ export default function ProfilePage({ teamLabel }: Props) {
           inviteShareUrl={summary.bhSignupShareUrl}
           onInviteCopy={() => pushToast("Invite link copied")}
           onEditAvatar={() => setIsAvatarOpen(true)}
+          onSignOut={() => setSignOutOpen(true)}
         />
 
         <div className="pr-tabbar">
@@ -681,6 +698,11 @@ export default function ProfilePage({ teamLabel }: Props) {
         currentSeed={nounAvatarSeed}
         nounAvatarEnabled={nounAvatarEnabled}
         onSave={handleNounAvatarSave}
+      />
+      <SignOutComponent
+        isOpen={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        onConfirm={handleSignOutConfirm}
       />
     </div>
   );
