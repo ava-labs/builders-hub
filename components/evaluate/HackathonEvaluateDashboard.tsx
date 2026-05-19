@@ -37,9 +37,9 @@ type Evaluation = {
 type Member = {
   id: string;
   user_id: string | null;
-  email: string | null;
   status: string;
   role: string;
+  user?: { name: string | null } | null;
 };
 
 type Project = {
@@ -56,6 +56,9 @@ type Project = {
   tracks: string[];
   categories: string[];
   tags: string[];
+  deployed_addresses: unknown;
+  website: unknown;
+  socials: unknown;
   is_winner: boolean | null;
   created_at: string;
   members: Member[];
@@ -84,12 +87,30 @@ function toEvaluationData(e: Evaluation): EvaluationData {
   };
 }
 
-function teamLead(members: Member[]): Member | null {
-  return members.find((m) => m.role === "Lead") ?? members[0] ?? null;
+function normalizeStringMap(value: unknown): Record<string, string> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof v === "string" && v.trim().length > 0) out[k] = v;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+function normalizeDeployedAddresses(
+  value: unknown,
+): Array<{ address: string; tag?: string }> {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const rec = item as Record<string, unknown>;
+    const address = typeof rec.address === "string" ? rec.address.trim() : "";
+    if (!address) return [];
+    const tag = typeof rec.tag === "string" && rec.tag.trim().length > 0 ? rec.tag.trim() : undefined;
+    return [tag ? { address, tag } : { address }];
+  });
 }
 
 function toSubmissionRow(project: Project, hackathonId: string): SubmissionRow {
-  const lead = teamLead(project.members);
   return {
     formDataId: project.id,
     projectId: project.id,
@@ -111,18 +132,23 @@ function toSubmissionRow(project: Project, hackathonId: string): SubmissionRow {
       demoVideoLink: project.demo_video_link ?? "",
       tracks: project.tracks,
       categories: project.categories,
+      tags: project.tags,
+      deployedAddresses: normalizeDeployedAddresses(project.deployed_addresses),
+      website: normalizeStringMap(project.website),
+      socials: normalizeStringMap(project.socials),
       isPreexistingIdea: false,
       createdAt: project.created_at,
       members: project.members.map((m) => ({
         id: m.id,
-        email: m.email ?? "",
+        name: m.user?.name ?? null,
+        email: "",
         role: m.role,
         status: m.status,
       })),
     },
     evaluations: project.evaluations.map(toEvaluationData),
-    applicantName: lead?.email ?? "Team",
-    applicantEmail: lead?.email ?? "",
+    applicantName: "",
+    applicantEmail: "",
     country: "",
     telegram: null,
     github: null,
