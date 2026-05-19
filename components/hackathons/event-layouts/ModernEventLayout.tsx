@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
-import { HostNavButtons } from "@/components/evaluate/HostNavButtons";
 import About from "@/components/hackathons/hackathon/sections/About";
 import Schedule from "@/components/hackathons/hackathon/sections/Schedule";
 import Tracks from "@/components/hackathons/hackathon/sections/Tracks";
@@ -27,6 +26,7 @@ interface ModernEventLayoutProps {
   isAuthenticated: boolean;
   utm: string;
   isPreview?: boolean;
+  hostNavButtons?: React.ReactNode;
 }
 
 export default function ModernEventLayout({
@@ -36,6 +36,7 @@ export default function ModernEventLayout({
   isAuthenticated,
   utm,
   isPreview = false,
+  hostNavButtons,
 }: ModernEventLayoutProps) {
   const lang = normalizeEventsLang(hackathon.content?.language);
 
@@ -159,7 +160,7 @@ export default function ModernEventLayout({
           utm={utm}
           lang={lang}
         />
-        {isHackathon && <HostNavButtons hackathonId={id} />}
+        {isHackathon && hostNavButtons}
       </div>
       <div className="p-4 flex flex-col gap-24">
         <NavigationMenu items={menuItems} />

@@ -5,6 +5,7 @@ import { getRegisterForm } from "@/server/services/registerForms";
 import { getAuthSession } from "@/lib/auth/authSession";
 import LegacyEventLayout from "@/components/hackathons/event-layouts/LegacyEventLayout";
 import ModernEventLayout from "@/components/hackathons/event-layouts/ModernEventLayout";
+import { HostNavButtons } from "@/components/evaluate/HostNavButtons";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
@@ -86,6 +87,7 @@ export default async function HackathonPage({
         isRegistered={isRegistered}
         isAuthenticated={isAuthenticated}
         utm={utm as string}
+        hostNavButtons={<HostNavButtons hackathonId={id} />}
       />
     );
   }

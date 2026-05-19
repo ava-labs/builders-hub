@@ -1,32 +1,26 @@
-import { getToken } from "next-auth/jwt";
-import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 import { getUserById } from "@/server/services/getUser";
-import { NEXT_AUTH_SECRET } from "@/constants/env_variables";
+import { AuthOptions } from "@/lib/auth/authOptions";
 
 const prisma: PrismaClient = new PrismaClient();
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
   try {
-    const token = await getToken({
-      req,
-      secret: NEXT_AUTH_SECRET ?? "",
-    });
+    const session = await getServerSession(AuthOptions);
 
-    if (!token?.id || typeof token.id !== "string") {
+    if (!session?.user?.id || typeof session.user.id !== "string") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId: string = token.id;
+    const userId: string = session.user.id;
 
     const user = await getUserById(userId);
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const customAttributes: string[] = user.custom_attributes || [];
