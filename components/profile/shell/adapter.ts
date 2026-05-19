@@ -1,8 +1,3 @@
-// Adapter: turns the existing useProfileForm watched values into the
-// view-model shape our profile shell components consume, plus shared helpers
-// for extracting / rebuilding social URLs so the form inputs can show
-// usernames while the API stores full URLs.
-
 import { categorizeSkill } from "./data";
 import type { ProfileLink, ProfileRole, ProfileWallet } from "./types";
 

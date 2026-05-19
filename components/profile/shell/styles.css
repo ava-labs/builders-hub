@@ -1381,57 +1381,6 @@
   opacity: 0.85;
 }
 
-/* Override the embedded ReferralLinkGenerator widget so its target buttons
-   match the pill aesthetic of the IdentityHero contact pills. The widget
-   itself is the production component (handles target validation + analytics);
-   we only restyle its outer chrome. */
-.profile .pr-referral-shell {
-  padding: 0;
-}
-.profile .pr-referral-shell > div {
-  /* The shadcn Card wrapper inside the widget — flatten it. */
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.profile .pr-referral-shell h3,
-.profile .pr-referral-shell [class*="CardTitle"] {
-  /* The "Referral Link Generator" heading is redundant with our card head. */
-  display: none;
-}
-.profile .pr-referral-shell button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 12px;
-  background: var(--pr-g-100);
-  border: 1px solid var(--pr-hairline);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--pr-g-800);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
-  white-space: nowrap;
-  box-shadow: none;
-}
-.profile .pr-referral-shell button:hover:not(:disabled) {
-  background: var(--pr-g-200);
-  color: var(--pr-g-1000);
-  border-color: var(--pr-g-400);
-}
-.profile .pr-referral-shell button[disabled] {
-  opacity: 0.55;
-  cursor: default;
-}
-.profile .pr-referral-shell button svg {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-}
-
-/* Original referral panel (when ported) */
 .profile .pr-ref-targets {
   display: flex;
   flex-wrap: wrap;

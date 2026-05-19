@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import type { ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import { toast as sonnerToast } from "sonner";
 
@@ -109,8 +108,6 @@ const EMPTY_SUMMARY: SummaryResponse = {
 };
 
 interface Props {
-  achievements?: ReactNode;
-  referralPanel?: ReactNode;
   teamLabel?: string | null;
 }
 
