@@ -30,9 +30,6 @@ export interface EventParticipantPoint {
   event: string;
   participants: number;
   projects: number;
-  /** Number of RegisterForm rows for the hackathon — used as the
-   *  "Participants" stat for upcoming hackathons (where Project/Member
-   *  counts are still 0). */
   registrations: number;
   startDate: string | null;
   endDate: string | null;
@@ -190,39 +187,25 @@ const TOP_COUNTRY_30D_HOGQL = `
 
 const RETURNING_VISITORS_HOGQL = `
   SELECT
-    countDistinctIf(distinct_id, timestamp >= now() - INTERVAL 30 DAY) AS total_current,
-    countDistinctIf(
+    countIf(seen_current) AS total_current,
+    countIf(seen_previous) AS total_previous,
+    countIf(seen_current AND first_seen < now() - INTERVAL 30 DAY) AS returning_current,
+    countIf(seen_previous AND first_seen < now() - INTERVAL 60 DAY) AS returning_previous
+  FROM (
+    SELECT
       distinct_id,
-      timestamp >= now() - INTERVAL 60 DAY
-        AND timestamp < now() - INTERVAL 30 DAY
-    ) AS total_previous,
-    countDistinctIf(
-      distinct_id,
-      timestamp >= now() - INTERVAL 30 DAY
-        AND distinct_id IN (
-          SELECT DISTINCT distinct_id
-          FROM events
-          WHERE event = '$pageview'
-            AND ${HOGQL_HOST_FILTER}
-            AND timestamp < now() - INTERVAL 30 DAY
-        )
-    ) AS returning_current,
-    countDistinctIf(
-      distinct_id,
-      timestamp >= now() - INTERVAL 60 DAY
-        AND timestamp < now() - INTERVAL 30 DAY
-        AND distinct_id IN (
-          SELECT DISTINCT distinct_id
-          FROM events
-          WHERE event = '$pageview'
-            AND ${HOGQL_HOST_FILTER}
-            AND timestamp < now() - INTERVAL 60 DAY
-        )
-    ) AS returning_previous
-  FROM events
-  WHERE event = '$pageview'
-    AND ${HOGQL_HOST_FILTER}
-    AND timestamp >= now() - INTERVAL 60 DAY
+      min(timestamp) AS first_seen,
+      countIf(timestamp >= now() - INTERVAL 30 DAY) > 0 AS seen_current,
+      countIf(
+        timestamp >= now() - INTERVAL 60 DAY
+          AND timestamp < now() - INTERVAL 30 DAY
+      ) > 0 AS seen_previous
+    FROM events
+    WHERE event = '$pageview'
+      AND ${HOGQL_HOST_FILTER}
+      AND timestamp < now()
+    GROUP BY distinct_id
+  )
 `.trim();
 
 export async function getBuilderInsightsData(currentUserId: string): Promise<BuilderInsightsData> {

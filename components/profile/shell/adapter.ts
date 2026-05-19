@@ -58,18 +58,6 @@ export function extractLinkedInSlug(value: string): string {
   return trimmed;
 }
 
-/** Rebuilds the canonical X URL from a username (or empty if cleared). */
-export function buildXUrl(username: string): string {
-  const u = username.trim().replace(/^@/, "");
-  return u ? `https://x.com/${u}` : "";
-}
-
-/** Rebuilds the canonical LinkedIn URL from a slug (or empty if cleared). */
-export function buildLinkedInUrl(slug: string): string {
-  const s = slug.trim().replace(/^\/+|\/+$/g, "");
-  return s ? `https://linkedin.com/in/${s}` : "";
-}
-
 export function rolesFromValues(v: RawProfileValues): ProfileRole[] {
   const out: ProfileRole[] = [];
   if (v.is_student) out.push("university");

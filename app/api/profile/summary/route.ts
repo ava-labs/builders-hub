@@ -31,9 +31,6 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
 
   try {
     const origin = await getRequestOrigin();
-    // Mint any missing active-target links first so they're present when
-    // we read `referralLinks` immediately after. Idempotent + sequential
-    // to avoid saturating the connection pool.
     await ensureActiveReferralLinks(userId).catch((err) => {
       console.error("[profile/summary] ensureActiveReferralLinks failed:", err);
     });
@@ -55,9 +52,6 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
       getTotalBuilderCount(),
     ]);
 
-    // The bh_signup link was created/refreshed by ensureActiveReferralLinks
-    // and is now in `referralLinks` — pluck the code out to build the
-    // "Invite a friend" share URL.
     const bhSignupLink = referralLinks.find((l) => l.targetType === "bh_signup");
     const bhSignupCode = bhSignupLink?.code ?? null;
     const bhSignupShareUrl = bhSignupCode

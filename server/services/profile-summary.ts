@@ -11,14 +11,6 @@ import type { Badge, UserBadge, Requirement } from "@/types/badge";
 import type { ReferralTargetPreset } from "@/lib/referrals/targets";
 import type { Prisma } from "@prisma/client";
 
-/**
- * Profile summary helpers — read-only aggregations the profile shell
- * page surfaces in its sidebar widgets and tab counters.
- *
- * All reads are scoped to a single `userId` (the session-derived id from the
- * API route). Nothing here should be called with an unverified id.
- */
-
 export interface ProfileProjectSummary {
   id: string;
   name: string;
@@ -40,11 +32,6 @@ const projectMembershipInclude = {
   },
 } satisfies Prisma.ProjectInclude;
 
-/**
- * Returns the projects the user is a confirmed member of, sorted by most
- * recent first. Pulls the role from the matching Member row so the UI can
- * show "Founder", "Lead", etc.
- */
 export async function getUserProjects(
   userId: string,
 ): Promise<ProfileProjectSummary[]> {
@@ -101,12 +88,6 @@ export interface ProfileBadgeSummary {
   requirements: Requirement[];
 }
 
-/**
- * Returns every displayable badge with the user's unlock status overlaid.
- * This keeps the legacy achievements information architecture: Console
- * badges are grouped by tier, academy badges by academy track, and locked
- * badges remain visible.
- */
 export async function getUserBadgesForProfile(
   userId: string,
 ): Promise<ProfileBadgeSummary[]> {
@@ -199,10 +180,6 @@ export interface ProfileEngagementFlags {
   hasUsedConsole: boolean;
 }
 
-/**
- * Quick presence checks for the profile-completion bar. Three indexed
- * counts; safe to run on every page load.
- */
 export async function getProfileEngagement(
   userId: string,
 ): Promise<ProfileEngagementFlags> {
@@ -242,12 +219,6 @@ export async function getProfileEngagement(
   };
 }
 
-/**
- * Number of attributions where the user was the referrer. Matches the
- * Builder Insights definition (`SELECT COUNT(*) FROM ReferralAttribution
- * WHERE user_id_referrer = ?`) — so the count surfaced in the profile is
- * consistent with what BI shows internally.
- */
 export async function getUserReferralCount(userId: string): Promise<number> {
   if (!userId) return 0;
   const count = await prisma.referralAttribution.count({
@@ -256,12 +227,6 @@ export async function getUserReferralCount(userId: string): Promise<number> {
   return count;
 }
 
-/**
- * Returns the user's `bh_signup` referral code, creating one on the fly if
- * they don't have one yet. Idempotent — `createReferralLink` re-uses an
- * existing matching link rather than minting a new code, so this is safe to
- * call on every profile load.
- */
 export async function getOrCreateBhSignupReferralCode(
   userId: string,
 ): Promise<string> {
@@ -272,20 +237,6 @@ export async function getOrCreateBhSignupReferralCode(
   return link.code;
 }
 
-/**
- * Ensures the user has a referral link for every currently-active target
- * (BH signup + every active event + every active grant). Idempotent: re-
- * uses any existing matching link rather than minting a new code.
- *
- * Short-circuits when the user already has every active target — that's
- * the steady-state case after first load, so the typical hot path is one
- * cheap query against the indexed `owner_user_id` column.
- *
- * Mints sequentially when needed (not in parallel) to avoid saturating
- * the Prisma connection pool — `createReferralLink` itself can issue
- * up to ~16 DB round-trips per call, and the summary endpoint already
- * runs many queries in parallel.
- */
 export async function ensureActiveReferralLinks(userId: string): Promise<void> {
   if (!userId) return;
   const groups = await getActiveReferralTargets();
@@ -323,10 +274,6 @@ export async function ensureActiveReferralLinks(userId: string): Promise<void> {
   }
 }
 
-/**
- * Total count of users on the platform — used by the notifications form
- * to show an honest reach number for the "All builders" audience.
- */
 export async function getTotalBuilderCount(): Promise<number> {
   return prisma.user.count();
 }
@@ -342,11 +289,6 @@ export interface ProfileReferralLink {
   createdAt: string;
 }
 
-/**
- * Returns the user's existing referral links with per-link attribution counts.
- * Stats query is one grouped count keyed by `referral_link_id` so it scales
- * with the number of links (typically <10 per user).
- */
 export async function getUserReferralLinks(
   userId: string,
   origin: string,
@@ -386,7 +328,6 @@ export interface ProfileReferralTarget {
   targetType: string;
   targetId: string | null;
   destinationUrl: string;
-  /** Lucide-style icon key our UI can render. */
   icon: "rocket" | "trophy" | "code" | "gift";
 }
 
@@ -399,10 +340,6 @@ const TARGET_ICON_BY_GROUP: Record<
   grant: "gift",
 };
 
-/**
- * Flattens the existing target catalog (signup + event + grant groups) into
- * a single ordered list with a UI-friendly icon picked from the group.
- */
 export async function getReferralTargetCatalog(): Promise<ProfileReferralTarget[]> {
   const groups = await getActiveReferralTargets();
   const all: ReferralTargetPreset[] = [

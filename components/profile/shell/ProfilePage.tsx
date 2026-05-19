@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { ReactNode } from "react";
 import { useSession } from "next-auth/react";
+import { toast as sonnerToast } from "sonner";
 
 import "./styles.css";
 
@@ -23,7 +24,6 @@ import {
   type ReferralPanelTarget,
 } from "@/components/referrals/ReferralPanel";
 import { SaveBar } from "./SaveBar";
-import { ToastHost, type ToastSpec } from "./Toast";
 import {
   rolesFromValues,
   walletsFromValues,
@@ -132,7 +132,6 @@ export default function ProfilePage({ teamLabel }: Props) {
   } = useProfileForm();
 
   const [tab, setTab] = React.useState<Tab>("personal");
-  const [toasts, setToasts] = React.useState<ToastSpec[]>([]);
   const [isAvatarOpen, setIsAvatarOpen] = React.useState(false);
   const [nounAvatarSeed, setNounAvatarSeed] = React.useState<AvatarSeed | null>(null);
   const [nounAvatarEnabled, setNounAvatarEnabled] = React.useState(false);
@@ -221,12 +220,12 @@ export default function ProfilePage({ teamLabel }: Props) {
     };
   }, [showInsightsTab]);
 
-  const pushToast = React.useCallback((message: string, kind: ToastSpec["kind"] = "success") => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { id, message, kind }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 2400);
+  const pushToast = React.useCallback((message: string, kind: "success" | "error" = "success") => {
+    if (kind === "error") {
+      sonnerToast.error(message);
+      return;
+    }
+    sonnerToast.success(message);
   }, []);
 
   const setField = React.useCallback(
@@ -670,9 +669,6 @@ export default function ProfilePage({ teamLabel }: Props) {
           onDiscard={handleDiscard}
         />
       </div>
-
-      <ToastHost toasts={toasts} />
-
       <NounAvatarConfig
         isOpen={isAvatarOpen}
         onOpenChange={setIsAvatarOpen}
