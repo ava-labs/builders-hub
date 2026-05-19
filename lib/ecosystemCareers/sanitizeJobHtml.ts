@@ -70,6 +70,26 @@ export function sanitizeJobHtml(input: string | null | undefined): string {
     return `<${tag}${attrsOut}${isSelfClosing ? ' /' : ''}>`;
   });
 
+  // Normalize whitespace + drop "spacer" blocks that are essentially blank.
+  // Getro frequently emits `<p><br /></p>` between real paragraphs, which
+  // doubles vertical spacing once `prose` margins kick in. Iterate so that
+  // nested wrappers (e.g. <div>< br /></div>) collapse too.
+  let prev: string;
+  do {
+    prev = out;
+    out = out
+      // Collapse a block-level wrapper that contains only whitespace,
+      // <br>, &nbsp; entities, or nested empty wrappers.
+      .replace(
+        /<(p|div|li|h[1-6]|blockquote)>\s*(?:<br\s*\/?>\s*|&nbsp;| |\s)*\s*<\/\1>/gi,
+        '',
+      );
+  } while (out !== prev);
+
+  // Collapse insignificant whitespace between block tags so the rendered
+  // HTML doesn't accumulate stray newlines.
+  out = out.replace(/>\s+</g, '><').trim();
+
   return out;
 }
 

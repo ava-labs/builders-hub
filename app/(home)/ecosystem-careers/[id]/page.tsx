@@ -166,7 +166,16 @@ export default async function EcosystemCareerDetailPage({ params }: Params) {
                     <ArrowUpRight className="w-4 h-4" />
                   </a>
                   <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-                    Builders Hub does not host or process applications. Clicking above takes you to {job.company.name}&apos;s career portal.
+                    Builders Hub does not host or process applications, and per our{' '}
+                    <a
+                      href="https://www.avax.network/privacy-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-zinc-700 dark:hover:text-zinc-200"
+                    >
+                      privacy policy
+                    </a>{' '}
+                    we don&apos;t track or monitor what happens once you click. You&apos;ll land directly on {job.company.name}&apos;s career portal.
                   </p>
                 </div>
               </>
