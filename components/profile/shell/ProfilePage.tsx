@@ -245,6 +245,10 @@ export default function ProfilePage({ teamLabel }: Props) {
   const handle = watchedValues.username ?? "";
   const bio = watchedValues.bio ?? "";
   const country = watchedValues.country ?? "";
+  const studentInstitution = watchedValues.student_institution ?? "";
+  const founderCompany = watchedValues.founder_company_name ?? "";
+  const employeeCompany = watchedValues.employee_company_name ?? "";
+  const employeeRole = watchedValues.employee_role ?? "";
   const github = watchedValues.github_account ?? "";
   const telegram = watchedValues.telegram_account ?? "";
   const xAccount = watchedValues.x_account ?? "";
@@ -277,11 +281,28 @@ export default function ProfilePage({ teamLabel }: Props) {
   const onToggleRole = (role: ProfileRole) => {
     const key = roleFieldKey(role) as Parameters<typeof form.setValue>[0];
     const currentValue = Boolean(form.getValues()[roleFieldKey(role) as keyof typeof watchedValues]);
-    form.setValue(key, !currentValue as never, { shouldDirty: true });
+    const nextValue = !currentValue;
+    form.setValue(key, nextValue as never, { shouldDirty: true });
+    // Clear the role-specific detail fields when the role is turned off so we
+    // don't leak stale "Acme Inc / Engineering" data into a user_type that no
+    // longer claims that role.
+    if (!nextValue) {
+      if (role === "university") {
+        form.setValue("student_institution" as never, "" as never, { shouldDirty: true });
+      } else if (role === "founder") {
+        form.setValue("founder_company_name" as never, "" as never, { shouldDirty: true });
+      } else if (role === "employee") {
+        form.setValue("employee_company_name" as never, "" as never, { shouldDirty: true });
+        form.setValue("employee_role" as never, "" as never, { shouldDirty: true });
+      }
+    }
   };
 
   const onSiteLinksChange = (next: ProfileLink[]) => {
-    setField("additional_social_media" as never, siteLinksToStringArray(next) as never);
+    setField(
+      "additional_social_accounts" as never,
+      siteLinksToStringArray(next) as never,
+    );
   };
 
   const onAddWalletAndToast = (address: string) => {
@@ -556,6 +577,22 @@ export default function ProfilePage({ teamLabel }: Props) {
                 onCountryChange={(v) => setField("country" as never, v as never)}
                 roles={roles}
                 onToggleRole={onToggleRole}
+                studentInstitution={studentInstitution}
+                onStudentInstitutionChange={(v) =>
+                  setField("student_institution" as never, v as never)
+                }
+                founderCompany={founderCompany}
+                onFounderCompanyChange={(v) =>
+                  setField("founder_company_name" as never, v as never)
+                }
+                employeeCompany={employeeCompany}
+                onEmployeeCompanyChange={(v) =>
+                  setField("employee_company_name" as never, v as never)
+                }
+                employeeRole={employeeRole}
+                onEmployeeRoleChange={(v) =>
+                  setField("employee_role" as never, v as never)
+                }
                 github={github}
                 onGithubChange={(v) =>
                   setField("github_account" as never, v as never)

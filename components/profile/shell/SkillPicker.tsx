@@ -9,10 +9,47 @@ interface Props {
   onRemove: (skill: string) => void;
 }
 
+interface PopularSkill {
+  name: string;
+  usageCount: number;
+}
+
+const STATIC_FALLBACK: PopularSkill[] = SKILL_SUGGESTIONS.map((s) => ({
+  name: s.name,
+  usageCount: 0,
+}));
+
 export function SkillPicker({ skills, onAdd, onRemove }: Props) {
   const [value, setValue] = React.useState("");
+  const [popular, setPopular] = React.useState<PopularSkill[]>(STATIC_FALLBACK);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const inUse = new Set(skills.map((s) => s.toLowerCase()));
+  const inUse = React.useMemo(
+    () => new Set(skills.map((s) => s.toLowerCase())),
+    [skills],
+  );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch("/api/profile/popular-skills")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: PopularSkill[] | null) => {
+        if (cancelled || !Array.isArray(data) || data.length === 0) return;
+        // Merge popular results with the static seed list so users on a fresh
+        // DB still get useful suggestions if the API returns nothing.
+        const seen = new Set(data.map((s) => s.name.toLowerCase()));
+        const merged = [
+          ...data,
+          ...STATIC_FALLBACK.filter((s) => !seen.has(s.name.toLowerCase())),
+        ];
+        setPopular(merged);
+      })
+      .catch(() => {
+        /* keep the static fallback */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const tryAdd = (raw: string) => {
     const trimmed = raw.trim();
@@ -22,9 +59,20 @@ export function SkillPicker({ skills, onAdd, onRemove }: Props) {
     setValue("");
   };
 
-  const suggestions = SKILL_SUGGESTIONS.filter(
-    (s) => !inUse.has(s.name.toLowerCase()),
-  ).slice(0, 6);
+  const suggestions = React.useMemo(() => {
+    const query = value.trim().toLowerCase();
+    const filtered = popular.filter((s) => !inUse.has(s.name.toLowerCase()));
+    if (!query) return filtered.slice(0, 6);
+    return filtered
+      .filter((s) => s.name.toLowerCase().includes(query))
+      .sort((a, b) => {
+        const aStarts = a.name.toLowerCase().startsWith(query);
+        const bStarts = b.name.toLowerCase().startsWith(query);
+        if (aStarts !== bStarts) return aStarts ? -1 : 1;
+        return b.usageCount - a.usageCount;
+      })
+      .slice(0, 8);
+  }, [popular, value, inUse]);
 
   return (
     <div>
@@ -61,7 +109,11 @@ export function SkillPicker({ skills, onAdd, onRemove }: Props) {
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === ",") {
               e.preventDefault();
-              tryAdd(value);
+              if (suggestions.length > 0 && value.trim()) {
+                tryAdd(suggestions[0].name);
+              } else {
+                tryAdd(value);
+              }
             } else if (e.key === "Backspace" && value === "" && skills.length > 0) {
               onRemove(skills[skills.length - 1]);
             }

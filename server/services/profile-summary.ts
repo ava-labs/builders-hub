@@ -143,13 +143,23 @@ function getBadgeGroup(badge: Badge): ProfileBadgeSummary["group"] {
   if (id.includes("entrepreneuracademy")) return "entrepreneur";
   if (id.includes("avalanchel1academy")) return "avalanche-l1";
   if (id.includes("hackathon")) return "hackathon";
+  // Console badges are seeded with auto-generated UUIDs, so the id-based
+  // matching above misses them. Fall back to the category column, which the
+  // seed sets to "console" explicitly. Academies share category="academy",
+  // so we can only safely catch console here.
+  if (badge.category?.toLowerCase() === "console") return "console";
   return "unknown";
 }
 
 function getConsoleTier(badge: Badge): string | null {
   if (getBadgeGroup(badge) !== "console") return null;
-  const match = badge.id.toLowerCase().match(/(\d+)tier/);
-  return match ? match[1] : "0";
+  const idMatch = badge.id.toLowerCase().match(/(\d+)tier/);
+  if (idMatch) return idMatch[1];
+  // UUID-id console badges encode the tier in the image filename, e.g.
+  // ".../Tier1_FirstKill.png". Pull it from there so the tier sections render.
+  const pathMatch = badge.image_path?.match(/Tier(\d+)/i);
+  if (pathMatch) return pathMatch[1];
+  return "0";
 }
 
 function badgeCourseOrder(id: string): number {

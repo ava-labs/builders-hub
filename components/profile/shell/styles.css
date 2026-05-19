@@ -916,6 +916,24 @@
 .profile .pr-role-card.pr-on .pr-check svg {
   display: block;
 }
+.profile .pr-role-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.profile .pr-role-details select {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  height: 34px;
+  color: var(--pr-g-1000);
+}
 .profile .pr-role-card .pr-check svg {
   display: none;
   width: 10px;

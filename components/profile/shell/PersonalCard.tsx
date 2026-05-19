@@ -15,6 +15,7 @@ import {
   extractLinkedInSlug,
 } from "./adapter";
 import type { ProfileLink, ProfileRole, ProfileWallet } from "./types";
+import { hsEmploymentRoles } from "@/constants/hs_employment_role";
 
 const BIO_MAX = 240;
 
@@ -27,6 +28,14 @@ interface Props {
   onCountryChange: (v: string) => void;
   roles: ProfileRole[];
   onToggleRole: (id: ProfileRole) => void;
+  studentInstitution: string;
+  onStudentInstitutionChange: (v: string) => void;
+  founderCompany: string;
+  onFounderCompanyChange: (v: string) => void;
+  employeeCompany: string;
+  onEmployeeCompanyChange: (v: string) => void;
+  employeeRole: string;
+  onEmployeeRoleChange: (v: string) => void;
   github: string;
   onGithubChange: (v: string) => void;
   githubConnected: boolean;
@@ -64,6 +73,14 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
     onCountryChange,
     roles,
     onToggleRole,
+    studentInstitution,
+    onStudentInstitutionChange,
+    founderCompany,
+    onFounderCompanyChange,
+    employeeCompany,
+    onEmployeeCompanyChange,
+    employeeRole,
+    onEmployeeRoleChange,
     github,
     onGithubChange,
     githubConnected,
@@ -159,6 +176,62 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
               />
             ))}
           </div>
+          {(roles.includes("university") ||
+            roles.includes("founder") ||
+            roles.includes("employee")) && (
+            <div className="pr-role-details">
+              {roles.includes("university") && (
+                <div className="pr-input-group">
+                  <span className="pr-pre">University</span>
+                  <input
+                    value={studentInstitution}
+                    onChange={(e) => onStudentInstitutionChange(e.target.value)}
+                    placeholder="Institution name"
+                    aria-label="University or institution"
+                  />
+                </div>
+              )}
+              {roles.includes("founder") && (
+                <div className="pr-input-group">
+                  <span className="pr-pre">Company</span>
+                  <input
+                    value={founderCompany}
+                    onChange={(e) => onFounderCompanyChange(e.target.value)}
+                    placeholder="Company name"
+                    aria-label="Founder company name"
+                  />
+                </div>
+              )}
+              {roles.includes("employee") && (
+                <>
+                  <div className="pr-input-group">
+                    <span className="pr-pre">Company</span>
+                    <input
+                      value={employeeCompany}
+                      onChange={(e) => onEmployeeCompanyChange(e.target.value)}
+                      placeholder="Company name"
+                      aria-label="Employer company name"
+                    />
+                  </div>
+                  <div className="pr-input-group">
+                    <span className="pr-pre">Role</span>
+                    <select
+                      value={employeeRole}
+                      onChange={(e) => onEmployeeRoleChange(e.target.value)}
+                      aria-label="Employment role"
+                    >
+                      <option value="">Select a role…</option>
+                      {hsEmploymentRoles.map((r) => (
+                        <option key={r.value} value={r.label}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Socials — 2x2 grid, icon-only labels.

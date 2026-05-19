@@ -17,7 +17,7 @@ interface RawProfileValues {
   linkedin_account?: string;
   telegram_account?: string;
   wallet?: string[];
-  additional_social_media?: string[];
+  additional_social_accounts?: string[];
   skills?: string[];
 }
 
@@ -94,12 +94,13 @@ const LINKEDIN_HOST_RE = /linkedin\.com\//i;
 
 /**
  * Personal-site links only — the dedicated `x_account` and `linkedin_account`
- * fields handle their respective socials directly, so additional_social_media
- * should hold residual personal sites. Defensive filter strips any X /
- * LinkedIn URLs that may have been stored there by a previous version.
+ * fields handle their respective socials directly, so
+ * `additional_social_accounts` should hold residual personal sites. Defensive
+ * filter strips any X / LinkedIn URLs that may have been stored there by a
+ * previous version.
  */
 export function siteLinksFromValues(v: RawProfileValues): ProfileLink[] {
-  return (v.additional_social_media ?? [])
+  return (v.additional_social_accounts ?? [])
     .filter(
       (url): url is string =>
         typeof url === "string" &&

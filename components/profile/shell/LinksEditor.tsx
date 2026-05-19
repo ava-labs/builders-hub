@@ -13,26 +13,49 @@ interface Props {
 /**
  * Personal-site editor. X and LinkedIn now have their own dedicated form rows
  * inside `PersonalCard`, so this component only manages residual personal-site
- * URLs (stored in `additional_social_media[]`) — hence one button only.
+ * URLs (stored in `additional_social_accounts[]`) — hence one button only.
+ *
+ * Pending blank rows are kept in local state so clicking "Add Site" gives the
+ * user an empty input to fill in. Only non-empty URLs are pushed up to the
+ * form to keep Zod URL validation happy.
  */
 export function LinksEditor({ links, onChange }: Props) {
+  const [drafts, setDrafts] = React.useState<ProfileLink[]>(links);
+
+  // When the parent's saved list grows (e.g. initial profile load lands after
+  // mount), bring those entries into local state. We only adopt growth so an
+  // in-progress blank row the user just added doesn't get clobbered when the
+  // parent filters it out on the way back down.
+  React.useEffect(() => {
+    setDrafts((prev) => {
+      const filled = prev.filter((l) => l.url.trim() !== "");
+      if (links.length > filled.length) return links;
+      return prev;
+    });
+  }, [links]);
+
+  const commit = (next: ProfileLink[]) => {
+    setDrafts(next);
+    onChange(next.filter((l) => l.url.trim() !== ""));
+  };
+
   const update = (i: number, link: ProfileLink) => {
-    const next = links.slice();
+    const next = drafts.slice();
     next[i] = link;
-    onChange(next);
+    commit(next);
   };
 
   const remove = (i: number) => {
-    onChange(links.filter((_, j) => j !== i));
+    commit(drafts.filter((_, j) => j !== i));
   };
 
   const addSite = () => {
-    onChange([...links, { kind: "website", url: "" }]);
+    commit([...drafts, { kind: "website", url: "" }]);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {links.map((l, i) => (
+      {drafts.map((l, i) => (
         <div className="pr-input-group" key={`site-${i}`}>
           <span
             className="pr-pre"
