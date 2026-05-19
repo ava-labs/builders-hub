@@ -45,15 +45,18 @@ export default async function HackathonEvaluatePage({
       tracks: true,
       categories: true,
       tags: true,
+      deployed_addresses: true,
+      website: true,
+      socials: true,
       is_winner: true,
       created_at: true,
       members: {
         select: {
           id: true,
           user_id: true,
-          email: true,
           status: true,
           role: true,
+          user: { select: { name: true } },
         },
       },
       evaluations: {

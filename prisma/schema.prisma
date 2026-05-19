@@ -65,6 +65,7 @@ model User {
   bio                        String?
   notification_email         String?
   notifications              Boolean?
+  consent_sharing            Boolean?
   profile_privacy            String?                   @default("public")
   additional_social_accounts String[]                  @default([])
   custom_attributes          String[]
@@ -173,6 +174,7 @@ model Project {
   deployed_addresses  Json[]              @default([])
   website             Json?
   socials             Json?
+  consent_sharing     Boolean?
   formData            FormData[]
   members             Member[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)

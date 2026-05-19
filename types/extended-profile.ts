@@ -37,6 +37,7 @@ export type ExtendedProfile = {
     additional_social_accounts: string[];
     skills: string[];
     notifications: boolean | null;
+    consent_sharing: boolean | null;
     profile_privacy: string | null;
     notification_means?: NotificationMeans | null;
     telegram_account?: string | null;

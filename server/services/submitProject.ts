@@ -176,6 +176,9 @@ export async function createProject(
           socials: isNonEmptyObject(projectData.socials)
             ? projectData.socials
             : Prisma.JsonNull,
+          ...(typeof projectData.consent_sharing === "boolean"
+            ? { consent_sharing: projectData.consent_sharing }
+            : {}),
         },
       });
 
@@ -206,6 +209,9 @@ export async function createProject(
         socials: isNonEmptyObject(projectData.socials)
           ? projectData.socials
           : Prisma.JsonNull,
+        ...(typeof projectData.consent_sharing === "boolean"
+          ? { consent_sharing: projectData.consent_sharing }
+          : {}),
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly
