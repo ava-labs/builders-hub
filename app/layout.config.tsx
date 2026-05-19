@@ -610,10 +610,10 @@ export const baseOptions: BaseLayoutProps = {
   links: [
     academyMenu,
     blogMenu,
-    careersMenu,
     chatMenu,
     consoleMenu,
     docsMenu,
+    careersMenu,
     eventsMenu,
     explorerMenu,
     grantsMenu,
