@@ -279,18 +279,20 @@ export function EvaluationPanel({
           </h3>
           <div className="space-y-1">
             {otherEvaluations.map((e) => (
-              <div key={e.id} className="flex items-center gap-2 text-sm">
-                <span className="text-zinc-500 dark:text-zinc-400">{e.evaluatorName}:</span>
-                <VerdictBadge verdict={e.verdict as Verdict} />
-                {e.scoreOverall !== null && (
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
-                    {e.scoreOverall}/5
-                  </span>
-                )}
+              <div key={e.id} className="text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-zinc-500 dark:text-zinc-400">{e.evaluatorName}:</span>
+                  <VerdictBadge verdict={e.verdict as Verdict} />
+                  {e.scoreOverall !== null && (
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
+                      {e.scoreOverall}/5
+                    </span>
+                  )}
+                </div>
                 {e.comment && (
-                  <span className="text-zinc-500 text-xs truncate">
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 whitespace-pre-wrap break-words">
                     &mdash; &ldquo;{e.comment}&rdquo;
-                  </span>
+                  </p>
                 )}
               </div>
             ))}
