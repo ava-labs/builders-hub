@@ -19,7 +19,9 @@ export const metadata: Metadata = createMetadata({
   openGraph: { url: '/ecosystem-careers' },
 });
 
-export const revalidate = 600;
+// Reads from Postgres + the viewer's session, so don't pre-render at
+// build time (the build DB is cold and the page is auth-conditional).
+export const dynamic = 'force-dynamic';
 
 export default async function EcosystemCareersPage() {
   const [list, companies, access] = await Promise.all([

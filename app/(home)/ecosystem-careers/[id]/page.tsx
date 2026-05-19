@@ -19,6 +19,9 @@ import {
 } from '@/lib/ecosystemCareers/viewerAccess';
 import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
 
+// Auth-conditional + hits Postgres → don't pre-render.
+export const dynamic = 'force-dynamic';
+
 interface Params {
   params: Promise<{ id: string }>;
 }
