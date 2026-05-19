@@ -10,6 +10,7 @@ import {
 } from '@/lib/ecosystemCareers/viewerAccess';
 import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
 import { SubmitListingForm } from '@/components/ecosystem-careers/SubmitListingForm';
+import { Clock } from 'lucide-react';
 
 export const metadata: Metadata = createMetadata({
   title: 'Post a role · Ecosystem Careers',
@@ -44,18 +45,49 @@ export default async function SubmitListingPage({ searchParams }: PageProps) {
     );
   }
 
-  const projects = (
-    await prisma.member.findMany({
-      where: { user_id: userId, status: 'Confirmed' },
-      select: {
-        project: { select: { id: true, project_name: true, logo_url: true } },
+  // Fetch the user's confirmed projects together with the linked
+  // EcosystemCompany so we can show review status next to each one.
+  type ProjectRow = {
+    id: string;
+    project_name: string;
+    logo_url: string | null;
+    ecosystem_company: {
+      authorization_status: string;
+      rejection_reason: string | null;
+    } | null;
+  };
+  const memberRows = await prisma.member.findMany({
+    where: { user_id: userId, status: 'Confirmed' },
+    select: {
+      project: {
+        select: {
+          id: true,
+          project_name: true,
+          logo_url: true,
+          ecosystem_company: {
+            select: { authorization_status: true, rejection_reason: true },
+          },
+        },
       },
-    })
-  )
-    .map((m) => m.project)
-    .filter(
-      (p): p is { id: string; project_name: string; logo_url: string | null } => p !== null,
-    );
+    },
+  });
+  const allProjects = memberRows
+    .map((m) => m.project as ProjectRow | null)
+    .filter((p): p is ProjectRow => p !== null)
+    .map((p) => ({
+      id: p.id,
+      project_name: p.project_name,
+      logo_url: p.logo_url,
+      authorization_status: (p.ecosystem_company?.authorization_status ?? null) as
+        | 'pending'
+        | 'approved'
+        | 'rejected'
+        | null,
+      rejection_reason: p.ecosystem_company?.rejection_reason ?? null,
+    }));
+  // Hide rejected projects from the dropdown — the user can't post under
+  // them again until a devrel reverses the decision.
+  const projects = allProjects.filter((p) => p.authorization_status !== 'rejected');
 
   if (projects.length === 0) {
     return (
@@ -80,6 +112,8 @@ export default async function SubmitListingPage({ searchParams }: PageProps) {
   const preselect = params.project && projects.some((p) => p.id === params.project)
     ? params.project
     : projects[0].id;
+  const preselected = projects.find((p) => p.id === preselect);
+  const rejectedProjects = allProjects.filter((p) => p.authorization_status === 'rejected');
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-12 lg:py-16 space-y-8">
@@ -88,9 +122,37 @@ export default async function SubmitListingPage({ searchParams }: PageProps) {
           Post a role
         </h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Listings auto-publish on the Ecosystem Careers board. The Apply CTA on your listing will link directly to the URL you provide — Builders Hub never hosts applications.
+          New teams go through a quick review before their listings go live. Once your project is approved, every future listing auto-publishes. The Apply CTA links directly to the URL you provide — Builders Hub never hosts applications.
         </p>
       </header>
+
+      {preselected?.authorization_status !== 'approved' && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-300/50 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/30 p-4">
+          <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-900 dark:text-amber-200 space-y-1">
+            <p className="font-semibold">Your project is in review</p>
+            <p>
+              {preselected
+                ? `“${preselected.project_name}”`
+                : 'This project'}{' '}
+              hasn&apos;t been approved for Ecosystem Careers yet. You can still queue a listing — it&apos;ll publish automatically the moment a reviewer signs off on your team.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {rejectedProjects.length > 0 && (
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4 text-sm text-zinc-600 dark:text-zinc-300">
+          <p className="font-semibold text-zinc-900 dark:text-white">
+            {rejectedProjects.length} of your projects can&apos;t post listings
+          </p>
+          <p>
+            {rejectedProjects.map((p) => p.project_name).join(', ')} —{' '}
+            {rejectedProjects[0].rejection_reason ?? 'review was declined.'} Reach out to the DevRel team if you think that&apos;s a mistake.
+          </p>
+        </div>
+      )}
+
       <SubmitListingForm
         projects={projects}
         initialValues={{ project_id: preselect }}

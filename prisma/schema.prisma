@@ -624,24 +624,29 @@ model Speaker {
 }
 
 model EcosystemCompany {
-  id            String       @id @default(uuid())
-  source        String
-  external_slug String?
-  project_id    String?      @unique
-  name          String
-  logo_url      String?
-  description   String?
-  website       String?
-  tags          String[]     @default([])
-  jobs_count    Int          @default(0)
-  last_seen_at  DateTime     @default(now()) @db.Timestamptz(3)
-  created_at    DateTime     @default(now()) @db.Timestamptz(3)
-  updated_at    DateTime     @updatedAt @db.Timestamptz(3)
-  project       Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
-  jobs          JobListing[]
+  id                    String       @id @default(uuid())
+  source                String
+  external_slug         String?
+  project_id            String?      @unique
+  name                  String
+  logo_url              String?
+  description           String?
+  website               String?
+  tags                  String[]     @default([])
+  jobs_count            Int          @default(0)
+  authorization_status  String       @default("approved")
+  authorized_by_user_id String?
+  authorized_at         DateTime?    @db.Timestamptz(3)
+  rejection_reason      String?
+  last_seen_at          DateTime     @default(now()) @db.Timestamptz(3)
+  created_at            DateTime     @default(now()) @db.Timestamptz(3)
+  updated_at            DateTime     @updatedAt @db.Timestamptz(3)
+  project               Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  jobs                  JobListing[]
 
   @@unique([source, external_slug])
   @@index([source])
+  @@index([authorization_status])
 }
 
 model JobListing {

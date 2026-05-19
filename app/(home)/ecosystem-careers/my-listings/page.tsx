@@ -3,9 +3,47 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { getAuthSession } from '@/lib/auth/authSession';
-import { listListingsForUser } from '@/server/services/ecosystemCareers/queries';
+import {
+  type CompanyAuthorizationStatus,
+  listListingsForUser,
+} from '@/server/services/ecosystemCareers/queries';
 import { formatPostedAt, prettyRemoteType } from '@/components/ecosystem-careers/labels';
 import { DeactivateListingButton } from '@/components/ecosystem-careers/DeactivateListingButton';
+
+function StatusBadge({
+  isActive,
+  companyStatus,
+}: {
+  isActive: boolean;
+  companyStatus: CompanyAuthorizationStatus;
+}) {
+  if (companyStatus === 'rejected') {
+    return (
+      <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300">
+        Rejected
+      </span>
+    );
+  }
+  if (companyStatus === 'pending') {
+    return (
+      <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300">
+        Pending review
+      </span>
+    );
+  }
+  if (!isActive) {
+    return (
+      <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+        Inactive
+      </span>
+    );
+  }
+  return (
+    <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+      Live
+    </span>
+  );
+}
 
 export const metadata: Metadata = createMetadata({
   title: 'My listings · Ecosystem Careers',
@@ -64,18 +102,14 @@ export default async function MyListingsPage() {
           {listings.map((row) => (
             <li key={row.id} className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Link
                     href={`/ecosystem-careers/${row.id}`}
                     className="text-base font-semibold text-zinc-900 dark:text-white hover:text-red-600 dark:hover:text-red-400 truncate"
                   >
                     {row.title}
                   </Link>
-                  {!row.isActive && (
-                    <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                      Inactive
-                    </span>
-                  )}
+                  <StatusBadge isActive={row.isActive} companyStatus={row.companyStatus} />
                 </div>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
                   {row.company.name}
@@ -83,6 +117,11 @@ export default async function MyListingsPage() {
                   {row.remoteType ? ` · ${prettyRemoteType(row.remoteType)}` : ''}
                   {row.postedAt ? ` · ${formatPostedAt(row.postedAt)}` : ''}
                 </p>
+                {row.companyStatus === 'rejected' && row.rejectionReason && (
+                  <p className="text-xs text-rose-600 dark:text-rose-400">
+                    Rejected: {row.rejectionReason}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Link

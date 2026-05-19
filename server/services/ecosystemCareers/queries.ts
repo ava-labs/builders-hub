@@ -147,22 +147,63 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
   };
 }
 
+export type CompanyAuthorizationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface UserOwnedProject {
+  id: string;
+  project_name: string;
+  logo_url: string | null;
+  authorization_status: CompanyAuthorizationStatus | null; // null = no company row yet
+  rejection_reason: string | null;
+}
+
 export interface UserListingsResult {
-  ownProjects: { id: string; project_name: string; logo_url: string | null }[];
-  listings: (JobCard & { isActive: boolean })[];
+  ownProjects: UserOwnedProject[];
+  listings: (JobCard & {
+    isActive: boolean;
+    companyStatus: CompanyAuthorizationStatus;
+    rejectionReason: string | null;
+  })[];
 }
 
 export async function listListingsForUser(userId: string): Promise<UserListingsResult> {
   // All Projects the user is a confirmed member of (used as the "post a job"
   // dropdown source AND as an auth signal for editing co-team listings).
+  // Each project may or may not yet have an EcosystemCompany row — we left
+  // join via Prisma's separate fetch instead of awkward nested queries.
   const memberRows = await prisma.member.findMany({
     where: { user_id: userId, status: 'Confirmed' },
     select: { project: { select: { id: true, project_name: true, logo_url: true } } },
   });
-  const ownProjects = memberRows
+  const baseProjects = memberRows
     .map((m) => m.project)
     .filter((p): p is { id: string; project_name: string; logo_url: string | null } => p !== null);
-  const projectIds = ownProjects.map((p) => p.id);
+  const projectIds = baseProjects.map((p) => p.id);
+
+  const companies = projectIds.length
+    ? await prisma.ecosystemCompany.findMany({
+        where: { source: 'project', project_id: { in: projectIds } },
+        select: {
+          project_id: true,
+          authorization_status: true,
+          rejection_reason: true,
+        },
+      })
+    : [];
+  const statusByProject = new Map(
+    companies.map((c) => [c.project_id!, c]),
+  );
+
+  const ownProjects: UserOwnedProject[] = baseProjects.map((p) => {
+    const c = statusByProject.get(p.id);
+    return {
+      ...p,
+      authorization_status: c
+        ? (c.authorization_status as CompanyAuthorizationStatus)
+        : null,
+      rejection_reason: c?.rejection_reason ?? null,
+    };
+  });
 
   const orClauses: any[] = [{ posted_by_user_id: userId }];
   if (projectIds.length > 0) {
@@ -176,7 +217,12 @@ export async function listListingsForUser(userId: string): Promise<UserListingsR
 
   return {
     ownProjects,
-    listings: rows.map((row) => ({ ...toJobCard(row), isActive: row.is_active })),
+    listings: rows.map((row) => ({
+      ...toJobCard(row),
+      isActive: row.is_active,
+      companyStatus: (row.company.authorization_status as CompanyAuthorizationStatus) ?? 'approved',
+      rejectionReason: row.company.rejection_reason,
+    })),
   };
 }
 

@@ -5,6 +5,7 @@ import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 import {
   AuthorizationError,
+  CompanyRejectedError,
   QuotaError,
   createListing,
 } from '@/server/services/ecosystemCareers/submitListing';
@@ -78,6 +79,12 @@ export const POST = withAuth(async (req, _ctx, session) => {
     }
     if (err instanceof QuotaError) {
       return NextResponse.json({ error: err.message }, { status: 422 });
+    }
+    if (err instanceof CompanyRejectedError) {
+      return NextResponse.json(
+        { error: 'CompanyRejected', message: err.message },
+        { status: 422 },
+      );
     }
     console.error('POST /api/ecosystem-careers/listings failed:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
