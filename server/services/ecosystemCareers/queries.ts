@@ -8,7 +8,8 @@ export interface JobCard {
   remoteType: string | null;
   seniority: string | null;
   tags: string[];
-  postedAt: Date | null;
+  // String when crossing the server→client boundary, Date when used server-side.
+  postedAt: Date | string | null;
   applyUrl: string;
   source: string;
   sourceUrl: string | null;
@@ -21,11 +22,22 @@ export interface JobCard {
   };
 }
 
+export type SerializableJobCard = Omit<JobCard, 'postedAt'> & {
+  postedAt: string | null;
+};
+
 export interface JobDetail extends JobCard {
   description: string | null;
   company: JobCard['company'] & {
     description: string | null;
     website: string | null;
+  };
+}
+
+export function toSerializableJob(job: JobCard): SerializableJobCard {
+  return {
+    ...job,
+    postedAt: job.postedAt instanceof Date ? job.postedAt.toISOString() : job.postedAt,
   };
 }
 

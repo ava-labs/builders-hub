@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { ArrowUpRight, MapPin } from 'lucide-react';
-import type { JobCard as JobCardData } from '@/server/services/ecosystemCareers/queries';
+import type { SerializableJobCard } from '@/server/services/ecosystemCareers/queries';
 import { formatPostedAt, prettyRemoteType, prettySeniority } from './labels';
 
 interface Props {
-  job: JobCardData;
+  job: SerializableJobCard;
 }
 
 export function JobCard({ job }: Props) {

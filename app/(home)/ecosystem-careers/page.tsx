@@ -3,6 +3,7 @@ import { createMetadata } from '@/utils/metadata';
 import {
   listActiveJobs,
   listCompaniesWithActiveJobs,
+  toSerializableJob,
 } from '@/server/services/ecosystemCareers/queries';
 import EcosystemCareersClient from './page.client';
 
@@ -21,14 +22,9 @@ export default async function EcosystemCareersPage() {
     listCompaniesWithActiveJobs(),
   ]);
 
-  const serializableJobs = list.jobs.map((j) => ({
-    ...j,
-    postedAt: j.postedAt ? j.postedAt.toISOString() : null,
-  })) as unknown as typeof list.jobs;
-
   return (
     <EcosystemCareersClient
-      initialJobs={serializableJobs}
+      initialJobs={list.jobs.map(toSerializableJob)}
       totalActive={list.total}
       companies={companies}
     />

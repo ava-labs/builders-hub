@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { JobCard } from '@/components/ecosystem-careers/JobCard';
-import type { JobCard as JobCardData, CompanyOption } from '@/server/services/ecosystemCareers/queries';
+import type { CompanyOption, SerializableJobCard } from '@/server/services/ecosystemCareers/queries';
 
 interface Props {
-  initialJobs: JobCardData[];
+  initialJobs: SerializableJobCard[];
   totalActive: number;
   companies: CompanyOption[];
 }
