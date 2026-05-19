@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, Pencil, MoreHorizontal, Rows3, X, Search } from 'lucide-react';
 import {
   DropdownMenu,
@@ -95,8 +95,29 @@ export default function HackathonsList({
 
   const noEventsMessage = t[language].noEventsFound;
 
+  // Client-side filtering and sorting applied on top of whatever the server returns
+  const filteredHackathons = useMemo(() => {
+    let result = [...myHackathons];
+
+    const visibility = filters?.visibility ?? 'all';
+    if (visibility === 'public') {
+      result = result.filter((h) => h.is_public);
+    } else if (visibility === 'private') {
+      result = result.filter((h) => !h.is_public);
+    }
+
+    const sort = filters?.sort ?? 'start_date_desc';
+    result.sort((a, b) => {
+      const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
+      const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
+      return sort === 'start_date_asc' ? aDate - bDate : bDate - aDate;
+    });
+
+    return result;
+  }, [myHackathons, filters?.visibility, filters?.sort]);
+
   // Show empty state with filters visible instead of hiding component
-  if (!loading && !myHackathons.length) {
+  if (!loading && !filteredHackathons.length) {
     return (
       <div
         className={[
@@ -210,9 +231,9 @@ export default function HackathonsList({
         <div className="flex justify-center items-center gap-2">
           <Rows3 className="w-4 h-4 text-[#e84142]"/>
           <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</span>
-          {!loading && myHackathons.length > 0 && (
+          {!loading && filteredHackathons.length > 0 && (
             <span className="inline-flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-medium w-5 h-5">
-              {myHackathons.length}
+              {filteredHackathons.length}
             </span>
           )}
         </div>
@@ -336,7 +357,7 @@ export default function HackathonsList({
               ].join(' ')}
               style={!fullHeight ? { maxHeight: '500px' } : { maxHeight: '500px' }}
             >
-              {myHackathons.map((hackathon) => {
+              {filteredHackathons.map((hackathon) => {
                 const isSelected = hackathon.id === selectedId;
                 return (
                   <li
