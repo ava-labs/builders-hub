@@ -103,6 +103,7 @@ model User {
   referralLinks              ReferralLink[]            @relation("ReferralLinkOwner")
   referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
   referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
+  posted_job_listings        JobListing[]              @relation("UserPostedJobListings")
 }
 
 model VerificationToken {
@@ -175,6 +176,7 @@ model Project {
   badges              ProjectBadge[]
   ProjectRepository   ProjectRepository[]
   evaluations         Evaluation[]
+  ecosystem_company   EcosystemCompany?
 }
 
 model Member {
@@ -619,4 +621,54 @@ model Speaker {
   category String
   picture  String
   id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+}
+
+model EcosystemCompany {
+  id            String       @id @default(uuid())
+  source        String
+  external_slug String?
+  project_id    String?      @unique
+  name          String
+  logo_url      String?
+  description   String?
+  website       String?
+  tags          String[]     @default([])
+  jobs_count    Int          @default(0)
+  last_seen_at  DateTime     @default(now()) @db.Timestamptz(3)
+  created_at    DateTime     @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime     @updatedAt @db.Timestamptz(3)
+  project       Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  jobs          JobListing[]
+
+  @@unique([source, external_slug])
+  @@index([source])
+}
+
+model JobListing {
+  id                String           @id @default(uuid())
+  source            String
+  external_id       String?
+  company_id        String
+  posted_by_user_id String?
+  title             String
+  short_description String
+  description       String?
+  location          String?
+  remote_type       String?
+  employment_type   String?
+  seniority         String?
+  tags              String[]         @default([])
+  apply_url         String
+  source_url        String?
+  posted_at         DateTime?        @db.Timestamptz(3)
+  last_seen_at      DateTime         @default(now()) @db.Timestamptz(3)
+  is_active         Boolean          @default(true)
+  created_at        DateTime         @default(now()) @db.Timestamptz(3)
+  updated_at        DateTime         @updatedAt @db.Timestamptz(3)
+  company           EcosystemCompany @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  posted_by_user    User?            @relation("UserPostedJobListings", fields: [posted_by_user_id], references: [id], onDelete: SetNull)
+
+  @@unique([source, external_id])
+  @@index([is_active, posted_at])
+  @@index([company_id])
 }

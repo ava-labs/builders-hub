@@ -3,6 +3,10 @@
     {
       "path": "/api/validator-alerts/check",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/scrape-ecosystem-jobs",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

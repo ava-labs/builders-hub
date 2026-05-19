@@ -1,0 +1,176 @@
+import { prisma } from '@/prisma/prisma';
+
+export interface JobCard {
+  id: string;
+  title: string;
+  shortDescription: string;
+  location: string | null;
+  remoteType: string | null;
+  seniority: string | null;
+  tags: string[];
+  postedAt: Date | null;
+  applyUrl: string;
+  source: string;
+  sourceUrl: string | null;
+  company: {
+    id: string;
+    name: string;
+    slug: string | null;
+    logoUrl: string | null;
+    tags: string[];
+  };
+}
+
+export interface JobDetail extends JobCard {
+  description: string | null;
+  company: JobCard['company'] & {
+    description: string | null;
+    website: string | null;
+  };
+}
+
+export interface ListActiveJobsOptions {
+  search?: string;
+  companyId?: string;
+  remoteType?: string;
+  seniority?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ListActiveJobsResult {
+  total: number;
+  jobs: JobCard[];
+}
+
+export async function listActiveJobs(
+  opts: ListActiveJobsOptions = {},
+): Promise<ListActiveJobsResult> {
+  const limit = Math.min(Math.max(opts.limit ?? 60, 1), 200);
+  const offset = Math.max(opts.offset ?? 0, 0);
+
+  const where: any = { is_active: true };
+  if (opts.companyId) where.company_id = opts.companyId;
+  if (opts.remoteType) where.remote_type = opts.remoteType;
+  if (opts.seniority) where.seniority = opts.seniority;
+
+  if (opts.search?.trim()) {
+    const q = opts.search.trim();
+    where.OR = [
+      { title: { contains: q, mode: 'insensitive' } },
+      { short_description: { contains: q, mode: 'insensitive' } },
+      { location: { contains: q, mode: 'insensitive' } },
+      { tags: { has: q } },
+      { company: { name: { contains: q, mode: 'insensitive' } } },
+    ];
+  }
+
+  const [rows, total] = await Promise.all([
+    prisma.jobListing.findMany({
+      where,
+      orderBy: [{ posted_at: 'desc' }, { created_at: 'desc' }],
+      take: limit,
+      skip: offset,
+      include: { company: true },
+    }),
+    prisma.jobListing.count({ where }),
+  ]);
+
+  return {
+    total,
+    jobs: rows.map(toJobCard),
+  };
+}
+
+export interface CompanyOption {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  jobsCount: number;
+}
+
+export async function listCompaniesWithActiveJobs(): Promise<CompanyOption[]> {
+  const groups = await prisma.jobListing.groupBy({
+    by: ['company_id'],
+    where: { is_active: true },
+    _count: { _all: true },
+  });
+  const ids = groups.map((g) => g.company_id);
+  if (ids.length === 0) return [];
+  const companies = await prisma.ecosystemCompany.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, logo_url: true },
+  });
+  const byId = new Map(companies.map((c) => [c.id, c]));
+  return groups
+    .map((g) => {
+      const c = byId.get(g.company_id);
+      if (!c) return null;
+      return {
+        id: c.id,
+        name: c.name,
+        logoUrl: c.logo_url,
+        jobsCount: g._count._all,
+      };
+    })
+    .filter((x): x is CompanyOption => x !== null)
+    .sort((a, b) => b.jobsCount - a.jobsCount || a.name.localeCompare(b.name));
+}
+
+export async function getJobById(id: string): Promise<JobDetail | null> {
+  const row = await prisma.jobListing.findUnique({
+    where: { id },
+    include: { company: true },
+  });
+  if (!row || !row.is_active) return null;
+  const base = toJobCard(row);
+  return {
+    ...base,
+    description: row.description,
+    company: {
+      ...base.company,
+      description: row.company.description,
+      website: row.company.website,
+    },
+  };
+}
+
+export async function listMoreJobsFromCompany(
+  companyId: string,
+  excludeJobId: string,
+  limit = 5,
+): Promise<JobCard[]> {
+  const rows = await prisma.jobListing.findMany({
+    where: { company_id: companyId, is_active: true, NOT: { id: excludeJobId } },
+    orderBy: [{ posted_at: 'desc' }, { created_at: 'desc' }],
+    take: limit,
+    include: { company: true },
+  });
+  return rows.map(toJobCard);
+}
+
+type JobRowWithCompany = Awaited<ReturnType<typeof prisma.jobListing.findFirst>> &
+  { company: Awaited<ReturnType<typeof prisma.ecosystemCompany.findFirst>> };
+
+function toJobCard(row: NonNullable<JobRowWithCompany>): JobCard {
+  return {
+    id: row.id,
+    title: row.title,
+    shortDescription: row.short_description,
+    location: row.location,
+    remoteType: row.remote_type,
+    seniority: row.seniority,
+    tags: row.tags,
+    postedAt: row.posted_at,
+    applyUrl: row.apply_url,
+    source: row.source,
+    sourceUrl: row.source_url,
+    company: {
+      id: row.company!.id,
+      name: row.company!.name,
+      slug: row.company!.external_slug,
+      logoUrl: row.company!.logo_url,
+      tags: row.company!.tags,
+    },
+  };
+}
