@@ -4,6 +4,9 @@ export type CompletionStepKey =
   | "country"
   | "roles"
   | "github"
+  | "x"
+  | "telegram"
+  | "linkedin"
   | "wallet"
   | "skills"
   | "hackathon"
@@ -16,6 +19,9 @@ export interface CompletionInput {
   country?: string | null;
   roles?: ReadonlyArray<string> | null;
   github?: string | null;
+  xAccount?: string | null;
+  telegram?: string | null;
+  linkedin?: string | null;
   wallets?: ReadonlyArray<unknown> | null;
   skills?: ReadonlyArray<unknown> | null;
   hasHackathonParticipation?: boolean;
@@ -63,6 +69,24 @@ export const COMPLETION_STEPS: ReadonlyArray<CompletionStep> = [
     label: "Connect GitHub",
     description: "Verify on-chain commits",
     test: (p) => has(p.github),
+  },
+  {
+    key: "x",
+    label: "Connect X",
+    description: "Link your X profile",
+    test: (p) => has(p.xAccount),
+  },
+  {
+    key: "telegram",
+    label: "Connect Telegram",
+    description: "Reach you for grant follow-ups",
+    test: (p) => has(p.telegram),
+  },
+  {
+    key: "linkedin",
+    label: "Connect LinkedIn",
+    description: "Showcase your background",
+    test: (p) => has(p.linkedin),
   },
   {
     key: "wallet",

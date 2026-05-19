@@ -257,6 +257,9 @@ export default function ProfilePage({ teamLabel }: Props) {
     country,
     roles,
     github,
+    xAccount,
+    telegram,
+    linkedin: linkedinAccount,
     wallets,
     skills,
     hasHackathonParticipation: summary.engagement.hasHackathonParticipation,
@@ -345,11 +348,17 @@ export default function ProfilePage({ teamLabel }: Props) {
       const fieldId =
         key === "github"
           ? "pr-github"
-          : key === "name"
-            ? "pr-fullname"
-            : key === "bio"
-              ? "pr-bio"
-              : null;
+          : key === "x"
+            ? "pr-x"
+            : key === "telegram"
+              ? "pr-telegram"
+              : key === "linkedin"
+                ? "pr-linkedin"
+                : key === "name"
+                  ? "pr-fullname"
+                  : key === "bio"
+                    ? "pr-bio"
+                    : null;
       if (fieldId) {
         const el = document.getElementById(fieldId) as HTMLElement | null;
         el?.focus({ preventScroll: true });
