@@ -31,5 +31,7 @@ export async function getLLMText(page: Page) {
     }
   }
 
-  return `# ${page.data.title} (${page.url})\n\n${content}`;
+  const trimmed = content.trimStart();
+  const startsWithH1 = trimmed.startsWith('# ');
+  return startsWithH1 ? trimmed : `# ${page.data.title}\n\n${trimmed}`;
 }
