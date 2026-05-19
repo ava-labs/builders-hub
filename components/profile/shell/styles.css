@@ -1,4 +1,4 @@
-/* Scoped Avalanche-theme tokens + component styles for the redesigned profile page.
+/* Scoped Avalanche-theme tokens + component styles for the profile shell.
    All rules nest under `.profile` so they don't leak into the rest of the app.
    Light theme is the default; the `.dark` ancestor (used by Builder Hub for dark mode)
    swaps in the prototype's `avax` dark tokens. */

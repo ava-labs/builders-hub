@@ -12,7 +12,7 @@ import type { ReferralTargetPreset } from "@/lib/referrals/targets";
 import type { Prisma } from "@prisma/client";
 
 /**
- * Profile summary helpers — read-only aggregations the redesigned profile
+ * Profile summary helpers — read-only aggregations the profile shell
  * page surfaces in its sidebar widgets and tab counters.
  *
  * All reads are scoped to a single `userId` (the session-derived id from the

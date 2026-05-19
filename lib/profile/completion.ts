@@ -1,4 +1,4 @@
-// Pure profile completion helper used by the redesigned profile UI.
+// Pure profile completion helper used by the profile shell UI.
 // Drives: avatar ring, sidebar checklist, "Next: ..." copy, tab counter.
 //
 // Each step contributes equally to the percentage (no points concept) — the

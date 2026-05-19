@@ -1,6 +1,4 @@
 // Shared text/number formatting helpers for the Insights tab.
-// Lifted from components/builder-insights/BuilderInsightsDashboard.tsx so the
-// new redesign component doesn't import from the legacy dashboard file.
 
 export function formatNumber(value: number): string {
   return value.toLocaleString();

@@ -1,4 +1,4 @@
-// View-model types for the redesigned profile UI.
+// View-model types for the profile shell UI.
 // Decoupled from the backend Profile shape so the form components can stay simple.
 
 export type ProfileRole =

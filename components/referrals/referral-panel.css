@@ -1,5 +1,5 @@
 /* Reusable referral panel — uses --pr-* tokens when nested under the profile
-   redesign, falls back to the avax dark palette otherwise. */
+   profile shell, falls back to the avax dark palette otherwise. */
 
 .referral-panel {
   --rp-bg: var(--pr-g-100, #141416);
