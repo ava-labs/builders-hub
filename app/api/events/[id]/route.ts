@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getHackathon, updateHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
-import { withAuthRole } from "@/lib/protectedRoute";
+import { withAuthPermission } from "@/lib/protectedRoute";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PUT = withAuthPermission({ resource: "hackathon", action: "write" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
@@ -43,7 +43,7 @@ export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any,
   }
 });
 
-export const PATCH = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PATCH = withAuthPermission({ resource: "hackathon", action: "write" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();

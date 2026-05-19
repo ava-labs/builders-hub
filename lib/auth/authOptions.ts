@@ -201,9 +201,27 @@ export const AuthOptions: NextAuthOptions = {
         : null;
 
       if (dbUser) {
+        // Load active UserRole rows (no expiry or future expiry)
+        const activeUserRoles = await prisma.userRole.findMany({
+          where: {
+            user_id: dbUser.id,
+            OR: [
+              { expires_at: null },
+              { expires_at: { gt: new Date() } },
+            ],
+          },
+          select: { role: true },
+        });
+
+        // Merge legacy custom_attributes with new table roles (deduplicated)
+        const allRoles = [
+          ...dbUser.custom_attributes,
+          ...activeUserRoles.map((r: { role: string }) => r.role),
+        ].filter((v: string, i: number, a: string[]) => a.indexOf(v) === i);
+
         token.id = dbUser.id;
         token.avatar = dbUser.image || token.avatar || user?.image || null;
-        token.custom_attributes = dbUser.custom_attributes
+        token.custom_attributes = allRoles;
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';

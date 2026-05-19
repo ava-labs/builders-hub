@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
-import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
+import { withAuthPermission, type RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string; userId: string }>;
 
-export const DELETE = withAuthRole<Params>(
-  "devrel",
+export const DELETE = withAuthPermission<Params>(
+  { resource: "judge", action: "delete" },
   async (_request: NextRequest, context: Params) => {
     const { id: hackathonId, userId } = await context.params;
 
