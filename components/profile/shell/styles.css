@@ -158,10 +158,14 @@
 }
 .profile .pr-av-stack {
   position: relative;
+  width: 116px;
+  height: 116px;
+  display: grid;
+  place-items: center;
 }
 .profile .pr-av-stack .pr-ring {
   position: absolute;
-  inset: -6px;
+  inset: 0;
   border-radius: 50%;
   background: conic-gradient(
     var(--pr-primary-main) calc(var(--pct, 0) * 1%),
@@ -169,6 +173,7 @@
   );
   -webkit-mask: radial-gradient(circle, transparent 50px, #000 51px);
   mask: radial-gradient(circle, transparent 50px, #000 51px);
+  z-index: 0;
 }
 .profile .pr-av-stack .pr-av {
   width: 104px;
@@ -181,6 +186,7 @@
   font-size: 38px;
   font-weight: 400;
   position: relative;
+  z-index: 1;
   letter-spacing: -0.02em;
   box-shadow: inset 0 0 0 3px var(--pr-g-100);
   overflow: hidden;
@@ -221,7 +227,7 @@
   place-items: center;
   cursor: pointer;
   color: var(--pr-g-700);
-  z-index: 1;
+  z-index: 2;
 }
 .profile .pr-av-stack .pr-edit:hover {
   background: var(--pr-g-1000);
@@ -1691,6 +1697,21 @@
   .profile .pr-identity {
     grid-template-columns: 1fr;
     gap: 18px;
+  }
+  .profile .pr-av-stack {
+    width: 112px;
+    height: 112px;
+  }
+  .profile .pr-av-stack .pr-ring {
+    -webkit-mask: radial-gradient(circle, transparent 48px, #000 49px);
+    mask: radial-gradient(circle, transparent 48px, #000 49px);
+  }
+  .profile .pr-av-stack .pr-av {
+    width: 100px;
+    height: 100px;
+  }
+  .profile .pr-av-stack .pr-pct-pill {
+    display: none;
   }
   .profile .pr-completion {
     border-left: 0;
