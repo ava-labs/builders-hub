@@ -12,13 +12,27 @@ import { useUserAvatar } from '@/components/context/UserAvatarContext';
 
 const AVATAR_PX = 18;
 
-// Matches the ThemeToggle pill: same border, padding, and total height so
-// the navbar controls share one visual rhythm. The inner glyph (size-6.5
-// rounded-full p-1.5) mirrors a single sun/moon icon.
+// Matches the ThemeToggle pill exactly so the navbar controls share one
+// visual rhythm. The inner slot (size-6.5 with p-1.5) is the footprint of a
+// single sun/moon glyph; every avatar variant (initials, image, dicebear,
+// fallback icon) renders inside the same 26px square so the pill is the same
+// width and height as an individual toggle icon.
 const PILL_CLASS =
   'inline-flex items-center justify-center rounded-full border p-1 ml-2 hover:bg-fd-accent transition-colors';
-const ICON_CLASS =
-  'size-6.5 rounded-full p-1.5 text-fd-muted-foreground';
+const SLOT_CLASS = 'size-6.5 rounded-full flex items-center justify-center';
+const ICON_CLASS = `${SLOT_CLASS} p-1.5 text-fd-muted-foreground`;
+const INITIALS_CLASS = `${SLOT_CLASS} text-[10px] font-semibold tracking-tighter text-fd-muted-foreground bg-fd-muted/60`;
+
+function initialsFromName(name?: string | null): string {
+  if (!name) return '';
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((s) => s[0] ?? '')
+    .join('')
+    .toUpperCase();
+}
 
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
@@ -75,10 +89,11 @@ export function UserButton() {
   }, [session?.user]);
 
   if (isAuthenticated) {
+    const nameInitials = initialsFromName(session.user?.name);
     return (
       <Link href="/profile" aria-label="Profile" className={PILL_CLASS}>
         {nounAvatarEnabled && nounAvatarSeed ? (
-          <span className="size-6.5 rounded-full overflow-hidden flex items-center justify-center">
+          <span className={`${SLOT_CLASS} overflow-hidden`}>
             <DiceBearAvatar
               seed={nounAvatarSeed}
               size="small"
@@ -86,13 +101,17 @@ export function UserButton() {
             />
           </span>
         ) : session.user.image ? (
-          <Image
-            src={session.user.image}
-            alt="User Avatar"
-            width={AVATAR_PX}
-            height={AVATAR_PX}
-            className="rounded-full"
-          />
+          <span className={`${SLOT_CLASS} overflow-hidden`}>
+            <Image
+              src={session.user.image}
+              alt="User Avatar"
+              width={AVATAR_PX}
+              height={AVATAR_PX}
+              className="rounded-full"
+            />
+          </span>
+        ) : nameInitials ? (
+          <span className={INITIALS_CLASS}>{nameInitials}</span>
         ) : (
           <CircleUserRound className={ICON_CLASS} strokeWidth={1.75} />
         )}
