@@ -1,4 +1,3 @@
-import { categorizeSkill } from "./data";
 import type { ProfileLink, ProfileRole, ProfileWallet } from "./types";
 
 interface RawProfileValues {
@@ -115,8 +114,4 @@ export function siteLinksToStringArray(links: ProfileLink[]): string[] {
   return links
     .map((l) => ensureUrl(l.url.trim()))
     .filter((url) => url.length > 0);
-}
-
-export function categorizedSkills(v: RawProfileValues) {
-  return skillsFromValues(v).map((name) => ({ name, category: categorizeSkill(name) }));
 }
