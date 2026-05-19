@@ -5,6 +5,11 @@ import {
   listCompaniesWithActiveJobs,
   toSerializableJob,
 } from '@/server/services/ecosystemCareers/queries';
+import {
+  PUBLIC_JOB_PREVIEW_COUNT,
+  getViewerAccess,
+  missingSocialsFor,
+} from '@/lib/ecosystemCareers/viewerAccess';
 import EcosystemCareersClient from './page.client';
 
 export const metadata: Metadata = createMetadata({
@@ -17,9 +22,10 @@ export const metadata: Metadata = createMetadata({
 export const revalidate = 600;
 
 export default async function EcosystemCareersPage() {
-  const [list, companies] = await Promise.all([
+  const [list, companies, access] = await Promise.all([
     listActiveJobs({ limit: 120 }),
     listCompaniesWithActiveJobs(),
+    getViewerAccess(),
   ]);
 
   return (
@@ -27,6 +33,10 @@ export default async function EcosystemCareersPage() {
       initialJobs={list.jobs.map(toSerializableJob)}
       totalActive={list.total}
       companies={companies}
+      viewerCanViewAll={access.canViewAll}
+      viewerAuthenticated={access.authenticated}
+      viewerMissingSocials={missingSocialsFor(access)}
+      previewCount={PUBLIC_JOB_PREVIEW_COUNT}
     />
   );
 }

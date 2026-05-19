@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, MapPin } from 'lucide-react';
 import { createMetadata } from '@/utils/metadata';
 import {
   getJobById,
+  getListingForEdit,
   listMoreJobsFromCompany,
 } from '@/server/services/ecosystemCareers/queries';
 import {
@@ -12,6 +13,11 @@ import {
   prettyRemoteType,
   prettySeniority,
 } from '@/components/ecosystem-careers/labels';
+import {
+  getViewerAccess,
+  missingSocialsFor,
+} from '@/lib/ecosystemCareers/viewerAccess';
+import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -30,21 +36,41 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function EcosystemCareerDetailPage({ params }: Params) {
   const { id } = await params;
-  const job = await getJobById(id);
+  const [job, access] = await Promise.all([
+    getJobById(id),
+    getViewerAccess(),
+  ]);
   if (!job) notFound();
 
-  const moreJobs = await listMoreJobsFromCompany(job.company.id, job.id, 5);
+  const [moreJobs, editable] = await Promise.all([
+    access.canViewAll
+      ? listMoreJobsFromCompany(job.company.id, job.id, 5)
+      : Promise.resolve([]),
+    job.source === 'project' && access.userId
+      ? getListingForEdit(job.id, access.userId)
+      : Promise.resolve(null),
+  ]);
 
   return (
     <main className="relative">
       <div className="max-w-5xl mx-auto px-4 py-10 lg:py-16 space-y-10">
-        <Link
-          href="/ecosystem-careers"
-          className="inline-flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          All ecosystem careers
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href="/ecosystem-careers"
+            className="inline-flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            All ecosystem careers
+          </Link>
+          {editable && (
+            <Link
+              href={`/ecosystem-careers/${job.id}/edit`}
+              className="inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            >
+              Edit listing
+            </Link>
+          )}
+        </div>
 
         <header className="flex flex-col sm:flex-row sm:items-start gap-5 sm:gap-6">
           {job.company.logoUrl ? (
@@ -90,15 +116,17 @@ export default async function EcosystemCareerDetailPage({ params }: Params) {
               )}
             </div>
           </div>
-          <a
-            href={job.applyUrl}
-            target="_blank"
-            rel="noopener noreferrer nofollow"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 hover:scale-[1.02] transition-all duration-200 shrink-0"
-          >
-            Apply on company site
-            <ArrowUpRight className="w-4 h-4" />
-          </a>
+          {access.canViewAll && (
+            <a
+              href={job.applyUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 hover:scale-[1.02] transition-all duration-200 shrink-0"
+            >
+              Apply on company site
+              <ArrowUpRight className="w-4 h-4" />
+            </a>
+          )}
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-10">
@@ -115,30 +143,54 @@ export default async function EcosystemCareerDetailPage({ params }: Params) {
                 ))}
               </div>
             )}
-            {job.description ? (
-              <div
-                className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-semibold prose-li:my-1 prose-a:text-red-600 dark:prose-a:text-red-400"
-                dangerouslySetInnerHTML={{ __html: job.description }}
-              />
+            {access.canViewAll ? (
+              <>
+                {job.description ? (
+                  <div
+                    className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-semibold prose-li:my-1 prose-a:text-red-600 dark:prose-a:text-red-400"
+                    dangerouslySetInnerHTML={{ __html: job.description }}
+                  />
+                ) : (
+                  <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                    {job.shortDescription}
+                  </p>
+                )}
+                <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
+                  <a
+                    href={job.applyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all duration-200"
+                  >
+                    Apply on company site
+                    <ArrowUpRight className="w-4 h-4" />
+                  </a>
+                  <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                    Builders Hub does not host or process applications. Clicking above takes you to {job.company.name}&apos;s career portal.
+                  </p>
+                </div>
+              </>
             ) : (
-              <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                {job.shortDescription}
-              </p>
+              <div className="relative min-h-[320px]">
+                <div
+                  aria-hidden
+                  className="space-y-4 pointer-events-none select-none filter blur-md opacity-80"
+                >
+                  <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                    {job.shortDescription}
+                  </p>
+                  <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                    {'█'.repeat(220).match(/.{1,40}/g)?.join(' ')}
+                  </p>
+                </div>
+                <UnlockPrompt
+                  authenticated={access.authenticated}
+                  missingSocials={missingSocialsFor(access)}
+                  returnTo={`/ecosystem-careers/${job.id}`}
+                  variant="panel"
+                />
+              </div>
             )}
-            <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
-              <a
-                href={job.applyUrl}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all duration-200"
-              >
-                Apply on company site
-                <ArrowUpRight className="w-4 h-4" />
-              </a>
-              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-                Builders Hub does not host or process applications. Clicking above takes you to {job.company.name}&apos;s career portal.
-              </p>
-            </div>
           </article>
 
           <aside className="space-y-6">

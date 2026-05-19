@@ -147,6 +147,74 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
   };
 }
 
+export interface UserListingsResult {
+  ownProjects: { id: string; project_name: string; logo_url: string | null }[];
+  listings: (JobCard & { isActive: boolean })[];
+}
+
+export async function listListingsForUser(userId: string): Promise<UserListingsResult> {
+  // All Projects the user is a confirmed member of (used as the "post a job"
+  // dropdown source AND as an auth signal for editing co-team listings).
+  const memberRows = await prisma.member.findMany({
+    where: { user_id: userId, status: 'Confirmed' },
+    select: { project: { select: { id: true, project_name: true, logo_url: true } } },
+  });
+  const ownProjects = memberRows
+    .map((m) => m.project)
+    .filter((p): p is { id: string; project_name: string; logo_url: string | null } => p !== null);
+  const projectIds = ownProjects.map((p) => p.id);
+
+  const orClauses: any[] = [{ posted_by_user_id: userId }];
+  if (projectIds.length > 0) {
+    orClauses.push({ company: { project_id: { in: projectIds } } });
+  }
+  const rows = await prisma.jobListing.findMany({
+    where: { source: 'project', OR: orClauses },
+    include: { company: true },
+    orderBy: [{ is_active: 'desc' }, { posted_at: 'desc' }, { created_at: 'desc' }],
+  });
+
+  return {
+    ownProjects,
+    listings: rows.map((row) => ({ ...toJobCard(row), isActive: row.is_active })),
+  };
+}
+
+export async function getListingForEdit(
+  listingId: string,
+  userId: string,
+): Promise<
+  | (JobCard & {
+      description: string | null;
+      projectId: string | null;
+      isActive: boolean;
+      employmentType: string | null;
+    })
+  | null
+> {
+  const row = await prisma.jobListing.findUnique({
+    where: { id: listingId },
+    include: { company: true },
+  });
+  if (!row || row.source !== 'project') return null;
+  const projectId = row.company.project_id;
+  if (!projectId) return null;
+
+  const isOwnPost = row.posted_by_user_id === userId;
+  const member = await prisma.member.findFirst({
+    where: { project_id: projectId, user_id: userId, status: 'Confirmed' },
+  });
+  if (!isOwnPost && !member) return null;
+
+  return {
+    ...toJobCard(row),
+    description: row.description,
+    projectId,
+    isActive: row.is_active,
+    employmentType: row.employment_type,
+  };
+}
+
 export async function listMoreJobsFromCompany(
   companyId: string,
   excludeJobId: string,

@@ -3,12 +3,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { JobCard } from '@/components/ecosystem-careers/JobCard';
+import { HiringCta } from '@/components/ecosystem-careers/HiringCta';
+import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
 import type { CompanyOption, SerializableJobCard } from '@/server/services/ecosystemCareers/queries';
 
 interface Props {
   initialJobs: SerializableJobCard[];
   totalActive: number;
   companies: CompanyOption[];
+  viewerCanViewAll: boolean;
+  viewerAuthenticated: boolean;
+  viewerMissingSocials: ('x' | 'linkedin')[];
+  previewCount: number;
 }
 
 const REMOTE_OPTIONS = [
@@ -17,7 +23,15 @@ const REMOTE_OPTIONS = [
   { value: 'hybrid', label: 'Hybrid' },
 ];
 
-export default function EcosystemCareersClient({ initialJobs, totalActive, companies }: Props) {
+export default function EcosystemCareersClient({
+  initialJobs,
+  totalActive,
+  companies,
+  viewerCanViewAll,
+  viewerAuthenticated,
+  viewerMissingSocials,
+  previewCount,
+}: Props) {
   const [search, setSearch] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [remoteType, setRemoteType] = useState<string | null>(null);
@@ -64,6 +78,9 @@ export default function EcosystemCareersClient({ initialJobs, totalActive, compa
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
             Open roles from teams across the Avalanche ecosystem. Click into a listing to read more and apply on the company&apos;s site.
           </p>
+          <div className="flex justify-center pt-2">
+            <HiringCta variant="button" />
+          </div>
         </div>
       </section>
 
@@ -141,16 +158,66 @@ export default function EcosystemCareersClient({ initialJobs, totalActive, compa
 
           {filtered.length === 0 ? (
             <EmptyState hasFilters={hasFilters} />
-          ) : (
+          ) : viewerCanViewAll ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((job) => (
                 <JobCard key={job.id} job={job} />
               ))}
             </div>
+          ) : (
+            <GatedGrid
+              jobs={filtered}
+              previewCount={previewCount}
+              authenticated={viewerAuthenticated}
+              missingSocials={viewerMissingSocials}
+            />
           )}
         </div>
       </section>
     </main>
+  );
+}
+
+function GatedGrid({
+  jobs,
+  previewCount,
+  authenticated,
+  missingSocials,
+}: {
+  jobs: SerializableJobCard[];
+  previewCount: number;
+  authenticated: boolean;
+  missingSocials: ('x' | 'linkedin')[];
+}) {
+  const visible = jobs.slice(0, previewCount);
+  const blurred = jobs.slice(previewCount);
+  return (
+    <div className="space-y-6">
+      {visible.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {visible.map((job) => (
+            <JobCard key={job.id} job={job} />
+          ))}
+        </div>
+      )}
+      {blurred.length > 0 && (
+        <div className="relative">
+          <div
+            aria-hidden
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pointer-events-none select-none filter blur-md saturate-75 opacity-80"
+          >
+            {blurred.map((job) => (
+              <JobCard key={job.id} job={job} />
+            ))}
+          </div>
+          <UnlockPrompt
+            authenticated={authenticated}
+            missingSocials={missingSocials}
+            hiddenCount={blurred.length}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
