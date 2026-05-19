@@ -283,11 +283,24 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
           AND (h."is_public" IS TRUE OR h."is_public" IS NULL)
         GROUP BY h."id", h."title", h."start_date", h."end_date"
       ),
+      -- RegisterForm covers most hackathons, but Build Games applications
+      -- live in their own table (BuildGamesApplication) with no
+      -- hackathon_id link. UNION them in so Build Games shows the full
+      -- applicant count instead of the handful of users who happened to
+      -- submit a generic RegisterForm.
       event_registrations AS (
-        SELECT "hackathon_id" AS "eventId",
-               COUNT(*)::bigint AS "registrations"
-        FROM "RegisterForm"
-        GROUP BY "hackathon_id"
+        SELECT "eventId", SUM("registrations")::bigint AS "registrations"
+        FROM (
+          SELECT "hackathon_id" AS "eventId",
+                 COUNT(*)::bigint AS "registrations"
+          FROM "RegisterForm"
+          GROUP BY "hackathon_id"
+          UNION ALL
+          SELECT '249d2911-7931-4aa0-a696-37d8370b79f9' AS "eventId",
+                 COUNT(*)::bigint AS "registrations"
+          FROM "BuildGamesApplication"
+        ) combined
+        GROUP BY "eventId"
       )
       SELECT ep."eventId",
              ep."event",

@@ -617,13 +617,30 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
 // ───────────────────────────────────────────────────────────────────────────
 
 function EventHistorySection({ data }: { data: BuilderInsightsData }) {
+  const [sortBy, setSortBy] = React.useState<EventSortKey>("recent");
+
+  // "Recent" = newest start date first. "Top" = most inscriptions first,
+  // falling back to project count when registrations tie, then to start
+  // date so the order stays stable.
   const sorted = React.useMemo(() => {
-    return [...data.eventParticipants].sort((a, b) => {
+    const events = [...data.eventParticipants];
+    if (sortBy === "top") {
+      return events.sort((a, b) => {
+        if (b.registrations !== a.registrations) {
+          return b.registrations - a.registrations;
+        }
+        if (b.projects !== a.projects) return b.projects - a.projects;
+        const aStart = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const bStart = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return bStart - aStart;
+      });
+    }
+    return events.sort((a, b) => {
       const aStart = a.startDate ? new Date(a.startDate).getTime() : 0;
       const bStart = b.startDate ? new Date(b.startDate).getTime() : 0;
       return bStart - aStart;
     });
-  }, [data.eventParticipants]);
+  }, [data.eventParticipants, sortBy]);
 
   return (
     <section className="pr-insights__section">
@@ -638,6 +655,15 @@ function EventHistorySection({ data }: { data: BuilderInsightsData }) {
           {formatNumber(data.totalHackathonProjects)} projects
         </span>
       </header>
+
+      <Segmented<EventSortKey>
+        value={sortBy}
+        onChange={setSortBy}
+        options={[
+          { value: "recent", label: "Recent" },
+          { value: "top", label: "Top" },
+        ]}
+      />
 
       <div className="pr-leaderboard">
         <table>
