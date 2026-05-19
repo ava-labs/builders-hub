@@ -12,8 +12,7 @@ import {
 
 const DISMISS_KEY = 'console-profile-nudge-dismissed-until';
 const DISMISS_HOURS = 24;
-const VISIBLE_MS = 6500;
-const ROTATE_MS = 11000;
+const ROTATE_MS = 8000;
 
 interface ExtendedProfile {
   name?: string | null;
@@ -79,11 +78,9 @@ export function ProfileCompletionNudge() {
     [],
   );
   const [cursor, setCursor] = useState(0);
-  const [showPrompt, setShowPrompt] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [dismissedUntil, setDismissedUntil] = useState(0);
 
-  const hideTimer = useRef<NodeJS.Timeout | null>(null);
   const rotateTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -132,7 +129,30 @@ export function ProfileCompletionNudge() {
   // profile is complete, advertise the active referral programs (events first,
   // then grants — the bh_signup row is always present so we skip it).
   const messages: NudgeMessage[] = useMemo(() => {
-    if (!profile) return [];
+    // While the profile fetch is in flight (or if it failed), still surface
+    // the referral catalog so the nudge isn't silent.
+    if (!profile) {
+      const ranked = [...referralTargets].sort((a, b) => {
+        const order: Record<string, number> = { event: 0, grant: 1, signup: 2 };
+        return (order[a.group] ?? 9) - (order[b.group] ?? 9);
+      });
+      const fromTargets: NudgeMessage[] = ranked.map((t) => ({
+        title:
+          t.group === 'signup'
+            ? 'Invite builders to Builder Hub'
+            : `Refer builders to ${t.label}`,
+        detail: t.detail || 'Grab your link from the profile referral panel',
+        href: '/profile',
+      }));
+      if (fromTargets.length > 0) return fromTargets;
+      return [
+        {
+          title: 'Invite builders to Builder Hub',
+          detail: 'Grab your referral link from the profile page',
+          href: '/profile',
+        },
+      ];
+    }
     const walletList = Array.isArray(profile.wallet)
       ? profile.wallet
       : profile.wallet
@@ -161,13 +181,32 @@ export function ProfileCompletionNudge() {
         href: '/profile',
       }));
     }
-    return referralTargets
-      .filter((t) => t.group !== 'signup')
-      .map((t) => ({
-        title: `Refer builders to ${t.label}`,
-        detail: t.detail || 'Share your link from the profile referral panel',
+    // Profile is complete — promote active referral programs. Events and
+    // grants surface first; the always-present bh_signup row anchors the
+    // list so the nudge never goes empty just because there's no live
+    // hackathon at the moment.
+    const ranked = [...referralTargets].sort((a, b) => {
+      const order: Record<string, number> = { event: 0, grant: 1, signup: 2 };
+      return (order[a.group] ?? 9) - (order[b.group] ?? 9);
+    });
+    const fromTargets: NudgeMessage[] = ranked.map((t) => ({
+      title:
+        t.group === 'signup'
+          ? 'Invite builders to Builder Hub'
+          : `Refer builders to ${t.label}`,
+      detail: t.detail || 'Grab your link from the profile referral panel',
+      href: '/profile',
+    }));
+    if (fromTargets.length > 0) return fromTargets;
+    // Last-resort baseline so the nudge isn't silent if the summary fetch
+    // failed or no programs are active.
+    return [
+      {
+        title: 'Invite builders to Builder Hub',
+        detail: 'Grab your referral link from the profile page',
         href: '/profile',
-      }));
+      },
+    ];
   }, [profile, referralTargets]);
 
   const isVisible =
@@ -177,32 +216,25 @@ export function ProfileCompletionNudge() {
     Date.now() >= dismissedUntil &&
     pathname.startsWith('/console');
 
-  // Drive the rotation. Show on mount and on every console route change, then
-  // hide → wait → swap index → show again, mirroring the chat bubble cadence.
+  // Keep the tooltip always visible while there's something to say — just
+  // rotate the message index every ROTATE_MS so the user always sees the
+  // next-step hint near the profile pill, the way the chat bubble keeps
+  // its prompt visible at the bottom-right.
   useEffect(() => {
-    if (!isVisible) {
-      setShowPrompt(false);
-      return;
-    }
-    setShowPrompt(true);
-    hideTimer.current = setTimeout(() => setShowPrompt(false), VISIBLE_MS);
-    rotateTimer.current = setTimeout(() => {
-      setCursor((c) => (c + 1) % Math.max(messages.length, 1));
-      setShowPrompt(true);
-      hideTimer.current = setTimeout(() => setShowPrompt(false), VISIBLE_MS);
+    if (!isVisible || messages.length <= 1) return;
+    rotateTimer.current = setInterval(() => {
+      setCursor((c) => (c + 1) % messages.length);
     }, ROTATE_MS);
     return () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-      if (rotateTimer.current) clearTimeout(rotateTimer.current);
+      if (rotateTimer.current) clearInterval(rotateTimer.current);
     };
-  }, [isVisible, pathname, messages.length]);
+  }, [isVisible, messages.length]);
 
   if (!isVisible) return null;
 
   const message = messages[cursor % messages.length];
 
   const handleClick = () => {
-    setShowPrompt(false);
     router.push(message.href);
   };
 
@@ -216,10 +248,7 @@ export function ProfileCompletionNudge() {
   return (
     <div
       className={cn(
-        'fixed right-4 z-[60] transition-all duration-500 ease-out',
-        showPrompt
-          ? 'translate-y-0 opacity-100 scale-100'
-          : '-translate-y-2 opacity-0 scale-95 pointer-events-none',
+        'fixed right-4 z-[60] animate-in fade-in slide-in-from-top-2 duration-300',
       )}
       style={{ top: 'calc(var(--fd-nav-height, 56px) + 12px)' }}
       data-profile-nudge

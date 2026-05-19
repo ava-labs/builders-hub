@@ -10,28 +10,29 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 
-const AVATAR_PX = 18;
+const AVATAR_PX = 53;
 
-// Matches the ThemeToggle pill exactly so the navbar controls share one
-// visual rhythm. The inner slot (size-6.5 with p-1.5) is the footprint of a
-// single sun/moon glyph; every avatar variant (initials, image, dicebear,
-// fallback icon) renders inside the same 26px square so the pill is the same
-// width and height as an individual toggle icon.
-const PILL_CLASS =
-  'inline-flex items-center justify-center rounded-full border p-1 ml-2 hover:bg-fd-accent transition-colors';
-const SLOT_CLASS = 'size-6.5 rounded-full flex items-center justify-center';
-const ICON_CLASS = `${SLOT_CLASS} p-1.5 text-fd-muted-foreground`;
-const INITIALS_CLASS = `${SLOT_CLASS} text-[10px] font-semibold tracking-tighter text-fd-muted-foreground bg-fd-muted/60`;
+// Avatar slot sits a touch larger than the ThemeToggle pill so it reads as
+// its own anchor in the navbar. Profile pictures fill the full 53px slot;
+// the placeholder glyph keeps a hair-thin stroke and a lighter grey in
+// light mode / darker grey in dark mode so the line blends into the navbar
+// instead of standing out.
+const WRAPPER_CLASS =
+  'inline-flex items-center justify-center rounded-full no-underline hover:no-underline focus:outline-none transition-transform duration-150 hover:scale-[1.2]';
+const SLOT_CLASS = 'size-[53px] rounded-full flex items-center justify-center';
+const ICON_CLASS = `${SLOT_CLASS} p-2 text-zinc-400 dark:text-zinc-600`;
+const INITIALS_CLASS = `${SLOT_CLASS} text-[26px] font-bold tracking-tight text-[#b8b8c0] dark:text-zinc-600`;
 
 function initialsFromName(name?: string | null): string {
   if (!name) return '';
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((s) => s[0] ?? '')
-    .join('')
-    .toUpperCase();
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) {
+    // Single word — show the first two letters so "Jeff" reads as "JE"
+    // instead of a lonely "J" floating in the slot.
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export function UserButton() {
@@ -91,7 +92,7 @@ export function UserButton() {
   if (isAuthenticated) {
     const nameInitials = initialsFromName(session.user?.name);
     return (
-      <Link href="/profile" aria-label="Profile" className={PILL_CLASS}>
+      <Link href="/profile" aria-label="Profile" className={WRAPPER_CLASS}>
         {nounAvatarEnabled && nounAvatarSeed ? (
           <span className={`${SLOT_CLASS} overflow-hidden`}>
             <DiceBearAvatar
@@ -113,7 +114,7 @@ export function UserButton() {
         ) : nameInitials ? (
           <span className={INITIALS_CLASS}>{nameInitials}</span>
         ) : (
-          <CircleUserRound className={ICON_CLASS} strokeWidth={1.75} />
+          <CircleUserRound className={ICON_CLASS} strokeWidth={0.85} />
         )}
       </Link>
     );
@@ -123,14 +124,14 @@ export function UserButton() {
     <button
       type="button"
       aria-label="Login"
-      className={PILL_CLASS}
+      className={WRAPPER_CLASS}
       onClick={() => {
         const currentUrl =
           typeof window !== 'undefined' ? window.location.href : '/';
         openLoginModal(currentUrl);
       }}
     >
-      <CircleUserRound className={ICON_CLASS} strokeWidth={1.75} />
+      <CircleUserRound className={ICON_CLASS} strokeWidth={0.85} />
     </button>
   );
 }
