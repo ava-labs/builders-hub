@@ -1,18 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Sparkles, UserPlus, X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import {
   COMPLETION_STEPS,
   computeCompletion,
-  type CompletionStep,
 } from '@/lib/profile/completion';
 
 const DISMISS_KEY = 'console-profile-nudge-dismissed-until';
 const DISMISS_HOURS = 24;
+const VISIBLE_MS = 6500;
+const ROTATE_MS = 11000;
 
 interface ExtendedProfile {
   name?: string | null;
@@ -33,8 +34,24 @@ interface ExtendedProfile {
   } | null;
 }
 
-function rolesFromProfile(profile: ExtendedProfile): string[] {
-  const t = profile.user_type ?? {};
+interface SummaryReferralTarget {
+  key: string;
+  group: 'signup' | 'event' | 'grant';
+  label: string;
+  detail: string;
+  targetType: string;
+  targetId: string | null;
+  destinationUrl: string;
+}
+
+interface NudgeMessage {
+  title: string;
+  detail: string;
+  href: string;
+}
+
+function rolesFromProfile(p: ExtendedProfile): string[] {
+  const t = p.user_type ?? {};
   const out: string[] = [];
   if (t.is_student) out.push('university');
   if (t.is_founder) out.push('founder');
@@ -44,13 +61,12 @@ function rolesFromProfile(profile: ExtendedProfile): string[] {
   return out;
 }
 
-function isDismissed(): boolean {
-  if (typeof window === 'undefined') return false;
+function readDismissedUntil(): number {
+  if (typeof window === 'undefined') return 0;
   const raw = window.localStorage.getItem(DISMISS_KEY);
-  if (!raw) return false;
+  if (!raw) return 0;
   const ts = Number(raw);
-  if (!Number.isFinite(ts)) return false;
-  return Date.now() < ts;
+  return Number.isFinite(ts) ? ts : 0;
 }
 
 export function ProfileCompletionNudge() {
@@ -58,160 +74,186 @@ export function ProfileCompletionNudge() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [missing, setMissing] = useState<CompletionStep[]>([]);
+  const [profile, setProfile] = useState<ExtendedProfile | null>(null);
+  const [referralTargets, setReferralTargets] = useState<SummaryReferralTarget[]>(
+    [],
+  );
+  const [cursor, setCursor] = useState(0);
   const [showPrompt, setShowPrompt] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
   const [mounted, setMounted] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissedUntil, setDismissedUntil] = useState(0);
 
-  const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimer = useRef<NodeJS.Timeout | null>(null);
+  const rotateTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    setDismissed(isDismissed());
+    setDismissedUntil(readDismissedUntil());
   }, []);
 
-  // Re-evaluate dismissal whenever the user changes route within the console
-  // so a long session naturally resurfaces the nudge once the 24h window lapses.
   useEffect(() => {
-    setDismissed(isDismissed());
+    setDismissedUntil(readDismissedUntil());
   }, [pathname]);
 
-  // Pull just enough of the profile to compute the steps the nudge covers.
-  // Hackathon/project/console steps are out of scope here — those are tracked
-  // on the profile page itself.
+  // Fetch profile + referral targets in parallel. The summary endpoint already
+  // returns the same referralTargets the profile page uses, so we lean on it
+  // instead of inventing a parallel "upcoming programs" feed.
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user?.id) {
-      setMissing([]);
+      setProfile(null);
+      setReferralTargets([]);
       return;
     }
     let cancelled = false;
-    fetch(`/api/profile/extended/${session.user.id}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((profile: ExtendedProfile | null) => {
-        if (cancelled || !profile) return;
-        const walletList = Array.isArray(profile.wallet)
-          ? profile.wallet
-          : profile.wallet
-            ? [profile.wallet]
-            : [];
-        const { status: stepStatus } = computeCompletion({
-          fullName: profile.name ?? '',
-          bio: profile.bio ?? '',
-          country: profile.country ?? '',
-          roles: rolesFromProfile(profile),
-          github: profile.github_account ?? '',
-          xAccount: profile.x_account ?? '',
-          telegram: profile.telegram_account ?? '',
-          linkedin: profile.linkedin_account ?? '',
-          wallets: walletList,
-          skills: profile.skills ?? [],
-        });
-        // Only nudge for things the user controls from the profile page —
-        // skip engagement steps (hackathon/project/console).
-        const engagementKeys = new Set(['hackathon', 'project', 'console']);
-        const remaining = COMPLETION_STEPS.filter(
-          (step) => !engagementKeys.has(step.key) && !stepStatus[step.key],
-        );
-        setMissing(remaining);
+    void Promise.all([
+      fetch(`/api/profile/extended/${session.user.id}`).then((r) =>
+        r.ok ? r.json() : null,
+      ),
+      fetch('/api/profile/summary').then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([p, s]) => {
+        if (cancelled) return;
+        setProfile((p as ExtendedProfile) ?? null);
+        const targets = (s?.referralTargets ?? []) as SummaryReferralTarget[];
+        setReferralTargets(targets);
       })
       .catch(() => {
-        if (!cancelled) setMissing([]);
+        if (!cancelled) {
+          setProfile(null);
+          setReferralTargets([]);
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [status, session?.user?.id]);
 
-  // Rotate through the visible tip every ~12s and surface a fresh one on each
-  // console navigation. Mirrors the rhythm of the chat bubble's prompt cycle.
+  // Build the rotating message list: incomplete profile steps first; if the
+  // profile is complete, advertise the active referral programs (events first,
+  // then grants — the bh_signup row is always present so we skip it).
+  const messages: NudgeMessage[] = useMemo(() => {
+    if (!profile) return [];
+    const walletList = Array.isArray(profile.wallet)
+      ? profile.wallet
+      : profile.wallet
+        ? [profile.wallet]
+        : [];
+    const { status: stepStatus } = computeCompletion({
+      fullName: profile.name ?? '',
+      bio: profile.bio ?? '',
+      country: profile.country ?? '',
+      roles: rolesFromProfile(profile),
+      github: profile.github_account ?? '',
+      xAccount: profile.x_account ?? '',
+      telegram: profile.telegram_account ?? '',
+      linkedin: profile.linkedin_account ?? '',
+      wallets: walletList,
+      skills: profile.skills ?? [],
+    });
+    const skip = new Set(['hackathon', 'project', 'console']);
+    const remaining = COMPLETION_STEPS.filter(
+      (s) => !skip.has(s.key) && !stepStatus[s.key],
+    );
+    if (remaining.length > 0) {
+      return remaining.map((s) => ({
+        title: s.label,
+        detail: s.description,
+        href: '/profile',
+      }));
+    }
+    return referralTargets
+      .filter((t) => t.group !== 'signup')
+      .map((t) => ({
+        title: `Refer builders to ${t.label}`,
+        detail: t.detail || 'Share your link from the profile referral panel',
+        href: '/profile',
+      }));
+  }, [profile, referralTargets]);
+
+  const isVisible =
+    mounted &&
+    status === 'authenticated' &&
+    messages.length > 0 &&
+    Date.now() >= dismissedUntil &&
+    pathname.startsWith('/console');
+
+  // Drive the rotation. Show on mount and on every console route change, then
+  // hide → wait → swap index → show again, mirroring the chat bubble cadence.
   useEffect(() => {
-    if (!mounted || missing.length === 0 || dismissed) return;
-
+    if (!isVisible) {
+      setShowPrompt(false);
+      return;
+    }
     setShowPrompt(true);
-    const hideTimer = setTimeout(() => setShowPrompt(false), 6000);
-    const rotateTimer = setTimeout(() => {
-      setCurrentStep((p) => (p + 1) % Math.max(missing.length, 1));
+    hideTimer.current = setTimeout(() => setShowPrompt(false), VISIBLE_MS);
+    rotateTimer.current = setTimeout(() => {
+      setCursor((c) => (c + 1) % Math.max(messages.length, 1));
       setShowPrompt(true);
-      promptTimeoutRef.current = setTimeout(() => setShowPrompt(false), 6000);
-    }, 12000);
-
+      hideTimer.current = setTimeout(() => setShowPrompt(false), VISIBLE_MS);
+    }, ROTATE_MS);
     return () => {
-      clearTimeout(hideTimer);
-      clearTimeout(rotateTimer);
-      if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      if (rotateTimer.current) clearTimeout(rotateTimer.current);
     };
-  }, [pathname, missing.length, dismissed, mounted]);
+  }, [isVisible, pathname, messages.length]);
 
-  if (!pathname.startsWith('/console')) return null;
-  if (status !== 'authenticated') return null;
-  if (missing.length === 0) return null;
-  if (dismissed) return null;
+  if (!isVisible) return null;
 
-  const step = missing[currentStep % missing.length];
+  const message = messages[cursor % messages.length];
 
-  const handleGoToProfile = () => {
-    router.push('/profile');
+  const handleClick = () => {
+    setShowPrompt(false);
+    router.push(message.href);
   };
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     const until = Date.now() + DISMISS_HOURS * 60 * 60 * 1000;
     window.localStorage.setItem(DISMISS_KEY, String(until));
-    setDismissed(true);
+    setDismissedUntil(until);
   };
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3"
+      className={cn(
+        'fixed right-4 z-[60] transition-all duration-500 ease-out',
+        showPrompt
+          ? 'translate-y-0 opacity-100 scale-100'
+          : '-translate-y-2 opacity-0 scale-95 pointer-events-none',
+      )}
+      style={{ top: 'calc(var(--fd-nav-height, 56px) + 12px)' }}
       data-profile-nudge
     >
-      {mounted && (
-        <div
-          className={cn(
-            'transform transition-all duration-500 ease-out',
-            showPrompt
-              ? 'translate-y-0 opacity-100 scale-100'
-              : 'translate-y-2 opacity-0 scale-95 pointer-events-none',
-          )}
-        >
-          <div className="relative bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white px-4 py-2.5 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 max-w-[240px]">
-            <div className="flex items-start gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium leading-snug">{step.label}</p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug mt-0.5">
-                  {step.description}
-                </p>
-              </div>
-            </div>
-            <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white dark:bg-zinc-900 border-r border-b border-zinc-200 dark:border-zinc-800 transform rotate-45" />
-          </div>
-        </div>
-      )}
-
-      <button
-        onClick={handleGoToProfile}
-        className={cn(
-          'group relative w-12 h-12 rounded-full shadow-lg border flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-xl',
-          'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700/50',
-          'hover:border-zinc-300 dark:hover:border-zinc-600',
-        )}
-        aria-label={`Complete your profile: ${step.label}`}
-        title={`${missing.length} step${missing.length === 1 ? '' : 's'} left on your profile`}
-      >
-        <UserPlus className="w-5 h-5 text-zinc-700 dark:text-zinc-300 relative z-10 transition-transform group-hover:scale-110" />
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
-          {missing.length}
-        </span>
+      <div className="relative max-w-[260px]">
         <button
+          type="button"
+          onClick={handleClick}
+          className="block w-full bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white px-4 py-2.5 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 text-left hover:shadow-2xl transition-shadow"
+        >
+          <div className="flex items-start gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium leading-snug">{message.title}</p>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug mt-0.5">
+                {message.detail}
+              </p>
+            </div>
+          </div>
+        </button>
+        {/* Arrow pointing up to the profile pill in the navbar */}
+        <span
+          aria-hidden
+          className="absolute -top-2 right-5 w-4 h-4 bg-white dark:bg-zinc-900 border-l border-t border-zinc-200 dark:border-zinc-800 transform rotate-45 pointer-events-none"
+        />
+        <button
+          type="button"
           onClick={handleDismiss}
-          aria-label="Dismiss profile reminder for 24 hours"
-          className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+          aria-label="Dismiss for 24 hours"
+          className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 flex items-center justify-center"
         >
           <X className="w-3 h-3" />
         </button>
-      </button>
+      </div>
     </div>
   );
 }

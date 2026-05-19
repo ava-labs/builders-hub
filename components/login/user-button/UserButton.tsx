@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,7 +10,15 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 
-const AVATAR_SIZE = 32;
+const AVATAR_PX = 18;
+
+// Matches the ThemeToggle pill: same border, padding, and total height so
+// the navbar controls share one visual rhythm. The inner glyph (size-6.5
+// rounded-full p-1.5) mirrors a single sun/moon icon.
+const PILL_CLASS =
+  'inline-flex items-center justify-center rounded-full border p-1 ml-2 hover:bg-fd-accent transition-colors';
+const ICON_CLASS =
+  'size-6.5 rounded-full p-1.5 text-fd-muted-foreground';
 
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
@@ -69,56 +76,42 @@ export function UserButton() {
 
   if (isAuthenticated) {
     return (
-      <Button
-        asChild
-        variant="ghost"
-        size="icon"
-        className="rounded-full h-10 w-10 ml-1 cursor-pointer p-1 overflow-hidden"
-      >
-        <Link href="/profile" aria-label="Profile">
-          {nounAvatarEnabled && nounAvatarSeed ? (
-            <span className="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center shrink-0">
-              <DiceBearAvatar
-                seed={nounAvatarSeed}
-                size="small"
-                className="pointer-events-none scale-[0.71] origin-center"
-              />
-            </span>
-          ) : session.user.image ? (
-            <Image
-              src={session.user.image}
-              alt="User Avatar"
-              width={AVATAR_SIZE}
-              height={AVATAR_SIZE}
-              className="rounded-full"
+      <Link href="/profile" aria-label="Profile" className={PILL_CLASS}>
+        {nounAvatarEnabled && nounAvatarSeed ? (
+          <span className="size-6.5 rounded-full overflow-hidden flex items-center justify-center">
+            <DiceBearAvatar
+              seed={nounAvatarSeed}
+              size="small"
+              className="pointer-events-none scale-[0.45] origin-center"
             />
-          ) : (
-            <CircleUserRound
-              className="h-5! w-5! stroke-zinc-900 dark:stroke-white"
-              strokeWidth={1.5}
-            />
-          )}
-        </Link>
-      </Button>
+          </span>
+        ) : session.user.image ? (
+          <Image
+            src={session.user.image}
+            alt="User Avatar"
+            width={AVATAR_PX}
+            height={AVATAR_PX}
+            className="rounded-full"
+          />
+        ) : (
+          <CircleUserRound className={ICON_CLASS} strokeWidth={1.75} />
+        )}
+      </Link>
     );
   }
 
   return (
-    <Button
-      size="icon"
-      variant="ghost"
-      className="rounded-full h-10 w-10 ml-4 cursor-pointer p-0"
+    <button
+      type="button"
+      aria-label="Login"
+      className={PILL_CLASS}
       onClick={() => {
         const currentUrl =
           typeof window !== 'undefined' ? window.location.href : '/';
         openLoginModal(currentUrl);
       }}
-      aria-label="Login"
     >
-      <CircleUserRound
-        className="h-5! w-5! stroke-zinc-900 dark:stroke-white"
-        strokeWidth={1.5}
-      />
-    </Button>
+      <CircleUserRound className={ICON_CLASS} strokeWidth={1.75} />
+    </button>
   );
 }
