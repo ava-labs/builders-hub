@@ -150,6 +150,28 @@ export async function updateExtendedProfile(
         }
     }
 
+    // Country lock: once the user has registered for any hackathon, country becomes
+    // immutable. Some events are country-specific and the registrant identity must be
+    // stable. Client-side enforcement happens in RegistrationForm; this is the
+    // authoritative server check.
+    if (
+        typeof profileData.country === "string" &&
+        existingUser.country &&
+        existingUser.country.trim() !== "" &&
+        profileData.country.trim() !== existingUser.country.trim()
+    ) {
+        const hasRegistration = await prisma.registerForm.findFirst({
+            where: { user: { id } },
+            select: { id: true },
+        });
+        if (hasRegistration) {
+            throw new ProfileValidationError(
+                "Country is locked after your first registration. Contact support to change it.",
+                400,
+            );
+        }
+    }
+
     const updateData = buildUserUpdateData(profileData);
 
     await prisma.user.update({

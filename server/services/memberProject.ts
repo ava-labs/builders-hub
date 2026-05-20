@@ -124,6 +124,30 @@ async function deleteProjectIfNoMembers(projectId: string) {
 }
 
 export async function GetMembersByProjectId(project_id: string) {
+  // Lazy teammate auto-conversion: when the hackathon's registration_deadline has passed,
+  // any still-pending Member row is converted to "Removed" so the team effectively becomes
+  // solo. Avoids a scheduled job; this is the read path the submission form uses.
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: project_id },
+      select: { hackathon: { select: { content: true } } },
+    });
+    const registrationDeadlineRaw =
+      (project?.hackathon?.content as any)?.registration_deadline ?? null;
+    if (registrationDeadlineRaw) {
+      const deadline = new Date(registrationDeadlineRaw);
+      if (Number.isFinite(deadline.getTime()) && Date.now() > deadline.getTime()) {
+        await prisma.member.updateMany({
+          where: { project_id, status: "Pending Confirmation" },
+          data: { status: "Removed" },
+        });
+      }
+    }
+  } catch (err) {
+    // Don't block the read if the lazy conversion fails.
+    console.error("[Members] Lazy pending-teammate cleanup failed:", err);
+  }
+
   const members = await prisma.member.findMany({
     where: { project_id: project_id, status: { not: "Removed" } },
     include: {
@@ -146,6 +170,7 @@ export async function GetMembersByProjectId(project_id: string) {
     image: member.user?.image,
     role: member.role,
     status: member.status,
+    visibility: member.visibility ?? null,
   }));
 }
 
@@ -155,6 +180,36 @@ export async function UpdateRoleMember(member_id: string, role: string) {
     data: { role },
   });
   return updatedMember;
+}
+
+export type MemberVisibility = {
+  country?: boolean;
+  email?: boolean;
+  telegram?: boolean;
+  x?: boolean;
+  github?: boolean;
+};
+
+/**
+ * Update a member's per-field contact-visibility toggles. Only the member
+ * themselves should be able to call this (enforced in the route handler).
+ */
+export async function UpdateMemberVisibility(
+  member_id: string,
+  visibility: MemberVisibility,
+) {
+  // Whitelist + coerce to booleans so we never store arbitrary client JSON.
+  const safe: MemberVisibility = {
+    country: Boolean(visibility.country),
+    email: Boolean(visibility.email),
+    telegram: Boolean(visibility.telegram),
+    x: Boolean(visibility.x),
+    github: Boolean(visibility.github),
+  };
+  return prisma.member.update({
+    where: { id: member_id },
+    data: { visibility: safe },
+  });
 }
 
 export async function GetProjectsByUserId(user_id: string) {

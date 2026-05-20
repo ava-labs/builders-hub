@@ -10,6 +10,11 @@ import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
 import { NotificationMeans } from "@/lib/notificationDefaults";
+import { PROJECT_VISIBILITY, isProjectVisibility } from "@/types/showcase";
+
+function resolveVisibility(value: unknown): string {
+  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.SEMI_PUBLIC;
+}
 
 export const projectValidations: Validation[] = [
   {
@@ -158,6 +163,9 @@ export async function createProject(
           short_description: projectData.short_description ?? "",
           full_description: projectData.full_description ?? "",
           tech_stack: projectData.tech_stack ?? "",
+          stack: Array.isArray((projectData as any).stack)
+            ? ((projectData as any).stack as string[])
+            : [],
           github_repository: projectData.github_repository ?? "",
           demo_link: projectData.demo_link ?? "",
           explanation: projectData.explanation ?? "",
@@ -176,6 +184,9 @@ export async function createProject(
           socials: isNonEmptyObject(projectData.socials)
             ? projectData.socials
             : Prisma.JsonNull,
+          ...(projectData.visibility !== undefined && {
+            visibility: resolveVisibility(projectData.visibility),
+          }),
           ...(typeof projectData.consent_sharing === "boolean"
             ? { consent_sharing: projectData.consent_sharing }
             : {}),
@@ -192,6 +203,9 @@ export async function createProject(
         short_description: projectData.short_description ?? "",
         full_description: projectData.full_description ?? "",
         tech_stack: projectData.tech_stack ?? "",
+        stack: Array.isArray((projectData as any).stack)
+          ? ((projectData as any).stack as string[])
+          : [],
         github_repository: projectData.github_repository ?? "",
         demo_link: projectData.demo_link ?? "",
         is_preexisting_idea: projectData.is_preexisting_idea ?? false,
@@ -209,6 +223,7 @@ export async function createProject(
         socials: isNonEmptyObject(projectData.socials)
           ? projectData.socials
           : Prisma.JsonNull,
+        visibility: resolveVisibility(projectData.visibility),
         ...(typeof projectData.consent_sharing === "boolean"
           ? { consent_sharing: projectData.consent_sharing }
           : {}),
@@ -317,6 +332,9 @@ export async function getProject(projectId: string): Promise<Project | null> {
     other_category: projectData.other_category ?? undefined,
     deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
     is_winner: false,
+    visibility: isProjectVisibility(projectData.visibility)
+      ? projectData.visibility
+      : PROJECT_VISIBILITY.SEMI_PUBLIC,
 
     members: projectData.members?.map((member) => {
       const user = member.user;

@@ -2,6 +2,9 @@ export const X_ACCOUNT_PATTERN = /^https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Z
 export const LINKEDIN_ACCOUNT_PATTERN = /^https?:\/\/(?:www\.)?linkedin\.com\/(?:in|pub)\/[\w\-.%]+\/?$/i;
 export const GITHUB_ACCOUNT_PATTERN = /^(?:[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}|https?:\/\/(?:www\.)?github\.com\/[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\/?)$/i;
 export const TELEGRAM_ACCOUNT_PATTERN = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
+// Accepts bare handle (with or without @) or a full https://x.com / https://twitter.com URL.
+// Matches Twitter/X handle rules: 1-15 chars, [A-Za-z0-9_].
+export const X_HANDLE_PATTERN = /^(?:@?[A-Za-z0-9_]{1,15}|https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{1,15}\/?)$/i;
 
 type BasicProfileShape = {
   name?: unknown;

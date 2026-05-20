@@ -283,6 +283,7 @@ export default function GeneralComponent({
                     onProjectCreated={getProject}
                     onHandleSave={handleSaveWithoutRoute}
                     availableTracks={hackathon?.content?.tracks ?? []}
+                    availableStackOptions={hackathon?.content?.tech_stack_options ?? []}
                     openjoinTeamDialog={openJoinTeam}
                     openCurrentProject={openCurrentProject}
                     setOpenCurrentProject={setOpenCurrentProject}
