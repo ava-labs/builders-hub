@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useRef } from 'react';
 import { useWalletStore } from '../stores/walletStore';
 import { useWalletClient, useAccount, useConnectorClient } from 'wagmi';
 import { useViemChainStore } from '../stores/toolboxStore';
@@ -49,9 +49,23 @@ export function ConnectedWalletProvider({ children }: { children: React.ReactNod
 
   const resolvedClient = wagmiWalletClient ?? (connectorClient as WalletClient | undefined) ?? fallbackWalletClient;
 
+  // Cache the last non-null wallet client so a brief wagmi teardown during
+  // `walletClient.switchChain` doesn't unmount the children subtree. Without
+  // this ref, every chain switch tore down the provider's children (and any
+  // `useState` they held), because `wagmiWalletClient` is briefly undefined
+  // while wagmi swaps the active chain. Symptoms: ICM relayer setup forgetting
+  // `selectedSources` / `createdRelayer` after sending a fund tx, deploy tools
+  // flashing back to their initial state, etc.
+  const lastClientRef = useRef<WalletClient | null>(null);
+  if (resolvedClient) {
+    lastClientRef.current = resolvedClient;
+  }
+  const effectiveClient = resolvedClient ?? lastClientRef.current;
+
   // Requirements have been checked, so the wallet should be connected.
-  // Show loading state while wallet client initializes.
-  if (!resolvedClient) {
+  // Show loading state only on the cold mount — once we've ever had a client
+  // we keep rendering children with the cached one to preserve their state.
+  if (!effectiveClient) {
     if (isWalletClientLoading) {
       return (
         <div className="flex items-center justify-center p-8">
@@ -66,7 +80,7 @@ export function ConnectedWalletProvider({ children }: { children: React.ReactNod
   }
 
   const contextValue: ConnectedWalletContextValue = {
-    walletClient: resolvedClient,
+    walletClient: effectiveClient,
     coreWalletClient: coreWalletClient ?? null,
   };
 

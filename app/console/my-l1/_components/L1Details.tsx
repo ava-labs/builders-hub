@@ -17,6 +17,7 @@ import { PrimaryNetworkActions, QuickActionsCard, WalletOnlyActions } from './Qu
 import { NetworkDetailsCard } from './NetworkDetailsCard';
 import { NodeListCard } from './NodeList';
 import { PrecompilesSection } from './PrecompilesSection';
+import { CrossChainSection } from './CrossChainSection';
 
 // `health` is threaded in from `DashboardBody` so the page only owns one
 // `useL1Health` subscription — both the HeroCard pulse dot and the StatsGrid
@@ -77,6 +78,12 @@ export function L1Details({
 
       <motion.div variants={sectionItem}>
         <LiveCharts l1={l1} />
+      </motion.div>
+
+      {/* CrossChainSection is its own Collapsible header — no DashboardSection
+          wrapper needed (matches NetworkDetailsCard's pattern). */}
+      <motion.div variants={sectionItem}>
+        <CrossChainSection l1={l1} />
       </motion.div>
 
       {isManaged && (

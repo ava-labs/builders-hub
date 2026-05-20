@@ -14,6 +14,7 @@ import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
 import { OnboardingTour } from "@/components/console/onboarding-tour";
 import { WelcomeModal } from "@/components/console/onboarding-tour/welcome-modal";
 import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotification";
+import { ProfileCompletionNudge } from "@/components/console/ProfileCompletionNudge";
 import { ConsoleViewport } from "@/components/console/console-viewport";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { baseOptions } from "@/app/layout.config";
@@ -82,6 +83,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
       <ConsoleBadgeNotification />
       <OnboardingTour />
       <WelcomeModal />
+      <ProfileCompletionNudge />
     </WalletProvider>
   );
 }
