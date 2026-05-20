@@ -1,11 +1,69 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
+import {
+  detectHtmlInjection,
+  detectMarkdownInjection,
+  detectDangerousUrl,
+} from '@/utils/input-validator';
 
 type StageSubmitValues = Record<
   string,
   string | string[] | Array<{ address: string }> | null
 >;
+
+/** Allows alphanumeric, hyphens and underscores — covers UUID, CUID and nanoid formats. */
+const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,128}$/;
+
+/** Standard EVM address: 0x followed by exactly 40 hex characters. */
+const ETHEREUM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+type SanitizeResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Server-side sanitization of stage form values.
+ * Mirrors the client-side checks in utils/input-validator but runs on every
+ * request regardless of how the payload was crafted.
+ */
+function sanitizeStageValues(values: StageSubmitValues): SanitizeResult {
+  for (const [key, value] of Object.entries(values)) {
+    if (value === null) continue;
+
+    if (typeof value === 'string') {
+      if (detectHtmlInjection(value)) {
+        return { ok: false, error: `Field "${key}" contains dangerous HTML or script content.` };
+      }
+      if (detectMarkdownInjection(value)) {
+        return { ok: false, error: `Field "${key}" contains dangerous Markdown link content.` };
+      }
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === 'string') {
+          if (detectHtmlInjection(item)) {
+            return { ok: false, error: `Field "${key}" contains dangerous HTML or script content.` };
+          }
+          if (detectDangerousUrl(item)) {
+            return { ok: false, error: `Field "${key}" contains a dangerous URL protocol.` };
+          }
+          continue;
+        }
+
+        // Address object: { address: string }
+        if (typeof item === 'object' && item !== null && 'address' in item) {
+          const addr = (item as { address: string }).address?.trim() ?? '';
+          if (addr && !ETHEREUM_ADDRESS_RE.test(addr)) {
+            return { ok: false, error: `Field "${key}" contains an invalid blockchain address.` };
+          }
+        }
+      }
+    }
+  }
+
+  return { ok: true };
+}
 
 type StageSubmitRequestBody = {
   hackathonId: string;
@@ -24,6 +82,23 @@ export const POST = withAuth(async (request: Request, _context, session) => {
 
     if (!hackathonId) {
       return NextResponse.json({ error: 'hackathonId is required' }, { status: 400 });
+    }
+
+    if (!SAFE_ID_RE.test(hackathonId)) {
+      return NextResponse.json({ error: 'Invalid hackathonId format' }, { status: 400 });
+    }
+
+    if (incomingProjectId && !SAFE_ID_RE.test(incomingProjectId)) {
+      return NextResponse.json({ error: 'Invalid projectId format' }, { status: 400 });
+    }
+
+    if (!Number.isInteger(body.stageIndex) || body.stageIndex < 0) {
+      return NextResponse.json({ error: 'Invalid stageIndex' }, { status: 400 });
+    }
+
+    const sanitizeResult = sanitizeStageValues(values);
+    if (!sanitizeResult.ok) {
+      return NextResponse.json({ error: sanitizeResult.error }, { status: 400 });
     }
 
     const sessionUserId: string = session.user.id;
@@ -282,6 +357,10 @@ export const GET = withAuth(async (request: Request, _context, session) => {
 
     if (!projectId) {
       return NextResponse.json({ error: 'projectId is required' }, { status: 400 });
+    }
+
+    if (!SAFE_ID_RE.test(projectId)) {
+      return NextResponse.json({ error: 'Invalid projectId format' }, { status: 400 });
     }
 
     const sessionUserId: string = session.user.id;

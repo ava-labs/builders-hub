@@ -27,19 +27,19 @@ export function detectHtmlInjection(text: string): boolean {
 }
 
 /**
- * Checks if text contains Markdown injection attempts
+ * Checks if text contains Markdown injection attempts.
+ * Evaluates ALL markdown links in the text, not just the first one.
  */
 export function detectMarkdownInjection(text: string): boolean {
   if (!text || typeof text !== 'string') {
     return false
   }
 
-  // Check for Markdown link with potential injection
+  // Recreate the regex each call (stateless) and iterate over ALL matches
   const markdownLinkPattern = /\[([^\]]*)\]\(([^)]*)\)/g
-  const markdownMatch = markdownLinkPattern.exec(text)
-  if (markdownMatch) {
-    const url = markdownMatch[2]
-    if (detectDangerousUrl(url)) {
+  let match: RegExpExecArray | null
+  while ((match = markdownLinkPattern.exec(text)) !== null) {
+    if (detectDangerousUrl(match[2])) {
       return true
     }
   }
