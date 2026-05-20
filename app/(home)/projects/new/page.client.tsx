@@ -3,38 +3,75 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { X as XIcon } from 'lucide-react';
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  LINKEDIN_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
+} from '@/lib/profile/socialAccountValidation';
+import { LogoUploader } from '@/components/ecosystem-careers/LogoUploader';
+import {
+  UserSearchPicker,
+  type SearchUser,
+} from '@/components/common/UserSearchPicker';
 
 interface Props {
   userId: string;
+  currentUserName: string | null;
+  currentUserImage: string | null;
 }
 
-export function NewProjectForm({ userId }: Props) {
+const HTTPS_RE = /^https?:\/\//i;
+
+export function NewProjectForm({ userId, currentUserName, currentUserImage }: Props) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [values, setValues] = useState({
     project_name: '',
-    short_description: '',
     full_description: '',
     logo_url: '',
     website: '',
+    x_account: '',
+    linkedin_account: '',
+    github_account: '',
     tags: '',
   });
+  const [teamMembers, setTeamMembers] = useState<SearchUser[]>([]);
   const update = <K extends keyof typeof values>(k: K, v: string) =>
     setValues((prev) => ({ ...prev, [k]: v }));
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
-    if (values.project_name.trim().length < 2) return toast.error('Project name is too short.');
-    if (values.short_description.trim().length < 10)
-      return toast.error('Short description should be at least 10 characters.');
 
-    if (values.website && !/^https?:\/\//i.test(values.website.trim())) {
-      return toast.error('Website should start with https://');
-    }
-    if (values.logo_url && !/^https?:\/\//i.test(values.logo_url.trim())) {
-      return toast.error('Logo URL should start with https://');
-    }
+    if (values.project_name.trim().length < 2)
+      return toast.error('Project name is too short.');
+    if (values.full_description.trim().length < 30)
+      return toast.error('About should be at least 30 characters.');
+    if (!values.logo_url.trim())
+      return toast.error('Logo is required — upload a square image.');
+
+    const website = values.website.trim();
+    if (!website || !HTTPS_RE.test(website))
+      return toast.error('Website is required (https://…).');
+
+    const x = values.x_account.trim();
+    if (!x) return toast.error('Company X account is required.');
+    if (!X_ACCOUNT_PATTERN.test(x))
+      return toast.error('Company X account should look like https://x.com/yourcompany');
+
+    const linkedin = values.linkedin_account.trim();
+    if (!linkedin) return toast.error('Company LinkedIn account is required.');
+    if (!LINKEDIN_ACCOUNT_PATTERN.test(linkedin))
+      return toast.error(
+        'Company LinkedIn should look like https://linkedin.com/company/yourcompany',
+      );
+
+    const github = values.github_account.trim();
+    if (github && !GITHUB_ACCOUNT_PATTERN.test(github))
+      return toast.error(
+        'GitHub should look like https://github.com/yourorg or just `yourorg`.',
+      );
 
     const tags = values.tags
       .split(',')
@@ -42,18 +79,42 @@ export function NewProjectForm({ userId }: Props) {
       .filter(Boolean)
       .slice(0, 10);
 
+    const socials: Record<string, string> = { x, linkedin };
+    if (github) socials.github = github;
+
+    const additionalMembers = teamMembers
+      .filter((m) => m.id !== userId)
+      .map((m) => ({
+        user_id: m.id,
+        role: 'Member',
+        // New members start in pending state — they accept the invitation
+        // via the existing inbox/notifications flow.
+        status: 'Pending Confirmation',
+      }));
+
+    // Derive a card-friendly teaser from the full description.
+    const fullDesc = values.full_description.trim();
+    const teaser = fullDesc
+      .replace(/\s+/g, ' ')
+      .slice(0, 260)
+      .replace(/\s\S*$/, '') // don't cut a word in half
+      .trim();
+    const shortDescription = teaser.length < fullDesc.length ? `${teaser}…` : teaser;
+
     const body = {
       project_name: values.project_name.trim(),
-      short_description: values.short_description.trim(),
-      full_description: values.full_description.trim() || '',
+      short_description: shortDescription,
+      full_description: fullDesc,
       logo_url: values.logo_url.trim() || '',
-      website: values.website.trim() ? { primary: values.website.trim() } : null,
+      website: { primary: website },
+      socials,
       tags,
       tracks: [],
       origin: 'builders-hub',
       hackaton_id: null,
       members: [
         { user_id: userId, role: 'Member', status: 'Confirmed' },
+        ...additionalMembers,
       ],
     };
 
@@ -89,6 +150,15 @@ export function NewProjectForm({ userId }: Props) {
     }
   }
 
+  function addTeamMember(user: SearchUser) {
+    if (user.id === userId) return;
+    setTeamMembers((prev) => (prev.some((m) => m.id === user.id) ? prev : [...prev, user]));
+  }
+
+  function removeTeamMember(id: string) {
+    setTeamMembers((prev) => prev.filter((m) => m.id !== id));
+  }
+
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <Field label="Project name" required>
@@ -101,44 +171,104 @@ export function NewProjectForm({ userId }: Props) {
           placeholder="Acme Labs"
         />
       </Field>
-      <Field label="Short description" required hint="One-liner shown on cards.">
-        <input
-          type="text"
-          value={values.short_description}
-          onChange={(e) => update('short_description', e.target.value)}
-          maxLength={200}
-          className={inputCls}
-          placeholder="What does your team build?"
-        />
-      </Field>
-      <Field label="About" hint="Optional longer description.">
+
+      <LogoUploader
+        value={values.logo_url}
+        onChange={(url) => update('logo_url', url)}
+        required
+      />
+
+      <Field
+        label="About"
+        required
+        hint="A short paragraph about your team. The first ~260 chars show on cards."
+      >
         <textarea
           value={values.full_description}
           onChange={(e) => update('full_description', e.target.value)}
           rows={5}
           className={textareaCls}
+          placeholder="What does your team build, and what's the elevator pitch?"
         />
       </Field>
+
+      <Field label="Website" required hint="Your team's canonical site.">
+        <input
+          type="url"
+          value={values.website}
+          onChange={(e) => update('website', e.target.value)}
+          className={inputCls}
+          placeholder="https://yourcompany.com"
+        />
+      </Field>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Logo URL" hint="Optional — https://… image.">
+        <Field label="Company X account" required hint="https://x.com/…">
           <input
             type="url"
-            value={values.logo_url}
-            onChange={(e) => update('logo_url', e.target.value)}
+            value={values.x_account}
+            onChange={(e) => update('x_account', e.target.value)}
             className={inputCls}
-            placeholder="https://yourcompany.com/logo.png"
+            placeholder="https://x.com/yourcompany"
           />
         </Field>
-        <Field label="Website" hint="Optional.">
+        <Field
+          label="Company LinkedIn account"
+          required
+          hint="Company or organization page."
+        >
           <input
             type="url"
-            value={values.website}
-            onChange={(e) => update('website', e.target.value)}
+            value={values.linkedin_account}
+            onChange={(e) => update('linkedin_account', e.target.value)}
             className={inputCls}
-            placeholder="https://yourcompany.com"
+            placeholder="https://linkedin.com/company/yourcompany"
           />
         </Field>
       </div>
+
+      <Field
+        label="GitHub"
+        hint="Optional — organization URL or handle."
+      >
+        <input
+          type="text"
+          value={values.github_account}
+          onChange={(e) => update('github_account', e.target.value)}
+          className={inputCls}
+          placeholder="https://github.com/yourorg"
+        />
+      </Field>
+
+      <Field
+        label="Team members"
+        hint="Optional — invite other Builders Hub users by name. They'll see a pending invite to accept."
+      >
+        <UserSearchPicker
+          onSelect={addTeamMember}
+          excludeUserIds={[userId, ...teamMembers.map((m) => m.id)]}
+          placeholder="Search by name…"
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <MemberChip
+            name={currentUserName ?? 'You'}
+            image={currentUserImage}
+            role="Creator"
+            removable={false}
+          />
+          {teamMembers.map((m) => (
+            <MemberChip
+              key={m.id}
+              name={m.name ?? m.user_name ?? 'Member'}
+              image={m.image}
+              role="Pending"
+              removable
+              onRemove={() => removeTeamMember(m.id)}
+            />
+          ))}
+        </div>
+      </Field>
+
       <Field label="Tags" hint="Comma-separated, max 10 — e.g. defi, infra, gaming.">
         <input
           type="text"
@@ -188,6 +318,47 @@ function Field({
       {children}
       {hint && <span className="block text-xs text-zinc-500 dark:text-zinc-400">{hint}</span>}
     </label>
+  );
+}
+
+function MemberChip({
+  name,
+  image,
+  role,
+  removable,
+  onRemove,
+}: {
+  name: string;
+  image: string | null | undefined;
+  role: string;
+  removable: boolean;
+  onRemove?: () => void;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/60 text-sm">
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 overflow-hidden">
+        {image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          name.slice(0, 1).toUpperCase()
+        )}
+      </span>
+      <span className="text-zinc-900 dark:text-zinc-100">{name}</span>
+      <span className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        {role}
+      </span>
+      {removable && onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="ml-0.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+          aria-label={`Remove ${name}`}
+        >
+          <XIcon className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </span>
   );
 }
 

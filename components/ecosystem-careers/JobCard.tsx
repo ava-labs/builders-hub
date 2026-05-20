@@ -1,10 +1,44 @@
 import Link from 'next/link';
-import { ArrowUpRight, MapPin } from 'lucide-react';
-import type { SerializableJobCard } from '@/server/services/ecosystemCareers/queries';
+import { MapPin } from 'lucide-react';
+import type {
+  ListingSource,
+  SerializableJobCard,
+} from '@/server/services/ecosystemCareers/queries';
 import { formatPostedAt, prettyRemoteType, prettySeniority } from './labels';
 
 interface Props {
   job: SerializableJobCard;
+}
+
+// Neon-tinted provenance pill: yellow for legacy (frozen Getro seed),
+// purple for external (web3.career ingest), green for community
+// (project owner submission via Builders Hub).
+function SourceBadge({ source }: { source: ListingSource }) {
+  const map: Record<ListingSource, { label: string; classes: string }> = {
+    legacy: {
+      label: 'Legacy',
+      classes:
+        'bg-yellow-300 text-yellow-950 ring-1 ring-yellow-400/70 shadow-[0_0_10px_rgba(250,204,21,0.45)]',
+    },
+    external: {
+      label: 'External',
+      classes:
+        'bg-fuchsia-300 text-fuchsia-950 ring-1 ring-fuchsia-400/70 shadow-[0_0_10px_rgba(217,70,239,0.45)]',
+    },
+    community: {
+      label: 'Community',
+      classes:
+        'bg-emerald-300 text-emerald-950 ring-1 ring-emerald-400/70 shadow-[0_0_10px_rgba(52,211,153,0.45)]',
+    },
+  };
+  const { label, classes } = map[source];
+  return (
+    <span
+      className={`shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${classes}`}
+    >
+      {label}
+    </span>
+  );
 }
 
 export function JobCard({ job }: Props) {
@@ -35,7 +69,7 @@ export function JobCard({ job }: Props) {
             {job.title}
           </h3>
         </div>
-        <ArrowUpRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-white opacity-0 group-hover:opacity-100 translate-x-[-4px] group-hover:translate-x-0 transition-all" />
+        <SourceBadge source={job.source} />
       </div>
 
       <div className="flex flex-wrap gap-1.5">

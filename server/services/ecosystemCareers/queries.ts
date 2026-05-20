@@ -3,6 +3,26 @@ import { prisma } from '@/prisma/prisma';
 export type ListingSource = 'community' | 'external' | 'legacy';
 export type CareersAuthorizationStatus = 'pending' | 'approved' | 'rejected';
 
+// Legacy listings are a one-time frozen Getro seed; anything posted more
+// than ~10 months ago is too stale to surface. Computed at call time so the
+// cutoff slides forward automatically as data ages.
+const LEGACY_MAX_AGE_MS = 10 * 30 * 24 * 60 * 60 * 1000;
+
+function legacyAgeCutoff(): Date {
+  return new Date(Date.now() - LEGACY_MAX_AGE_MS);
+}
+
+// Prisma where-clause snippet that excludes legacy listings posted more
+// than ~10 months ago. Use inside an AND with the rest of the filters.
+function notStaleLegacy() {
+  return {
+    OR: [
+      { source: { not: 'legacy' as const } },
+      { posted_at: { gte: legacyAgeCutoff() } },
+    ],
+  };
+}
+
 // Company display fields normalized for the UI. Resolved from either the
 // linked Project (community source) or the denormalized columns on
 // JobListing (external + legacy sources).
@@ -128,7 +148,7 @@ export async function listActiveJobs(
   const limit = Math.min(Math.max(opts.limit ?? 60, 1), 200);
   const offset = Math.max(opts.offset ?? 0, 0);
 
-  const where: any = { is_active: true };
+  const where: any = { is_active: true, AND: [notStaleLegacy()] };
   if (opts.remoteType) where.remote_type = opts.remoteType;
   if (opts.seniority) where.seniority = opts.seniority;
 
@@ -150,11 +170,10 @@ export async function listActiveJobs(
       { company_name: { contains: q, mode: 'insensitive' as const } },
       { project: { project_name: { contains: q, mode: 'insensitive' as const } } },
     ];
-    // Combine with any companyName filter via AND-of-ORs.
     if (where.OR) {
-      const prev = where.OR;
+      where.AND.push({ OR: where.OR });
       delete where.OR;
-      where.AND = [{ OR: prev }, { OR: searchClauses }];
+      where.AND.push({ OR: searchClauses });
     } else {
       where.OR = searchClauses;
     }
@@ -188,6 +207,8 @@ export interface CompanyOption {
 
 export async function listCompaniesWithActiveJobs(): Promise<CompanyOption[]> {
   // Two groupings: community via project_id; external/legacy via company_name.
+  // Legacy listings older than the cutoff are excluded.
+  const cutoff = legacyAgeCutoff();
   const [byProject, byName] = await Promise.all([
     prisma.jobListing.groupBy({
       by: ['project_id'],
@@ -196,7 +217,15 @@ export async function listCompaniesWithActiveJobs(): Promise<CompanyOption[]> {
     }),
     prisma.jobListing.groupBy({
       by: ['company_name'],
-      where: { is_active: true, source: { in: ['external', 'legacy'] }, company_name: { not: null } },
+      where: {
+        is_active: true,
+        source: { in: ['external', 'legacy'] },
+        company_name: { not: null },
+        OR: [
+          { source: { not: 'legacy' } },
+          { posted_at: { gte: cutoff } },
+        ],
+      },
       _count: { _all: true },
     }),
   ]);
@@ -254,6 +283,13 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
     include: { project: true },
   });
   if (!row || !row.is_active) return null;
+  // Legacy listings older than the cutoff are treated as not-found.
+  if (
+    row.source === 'legacy' &&
+    (!row.posted_at || row.posted_at < legacyAgeCutoff())
+  ) {
+    return null;
+  }
   return { ...toJobCard(row as NonNullable<JobRow>), description: row.description };
 }
 
@@ -271,6 +307,7 @@ export async function listMoreJobsFromSameCompany(
       company_name: job.company_name,
       is_active: true,
       NOT: { id: job.id },
+      AND: [notStaleLegacy()],
     };
   } else {
     return [];

@@ -53,11 +53,21 @@ export default async function EditListingPage({ params }: Params) {
             (listing.remoteType as 'remote' | 'onsite' | 'hybrid' | null) ?? '',
           employment_type:
             (listing.employmentType as 'full_time' | 'contract' | 'part_time' | null) ?? '',
-          seniority: listing.seniority ?? '',
+          // The submit form takes a raw number-of-years; if the stored value
+          // is "3+ years" (community submissions store it that way), pull the
+          // number back out for the input. Legacy/external rows that hold a
+          // category label like "senior" simply pre-fill blank.
+          seniority: extractYears(listing.seniority),
           tags: listing.tags.join(', '),
           apply_url: listing.applyUrl,
         }}
       />
     </main>
   );
+}
+
+function extractYears(stored: string | null): string {
+  if (!stored) return '';
+  const m = stored.match(/^(\d{1,2})\+\s*years?$/i);
+  return m ? m[1] : '';
 }

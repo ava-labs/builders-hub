@@ -24,7 +24,11 @@ export default async function NewProjectPage() {
           A lightweight registration so your team can show up on Builders Hub — primarily to post Ecosystem Careers listings. You can fill in the deeper details later.
         </p>
       </header>
-      <NewProjectForm userId={session.user.id} />
+      <NewProjectForm
+        userId={session.user.id}
+        currentUserName={session.user.name ?? null}
+        currentUserImage={session.user.image ?? null}
+      />
     </main>
   );
 }

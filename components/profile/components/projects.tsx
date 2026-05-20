@@ -4,8 +4,9 @@ import { ProjectCard } from "@/components/showcase/ProjectCard";
 import { useProject } from "./hooks/use-project";
 // import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2 } from "lucide-react";
+import { Briefcase, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+ import Link from "next/link";
  import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -51,12 +52,24 @@ export default function Projects() {
 
   return (
     <div className="space-y-6 w-full p-6">
-      {/* Header */}
-      {/* <div className="flex items-center justify-end">
-        <div className="flex items-center gap-4">
-          <Button onClick={handleNewProject}>New project</Button>
-        </div>
-      </div> */}
+      {/* Header — surfaces the Ecosystem Careers entry points so the user
+          can jump from "my teams" into "my job listings" without knowing
+          the URL. Visible regardless of whether they've posted yet. */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Link
+          href="/ecosystem-careers/my-listings"
+          className="inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+        >
+          <Briefcase className="w-4 h-4" />
+          My job listings
+        </Link>
+        <Link
+          href="/ecosystem-careers/submit"
+          className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-lg bg-gradient-to-r from-red-600 to-red-500 text-white shadow-sm hover:shadow transition"
+        >
+          Post a role
+        </Link>
+      </div>
 
       {/* Loading State */}
       {isLoading && (

@@ -1,8 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
+import { POPULAR_LOCATIONS } from '@/lib/ecosystemCareers/locations';
 
 interface ProjectOption {
   id: string;
@@ -56,22 +57,10 @@ const EMPLOYMENT_OPTS = [
   { value: 'part_time', label: 'Part-time' },
 ];
 
-const SENIORITY_OPTS = [
-  { value: '', label: 'Not specified' },
-  { value: 'intern', label: 'Intern' },
-  { value: 'entry', label: 'Entry' },
-  { value: 'associate', label: 'Associate' },
-  { value: 'mid_senior', label: 'Mid–senior' },
-  { value: 'senior', label: 'Senior' },
-  { value: 'staff', label: 'Staff' },
-  { value: 'lead', label: 'Lead' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'director', label: 'Director' },
-  { value: 'cxo', label: 'Executive' },
-];
 
 export function SubmitListingForm({ projects, initialValues, listingId }: Props) {
   const router = useRouter();
+  const locationsListId = useId();
   const [values, setValues] = useState<SubmitListingFormInitialValues>({
     ...EMPTY,
     project_id: projects[0]?.id ?? '',
@@ -84,6 +73,22 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
     value: SubmitListingFormInitialValues[K],
   ) => setValues((prev) => ({ ...prev, [key]: value }));
 
+  // When the user picks a "Remote (…)" location from the datalist (or types
+  // one with that prefix), nudge the work-mode dropdown to "Remote" so they
+  // don't have to set it twice. Doesn't overwrite an existing onsite/hybrid
+  // choice if they explicitly set one.
+  function setLocation(next: string) {
+    setValues((prev) => {
+      const looksRemote = /^remote\b/i.test(next.trim());
+      return {
+        ...prev,
+        location: next,
+        remote_type:
+          looksRemote && prev.remote_type === '' ? 'remote' : prev.remote_type,
+      };
+    });
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
@@ -92,6 +97,9 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
     if (values.title.trim().length < 2) return toast.error('Job title is too short.');
     if (values.description.trim().length < 20)
       return toast.error('Job description should be at least 20 characters.');
+    if (!values.location.trim()) return toast.error('Location is required.');
+    if (!values.employment_type)
+      return toast.error('Employment type is required.');
     try {
       new URL(values.apply_url.trim());
     } catch {
@@ -104,15 +112,32 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
       .filter(Boolean)
       .slice(0, 6);
 
+    // The form collects raw years (e.g. "3"); we serialize as a label
+    // ("3+ years") so display logic doesn't need to know the difference
+    // between a community years value and a legacy/external category label.
+    const yearsRaw = values.seniority.trim();
+    let seniorityLabel: string | null = null;
+    if (yearsRaw) {
+      const n = Number.parseInt(yearsRaw, 10);
+      if (Number.isFinite(n) && n >= 0 && n <= 40) {
+        seniorityLabel = n === 0 ? 'Entry / no experience' : `${n}+ years`;
+      } else {
+        return toast.error('Years of experience must be a number between 0 and 40.');
+      }
+    }
+
     const body = {
       project_id: values.project_id,
       title: values.title.trim(),
-      short_description: values.short_description.trim() || null,
+      // Server-side createListing derives a teaser from `description` when
+      // short_description is empty (htmlToPlainText, capped at 280 chars).
+      // We omit the field entirely so there's one source of truth.
+      short_description: null,
       description: values.description.trim(),
-      location: values.location.trim() || null,
+      location: values.location.trim(),
       remote_type: values.remote_type || null,
-      employment_type: values.employment_type || null,
-      seniority: values.seniority || null,
+      employment_type: values.employment_type,
+      seniority: seniorityLabel,
       tags,
       apply_url: values.apply_url.trim(),
     };
@@ -136,9 +161,17 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
         toast.error(msg);
         return;
       }
-      toast.success(listingId ? 'Listing updated.' : 'Listing published.');
-      const targetId = (payload as { id?: string }).id ?? listingId;
-      router.push(targetId ? `/ecosystem-careers/${targetId}` : '/ecosystem-careers/my-listings');
+      // Always land on /my-listings — community listings start in pending
+      // review (is_active=false) which would 404 if we tried to push to the
+      // public detail page. My-listings renders pending entries with the
+      // amber "Pending review" badge so the submitter sees exactly what
+      // they posted.
+      toast.success(
+        listingId
+          ? 'Listing updated.'
+          : 'Listing submitted — waiting on devrel review.',
+      );
+      router.push('/ecosystem-careers/my-listings');
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -182,20 +215,10 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
       </Field>
 
       <Field
-        label="Short description"
-        hint="Optional — defaults to the first ~280 chars of the full description."
+        label="Job description"
+        required
+        hint="Markdown is OK. Sanitized server-side. The first ~280 chars auto-fill the card teaser."
       >
-        <textarea
-          value={values.short_description}
-          onChange={(e) => update('short_description', e.target.value)}
-          maxLength={280}
-          rows={2}
-          className={textareaCls}
-          placeholder="One-liner shown on the job card."
-        />
-      </Field>
-
-      <Field label="Full description" required hint="Markdown is OK. Sanitized server-side.">
         <textarea
           value={values.description}
           onChange={(e) => update('description', e.target.value)}
@@ -206,14 +229,26 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
       </Field>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Location" hint='Free text — e.g. "Remote", "London, UK".'>
+        <Field
+          label="Location"
+          required
+          hint='Start typing — pick a suggestion or enter your own. Picking "Remote (…)" auto-sets work mode.'
+        >
           <input
             type="text"
+            list={locationsListId}
             value={values.location}
-            onChange={(e) => update('location', e.target.value)}
+            onChange={(e) => setLocation(e.target.value)}
             maxLength={120}
             className={inputCls}
+            placeholder="Search a city, country, or remote region…"
+            autoComplete="off"
           />
+          <datalist id={locationsListId}>
+            {POPULAR_LOCATIONS.map((loc) => (
+              <option key={loc} value={loc} />
+            ))}
+          </datalist>
         </Field>
         <Field label="Work mode">
           <select
@@ -228,31 +263,36 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
             ))}
           </select>
         </Field>
-        <Field label="Employment type">
+        <Field label="Employment type" required>
           <select
             value={values.employment_type}
             onChange={(e) => update('employment_type', e.target.value as SubmitListingFormInitialValues['employment_type'])}
             className={selectCls}
           >
-            {EMPLOYMENT_OPTS.map((o) => (
+            <option value="" disabled>
+              Select one…
+            </option>
+            {EMPLOYMENT_OPTS.filter((o) => o.value !== '').map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
             ))}
           </select>
         </Field>
-        <Field label="Seniority">
-          <select
+        <Field
+          label="Years of work experience"
+          hint="Minimum candidates should bring. Leave blank for any."
+        >
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={40}
             value={values.seniority}
             onChange={(e) => update('seniority', e.target.value)}
-            className={selectCls}
-          >
-            {SENIORITY_OPTS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+            className={inputCls}
+            placeholder="e.g. 3"
+          />
         </Field>
       </div>
 

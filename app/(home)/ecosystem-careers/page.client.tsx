@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { ChevronDown, Search, X } from 'lucide-react';
 import { JobCard } from '@/components/ecosystem-careers/JobCard';
 import { HiringCta } from '@/components/ecosystem-careers/HiringCta';
 import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
@@ -81,6 +81,18 @@ export default function EcosystemCareersClient({
           <div className="flex justify-center pt-2">
             <HiringCta variant="button" />
           </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-500 max-w-2xl mx-auto pt-2">
+            Listings are reviewed and sourced externally. When you click through, you&apos;ll leave Builders Hub for a third-party site — we don&apos;t host applications, and per our{' '}
+            <a
+              href="https://www.avax.network/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-slate-700 dark:hover:text-slate-300"
+            >
+              privacy policy
+            </a>{' '}
+            we don&apos;t track what happens after.
+          </p>
         </div>
       </section>
 
@@ -107,31 +119,37 @@ export default function EcosystemCareersClient({
               )}
             </div>
 
-            <select
-              value={companyId ?? ''}
-              onChange={(e) => setCompanyId(e.target.value || null)}
-              className="lg:w-56 px-4 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
-            >
-              <option value="">All companies</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.jobsCount})
-                </option>
-              ))}
-            </select>
+            <div className="relative lg:w-56">
+              <select
+                value={companyId ?? ''}
+                onChange={(e) => setCompanyId(e.target.value || null)}
+                className="appearance-none w-full pl-4 pr-10 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
+              >
+                <option value="">All companies</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.jobsCount})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            </div>
 
-            <select
-              value={remoteType ?? ''}
-              onChange={(e) => setRemoteType(e.target.value || null)}
-              className="lg:w-40 px-4 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
-            >
-              <option value="">Any location</option>
-              {REMOTE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative lg:w-40">
+              <select
+                value={remoteType ?? ''}
+                onChange={(e) => setRemoteType(e.target.value || null)}
+                className="appearance-none w-full pl-4 pr-10 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
+              >
+                <option value="">Any location</option>
+                {REMOTE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            </div>
           </div>
 
           {mounted && (
