@@ -45,16 +45,16 @@ const basicProfileSchema = z
   .object({
     name: z.string().min(1, 'Full name is required'),
     country: z.string().min(1, 'Country is required'),
-    x_account: z
-      .union([z.string().regex(X_ACCOUNT_PATTERN, 'Enter a URL like https://x.com/yourhandle'), z.literal('')])
-      .optional()
-      .default(''),
     linkedin_account: z
       .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter valid LinkedIn URL'), z.literal('')])
       .optional()
       .default(''),
     github_account: z
       .union([z.string().regex(GITHUB_ACCOUNT_PATTERN, 'Enter a valid GitHub username or github.com URL'), z.literal('')])
+      .optional()
+      .default(''),
+    x_account: z
+      .union([z.string().regex(X_ACCOUNT_PATTERN, 'Enter a URL like https://x.com/yourhandle'), z.literal('')])
       .optional()
       .default(''),
     telegram_account: z
@@ -104,6 +104,7 @@ interface BasicProfileSetupProps {
 export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [githubConnected, setGithubConnected] = useState(false);
+  const [xConnected, setXConnected] = useState(false);
   const pathname = usePathname();
   const { update } = useSession();
 
@@ -113,9 +114,9 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
     defaultValues: {
       name: '',
       country: '',
-      x_account: '',
       linkedin_account: '',
       github_account: '',
+      x_account: '',
       telegram_account: '',
       is_student: false,
       student_institution: '',
@@ -132,7 +133,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
   const watchedValues = form.watch();
 
   // Prefill from the current extended profile so existing users who open the
-  // modal to backfill X / LinkedIn don't wipe their existing name, country,
+  // modal to backfill LinkedIn don't wipe their existing name, country,
   // or user_type flags. Brand-new users will get mostly-null values here,
   // which keeps the current blank-default behavior.
   useEffect(() => {
@@ -148,9 +149,9 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
         form.reset({
           name: profile.name ?? '',
           country: profile.country ?? '',
-          x_account: profile.x_account ?? '',
           linkedin_account: profile.linkedin_account ?? '',
           github_account: profile.github_account ?? '',
+          x_account: profile.x_account ?? '',
           telegram_account: profile.telegram_account ?? '',
           is_student: Boolean(userType.is_student),
           student_institution: userType.student_institution ?? '',
@@ -163,6 +164,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
           is_enthusiast: Boolean(userType.is_enthusiast),
         });
         setGithubConnected(Boolean(profile.githubConnected));
+        setXConnected(Boolean(profile.x_account));
       } catch {
         // silent: blank defaults are fine if the fetch fails
       }
@@ -183,6 +185,17 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
   };
 
   const githubConnectHref = `/api/auth/github-link?returnTo=${encodeURIComponent(pathname || '/')}`;
+  const xConnectHref = `/api/auth/x-link?returnTo=${encodeURIComponent(pathname || '/')}`;
+
+  const handleXDisconnect = async () => {
+    try {
+      await axios.delete('/api/auth/x-link/disconnect');
+      setXConnected(false);
+      form.setValue('x_account', '', { shouldDirty: false, shouldValidate: true });
+    } catch (error) {
+      console.error('Error disconnecting X:', error);
+    }
+  };
 
   const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
@@ -200,7 +213,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
         is_enthusiast,
         name,
         country,
-        x_account,
         linkedin_account,
         telegram_account,
       } = data;
@@ -209,7 +221,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
       const profileData = {
         name,
         country,
-        x_account,
         linkedin_account,
         telegram_account,
         user_type: {
@@ -335,23 +346,6 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <FormField
                 control={form.control}
-                name="x_account"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm sm:text-base">X</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://x.com/yourhandle"
-                        {...field}
-                        className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="linkedin_account"
                 render={({ field }) => (
                   <FormItem>
@@ -400,6 +394,49 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                               aria-hidden="true"
                             >
                               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+                            </svg>
+                            Connect
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="x_account"
+                render={() => (
+                  <FormItem>
+                    <FormLabel className="text-sm sm:text-base">X</FormLabel>
+                    <div>
+                      {xConnected ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="w-full border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 dark:text-green-400 dark:border-green-500 dark:hover:bg-green-950 dark:hover:text-green-300"
+                          onClick={handleXDisconnect}
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Connected
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          asChild
+                        >
+                          <a href={xConnectHref}>
+                            <svg
+                              viewBox="0 0 24 24"
+                              className="h-4 w-4 mr-2 fill-current"
+                              aria-hidden="true"
+                            >
+                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                             </svg>
                             Connect
                           </a>
