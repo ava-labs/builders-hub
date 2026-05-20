@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
 import icttTokens from "@/constants/ictt-tokens.json";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { getIcttTransfers, type IcttTransfer } from "@/lib/ictt/transfers-cache";
 
-interface ICTTTransfer {
-  homeChainBlockchainId: string;
-  homeChainName: string;
-  remoteChainBlockchainId: string;
-  remoteChainName: string;
-  direction: string;
-  contractAddress: string;
-  coinAddress: string;
-  transferCount: number;
-  transferCoinsTotal: number;
-}
+// Re-exported as a local alias so the rest of this file keeps its naming
+// without renaming every reference. Shape is identical.
+type ICTTTransfer = IcttTransfer;
 
 interface TokenInfo {
   name: string;
@@ -138,17 +131,9 @@ export async function GET(request: Request) {
       });
     }
 
-    // Fetch ICTT data
-    const endTs = Math.floor(Date.now() / 1000);
-    const icttResponse = await fetch(
-      `https://idx6.solokhin.com/api/global/ictt/transfers?startTs=0&endTs=${endTs}`
-    );
-
-    if (!icttResponse.ok) {
-      throw new Error(`ICTT API error: ${icttResponse.status}`);
-    }
-
-    const transfers: ICTTTransfer[] = await icttResponse.json();
+    // Fetch ICTT data through the shared 36h cache so /api/l1-tokens/discover
+    // and this route hit idx6 at most once per window.
+    const transfers: ICTTTransfer[] = await getIcttTransfers({ clearCache });
 
     // Collect unique token addresses with CoinGecko IDs
     const coingeckoIds = new Set<string>();
