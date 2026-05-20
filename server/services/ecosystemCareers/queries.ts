@@ -1,7 +1,24 @@
 import { prisma } from '@/prisma/prisma';
 
+export type ListingSource = 'community' | 'external' | 'legacy';
+export type CareersAuthorizationStatus = 'pending' | 'approved' | 'rejected';
+
+// Company display fields normalized for the UI. Resolved from either the
+// linked Project (community source) or the denormalized columns on
+// JobListing (external + legacy sources).
+export interface DisplayCompany {
+  id: string | null;       // Project id when community, null otherwise
+  name: string;
+  slug: string | null;     // Reserved for future use — we no longer slug ecosystem companies
+  logoUrl: string | null;
+  website: string | null;
+  tags: string[];
+  description: string | null;
+}
+
 export interface JobCard {
   id: string;
+  source: ListingSource;
   title: string;
   shortDescription: string;
   location: string | null;
@@ -11,15 +28,8 @@ export interface JobCard {
   // String when crossing the server→client boundary, Date when used server-side.
   postedAt: Date | string | null;
   applyUrl: string;
-  source: string;
   sourceUrl: string | null;
-  company: {
-    id: string;
-    name: string;
-    slug: string | null;
-    logoUrl: string | null;
-    tags: string[];
-  };
+  company: DisplayCompany;
 }
 
 export type SerializableJobCard = Omit<JobCard, 'postedAt'> & {
@@ -28,10 +38,6 @@ export type SerializableJobCard = Omit<JobCard, 'postedAt'> & {
 
 export interface JobDetail extends JobCard {
   description: string | null;
-  company: JobCard['company'] & {
-    description: string | null;
-    website: string | null;
-  };
 }
 
 export function toSerializableJob(job: JobCard): SerializableJobCard {
@@ -41,9 +47,70 @@ export function toSerializableJob(job: JobCard): SerializableJobCard {
   };
 }
 
+// Internal row shape with the project optionally joined.
+type JobRow = Awaited<ReturnType<typeof prisma.jobListing.findFirst>> & {
+  project: Awaited<ReturnType<typeof prisma.project.findFirst>> | null;
+};
+
+function projectWebsite(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const obj = value as Record<string, unknown>;
+  for (const v of Object.values(obj)) {
+    if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim();
+  }
+  return null;
+}
+
+function projectTags(project: NonNullable<JobRow['project']>): string[] {
+  const all = [...(project.tags ?? []), ...(project.tracks ?? [])];
+  return Array.from(new Set(all.filter((t) => t && t.trim()))).slice(0, 10);
+}
+
+function toCompany(row: NonNullable<JobRow>): DisplayCompany {
+  // Community listings get their display from the linked Project.
+  if (row.source === 'community' && row.project) {
+    return {
+      id: row.project.id,
+      name: row.project.project_name,
+      slug: null,
+      logoUrl: row.project.logo_url || null,
+      website: projectWebsite(row.project.website),
+      tags: projectTags(row.project),
+      description: row.project.short_description || null,
+    };
+  }
+  // External / legacy: denormalized fields on JobListing itself.
+  return {
+    id: null,
+    name: row.company_name ?? 'Unknown',
+    slug: null,
+    logoUrl: row.company_logo ?? null,
+    website: row.company_website ?? null,
+    tags: row.company_tags ?? [],
+    description: null,
+  };
+}
+
+function toJobCard(row: NonNullable<JobRow>): JobCard {
+  return {
+    id: row.id,
+    source: row.source as ListingSource,
+    title: row.title,
+    shortDescription: row.short_description,
+    location: row.location,
+    remoteType: row.remote_type,
+    seniority: row.seniority,
+    tags: row.tags,
+    postedAt: row.posted_at,
+    applyUrl: row.apply_url,
+    sourceUrl: row.source_url,
+    company: toCompany(row),
+  };
+}
+
 export interface ListActiveJobsOptions {
   search?: string;
-  companyId?: string;
+  companyName?: string;
   remoteType?: string;
   seniority?: string;
   limit?: number;
@@ -62,19 +129,35 @@ export async function listActiveJobs(
   const offset = Math.max(opts.offset ?? 0, 0);
 
   const where: any = { is_active: true };
-  if (opts.companyId) where.company_id = opts.companyId;
   if (opts.remoteType) where.remote_type = opts.remoteType;
   if (opts.seniority) where.seniority = opts.seniority;
 
+  if (opts.companyName?.trim()) {
+    const name = opts.companyName.trim();
+    where.OR = [
+      { company_name: { equals: name, mode: 'insensitive' } },
+      { project: { project_name: { equals: name, mode: 'insensitive' } } },
+    ];
+  }
+
   if (opts.search?.trim()) {
     const q = opts.search.trim();
-    where.OR = [
-      { title: { contains: q, mode: 'insensitive' } },
-      { short_description: { contains: q, mode: 'insensitive' } },
-      { location: { contains: q, mode: 'insensitive' } },
+    const searchClauses = [
+      { title: { contains: q, mode: 'insensitive' as const } },
+      { short_description: { contains: q, mode: 'insensitive' as const } },
+      { location: { contains: q, mode: 'insensitive' as const } },
       { tags: { has: q } },
-      { company: { name: { contains: q, mode: 'insensitive' } } },
+      { company_name: { contains: q, mode: 'insensitive' as const } },
+      { project: { project_name: { contains: q, mode: 'insensitive' as const } } },
     ];
+    // Combine with any companyName filter via AND-of-ORs.
+    if (where.OR) {
+      const prev = where.OR;
+      delete where.OR;
+      where.AND = [{ OR: prev }, { OR: searchClauses }];
+    } else {
+      where.OR = searchClauses;
+    }
   }
 
   const [rows, total] = await Promise.all([
@@ -83,18 +166,20 @@ export async function listActiveJobs(
       orderBy: [{ posted_at: 'desc' }, { created_at: 'desc' }],
       take: limit,
       skip: offset,
-      include: { company: true },
+      include: { project: true },
     }),
     prisma.jobListing.count({ where }),
   ]);
 
   return {
     total,
-    jobs: rows.map(toJobCard),
+    jobs: rows.map((r) => toJobCard(r as NonNullable<JobRow>)),
   };
 }
 
 export interface CompanyOption {
+  // For community listings: the Project id; for external/legacy: the
+  // company name itself (we group by name client-side).
   id: string;
   name: string;
   logoUrl: string | null;
@@ -102,58 +187,108 @@ export interface CompanyOption {
 }
 
 export async function listCompaniesWithActiveJobs(): Promise<CompanyOption[]> {
-  const groups = await prisma.jobListing.groupBy({
-    by: ['company_id'],
-    where: { is_active: true },
-    _count: { _all: true },
-  });
-  const ids = groups.map((g) => g.company_id);
-  if (ids.length === 0) return [];
-  const companies = await prisma.ecosystemCompany.findMany({
-    where: { id: { in: ids } },
-    select: { id: true, name: true, logo_url: true },
-  });
-  const byId = new Map(companies.map((c) => [c.id, c]));
-  return groups
-    .map((g) => {
-      const c = byId.get(g.company_id);
-      if (!c) return null;
-      return {
-        id: c.id,
-        name: c.name,
-        logoUrl: c.logo_url,
-        jobsCount: g._count._all,
-      };
-    })
-    .filter((x): x is CompanyOption => x !== null)
-    .sort((a, b) => b.jobsCount - a.jobsCount || a.name.localeCompare(b.name));
+  // Two groupings: community via project_id; external/legacy via company_name.
+  const [byProject, byName] = await Promise.all([
+    prisma.jobListing.groupBy({
+      by: ['project_id'],
+      where: { is_active: true, source: 'community', project_id: { not: null } },
+      _count: { _all: true },
+    }),
+    prisma.jobListing.groupBy({
+      by: ['company_name'],
+      where: { is_active: true, source: { in: ['external', 'legacy'] }, company_name: { not: null } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const projectIds = byProject
+    .map((g) => g.project_id)
+    .filter((id): id is string => !!id);
+  const projects = projectIds.length
+    ? await prisma.project.findMany({
+        where: { id: { in: projectIds } },
+        select: { id: true, project_name: true, logo_url: true },
+      })
+    : [];
+  const projectById = new Map(projects.map((p) => [p.id, p]));
+
+  // For external/legacy we sample one row per company_name to grab a logo.
+  const externalNames = byName
+    .map((g) => g.company_name)
+    .filter((n): n is string => !!n);
+  const externalLogos = externalNames.length
+    ? await prisma.jobListing.findMany({
+        where: { company_name: { in: externalNames }, company_logo: { not: null } },
+        select: { company_name: true, company_logo: true },
+        distinct: ['company_name'],
+      })
+    : [];
+  const logoByName = new Map(externalLogos.map((r) => [r.company_name!, r.company_logo!]));
+
+  const out: CompanyOption[] = [];
+  for (const g of byProject) {
+    const p = g.project_id ? projectById.get(g.project_id) : null;
+    if (!p) continue;
+    out.push({
+      id: p.id,
+      name: p.project_name,
+      logoUrl: p.logo_url || null,
+      jobsCount: g._count._all,
+    });
+  }
+  for (const g of byName) {
+    if (!g.company_name) continue;
+    out.push({
+      id: `name:${g.company_name}`,
+      name: g.company_name,
+      logoUrl: logoByName.get(g.company_name) ?? null,
+      jobsCount: g._count._all,
+    });
+  }
+  return out.sort((a, b) => b.jobsCount - a.jobsCount || a.name.localeCompare(b.name));
 }
 
 export async function getJobById(id: string): Promise<JobDetail | null> {
   const row = await prisma.jobListing.findUnique({
     where: { id },
-    include: { company: true },
+    include: { project: true },
   });
   if (!row || !row.is_active) return null;
-  const base = toJobCard(row);
-  return {
-    ...base,
-    description: row.description,
-    company: {
-      ...base.company,
-      description: row.company.description,
-      website: row.company.website,
-    },
-  };
+  return { ...toJobCard(row as NonNullable<JobRow>), description: row.description };
 }
 
-export type CompanyAuthorizationStatus = 'pending' | 'approved' | 'rejected';
+export async function listMoreJobsFromSameCompany(
+  job: { id: string; source: ListingSource; project_id: string | null; company_name: string | null },
+  limit = 5,
+): Promise<JobCard[]> {
+  // Community → match by project_id; external/legacy → match by company_name.
+  let where: any;
+  if (job.source === 'community' && job.project_id) {
+    where = { source: 'community', project_id: job.project_id, is_active: true, NOT: { id: job.id } };
+  } else if (job.company_name) {
+    where = {
+      source: { in: ['external', 'legacy'] },
+      company_name: job.company_name,
+      is_active: true,
+      NOT: { id: job.id },
+    };
+  } else {
+    return [];
+  }
+  const rows = await prisma.jobListing.findMany({
+    where,
+    orderBy: [{ posted_at: 'desc' }, { created_at: 'desc' }],
+    take: limit,
+    include: { project: true },
+  });
+  return rows.map((r) => toJobCard(r as NonNullable<JobRow>));
+}
 
 export interface UserOwnedProject {
   id: string;
   project_name: string;
   logo_url: string | null;
-  authorization_status: CompanyAuthorizationStatus | null; // null = no company row yet
+  authorization_status: CareersAuthorizationStatus | null;
   rejection_reason: string | null;
 }
 
@@ -161,67 +296,57 @@ export interface UserListingsResult {
   ownProjects: UserOwnedProject[];
   listings: (JobCard & {
     isActive: boolean;
-    companyStatus: CompanyAuthorizationStatus;
+    careersStatus: CareersAuthorizationStatus;
     rejectionReason: string | null;
   })[];
 }
 
 export async function listListingsForUser(userId: string): Promise<UserListingsResult> {
-  // All Projects the user is a confirmed member of (used as the "post a job"
-  // dropdown source AND as an auth signal for editing co-team listings).
-  // Each project may or may not yet have an EcosystemCompany row — we left
-  // join via Prisma's separate fetch instead of awkward nested queries.
   const memberRows = await prisma.member.findMany({
     where: { user_id: userId, status: 'Confirmed' },
-    select: { project: { select: { id: true, project_name: true, logo_url: true } } },
-  });
-  const baseProjects = memberRows
-    .map((m) => m.project)
-    .filter((p): p is { id: string; project_name: string; logo_url: string | null } => p !== null);
-  const projectIds = baseProjects.map((p) => p.id);
-
-  const companies = projectIds.length
-    ? await prisma.ecosystemCompany.findMany({
-        where: { source: 'project', project_id: { in: projectIds } },
+    select: {
+      project: {
         select: {
-          project_id: true,
-          authorization_status: true,
-          rejection_reason: true,
+          id: true,
+          project_name: true,
+          logo_url: true,
+          careers_authorization_status: true,
+          careers_rejection_reason: true,
         },
-      })
-    : [];
-  const statusByProject = new Map(
-    companies.map((c) => [c.project_id!, c]),
-  );
-
-  const ownProjects: UserOwnedProject[] = baseProjects.map((p) => {
-    const c = statusByProject.get(p.id);
-    return {
-      ...p,
-      authorization_status: c
-        ? (c.authorization_status as CompanyAuthorizationStatus)
-        : null,
-      rejection_reason: c?.rejection_reason ?? null,
-    };
+      },
+    },
   });
+  type MemberProject = NonNullable<(typeof memberRows)[number]['project']>;
+  const ownProjects: UserOwnedProject[] = memberRows
+    .map((m) => m.project)
+    .filter((p): p is MemberProject => p !== null)
+    .map((p) => ({
+      id: p.id,
+      project_name: p.project_name,
+      logo_url: p.logo_url || null,
+      authorization_status: (p.careers_authorization_status as CareersAuthorizationStatus) ?? null,
+      rejection_reason: p.careers_rejection_reason ?? null,
+    }));
+  const projectIds = ownProjects.map((p) => p.id);
 
   const orClauses: any[] = [{ posted_by_user_id: userId }];
   if (projectIds.length > 0) {
-    orClauses.push({ company: { project_id: { in: projectIds } } });
+    orClauses.push({ project_id: { in: projectIds } });
   }
   const rows = await prisma.jobListing.findMany({
-    where: { source: 'project', OR: orClauses },
-    include: { company: true },
+    where: { source: 'community', OR: orClauses },
+    include: { project: true },
     orderBy: [{ is_active: 'desc' }, { posted_at: 'desc' }, { created_at: 'desc' }],
   });
 
   return {
     ownProjects,
     listings: rows.map((row) => ({
-      ...toJobCard(row),
+      ...toJobCard(row as NonNullable<JobRow>),
       isActive: row.is_active,
-      companyStatus: (row.company.authorization_status as CompanyAuthorizationStatus) ?? 'approved',
-      rejectionReason: row.company.rejection_reason,
+      careersStatus:
+        (row.project?.careers_authorization_status as CareersAuthorizationStatus) ?? 'approved',
+      rejectionReason: row.project?.careers_rejection_reason ?? null,
     })),
   };
 }
@@ -240,63 +365,21 @@ export async function getListingForEdit(
 > {
   const row = await prisma.jobListing.findUnique({
     where: { id: listingId },
-    include: { company: true },
+    include: { project: true },
   });
-  if (!row || row.source !== 'project') return null;
-  const projectId = row.company.project_id;
-  if (!projectId) return null;
+  if (!row || row.source !== 'community' || !row.project_id) return null;
 
   const isOwnPost = row.posted_by_user_id === userId;
   const member = await prisma.member.findFirst({
-    where: { project_id: projectId, user_id: userId, status: 'Confirmed' },
+    where: { project_id: row.project_id, user_id: userId, status: 'Confirmed' },
   });
   if (!isOwnPost && !member) return null;
 
   return {
-    ...toJobCard(row),
+    ...toJobCard(row as NonNullable<JobRow>),
     description: row.description,
-    projectId,
+    projectId: row.project_id,
     isActive: row.is_active,
     employmentType: row.employment_type,
-  };
-}
-
-export async function listMoreJobsFromCompany(
-  companyId: string,
-  excludeJobId: string,
-  limit = 5,
-): Promise<JobCard[]> {
-  const rows = await prisma.jobListing.findMany({
-    where: { company_id: companyId, is_active: true, NOT: { id: excludeJobId } },
-    orderBy: [{ posted_at: 'desc' }, { created_at: 'desc' }],
-    take: limit,
-    include: { company: true },
-  });
-  return rows.map(toJobCard);
-}
-
-type JobRowWithCompany = Awaited<ReturnType<typeof prisma.jobListing.findFirst>> &
-  { company: Awaited<ReturnType<typeof prisma.ecosystemCompany.findFirst>> };
-
-function toJobCard(row: NonNullable<JobRowWithCompany>): JobCard {
-  return {
-    id: row.id,
-    title: row.title,
-    shortDescription: row.short_description,
-    location: row.location,
-    remoteType: row.remote_type,
-    seniority: row.seniority,
-    tags: row.tags,
-    postedAt: row.posted_at,
-    applyUrl: row.apply_url,
-    source: row.source,
-    sourceUrl: row.source_url,
-    company: {
-      id: row.company!.id,
-      name: row.company!.name,
-      slug: row.company!.external_slug,
-      logoUrl: row.company!.logo_url,
-      tags: row.company!.tags,
-    },
   };
 }

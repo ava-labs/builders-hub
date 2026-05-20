@@ -1,34 +1,22 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import { withAuthRole, type RouteParams } from '@/lib/protectedRoute';
-import { rejectCompany } from '@/server/services/ecosystemCareers/submitListing';
-
-const bodySchema = z.object({ reason: z.string().max(500).optional() });
+import { approveProjectForCareers } from '@/server/services/ecosystemCareers/submitListing';
 
 export const POST = withAuthRole<RouteParams<{ id: string }>>(
   'devrel',
-  async (req, ctx, session) => {
+  async (_req, ctx, session) => {
     const userId = session.user.id;
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await ctx.params;
-    let parsed: { reason?: string } = {};
     try {
-      const raw = await req.json();
-      const r = bodySchema.safeParse(raw);
-      if (r.success) parsed = r.data;
-    } catch {
-      // empty body is OK — reason is optional
-    }
-
-    try {
-      await rejectCompany(id, userId, parsed.reason ?? null);
+      const result = await approveProjectForCareers(id, userId);
       revalidatePath('/ecosystem-careers');
       revalidatePath('/admin/ecosystem-careers');
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true, activated: result.activated });
     } catch (err) {
-      console.error('reject company failed:', err);
+      console.error('approve project for careers failed:', err);
       const msg = err instanceof Error ? err.message : 'Internal error';
       return NextResponse.json({ error: msg }, { status: 500 });
     }

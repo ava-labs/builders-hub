@@ -1,5 +1,22 @@
 import Link from 'next/link';
-import { Linkedin, Lock, Twitter } from 'lucide-react';
+import { Linkedin, Lock } from 'lucide-react';
+
+// Inline mark for the X brand (lucide ships a "Twitter" bird; X uses the
+// post-rebrand mark, which we render via an SVG path so we don't depend on
+// a third-party icon library staying in sync with the brand.)
+function XLogo({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
 
 interface Props {
   authenticated: boolean;
@@ -51,11 +68,11 @@ export function UnlockPrompt({
           <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">{callout}</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/80">
-            <Twitter className="w-3 h-3" /> X handle
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/80">
+            <XLogo className="w-3 h-3" /> X account
           </span>
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/80">
-            <Linkedin className="w-3 h-3" /> LinkedIn URL
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/80">
+            <Linkedin className="w-3 h-3" /> LinkedIn account
           </span>
         </div>
         <Link

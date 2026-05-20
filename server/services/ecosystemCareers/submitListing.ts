@@ -34,81 +34,37 @@ export class QuotaError extends Error {
   }
 }
 
-export class CompanyRejectedError extends Error {
+export class ProjectRejectedError extends Error {
   constructor(reason: string | null) {
     super(reason ?? 'This project has been rejected for ecosystem careers');
-    this.name = 'CompanyRejectedError';
+    this.name = 'ProjectRejectedError';
   }
 }
 
-export type CompanyAuthorizationStatus = 'pending' | 'approved' | 'rejected';
+export type CareersAuthorizationStatus = 'pending' | 'approved' | 'rejected';
 
-export interface EnsureCompanyResult {
-  id: string;
-  status: CompanyAuthorizationStatus;
-  rejectionReason: string | null;
-}
-
-// Ensure a project-sourced EcosystemCompany row exists for this project and
-// keep its denormalized fields in sync with the Project record. Called every
-// time a user submits/edits a listing.
+// Helper that resolves the Project's current careers review state. Side
+// effect: if the project hasn't been through the careers funnel yet (still
+// 'approved' by default but never marked pending/approved by a devrel for a
+// careers submission), we leave it alone — the default keeps existing
+// hackathon projects unaffected.
 //
-// New project-sourced rows start with authorization_status='pending'. The
-// existing status is preserved on subsequent calls — denormalized fields are
-// refreshed but the review state is left alone (admin owns transitions).
-export async function ensureCompanyForProject(
+// First-time community submissions explicitly transition the project to
+// 'pending' below.
+async function loadProjectCareersStatus(
   projectId: string,
-): Promise<EnsureCompanyResult> {
+): Promise<{ status: CareersAuthorizationStatus; rejection_reason: string | null }> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: {
-      id: true,
-      project_name: true,
-      short_description: true,
-      logo_url: true,
-      website: true,
-      tags: true,
-      tracks: true,
+      careers_authorization_status: true,
+      careers_rejection_reason: true,
     },
   });
   if (!project) throw new Error(`Project ${projectId} not found`);
-
-  const website =
-    project.website && typeof project.website === 'object'
-      ? extractFirstUrl(project.website as Record<string, unknown>)
-      : null;
-  const tags = dedupe([...(project.tags ?? []), ...(project.tracks ?? [])]).slice(0, 10);
-
-  const company = await prisma.ecosystemCompany.upsert({
-    where: { project_id: projectId },
-    create: {
-      source: 'project',
-      project_id: projectId,
-      name: project.project_name,
-      logo_url: project.logo_url || null,
-      description: project.short_description || null,
-      website,
-      tags,
-      // New project-sourced rows enter the review queue.
-      authorization_status: 'pending',
-      last_seen_at: new Date(),
-    },
-    update: {
-      name: project.project_name,
-      logo_url: project.logo_url || null,
-      description: project.short_description || null,
-      website,
-      tags,
-      last_seen_at: new Date(),
-      // NOTE: authorization_status is intentionally NOT touched on update —
-      // only admins transition that.
-    },
-  });
-
   return {
-    id: company.id,
-    status: (company.authorization_status as CompanyAuthorizationStatus) ?? 'pending',
-    rejectionReason: company.rejection_reason,
+    status: (project.careers_authorization_status as CareersAuthorizationStatus) ?? 'approved',
+    rejection_reason: project.careers_rejection_reason ?? null,
   };
 }
 
@@ -122,9 +78,9 @@ export async function createListing(
 
   const activeCount = await prisma.jobListing.count({
     where: {
-      source: 'project',
+      source: 'community',
       is_active: true,
-      company: { project_id: input.project_id },
+      project_id: input.project_id,
     },
   });
   if (activeCount >= MAX_ACTIVE_LISTINGS_PER_PROJECT) {
@@ -133,9 +89,24 @@ export async function createListing(
     );
   }
 
-  const company = await ensureCompanyForProject(input.project_id);
-  if (company.status === 'rejected') {
-    throw new CompanyRejectedError(company.rejectionReason);
+  // First community submission for a project flips its careers status to
+  // 'pending' (default is 'approved' for unrelated hackathon projects, so we
+  // only narrow when we see an explicit non-pending/non-rejected state AND
+  // no prior community listing). Subsequent submissions inherit the current
+  // status.
+  const existingCommunity = await prisma.jobListing.count({
+    where: { source: 'community', project_id: input.project_id },
+  });
+  if (existingCommunity === 0) {
+    await prisma.project.update({
+      where: { id: input.project_id },
+      data: { careers_authorization_status: 'pending' },
+    });
+  }
+
+  const status = await loadProjectCareersStatus(input.project_id);
+  if (status.status === 'rejected') {
+    throw new ProjectRejectedError(status.rejection_reason);
   }
 
   const sanitizedDescription = sanitizeJobHtml(input.description) || null;
@@ -145,8 +116,8 @@ export async function createListing(
 
   const job = await prisma.jobListing.create({
     data: {
-      source: 'project',
-      company_id: company.id,
+      source: 'community',
+      project_id: input.project_id,
       posted_by_user_id: userId,
       title: input.title.trim(),
       short_description: shortDescription,
@@ -156,19 +127,18 @@ export async function createListing(
       employment_type: input.employment_type ?? null,
       seniority: trimOrNull(input.seniority),
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 6),
+      // Community listings: apply URL is whatever the user provided; clean
+      // it of typical UTM noise (cleanApplyUrl is the existing helper).
       apply_url: cleanApplyUrl(input.apply_url.trim()),
       source_url: null,
       posted_at: new Date(),
       last_seen_at: new Date(),
-      // Listings under pending companies stay hidden until a devrel approves
-      // the team; on approval, syncCompanyJobsCount is re-run and the
-      // listings are flipped to active in one shot.
-      is_active: company.status === 'approved',
+      // Hidden while the team is in review; flipped live in bulk on approve.
+      is_active: status.status === 'approved',
     },
     select: { id: true },
   });
 
-  await syncCompanyJobsCount(company.id);
   return job;
 }
 
@@ -179,14 +149,18 @@ export async function updateListing(
 ): Promise<void> {
   const existing = await prisma.jobListing.findUnique({
     where: { id: listingId },
-    include: { company: { select: { project_id: true } } },
+    select: {
+      id: true,
+      source: true,
+      project_id: true,
+      posted_by_user_id: true,
+    },
   });
   if (!existing) throw new AuthorizationError('Listing not found');
-  if (existing.source !== 'project') {
-    throw new AuthorizationError('Only project-sourced listings can be edited');
+  if (existing.source !== 'community') {
+    throw new AuthorizationError('Only community-sourced listings can be edited');
   }
-
-  const projectId = existing.company.project_id;
+  const projectId = existing.project_id;
   if (!projectId) throw new AuthorizationError('Listing has no linked project');
 
   const isOwnPost = existing.posted_by_user_id === userId;
@@ -197,12 +171,9 @@ export async function updateListing(
     throw new AuthorizationError('Cannot move listing between projects');
   }
 
-  // Refresh denormalized company metadata in case the Project changed —
-  // and inherit the company's current review status to decide whether the
-  // edited listing publishes or stays queued.
-  const company = await ensureCompanyForProject(projectId);
-  if (company.status === 'rejected') {
-    throw new CompanyRejectedError(company.rejectionReason);
+  const status = await loadProjectCareersStatus(projectId);
+  if (status.status === 'rejected') {
+    throw new ProjectRejectedError(status.rejection_reason);
   }
 
   const sanitizedDescription = sanitizeJobHtml(input.description) || null;
@@ -223,9 +194,7 @@ export async function updateListing(
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 6),
       apply_url: cleanApplyUrl(input.apply_url.trim()),
       last_seen_at: new Date(),
-      // If the company is still pending review, the listing stays hidden;
-      // otherwise it's live.
-      is_active: company.status === 'approved',
+      is_active: status.status === 'approved',
     },
   });
 }
@@ -236,13 +205,18 @@ export async function deactivateListing(
 ): Promise<void> {
   const existing = await prisma.jobListing.findUnique({
     where: { id: listingId },
-    include: { company: { select: { id: true, project_id: true } } },
+    select: {
+      id: true,
+      source: true,
+      project_id: true,
+      posted_by_user_id: true,
+    },
   });
   if (!existing) throw new AuthorizationError('Listing not found');
-  if (existing.source !== 'project') {
-    throw new AuthorizationError('Only project-sourced listings can be deactivated here');
+  if (existing.source !== 'community') {
+    throw new AuthorizationError('Only community-sourced listings can be deactivated here');
   }
-  const projectId = existing.company.project_id;
+  const projectId = existing.project_id;
   if (!projectId) throw new AuthorizationError('Listing has no linked project');
 
   const isOwnPost = existing.posted_by_user_id === userId;
@@ -253,98 +227,67 @@ export async function deactivateListing(
     where: { id: listingId },
     data: { is_active: false },
   });
-
-  await syncCompanyJobsCount(existing.company.id);
 }
 
-async function syncCompanyJobsCount(companyId: string): Promise<void> {
-  const count = await prisma.jobListing.count({
-    where: { company_id: companyId, is_active: true },
-  });
-  await prisma.ecosystemCompany.update({
-    where: { id: companyId },
-    data: { jobs_count: count },
-  });
-}
+// Admin actions — devrel-gated. Mutate the Project's careers review state
+// and propagate to all queued community listings under it.
 
-// Admin actions. Mutate the company's review state and propagate to its
-// queued listings. Callers must enforce role checks (devrel) before invoking.
-
-export async function approveCompany(
-  companyId: string,
+export async function approveProjectForCareers(
+  projectId: string,
   reviewerUserId: string,
 ): Promise<{ activated: number }> {
-  const company = await prisma.ecosystemCompany.findUnique({
-    where: { id: companyId },
-    select: { id: true, source: true, authorization_status: true },
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, careers_authorization_status: true },
   });
-  if (!company) throw new Error('Company not found');
-  if (company.source !== 'project') {
-    throw new Error('Only project-sourced companies need approval');
-  }
+  if (!project) throw new Error('Project not found');
 
-  await prisma.ecosystemCompany.update({
-    where: { id: companyId },
+  await prisma.project.update({
+    where: { id: projectId },
     data: {
-      authorization_status: 'approved',
-      authorized_by_user_id: reviewerUserId,
-      authorized_at: new Date(),
-      rejection_reason: null,
+      careers_authorization_status: 'approved',
+      careers_authorized_by_user_id: reviewerUserId,
+      careers_authorized_at: new Date(),
+      careers_rejection_reason: null,
     },
   });
 
-  // Flip queued listings to active.
   const result = await prisma.jobListing.updateMany({
-    where: { company_id: companyId, source: 'project', is_active: false },
+    where: {
+      project_id: projectId,
+      source: 'community',
+      is_active: false,
+    },
     data: { is_active: true, last_seen_at: new Date() },
   });
-
-  await syncCompanyJobsCount(companyId);
   return { activated: result.count };
 }
 
-export async function rejectCompany(
-  companyId: string,
+export async function rejectProjectForCareers(
+  projectId: string,
   reviewerUserId: string,
   reason: string | null,
 ): Promise<void> {
-  const company = await prisma.ecosystemCompany.findUnique({
-    where: { id: companyId },
-    select: { id: true, source: true },
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true },
   });
-  if (!company) throw new Error('Company not found');
-  if (company.source !== 'project') {
-    throw new Error('Only project-sourced companies can be rejected');
-  }
+  if (!project) throw new Error('Project not found');
 
-  await prisma.ecosystemCompany.update({
-    where: { id: companyId },
+  await prisma.project.update({
+    where: { id: projectId },
     data: {
-      authorization_status: 'rejected',
-      authorized_by_user_id: reviewerUserId,
-      authorized_at: new Date(),
-      rejection_reason: reason?.trim() || null,
+      careers_authorization_status: 'rejected',
+      careers_authorized_by_user_id: reviewerUserId,
+      careers_authorized_at: new Date(),
+      careers_rejection_reason: reason?.trim() || null,
     },
   });
 
-  // Keep listings hidden — and freeze any active ones too.
   await prisma.jobListing.updateMany({
-    where: { company_id: companyId, source: 'project', is_active: true },
+    where: { project_id: projectId, source: 'community', is_active: true },
     data: { is_active: false },
   });
-
-  await syncCompanyJobsCount(companyId);
-}
-
-function extractFirstUrl(value: Record<string, unknown>): string | null {
-  for (const v of Object.values(value)) {
-    if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim();
-  }
-  return null;
-}
-
-function dedupe(values: string[]): string[] {
-  return Array.from(new Set(values.filter((v) => v && v.trim())));
 }
 
 function trimOrNull(value: string | null | undefined): string | null {

@@ -3,10 +3,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight, MapPin } from 'lucide-react';
 import { createMetadata } from '@/utils/metadata';
+import { prisma } from '@/prisma/prisma';
 import {
   getJobById,
   getListingForEdit,
-  listMoreJobsFromCompany,
+  listMoreJobsFromSameCompany,
 } from '@/server/services/ecosystemCareers/queries';
 import {
   formatPostedAt,
@@ -45,11 +46,25 @@ export default async function EcosystemCareerDetailPage({ params }: Params) {
   ]);
   if (!job) notFound();
 
+  // Resolve siblings: community → same project_id, external/legacy → same company_name.
+  const sourceContext = await prisma.jobListing.findUnique({
+    where: { id: job.id },
+    select: { source: true, project_id: true, company_name: true },
+  });
+
   const [moreJobs, editable] = await Promise.all([
-    access.canViewAll
-      ? listMoreJobsFromCompany(job.company.id, job.id, 5)
+    access.canViewAll && sourceContext
+      ? listMoreJobsFromSameCompany(
+          {
+            id: job.id,
+            source: sourceContext.source as 'community' | 'external' | 'legacy',
+            project_id: sourceContext.project_id,
+            company_name: sourceContext.company_name,
+          },
+          5,
+        )
       : Promise.resolve([]),
-    job.source === 'project' && access.userId
+    job.source === 'community' && access.userId
       ? getListingForEdit(job.id, access.userId)
       : Promise.resolve(null),
   ]);

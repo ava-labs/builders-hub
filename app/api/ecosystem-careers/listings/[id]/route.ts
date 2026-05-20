@@ -5,7 +5,7 @@ import { withAuth, type RouteParams } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 import {
   AuthorizationError,
-  CompanyRejectedError,
+  ProjectRejectedError,
   deactivateListing,
   updateListing,
 } from '@/server/services/ecosystemCareers/submitListing';
@@ -78,9 +78,9 @@ export const PUT = withAuth<RouteParams<{ id: string }>>(async (req, ctx, sessio
     if (err instanceof AuthorizationError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
-    if (err instanceof CompanyRejectedError) {
+    if (err instanceof ProjectRejectedError) {
       return NextResponse.json(
-        { error: 'CompanyRejected', message: err.message },
+        { error: 'ProjectRejected', message: err.message },
         { status: 422 },
       );
     }

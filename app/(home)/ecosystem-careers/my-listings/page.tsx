@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { getAuthSession } from '@/lib/auth/authSession';
 import {
-  type CompanyAuthorizationStatus,
+  type CareersAuthorizationStatus,
   listListingsForUser,
 } from '@/server/services/ecosystemCareers/queries';
 import { formatPostedAt, prettyRemoteType } from '@/components/ecosystem-careers/labels';
@@ -12,19 +12,19 @@ import { DeactivateListingButton } from '@/components/ecosystem-careers/Deactiva
 
 function StatusBadge({
   isActive,
-  companyStatus,
+  careersStatus,
 }: {
   isActive: boolean;
-  companyStatus: CompanyAuthorizationStatus;
+  careersStatus: CareersAuthorizationStatus;
 }) {
-  if (companyStatus === 'rejected') {
+  if (careersStatus === 'rejected') {
     return (
       <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300">
         Rejected
       </span>
     );
   }
-  if (companyStatus === 'pending') {
+  if (careersStatus === 'pending') {
     return (
       <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300">
         Pending review
@@ -109,7 +109,7 @@ export default async function MyListingsPage() {
                   >
                     {row.title}
                   </Link>
-                  <StatusBadge isActive={row.isActive} companyStatus={row.companyStatus} />
+                  <StatusBadge isActive={row.isActive} careersStatus={row.careersStatus} />
                 </div>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
                   {row.company.name}
@@ -117,7 +117,7 @@ export default async function MyListingsPage() {
                   {row.remoteType ? ` · ${prettyRemoteType(row.remoteType)}` : ''}
                   {row.postedAt ? ` · ${formatPostedAt(row.postedAt)}` : ''}
                 </p>
-                {row.companyStatus === 'rejected' && row.rejectionReason && (
+                {row.careersStatus === 'rejected' && row.rejectionReason && (
                   <p className="text-xs text-rose-600 dark:text-rose-400">
                     Rejected: {row.rejectionReason}
                   </p>

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-export function ReviewActions({ companyId }: { companyId: string }) {
+export function ReviewActions({ projectId }: { projectId: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState<'approve' | 'reject' | null>(null);
 
@@ -13,7 +13,7 @@ export function ReviewActions({ companyId }: { companyId: string }) {
     setBusy('approve');
     try {
       const res = await fetch(
-        `/api/admin/ecosystem-careers/companies/${companyId}/approve`,
+        `/api/admin/ecosystem-careers/projects/${projectId}/approve`,
         { method: 'POST' },
       );
       if (!res.ok) {
@@ -38,7 +38,7 @@ export function ReviewActions({ companyId }: { companyId: string }) {
     setBusy('reject');
     try {
       const res = await fetch(
-        `/api/admin/ecosystem-careers/companies/${companyId}/reject`,
+        `/api/admin/ecosystem-careers/projects/${projectId}/reject`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -170,13 +170,21 @@ model Project {
   website             Json?
   socials             Json?
   consent_sharing     Boolean?
+  // Per-project review state for the Ecosystem Careers feature. Defaults to
+  // 'approved' so the existing hackathon projects don't get flagged
+  // retroactively; new community-submitted careers projects start as
+  // 'pending' until a devrel signs off on the team.
+  careers_authorization_status  String    @default("approved")
+  careers_authorized_by_user_id String?
+  careers_authorized_at         DateTime? @db.Timestamptz(3)
+  careers_rejection_reason      String?
   formData            FormData[]
   members             Member[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
   badges              ProjectBadge[]
   ProjectRepository   ProjectRepository[]
   evaluations         Evaluation[]
-  ecosystem_company   EcosystemCompany?
+  jobListings         JobListing[]
 }
 
 model Member {
@@ -623,57 +631,43 @@ model Speaker {
   id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 }
 
-model EcosystemCompany {
-  id                    String       @id @default(uuid())
-  source                String
-  external_slug         String?
-  project_id            String?      @unique
-  name                  String
-  logo_url              String?
-  description           String?
-  website               String?
-  tags                  String[]     @default([])
-  jobs_count            Int          @default(0)
-  authorization_status  String       @default("approved")
-  authorized_by_user_id String?
-  authorized_at         DateTime?    @db.Timestamptz(3)
-  rejection_reason      String?
-  last_seen_at          DateTime     @default(now()) @db.Timestamptz(3)
-  created_at            DateTime     @default(now()) @db.Timestamptz(3)
-  updated_at            DateTime     @updatedAt @db.Timestamptz(3)
-  project               Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
-  jobs                  JobListing[]
-
-  @@unique([source, external_slug])
-  @@index([source])
-  @@index([authorization_status])
-}
-
 model JobListing {
-  id                String           @id @default(uuid())
-  source            String
-  external_id       String?
-  company_id        String
-  posted_by_user_id String?
-  title             String
-  short_description String
-  description       String?
-  location          String?
-  remote_type       String?
-  employment_type   String?
-  seniority         String?
-  tags              String[]         @default([])
-  apply_url         String
-  source_url        String?
-  posted_at         DateTime?        @db.Timestamptz(3)
-  last_seen_at      DateTime         @default(now()) @db.Timestamptz(3)
-  is_active         Boolean          @default(true)
-  created_at        DateTime         @default(now()) @db.Timestamptz(3)
-  updated_at        DateTime         @updatedAt @db.Timestamptz(3)
-  company           EcosystemCompany @relation(fields: [company_id], references: [id], onDelete: Cascade)
-  posted_by_user    User?            @relation("UserPostedJobListings", fields: [posted_by_user_id], references: [id], onDelete: SetNull)
+  id                       String    @id @default(uuid())
+  // 'community' | 'external' | 'legacy'
+  //   community → user-submitted via a Builders Hub Project (project_id set)
+  //   external  → ingested from web3.career on the cron (company_* set)
+  //   legacy    → the original Getro seed, frozen (company_* set)
+  source                   String
+  external_id              String?
+  // Set for source = 'community' (NULL for external/legacy)
+  project_id               String?
+  posted_by_user_id        String?
+  // Set for source = 'external' | 'legacy' (NULL for community)
+  company_name             String?
+  company_logo             String?
+  company_website          String?
+  company_tags             String[]  @default([])
+  // Shared
+  title                    String
+  short_description        String
+  description              String?
+  location                 String?
+  remote_type              String?
+  employment_type          String?
+  seniority                String?
+  tags                     String[]  @default([])
+  apply_url                String
+  source_url               String?
+  posted_at                DateTime? @db.Timestamptz(3)
+  last_seen_at             DateTime  @default(now()) @db.Timestamptz(3)
+  is_active                Boolean   @default(true)
+  created_at               DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at               DateTime  @updatedAt @db.Timestamptz(3)
+
+  project                  Project?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  posted_by_user           User?     @relation("UserPostedJobListings", fields: [posted_by_user_id], references: [id], onDelete: SetNull)
 
   @@unique([source, external_id])
-  @@index([is_active, posted_at])
-  @@index([company_id])
+  @@index([source, is_active, posted_at])
+  @@index([project_id])
 }

@@ -1,19 +1,15 @@
 import { prisma } from '@/prisma/prisma';
 
-export interface PendingCompanyRow {
+export interface PendingProjectRow {
   id: string;
   name: string;
   logoUrl: string | null;
   description: string | null;
   website: string | null;
   tags: string[];
+  githubRepository: string | null;
+  demoLink: string | null;
   createdAt: Date;
-  project: {
-    id: string;
-    name: string;
-    githubRepository: string | null;
-    demoLink: string | null;
-  } | null;
   pendingListings: {
     id: string;
     title: string;
@@ -25,21 +21,31 @@ export interface PendingCompanyRow {
   }[];
 }
 
-export async function listCompaniesUnderReview(): Promise<PendingCompanyRow[]> {
-  const rows = await prisma.ecosystemCompany.findMany({
-    where: { source: 'project', authorization_status: 'pending' },
-    orderBy: { created_at: 'asc' },
-    include: {
-      project: {
-        select: {
-          id: true,
-          project_name: true,
-          github_repository: true,
-          demo_link: true,
-        },
-      },
-      jobs: {
-        where: { is_active: false },
+function firstUrl(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  for (const v of Object.values(value as Record<string, unknown>)) {
+    if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim();
+  }
+  return null;
+}
+
+export async function listProjectsUnderReview(): Promise<PendingProjectRow[]> {
+  const projects = await prisma.project.findMany({
+    where: { careers_authorization_status: 'pending' },
+    orderBy: { updated_at: 'asc' },
+    select: {
+      id: true,
+      project_name: true,
+      short_description: true,
+      logo_url: true,
+      website: true,
+      tags: true,
+      tracks: true,
+      github_repository: true,
+      demo_link: true,
+      created_at: true,
+      jobListings: {
+        where: { source: 'community', is_active: false },
         orderBy: { created_at: 'asc' },
         select: {
           id: true,
@@ -54,23 +60,17 @@ export async function listCompaniesUnderReview(): Promise<PendingCompanyRow[]> {
     },
   });
 
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    logoUrl: r.logo_url,
-    description: r.description,
-    website: r.website,
-    tags: r.tags,
-    createdAt: r.created_at,
-    project: r.project
-      ? {
-          id: r.project.id,
-          name: r.project.project_name,
-          githubRepository: r.project.github_repository,
-          demoLink: r.project.demo_link,
-        }
-      : null,
-    pendingListings: r.jobs.map((j) => ({
+  return projects.map((p) => ({
+    id: p.id,
+    name: p.project_name,
+    logoUrl: p.logo_url || null,
+    description: p.short_description || null,
+    website: firstUrl(p.website),
+    tags: Array.from(new Set([...(p.tags ?? []), ...(p.tracks ?? [])])).slice(0, 10),
+    githubRepository: p.github_repository || null,
+    demoLink: p.demo_link || null,
+    createdAt: p.created_at,
+    pendingListings: p.jobListings.map((j) => ({
       id: j.id,
       title: j.title,
       location: j.location,

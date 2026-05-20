@@ -45,17 +45,7 @@ export default async function SubmitListingPage({ searchParams }: PageProps) {
     );
   }
 
-  // Fetch the user's confirmed projects together with the linked
-  // EcosystemCompany so we can show review status next to each one.
-  type ProjectRow = {
-    id: string;
-    project_name: string;
-    logo_url: string | null;
-    ecosystem_company: {
-      authorization_status: string;
-      rejection_reason: string | null;
-    } | null;
-  };
+  // Fetch the user's confirmed projects with their careers review state.
   const memberRows = await prisma.member.findMany({
     where: { user_id: userId, status: 'Confirmed' },
     select: {
@@ -64,26 +54,26 @@ export default async function SubmitListingPage({ searchParams }: PageProps) {
           id: true,
           project_name: true,
           logo_url: true,
-          ecosystem_company: {
-            select: { authorization_status: true, rejection_reason: true },
-          },
+          careers_authorization_status: true,
+          careers_rejection_reason: true,
         },
       },
     },
   });
+  type MemberProject = NonNullable<(typeof memberRows)[number]['project']>;
   const allProjects = memberRows
-    .map((m) => m.project as ProjectRow | null)
-    .filter((p): p is ProjectRow => p !== null)
+    .map((m) => m.project)
+    .filter((p): p is MemberProject => p !== null)
     .map((p) => ({
       id: p.id,
       project_name: p.project_name,
       logo_url: p.logo_url,
-      authorization_status: (p.ecosystem_company?.authorization_status ?? null) as
+      authorization_status: (p.careers_authorization_status ?? null) as
         | 'pending'
         | 'approved'
         | 'rejected'
         | null,
-      rejection_reason: p.ecosystem_company?.rejection_reason ?? null,
+      rejection_reason: p.careers_rejection_reason ?? null,
     }));
   // Hide rejected projects from the dropdown — the user can't post under
   // them again until a devrel reverses the decision.

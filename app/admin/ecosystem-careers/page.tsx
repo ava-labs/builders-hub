@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { createMetadata } from '@/utils/metadata';
 import { getAuthSession } from '@/lib/auth/authSession';
-import { listCompaniesUnderReview } from '@/server/services/ecosystemCareers/adminQueries';
+import { listProjectsUnderReview } from '@/server/services/ecosystemCareers/adminQueries';
 import { ReviewActions } from '@/components/ecosystem-careers/ReviewActions';
 
 export const metadata: Metadata = createMetadata({
@@ -36,7 +36,7 @@ export default async function EcosystemCareersAdminPage() {
     );
   }
 
-  const queue = await listCompaniesUnderReview();
+  const queue = await listProjectsUnderReview();
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-12 lg:py-16 space-y-8">
@@ -96,9 +96,9 @@ export default async function EcosystemCareersAdminPage() {
                         Website
                       </a>
                     )}
-                    {c.project?.githubRepository && (
+                    {c.githubRepository && (
                       <a
-                        href={c.project.githubRepository}
+                        href={c.githubRepository}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:underline"
@@ -106,9 +106,9 @@ export default async function EcosystemCareersAdminPage() {
                         GitHub
                       </a>
                     )}
-                    {c.project?.demoLink && (
+                    {c.demoLink && (
                       <a
-                        href={c.project.demoLink}
+                        href={c.demoLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:underline"
@@ -118,7 +118,7 @@ export default async function EcosystemCareersAdminPage() {
                     )}
                   </div>
                 </div>
-                <ReviewActions companyId={c.id} />
+                <ReviewActions projectId={c.id} />
               </div>
 
               {c.pendingListings.length > 0 && (
