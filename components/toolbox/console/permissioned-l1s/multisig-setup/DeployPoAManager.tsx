@@ -22,9 +22,10 @@ import {
   withConsoleToolMetadata,
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { deployPoAManager as sdkDeployPoAManager } from '@avalanche-sdk/interchain/validator-manager';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Deploy PoA Manager',
@@ -51,7 +52,8 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
   const [safeError, setSafeError] = useState<string | null>(null);
 
   const viemChain = useViemChainStore();
-  const { deploy, isDeploying } = useContractDeployer();
+  const [isDeploying, setIsDeploying] = useState(false);
+  const { notify } = useConsoleNotifications();
   const {
     validatorManagerAddress,
     error: validatorManagerError,
@@ -92,25 +94,30 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
     }
 
     setPoaManagerAddress('');
+    setIsDeploying(true);
 
     try {
       if (!viemChain) throw new Error('Viem chain not found');
+      if (!chainPublicClient) throw new Error('Chain public client not found');
       await walletClient.addChain({ chain: viemChain });
       await walletClient.switchChain({ id: viemChain!.id });
 
-      const result = await deploy({
-        abi: PoAManagerABI.abi as any,
-        bytecode: PoAManagerABI.bytecode.object,
-        args: [ownerAddress as `0x${string}`, validatorManagerAddress as `0x${string}`],
-        name: 'PoAManager',
+      const deployPromise = sdkDeployPoAManager(walletClient as never, chainPublicClient as never, {
+        initialOwner: ownerAddress as `0x${string}`,
+        validatorManager: validatorManagerAddress as `0x${string}`,
       });
 
-      setPoaManagerAddress(result.contractAddress);
+      notify({ type: 'local', name: 'Deploy PoAManager' }, deployPromise);
+
+      const { address } = await deployPromise;
+      setPoaManagerAddress(address);
       setIsInitialized(true);
       setVerifiedOwner(ownerAddress);
       onSuccess?.();
     } catch (error) {
       setCriticalError(error instanceof Error ? error : new Error(String(error)));
+    } finally {
+      setIsDeploying(false);
     }
   }
 

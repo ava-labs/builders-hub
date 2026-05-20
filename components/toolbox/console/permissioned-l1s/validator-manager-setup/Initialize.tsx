@@ -8,6 +8,7 @@ import { AbiEvent } from 'viem';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
+import { initializeValidatorManager } from '@avalanche-sdk/interchain/validator-manager';
 import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
@@ -150,7 +151,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
     setIsInitializing(true);
 
-    const formattedSubnetId = subnetIDHex.startsWith('0x') ? subnetIDHex : `0x${subnetIDHex}`;
+    const formattedSubnetId = (subnetIDHex.startsWith('0x') ? subnetIDHex : `0x${subnetIDHex}`) as `0x${string}`;
     const formattedAdmin = adminAddress as `0x${string}`;
 
     const settings = {
@@ -160,23 +161,15 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       maximumChurnPercentage: Number(maximumChurnPercentage),
     };
 
-    const initPromise = walletClient.writeContract({
+    const initPromise = initializeValidatorManager(walletClient as never, chainPublicClient! as never, {
       address: managerAddress as `0x${string}`,
-      abi: ValidatorManagerABI.abi,
-      functionName: 'initialize',
-      args: [settings],
-      chain: viemChain ?? undefined,
-      account: walletEVMAddress as `0x${string}`,
-    });
+      settings,
+    }).then(({ txHash }) => txHash);
 
     notify({ type: 'call', name: 'Initialize Validator Manager' }, initPromise, viemChain ?? undefined);
 
     try {
-      const hash = await initPromise;
-      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
-      if (receipt.status !== 'success') {
-        throw new Error('Transaction reverted');
-      }
+      await initPromise;
       setError(null);
       await checkIfInitialized();
       onSuccess?.();

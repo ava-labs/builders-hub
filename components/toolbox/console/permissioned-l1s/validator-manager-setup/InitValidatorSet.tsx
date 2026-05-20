@@ -7,8 +7,9 @@ import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
-import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from 'viem';
+import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData, type Hex } from 'viem';
 import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
+import { initializeValidatorSet } from '@avalanche-sdk/interchain/validator-manager';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Button } from '@/components/toolbox/components/Button';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
@@ -42,7 +43,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [conversionTxID, setConversionTxID] = useState<string>('');
   const [L1ConversionSignature, setL1ConversionSignature] = useState<string>('');
   const viemChain = useViemChainStore();
-  const { walletEVMAddress, isTestnet } = useWalletStore();
+  const { isTestnet, avalancheNetworkID } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const walletType = useWalletStore((s) => s.walletType);
@@ -179,27 +180,29 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const txArgs = buildTxArgs(conversionResult);
       setCollectedData({ ...(txArgs[0] as any), L1ConversionSignature });
 
-      const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
-      const accessList = packWarpIntoAccessList(signatureBytes);
-
-      const initPromise = walletClient.writeContract({
-        address: conversionResult.managerAddress as `0x${string}`,
-        abi: ValidatorManagerABI.abi,
-        functionName: 'initializeValidatorSet',
-        args: txArgs,
-        accessList,
-        gas: BigInt(2_000_000),
-        chain: viemChain || undefined,
-        account: walletEVMAddress as `0x${string}`,
+      const initPromise = initializeValidatorSet(walletClient as never, chainPublicClient! as never, {
+        contractAddress: conversionResult.managerAddress as `0x${string}`,
+        networkId: avalancheNetworkID,
+        subnetId: conversionResult.subnetId,
+        blockchainId: conversionResult.chainId,
+        validators: conversionResult.validators.map(({ nodeID, weight, signer }) => ({
+          nodeId: nodeID,
+          weight: BigInt(weight),
+          blsPublicKey: (signer.publicKey.startsWith('0x') ? signer.publicKey : `0x${signer.publicKey}`) as Hex,
+        })),
+        // The signature was already aggregated in step 1; the SDK rebuilds the
+        // unsigned message internally and asks us to sign it. Return the
+        // signature we already have — it must match because both paths derive
+        // from the same ConversionData.
+        aggregateSignatures: async () => add0x(L1ConversionSignature),
       });
 
       notify({ type: 'call', name: 'Initialize Validator Set' }, initPromise, viemChain ?? undefined);
 
-      const hash = await initPromise;
-      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
+      const { txHash, receipt } = await initPromise;
 
       if (receipt.status !== 'success') {
-        const decodedError = await debugTraceAndDecode(hash, selectedL1?.rpcUrl);
+        const decodedError = await debugTraceAndDecode(txHash, selectedL1?.rpcUrl);
         throw new Error(
           `Transaction reverted (gas used: ${receipt.gasUsed.toLocaleString()} / 2,000,000): ${decodedError}`,
         );
