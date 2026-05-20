@@ -14,7 +14,7 @@ export function Body({
   return (
     <SessionProvider
       refetchInterval={SESSION_REFETCH_INTERVAL_SECONDS}
-      refetchOnWindowFocus={false}
+      refetchOnWindowFocus={true}
     >
       {children}
       {/* Custom wrapper from components/ui/sonner.tsx adds the project's
