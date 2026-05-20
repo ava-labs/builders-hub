@@ -55,6 +55,13 @@ export function canManageHackathonJudges(
   return hasAnyAttribute(session.user.custom_attributes, ["devrel"]);
 }
 
+export function canManageEvaluationPhase(
+  session: { user?: { custom_attributes?: string[] } } | null | undefined,
+): boolean {
+  if (!session?.user) return false;
+  return hasAnyAttribute(session.user.custom_attributes, ["devrel"]);
+}
+
 /**
  * Constant-time bearer-token check for the public projects endpoint.
  * Expects `Authorization: Bearer <token>`. Compares to the
