@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { formatEther } from 'viem';
 import { getBlockchainInfo } from '../coreViem/utils/glacier';
-import { hexToCB58 } from '@/components/tools/common/utils/cb58';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import type { StakingDetails } from '@/components/toolbox/contexts/ValidatorManagerContext';
 
 interface ValidatorManagerDetailsProps {
@@ -86,7 +86,7 @@ export function ValidatorManagerDetails({
     setIsLoadingUptimeChainName(true);
     (async () => {
       try {
-        const cb58Id = hexToCB58(uptimeBlockchainID);
+        const cb58Id = hexToCB58(uptimeBlockchainID as `0x${string}`);
         const info = await getBlockchainInfo(cb58Id);
         if (!cancelled) setUptimeChainName(info.blockchainName);
       } catch {
@@ -187,7 +187,7 @@ export function ValidatorManagerDetails({
                   badge={uptimeChainName || (isLoadingUptimeChainName ? 'loading...' : null)}
                   value={(() => {
                     try {
-                      return hexToCB58(staking.settings.uptimeBlockchainID);
+                      return hexToCB58(staking.settings.uptimeBlockchainID as `0x${string}`);
                     } catch {
                       return staking.settings.uptimeBlockchainID;
                     }

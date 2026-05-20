@@ -34,7 +34,7 @@ export async function convertToL1(client: AvalancheWalletClient, params: Convert
       proofOfPossession: validator.nodePOP.proofOfPossession,
     },
     weight: validator.validatorWeight,
-    initialBalanceInAvax: Number(validator.validatorBalance) / 1e9,
+    initialBalanceInNanoAvax: validator.validatorBalance,
     remainingBalanceOwner: {
       addresses: validator.remainingBalanceOwner.addresses,
       threshold: validator.remainingBalanceOwner.threshold,

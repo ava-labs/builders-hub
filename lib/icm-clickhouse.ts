@@ -1,6 +1,6 @@
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ICMDataPoint } from "@/types/stats";
-import bs58 from "bs58";
+import { CB58ToHex } from "@avalanche-sdk/client/utils";
 import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { avalanche } from "viem/chains";
@@ -166,23 +166,14 @@ function lookupChain(chainIdNum: number): ChainInfo | undefined {
   return chainMap.get(String(chainIdNum));
 }
 
-function cb58ToHex(cb58Str: string): string {
-  const decoded = bs58.decode(cb58Str);
-  const raw = decoded.slice(0, decoded.length - 4);
-  return Buffer.from(raw).toString("hex").toUpperCase();
-}
-
 const blockchainHexToChainId: Map<string, number> = new Map();
 for (const c of l1ChainsData) {
   const typed = c as L1ChainEntry;
   if (!typed.blockchainId) continue;
   try {
-    let hex: string;
-    if (typed.blockchainId.startsWith("0x")) {
-      hex = typed.blockchainId.slice(2).toUpperCase();
-    } else {
-      hex = cb58ToHex(typed.blockchainId);
-    }
+    const hex = typed.blockchainId.startsWith("0x")
+      ? typed.blockchainId.slice(2).toUpperCase()
+      : CB58ToHex(typed.blockchainId).slice(2).toUpperCase();
     blockchainHexToChainId.set(hex, Number(typed.chainId));
   } catch {
     // Skip entries with unparseable blockchainId

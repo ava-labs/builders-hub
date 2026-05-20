@@ -13,7 +13,7 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import {
   getRegistrationJustification,
   newL1ValidatorRegistrationMessage,
@@ -157,7 +157,7 @@ function RemoveExpiredValidatorRegistration() {
           for (const v of validatorsArr) {
             if (!v?.validationId) continue;
             try {
-              const hex = ('0x' + cb58ToHex(v.validationId)).toLowerCase();
+              const hex = CB58ToHex(v.validationId).toLowerCase();
               ids.add(hex);
             } catch {
               // ignore

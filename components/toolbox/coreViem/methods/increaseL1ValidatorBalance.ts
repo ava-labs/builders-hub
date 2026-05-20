@@ -1,4 +1,5 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
+import { avaxToNanoAvax } from '@avalanche-sdk/client/utils';
 
 export type IncreaseL1ValidatorBalanceParams = {
   validationId: string;
@@ -11,7 +12,7 @@ export async function increaseL1ValidatorBalance(
 ): Promise<string> {
   const txnRequest = await client.pChain.prepareIncreaseL1ValidatorBalanceTxn({
     validationId: params.validationId,
-    balanceInAvax: params.balanceInAvax,
+    balanceInNanoAvax: avaxToNanoAvax(params.balanceInAvax),
   });
 
   // Send the transaction

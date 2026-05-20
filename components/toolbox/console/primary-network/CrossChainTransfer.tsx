@@ -274,7 +274,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           destinationChain: 'P',
           exportedOutput: {
             addresses: [pChainAddress],
-            amount: Number(safeAmount) / 1e9,
+            amount: BigInt(safeAmount),
           },
           fromAddress: walletEVMAddress as `0x${string}`,
         });
@@ -286,7 +286,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           exportedOutputs: [
             {
               addresses: [coreEthAddress],
-              amount: Number(safeAmount) / 1e9,
+              amount: BigInt(safeAmount),
             },
           ],
           destinationChain: 'C',

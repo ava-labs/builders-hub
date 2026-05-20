@@ -21,7 +21,7 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -138,8 +138,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   function buildTxArgs(data: ConversionData) {
     return [
       {
-        subnetID: add0x(cb58ToHex(data.subnetId)),
-        validatorManagerBlockchainID: add0x(cb58ToHex(data.chainId)),
+        subnetID: CB58ToHex(data.subnetId),
+        validatorManagerBlockchainID: CB58ToHex(data.chainId),
         validatorManagerAddress: data.managerAddress as `0x${string}`,
         initialValidators: data.validators.map(
           ({ nodeID, weight, signer }: { nodeID: string; weight: number; signer: { publicKey: string } }) => {

@@ -7,7 +7,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { AbiEvent } from 'viem';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
@@ -94,7 +94,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
   let subnetIDHex = '';
   try {
-    subnetIDHex = cb58ToHex(subnetId || '');
+    subnetIDHex = CB58ToHex(subnetId || '');
   } catch (error) {
     console.error('Error decoding subnetId:', error);
   }
