@@ -35,14 +35,25 @@ const MANDATORY_PATHS = new Set<string>([
   '/console/encrypted-erc/deploy',
 ]);
 
+// One-shot remap for favorites that used to point at URLs that no longer
+// resolve. Hydrated localStorage entries get rewritten on load so a stale
+// pin doesn't become a permanently broken star.
+const LEGACY_FAVORITE_PATHS: Readonly<Record<string, string>> = {
+  // `icm-relayer-type` is a branch container key, never a navigable URL.
+  // The first option in that branch is the natural default.
+  '/console/icm/setup/icm-relayer-type': '/console/icm/setup/self-hosted-relayer',
+};
+
 function normalizeFavorites(value: unknown): Set<string> {
   if (!Array.isArray(value)) return new Set();
-  return new Set(
-    value.filter(
-      (p): p is string =>
-        typeof p === 'string' && p.length > 0 && !MANDATORY_PATHS.has(p),
-    ),
-  );
+  const result = new Set<string>();
+  for (const raw of value) {
+    if (typeof raw !== 'string' || raw.length === 0) continue;
+    const path = LEGACY_FAVORITE_PATHS[raw] ?? raw;
+    if (MANDATORY_PATHS.has(path)) continue;
+    result.add(path);
+  }
+  return result;
 }
 
 const favoritesPref = createLocalPref<Set<string>>({
@@ -100,15 +111,9 @@ export function useFavoriteTools(): UseFavoriteTools {
     [setValue],
   );
 
-  const isStarred = useCallback(
-    (path: string) => MANDATORY_PATHS.has(path) || favorites.has(path),
-    [favorites],
-  );
+  const isStarred = useCallback((path: string) => MANDATORY_PATHS.has(path) || favorites.has(path), [favorites]);
 
-  const isUserStarred = useCallback(
-    (path: string) => favorites.has(path),
-    [favorites],
-  );
+  const isUserStarred = useCallback((path: string) => favorites.has(path), [favorites]);
 
   const isMandatory = useCallback((path: string) => MANDATORY_PATHS.has(path), []);
 

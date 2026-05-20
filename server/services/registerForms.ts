@@ -12,6 +12,7 @@ import { RegistrationForm } from "@/types/registrationForm";
 import { sendMail } from "./mail";
 import { recordReferralAttribution } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
 
 export const registerValidations: Validation[] = [
   {
@@ -122,13 +123,20 @@ export async function createRegisterForm(
   // Telegram is mandatory on the User profile (BasicProfileSetup gate),
   // so the registration form no longer asks for it. Pull it from the user
   // record here so the validation, upsert, and HubSpot payload all see it.
+  // newsletter_subscription is treated as a per-event snapshot of the
+  // canonical User.notifications value; mirror it here so the column reflects
+  // the user's current marketing consent even when the grouped block in
+  // Step 3 was hidden (because notifications was already true on the User).
   if (registerData.email) {
     const user = await prisma.user.findUnique({
       where: { email: registerData.email },
-      select: { telegram_account: true },
+      select: { telegram_account: true, notifications: true },
     });
     if (user?.telegram_account) {
       registerData.telegram_account = user.telegram_account;
+    }
+    if (user && typeof user.notifications === "boolean") {
+      registerData.newsletter_subscription = user.notifications;
     }
   }
 
@@ -297,6 +305,10 @@ export async function sendRegistrationToHubSpot(
   registrationData: any,
   hackathon: any
 ): Promise<void> {
+  if (!isHubSpotEnabled()) {
+    skipHubSpot(`sendRegistrationToHubSpot(${registrationData?.email ?? "unknown"})`);
+    return;
+  }
   const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
   const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
   const HUBSPOT_HACKATHON_FORM_GUID = process.env.HUBSPOT_HACKATHON_FORM_GUID;
@@ -335,7 +347,7 @@ export async function sendRegistrationToHubSpot(
       //'hackathon_event_id': registrationData.hackathon_id, // TODO: add this to the HS form
       //'hackathon_event_title': hackathon?.title || '', // TODO: add this to the HS form
 
-      'marketing_consent': registrationData.newsletter_subscription ? 'Yes' : 'No', // TODO: add this to the HS form
+      'marketing_consent': registrationData.newsletter_subscription ? 'Yes' : 'No',
       'gdpr': registrationData.terms_event_conditions ? 'Yes' : 'No' // TODO: add this to the HS form
     };
 

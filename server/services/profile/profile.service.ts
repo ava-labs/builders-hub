@@ -59,6 +59,7 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         additional_social_accounts: user.additional_social_accounts || [],
         skills: user.skills || [],
         notifications: user.notifications,
+        consent_sharing: user.consent_sharing ?? null,
         profile_privacy: user.profile_privacy,
         telegram_account: user.telegram_account || null,
         notification_means: user.notification_means || null,
@@ -99,6 +100,7 @@ function buildUserUpdateData(
     if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
     if (profileData.skills !== undefined) updateData.skills = profileData.skills;
     if (profileData.notifications !== undefined) updateData.notifications = profileData.notifications;
+    if (profileData.consent_sharing !== undefined) updateData.consent_sharing = profileData.consent_sharing;
     if (profileData.profile_privacy !== undefined) updateData.profile_privacy = profileData.profile_privacy;
     if (profileData.telegram_account !== undefined) updateData.telegram_account = nullableTrimmedString(profileData.telegram_account);
 
@@ -181,6 +183,8 @@ export async function updateExtendedProfile(
                 telegram_account: updatedProfile.telegram_account || undefined,
                 wallet: updatedProfile.wallet || undefined,
                 additional_social_accounts: updatedProfile.additional_social_accounts || undefined,
+                notifications: updatedProfile.notifications ?? undefined,
+                consent_sharing: updatedProfile.consent_sharing ?? undefined,
             });
         } catch (error) {
             console.error('[HubSpot UserData] Failed to sync updated profile:', error);

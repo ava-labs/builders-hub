@@ -90,6 +90,10 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   prohibited_items: z.boolean().optional(),
   founder_check: z.boolean().optional(),
   avalanche_ecosystem_member: z.boolean().optional(),
+  // Transient: User-level consents collected here when not already true on the User row.
+  // Stripped before persisting RegisterForm; forwarded as `user_consents` to the API.
+  user_notifications: z.boolean().optional(),
+  user_consent_sharing: z.boolean().optional(),
 });
 
 export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
@@ -115,6 +119,20 @@ export function RegisterForm({
   const [isSavingLater, setIsSavingLater] = useState(false);
   const isAdvancingStepRef = useRef(false);
   const [referrer, setReferrer] = useState<ReferrerPickerValue>(EMPTY_REFERRER);
+  // Current value of the User-level consents (notifications + Team1 outreach).
+  // null = never asked. The grouped consent block in Step 3 only renders the
+  // children that are not already `true` on the User record.
+  const [userConsentState, setUserConsentState] = useState<{
+    notifications: boolean | null;
+    consent_sharing: boolean | null;
+  }>({ notifications: null, consent_sharing: null });
+  // Stays false until /api/profile/extended/{id} succeeds. Hide-by-default avoids
+  // double-asking users whose extended profile fetch fails or is slow.
+  const [consentsLoaded, setConsentsLoaded] = useState(false);
+  const showNotificationsConsent =
+    consentsLoaded && userConsentState.notifications !== true;
+  const showSharingConsent =
+    consentsLoaded && userConsentState.consent_sharing !== true;
 
   // Use UTM preservation hook
   useUTMPreservation();
@@ -153,6 +171,8 @@ export function RegisterForm({
     prohibited_items: false,
     founder_check: false,
     avalanche_ecosystem_member: false,
+    user_notifications: false,
+    user_consent_sharing: false,
   });
 
   const form = useForm<RegisterFormValues>({
@@ -196,6 +216,11 @@ export function RegisterForm({
       const profileRes = await fetch(`/api/profile/extended/${userId}`);
       if (!profileRes.ok) return;
       const profile = await profileRes.json();
+      setUserConsentState({
+        notifications: typeof profile.notifications === "boolean" ? profile.notifications : null,
+        consent_sharing: typeof profile.consent_sharing === "boolean" ? profile.consent_sharing : null,
+      });
+      setConsentsLoaded(true);
       const current = form.getValues();
       const merged = {
         ...current,
@@ -357,7 +382,19 @@ export function RegisterForm({
 
   async function saveProject(data: RegisterFormValues) {
     try {
-      const response = await axios.post(`/api/register-form/`, data);
+      const { user_notifications, user_consent_sharing, ...registerData } = data;
+      const userConsents: { notifications?: boolean; consent_sharing?: boolean } = {};
+      if (showNotificationsConsent && typeof user_notifications === "boolean") {
+        userConsents.notifications = user_notifications;
+      }
+      if (showSharingConsent && typeof user_consent_sharing === "boolean") {
+        userConsents.consent_sharing = user_consent_sharing;
+      }
+      const payload = {
+        ...registerData,
+        ...(Object.keys(userConsents).length > 0 ? { user_consents: userConsents } : {}),
+      };
+      const response = await axios.post(`/api/register-form/`, payload);
       if (typeof window !== "undefined") {
         localStorage.removeItem(`formData_${hackathon_id}`);
       }
@@ -553,7 +590,6 @@ export function RegisterForm({
       fieldsToValidate = [
         "newsletter_subscription",
         "terms_event_conditions",
-        "hackathon_participation",
       ];
       if (!isOnlineHackathon) {
         fieldsToValidate.push("prohibited_items");
@@ -620,7 +656,14 @@ export function RegisterForm({
               />
             </>
           )}
-          {step === 2 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
+          {step === 2 && (
+            <RegisterFormStep3
+              isOnlineHackathon={isOnlineHackathon}
+              lang={lang}
+              showNotificationsConsent={showNotificationsConsent}
+              showSharingConsent={showSharingConsent}
+            />
+          )}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
