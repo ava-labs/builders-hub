@@ -1,4 +1,4 @@
-import { HackathonEvaluationPhase, ProjectWinnerRank } from "@prisma/client";
+import { HackathonEvaluationPhase } from "@prisma/client";
 
 type EvaluationLike = {
   evaluator_id: string;
@@ -33,35 +33,15 @@ export function stripEvaluationsForViewer<E extends EvaluationLike, P extends Pr
   }));
 }
 
-const VALID_RANKS = new Set<ProjectWinnerRank>([
-  ProjectWinnerRank.FIRST_PLACE,
-  ProjectWinnerRank.WINNER,
-]);
-
-export type ParsedWinnerRank =
-  | { ok: true; rank: ProjectWinnerRank | null }
+export type ParsedIsWinner =
+  | { ok: true; isWinner: boolean }
   | { ok: false; error: string };
 
-export function parseWinnerRankBody(body: {
-  winner_rank?: unknown;
+export function parseIsWinnerBody(body: {
   isWinner?: unknown;
   is_winner?: unknown;
-}): ParsedWinnerRank {
-  if (body.winner_rank !== undefined) {
-    if (body.winner_rank === null) return { ok: true, rank: null };
-    if (
-      typeof body.winner_rank === "string" &&
-      VALID_RANKS.has(body.winner_rank as ProjectWinnerRank)
-    ) {
-      return { ok: true, rank: body.winner_rank as ProjectWinnerRank };
-    }
-    return { ok: false, error: "winner_rank must be FIRST_PLACE, WINNER, or null" };
-  }
-
-  const legacy = body.isWinner ?? body.is_winner;
-  if (typeof legacy === "boolean") {
-    return { ok: true, rank: legacy ? ProjectWinnerRank.WINNER : null };
-  }
-
-  return { ok: false, error: "winner_rank or is_winner is required" };
+}): ParsedIsWinner {
+  const value = body.isWinner ?? body.is_winner;
+  if (typeof value === "boolean") return { ok: true, isWinner: value };
+  return { ok: false, error: "is_winner (boolean) is required" };
 }

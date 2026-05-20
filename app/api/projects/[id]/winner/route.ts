@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
-import { parseWinnerRankBody } from "@/lib/hackathons/evaluation-phase";
+import { parseIsWinnerBody } from "@/lib/hackathons/evaluation-phase";
 import {
   SetWinner,
   WinnerOperationError,
@@ -14,19 +14,18 @@ export const POST = withAuthRole<Params>(
     const { id: projectId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 
-    const parsed = parseWinnerRankBody(body);
+    const parsed = parseIsWinnerBody(body);
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
 
     try {
       const awardedBy = session.user.name || session.user.email || session.user.id;
-      const result = await SetWinner(projectId, parsed.rank, awardedBy);
+      const result = await SetWinner(projectId, parsed.isWinner, awardedBy);
       return NextResponse.json({
         project: {
           id: projectId,
           is_winner: result.isWinner,
-          winner_rank: result.winnerRank,
         },
         message: result.message,
       });

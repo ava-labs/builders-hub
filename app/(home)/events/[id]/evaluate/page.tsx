@@ -57,7 +57,6 @@ export default async function HackathonEvaluatePage({
       website: true,
       socials: true,
       is_winner: true,
-      winner_rank: true,
       created_at: true,
       members: {
         select: {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { HackathonEvaluationPhase, ProjectWinnerRank } from "@prisma/client";
+import { HackathonEvaluationPhase } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,13 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,7 +77,6 @@ type Project = {
   website: unknown;
   socials: unknown;
   is_winner: boolean | null;
-  winner_rank: ProjectWinnerRank | null;
   created_at: string;
   members: Member[];
   evaluations: Evaluation[];
@@ -227,22 +219,6 @@ function SortHeader({
   );
 }
 
-const RANK_STYLES: Record<
-  ProjectWinnerRank,
-  { label: string; iconClass: string; chipClass: string }
-> = {
-  [ProjectWinnerRank.FIRST_PLACE]: {
-    label: "1st place",
-    iconClass: "text-amber-300",
-    chipClass: "bg-amber-500/15 text-amber-300",
-  },
-  [ProjectWinnerRank.WINNER]: {
-    label: "Winner",
-    iconClass: "text-zinc-300",
-    chipClass: "bg-zinc-500/20 text-zinc-200",
-  },
-};
-
 export function HackathonEvaluateDashboard({
   hackathonId,
   viewerId,
@@ -336,31 +312,17 @@ export function HackathonEvaluateDashboard({
 
   const openProject = projects.find((p) => p.id === openProjectId) ?? null;
 
-  async function setWinnerRank(
-    projectId: string,
-    next: ProjectWinnerRank | null,
-  ) {
+  async function setIsWinner(projectId: string, next: boolean) {
     setWinnerSaving(projectId);
     const previous = projects;
     setProjects((prev) =>
-      prev.map((p) => {
-        if (p.id !== projectId) {
-          if (
-            next === ProjectWinnerRank.FIRST_PLACE &&
-            p.winner_rank === ProjectWinnerRank.FIRST_PLACE
-          ) {
-            return { ...p, winner_rank: ProjectWinnerRank.WINNER, is_winner: true };
-          }
-          return p;
-        }
-        return { ...p, winner_rank: next, is_winner: next !== null };
-      }),
+      prev.map((p) => (p.id === projectId ? { ...p, is_winner: next } : p)),
     );
     try {
       const res = await fetch(`/api/projects/${projectId}/winner`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ winner_rank: next }),
+        body: JSON.stringify({ is_winner: next }),
       });
       if (!res.ok) setProjects(previous);
     } catch {
@@ -583,7 +545,6 @@ export function HackathonEvaluateDashboard({
               const avg = averageScore(p.evaluations);
               const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
               const evaluatedByMe = Boolean(mine);
-              const rankStyles = p.winner_rank ? RANK_STYLES[p.winner_rank] : null;
               return (
                 <TableRow
                   key={p.id}
@@ -638,12 +599,11 @@ export function HackathonEvaluateDashboard({
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <WinnerControl
-                      project={p}
+                      isWinner={p.is_winner === true}
                       canPickWinners={canPickWinners}
                       isPickingPhase={!isEvaluation}
                       isSaving={winnerSaving === p.id}
-                      onSelect={(rank) => setWinnerRank(p.id, rank)}
-                      rankStyles={rankStyles}
+                      onToggle={(next) => setIsWinner(p.id, next)}
                     />
                   </TableCell>
                 </TableRow>
@@ -698,33 +658,26 @@ export function HackathonEvaluateDashboard({
 }
 
 type WinnerControlProps = {
-  project: Project;
+  isWinner: boolean;
   canPickWinners: boolean;
   isPickingPhase: boolean;
   isSaving: boolean;
-  onSelect: (rank: ProjectWinnerRank | null) => void;
-  rankStyles: { label: string; iconClass: string; chipClass: string } | null;
+  onToggle: (next: boolean) => void;
 };
 
 function WinnerControl({
-  project,
+  isWinner,
   canPickWinners,
   isPickingPhase,
   isSaving,
-  onSelect,
-  rankStyles,
+  onToggle,
 }: WinnerControlProps) {
   if (!canPickWinners || !isPickingPhase) {
-    if (rankStyles) {
+    if (isWinner) {
       return (
-        <span
-          className={
-            "inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium " +
-            rankStyles.chipClass
-          }
-        >
-          <Trophy className={"size-3.5 " + rankStyles.iconClass} />
-          {rankStyles.label}
+        <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+          <Trophy className="size-3.5 text-amber-300" />
+          Winner
         </span>
       );
     }
@@ -732,47 +685,21 @@ function WinnerControl({
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant={rankStyles ? "default" : "ghost"}
-          size="sm"
-          disabled={isSaving}
-          className="gap-1.5"
-        >
-          <Trophy
-            className={
-              "size-3.5 " +
-              (rankStyles?.iconClass ??
-                "text-zinc-500 dark:text-zinc-600 dark:text-zinc-500")
-            }
-          />
-          {rankStyles ? rankStyles.label : "Pick"}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          onSelect={() => onSelect(ProjectWinnerRank.FIRST_PLACE)}
-        >
-          <Trophy className="size-3.5 text-amber-300" />
-          1st place
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => onSelect(ProjectWinnerRank.WINNER)}>
-          <Trophy className="size-3.5 text-zinc-300" />
-          Winner
-        </DropdownMenuItem>
-        {project.winner_rank !== null && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => onSelect(null)}
-              className="text-red-500 focus:text-red-500"
-            >
-              Clear
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant={isWinner ? "default" : "ghost"}
+      size="sm"
+      disabled={isSaving}
+      aria-pressed={isWinner}
+      onClick={() => onToggle(!isWinner)}
+      className="gap-1.5"
+    >
+      <Trophy
+        className={
+          "size-3.5 " +
+          (isWinner ? "text-amber-300" : "text-zinc-500 dark:text-zinc-600")
+        }
+      />
+      {isWinner ? "Winner" : "Pick"}
+    </Button>
   );
 }

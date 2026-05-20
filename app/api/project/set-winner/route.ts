@@ -1,6 +1,6 @@
 import { Session } from 'next-auth';
 import { withAuthRole } from "@/lib/protectedRoute";
-import { parseWinnerRankBody } from "@/lib/hackathons/evaluation-phase";
+import { parseIsWinnerBody } from "@/lib/hackathons/evaluation-phase";
 import {
   SetWinner,
   WinnerOperationError,
@@ -19,7 +19,7 @@ export const PUT = withAuthRole("badge_admin", async (req: NextRequest, _context
       );
     }
 
-    const parsed = parseWinnerRankBody(body);
+    const parsed = parseIsWinnerBody(body);
     if (!parsed.ok) {
       return NextResponse.json(
         { success: false, error: parsed.error },
@@ -27,7 +27,7 @@ export const PUT = withAuthRole("badge_admin", async (req: NextRequest, _context
       );
     }
 
-    const result = await SetWinner(body.project_id, parsed.rank, name);
+    const result = await SetWinner(body.project_id, parsed.isWinner, name);
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

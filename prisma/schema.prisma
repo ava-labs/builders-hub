@@ -45,11 +45,6 @@ enum HackathonEvaluationPhase {
   PICKING
 }
 
-enum ProjectWinnerRank {
-  FIRST_PLACE
-  WINNER
-}
-
 model HackathonJudge {
   id           String    @id @default(uuid())
   hackathon_id String
@@ -173,7 +168,6 @@ model Project {
   small_cover_url     String?             @default("")
   tags                String[]            @default([])
   is_winner           Boolean?            @default(false)
-  winner_rank         ProjectWinnerRank?
   categories          String[]            @default([])
   origin              String              @default("unknown")
   other_category      String?

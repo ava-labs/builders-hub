@@ -1,7 +1,4 @@
-import {
-  HackathonEvaluationPhase,
-  ProjectWinnerRank,
-} from "@prisma/client";
+import { HackathonEvaluationPhase } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { badgeAssignmentService } from "./badgeAssignmentService";
 import { AssignBadgeResult, BadgeCategory } from "./badge";
@@ -18,12 +15,12 @@ export class WinnerOperationError extends Error {
 
 export async function SetWinner(
   project_id: string,
-  winnerRank: ProjectWinnerRank | null,
+  isWinner: boolean,
   awardedBy: string,
 ) {
   const existingProject = await prisma.project.findUnique({
     where: { id: project_id },
-    select: { is_winner: true, winner_rank: true, hackaton_id: true },
+    select: { is_winner: true, hackaton_id: true },
   });
 
   if (!existingProject) {
@@ -51,23 +48,11 @@ export async function SetWinner(
     );
   }
 
-  if (winnerRank === ProjectWinnerRank.FIRST_PLACE) {
-    await prisma.project.updateMany({
-      where: {
-        hackaton_id: existingProject.hackaton_id,
-        winner_rank: ProjectWinnerRank.FIRST_PLACE,
-        NOT: { id: project_id },
-      },
-      data: { winner_rank: ProjectWinnerRank.WINNER },
-    });
-  }
-
-  const isWinner = winnerRank !== null;
   const wasWinner = existingProject.is_winner === true;
 
   const project = await prisma.project.update({
     where: { id: project_id },
-    data: { winner_rank: winnerRank, is_winner: isWinner },
+    data: { is_winner: isWinner },
   });
 
   let result: AssignBadgeResult & { alreadyWinner?: boolean } = {
@@ -95,7 +80,6 @@ export async function SetWinner(
 
   return {
     ...result,
-    winnerRank: project.winner_rank,
     isWinner: project.is_winner ?? false,
   };
 }
