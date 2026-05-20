@@ -2,21 +2,24 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Check, Loader2, Plus, Send } from 'lucide-react';
+import { ArrowRight, Check, Loader2, Plus, Send, Wallet } from 'lucide-react';
 import { Note } from '@/components/toolbox/components/Note';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
+import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { cn } from '@/lib/utils';
+import { toast } from '@/lib/toast';
 import { ContractDeployViewer } from '@/components/console/contract-deploy-viewer';
 import { ICTT_HOME_SEND_SOURCES } from '@/lib/ictt/contractSources';
 import { InspectorShell } from '@/components/console/inspector-shell';
 import { useSendTokens } from '../hooks/useSendTokens';
 import { useBridgeContext } from '../hooks/useBridgeContext';
 import { buildTxUrl, truncateAddress } from '../utils/explorer-url';
+import { importRemoteToCoreWallet } from '../utils/importToCoreWallet';
 import { BRIDGE_BASE_PATH } from '../bridge-steps';
 import type { Address, Bridge, Remote } from '../types';
 
@@ -37,13 +40,33 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
   const { walletEVMAddress } = useWalletStore();
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const { switchChainOrAdd } = useWallet();
+  const walletClient = useResolvedWalletClient();
   const setPendingDestinationL1Id = useIcttBridgeStore((s) => s.setPendingDestinationL1Id);
+  const activityLog = useIcttBridgeStore((s) => s.activityLog);
 
   const { send, resetError, stage, isBusy, error } = useSendTokens({ bridge, remote: selectedRemote });
   const [amount, setAmount] = useState<string>('');
   const [recipient, setRecipient] = useState<string>(walletEVMAddress);
   const [balance, setBalance] = useState<bigint | null>(null);
   const [lastTx, setLastTx] = useState<Address | null>(null);
+  const [importState, setImportState] = useState<'idle' | 'switching' | 'prompting' | 'added'>('idle');
+
+  // Mirror the activity-log entry for the most recent send so the UI can
+  // react when `useDeliveryWatcher` flips it to `delivered`. Matching by
+  // `txHash` is reliable here: `useSendTokens` writes the hash onto the
+  // pending row before resolving, so the lookup is non-null by the time the
+  // user can see anything below.
+  const lastSendActivity = useMemo(() => {
+    if (!lastTx) return undefined;
+    return activityLog.find((e) => e.kind === 'send' && e.txHash === lastTx);
+  }, [activityLog, lastTx]);
+  const isDelivered = lastSendActivity?.status === 'delivered';
+
+  // Reset the "added" pill when the user starts a fresh send so the CTA
+  // re-appears for the next delivery.
+  useEffect(() => {
+    setImportState('idle');
+  }, [lastTx]);
 
   useEffect(() => {
     if (!recipient && walletEVMAddress) setRecipient(walletEVMAddress);
@@ -170,6 +193,46 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
     if (!homeL1) return;
     // Use switch-or-add so a Home L1 that isn't in the wallet yet still works.
     await switchChainOrAdd(homeL1);
+  };
+
+  // Prompt Core Wallet (or any EIP-1193 wallet that implements `wallet_watchAsset`)
+  // to add the wrapped remote token. The wallet must be on the destination chain
+  // for the token to land on the right network, so switch first when needed.
+  const handleImportToWallet = async () => {
+    if (!remoteL1 || !selectedRemote?.address || !bridge?.symbol || bridge.decimals === undefined) return;
+    if (!walletClient) {
+      toast.error('Wallet not connected', 'Connect a wallet that supports custom tokens.');
+      return;
+    }
+    try {
+      if (walletChainId !== remoteL1.evmChainId) {
+        setImportState('switching');
+        const switched = await switchChainOrAdd(remoteL1);
+        if (!switched) {
+          setImportState('idle');
+          return;
+        }
+      }
+      setImportState('prompting');
+      const added = await importRemoteToCoreWallet(walletClient, {
+        address: selectedRemote.address,
+        symbol: bridge.symbol,
+        decimals: bridge.decimals,
+      });
+      if (added) {
+        setImportState('added');
+        toast.success(
+          `${bridge.symbol} added to your wallet`,
+          `${remoteL1.name} · ${truncateAddress(selectedRemote.address)}`,
+        );
+      } else {
+        setImportState('idle');
+      }
+    } catch (err) {
+      setImportState('idle');
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast.error('Could not add token', message);
+    }
   };
 
   return (
@@ -307,9 +370,77 @@ export function LiveInspector({ bridge }: LiveInspectorProps) {
               </span>
             </Note>
           )}
+
+          {isDelivered && selectedRemote?.address && bridge?.symbol && bridge.decimals !== undefined && (
+            <PostDeliveryImportCard
+              tokenSymbol={bridge.symbol}
+              remoteAddress={selectedRemote.address}
+              remoteChainName={remoteL1?.name ?? 'Remote'}
+              importState={importState}
+              onImport={handleImportToWallet}
+            />
+          )}
         </div>
       </InspectorShell>
     </ContractDeployViewer>
+  );
+}
+
+interface PostDeliveryImportCardProps {
+  tokenSymbol: string;
+  remoteAddress: Address;
+  remoteChainName: string;
+  importState: 'idle' | 'switching' | 'prompting' | 'added';
+  onImport: () => void;
+}
+
+/**
+ * Shown after `useDeliveryWatcher` flips the send activity to `delivered`.
+ * Surfaces the wrapped token address (the bit users previously had to dig out
+ * of explorer logs) and a one-click import to Core Wallet via `wallet_watchAsset`.
+ */
+function PostDeliveryImportCard({
+  tokenSymbol,
+  remoteAddress,
+  remoteChainName,
+  importState,
+  onImport,
+}: PostDeliveryImportCardProps) {
+  const isBusy = importState === 'switching' || importState === 'prompting';
+  const isAdded = importState === 'added';
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3 py-2 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-200">
+      <div className="flex items-center gap-2 text-xs font-medium">
+        <Check className="h-3.5 w-3.5" aria-hidden />
+        <span>
+          {tokenSymbol} delivered on {remoteChainName}.
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <code className="font-mono text-[10px] text-emerald-800/80 dark:text-emerald-200/80">{remoteAddress}</code>
+        <button
+          type="button"
+          onClick={onImport}
+          disabled={isBusy || isAdded}
+          className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-emerald-800 disabled:opacity-60 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+        >
+          {isBusy ? (
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+          ) : isAdded ? (
+            <Check className="h-3 w-3" aria-hidden />
+          ) : (
+            <Wallet className="h-3 w-3" aria-hidden />
+          )}
+          {isAdded
+            ? 'Added'
+            : importState === 'switching'
+              ? `Switching to ${remoteChainName}…`
+              : importState === 'prompting'
+                ? 'Open Core Wallet…'
+                : `Import ${tokenSymbol} to Core Wallet`}
+        </button>
+      </div>
+    </div>
   );
 }
 
