@@ -85,7 +85,13 @@ export const useToolboxStore = () => {
 };
 
 export function useViemChainStore() {
-  const { walletChainId, isTestnet } = useWalletStore();
+  // Granular selectors keep this derived chain stable across unrelated
+  // wallet-store writes. A full-store destructure re-fired this hook on
+  // every wallet field mutation (including the mid-`switchChainOrAdd`
+  // bookkeeping writes), which propagated through `useContractDeployer`
+  // and other consumers and created transient inconsistent-chain renders.
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
   const testnetL1List = getL1ListStore(true)(({ l1List }: { l1List: L1ListItem[] }) => l1List);
   const mainnetL1List = getL1ListStore(false)(({ l1List }: { l1List: L1ListItem[] }) => l1List);
   const selectedL1 = useMemo(() => {

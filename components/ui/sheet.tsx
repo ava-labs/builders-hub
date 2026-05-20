@@ -6,8 +6,17 @@ import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />
+function Sheet({
+  modal = false,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Root>) {
+  // Default to non-modal so opening the sheet doesn't lock body scroll and
+  // add a `padding-right: var(--removed-body-scroll-bar-size)` gutter — that
+  // compensation visibly shifts the page left whenever an ancestor is itself
+  // scrollable (canonical repro: the Manage bridges sheet on /console/ictt).
+  // Mirrors the existing fix in `components/ui/dropdown-menu`. Consumers that
+  // genuinely need focus-trapping modal behavior can pass `modal` explicitly.
+  return <SheetPrimitive.Root data-slot="sheet" modal={modal} {...props} />
 }
 
 function SheetTrigger({

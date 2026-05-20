@@ -3,7 +3,18 @@
 import { useMemo } from 'react';
 import { createPublicClient, http, type Chain, type PublicClient } from 'viem';
 import { useL1List } from '../stores/l1ListStore';
+import { useWalletStore } from '../stores/walletStore';
 import type { L1ListItem } from '../stores/l1ListStore';
+
+/**
+ * Non-zero placeholder used as `tx.origin` for read calls when the wallet
+ * is disconnected. Subnet-EVM's Contract Deployer Allowlist precompile
+ * rejects `eth_call` with `tx.origin = 0x0` ("not authorized to deploy a
+ * contract") — viem's default. Passing any non-zero address bypasses that
+ * specific failure mode without affecting reads on chains that don't have
+ * the precompile (the `from` field is just informational for them).
+ */
+const PREVIEW_ACCOUNT = '0x0000000000000000000000000000000000000001' as const;
 
 /**
  * Non-hook factory variant of {@link usePublicClientForChain}.
@@ -34,13 +45,40 @@ export function makePublicClientForChain(
 
   if (!rpcUrl) return null;
 
-  return createPublicClient({
+  const base = createPublicClient({
     chain,
     transport: http(rpcUrl),
     batch: {
       multicall: {
         deployless: true,
       },
+    },
+  });
+
+  // Wrap `readContract` to auto-inject the connected wallet address as the
+  // `account` (→ `from` in eth_call → `tx.origin` in the EVM). Without this,
+  // viem defaults `tx.origin` to `0x0`, which the Subnet-EVM Contract
+  // Deployer Allowlist precompile rejects with "tx.origin 0x0…0 is not
+  // authorized to deploy a contract" — blocking every cross-chain read on
+  // L1s that enable the precompile.
+  //
+  // Per-call `account:` overrides still work (the override happens only
+  // when the caller didn't specify one). Reading is synchronous off the
+  // zustand store, so there's no hook/render dance — safe to call from
+  // any context.
+  const originalReadContract = base.readContract.bind(base);
+  type ReadContractFn = typeof originalReadContract;
+  const readContract: ReadContractFn = ((params: Parameters<ReadContractFn>[0]) => {
+    const walletAddress = useWalletStore.getState().walletEVMAddress;
+    const existingAccount = (params as { account?: `0x${string}` | { address?: `0x${string}` } }).account;
+    const account = existingAccount ?? (walletAddress && walletAddress.length > 0 ? walletAddress : PREVIEW_ACCOUNT);
+    return originalReadContract({ ...params, account } as Parameters<ReadContractFn>[0]);
+  }) as ReadContractFn;
+
+  return new Proxy(base, {
+    get(target, prop, receiver) {
+      if (prop === 'readContract') return readContract;
+      return Reflect.get(target, prop, receiver);
     },
   }) as PublicClient;
 }
