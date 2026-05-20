@@ -19,6 +19,7 @@ import { IdentityHero } from "./IdentityHero";
 import { PersonalCard } from "./PersonalCard";
 import { ProjectsCard, type ProjectsCardProject } from "./ProjectsCard";
 import { AchievementsCard, type AchievementsCardBadge } from "./AchievementsCard";
+import { SettingsCard } from "./SettingsCard";
 import { CompletionWidget } from "./CompletionWidget";
 import {
   ReferralPanel,
@@ -44,7 +45,13 @@ import { InsightsCard } from "./InsightsCard";
 import type { BuilderInsightsData } from "@/server/services/builderInsights";
 import type { ProfileLink, ProfileRole } from "./types";
 
-type Tab = "personal" | "projects" | "achievements" | "insights" | "notifications";
+type Tab =
+  | "personal"
+  | "projects"
+  | "achievements"
+  | "settings"
+  | "insights"
+  | "notifications";
 interface TabSpec {
   id: Tab;
   label: string;
@@ -53,6 +60,7 @@ const BASE_TABS: ReadonlyArray<TabSpec> = [
   { id: "personal", label: "Personal" },
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
+  { id: "settings", label: "Settings" },
 ];
 
 interface SummaryReferralLink {
@@ -493,6 +501,7 @@ export default function ProfilePage({ teamLabel }: Props) {
       completion.completed === completion.total ? null : completion.completed,
     projects: summary.projects.length,
     achievements: summary.badges.filter((badge) => badge.isUnlocked).length,
+    settings: null,
     insights: insightsData?.latest30DaySignups ?? null,
     notifications: null,
   };
@@ -634,6 +643,7 @@ export default function ProfilePage({ teamLabel }: Props) {
                 loading={summaryLoading}
               />
             )}
+            {tab === "settings" && <SettingsCard />}
             {tab === "insights" && showInsightsTab && (
               <InsightsCard
                 data={insightsData}

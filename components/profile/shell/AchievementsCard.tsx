@@ -75,6 +75,8 @@ const GROUP_ORDER: AchievementGroup[] = [
   "blockchain",
   "avalanche-l1",
   "entrepreneur",
+  "hackathon",
+  "unknown",
 ];
 
 function countUnlocked(badges: AchievementsCardBadge[]): number {

@@ -62,7 +62,6 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         consent_sharing: user.consent_sharing ?? null,
         profile_privacy: user.profile_privacy,
         telegram_account: user.telegram_account || null,
-        notification_means: user.notification_means || null,
     } as ExtendedProfile;
 }
 
@@ -112,13 +111,6 @@ function buildUserUpdateData(
     if (profileData.user_type !== undefined) {
         updateData.user_type = profileData.user_type as Prisma.InputJsonValue;
     }
-    if (profileData.notification_means !== undefined) {
-        updateData.notification_means =
-            profileData.notification_means === null
-                ? Prisma.JsonNull
-                : (profileData.notification_means as Prisma.InputJsonValue);
-    }
-
     return updateData;
 }
 

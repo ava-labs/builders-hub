@@ -12,19 +12,11 @@ import {
  * route and the frontend forms.
  */
 
-/** A notification preference tuple: [inHub, byEmail]. */
-const NotificationPreferenceSchema = z.tuple([z.boolean(), z.boolean()]);
 const nullableProfileAccount = (pattern: RegExp, message: string) =>
   z
     .union([z.string().trim().regex(pattern, message), z.literal("")])
     .nullable()
     .optional();
-
-/** Map from notification key to its preference tuple. */
-export const NotificationMeansSchema = z.record(
-  z.string(),
-  NotificationPreferenceSchema,
-);
 
 /** User type data stored as JSON in the database (nested form). */
 export const UserTypeSchema = z.object({
@@ -82,7 +74,6 @@ export const UpdateExtendedProfileSchema = z
       TELEGRAM_ACCOUNT_PATTERN,
       "Invalid Telegram username.",
     ),
-    notification_means: NotificationMeansSchema.nullable().optional(),
     user_type: UserTypeSchema.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {

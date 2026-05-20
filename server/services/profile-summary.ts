@@ -97,9 +97,12 @@ export async function getUserBadgesForProfile(
     getRewardBoard(userId),
   ]);
 
+  // Return every badge that exists in the DB. The board groups them by
+  // whatever signal we can extract (id prefix or category), and anything we
+  // can't recognize ends up in the "Other Badges" section instead of being
+  // hidden — so a misnamed seed never disappears from the UI again.
   return badges
     .map((badge) => resolveProfileBadge(badge, userBadges))
-    .filter((badge) => badge.group !== "hackathon" && badge.group !== "unknown")
     .sort((a, b) => {
       const groupDelta = groupOrder(a.group) - groupOrder(b.group);
       if (groupDelta !== 0) return groupDelta;
