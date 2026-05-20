@@ -13,6 +13,7 @@ import {
   newWarpMessage,
   packWarpIntoAccessList,
 } from '@avalanche-sdk/interchain/warp';
+import { extractRegisterL1ValidatorMessageFromPChainTx } from '@avalanche-sdk/interchain/validator-manager';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
@@ -23,7 +24,6 @@ import {
   useNativeTokenStakingManager,
   useERC20TokenStakingManager,
 } from '@/components/toolbox/hooks/contracts';
-import { fetchRegisterL1ValidatorData } from './fetchRegisterL1ValidatorData';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -180,11 +180,14 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Extract RegisterL1ValidatorMessage from P-Chain transaction
-      const registrationMessageData = await fetchRegisterL1ValidatorData(pChainTxIdState, isTestnet);
+      const registrationMessageData = await extractRegisterL1ValidatorMessageFromPChainTx({
+        txId: pChainTxIdState,
+        pChainRpcUrl: isTestnet ? 'https://api.avax-test.network/ext/bc/P' : 'https://api.avax.network/ext/bc/P',
+      });
 
       setExtractedData({
-        subnetID: registrationMessageData.subnetID,
-        nodeID: registrationMessageData.nodeID,
+        subnetID: registrationMessageData.subnetIdHex,
+        nodeID: registrationMessageData.nodeIdHex,
         blsPublicKey: registrationMessageData.blsPublicKey,
         expiry: registrationMessageData.expiry,
         weight: registrationMessageData.weight,
@@ -212,7 +215,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
       const validationId = await getValidationIdHex(
         chainPublicClient!,
         validationIdQueryAddress as `0x${string}`,
-        registrationMessageData.nodeID,
+        registrationMessageData.nodeIdHex,
       );
 
       if (validationId === '0x0000000000000000000000000000000000000000000000000000000000000000') {

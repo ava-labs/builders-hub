@@ -21,7 +21,7 @@ import {
   useNativeTokenStakingManager,
   useERC20TokenStakingManager,
 } from '@/components/toolbox/hooks/contracts';
-import { fetchL1ValidatorWeightData } from './fetchL1ValidatorWeightData';
+import { extractL1ValidatorWeightMessageFromPChainTx } from '@avalanche-sdk/interchain/validator-manager';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -184,17 +184,20 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const weightMessageData = await fetchL1ValidatorWeightData(pChainTxIdState, isTestnet);
+      const weightMessageData = await extractL1ValidatorWeightMessageFromPChainTx({
+        txId: pChainTxIdState,
+        pChainRpcUrl: isTestnet ? 'https://api.avax-test.network/ext/bc/P' : 'https://api.avax.network/ext/bc/P',
+      });
 
       setExtractedData({
-        validationID: weightMessageData.validationID,
+        validationID: weightMessageData.validationIdHex,
         nonce: weightMessageData.nonce,
         weight: weightMessageData.weight,
       });
 
       // Step 2: Create L1ValidatorWeightMessage for completion (via @avalanche-sdk/interchain/warp)
       const innerWeightMsg = newL1ValidatorWeightMessage(
-        hexToCB58(weightMessageData.validationID as `0x${string}`),
+        hexToCB58(weightMessageData.validationIdHex as `0x${string}`),
         weightMessageData.nonce,
         weightMessageData.weight,
       );
@@ -210,7 +213,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       let justification: Uint8Array | undefined;
       if (isChangeWeight) {
         const fetchedJustification = await getRegistrationJustification(
-          weightMessageData.validationID,
+          weightMessageData.validationIdHex,
           subnetIdL1,
           chainPublicClient!,
         );

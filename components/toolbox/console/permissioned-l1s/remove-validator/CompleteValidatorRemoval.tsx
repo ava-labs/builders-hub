@@ -14,7 +14,7 @@ import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
-import { fetchL1ValidatorWeightData } from '../../shared/fetchL1ValidatorWeightData';
+import { extractL1ValidatorWeightMessageFromPChainTx } from '@avalanche-sdk/interchain/validator-manager';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
@@ -129,17 +129,20 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const weightMessageData = await fetchL1ValidatorWeightData(pChainTxId, isTestnet);
+      const weightMessageData = await extractL1ValidatorWeightMessageFromPChainTx({
+        txId: pChainTxId,
+        pChainRpcUrl: isTestnet ? 'https://api.avax-test.network/ext/bc/P' : 'https://api.avax.network/ext/bc/P',
+      });
 
       setExtractedData({
-        validationID: weightMessageData.validationID,
+        validationID: weightMessageData.validationIdHex,
         nonce: weightMessageData.nonce,
         weight: weightMessageData.weight,
       });
 
       // Step 2: Get justification for the validation (using the extracted validation ID)
       const justification = await getRegistrationJustification(
-        weightMessageData.validationID,
+        weightMessageData.validationIdHex,
         subnetIdL1,
         chainPublicClient,
       );
@@ -150,7 +153,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
       // Step 3: Create P-Chain warp signature for validator removal
       const innerRemovalMsg = newL1ValidatorRegistrationMessage(
-        hexToCB58(weightMessageData.validationID as `0x${string}`),
+        hexToCB58(weightMessageData.validationIdHex as `0x${string}`),
         false, // false for removal
       );
       const unsignedRemovalMsg = newWarpMessage(

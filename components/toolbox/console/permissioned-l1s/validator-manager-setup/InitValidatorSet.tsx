@@ -9,7 +9,11 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData, type Hex } from 'viem';
 import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
-import { initializeValidatorSet } from '@avalanche-sdk/interchain/validator-manager';
+import {
+  extractSubnetToL1ConversionDataFromPChainTx,
+  initializeValidatorSet,
+  type ExtractSubnetToL1ConversionDataResult,
+} from '@avalanche-sdk/interchain/validator-manager';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Button } from '@/components/toolbox/components/Button';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
@@ -27,7 +31,8 @@ import { ContractFunctionViewer } from '@/components/console/contract-function-v
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import versions from '@/scripts/versions.json';
-import { fetchConversionData, ConversionData } from './fetchConversionData';
+
+type ConversionData = ExtractSubnetToL1ConversionDataResult & { signingSubnetId: string };
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 const add0x = (hex: string): `0x${string}` => (hex.startsWith('0x') ? (hex as `0x${string}`) : `0x${hex}`);
@@ -70,8 +75,26 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     setIsAggregating(true);
 
     const aggPromise = (async () => {
-      // Use fetchConversionData (P-Chain RPC + Glacier) — no wallet dependency
-      const data = await fetchConversionData(conversionTxID, isTestnet);
+      // SDK extracts the conversion data + builds the unsigned warp message.
+      // Glacier provides the signing-subnet (the subnet that attests to the
+      // L1's bootstrap validators); kept out of the SDK to avoid pulling in
+      // a Glacier dep there.
+      const extracted = await extractSubnetToL1ConversionDataFromPChainTx({
+        txId: conversionTxID,
+        pChainRpcUrl: isTestnet ? 'https://api.avax-test.network/ext/bc/P' : 'https://api.avax.network/ext/bc/P',
+        networkId: avalancheNetworkID,
+      });
+
+      const network = isTestnet ? 'fuji' : 'mainnet';
+      const glacierRes = await fetch(
+        `https://glacier-api.avax.network/v1/networks/${network}/blockchains/${extracted.blockchainId}`,
+        { headers: { accept: 'application/json' } },
+      );
+      if (!glacierRes.ok) throw new Error(`Glacier returned ${glacierRes.status}`);
+      const glacierData = await glacierRes.json();
+      if (!glacierData.subnetId) throw new Error('No subnetId from Glacier');
+
+      const data: ConversionData = { ...extracted, signingSubnetId: glacierData.subnetId };
       setConversionResult(data);
 
       if (data.managerAddress) {
@@ -79,8 +102,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       }
 
       const { signedMessage } = await aggregateSignature({
-        message: data.message,
-        justification: data.justification,
+        message: data.unsignedMessageHex,
+        justification: data.justificationHex,
         signingSubnetId: data.signingSubnetId,
       });
       setL1ConversionSignature(signedMessage);
@@ -140,7 +163,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     return [
       {
         subnetID: CB58ToHex(data.subnetId),
-        validatorManagerBlockchainID: CB58ToHex(data.chainId),
+        validatorManagerBlockchainID: CB58ToHex(data.blockchainId),
         validatorManagerAddress: data.managerAddress as `0x${string}`,
         initialValidators: data.validators.map(
           ({ nodeID, weight, signer }: { nodeID: string; weight: number; signer: { publicKey: string } }) => {
@@ -184,7 +207,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         contractAddress: conversionResult.managerAddress as `0x${string}`,
         networkId: avalancheNetworkID,
         subnetId: conversionResult.subnetId,
-        blockchainId: conversionResult.chainId,
+        blockchainId: conversionResult.blockchainId,
         validators: conversionResult.validators.map(({ nodeID, weight, signer }) => ({
           nodeId: nodeID,
           weight: BigInt(weight),

@@ -10,6 +10,7 @@ import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20To
 import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
+import { extractL1ValidatorWeightMessageFromPChainTx } from '@avalanche-sdk/interchain/validator-manager';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { newL1ValidatorWeightMessage, newWarpMessage } from '@avalanche-sdk/interchain/warp';
 import { hexToCB58 } from '@avalanche-sdk/client/utils';
@@ -41,7 +42,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { avalancheNetworkID } = useWalletStore();
+  const { avalancheNetworkID, isTestnet } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -140,23 +141,20 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
       }
 
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const coreWalletClient = useWalletStore.getState().coreWalletClient;
-      if (!coreWalletClient) {
-        throw new Error('This operation requires Core Wallet');
-      }
-      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
+      const weightMessageData = await extractL1ValidatorWeightMessageFromPChainTx({
         txId: pChainTxId,
+        pChainRpcUrl: isTestnet ? 'https://api.avax-test.network/ext/bc/P' : 'https://api.avax.network/ext/bc/P',
       });
 
       setExtractedData({
-        validationID: weightMessageData.validationID,
+        validationID: weightMessageData.validationIdHex,
         nonce: weightMessageData.nonce,
         weight: weightMessageData.weight,
       });
 
       // Step 2: Create L1ValidatorWeightMessage for completion
       const innerWeightMsg = newL1ValidatorWeightMessage(
-        hexToCB58(weightMessageData.validationID as `0x${string}`),
+        hexToCB58(weightMessageData.validationIdHex),
         weightMessageData.nonce,
         weightMessageData.weight,
       );
