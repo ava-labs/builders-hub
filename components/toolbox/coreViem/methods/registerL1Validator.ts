@@ -1,5 +1,4 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
-import { avaxToNanoAvax } from '@avalanche-sdk/client/utils';
 
 /**
  * Parameters for registering an L1 validator on the P-Chain.
@@ -34,7 +33,7 @@ export async function registerL1Validator(
   const message = signedWarpMessage.startsWith('0x') ? signedWarpMessage : `0x${signedWarpMessage}`;
 
   const txnRequest = await client.pChain.prepareRegisterL1ValidatorTxn({
-    initialBalanceInNanoAvax: avaxToNanoAvax(Number(balance)),
+    initialBalanceInAvax: Number(balance),
     blsSignature,
     message,
   });

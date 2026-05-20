@@ -310,13 +310,14 @@
     util "^0.12.5"
     viem "^2.33.3"
 
-"@avalanche-sdk/interchain@^0.1.1-alpha.1":
-  version "0.1.1-alpha.1"
-  resolved "https://registry.yarnpkg.com/@avalanche-sdk/interchain/-/interchain-0.1.1-alpha.1.tgz#0abf7ebfc31a87ce1ba43619ffb151857dc81764"
-  integrity sha512-wbzqg3ayJLAh051/K+oi3sRQRr3P4/4LqFbY2pTlfLqhxh+xFBTYmAr++Xv7RVzy7uvYA+0RD1X6ztioRY9lWw==
+"@avalanche-sdk/interchain@^0.2.0-alpha.0":
+  version "0.2.0-alpha.0"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/interchain/-/interchain-0.2.0-alpha.0.tgz#bd09c51ded3ba75fcc998c9b40176ea066041e73"
+  integrity sha512-JaISc2LpJjKK033jg7DAmbbrGIZHMP9nPuQLwQM3kaJlzSWXOqhCdiQHqAyaG/cIQyYJ01WWQ/+TJQGzYlxGVQ==
   dependencies:
     "@avalabs/avalanchejs" "5.1.0-alpha.1"
     "@avalanche-sdk/client" "^0.0.4-alpha.12"
+    "@noble/hashes" "^1.8.0"
 
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.23.5":
   version "7.27.1"
