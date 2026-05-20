@@ -6,7 +6,7 @@ import { useContractActions } from '@/components/toolbox/hooks/contracts';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import ERC20TokenHomeAbi from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
-import { cb58ToHex } from '@/components/tools/common/utils/cb58';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
@@ -117,7 +117,7 @@ export function useAddCollateral({ bridge, remote }: UseAddCollateralOptions) {
     setPollAttempts(0);
     setLastError(null);
 
-    const blockchainIDHex = cb58ToHex(remote.l1Id) as Address;
+    const blockchainIDHex = CB58ToHex(remote.l1Id) as Address;
     let attempt = 0;
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
     let sawError = false;
@@ -245,7 +245,7 @@ export function useAddCollateral({ bridge, remote }: UseAddCollateralOptions) {
       status: 'pending',
     });
     try {
-      const blockchainIDHex = cb58ToHex(remote.l1Id) as Address;
+      const blockchainIDHex = CB58ToHex(remote.l1Id) as Address;
       const depositTx = (await tokenHome.addCollateral(blockchainIDHex, remote.address, amount)) as Address;
       updateActivity(activityId, { status: 'confirmed', txHash: depositTx, sublabel: 'Collateral added' });
       upsertRemote(bridge.id, { ...remote, collateralizedAt: Date.now() });
