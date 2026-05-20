@@ -9,10 +9,10 @@ import BuildGamesPartners from "@/components/build-games/BuildGamesPartners";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
-// Render at request time. The Mentors/Partners/Resources sections hit
-// Prisma → Neon via getHackathon(); Neon's autosuspend can refuse the
-// build-time connection and break the entire static page generation.
-export const dynamic = "force-dynamic";
+// BuildGamesMentors / Partners / Resources read the live hackathon row
+// from Postgres. Pre-rendering this page at build time fails when the
+// Neon serverless DB is napping — render at request time instead.
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: "Build Games 2026 | $1,000,000 Builder Competition on Avalanche",
