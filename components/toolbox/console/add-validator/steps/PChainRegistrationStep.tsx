@@ -50,11 +50,7 @@ export default function PChainRegistrationStep() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">P-Chain Registration</h2>
-          <ManagerTypeBadge
-            ownerType={vmcCtx.ownerType}
-            stakingType={vmcCtx.staking.stakingType}
-            isDetecting={false}
-          />
+          <ManagerTypeBadge ownerType={vmcCtx.ownerType} stakingType={vmcCtx.staking.stakingType} isDetecting={false} />
         </div>
         {!store.evmTxHash && (
           <Alert variant="warning">

@@ -34,13 +34,30 @@ import {
   buildReferralAttributionPayload,
 } from "@/components/referrals/ReferralFormSection";
 import { EMPTY_REFERRER, type ReferrerPickerValue } from "@/components/referrals/ReferrerPicker";
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+} from "@/lib/profile/socialAccountValidation";
+
+const optionalSocial = (pattern: RegExp, message: string) =>
+  z
+    .string()
+    .optional()
+    .default("")
+    .refine((value) => !value || pattern.test(value.trim()), { message });
+
+const requiredSocial = (pattern: RegExp, requiredMessage: string, formatMessage: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, requiredMessage)
+    .refine((value) => pattern.test(value), { message: formatMessage });
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   company_name: z.string().optional(),
-  telegram_user: z.string().min(1, "Telegram username is required"),
   role: z.string().optional(),
   is_student: z.boolean().optional().default(false),
   student_institution: z.string().optional(),
@@ -59,12 +76,24 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   languages: z.array(z.string()).optional(),
   hackathon_participation: z.string().optional(),
   dietary: z.string().optional().default(""),
-  github_portfolio: z.string().optional(),
+  github_portfolio: optionalSocial(
+    GITHUB_ACCOUNT_PATTERN,
+    "Enter your GitHub username or https://github.com/<username>",
+  ),
+  telegram_account: requiredSocial(
+    TELEGRAM_ACCOUNT_PATTERN,
+    "Telegram username is required",
+    "Enter a valid Telegram handle (5-32 chars, letters/digits/underscore)",
+  ),
   terms_event_conditions: z.boolean().optional(),
   newsletter_subscription: z.boolean().default(false).optional(),
   prohibited_items: z.boolean().optional(),
   founder_check: z.boolean().optional(),
   avalanche_ecosystem_member: z.boolean().optional(),
+  // Transient: User-level consents collected here when not already true on the User row.
+  // Stripped before persisting RegisterForm; forwarded as `user_consents` to the API.
+  user_notifications: z.boolean().optional(),
+  user_consent_sharing: z.boolean().optional(),
 });
 
 export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
@@ -90,6 +119,20 @@ export function RegisterForm({
   const [isSavingLater, setIsSavingLater] = useState(false);
   const isAdvancingStepRef = useRef(false);
   const [referrer, setReferrer] = useState<ReferrerPickerValue>(EMPTY_REFERRER);
+  // Current value of the User-level consents (notifications + Team1 outreach).
+  // null = never asked. The grouped consent block in Step 3 only renders the
+  // children that are not already `true` on the User record.
+  const [userConsentState, setUserConsentState] = useState<{
+    notifications: boolean | null;
+    consent_sharing: boolean | null;
+  }>({ notifications: null, consent_sharing: null });
+  // Stays false until /api/profile/extended/{id} succeeds. Hide-by-default avoids
+  // double-asking users whose extended profile fetch fails or is slow.
+  const [consentsLoaded, setConsentsLoaded] = useState(false);
+  const showNotificationsConsent =
+    consentsLoaded && userConsentState.notifications !== true;
+  const showSharingConsent =
+    consentsLoaded && userConsentState.consent_sharing !== true;
 
   // Use UTM preservation hook
   useUTMPreservation();
@@ -122,12 +165,14 @@ export function RegisterForm({
     languages: [],
     hackathon_participation: "",
     github_portfolio: "",
-    telegram_user: "",
+    telegram_account: "",
     terms_event_conditions: false,
     newsletter_subscription: false,
     prohibited_items: false,
     founder_check: false,
     avalanche_ecosystem_member: false,
+    user_notifications: false,
+    user_consent_sharing: false,
   });
 
   const form = useForm<RegisterFormValues>({
@@ -171,13 +216,18 @@ export function RegisterForm({
       const profileRes = await fetch(`/api/profile/extended/${userId}`);
       if (!profileRes.ok) return;
       const profile = await profileRes.json();
+      setUserConsentState({
+        notifications: typeof profile.notifications === "boolean" ? profile.notifications : null,
+        consent_sharing: typeof profile.consent_sharing === "boolean" ? profile.consent_sharing : null,
+      });
+      setConsentsLoaded(true);
       const current = form.getValues();
       const merged = {
         ...current,
         name:  profile.name || current.name || "",
         email:  profile.email || current.email || "",
         city:  profile.country || current.city || "",
-        telegram_user:  profile.telegram_user || current.telegram_user || "",
+        telegram_account:  profile.telegram_account || current.telegram_account || "",
         company_name:  profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
         role:  profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
         is_student: profile.user_type?.is_student ?? current.is_student ?? false,
@@ -189,6 +239,8 @@ export function RegisterForm({
         employee_role: profile.user_type?.employee_role || current.employee_role || "",
         is_developer: profile.user_type?.is_developer ?? current.is_developer ?? false,
         is_enthusiast: profile.user_type?.is_enthusiast ?? current.is_enthusiast ?? false,
+        founder_check: profile.user_type?.founder_check ?? current.founder_check ?? false,
+        avalanche_ecosystem_member: profile.user_type?.avalanche_ecosystem_member ?? current.avalanche_ecosystem_member ?? false,
       };
       form.reset(merged);
     } catch (err) {
@@ -221,7 +273,7 @@ export function RegisterForm({
         name: step1.name ?? existing.name,
         email: step1.email ?? existing.email,
         country: (step1.city ?? "").trim() || existing.country,
-        telegram_user: (step1.telegram_user ?? "").trim() || existing.telegram_user,
+        telegram_account: (step1.telegram_account ?? "").trim() || existing.telegram_account,
         user_type: {
           ...userType,
           is_student: Boolean(step1.is_student),
@@ -235,6 +287,8 @@ export function RegisterForm({
           employee_role: (step1.employee_role ?? "").trim(),
           company_name: roleCompany.trim() || userType.company_name,
           role: roleLabel.trim() || userType.role,
+          founder_check: Boolean(step1.founder_check),
+          avalanche_ecosystem_member: Boolean(step1.avalanche_ecosystem_member),
         },
       };
       await fetch(`/api/profile/extended/${userId}`, {
@@ -271,7 +325,7 @@ export function RegisterForm({
           is_enthusiast: loadedData.is_enthusiast || false,
           city: loadedData.city || "",
           dietary: loadedData.dietary || "",
-          telegram_user: loadedData.telegram_user || "",
+          telegram_account: loadedData.telegram_account || "",
           interests: loadedData.interests
             ? parseArrayField(loadedData.interests)
             : [],
@@ -292,6 +346,14 @@ export function RegisterForm({
         hackathon_id = loadedData.hackathon_id;
         form.reset(parsedData);
         setRegistrationForm(loadedData);
+        if (loadedData.referralAttribution) {
+          const ra = loadedData.referralAttribution;
+          setReferrer({
+            teamId: ra.team_id_referrer ?? null,
+            teamIdOther: ra.team_id_referrer_other ?? null,
+            userId: ra.user_id_referrer ?? null,
+          });
+        }
       }
       setDataFromLocalStorage();
       await mergeProfileIntoStep1();
@@ -320,7 +382,19 @@ export function RegisterForm({
 
   async function saveProject(data: RegisterFormValues) {
     try {
-      const response = await axios.post(`/api/register-form/`, data);
+      const { user_notifications, user_consent_sharing, ...registerData } = data;
+      const userConsents: { notifications?: boolean; consent_sharing?: boolean } = {};
+      if (showNotificationsConsent && typeof user_notifications === "boolean") {
+        userConsents.notifications = user_notifications;
+      }
+      if (showSharingConsent && typeof user_consent_sharing === "boolean") {
+        userConsents.consent_sharing = user_consent_sharing;
+      }
+      const payload = {
+        ...registerData,
+        ...(Object.keys(userConsents).length > 0 ? { user_consents: userConsents } : {}),
+      };
+      const response = await axios.post(`/api/register-form/`, payload);
       if (typeof window !== "undefined") {
         localStorage.removeItem(`formData_${hackathon_id}`);
       }
@@ -465,9 +539,9 @@ export function RegisterForm({
         "name",
         "email",
         "company_name",
-        "telegram_user",
         "role",
         "city",
+        "telegram_account",
       ];
       const formValues = form.getValues();
       const errors: any = {};
@@ -486,17 +560,23 @@ export function RegisterForm({
         };
       }
 
-      if (!formValues.telegram_user || formValues.telegram_user.trim() === "") {
-        errors.telegram_user = {
-          type: "custom",
-          message: "Telegram username is required"
-        };
-      }
-
       if (!formValues.city || formValues.city.trim() === "") {
         errors.city = {
           type: "custom",
           message: "City is required"
+        };
+      }
+
+      const telegramHandle = (formValues.telegram_account ?? "").trim();
+      if (!telegramHandle) {
+        errors.telegram_account = {
+          type: "custom",
+          message: "Telegram username is required",
+        };
+      } else if (!TELEGRAM_ACCOUNT_PATTERN.test(telegramHandle)) {
+        errors.telegram_account = {
+          type: "custom",
+          message: "Enter a valid Telegram handle (5-32 chars, letters/digits/underscore)",
         };
       }
 
@@ -510,7 +590,6 @@ export function RegisterForm({
       fieldsToValidate = [
         "newsletter_subscription",
         "terms_event_conditions",
-        "hackathon_participation",
       ];
       if (!isOnlineHackathon) {
         fieldsToValidate.push("prohibited_items");
@@ -568,10 +647,23 @@ export function RegisterForm({
           {step === 1 && (
             <>
               <RegisterFormStep1 user={session?.user} lang={lang} />
-              <ReferralFormSection value={referrer} onChange={setReferrer} />
+              <ReferralFormSection
+                value={referrer}
+                onChange={setReferrer}
+                title={t(lang, "reg.referral.title")}
+                description={t(lang, "reg.referral.description")}
+                lang={lang}
+              />
             </>
           )}
-          {step === 2 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} lang={lang} />}
+          {step === 2 && (
+            <RegisterFormStep3
+              isOnlineHackathon={isOnlineHackathon}
+              lang={lang}
+              showNotificationsConsent={showNotificationsConsent}
+              showSharingConsent={showSharingConsent}
+            />
+          )}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
@@ -663,6 +755,7 @@ export function RegisterForm({
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         lang={lang}
+        isUpdate={!!formLoaded}
       />
     </div>
   );

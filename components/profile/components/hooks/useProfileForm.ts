@@ -5,6 +5,12 @@ import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  LINKEDIN_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
+} from "@/lib/profile/socialAccountValidation";
 
 // Zod validation schema - name is required; rest are format validations
 export const profileSchema = z.object({
@@ -30,13 +36,29 @@ export const profileSchema = z.object({
   // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
-  github: z.union([z.literal(""), z.url("Must be a valid URL")]).optional(),
+  // All four typed social fields are optional. Regex still applies when a
+  // non-empty value is present; an empty string passes through as "clear."
+  github_account: z
+    .union([z.string().regex(GITHUB_ACCOUNT_PATTERN, "Enter a valid GitHub username or github.com URL"), z.literal("")])
+    .optional()
+    .default(""),
+  x_account: z
+    .union([z.string().regex(X_ACCOUNT_PATTERN, "Enter a URL like https://x.com/yourhandle"), z.literal("")])
+    .optional()
+    .default(""),
+  linkedin_account: z
+    .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"), z.literal("")])
+    .optional()
+    .default(""),
   wallet: z.array(z.string()).optional().default([]),
-  socials: z.array(z.url("Must be a valid URL")).optional().default([]),
+  additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
-  telegram_user: z.string().optional(),
+  telegram_account: z
+    .union([z.string().regex(TELEGRAM_ACCOUNT_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"), z.literal("")])
+    .optional()
+    .default(""),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -51,7 +73,7 @@ const PROFILE_COMPLETION_CRITERIA = 9;
 export function getProfileCompletionPercentage(values: Partial<ProfileFormValues> | undefined): number {
   if (!values) return 0;
   const v = values;
-  const has = (s: string | undefined) => (s?.trim() ?? "") !== "";
+  const has = (s: unknown) => typeof s === "string" && s.trim() !== "";
   const hasRole =
     v.is_developer === true ||
     v.is_enthusiast === true ||
@@ -63,10 +85,10 @@ export function getProfileCompletionPercentage(values: Partial<ProfileFormValues
   if (has(v.bio)) completed++;
   if (has(v.country)) completed++;
   if (hasRole) completed++;
-  if (has(v.github)) completed++;
+  if (has(v.github_account)) completed++;
   if (Array.isArray(v.wallet) && v.wallet.filter((w) => has(w)).length > 0) completed++;
-  if (has(v.telegram_user)) completed++;
-  if (Array.isArray(v.socials) && v.socials.length > 0) completed++;
+  if (has(v.telegram_account)) completed++;
+  if (Array.isArray(v.additional_social_accounts) && v.additional_social_accounts.length > 0) completed++;
   if (Array.isArray(v.skills) && v.skills.length > 0) completed++;
   return Math.round((completed / PROFILE_COMPLETION_CRITERIA) * 100);
 }
@@ -108,13 +130,15 @@ export function useProfileForm() {
       student_institution: "",
       company_name: "",
       role: "",
-      github: "",
+      github_account: "",
+      x_account: "",
+      linkedin_account: "",
       wallet: [],
-      socials: [],
+      additional_social_accounts: [],
       skills: [],
       notifications: false,
       profile_privacy: "public",
-      telegram_user: "",
+      telegram_account: "",
     },
   });
 
@@ -165,13 +189,15 @@ export function useProfileForm() {
           student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
           company_name: profile.user_type?.company_name || "",
           role: profile.user_type?.role || "",
-          github: profile.github || "",
+          github_account: profile.github_account || "",
+          x_account: profile.x_account || "",
+          linkedin_account: profile.linkedin_account || "",
           wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
-          socials: profile.socials || [],
+          additional_social_accounts: profile.additional_social_accounts || [],
           skills: profile.skills || [],
           notifications: profile.notifications || false,
           profile_privacy: profile.profile_privacy || "public",
-          telegram_user: profile.telegram_user || "",
+          telegram_account: profile.telegram_account || "",
         };
 
         setGithubConnected(Boolean(profile.githubConnected));
@@ -194,11 +220,14 @@ export function useProfileForm() {
   
   useEffect(() => {
     const gh = searchParams.get('gh');
-    if (!gh) return;
+    const x = searchParams.get('x');
+    if (!gh && !x) return;
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete('gh');
-    router.replace(`${pathname}?${params.toString()}`);
+    params.delete('x');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
   }, []);
 
   // Load profile data on component mount
@@ -283,6 +312,7 @@ export function useProfileForm() {
         company_name,
         role,
         wallet,
+        github_account: _githubAccount,
         ...restData
       } = data;
 
@@ -450,6 +480,7 @@ export function useProfileForm() {
         company_name,
         role,
         wallet,
+        github_account: _githubAccount,
         ...restData
       } = data;
 
@@ -518,13 +549,15 @@ export function useProfileForm() {
         student_institution: updatedProfile.user_type?.student_institution || "",
         company_name: updatedProfile.user_type?.company_name || "",
         role: updatedProfile.user_type?.role || "",
-        github: updatedProfile.github || "",
+        github_account: updatedProfile.github_account || "",
+        x_account: updatedProfile.x_account || "",
+        linkedin_account: updatedProfile.linkedin_account || "",
         wallet: Array.isArray(updatedProfile.wallet) ? updatedProfile.wallet : (updatedProfile.wallet ? [updatedProfile.wallet] : []),
-        socials: updatedProfile.socials || [],
+        additional_social_accounts: updatedProfile.additional_social_accounts || [],
         skills: updatedProfile.skills || [],
         notifications: updatedProfile.notifications || false,
         profile_privacy: updatedProfile.profile_privacy || "public",
-        telegram_user: updatedProfile.telegram_user || "",
+        telegram_account: updatedProfile.telegram_account || "",
       };
 
       form.reset(newFormData);
@@ -559,13 +592,13 @@ export function useProfileForm() {
 
   // Social handlers
   const handleAddSocial = () => {
-    const currentSocials = watchedValues.socials || [];
-    setValue("socials", [...currentSocials, ""], { shouldDirty: true });
+    const currentSocials = watchedValues.additional_social_accounts || [];
+    setValue("additional_social_accounts", [...currentSocials, ""], { shouldDirty: true });
   };
 
   const handleRemoveSocial = (index: number) => {
-    const currentSocials = watchedValues.socials || [];
-    setValue("socials", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
+    const currentSocials = watchedValues.additional_social_accounts || [];
+    setValue("additional_social_accounts", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
   };
 
   // Wallet handlers
@@ -605,4 +638,3 @@ export function useProfileForm() {
     onSubmit: form.handleSubmit(onSubmit),
   };
 }
-

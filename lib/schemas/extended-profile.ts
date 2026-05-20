@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  LINKEDIN_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
+} from "@/lib/profile/socialAccountValidation";
 
 /**
  * Shared Zod schemas for the extended user profile.
@@ -10,6 +15,11 @@ import { z } from "zod";
 
 /** A notification preference tuple: [inHub, byEmail]. */
 const NotificationPreferenceSchema = z.tuple([z.boolean(), z.boolean()]);
+const nullableProfileAccount = (pattern: RegExp, message: string) =>
+  z
+    .union([z.string().trim().regex(pattern, message), z.literal("")])
+    .nullable()
+    .optional();
 
 /** Map from notification key to its preference tuple. */
 export const NotificationMeansSchema = z.record(
@@ -30,6 +40,8 @@ export const UserTypeSchema = z.object({
   employee_role: z.string().optional(),
   company_name: z.string().optional(),
   role: z.string().optional(),
+  founder_check: z.boolean().optional(),
+  avalanche_ecosystem_member: z.boolean().optional(),
 });
 
 /**
@@ -57,16 +69,25 @@ export const UpdateExtendedProfileSchema = z
       .optional(),
     image: z.string().nullable().optional(),
     country: z.string().nullable().optional(),
-    github: z
-      .union([z.literal(""), z.url("Invalid GitHub URL.")])
-      .nullable()
-      .optional(),
+    // github_account is owned by the GitHub OAuth link route and is
+    // intentionally not writable via this endpoint. The other three social
+    // fields accept manual entry; each value must match its platform
+    // pattern when present (empty string is allowed to mean "clear").
+    x_account: nullableProfileAccount(X_ACCOUNT_PATTERN, "Invalid X URL."),
+    linkedin_account: nullableProfileAccount(
+      LINKEDIN_ACCOUNT_PATTERN,
+      "Invalid LinkedIn URL.",
+    ),
     wallet: z.array(z.string()).nullable().optional(),
-    socials: z.array(z.string()).optional(),
+    additional_social_accounts: z.array(z.string()).optional(),
     skills: z.array(z.string()).optional(),
     notifications: z.boolean().nullable().optional(),
+    consent_sharing: z.boolean().nullable().optional(),
     profile_privacy: z.string().nullable().optional(),
-    telegram_user: z.string().nullable().optional(),
+    telegram_account: nullableProfileAccount(
+      TELEGRAM_ACCOUNT_PATTERN,
+      "Invalid Telegram username.",
+    ),
     notification_means: NotificationMeansSchema.nullable().optional(),
     user_type: UserTypeSchema.optional(),
   })

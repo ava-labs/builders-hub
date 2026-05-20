@@ -49,10 +49,22 @@ export const componentRegistry: Record<ComponentName, React.LazyExoticComponent<
   RemoveDelegation: lazyFlow("Remove Delegation", () => import("@/app/console/permissionless-l1s/remove-delegation/steps")),
   RemoveValidator: lazyFlow("Remove Validator", () => import("@/app/console/remove-validator/steps")),
   MultisigSetup: lazyFlow("Multisig Setup", () => import("@/app/console/permissioned-l1s/multisig-setup/steps")),
-  ICMSetup: lazyFlow("ICM Setup", () => import("@/app/console/icm/setup/steps")),
-  ICMTestConnection: lazyFlow("ICM Test Connection", () => import("@/app/console/icm/test-connection/steps")),
-  ICTTSetup: lazyFlow("ICTT Setup", () => import("@/app/console/ictt/setup/steps")),
-  ICTTTokenTransfer: lazyFlow("ICTT Token Transfer", () => import("@/app/console/ictt/token-transfer/steps")),
+  ICMSetup: lazyFlow("ICM Setup", () =>
+    import("@/components/toolbox/console/icm/network/icm-steps").then((m) => ({ steps: m.icmSteps })),
+  ),
+  ICMTestConnection: lazyFlow("ICM Test Connection", () =>
+    import("@/components/toolbox/console/icm/network/icm-steps").then((m) => ({
+      steps: m.icmSteps.filter((s) => s.key === 'demo' || s.key === 'live'),
+    })),
+  ),
+  ICTTSetup: lazyFlow("ICTT Setup", () =>
+    import("@/components/toolbox/console/ictt/bridge/bridge-steps").then((m) => ({ steps: m.bridgeSteps })),
+  ),
+  ICTTTokenTransfer: lazyFlow("ICTT Token Transfer", () =>
+    import("@/components/toolbox/console/ictt/bridge/bridge-steps").then((m) => ({
+      steps: m.bridgeSteps.filter((s) => s.key === 'collateral' || s.key === 'live'),
+    })),
+  ),
   VMCMigration: lazyFlow("VMC Migration", () => import("@/app/console/utilities/vmcMigrateFromV1/steps")),
 
   // Single-Page Console Tools

@@ -43,10 +43,10 @@ const profileSchema = z.object({
   email: z.string().email("Invalid email"),
   notification_email: z.string().email("Invalid email"),
   image: z.string().optional(),
-  social_media: z.array(z.string()).default([]),
+  additional_social_accounts: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
-  telegram_user: z.string().optional(),
+  telegram_account: z.string().optional(),
 });
 
 // Type for data coming from database (notifications can be null)
@@ -56,10 +56,10 @@ interface ProfileFormProps {
   email: string;
   notification_email: string;
   image?: string;
-  social_media: string[];
+  additional_social_accounts: string[];
   notifications: boolean | null;
   profile_privacy: string;
-  telegram_user?: string;
+  telegram_account?: string;
 }
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -90,14 +90,14 @@ export default function ProfileForm({
     email: z.string().email("Invalid email"),
     notification_email: z.string().email("Invalid email"),
     image: z.string().optional(),
-    social_media: z.array(z.string()).default([]),
+    additional_social_accounts: z.array(z.string()).default([]),
     notifications: isFirstTime 
       ? z.boolean().default(false).refine((val) => val === true, {
           message: "You must agree to receive notifications to continue",
         })
       : z.boolean().default(false),
     profile_privacy: z.string().default("public"),
-    telegram_user: z.string().optional(),
+    telegram_account: z.string().optional(),
   });
 
   // Process initial data: if notifications is null, use false
@@ -428,7 +428,7 @@ export default function ProfileForm({
 
           <FormField
             control={form.control}
-            name="social_media"
+            name="additional_social_accounts"
             render={({ field }) => (
               <FormItem>
                 <div>
@@ -526,7 +526,7 @@ export default function ProfileForm({
 
           <FormField
             control={form.control}
-            name="telegram_user"
+            name="telegram_account"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Telegram user</FormLabel>
@@ -536,7 +536,7 @@ export default function ProfileForm({
                     {...field}
                     onChange={(e) => {
                       field.onChange(e);
-                      form.setValue("telegram_user", e.target.value, {
+                      form.setValue("telegram_account", e.target.value, {
                         shouldDirty: true,
                       });
                     }}

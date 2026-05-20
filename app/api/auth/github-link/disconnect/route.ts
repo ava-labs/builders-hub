@@ -12,7 +12,7 @@ export async function DELETE() {
     where: { id: session.user.id },
     data: {
       github_access_token: null,
-      github: null,
+      github_account: null,
     },
   });
 

@@ -29,10 +29,10 @@ export default function PChainRemovalStep() {
   const isTestnet = useWalletStore((s) => s.isTestnet);
 
   const hasSufficientPChainBalance = pChainBalance >= PCHAIN_MIN_BALANCE;
-  const flavor = useMemo(() => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType), [
-    vmcCtx.ownerType,
-    vmcCtx.staking.stakingType,
-  ]);
+  const flavor = useMemo(
+    () => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType),
+    [vmcCtx.ownerType, vmcCtx.staking.stakingType],
+  );
   const stepConfig = useMemo(() => buildStepConfig(flavor), [flavor]);
 
   return (
@@ -40,11 +40,7 @@ export default function PChainRemovalStep() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">P-Chain Weight Update</h2>
-          <ManagerTypeBadge
-            ownerType={vmcCtx.ownerType}
-            stakingType={vmcCtx.staking.stakingType}
-            isDetecting={false}
-          />
+          <ManagerTypeBadge ownerType={vmcCtx.ownerType} stakingType={vmcCtx.staking.stakingType} isDetecting={false} />
         </div>
         {!store.evmTxHash && (
           <Alert variant="warning">

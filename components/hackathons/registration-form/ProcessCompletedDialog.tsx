@@ -10,6 +10,7 @@ interface ProcessCompletedDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   lang?: EventsLang;
+  isUpdate?: boolean;
 }
 export default function ProcessCompletedDialog(
   params: ProcessCompletedDialogProps
@@ -24,11 +25,17 @@ export default function ProcessCompletedDialog(
                         border border-red-500"
     >
       <CardContent className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4">
-        {t(lang, "reg.dialog.body")}{" "}
-        <a href="https://t.me/avalancheacademy" target="_blank" className="text-blue-500">
-          {t(lang, "reg.dialog.telegramLink")}
-        </a>{" "}
-        {t(lang, "reg.dialog.bodyEnd")}
+        {params.isUpdate ? (
+          t(lang, "reg.dialog.updateBody")
+        ) : (
+          <>
+            {t(lang, "reg.dialog.body")}{" "}
+            <a href="https://t.me/avalancheacademy" target="_blank" className="text-blue-500">
+              {t(lang, "reg.dialog.telegramLink")}
+            </a>{" "}
+            {t(lang, "reg.dialog.bodyEnd")}
+          </>
+        )}
         <CardFooter className="flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center">
           <Button
             onClick={() => {
@@ -46,7 +53,7 @@ export default function ProcessCompletedDialog(
     <Modal
       isOpen={params.isOpen}
       onOpenChange={params.onOpenChange}
-      title={t(lang, "reg.dialog.title")}
+      title={params.isUpdate ? t(lang, "reg.dialog.updateTitle") : t(lang, "reg.dialog.title")}
       content={content}
       className="border border-red-500"
     />

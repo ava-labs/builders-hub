@@ -51,8 +51,7 @@ const { getStore: getRemoveValidatorStore, useStore: useRemoveValidatorStore } =
     setValidationId: (validationId: string) =>
       set({ validationId, evmTxHash: '', pChainTxId: '', globalError: null, globalSuccess: null }),
 
-    setEvmTxHash: (evmTxHash: string) =>
-      set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
+    setEvmTxHash: (evmTxHash: string) => set({ evmTxHash, pChainTxId: '', globalError: null, globalSuccess: null }),
 
     setPChainTxId: (pChainTxId: string) => set({ pChainTxId, globalError: null, globalSuccess: null }),
 

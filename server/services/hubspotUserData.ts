@@ -3,8 +3,15 @@
  * Manages syncing user data to HubSpot CRM and adding users to specific lists
  */
 
+import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
+
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_USER_DATA_LIST_ID = process.env.HUBSPOT_USER_DATA_LIST_ID || '2605';
+
+// HubSpot custom property name for the Team1 outreach consent.
+// Override via HUBSPOT_TEAM1_CONSENT_PROPERTY if the property is renamed in HubSpot.
+const HUBSPOT_TEAM1_CONSENT_PROPERTY =
+  process.env.HUBSPOT_TEAM1_CONSENT_PROPERTY || 'team1_outreach_consent';
 
 if (!HUBSPOT_API_KEY) {
   console.warn('[HubSpot UserData] HUBSPOT_API_KEY environment variable is not set');
@@ -27,11 +34,14 @@ export interface UserDataForHubSpot {
   employee_role?: string;
   is_developer?: boolean;
   is_enthusiast?: boolean;
-  github?: string;
-  telegram_user?: string;
+  github_account?: string;
+  x_account?: string;
+  linkedin_account?: string;
+  telegram_account?: string;
   wallet?: string[];
-  socials?: string[];
+  additional_social_accounts?: string[];
   notifications?: boolean;
+  consent_sharing?: boolean;
   gdpr?: boolean;
 }
 
@@ -54,11 +64,16 @@ function buildHubSpotUserProperties(userData: UserDataForHubSpot, includeEmail: 
     ...(userData.employee_company_name && { company: userData.employee_company_name }),
     ...(userData.employee_role && { hs_role: userData.employee_role }),
     ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
-    ...(userData.github && { github_url: userData.github }),
-    ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
+    ...(userData.github_account && { github_url: userData.github_account }),
+    ...(userData.x_account && { x_handle: userData.x_account }),
+    ...(userData.linkedin_account && { linkedin_url: userData.linkedin_account }),
+    ...(userData.telegram_account && { telegram_handle: userData.telegram_account }),
     ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
-    ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),
+    ...(userData.additional_social_accounts && userData.additional_social_accounts.length > 0 && { contact_othersocials: userData.additional_social_accounts.join('; ') }),
     ...(userData.notifications !== undefined && { marketing_consent: userData.notifications }),
+    ...(userData.consent_sharing !== undefined && {
+      [HUBSPOT_TEAM1_CONSENT_PROPERTY]: userData.consent_sharing,
+    }),
     ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
   };
 
@@ -77,6 +92,9 @@ export async function syncUserDataToHubSpot(
   userData: UserDataForHubSpot,
   listId?: string
 ): Promise<boolean> {
+  if (!isHubSpotEnabled()) {
+    return skipHubSpot(`syncUserDataToHubSpot(${userData.email})`);
+  }
   const targetListId = listId || HUBSPOT_USER_DATA_LIST_ID;
 
   if (!HUBSPOT_API_KEY) {

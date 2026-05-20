@@ -16,35 +16,40 @@ interface Props {
   evaluations?: EvaluationData[];
   currentUserId: string;
   isDevrel?: boolean;
+  showStages?: boolean;
+  projectId?: string;
   onClose: () => void;
-  onEvaluationSaved?: (formDataId: string, evaluation: EvaluationData) => void;
+  onEvaluationSaved?: (key: string, evaluation: EvaluationData) => void;
   onStageAdvanced?: (formDataId: string, newStage: number) => void;
 }
 
-const TABS = [
+const ALL_TABS = [
   { id: "project" as const, label: "Project & Team" },
   { id: "submission" as const, label: "Stage Submissions" },
   { id: "evaluation" as const, label: "Evaluation" },
 ];
 
-type TabId = (typeof TABS)[number]["id"];
+type TabId = (typeof ALL_TABS)[number]["id"];
 
 export function SubmissionDetailPanel({
   row,
   evaluations: evalsProp,
   currentUserId,
   isDevrel = false,
+  showStages = true,
+  projectId,
   onClose,
   onEvaluationSaved: onParentEvalSaved,
   onStageAdvanced,
 }: Props) {
   const { project, formData, origin } = row;
+  const tabs = showStages ? ALL_TABS : ALL_TABS.filter((t) => t.id !== "submission");
   const [activeTab, setActiveTab] = useState<TabId>("project");
   const evaluations = evalsProp ?? row.evaluations;
 
   const handleEvaluationSaved = useCallback(
-    (formDataId: string, evaluation: EvaluationData) => {
-      onParentEvalSaved?.(formDataId, evaluation);
+    (key: string, evaluation: EvaluationData) => {
+      onParentEvalSaved?.(key, evaluation);
     },
     [onParentEvalSaved]
   );
@@ -66,7 +71,6 @@ export function SubmissionDetailPanel({
         className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl w-full max-w-5xl mx-4 max-h-[85vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-3 min-w-0">
             <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100 truncate" title={row.projectName}>
@@ -83,9 +87,8 @@ export function SubmissionDetailPanel({
           </Button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 px-6 pt-3 border-b border-zinc-200 dark:border-zinc-800">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -100,9 +103,7 @@ export function SubmissionDetailPanel({
           ))}
         </div>
 
-        {/* Scrollable content */}
         <div className="overflow-auto max-h-[70vh] p-4 scroll-smooth">
-          {/* Tab: Project & Team */}
           {activeTab === "project" && (
             <div className="space-y-4">
               {!project ? (
@@ -135,6 +136,18 @@ export function SubmissionDetailPanel({
                       label="Categories"
                       value={project.categories.join(", ")}
                     />
+                    {project.tags && project.tags.length > 0 && (
+                      <div className="flex gap-2 items-baseline">
+                        <span className="text-xs text-zinc-500 shrink-0">Tags:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {project.tags.map((t) => (
+                            <Badge key={t} variant="secondary" className="text-xs">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <Field
                       label="Pre-existing Idea"
                       value={project.isPreexistingIdea ? "Yes" : "No"}
@@ -148,7 +161,45 @@ export function SubmissionDetailPanel({
                     />
                     <LinkField label="Demo" url={project.demoLink} />
                     <LinkField label="Video" url={project.demoVideoLink} />
+                    {project.website &&
+                      Object.entries(project.website).map(([key, url]) => (
+                        <LinkField
+                          key={`website-${key}`}
+                          label={key || "Website"}
+                          url={url}
+                        />
+                      ))}
+                    {project.socials &&
+                      Object.entries(project.socials).map(([key, url]) => (
+                        <LinkField
+                          key={`social-${key}`}
+                          label={key || "Social"}
+                          url={url}
+                        />
+                      ))}
                   </FieldGroup>
+
+                  {project.deployedAddresses && project.deployedAddresses.length > 0 && (
+                    <FieldGroup title="Deployed Addresses">
+                      <div className="space-y-1.5">
+                        {project.deployedAddresses.map((d, idx) => (
+                          <div
+                            key={`${d.address}-${idx}`}
+                            className="flex flex-wrap items-baseline gap-2 text-sm"
+                          >
+                            {d.tag && (
+                              <Badge variant="outline" className="text-xs">
+                                {d.tag}
+                              </Badge>
+                            )}
+                            <code className="font-mono text-xs text-zinc-700 dark:text-zinc-200 break-all">
+                              {d.address}
+                            </code>
+                          </div>
+                        ))}
+                      </div>
+                    </FieldGroup>
+                  )}
 
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-1">
@@ -169,7 +220,9 @@ export function SubmissionDetailPanel({
                             key={m.id}
                             className="flex items-center gap-2 text-sm"
                           >
-                            <span className="text-zinc-600 dark:text-zinc-300">{m.email}</span>
+                            <span className="text-zinc-600 dark:text-zinc-300">
+                              {m.name?.trim() || "Unnamed member"}
+                            </span>
                             <Badge variant="outline" className="text-xs">
                               {m.role}
                             </Badge>
@@ -189,8 +242,7 @@ export function SubmissionDetailPanel({
             </div>
           )}
 
-          {/* Tab: Stage Submissions */}
-          {activeTab === "submission" && (
+          {showStages && activeTab === "submission" && (
             <div className="space-y-4">
               {eventConfig?.stageFields ? (
                 Object.entries(eventConfig.stageFields).map(
@@ -217,19 +269,21 @@ export function SubmissionDetailPanel({
             </div>
           )}
 
-          {/* Tab: Evaluation */}
           {activeTab === "evaluation" && (
             <div className="space-y-4">
-              <AdvanceStageControls
-                formDataId={row.formDataId}
-                currentStage={row.currentStage}
-                isDevrel={isDevrel}
-                onStageAdvanced={(id, stage) => onStageAdvanced?.(id, stage)}
-              />
+              {showStages && (
+                <AdvanceStageControls
+                  formDataId={row.formDataId}
+                  currentStage={row.currentStage}
+                  isDevrel={isDevrel}
+                  onStageAdvanced={(id, stage) => onStageAdvanced?.(id, stage)}
+                />
+              )}
 
               <EvaluationPanel
-                key={`${row.formDataId}-${row.currentStage}`}
-                formDataId={row.formDataId}
+                key={`${projectId ?? row.formDataId}-${row.currentStage}`}
+                formDataId={projectId ? undefined : row.formDataId}
+                projectId={projectId}
                 origin={origin}
                 evaluations={evaluations}
                 currentUserId={currentUserId}
@@ -238,10 +292,12 @@ export function SubmissionDetailPanel({
                 onEvaluationSaved={handleEvaluationSaved}
               />
 
-              <StageHistory
-                evaluations={evaluations}
-                currentStage={row.currentStage}
-              />
+              {showStages && (
+                <StageHistory
+                  evaluations={evaluations}
+                  currentStage={row.currentStage}
+                />
+              )}
             </div>
           )}
         </div>

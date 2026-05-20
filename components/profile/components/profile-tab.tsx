@@ -52,7 +52,7 @@ export default function ProfileTab({ achievements, referralPanel, teamLabel }: P
   const handleGithubDisconnect = async () => {
     await fetch('/api/auth/github-link/disconnect', { method: 'DELETE' });
     setGithubConnected(false);
-    form.setValue('github', '', { shouldDirty: false });
+    form.setValue('github_account', '', { shouldDirty: false });
   };
 
   // Load Noun avatar data and sincronizar con contexto (para que UserButton lo muestre)
@@ -159,12 +159,12 @@ export default function ProfileTab({ achievements, referralPanel, teamLabel }: P
                 >
                   Achievements
                 </TabsTrigger>
-                {/* <TabsTrigger
+                <TabsTrigger
                   value="settings"
                   className="w-full justify-start  dark:data-[state=active]:bg-zinc-950"
                 >
                   Settings
-                </TabsTrigger> */}
+                </TabsTrigger>
               </TabsList>
             </div>
           </div>
