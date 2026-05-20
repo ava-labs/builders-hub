@@ -612,10 +612,15 @@ div[style*="scrollbarWidth: 'thin'"]::-webkit-scrollbar-thumb:hover {
   scrollbar-width: none; /* Firefox */
 }
 
-/* This is a workaround for this issue: https://github.com/shadcn-ui/ui/issues/4227 */
+/* Workaround for https://github.com/shadcn-ui/ui/issues/4227
+   `padding-right` is required for Radix Dialog/Sheet/Drawer consumers that
+   opt into `modal={true}` — without it the body gets an injected
+   `padding-right: var(--removed-body-scroll-bar-size)` and the page visibly
+   shifts left when the overlay opens. */
 html body[data-scroll-locked] {
   overflow: visible !important;
   margin-right: 0 !important;
+  padding-right: 0 !important;
 }
 
 html {

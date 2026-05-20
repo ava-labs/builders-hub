@@ -25,7 +25,6 @@ export function LoginModalWrapper() {
     "/events/registration-form",
     "/events/project-submission",
     "/showcase",
-    "/send-notifications",
     "/profile",
     "/student-launchpad",
     "/grants/",

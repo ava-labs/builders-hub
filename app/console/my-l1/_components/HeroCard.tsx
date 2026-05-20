@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { balanceService } from '@/components/toolbox/services/balanceService';
 import { ExplorerMenu } from '@/components/console/ExplorerMenu';
 import { cn } from '@/lib/utils';
 import type { L1HealthState, L1HealthStatus } from '@/hooks/useL1Health';
@@ -136,13 +137,22 @@ export function HeroCard({
   // displayed number stays in sync with on-chain reality. Without this the
   // wallet store only refreshes balances on explicit user actions, so
   // spending elsewhere shows a stale figure on the dashboard.
+  //
+  // `registerRpcUrls` is called BEFORE every update so a wallet-only L1
+  // that wasn't part of the initial bulk register (DashboardBody) still has
+  // a chain-specific viem client when its balance is read. Without this
+  // the service silently falls back to the wallet's currently-connected
+  // chain's RPC and returns the wrong balance (or 0 for non-Glacier L1s).
   useEffect(() => {
     if (!isWalletOnThisL1 || l1.evmChainId === null) return;
     const id = String(l1.evmChainId);
+    if (l1.rpcUrl) {
+      balanceService.registerRpcUrls([{ evmChainId: l1.evmChainId, rpcUrl: l1.rpcUrl }]);
+    }
     void updateL1Balance(id);
     const interval = setInterval(() => void updateL1Balance(id), 15_000);
     return () => clearInterval(interval);
-  }, [isWalletOnThisL1, l1.evmChainId, updateL1Balance]);
+  }, [isWalletOnThisL1, l1.evmChainId, l1.rpcUrl, updateL1Balance]);
 
   // Cursor-tracked specular highlight. We push the pointer's local position
   // into MotionValues so framer-motion writes the gradient `background`
