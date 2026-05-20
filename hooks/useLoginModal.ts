@@ -29,13 +29,14 @@ export interface NewUserLoginPayload {
 interface LoginModalStore {
   isOpen: boolean;
   callbackUrl?: string;
+  authError?: string;
   /** Bumped on every `triggerNewUserLogin()` call. Listeners watch the
    *  numeric value and react to changes — never read directly. */
   newUserLoginVersion: number;
   newUserLoginPayload?: NewUserLoginPayload;
   /** Bumped on every `triggerLoginComplete()` call. */
   loginCompleteVersion: number;
-  open: (callbackUrl?: string) => void;
+  open: (callbackUrl?: string, authError?: string) => void;
   close: () => void;
   bumpNewUserLogin: (payload?: NewUserLoginPayload) => void;
   bumpLoginComplete: () => void;
@@ -44,10 +45,11 @@ interface LoginModalStore {
 const useLoginModalStore = create<LoginModalStore>((set) => ({
   isOpen: false,
   callbackUrl: undefined,
+  authError: undefined,
   newUserLoginVersion: 0,
   newUserLoginPayload: undefined,
   loginCompleteVersion: 0,
-  open: (callbackUrl) => {
+  open: (callbackUrl, authError) => {
     // Default to the current URL so post-login the user returns to the page
     // they were on (VerifyEmail fires window.location.href = callbackUrl on
     // success). Without this, callbackUrl falls back to "/" and the user
@@ -57,9 +59,9 @@ const useLoginModalStore = create<LoginModalStore>((set) => ({
       (typeof window !== 'undefined'
         ? `${window.location.pathname}${window.location.search}`
         : undefined);
-    set({ isOpen: true, callbackUrl: resolved });
+    set({ isOpen: true, callbackUrl: resolved, authError });
   },
-  close: () => set({ isOpen: false, callbackUrl: undefined }),
+  close: () => set({ isOpen: false, callbackUrl: undefined, authError: undefined }),
   bumpNewUserLogin: (payload) =>
     set((s) => ({
       newUserLoginVersion: s.newUserLoginVersion + 1,
@@ -90,8 +92,9 @@ export function useLoginModalTrigger() {
 export function useLoginModalState() {
   const isOpen = useLoginModalStore((s) => s.isOpen);
   const callbackUrl = useLoginModalStore((s) => s.callbackUrl);
+  const authError = useLoginModalStore((s) => s.authError);
   const closeLoginModal = useLoginModalStore((s) => s.close);
-  return { isOpen, callbackUrl, closeLoginModal };
+  return { isOpen, callbackUrl, authError, closeLoginModal };
 }
 
 /**
