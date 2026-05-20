@@ -1,35 +1,12 @@
 import { NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
 import icttTokens from '@/constants/ictt-tokens.json';
-import { getChainICMCount, getChainICMData, getICMFlowData } from '@/lib/icm-clickhouse';
+import { getChainICMCount, getICMFlowData } from '@/lib/icm-clickhouse';
+import { getChainICTTSummary, type ICTTSummary } from '@/lib/ictt-clickhouse';
 
 interface TokenInfo {
   name: string;
   symbol: string;
   coingeckoId?: string;
-}
-
-interface ICTTTransfer {
-  homeChainBlockchainId: string;
-  homeChainName: string;
-  remoteChainBlockchainId: string;
-  remoteChainName: string;
-  direction: string;
-  contractAddress: string;
-  coinAddress: string;
-  transferCount: number;
-  transferCoinsTotal: number;
-}
-
-interface ICTTSummary {
-  /** Total bridge transfers where this L1 is the home chain (outbound). */
-  outboundTransfers: number;
-  /** Total bridge transfers where this L1 is a remote chain (inbound). */
-  inboundTransfers: number;
-  /** Top token by transfer count for routes touching this L1. */
-  topToken: { name: string; symbol: string; count: number } | null;
-  /** Number of unique counterparty chains seen across all routes. */
-  counterpartyCount: number;
 }
 
 interface ICMSummary {
@@ -61,67 +38,6 @@ function getTokenInfo(address: string): TokenInfo {
       symbol: 'UNKNOWN',
     }
   );
-}
-
-// Single shared fetch of the upstream global ICTT dataset. Cached at the
-// fetch layer so a flurry of per-chain calls hits the upstream once.
-const fetchGlobalIctt = unstable_cache(
-  async (): Promise<ICTTTransfer[]> => {
-    const endTs = Math.floor(Date.now() / 1000);
-    const res = await fetch(
-      `https://idx6.solokhin.com/api/global/ictt/transfers?startTs=0&endTs=${endTs}`,
-      { next: { revalidate: 1800 } },
-    );
-    if (!res.ok) return [];
-    return (await res.json()) as ICTTTransfer[];
-  },
-  ['global-ictt-transfers'],
-  { revalidate: 1800 }, // 30 minutes
-);
-
-async function buildIcttSummary(blockchainId: string): Promise<ICTTSummary | null> {
-  try {
-    const all = await fetchGlobalIctt();
-    const touching = all.filter(
-      (t) => t.homeChainBlockchainId === blockchainId || t.remoteChainBlockchainId === blockchainId,
-    );
-    if (touching.length === 0) {
-      return { outboundTransfers: 0, inboundTransfers: 0, topToken: null, counterpartyCount: 0 };
-    }
-
-    let outbound = 0;
-    let inbound = 0;
-    const counterparties = new Set<string>();
-    const tokenCounts = new Map<string, { name: string; symbol: string; count: number }>();
-
-    for (const t of touching) {
-      if (t.homeChainBlockchainId === blockchainId) {
-        outbound += t.transferCount;
-        counterparties.add(t.remoteChainBlockchainId);
-      } else {
-        inbound += t.transferCount;
-        counterparties.add(t.homeChainBlockchainId);
-      }
-      const info = getTokenInfo(t.coinAddress);
-      const key = t.coinAddress.toLowerCase();
-      const existing = tokenCounts.get(key);
-      if (existing) existing.count += t.transferCount;
-      else tokenCounts.set(key, { name: info.name, symbol: info.symbol, count: t.transferCount });
-    }
-
-    const topToken =
-      Array.from(tokenCounts.values()).sort((a, b) => b.count - a.count)[0] ?? null;
-
-    return {
-      outboundTransfers: outbound,
-      inboundTransfers: inbound,
-      topToken,
-      counterpartyCount: counterparties.size,
-    };
-  } catch (err) {
-    console.error('cross-chain-stats: failed to build ICTT summary', err);
-    return null;
-  }
 }
 
 async function buildIcmSummary(evmChainId: number): Promise<ICMSummary | null> {
@@ -176,7 +92,7 @@ export async function GET(
   }
 
   const [ictt, icm] = await Promise.all([
-    buildIcttSummary(blockchainId),
+    getChainICTTSummary(blockchainId, getTokenInfo),
     evmChainId !== null && !Number.isNaN(evmChainId) ? buildIcmSummary(evmChainId) : Promise.resolve(null),
   ]);
 
@@ -192,7 +108,7 @@ export async function GET(
   return NextResponse.json(response, {
     headers: {
       // Same shape as other /api/console routes — short browser cache, longer
-      // server-side via unstable_cache on the upstream fetch.
+      // server-side via the ClickHouse module's in-memory cache.
       'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
     },
   });
