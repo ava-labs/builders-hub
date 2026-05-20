@@ -103,7 +103,7 @@ function toEvaluationData(e: Evaluation): EvaluationData {
     formDataId: "",
     evaluatorId: e.evaluator_id,
     evaluatorName: e.evaluator.name ?? e.evaluator.email,
-    verdict: (e.verdict ?? "maybe") as Verdict,
+    verdict: (e.verdict ?? null) as Verdict | null,
     comment: e.comment,
     scoreOverall: e.score_overall,
     scores: (e.scores as Record<string, number> | null) ?? null,
