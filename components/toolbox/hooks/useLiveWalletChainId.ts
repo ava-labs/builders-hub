@@ -27,14 +27,24 @@ export function useActiveWalletProvider({
   enabled = true,
   refreshKey,
 }: UseActiveWalletProviderOptions = {}): Eip1193Provider | null {
-  const { connector, isConnected } = useAccount();
+  const { connector } = useAccount();
   const walletType = useWalletStore((s) => s.walletType);
   const [provider, setProvider] = useState<Eip1193Provider | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (!enabled || !isConnected) {
+    // Only gate on `enabled` (callers pass this based on whether we know
+    // about a wallet via our own bootstrap, e.g. `walletEVMAddress`).
+    // Previously also gated on wagmi's `useAccount().isConnected`, but
+    // that left a hole after `resetAllStores()` — wagmi disconnects, the
+    // page reloads, our walletStore bootstrap re-detects the wallet, but
+    // wagmi hasn't reconnected yet → `isConnected: false` → no provider,
+    // so ConnectedWalletContext's fallback couldn't build a client →
+    // /console/create-l1 rendered blank. `resolveActiveWalletProvider`
+    // falls back to `window.avalanche` / `window.ethereum` when there's
+    // no connector, so dropping the isConnected gate is safe.
+    if (!enabled) {
       setProvider(null);
       return () => {
         cancelled = true;
@@ -48,7 +58,7 @@ export function useActiveWalletProvider({
     return () => {
       cancelled = true;
     };
-  }, [connector, enabled, isConnected, walletType, refreshKey]);
+  }, [connector, enabled, walletType, refreshKey]);
 
   return provider;
 }
