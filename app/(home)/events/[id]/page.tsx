@@ -5,6 +5,7 @@ import { getRegisterForm } from "@/server/services/registerForms";
 import { getAuthSession } from "@/lib/auth/authSession";
 import LegacyEventLayout from "@/components/hackathons/event-layouts/LegacyEventLayout";
 import ModernEventLayout from "@/components/hackathons/event-layouts/ModernEventLayout";
+import HackathonPageviewTag from "@/components/hackathons/HackathonPageviewTag";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
@@ -80,23 +81,29 @@ export default async function HackathonPage({
 
   if (useModernLayout) {
     return (
-      <ModernEventLayout
+      <>
+        <HackathonPageviewTag hackathonId={id} hackathonName={hackathon.title} />
+        <ModernEventLayout
+          hackathon={hackathon}
+          id={id}
+          isRegistered={isRegistered}
+          isAuthenticated={isAuthenticated}
+          utm={utm as string}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <HackathonPageviewTag hackathonId={id} hackathonName={hackathon.title} />
+      <LegacyEventLayout
         hackathon={hackathon}
         id={id}
         isRegistered={isRegistered}
         isAuthenticated={isAuthenticated}
         utm={utm as string}
       />
-    );
-  }
-
-  return (
-    <LegacyEventLayout
-      hackathon={hackathon}
-      id={id}
-      isRegistered={isRegistered}
-      isAuthenticated={isAuthenticated}
-      utm={utm as string}
-    />
+    </>
   );
 }
