@@ -35,6 +35,8 @@ type HackathonsListProps = {
   onSearch?: (q: string) => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
+  /** Navbar height in pixels to calculate available space (default: 56px) */
+  navbarHeight?: number;
 };
 
 function formatDate(dateStr: string | undefined | null): string {
@@ -58,6 +60,7 @@ export default function HackathonsList({
   onSearch,
   onLoadMore,
   hasMore,
+  navbarHeight = 56,
 }: HackathonsListProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -120,9 +123,9 @@ export default function HackathonsList({
   if (!loading && !filteredHackathons.length) {
     return (
       <div
+        style={{ height: `calc(100vh - ${navbarHeight}px)` }}
         className={[
-          'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm flex flex-col overflow-visible',
-          fullHeight && !collapsed ? 'flex-1 min-h-0' : '',
+          'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm flex flex-col overflow-hidden',
         ].join(' ')}
       >
         {/* Header */}
@@ -217,9 +220,9 @@ export default function HackathonsList({
 
   return (
     <div
+      style={{ height: collapsed ? 'auto' : `calc(100vh - ${navbarHeight}px)` }}
       className={[
-        'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm flex flex-col overflow-visible',
-        fullHeight && !collapsed ? 'flex-1 min-h-0' : '',
+        'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm flex flex-col overflow-hidden',
       ].join(' ')}
     >
       {/* Header */}
@@ -352,17 +355,18 @@ export default function HackathonsList({
           ) : (
             <ul
               className={[
-                'overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800',
-                fullHeight ? 'flex-1 min-h-0' : '',
+                'overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800 flex-1',
               ].join(' ')}
-              style={!fullHeight ? { maxHeight: '500px' } : { maxHeight: '500px' }}
             >
               {filteredHackathons.map((hackathon) => {
                 const isSelected = hackathon.id === selectedId;
                 return (
                   <li
                     key={hackathon.id}
-                    onClick={() => onSelect(hackathon)}
+                    onClick={() => {
+                      onSelect(hackathon);
+                      setCollapsed(true);
+                    }}
                     className={[
                       'flex items-center justify-between gap-3 px-4 py-3 cursor-pointer transition-colors group',
                       isSelected
@@ -432,6 +436,7 @@ export default function HackathonsList({
                             onClick={(e) => {
                               e.stopPropagation();
                               onSelect(hackathon);
+                              setCollapsed(true);
                             }}
                             className="cursor-pointer flex items-center gap-2"
                           >
