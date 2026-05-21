@@ -18,6 +18,7 @@ import MentorsJudges from "@/components/hackathons/hackathon/sections/MentorsJud
 import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewBanner";
 import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
+import HackathonPageviewTag from "@/components/hackathons/HackathonPageviewTag";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 
@@ -95,6 +96,7 @@ export default async function HackathonPage({
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
+      <HackathonPageviewTag hackathonId={id} hackathonName={hackathon.title} />
       <div className="pl-4 flex gap-4 items-center">
         <Image
           src={
