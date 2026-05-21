@@ -3,8 +3,10 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import {
   canEvaluateHackathon,
+  canManageEvaluationPhase,
   canManageHackathonJudges,
 } from "@/lib/auth/permissions";
+import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import { HackathonEvaluateDashboard } from "@/components/evaluate/HackathonEvaluateDashboard";
 
 export default async function HackathonEvaluatePage({
@@ -22,7 +24,13 @@ export default async function HackathonEvaluatePage({
 
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathonId },
-    select: { id: true, title: true, start_date: true, end_date: true },
+    select: {
+      id: true,
+      title: true,
+      start_date: true,
+      end_date: true,
+      evaluation_phase: true,
+    },
   });
   if (!hackathon) {
     redirect("/events");
@@ -79,6 +87,15 @@ export default async function HackathonEvaluatePage({
     },
   });
 
+  const viewerId = session!.user!.id;
+  const projectsForViewer = stripEvaluationsForViewer(
+    projects,
+    hackathon.evaluation_phase,
+    viewerId,
+  );
+
+  const reviewedCount = projects.filter((p) => p.evaluations.length > 0).length;
+
   return (
     <main className="container relative px-4 py-8 lg:py-12">
       <div className="mb-6 flex flex-col gap-1">
@@ -93,9 +110,12 @@ export default async function HackathonEvaluatePage({
       </div>
       <HackathonEvaluateDashboard
         hackathonId={hackathon.id}
-        viewerId={session!.user!.id}
+        viewerId={viewerId}
         canPickWinners={canManageHackathonJudges(session)}
-        projects={projects.map((p) => ({
+        canManagePhase={canManageEvaluationPhase(session)}
+        initialPhase={hackathon.evaluation_phase}
+        initialReviewed={reviewedCount}
+        projects={projectsForViewer.map((p) => ({
           ...p,
           created_at: p.created_at.toISOString(),
           evaluations: p.evaluations.map((e) => ({
