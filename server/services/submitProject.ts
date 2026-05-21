@@ -9,11 +9,6 @@ import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
-import { PROJECT_VISIBILITY, isProjectVisibility } from "@/types/showcase";
-
-function resolveVisibility(value: unknown): string {
-  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.SEMI_PUBLIC;
-}
 
 export const projectValidations: Validation[] = [
   {
@@ -183,9 +178,6 @@ export async function createProject(
           socials: isNonEmptyObject(projectData.socials)
             ? projectData.socials
             : Prisma.JsonNull,
-          ...(projectData.visibility !== undefined && {
-            visibility: resolveVisibility(projectData.visibility),
-          }),
           ...(typeof projectData.consent_sharing === "boolean"
             ? { consent_sharing: projectData.consent_sharing }
             : {}),
@@ -222,7 +214,6 @@ export async function createProject(
         socials: isNonEmptyObject(projectData.socials)
           ? projectData.socials
           : Prisma.JsonNull,
-        visibility: resolveVisibility(projectData.visibility),
         ...(typeof projectData.consent_sharing === "boolean"
           ? { consent_sharing: projectData.consent_sharing }
           : {}),
@@ -330,9 +321,6 @@ export async function getProject(projectId: string): Promise<Project | null> {
     other_category: projectData.other_category ?? undefined,
     deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
     is_winner: false,
-    visibility: isProjectVisibility(projectData.visibility)
-      ? projectData.visibility
-      : PROJECT_VISIBILITY.SEMI_PUBLIC,
 
     members: projectData.members?.map((member) => {
       const user = member.user;

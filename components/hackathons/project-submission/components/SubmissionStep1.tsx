@@ -6,7 +6,6 @@ import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import {
@@ -531,89 +530,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
             )}
           />
         )}
-      </section>
-
-      {/* VISIBILITY */}
-      <section className='space-y-4'>
-        <h3 className='font-medium text-lg md:text-xl' id='visibility'>
-          Visibility
-        </h3>
-        <p className='text-sm text-muted-foreground'>
-          Decide what's shared with Builders Hub visitors and partner sites
-          (e.g. Team1). You can change this later.
-        </p>
-        <FormField
-          control={form.control}
-          name='visibility'
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <RadioGroup
-                  value={field.value ?? 'semi-public'}
-                  onValueChange={field.onChange}
-                  className='gap-3'
-                >
-                  <label
-                    htmlFor='visibility-semi-public'
-                    className='flex items-start gap-3 rounded-md border border-zinc-200 dark:border-zinc-800 p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900'
-                  >
-                    <RadioGroupItem
-                      value='semi-public'
-                      id='visibility-semi-public'
-                      className='mt-1'
-                    />
-                    <div className='space-y-1'>
-                      <div className='text-sm font-medium'>Semi-public (recommended)</div>
-                      <div className='text-xs text-muted-foreground'>
-                        Discoverable on Builders Hub and may be displayed by partners
-                        (e.g. Team1). Only your project name, members, and description
-                        are shared — GitHub, demo links, and video stay private.
-                      </div>
-                    </div>
-                  </label>
-
-                  <label
-                    htmlFor='visibility-public'
-                    className='flex items-start gap-3 rounded-md border border-zinc-200 dark:border-zinc-800 p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900'
-                  >
-                    <RadioGroupItem
-                      value='public'
-                      id='visibility-public'
-                      className='mt-1'
-                    />
-                    <div className='space-y-1'>
-                      <div className='text-sm font-medium'>Public</div>
-                      <div className='text-xs text-muted-foreground'>
-                        Discoverable on Builders Hub and may be displayed by partners
-                        (e.g. Team1). All your project details are shared, including
-                        GitHub, demo, video, target users, and screenshots.
-                      </div>
-                    </div>
-                  </label>
-
-                  <label
-                    htmlFor='visibility-private'
-                    className='flex items-start gap-3 rounded-md border border-zinc-200 dark:border-zinc-800 p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900'
-                  >
-                    <RadioGroupItem
-                      value='private'
-                      id='visibility-private'
-                      className='mt-1'
-                    />
-                    <div className='space-y-1'>
-                      <div className='text-sm font-medium'>Private</div>
-                      <div className='text-xs text-muted-foreground'>
-                        Visible only to you, your team, and event judges. Not
-                        discoverable on Builders Hub and not shared with partners.
-                      </div>
-                    </div>
-                  </label>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </section>
 
       {/* TEAM & COLLABORATION */}

@@ -1,18 +1,7 @@
-import {
-  Project,
-  ProjectHackathonInfo,
-  ProjectMemberUser,
-  PROJECT_VISIBILITY,
-  isProjectVisibility,
-  type ProjectVisibility,
-} from "@/types/showcase";
+import { Project, ProjectHackathonInfo, ProjectMemberUser } from "@/types/showcase";
 import { PrismaClient } from "@prisma/client";
 import { validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
-
-function resolveVisibility(value: unknown): ProjectVisibility {
-  return isProjectVisibility(value) ? value : PROJECT_VISIBILITY.SEMI_PUBLIC;
-}
 
 const prisma = new PrismaClient();
 
@@ -46,13 +35,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   const pageSize = options.pageSize ?? 12;
   const offset = (page - 1) * pageSize;
 
-  // Showcase only surfaces semi-public and public projects.
-  // Private projects are visible only to their owners and to evaluators.
-  let filters: any = {
-    visibility: {
-      in: [PROJECT_VISIBILITY.SEMI_PUBLIC, PROJECT_VISIBILITY.PUBLIC],
-    },
-  };
+  let filters: any = {};
 
   if (options.event) {
     filters.hackaton_id = options.event;
@@ -124,35 +107,19 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   });
 
   return {
-    projects: projects.map((project) => {
-      const isSemiPublic = project.visibility === PROJECT_VISIBILITY.SEMI_PUBLIC;
-      return {
-        ...project,
-        members: [],
-        hackathon: project.hackathon ? {
-          ...project.hackathon,
-          content: project.hackathon.content as any,
-        } : null,
-        badges: project.badges?.map((projectBadge: any) => ({
-          ...projectBadge,
-          name: projectBadge.badge.name,
-          image_path: projectBadge.badge.image_path,
-        })),
-        // Semi-public projects expose only name / short_description / members.
-        // Strip the rest so the public showcase respects user consent.
-        ...(isSemiPublic && {
-          full_description: "",
-          tech_stack: "",
-          github_repository: "",
-          demo_link: "",
-          demo_video_link: "",
-          screenshots: [],
-          deployed_addresses: [],
-          website: null,
-          socials: null,
-        }),
-      };
-    }),
+    projects: projects.map((project) => ({
+      ...project,
+      members: [],
+      hackathon: project.hackathon ? {
+        ...project.hackathon,
+        content: project.hackathon.content as any,
+      } : null,
+      badges: project.badges?.map((projectBadge: any) => ({
+        ...projectBadge,
+        name: projectBadge.badge.name,
+        image_path: projectBadge.badge.image_path,
+      })),
+    })),
     total: totalProjects,
     page,
     pageSize,
@@ -217,7 +184,6 @@ export async function getProject(id: string): Promise<Project> {
     members,
     hackathon,
     origin: row.origin,
-    visibility: resolveVisibility(row.visibility),
   };
 
   console.log("GET project:", project.project_name);
@@ -246,7 +212,6 @@ export async function createProject(
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
       hackaton_id: projectData.hackaton_id ?? null,
-      visibility: resolveVisibility(projectData.visibility),
       members: {
         create: projectData.members?.map((member) => ({
           user_id: member.user_id,
@@ -295,9 +260,6 @@ export async function updateProject(
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
-      ...(projectData.visibility !== undefined && {
-        visibility: resolveVisibility(projectData.visibility),
-      }),
       members: {
         create: projectData.members?.map((member) => ({
           user_id: member.user_id,
@@ -433,198 +395,5 @@ export type GetProjectOptions = {
   search?: string;
   event?: string;
   track?: string;
-  /** SPEEDRUN filters: multi-select tech-stack tokens (OR within, AND with others). */
-  stack?: string[];
-  /** SPEEDRUN filter: filter by team-member country (matches User.country on any member). */
-  country?: string[];
-  /** SPEEDRUN filter: "solo" = 1 member, "duo" = 2+ members. */
-  teamType?: "solo" | "duo";
-  /** SPEEDRUN: cursor-based pagination — opaque project id. */
-  cursor?: string;
-  /** SPEEDRUN: number of results to return when using cursor mode. */
-  limit?: number;
-  /** SPEEDRUN sort order. */
-  sort?: "newest" | "oldest" | "name";
   winningProjects?: boolean;
 };
-
-/**
- * Gallery / partner-API read.
- *
- * Returns projects with member contact fields filtered according to each
- * member's per-field visibility flags (Member.visibility JSON). Hidden fields
- * are returned as `null`. Country filtering applies on the stored value
- * regardless of visibility (per the SPEEDRUN spec); hidden countries just
- * don't show on the response.
- *
- * Uses cursor-based pagination keyed on Project.id (opaque) for stable paging
- * under concurrent submissions. `next_cursor` is null when the page is the
- * final one.
- */
-export interface GalleryMember {
-  name: string;
-  country: string | null;
-  github: string | null;
-  telegram: string | null;
-  x: string | null;
-  email: string | null;
-}
-
-export interface GalleryProject {
-  id: string;
-  name: string;
-  team_name: string;
-  short_description: string;
-  screenshots: string[];
-  repo_url: string | null;
-  demo_url: string | null;
-  tracks: string[];
-  stack: string[];
-  team: {
-    name: string;
-    type: "solo" | "duo";
-    members: GalleryMember[];
-  };
-  submitted_at: string;
-}
-
-export interface GalleryResponse {
-  projects: GalleryProject[];
-  next_cursor: string | null;
-}
-
-const ALLOWED_VISIBILITY_FIELDS = ["country", "email", "telegram", "x", "github"] as const;
-type VisibilityField = (typeof ALLOWED_VISIBILITY_FIELDS)[number];
-
-function readVisibility(raw: unknown): Record<VisibilityField, boolean> {
-  const out: Record<VisibilityField, boolean> = {
-    country: false,
-    email: false,
-    telegram: false,
-    x: false,
-    github: false,
-  };
-  if (raw && typeof raw === "object") {
-    for (const field of ALLOWED_VISIBILITY_FIELDS) {
-      out[field] = Boolean((raw as Record<string, unknown>)[field]);
-    }
-  }
-  return out;
-}
-
-export async function getProjectsForGallery(options: GetProjectOptions): Promise<GalleryResponse> {
-  const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
-
-  const filters: any = {
-    visibility: {
-      in: [PROJECT_VISIBILITY.SEMI_PUBLIC, PROJECT_VISIBILITY.PUBLIC],
-    },
-  };
-  if (options.event) filters.hackaton_id = options.event;
-  if (options.track) filters.tracks = { has: options.track };
-  if (options.stack && options.stack.length > 0) filters.stack = { hasSome: options.stack };
-  if (options.country && options.country.length > 0) {
-    filters.members = {
-      some: {
-        status: "Confirmed",
-        user: { country: { in: options.country } },
-      },
-    };
-  }
-  if (options.winningProjects) filters.is_winner = true;
-  if (options.search) {
-    const word = options.search.trim();
-    if (word) {
-      filters.OR = [
-        { project_name: { contains: word, mode: "insensitive" } },
-        { full_description: { contains: word, mode: "insensitive" } },
-        { tracks: { has: word } },
-      ];
-    }
-  }
-
-  const orderBy =
-    options.sort === "oldest"
-      ? { created_at: "asc" as const }
-      : options.sort === "name"
-        ? { project_name: "asc" as const }
-        : { created_at: "desc" as const };
-
-  // Fetch one extra row so we know whether there's a next page.
-  const rows = await prisma.project.findMany({
-    where: filters,
-    include: {
-      members: {
-        where: { status: "Confirmed" },
-        include: { user: true },
-      },
-    },
-    orderBy: [orderBy, { id: "desc" as const }],
-    take: limit + 1,
-    ...(options.cursor && {
-      cursor: { id: options.cursor },
-      skip: 1,
-    }),
-  });
-
-  let hasNext = rows.length > limit;
-  let pageRows = hasNext ? rows.slice(0, limit) : rows;
-
-  // Team-type filter is applied post-query because Prisma can't express
-  // "exactly one confirmed member" cleanly. Acceptable for galleries with a
-  // bounded page size.
-  if (options.teamType) {
-    pageRows = pageRows.filter((p) =>
-      options.teamType === "solo"
-        ? p.members.length <= 1
-        : p.members.length >= 2,
-    );
-    // If we filtered, hasNext might be stale; we still surface next_cursor
-    // when we got `limit+1` raw rows so the client can keep paging.
-  }
-
-  const projects: GalleryProject[] = pageRows.map((p) => {
-    const teamType: "solo" | "duo" = p.members.length >= 2 ? "duo" : "solo";
-    const galleryMembers: GalleryMember[] = p.members.map((m) => {
-      const v = readVisibility(m.visibility as unknown);
-      const u = m.user;
-      return {
-        name: u?.name ?? "Anonymous",
-        country: v.country ? (u?.country ?? null) : null,
-        github: v.github ? (u?.github_account ?? null) : null,
-        telegram: v.telegram ? (u?.telegram_account ?? null) : null,
-        x: v.x ? (u?.x_account ?? null) : null,
-        email: v.email ? (u?.email ?? null) : null,
-      };
-    });
-
-    const teamName = p.project_name;
-    const repoUrl = p.github_repository ? p.github_repository.split(",")[0] : null;
-    const demoUrl = p.demo_link ? p.demo_link.split(",")[0] : null;
-
-    return {
-      id: p.id,
-      name: p.project_name,
-      team_name: teamName,
-      short_description: p.short_description,
-      screenshots: p.screenshots ?? [],
-      repo_url: repoUrl,
-      demo_url: demoUrl,
-      tracks: p.tracks ?? [],
-      stack: (p as any).stack ?? [],
-      team: {
-        name: teamName,
-        type: teamType,
-        members: galleryMembers,
-      },
-      submitted_at: p.created_at.toISOString(),
-    };
-  });
-
-  const nextCursor = hasNext && pageRows.length > 0 ? pageRows[pageRows.length - 1].id : null;
-
-  return {
-    projects,
-    next_cursor: nextCursor,
-  };
-}

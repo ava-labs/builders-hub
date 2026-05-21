@@ -38,7 +38,6 @@ model Hackathon {
   projects           Project[]
   registrations      RegisterForm[]
   judges             HackathonJudge[]
-  api_keys           ApiKey[]
 }
 
 enum HackathonEvaluationPhase {
@@ -58,24 +57,6 @@ model HackathonJudge {
   @@unique([hackathon_id, user_id])
   @@index([hackathon_id])
   @@index([user_id])
-}
-
-model ApiKey {
-  id            String    @id @default(uuid())
-  label         String
-  prefix        String
-  hashed_key    String    @unique
-  hackathon_id  String
-  created_by    String
-  created_at    DateTime  @default(now()) @db.Timestamptz(3)
-  revoked_at    DateTime? @db.Timestamptz(3)
-  last_used_at  DateTime? @db.Timestamptz(3)
-  hackathon     Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
-  creator       User      @relation(fields: [created_by], references: [id], onDelete: Cascade)
-
-  @@index([hackathon_id])
-  @@index([prefix])
-  @@index([revoked_at])
 }
 
 model User {
@@ -128,7 +109,6 @@ model User {
   referralLinks              ReferralLink[]            @relation("ReferralLinkOwner")
   referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
   referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
-  apiKeysCreated             ApiKey[]
 }
 
 model VerificationToken {
@@ -194,7 +174,6 @@ model Project {
   deployed_addresses  Json[]              @default([])
   website             Json?
   socials             Json?
-  visibility          String              @default("semi-public")
   consent_sharing     Boolean?
   stack               String[]            @default([])
   formData            FormData[]
@@ -212,7 +191,6 @@ model Member {
   role       String  @default("member")
   status     String  @default("Pending Confirmation")
   email      String?
-  visibility Json?
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
   user       User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }

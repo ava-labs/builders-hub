@@ -180,28 +180,6 @@ export default function MembersComponent({
     }
   };
 
-  type VisibilityField = "country" | "email" | "telegram" | "x" | "github";
-  const handleVisibilityToggle = async (member: any, field: VisibilityField) => {
-    const current = (member.visibility ?? {}) as Record<VisibilityField, boolean>;
-    const next = { ...current, [field]: !current[field] };
-    // Optimistic update.
-    setMembers((prev) =>
-      prev.map((m) => (m.id === member.id ? { ...m, visibility: next } : m))
-    );
-    try {
-      await axios.patch(`/api/project/${project_id}/members`, {
-        member_id: member.id,
-        visibility: next,
-      });
-    } catch (error) {
-      console.error("Error updating visibility:", error);
-      // Roll back on failure.
-      setMembers((prev) =>
-        prev.map((m) => (m.id === member.id ? { ...m, visibility: current } : m))
-      );
-    }
-  };
-
   const handleAcceptJoinTeam = async (result: boolean) => {
     if (result) {
       setMembers((prevMembers) =>
@@ -563,39 +541,6 @@ export default function MembersComponent({
           </TableBody>
         </Table>
       </div>
-
-      {/* Per-member gallery visibility toggles. Each member controls only their own row;
-          name is always visible on the public gallery, everything else defaults to hidden. */}
-      {members.some((m) => m.user_id === user_id) && (
-        <div className="mt-6 rounded-md border border-zinc-200 dark:border-zinc-800 p-4">
-          <h4 className="font-medium text-sm mb-1">
-            {lang === "es" ? "Visibilidad en la galería pública" : "Public gallery visibility"}
-          </h4>
-          <p className="text-xs text-zinc-500 mb-3">
-            {lang === "es"
-              ? "Elige qué campos personales se muestran junto a tu nombre. Tu nombre siempre es visible; lo demás está oculto por defecto."
-              : "Choose which personal fields appear next to your name on the gallery. Name is always shown; everything else is hidden by default."}
-          </p>
-          {(["country", "email", "telegram", "x", "github"] as const).map((field) => {
-            const self = members.find((m) => m.user_id === user_id);
-            if (!self) return null;
-            const isOn = Boolean((self.visibility ?? {})[field]);
-            return (
-              <label key={field} className="flex items-center gap-3 py-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isOn}
-                  onChange={() => handleVisibilityToggle(self, field)}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm capitalize">
-                  {field === "x" ? "X (Twitter)" : field}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      )}
 
       <JoinTeamDialog
         open={openjoinTeamDialog || false}

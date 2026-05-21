@@ -34,7 +34,6 @@ export interface Project {
   members?:Member[]
   user_id?:string
   isDraft?:boolean
-  visibility?: 'private' | 'semi-public' | 'public';
   consent_sharing?: boolean | null;
 }
 

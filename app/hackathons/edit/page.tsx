@@ -836,12 +836,7 @@ const HackathonsEdit = () => {
       submission_custom_link: hackathon.content?.submission_custom_link ?? null,
       judging_guidelines: hackathon.content?.judging_guidelines ?? '',
       submission_deadline: toLocalDatetimeString(hackathon.content?.submission_deadline ?? ''),
-      submission_open: hackathon.content?.submission_open ? toLocalDatetimeString(hackathon.content.submission_open) : '',
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
-      team_size_max: hackathon.content?.team_size_max,
-      tech_stack_options: hackathon.content?.tech_stack_options ?? [],
-      registration_mode: hackathon.content?.registration_mode ?? 'full',
-      team_partner_enabled: hackathon.content?.team_partner_enabled ?? false,
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
     const trackDescriptions: { [key: number]: string } = {};
@@ -1239,9 +1234,6 @@ const HackathonsEdit = () => {
   const getDataToSend = () => {
     const content = { ...formDataContent };
     content.submission_deadline = toIso8601(content.submission_deadline);
-    if (content.submission_open) {
-      content.submission_open = toIso8601(content.submission_open);
-    }
     content.registration_deadline = toIso8601(content.registration_deadline);
     content.schedule = content.schedule.map(ev => ({ ...ev, date: toIso8601(ev.date) }));
     const latest = { ...formDataLatest };
@@ -2905,17 +2897,6 @@ const HackathonsEdit = () => {
                   {formDataLatest.event === 'hackathon' && contentTab === 'submission' && (
                     <div className="space-y-4">
                       <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].submissionOpen}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionOpenHelp}</div>
-                        <Input
-                          type="datetime-local"
-                          placeholder="Submission Opens At"
-                          value={formDataContent.submission_open ?? ''}
-                          onChange={(e) => setFormDataContent({ ...formDataContent, submission_open: e.target.value })}
-                          className="w-full mb-4"
-                        />
-                      </div>
-                      <div>
                         <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
                         <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
                         <Input
@@ -2927,78 +2908,6 @@ const HackathonsEdit = () => {
                           required
                         />
                       </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].teamSizeMax}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].teamSizeMaxHelp}</div>
-                        <Input
-                          type="number"
-                          min={1}
-                          placeholder="(no cap)"
-                          value={formDataContent.team_size_max ?? ''}
-                          onChange={(e) => {
-                            const raw = e.target.value.trim();
-                            const parsed = raw === '' ? undefined : Number(raw);
-                            setFormDataContent({
-                              ...formDataContent,
-                              team_size_max: Number.isFinite(parsed) ? parsed : undefined,
-                            });
-                          }}
-                          className="w-full mb-4"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].techStackOptions}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].techStackOptionsHelp}</div>
-                        <Input
-                          placeholder="Frontend, Backend, Smart Contract, AI/ML, Mobile, Infra"
-                          value={(formDataContent.tech_stack_options ?? []).join(', ')}
-                          onChange={(e) =>
-                            setFormDataContent({
-                              ...formDataContent,
-                              tech_stack_options: e.target.value
-                                .split(',')
-                                .map((s) => s.trim())
-                                .filter(Boolean),
-                            })
-                          }
-                          className="w-full mb-4"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].registrationMode}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].registrationModeHelp}</div>
-                        <select
-                          value={formDataContent.registration_mode ?? 'full'}
-                          onChange={(e) =>
-                            setFormDataContent({
-                              ...formDataContent,
-                              registration_mode: e.target.value === 'simple' ? 'simple' : 'full',
-                            })
-                          }
-                          className="w-full mb-4 bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white"
-                        >
-                          <option value="full">full</option>
-                          <option value="simple">simple</option>
-                        </select>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="team_partner_enabled"
-                          type="checkbox"
-                          checked={!!formDataContent.team_partner_enabled}
-                          onChange={(e) =>
-                            setFormDataContent({
-                              ...formDataContent,
-                              team_partner_enabled: e.target.checked,
-                            })
-                          }
-                          className="h-4 w-4"
-                        />
-                        <label htmlFor="team_partner_enabled" className="text-sm text-zinc-300 cursor-pointer">
-                          {t[language].teamPartnerEnabled}
-                        </label>
-                      </div>
-                      <div className="text-zinc-400 text-sm">{t[language].teamPartnerEnabledHelp}</div>
                     </div>
                   )}
 

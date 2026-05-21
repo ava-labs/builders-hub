@@ -170,7 +170,6 @@ export async function GetMembersByProjectId(project_id: string) {
     image: member.user?.image,
     role: member.role,
     status: member.status,
-    visibility: member.visibility ?? null,
   }));
 }
 
@@ -180,36 +179,6 @@ export async function UpdateRoleMember(member_id: string, role: string) {
     data: { role },
   });
   return updatedMember;
-}
-
-export type MemberVisibility = {
-  country?: boolean;
-  email?: boolean;
-  telegram?: boolean;
-  x?: boolean;
-  github?: boolean;
-};
-
-/**
- * Update a member's per-field contact-visibility toggles. Only the member
- * themselves should be able to call this (enforced in the route handler).
- */
-export async function UpdateMemberVisibility(
-  member_id: string,
-  visibility: MemberVisibility,
-) {
-  // Whitelist + coerce to booleans so we never store arbitrary client JSON.
-  const safe: MemberVisibility = {
-    country: Boolean(visibility.country),
-    email: Boolean(visibility.email),
-    telegram: Boolean(visibility.telegram),
-    x: Boolean(visibility.x),
-    github: Boolean(visibility.github),
-  };
-  return prisma.member.update({
-    where: { id: member_id },
-    data: { visibility: safe },
-  });
 }
 
 export async function GetProjectsByUserId(user_id: string) {

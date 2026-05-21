@@ -205,9 +205,6 @@ const BaseFormSchema = z.object({
   user_id: z.string().optional(),
   is_winner: z.boolean().optional(),
   isDraft: z.boolean().optional(),
-  visibility: z
-    .enum(['private', 'semi-public', 'public'])
-    .default('semi-public'),
   // Opt-in: share project info with Team1 for local support.
   consent_sharing: z.boolean().optional(),
 });
@@ -337,7 +334,6 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: [],
       explanation: '',
       demo_video_link: '',
-      visibility: 'semi-public',
       consent_sharing: false,
     },
   });
@@ -726,12 +722,6 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],
       is_preexisting_idea: !!project.is_preexisting_idea,
       demo_video_link: project.demo_video_link ?? '',
-      visibility:
-        project.visibility === 'private' ||
-        project.visibility === 'semi-public' ||
-        project.visibility === 'public'
-          ? project.visibility
-          : 'semi-public',
       tracks: project.tracks ?? (typeof project.tracks === 'string' ? project.tracks.split(',').filter(Boolean) : []),
       categories: Array.isArray(project.categories) 
         ? project.categories 

@@ -4,7 +4,6 @@ import { prisma } from "@/prisma/prisma";
 import { isUserProjectMember } from "@/server/services/fileValidation";
 import {
   GetMembersByProjectId,
-  UpdateMemberVisibility,
   UpdateRoleMember,
 } from "@/server/services/memberProject";
 import { NextResponse } from "next/server";
@@ -44,12 +43,13 @@ export const GET = withAuth<RouteParams<{ project_id: string }>>(async (request,
 export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (request: Request, { params }, session: Session) => {
   try {
     const body = await request.json();
-    const { member_id, role, visibility } = body;
+    const { member_id, role } = body;
     const { project_id } = await params;
-
-    if (!member_id) {
+    
+    console.log("body", member_id);
+    if (!member_id || !role) {
       return NextResponse.json(
-        { error: "member_id is required" },
+        { error: "member_id and role are required" },
         { status: 400 }
       );
     }
@@ -67,35 +67,6 @@ export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (reques
       return NextResponse.json(
         { error: "Forbidden: You are not a member of this project" },
         { status: 403 }
-      );
-    }
-
-    // Visibility updates are scoped to the member themselves — never let one
-    // teammate edit another teammate's contact-visibility flags.
-    if (visibility !== undefined) {
-      const targetMember = await prisma.member.findUnique({
-        where: { id: member_id },
-        select: { user_id: true },
-      });
-      if (!targetMember || targetMember.user_id !== session.user.id) {
-        return NextResponse.json(
-          { error: "Forbidden: You can only update your own visibility settings" },
-          { status: 403 }
-        );
-      }
-      const updated = await UpdateMemberVisibility(member_id, visibility);
-      // If a role was sent in the same request, apply it after visibility so the
-      // response reflects both changes.
-      if (role) {
-        await UpdateRoleMember(member_id, role);
-      }
-      return NextResponse.json(updated);
-    }
-
-    if (!role) {
-      return NextResponse.json(
-        { error: "role or visibility is required" },
-        { status: 400 }
       );
     }
 
