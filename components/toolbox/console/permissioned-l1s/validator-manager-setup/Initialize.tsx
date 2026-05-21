@@ -161,7 +161,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       maximumChurnPercentage: Number(maximumChurnPercentage),
     };
 
-    const initPromise = initializeValidatorManager(walletClient as never, chainPublicClient! as never, {
+    const initPromise = initializeValidatorManager(walletClient, chainPublicClient!, {
       address: managerAddress as `0x${string}`,
       settings,
     }).then(({ txHash }) => txHash);

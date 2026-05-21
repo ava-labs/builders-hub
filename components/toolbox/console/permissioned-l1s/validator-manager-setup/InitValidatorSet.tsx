@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { getPChainRpcUrl, getGlacierNetwork } from '@/components/toolbox/utils/avalancheEndpoints';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
@@ -81,11 +82,11 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       // a Glacier dep there.
       const extracted = await extractSubnetToL1ConversionDataFromPChainTx({
         txId: conversionTxID,
-        pChainRpcUrl: isTestnet ? 'https://api.avax-test.network/ext/bc/P' : 'https://api.avax.network/ext/bc/P',
+        pChainRpcUrl: getPChainRpcUrl(isTestnet),
         networkId: avalancheNetworkID,
       });
 
-      const network = isTestnet ? 'fuji' : 'mainnet';
+      const network = getGlacierNetwork(isTestnet);
       const glacierRes = await fetch(
         `https://glacier-api.avax.network/v1/networks/${network}/blockchains/${extracted.blockchainId}`,
         { headers: { accept: 'application/json' } },
@@ -203,7 +204,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const txArgs = buildTxArgs(conversionResult);
       setCollectedData({ ...(txArgs[0] as any), L1ConversionSignature });
 
-      const initPromise = initializeValidatorSet(walletClient as never, chainPublicClient! as never, {
+      const initPromise = initializeValidatorSet(walletClient, chainPublicClient!, {
         contractAddress: conversionResult.managerAddress as `0x${string}`,
         networkId: avalancheNetworkID,
         subnetId: conversionResult.subnetId,

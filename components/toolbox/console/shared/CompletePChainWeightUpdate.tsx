@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { getPChainRpcUrl } from '@/components/toolbox/utils/avalancheEndpoints';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -186,7 +187,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
       const weightMessageData = await extractL1ValidatorWeightMessageFromPChainTx({
         txId: pChainTxIdState,
-        pChainRpcUrl: isTestnet ? 'https://api.avax-test.network/ext/bc/P' : 'https://api.avax.network/ext/bc/P',
+        pChainRpcUrl: getPChainRpcUrl(isTestnet),
       });
 
       setExtractedData({

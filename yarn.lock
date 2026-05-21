@@ -294,10 +294,10 @@
     util "^0.12.5"
     viem "^2.38.5"
 
-"@avalanche-sdk/interchain@^0.2.0-alpha.2":
-  version "0.2.0-alpha.2"
-  resolved "https://registry.yarnpkg.com/@avalanche-sdk/interchain/-/interchain-0.2.0-alpha.2.tgz#ce3eb51f312308cfef06d783f2394155299abbb8"
-  integrity sha512-2sPNpO1IfCHNkBqac3d1CL5ykxz5nNPgTEn8Hjq93XXFXJFQNN/sexV6vlIvzRp+o9YW0kjnQD43kJC+/j+dsQ==
+"@avalanche-sdk/interchain@^0.2.0-alpha.3":
+  version "0.2.0-alpha.3"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/interchain/-/interchain-0.2.0-alpha.3.tgz#468ee8c1c231b7d8651c1393f1f74113efea1098"
+  integrity sha512-YG0LFJskuoXpJkT/CPptobeV8Vnwg/mselfOOt1FW9ZjaRxxjm2UkGzJUNquxKE7S+vJ2+yEDDB6SoH4ot6lww==
   dependencies:
     "@avalabs/avalanchejs" "5.1.0-alpha.1"
     "@avalanche-sdk/client" "^0.0.4-alpha.12"

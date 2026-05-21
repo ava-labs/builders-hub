@@ -102,7 +102,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
       await walletClient.addChain({ chain: viemChain });
       await walletClient.switchChain({ id: viemChain!.id });
 
-      const deployPromise = sdkDeployPoAManager(walletClient as never, chainPublicClient as never, {
+      const deployPromise = sdkDeployPoAManager(walletClient, chainPublicClient, {
         initialOwner: ownerAddress as `0x${string}`,
         validatorManager: validatorManagerAddress as `0x${string}`,
       });

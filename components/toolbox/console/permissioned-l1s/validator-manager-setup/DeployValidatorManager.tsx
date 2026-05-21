@@ -118,7 +118,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
       if (!chainClient) throw new Error('Could not create public client for chain');
 
-      const deployPromise = sdkDeployValidatorManager(walletClient as never, chainClient as never, {
+      const deployPromise = sdkDeployValidatorManager(walletClient, chainClient, {
         icmInitializable: ICMInitializable.Allowed,
         validatorMessagesAddress: validatorMessagesLibAddress as `0x${string}`,
       });
