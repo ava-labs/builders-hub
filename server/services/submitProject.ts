@@ -9,7 +9,6 @@ import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
-import { NotificationMeans } from "@/lib/notificationDefaults";
 import { PROJECT_VISIBILITY, isProjectVisibility } from "@/types/showcase";
 
 function resolveVisibility(value: unknown): string {
@@ -293,7 +292,6 @@ function normalizeUser(user: Partial<User>): User {
     team_id: user.team_id ?? null,
     noun_avatar_seed: user.noun_avatar_seed ?? null,
     noun_avatar_enabled: user.noun_avatar_enabled ?? false,
-    notification_means: (user.notification_means as unknown as NotificationMeans) ?? null,
   } as unknown as User;
 }
 export async function getProject(projectId: string): Promise<Project | null> {

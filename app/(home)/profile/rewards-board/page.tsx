@@ -1,15 +1,5 @@
-import { getAuthSession } from '@/lib/auth/authSession';
-import ProfileForm from "@/components/profile/ProfileForm";
-import { getProfile } from "@/server/services/profile";
-import RewardBoard from '@/components/profile/reward-board/component/reward-board';
+import { redirect } from "next/navigation";
 
-export default async function RewardsBoardWrapper() {
-  const session = await getAuthSession();
-  const profileData = await getProfile(session!.user.id!);
-
-  return (
-    <div>
-      <RewardBoard/>
-    </div>
-  );
+export default function RewardsBoardPage() {
+  redirect("/profile?tab=achievements");
 }

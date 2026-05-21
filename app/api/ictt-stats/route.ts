@@ -1,18 +1,7 @@
 import { NextResponse } from "next/server";
 import icttTokens from "@/constants/ictt-tokens.json";
 import l1ChainsData from "@/constants/l1-chains.json";
-
-interface ICTTTransfer {
-  homeChainBlockchainId: string;
-  homeChainName: string;
-  remoteChainBlockchainId: string;
-  remoteChainName: string;
-  direction: string;
-  contractAddress: string;
-  coinAddress: string;
-  transferCount: number;
-  transferCoinsTotal: number;
-}
+import { getGlobalICTTTransfers, type ICTTTransfer } from "@/lib/ictt-clickhouse";
 
 interface TokenInfo {
   name: string;
@@ -138,17 +127,9 @@ export async function GET(request: Request) {
       });
     }
 
-    // Fetch ICTT data
-    const endTs = Math.floor(Date.now() / 1000);
-    const icttResponse = await fetch(
-      `https://idx6.solokhin.com/api/global/ictt/transfers?startTs=0&endTs=${endTs}`
-    );
-
-    if (!icttResponse.ok) {
-      throw new Error(`ICTT API error: ${icttResponse.status}`);
-    }
-
-    const transfers: ICTTTransfer[] = await icttResponse.json();
+    // Fetch ICTT data from the internal ClickHouse-backed aggregator
+    // (replaces the dead `idx6.solokhin.com/api/global/ictt/transfers` upstream).
+    const transfers: ICTTTransfer[] = await getGlobalICTTTransfers();
 
     // Collect unique token addresses with CoinGecko IDs
     const coingeckoIds = new Set<string>();
@@ -228,7 +209,7 @@ export async function GET(request: Request) {
       (a, b) => b.count - a.count
     )[0];
 
-    const topTokenPercentage = totalTransfers > 0 
+    const topTokenPercentage = totalTransfers > 0 && topToken
       ? ((topToken.count / totalTransfers) * 100).toFixed(1)
       : "0";
 
@@ -282,7 +263,7 @@ export async function GET(request: Request) {
         activeChains: activeChains.size,
         activeRoutes: Object.keys(routes).length,
         topToken: {
-          name: topToken.name,
+          name: topToken?.name ?? "—",
           percentage: topTokenPercentage,
         },
       },

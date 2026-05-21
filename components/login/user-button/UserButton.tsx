@@ -1,44 +1,62 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { signOut, useSession } from 'next-auth/react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { CircleUserRound } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { signOut, useSession } from 'next-auth/react';
-import Image from 'next/image';
-import Link from 'next/link';
-import SignOutComponent from '../sign-out/SignOut';
-import { useState, useMemo, useEffect } from 'react';
-import { CircleUserRound } from 'lucide-react';
-import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
-import { useRouter } from 'next/navigation';
+import SignOutComponent from '../sign-out/SignOut';
 
-const AVATAR_SIZE = 32;
+const AVATAR_PX = 36;
 
-import { canAccessBuilderInsights, canAccessEvaluationTools } from '@/lib/auth/permissions';
+// No outlined box — the avatar sits on the navbar at toggle height (~36px)
+// so a profile picture, initials, and placeholder all line up with the
+// ThemeToggle next to it. Hover lifts +20%; the dropdown opens on hover
+// so the user can sign out without clicking through the pill itself.
+const WRAPPER_CLASS =
+  'inline-flex items-center justify-center rounded-full no-underline hover:no-underline focus:outline-none transition-transform duration-150 hover:scale-[1.2]';
+const SLOT_CLASS = 'size-9 rounded-full flex items-center justify-center';
+const ICON_CLASS = `${SLOT_CLASS} p-1.5 text-zinc-400 dark:text-zinc-600`;
+const INITIALS_CLASS = `${SLOT_CLASS} text-sm font-bold tracking-tight text-[#b8b8c0] dark:text-zinc-600`;
+
+function initialsFromName(name?: string | null): string {
+  if (!name) return '';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) {
+    // Single word — show the first two letters so "Jeff" reads as "JE"
+    // instead of a lonely "J" floating in the slot.
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const router = useRouter();
   const [localSeed, setLocalSeed] = useState<AvatarSeed | null>(null);
   const [localEnabled, setLocalEnabled] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
-  const canAccessEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
-  const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
-  const router = useRouter();
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
 
-  // Sincronizar avatar con API; actualizar contexto (si existe) o estado local
   useEffect(() => {
     if (!isAuthenticated) {
       avatarContext?.setNounAvatar(null, false);
@@ -69,164 +87,127 @@ export function UserButton() {
       cancelled = true;
     };
   }, [isAuthenticated, avatarContext?.setNounAvatar]);
-  
-  const handleSignOut = (): void => {
-    // Clean up any stored redirect URLs before logout
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("redirectAfterProfile");
 
-      // Clean up any form data stored in localStorage
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith("formData_")) {
-          localStorage.removeItem(key);
-        }
-      });
-    }
-
-    signOut({ redirect: false }).then(() => {
-      router.push('/');
-    });
-  };
   useEffect(() => {
     if (!session?.user) {
-      localStorage.removeItem("session_payload");
+      localStorage.removeItem('session_payload');
       return;
     }
-
     const payload: { id: string; custom_attributes: string[] } = {
       id: session.user.id,
       custom_attributes: session.user.custom_attributes ?? [],
     };
+    localStorage.setItem('session_payload', JSON.stringify(payload));
+  }, [session?.user]);
 
-    localStorage.setItem("session_payload", JSON.stringify(payload));
-  }, [session?.user])
+  const handleSignOutConfirm = async (): Promise<void> => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('redirectAfterProfile');
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('formData_')) localStorage.removeItem(key);
+      });
+    }
+    await signOut({ redirect: false });
+    router.push('/');
+  };
 
+  const renderAvatar = () => {
+    if (!isAuthenticated || !session?.user) {
+      return <CircleUserRound className={ICON_CLASS} strokeWidth={0.85} />;
+    }
+    const nameInitials = initialsFromName(session.user.name);
+    if (nounAvatarEnabled && nounAvatarSeed) {
+      return (
+        <span className={`${SLOT_CLASS} overflow-hidden`}>
+          <DiceBearAvatar
+            seed={nounAvatarSeed}
+            size="small"
+            className="pointer-events-none scale-[0.45] origin-center"
+          />
+        </span>
+      );
+    }
+    if (session.user.image) {
+      return (
+        <span className={`${SLOT_CLASS} overflow-hidden`}>
+          <Image
+            src={session.user.image}
+            alt="User Avatar"
+            width={AVATAR_PX}
+            height={AVATAR_PX}
+            className="rounded-full"
+          />
+        </span>
+      );
+    }
+    if (nameInitials) {
+      return <span className={INITIALS_CLASS}>{nameInitials}</span>;
+    }
+    return <CircleUserRound className={ICON_CLASS} strokeWidth={0.85} />;
+  };
+
+  // Unauthenticated — clicking the avatar still opens the login modal,
+  // matching the rest of the public-page UX.
+  if (!isAuthenticated) {
+    return (
+      <button
+        type="button"
+        aria-label="Login"
+        className={WRAPPER_CLASS}
+        onClick={() => {
+          const currentUrl =
+            typeof window !== 'undefined' ? window.location.href : '/';
+          openLoginModal(currentUrl);
+        }}
+      >
+        {renderAvatar()}
+      </button>
+    );
+  }
+
+  // Authenticated — hover opens a small account menu (Profile + Sign Out).
+  // The pill itself no longer navigates on click; the dropdown is the only
+  // path so the user has an explicit choice every time.
   return (
     <>
-      {isAuthenticated ? (
-        <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <div
+          onMouseEnter={() => setMenuOpen(true)}
+          onMouseLeave={() => setMenuOpen(false)}
+          className="inline-flex"
+        >
           <DropdownMenuTrigger asChild>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='rounded-full h-10 w-10 ml-1 cursor-pointer p-1 overflow-hidden'
+            <button
+              type="button"
+              aria-label="Account menu"
+              className={WRAPPER_CLASS}
             >
-              {nounAvatarEnabled && nounAvatarSeed ? (
-                <div className='h-10 w-10 rounded-full overflow-hidden flex items-center justify-center shrink-0'>
-                  <DiceBearAvatar
-                    seed={nounAvatarSeed}
-                    size='small'
-                    className='pointer-events-none scale-[0.71] origin-center'
-                  />
-                </div>
-              ) : session.user.image ? (
-                <Image
-                  src={session.user.image}
-                  alt='User Avatar'
-                  width={AVATAR_SIZE}
-                  height={AVATAR_SIZE}
-                  className='rounded-full'
-                />
-              ) : (
-                <CircleUserRound
-                  className='h-8 w-8! stroke-zinc-900 dark:stroke-white'
-                  strokeWidth={0.85}
-                />
-              )}
-            </Button>
+              {renderAvatar()}
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className='bg-white text-black dark:bg-zinc-900 dark:text-white
-            border border-zinc-200 dark:border-zinc-600
-            shadow-lg p-1 rounded-md w-48'
+            align="end"
+            className="bg-white text-black dark:bg-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 shadow-lg p-1 rounded-md w-40"
+            onMouseEnter={() => setMenuOpen(true)}
+            onMouseLeave={() => setMenuOpen(false)}
           >
-            <div className="px-2 py-1.5">
-              <div
-                className="text-sm truncate cursor-default"
-                title={session.user.email || 'No email available'}
-              >
-                {session.user.email || 'No email available'}
-              </div>
-
-              {session.user.name && session.user.name !== session.user.email && (
-                <p className="text-sm wrap-break-word mt-1">
-                  {session.user.name}
-                </p>
-              )}
-            </div>
-            <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
-
-            <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile'>Profile</Link>
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile?tab=achievements'>Achievements Board</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile?tab=projects'>Projects</Link>
-            </DropdownMenuItem>
-            {
-              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('notify_event')) && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/send-notifications'>Send notifications</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {
-              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('hackathonCreator')) && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/events/edit'>Event Management</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {
-              canAccessEvaluate && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/evaluate'>Evaluate Hackathons</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {
-              canAccessInsights && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/builder-insights'>Builder Insights</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {/* <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile?tab=settings'>Settings</Link>
-            </DropdownMenuItem> */}
-
-
+            <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-700" />
             <DropdownMenuItem
-              onClick={() => setIsDialogOpen(true)}
-              className='cursor-pointer'
+              onClick={() => setSignOutOpen(true)}
+              className="cursor-pointer"
             >
-              Sign Out
+              Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        <Button
-          size='icon'
-          variant='ghost'
-          className='rounded-full h-10 w-10 ml-4 cursor-pointer p-0'
-          onClick={() => {
-            const currentUrl = typeof window !== 'undefined' ? window.location.href : '/';
-            openLoginModal(currentUrl);
-          }}
-        >
-          <CircleUserRound
-            className='h-8! w-8! stroke-zinc-900 dark:stroke-white'
-            strokeWidth={0.85}
-          />
-        </Button>
-      )}
-
+        </div>
+      </DropdownMenu>
       <SignOutComponent
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onConfirm={handleSignOut}
+        isOpen={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        onConfirm={handleSignOutConfirm}
       />
     </>
   );

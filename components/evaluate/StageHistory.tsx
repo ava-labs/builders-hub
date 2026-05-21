@@ -44,7 +44,7 @@ export function StageHistory({ evaluations, currentStage }: Props) {
         Previous Stage Evaluations
       </h3>
       {stages.map(([stage, evals]) => {
-        const avg = evals.reduce((sum, e) => sum + (VERDICT_SCORES[e.verdict] ?? 0), 0) / evals.length;
+        const avg = evals.reduce((sum, e) => sum + (e.verdict ? VERDICT_SCORES[e.verdict] ?? 0 : 0), 0) / evals.length;
         const consensus = SCORE_TO_VERDICT[Math.round(avg)] ?? "maybe";
 
         const withScores = evals.filter((e) => e.scoreOverall !== null);
@@ -70,16 +70,18 @@ export function StageHistory({ evaluations, currentStage }: Props) {
             </div>
             <div className="px-3 py-2 space-y-1">
               {evals.map((e) => (
-                <div key={e.id} className="flex items-center gap-2 text-sm">
-                  <span className="text-zinc-500 dark:text-zinc-400 text-xs w-28 shrink-0 truncate">{e.evaluatorName}</span>
-                  <VerdictBadge verdict={e.verdict as Verdict} />
-                  {e.scoreOverall !== null && (
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">{e.scoreOverall}/5</span>
-                  )}
+                <div key={e.id} className="text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-zinc-500 dark:text-zinc-400 text-xs w-28 shrink-0 truncate">{e.evaluatorName}</span>
+                    <VerdictBadge verdict={e.verdict as Verdict} />
+                    {e.scoreOverall !== null && (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">{e.scoreOverall}/5</span>
+                    )}
+                  </div>
                   {e.comment && (
-                    <span className="text-zinc-500 text-xs truncate">
+                    <p className="mt-1 ml-28 text-zinc-500 dark:text-zinc-400 text-xs whitespace-pre-wrap break-words">
                       &mdash; &ldquo;{e.comment}&rdquo;
-                    </span>
+                    </p>
                   )}
                 </div>
               ))}

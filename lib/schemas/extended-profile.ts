@@ -2,7 +2,6 @@ import { z } from "zod";
 import {
   LINKEDIN_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
-  X_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
 
 /**
@@ -13,19 +12,11 @@ import {
  * route and the frontend forms.
  */
 
-/** A notification preference tuple: [inHub, byEmail]. */
-const NotificationPreferenceSchema = z.tuple([z.boolean(), z.boolean()]);
 const nullableProfileAccount = (pattern: RegExp, message: string) =>
   z
     .union([z.string().trim().regex(pattern, message), z.literal("")])
     .nullable()
     .optional();
-
-/** Map from notification key to its preference tuple. */
-export const NotificationMeansSchema = z.record(
-  z.string(),
-  NotificationPreferenceSchema,
-);
 
 /** User type data stored as JSON in the database (nested form). */
 export const UserTypeSchema = z.object({
@@ -69,11 +60,6 @@ export const UpdateExtendedProfileSchema = z
       .optional(),
     image: z.string().nullable().optional(),
     country: z.string().nullable().optional(),
-    // github_account is owned by the GitHub OAuth link route and is
-    // intentionally not writable via this endpoint. The other three social
-    // fields accept manual entry; each value must match its platform
-    // pattern when present (empty string is allowed to mean "clear").
-    x_account: nullableProfileAccount(X_ACCOUNT_PATTERN, "Invalid X URL."),
     linkedin_account: nullableProfileAccount(
       LINKEDIN_ACCOUNT_PATTERN,
       "Invalid LinkedIn URL.",
@@ -88,7 +74,6 @@ export const UpdateExtendedProfileSchema = z
       TELEGRAM_ACCOUNT_PATTERN,
       "Invalid Telegram username.",
     ),
-    notification_means: NotificationMeansSchema.nullable().optional(),
     user_type: UserTypeSchema.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
