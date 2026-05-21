@@ -12,32 +12,24 @@ import {
   X_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
 
-// Zod validation schema - name is required; rest are format validations
 export const profileSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   username: z.string().optional(),
   bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
-  email: z.email("Invalid email").optional(), // Email from session, optional
+  email: z.email("Invalid email").optional(),
   image: z.string().optional(),
   country: z.string().optional(),
-  // user_type as JSON object - all optional
   is_student: z.boolean().optional().default(false),
   is_founder: z.boolean().optional().default(false),
   is_employee: z.boolean().optional().default(false),
   is_developer: z.boolean().optional().default(false),
   is_enthusiast: z.boolean().optional().default(false),
-  // Founder fields
   founder_company_name: z.string().optional(),
-  // Employee fields
   employee_company_name: z.string().optional(),
   employee_role: z.string().optional(),
-  // Student fields
   student_institution: z.string().optional(),
-  // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
-  // All four typed social fields are optional. Regex still applies when a
-  // non-empty value is present; an empty string passes through as "clear."
   github_account: z
     .union([z.string().regex(GITHUB_ACCOUNT_PATTERN, "Enter a valid GitHub username or github.com URL"), z.literal("")])
     .optional()
@@ -62,36 +54,6 @@ export const profileSchema = z.object({
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
-
-/** Number of criteria used for profile completion (each counts 1). */
-const PROFILE_COMPLETION_CRITERIA = 9;
-
-/**
- * Computes profile completion percentage (0–100) based on filled fields
- * used in the profile form. Used for the circular progress around the avatar.
- */
-export function getProfileCompletionPercentage(values: Partial<ProfileFormValues> | undefined): number {
-  if (!values) return 0;
-  const v = values;
-  const has = (s: unknown) => typeof s === "string" && s.trim() !== "";
-  const hasRole =
-    v.is_developer === true ||
-    v.is_enthusiast === true ||
-    (v.is_student === true && has(v.student_institution)) ||
-    (v.is_founder === true && has(v.founder_company_name)) ||
-    (v.is_employee === true && has(v.employee_company_name) && has(v.employee_role));
-  let completed = 0;
-  if (has(v.name)) completed++;
-  if (has(v.bio)) completed++;
-  if (has(v.country)) completed++;
-  if (hasRole) completed++;
-  if (has(v.github_account)) completed++;
-  if (Array.isArray(v.wallet) && v.wallet.filter((w) => has(w)).length > 0) completed++;
-  if (has(v.telegram_account)) completed++;
-  if (Array.isArray(v.additional_social_accounts) && v.additional_social_accounts.length > 0) completed++;
-  if (Array.isArray(v.skills) && v.skills.length > 0) completed++;
-  return Math.round((completed / PROFILE_COMPLETION_CRITERIA) * 100);
-}
 
 export function useProfileForm() {
   const { data: session } = useSession();
@@ -313,6 +275,7 @@ export function useProfileForm() {
         role,
         wallet,
         github_account: _githubAccount,
+        x_account: _xAccount,
         ...restData
       } = data;
 
@@ -481,6 +444,7 @@ export function useProfileForm() {
         role,
         wallet,
         github_account: _githubAccount,
+        x_account: _xAccount,
         ...restData
       } = data;
 
@@ -542,6 +506,7 @@ export function useProfileForm() {
         is_student: updatedProfile.user_type?.is_student || false,
         is_founder: updatedProfile.user_type?.is_founder || false,
         is_employee: updatedProfile.user_type?.is_employee || false,
+        is_developer: updatedProfile.user_type?.is_developer || false,
         is_enthusiast: updatedProfile.user_type?.is_enthusiast || false,
         founder_company_name: updatedProfile.user_type?.founder_company_name || "",
         employee_company_name: updatedProfile.user_type?.employee_company_name || "",

@@ -24,7 +24,6 @@ async function recordBhSignupReferral(
     return false;
   }
 }
-import { getDefaultNotificationMeans } from '@/lib/notificationDefaults';
 import { withAuth } from '@/lib/protectedRoute';
 
 /**
@@ -81,7 +80,6 @@ export const POST = withAuth(async (
         last_login: new Date(),
         notifications: notifications,
         consent_sharing: consent_sharing,
-        notification_means: getDefaultNotificationMeans(),
       }
     });
 

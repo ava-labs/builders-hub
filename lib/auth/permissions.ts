@@ -89,6 +89,12 @@ export function canAccessBuilderInsights(
   return hasAnyAttribute(attributes, ["builder_insights"]);
 }
 
+export function canSendNotifications(
+  attributes: string[] | undefined | null
+): boolean {
+  return hasAnyAttribute(attributes, ["devrel"]);
+}
+
 export function canGenerateRestrictedReferralLinks(
   attributes: string[] | undefined | null
 ): boolean {
