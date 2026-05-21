@@ -1,6 +1,6 @@
 import { Input, type Suggestion } from './Input';
 import { useMemo, useState, useEffect } from 'react';
-import { cb58ToHex, hexToCB58 } from '../console/utilities/format-converter/FormatConverter';
+import { CB58ToHex, hexToCB58 } from '@avalanche-sdk/client/utils';
 import { L1ValidatorDetailsFull } from '@avalabs/avacloud-sdk/models/components';
 import { formatAvaxBalance } from '../coreViem/utils/format';
 import { useAvalancheSDKChainkit } from '../stores/useAvalancheSDKChainkit';
@@ -108,7 +108,7 @@ export default function SelectValidationID({
             mapping[v.validationId] = v.nodeId;
             // Also add hex format for easy lookup
             try {
-              const hexId = '0x' + cb58ToHex(v.validationId);
+              const hexId = CB58ToHex(v.validationId);
               mapping[hexId] = v.nodeId;
             } catch {
               // Skip if conversion fails
@@ -136,7 +136,7 @@ export default function SelectValidationID({
 
       // Build multicall contracts array
       const contracts = validatorsWithId.map((v) => {
-        const hexId = '0x' + cb58ToHex(v.validationId);
+        const hexId = CB58ToHex(v.validationId);
         return {
           address: vmcAddr,
           abi: ValidatorManagerAbi.abi,
@@ -166,7 +166,7 @@ export default function SelectValidationID({
             // Store by both cb58 and hex IDs for easy lookup
             statusMap[v.validationId] = data.status;
             try {
-              const hexId = '0x' + cb58ToHex(v.validationId);
+              const hexId = CB58ToHex(v.validationId);
               statusMap[hexId] = data.status;
             } catch {
               // skip
@@ -187,7 +187,7 @@ export default function SelectValidationID({
     return (
       validationIdToNodeId[value] ||
       (value && value.startsWith('0x') && validationIdToNodeId[value]) ||
-      (value && !value.startsWith('0x') && validationIdToNodeId['0x' + cb58ToHex(value)]) ||
+      (value && !value.startsWith('0x') && validationIdToNodeId[CB58ToHex(value)]) ||
       ''
     );
   }, [value, validationIdToNodeId]);
@@ -214,7 +214,7 @@ export default function SelectValidationID({
         // Add just one version based on the format prop
         if (format === 'hex') {
           try {
-            const hexId = '0x' + cb58ToHex(validator.validationId);
+            const hexId = CB58ToHex(validator.validationId);
             result.push({
               title: `${nodeId}${isSelected ? ' ✓' : ''}`,
               value: hexId,
@@ -245,10 +245,10 @@ export default function SelectValidationID({
     try {
       if (format === 'hex' && !newValue.startsWith('0x')) {
         // Convert CB58 to hex
-        formattedValue = '0x' + cb58ToHex(newValue);
+        formattedValue = CB58ToHex(newValue);
       } else if (format === 'cb58' && newValue.startsWith('0x')) {
         // Convert hex to CB58
-        formattedValue = hexToCB58(newValue.slice(2));
+        formattedValue = hexToCB58(newValue as `0x${string}`);
       }
     } catch {
       // If conversion fails, use the original value
@@ -260,7 +260,7 @@ export default function SelectValidationID({
 
     // If not found directly, try the alternate format
     if (!nodeId) {
-      const alternateFormat = format === 'hex' ? hexToCB58(formattedValue.slice(2)) : '0x' + cb58ToHex(formattedValue);
+      const alternateFormat = format === 'hex' ? hexToCB58(formattedValue as `0x${string}`) : CB58ToHex(formattedValue);
       nodeId = validationIdToNodeId[alternateFormat] || '';
     }
 

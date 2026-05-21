@@ -60,7 +60,7 @@ const formatHexString = (hex: string): string => {
 };
 
 // Convert hex to CB58
-export const hexToCB58 = (hex: string): string => {
+const hexToCB58 = (hex: string): string => {
   try {
     // First validate it's a valid hex string
     const cleanedHex = cleanHexString(hex);
@@ -86,7 +86,7 @@ export const hexToCB58 = (hex: string): string => {
 };
 
 // Convert CB58 to hex
-export const cb58ToHex = (cb58: string): string => {
+const cb58ToHex = (cb58: string): string => {
   try {
     if (!cb58 || cb58.trim() === '') {
       throw new Error('Empty CB58 string');
