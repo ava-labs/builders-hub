@@ -5,6 +5,7 @@ import { Trophy, ArrowRight, BookOpen, Award, Zap } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
 import Image from "next/image";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
 const features = [
   {
@@ -33,11 +34,13 @@ const features = [
     title: "Certificates",
     description: "Showcase your skills",
     icon: Award,
-    href: "/login"
+    href: "/profile?tab=achievements"
   }
 ];
 
 export default function AcademySplash() {
+  const { openLoginModal } = useLoginModalTrigger();
+
   return (
     <div className="flex flex-col px-4 mb-20">
       <div className="flex items-center gap-3 mb-6 mx-auto max-w-7xl w-full">
@@ -75,8 +78,8 @@ export default function AcademySplash() {
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               
-              <Link
-                href="/login"
+              <button
+                onClick={() => openLoginModal(window.location.href)}
                 className={cn(
                   "group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg",
                   "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-medium",
@@ -85,7 +88,7 @@ export default function AcademySplash() {
                 )}
               >
                 <span>Create Account</span>
-              </Link>
+              </button>
             </div>
           </div>
 

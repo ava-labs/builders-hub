@@ -93,6 +93,18 @@ type StepFlowProps = {
    * Compact mode — tighter spacing for embedding in chat messages.
    */
   compact?: boolean;
+  /**
+   * Optional content rendered between the step nav and the active step body.
+   * Useful for persistent context (e.g. ICTT chain cards) that should always
+   * be visible regardless of which step is active.
+   */
+  aboveBody?: React.ReactNode;
+  /**
+   * Optional content rendered at the right edge of the step nav row.
+   * Useful for utility actions (e.g. an "Activity" peek button) that should
+   * sit at the same vertical line as the step pills.
+   */
+  navTrailing?: React.ReactNode;
 };
 
 export default function StepFlow({
@@ -109,6 +121,8 @@ export default function StepFlow({
   finishLabel = "Finish",
   onNavigate,
   compact,
+  aboveBody,
+  navTrailing,
 }: StepFlowProps) {
   const router = useRouter();
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
@@ -247,7 +261,8 @@ export default function StepFlow({
       animate="visible"
     >
       <motion.nav className={compact ? "mb-3" : "mb-6"} variants={sectionItem}>
-        <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
+        <div className="flex items-center gap-3">
+          <ol className="flex flex-1 flex-wrap items-center justify-center gap-3 text-sm">
           {steps.map((s, stepIdx) => {
             const isDoneStep = stepIdx < currentIndex;
             const isActiveStep = stepIdx === currentIndex;
@@ -340,9 +355,20 @@ export default function StepFlow({
             }
           })}
         </ol>
+        {navTrailing && <div className="shrink-0">{navTrailing}</div>}
+        </div>
       </motion.nav>
 
-      <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={sectionItem}>
+      {aboveBody && (
+        <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-6")} variants={sectionItem}>
+          {aboveBody}
+        </motion.div>
+      )}
+
+      <motion.div
+        className={cn(aboveBody ? undefined : "border-t border-border", compact ? "py-4" : "py-8")}
+        variants={sectionItem}
+      >
         <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
           <StepErrorBoundary>
             <ChainGate requiredChain={currentStep.requiredChain}>

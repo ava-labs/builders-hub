@@ -21,14 +21,19 @@ export const pathToBreadcrumb = {
 
   // Permissioned L1s
   "/console/l1-access-restrictions/deployer-allowlist": ["Console", "Permissioned L1s", "Deployer Allowlist"],
-  "/console/permissioned-l1s/add-validator": ["Console", "Permissioned L1s", "Add Validator"],
-  "/console/permissioned-l1s/remove-validator": ["Console", "Permissioned L1s", "Remove Validator"],
+  "/console/add-validator": ["Console", "Validators", "Add Validator"],
+  "/console/remove-validator": ["Console", "Validators", "Remove Validator"],
   "/console/permissioned-l1s/change-validator-weight": ["Console", "Permissioned L1s", "Change Validator Weight"],
   "/console/l1-access-restrictions/transactor-allowlist": ["Console", "Permissioned L1s", "Transactor Allowlist"],
   "/console/permissioned-l1s/validator-manager-setup": ["Console", "Permissioned L1s", "Validator Manager Setup"],
 
   // ICM (Interchain Messaging)
-  "/console/icm/setup": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/messenger": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/registry": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/relayer": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/demo": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/live": ["Console", "Interchain Messaging", "ICM Setup"],
 
   // ICTT (Interchain Token Transfer)
   "/console/ictt/setup": ["Console", "Interchain Messaging", "ICTT (Token Transfer) Setup"],

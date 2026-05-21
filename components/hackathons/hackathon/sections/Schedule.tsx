@@ -429,13 +429,27 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                 <div className='flex flex-row items-center gap-2'>
                                   <MapPin color='#8F8F99' className='w-5 h-5' />
                                   {activity.location && activity.location !== 'TBD' ? (
-                                    <Link
-                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`}
-                                      target='_blank'
-                                      className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
-                                    >
-                                      {activity.location.split(',').slice(0, 2).join(',')}
-                                    </Link>
+                                    activity.location.toLowerCase() === 'online' && activity.url ? (
+                                      <Link
+                                        href={activity.url}
+                                        target='_blank'
+                                        className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
+                                      >
+                                        {activity.location}
+                                      </Link>
+                                    ) : activity.location.toLowerCase() !== 'online' ? (
+                                      <Link
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`}
+                                        target='_blank'
+                                        className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
+                                      >
+                                        {activity.location.split(',').slice(0, 2).join(',')}
+                                      </Link>
+                                    ) : (
+                                      <span className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal'>
+                                        {activity.location}
+                                      </span>
+                                    )
                                   ) : (
                                     <span className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal'>
                                       {activity.location || t(lang, 'schedule.tbd')}

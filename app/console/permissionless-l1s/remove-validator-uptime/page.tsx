@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 
 export default function Page() {
-    redirect("/console/permissionless-l1s/remove-validator-uptime/select-l1");
+  redirect("/console/remove-validator", RedirectType.replace);
 }

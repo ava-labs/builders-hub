@@ -1,10 +1,11 @@
+import { Session } from 'next-auth';
 import { withAuth } from "@/lib/protectedRoute";
 import { generateInvitation } from "@/server/services/inviteProjectMember";
 import { isUserProjectMember } from "@/server/services/fileValidation";
 import { NextResponse } from "next/server";
 import { normalizeEventsLang } from "@/lib/events/i18n";
 
-export const POST = withAuth(async (request, context, session) => {
+export const POST = withAuth(async (request, _context: unknown, session: Session) => {
   try {
     const body = await request.json();
     
@@ -30,8 +31,8 @@ export const POST = withAuth(async (request, context, session) => {
     const lang = normalizeEventsLang(body.lang);
     const result = await generateInvitation(
       body.hackathon_id,
-      session.user.id,
-      session.user.name,
+      session.user.id, // Use session user ID
+      session.user?.name ?? "",
       body.emails,
       body.project_id,
       body.stage,

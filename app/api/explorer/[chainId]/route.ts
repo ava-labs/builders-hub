@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
 
 // Initialize Avalanche SDK
 const avalanche = new Avalanche({
@@ -213,116 +214,9 @@ function shortenAddress(address: string | null): string {
 // Cache for AVAX price
 let avaxPriceCache: { price: number; timestamp: number } | null = null;
 
-// Cache for daily transactions
-let dailyTxsCache: { data: Map<string, TransactionHistoryPoint[]>; timestamp: number } | null = null;
-const DAILY_TXS_CACHE_TTL = 300000; // 5 minutes
-
-// Cache for cumulative transactions
-const cumulativeTxsCache = new Map<string, { cumulativeTxs: number; timestamp: number }>();
-const CUMULATIVE_TXS_CACHE_TTL = 30000; // 30 seconds
-
-interface DailyTxsResponse {
-  dates: string[];
-  chains: Array<{
-    evmChainId: number;
-    name: string;
-    values: number[];
-  }>;
-}
-
-async function fetchCumulativeTxs(evmChainId: string): Promise<number> {
-  // Check cache
-  const cached = cumulativeTxsCache.get(evmChainId);
-  if (cached && Date.now() - cached.timestamp < CUMULATIVE_TXS_CACHE_TTL) {
-    return cached.cumulativeTxs;
-  }
-
-  try {
-    const response = await fetch(
-      `https://idx6.solokhin.com/api/${evmChainId}/stats/cumulative-txs`,
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 30 }
-      }
-    );
-
-    if (!response.ok) {
-      console.warn(`Cumulative txs API error for chain ${evmChainId}: ${response.status}`);
-      return 0;
-    }
-
-    const data = await response.json();
-    const cumulativeTxs = data.cumulativeTxs || 0;
-
-    // Update cache
-    cumulativeTxsCache.set(evmChainId, { cumulativeTxs, timestamp: Date.now() });
-    return cumulativeTxs;
-  } catch (error) {
-    console.warn(`Failed to fetch cumulative txs for chain ${evmChainId}:`, error);
-    return 0;
-  }
-}
-
-async function fetchDailyTxsByChain(): Promise<Map<string, TransactionHistoryPoint[]>> {
-  // Check cache
-  if (dailyTxsCache && Date.now() - dailyTxsCache.timestamp < DAILY_TXS_CACHE_TTL) {
-    return dailyTxsCache.data;
-  }
-
-  const result = new Map<string, TransactionHistoryPoint[]>();
-
-  try {
-    const response = await fetch(
-      'https://idx6.solokhin.com/api/global/overview/dailyTxsByChainCompact',
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 300 }
-      }
-    );
-
-    if (!response.ok) {
-      console.warn(`Daily txs API error: ${response.status}`);
-      return result;
-    }
-
-    const json: DailyTxsResponse = await response.json();
-    const { dates, chains } = json;
-
-    if (!dates || !chains || dates.length === 0) {
-      return result;
-    }
-
-    // Get last 14 days of data
-    const last14DatesStart = Math.max(0, dates.length - 14);
-    const last14Dates = dates.slice(last14DatesStart);
-
-    // Process each chain
-    for (const chain of chains) {
-      const chainId = chain.evmChainId.toString();
-      const last14Values = chain.values.slice(last14DatesStart);
-
-      const history: TransactionHistoryPoint[] = last14Dates.map((dateStr, index) => {
-        // Parse date string (format: "2024-11-27") and format to "Nov 27"
-        const d = new Date(dateStr);
-        const formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-        return {
-          date: formattedDate,
-          transactions: last14Values[index] || 0,
-        };
-      });
-
-      result.set(chainId, history);
-    }
-
-    // Update cache
-    dailyTxsCache = { data: result, timestamp: Date.now() };
-    return result;
-  } catch (error) {
-    console.warn("Failed to fetch daily txs:", error);
-    return result;
-  }
-}
+// Daily / cumulative tx counts are now served by `lib/explorer-clickhouse.ts`,
+// which queries the internal ClickHouse instance instead of the dead
+// `idx6.solokhin.com` upstream. Caching and SWR live inside that module.
 
 async function fetchAvaxPrice(): Promise<number> {
   // Check AVAX price cache
@@ -830,9 +724,9 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     }
   }
 
-  // Fetch real cumulative transactions from API
+  // Cumulative tx count from internal ClickHouse aggregator.
   const cumulativeTxsStart = Date.now();
-  const totalTransactions = await fetchCumulativeTxs(evmChainId);
+  const totalTransactions = await getCumulativeTxs(Number(evmChainId));
   timing.cumulativeTxs = Date.now() - cumulativeTxsStart;
 
   // Calculate total gas fees for latest blocks by summing all block fees
@@ -854,9 +748,9 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     lastFinalizedBlock: latestBlockNumber - 2, // Approximate finalized block
   };
 
-  // Fetch real daily transaction history
+  // 14-day daily tx counts from internal ClickHouse aggregator.
   const dailyTxsStart = Date.now();
-  const dailyTxsData = await fetchDailyTxsByChain();
+  const dailyTxsData = await getDailyTxsByChain();
   const transactionHistory: TransactionHistoryPoint[] = dailyTxsData.get(evmChainId) || [];
   timing.dailyTxs = Date.now() - dailyTxsStart;
 

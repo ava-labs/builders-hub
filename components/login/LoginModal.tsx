@@ -14,6 +14,7 @@ import SocialLogin from "./social-login/SocialLogin";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import { useLoginModalState } from '@/hooks/useLoginModal';
 import { EmbeddedBrowserWarning } from './EmbeddedBrowserWarning';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,17 +24,17 @@ export function LoginModal() {
   const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
+  const router = useRouter();
 
   const { control, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: "" },
   });
 
-  // Handle modal close - just close the modal, stay on current page
-  // User can click Apply again to restart the login flow
   const handleClose = (open: boolean) => {
     if (!open) {
       closeLoginModal();
+      router.push('/');
     }
   };
 
@@ -66,12 +67,12 @@ export function LoginModal() {
       <Dialog.Portal>
         <DialogOverlay />
         <DialogContent 
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-[10000] p-0"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-10000 p-0"
           showCloseButton={true}
         >
           {/* Compact Header - Full Width */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent"></div>
+          <div className="relative overflow-hidden bg-linear-to-br from-zinc-900 via-zinc-900 to-zinc-950">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent"></div>
             <div className="flex py-5 items-center justify-center relative">
               <Image
                 src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/avalancheLoginLogo-LUyz1IYs0fZrQ3tE0CUjst07LPVAv8.svg"

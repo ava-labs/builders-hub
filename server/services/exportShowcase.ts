@@ -14,7 +14,6 @@ interface ProjectExport {
     tracks: string;
     tags: string;
     members: string;
-    prizes: string;
     hackathon: string;
 }
 
@@ -33,7 +32,6 @@ export async function exportShowcase(rawFilters: unknown) {
         include: {
             members: true,
             hackathon: true,
-            prizes: true,
         },
         where,
     });
@@ -56,7 +54,6 @@ export async function exportShowcase(rawFilters: unknown) {
             .map((member) => member.email ?? member.user_id ?? '')
             .filter(Boolean)
             .join(', '),
-        prizes: project.prizes.map((prize) => prize.prize).join(', '),
         hackathon: project.hackathon?.title ?? '',
     }));
     const buffer = await createWorkbook(projectsExport);
@@ -166,7 +163,6 @@ function buildProjectWhere(filters: ExportShowcaseFilters): Prisma.ProjectWhereI
         { header: 'Tracks', key: 'tracks', width: 25 },
         { header: 'Tags', key: 'tags', width: 25 },
         { header: 'Members', key: 'members', width: 35 },
-        { header: 'Prizes', key: 'prizes', width: 30 },
         { header: 'Hackathon', key: 'hackathon', width: 25 },
     ];
 
@@ -182,7 +178,6 @@ function buildProjectWhere(filters: ExportShowcaseFilters): Prisma.ProjectWhereI
             tracks: project.tracks,
             tags: project.tags,
             members: project.members,
-            prizes: project.prizes,
             hackathon: project.hackathon,
         });
     });

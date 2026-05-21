@@ -31,32 +31,48 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
       <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
         {t(lang, "section.partners.subtitle")}
       </p>
-      <div>
-        <Carousel
-          plugins={[plugin]}
-          className="w-screen left-1/2 transform -translate-x-1/2 dark:bg-zinc-200 bg-zinc-700 py-4"
-          opts={{
-            loop: true,
-            dragFree: false,
-          }}
-        >
-          <CarouselContent>
+      <div className="w-screen left-1/2 transform -translate-x-1/2 relative dark:bg-zinc-200 bg-zinc-700 py-4">
+        {hackathon.content.partners.length <= 5 ? (
+          <div className="flex flex-wrap justify-around items-center gap-8 px-8">
             {hackathon.content.partners.map((partner, index) => (
-              <CarouselItem
-                key={index}
-                className="basis-1/2 sm:basis-1/3 md:basis-1/5 h-44 items-center justify-center flex"
-              >
+              <div key={index} className="h-28 flex items-center justify-center">
                 <Image
                   src={partner.logo}
                   alt={partner.name}
                   className="object-contain filter grayscale invert dark:invert-0"
-                  height={120}
-                  width={200}
+                  height={100}
+                  width={180}
                 />
-              </CarouselItem>
+              </div>
             ))}
-          </CarouselContent>
-        </Carousel>
+          </div>
+        ) : (
+          <Carousel
+            plugins={[plugin]}
+            className="w-full"
+            opts={{
+              loop: true,
+              dragFree: false,
+            }}
+          >
+            <CarouselContent>
+              {hackathon.content.partners.map((partner, index) => (
+                <CarouselItem
+                  key={index}
+                  className="basis-1/2 sm:basis-1/3 md:basis-1/5 h-44 items-center justify-center flex"
+                >
+                  <Image
+                    src={partner.logo}
+                    alt={partner.name}
+                    className="object-contain filter grayscale invert dark:invert-0"
+                    height={120}
+                    width={200}
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        )}
       </div>
       <div className="flex justify-center mt-8">
         {hackathon.content.become_sponsor_link && (

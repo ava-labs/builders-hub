@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Session } from 'next-auth';
 import { getPopularSkills } from '@/server/services/profile/profile.service';
 import { withAuth } from '@/lib/protectedRoute';
 
-
-export const GET = withAuth(async (req: NextRequest, session: any) => {
+export const GET = withAuth(async (req: NextRequest, _context: unknown, session: Session) => {
     try {
         const popularSkills = await getPopularSkills();
         return NextResponse.json(popularSkills, {

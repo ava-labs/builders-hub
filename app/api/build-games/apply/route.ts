@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
+import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   const controller = new AbortController();
@@ -43,8 +44,6 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
   projectDescription: `${FIELD_GROUP_PREFIX}company_description_one_line`,
   areaOfFocus: `${FIELD_GROUP_PREFIX}area_of_focus`,
   whyYou: `${FIELD_GROUP_PREFIX}why_you`,
-  howDidYouHear: `${FIELD_GROUP_PREFIX}applicant_source`,
-  howDidYouHearSpecify: `${FIELD_GROUP_PREFIX}applicant_source_other`,
   universityAffiliation: 'university_affiliated',
   avalancheEcosystemMember: 'avalanche_ecosystem_member',
   privacyPolicyRead: 'gdpr',
@@ -53,7 +52,10 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
-    if (!HUBSPOT_API_KEY) {
+    const hubspotEnabled = isHubSpotEnabled();
+    if (!hubspotEnabled) {
+      skipHubSpot('POST /api/build-games/apply');
+    } else if (!HUBSPOT_API_KEY) {
       console.error('Missing environment variable: HUBSPOT_API_KEY');
       return NextResponse.json(
         { success: false, message: 'Server configuration error' },
@@ -125,16 +127,6 @@ export async function POST(request: Request) {
       fields[githubFieldIndex].value = DEFAULT_GITHUB_URL;
     }
 
-    // Use "how did you hear" selection as default for "specify" field if not provided
-    const specifyFieldName = HUBSPOT_FIELD_MAPPING['howDidYouHearSpecify'];
-    const specifyFieldIndex = fields.findIndex((f) => f.name === specifyFieldName);
-    const howDidYouHearValue = formData.howDidYouHear as string || '';
-    if (specifyFieldIndex === -1) {
-      fields.push({ name: specifyFieldName, value: howDidYouHearValue });
-    } else if (!fields[specifyFieldIndex].value) {
-      fields[specifyFieldIndex].value = howDidYouHearValue;
-    }
-
     const hubspotPayload: {
       fields: { name: string; value: string | boolean }[];
       context: { pageUri: string; pageName: string };
@@ -181,47 +173,56 @@ export async function POST(request: Request) {
     const hubspotUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${BUILD_GAMES_FORM_GUID}`;
     console.log('[Build Games Apply] HubSpot URL:', hubspotUrl);
 
-    const hubspotPromise = fetchWithTimeout(hubspotUrl,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
-        },
-        body: JSON.stringify(hubspotPayload),
-      },
-      60000 // 60 second timeout
-    );
+    type HubspotResult = {
+      success: boolean;
+      status: number;
+      data: unknown;
+      error?: string;
+    };
+    const hubspotPromise: Promise<HubspotResult> = hubspotEnabled
+      ? fetchWithTimeout(hubspotUrl,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
+            },
+            body: JSON.stringify(hubspotPayload),
+          },
+          60000 // 60 second timeout
+        )
+          .then(async (response) => {
+            const status = response.status;
+            console.log('[Build Games Apply] HubSpot response status:', status);
+            let data;
+            try {
+              const responseText = await response.text();
+              console.log('[Build Games Apply] HubSpot response body:', responseText);
+              try {
+                data = JSON.parse(responseText);
+              } catch {
+                data = { message: responseText || 'Could not parse response' };
+              }
+            } catch (e) {
+              console.error('[Build Games Apply] Error reading HubSpot response:', e);
+              data = { message: 'Could not read response' };
+            }
+            return { success: response.ok, status, data };
+          })
+          .catch((err) => {
+            console.error('[Build Games Apply] HubSpot request failed:', err);
+            return { success: false, status: 0, data: null, error: err.message };
+          })
+      : Promise.resolve({
+          success: true,
+          status: 0,
+          data: { skipped: true, reason: 'HubSpot disabled in this environment' },
+        });
 
-    // Save to database (runs in parallel with HubSpot)
+    // Save to database (runs in parallel with HubSpot when enabled)
     const dbPromise = saveToDatabase(formData);
 
-    const [hubspotResult, dbResult] = await Promise.all([
-      hubspotPromise
-        .then(async (response) => {
-          const status = response.status;
-          console.log('[Build Games Apply] HubSpot response status:', status);
-          let data;
-          try {
-            const responseText = await response.text();
-            console.log('[Build Games Apply] HubSpot response body:', responseText);
-            try {
-              data = JSON.parse(responseText);
-            } catch {
-              data = { message: responseText || 'Could not parse response' };
-            }
-          } catch (e) {
-            console.error('[Build Games Apply] Error reading HubSpot response:', e);
-            data = { message: 'Could not read response' };
-          }
-          return { success: response.ok, status, data };
-        })
-        .catch((err) => {
-          console.error('[Build Games Apply] HubSpot request failed:', err);
-          return { success: false, status: 0, data: null, error: err.message };
-        }),
-      dbPromise,
-    ]);
+    const [hubspotResult, dbResult] = await Promise.all([hubspotPromise, dbPromise]);
 
     const hubspotSuccess = hubspotResult.success;
     const dbSuccess = dbResult.success;
@@ -300,8 +301,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
       project_description: (formData.projectDescription as string) || '',
       area_of_focus: (formData.areaOfFocus as string) || '',
       why_you: (formData.whyYou as string) || '',
-      how_did_you_hear: (formData.howDidYouHear as string) || '',
-      how_did_you_hear_specify: (formData.howDidYouHearSpecify as string) || null,
       university_affiliation: (formData.universityAffiliation as string) || '',
       avalanche_ecosystem_member: (formData.avalancheEcosystemMember as string) || '',
       privacy_policy_read: formData.privacyPolicyRead === true,
@@ -329,8 +328,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
         project_description: applicationData.project_description,
         area_of_focus: applicationData.area_of_focus,
         why_you: applicationData.why_you,
-        how_did_you_hear: applicationData.how_did_you_hear,
-        how_did_you_hear_specify: applicationData.how_did_you_hear_specify,
         university_affiliation: applicationData.university_affiliation,
         avalanche_ecosystem_member: applicationData.avalanche_ecosystem_member,
         privacy_policy_read: applicationData.privacy_policy_read,

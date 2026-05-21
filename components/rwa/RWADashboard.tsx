@@ -142,7 +142,7 @@ export function RWADashboard({ slug }: RWADashboardProps) {
       <div className="space-y-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Real World Assets
+            Valinor x OatFi x Fence Pilot
           </h1>
           <p className="text-muted-foreground mt-1">
             SPV capital flow dashboard on Avalanche C-Chain

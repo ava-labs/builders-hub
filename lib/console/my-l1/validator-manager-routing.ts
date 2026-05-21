@@ -10,17 +10,14 @@ export function validatorManagerKindLabel(kind: ValidatorManagerKind | null): st
 }
 
 export function getAddValidatorPath(
-  kind: ValidatorManagerKind | null | undefined,
+  _kind: ValidatorManagerKind | null | undefined,
   l1?: CombinedL1,
   options?: { nodeId?: string },
 ): string {
-  const base =
-    kind === 'pos-native'
-      ? '/console/permissionless-l1s/stake/native/select-subnet'
-      : kind === 'pos-erc20'
-        ? '/console/permissionless-l1s/stake/erc20/select-subnet'
-        : '/console/permissioned-l1s/add-validator/select-subnet';
-
+  // Unified flow auto-detects PoA / PoS-Native / PoS-ERC20 from the subnet,
+  // so we no longer branch on kind. The arg is kept for call-site compatibility
+  // and future preset-routing (e.g., pre-filled stake amounts).
+  const base = '/console/add-validator/select-subnet';
   const params = new URLSearchParams();
   if (l1?.subnetId) params.set('subnetId', l1.subnetId);
   if (options?.nodeId) params.set('nodeId', options.nodeId);

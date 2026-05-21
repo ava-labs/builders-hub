@@ -278,7 +278,7 @@ export default function BuildGamesSubmitForm({
 
   useEffect(() => {
     axios
-      .get(`/api/hackathons/${HACKATHON_ID}`)
+      .get(`/api/events/${HACKATHON_ID}`)
       .then((res) => {
         const tracks: Track[] = res.data?.content?.tracks ?? [];
         setHackathonTracks(tracks);

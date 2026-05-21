@@ -1,13 +1,14 @@
-import { withAuth } from "@/lib/protectedRoute";
+import { Session } from 'next-auth';
+import { withAuth, RouteParams } from "@/lib/protectedRoute";
 import { UpdateStatusMember } from "@/server/services/memberProject";
 import { isUserProjectMember } from "@/server/services/fileValidation";
 import { NextResponse } from "next/server";
 
-export const PATCH = withAuth(async (request: Request, context: any, session: any) => {
+export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (request: Request, { params }, session: Session) => {
   try {
     const body = await request.json();
     const { user_id, status, email, wasInOtherProject } = body;
-    const { project_id } = await context.params;
+    const { project_id } = await params;
 
     if (!project_id) {
       return NextResponse.json(

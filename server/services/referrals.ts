@@ -5,10 +5,22 @@ import {
   REFERRAL_TARGET_TYPES,
   type ReferralTargetType,
 } from "@/lib/referrals/constants";
+import {
+  OTHER_TEAM_SENTINEL,
+  isOtherTeam,
+  isReferralTeamId,
+} from "@/lib/referrals/team-labels";
+
+export interface ManualReferrerInput {
+  teamId: string;
+  teamIdOther?: string | null;
+  userId?: string | null;
+}
 
 export interface ReferralAttributionPayload {
   referralCode?: string | null;
   landingPath?: string | null;
+  manualReferrer?: ManualReferrerInput | null;
 }
 
 export interface RecordReferralAttributionInput {
@@ -222,50 +234,82 @@ export async function listReferralLinksForUser(userId: string) {
   });
 }
 
-export async function recordReferralAttribution(input: RecordReferralAttributionInput) {
-  const attribution = input.attribution ?? null;
-  const referralCode = normalizeNullable(attribution?.referralCode);
-  if (!referralCode) {
-    return null;
-  }
+export async function getActiveReferralTargets() {
+  const { ACTIVE_GRANT_TARGETS, BUILDER_HUB_SIGNUP_TARGET } = await import(
+    "@/lib/referrals/targets"
+  );
 
-  const targetId = normalizeNullable(input.targetId);
-
-  const referralLink = await prisma.referralLink.findFirst({
+  const activeEvents = await prisma.hackathon.findMany({
     where: {
-      code: referralCode,
-      disabled_at: null,
+      end_date: { gte: new Date() },
+      OR: [{ is_public: true }, { is_public: null }],
     },
+    select: { id: true, title: true, start_date: true, end_date: true },
+    orderBy: [{ start_date: "asc" }],
+    take: 25,
   });
 
-  if (!referralLink) {
-    return null;
-  }
+  const eventTargets = activeEvents.map((event) => ({
+    key: `event-${event.id}`,
+    group: "event" as const,
+    label: event.title,
+    detail: "Active or upcoming event",
+    targetType: "hackathon_registration" as const,
+    targetId: event.id,
+    destinationUrl: `/events/registration-form?event=${event.id}`,
+  }));
 
+  return {
+    signup: [BUILDER_HUB_SIGNUP_TARGET],
+    event: eventTargets,
+    grant: ACTIVE_GRANT_TARGETS,
+  };
+}
+
+const MANUAL_OTHER_LABEL_MAX_LENGTH = 100;
+
+async function resolveSubmitterId(
+  rawUserId: string | null | undefined,
+  rawUserEmail: string | null | undefined,
+): Promise<{ userId: string | null; userEmail: string | null }> {
+  const userEmail = normalizeNullable(rawUserEmail)?.toLowerCase() ?? null;
+  const explicitId = normalizeNullable(rawUserId);
+  if (explicitId) return { userId: explicitId, userEmail };
+  if (!userEmail) return { userId: null, userEmail };
+  const user = await prisma.user.findUnique({
+    where: { email: userEmail },
+    select: { id: true },
+  });
+  return { userId: user?.id ?? null, userEmail };
+}
+
+async function recordCodeBasedAttribution({
+  attribution,
+  input,
+  referralCode,
+  targetId,
+}: {
+  attribution: ReferralAttributionPayload;
+  input: RecordReferralAttributionInput;
+  referralCode: string;
+  targetId: string | null;
+}) {
+  const referralLink = await prisma.referralLink.findFirst({
+    where: { code: referralCode, disabled_at: null },
+  });
+  if (!referralLink) return null;
   if (
-    referralLink &&
-    (referralLink.target_type !== input.targetType ||
-      (referralLink.target_id && referralLink.target_id !== targetId))
+    referralLink.target_type !== input.targetType ||
+    (referralLink.target_id && referralLink.target_id !== targetId)
   ) {
     return null;
   }
 
-  const userEmail = normalizeNullable(input.userEmail)?.toLowerCase() ?? null;
-  const userId =
-    normalizeNullable(input.userId) ??
-    (userEmail
-      ? (
-          await prisma.user.findUnique({
-            where: { email: userEmail },
-            select: { id: true },
-          })
-        )?.id ?? null
-      : null);
-  const referralLinkId = referralLink.id;
+  const { userId, userEmail } = await resolveSubmitterId(input.userId, input.userEmail);
   const attributionKey = buildAttributionKey({
     targetType: input.targetType,
     targetId,
-    referralLinkId,
+    referralLinkId: referralLink.id,
     userId,
     userEmail,
   });
@@ -275,15 +319,116 @@ export async function recordReferralAttribution(input: RecordReferralAttribution
     update: {},
     create: {
       attribution_key: attributionKey,
-      referral_link_id: referralLinkId,
+      referral_link_id: referralLink.id,
       user_id_referrer: referralLink.owner_user_id,
       team_id_referrer: referralLink.team_id || null,
+      team_id_referrer_other: null,
       user_id: userId,
       target_type: input.targetType,
       target_id: targetId,
-      path: attribution?.landingPath || null,
+      path: attribution.landingPath || null,
     },
   });
+}
+
+async function recordManualAttribution({
+  attribution,
+  input,
+  manual,
+  targetId,
+}: {
+  attribution: ReferralAttributionPayload;
+  input: RecordReferralAttributionInput;
+  manual: ManualReferrerInput;
+  targetId: string | null;
+}) {
+  const rawTeamId = typeof manual.teamId === "string" ? manual.teamId : "";
+  let teamIdReferrer: string | null = null;
+  let teamIdReferrerOther: string | null = null;
+  let userIdReferrer: string | null = null;
+
+  if (isOtherTeam(rawTeamId)) {
+    const trimmed = (manual.teamIdOther ?? "").trim();
+    if (!trimmed || trimmed.length > MANUAL_OTHER_LABEL_MAX_LENGTH) {
+      return null;
+    }
+    if (manual.userId) {
+      console.warn(
+        "[Referral] Ignoring manualReferrer.userId because team is 'Other'",
+        { targetType: input.targetType, targetId },
+      );
+    }
+    teamIdReferrer = OTHER_TEAM_SENTINEL;
+    teamIdReferrerOther = trimmed;
+  } else if (isReferralTeamId(rawTeamId)) {
+    teamIdReferrer = rawTeamId;
+    if (manual.userId) {
+      const candidate = await prisma.user.findUnique({
+        where: { id: manual.userId },
+        select: { team_id: true },
+      });
+      if (candidate?.team_id === rawTeamId) {
+        userIdReferrer = manual.userId;
+      } else {
+        console.warn(
+          "[Referral] Dropping manualReferrer.userId — user.team_id does not match selected team",
+          { targetType: input.targetType, targetId, teamId: rawTeamId },
+        );
+      }
+    }
+  } else {
+    return null;
+  }
+
+  const { userId, userEmail } = await resolveSubmitterId(input.userId, input.userEmail);
+  const attributionKey = buildAttributionKey({
+    targetType: input.targetType,
+    targetId,
+    referralLinkId: null,
+    userId,
+    userEmail,
+  });
+
+  return prisma.referralAttribution.upsert({
+    where: { attribution_key: attributionKey },
+    update: {},
+    create: {
+      attribution_key: attributionKey,
+      referral_link_id: null,
+      user_id_referrer: userIdReferrer,
+      team_id_referrer: teamIdReferrer,
+      team_id_referrer_other: teamIdReferrerOther,
+      user_id: userId,
+      target_type: input.targetType,
+      target_id: targetId,
+      path: attribution.landingPath || null,
+    },
+  });
+}
+
+export async function recordReferralAttribution(input: RecordReferralAttributionInput) {
+  const attribution = input.attribution ?? null;
+  if (!attribution) return null;
+
+  const referralCode = normalizeNullable(attribution.referralCode);
+  const targetId = normalizeNullable(input.targetId);
+  const manual = attribution.manualReferrer ?? null;
+
+  if (referralCode) {
+    if (manual) {
+      console.info("[Referral] URL code overrode manual referrer", {
+        targetType: input.targetType,
+        targetId,
+      });
+    }
+    return recordCodeBasedAttribution({ attribution, input, referralCode, targetId });
+  }
+
+  if (manual) {
+    return recordManualAttribution({ attribution, input, manual, targetId });
+  }
+
+  return null;
 }
 
 export async function recordReferralAttributionFromRequest(
@@ -292,8 +437,60 @@ export async function recordReferralAttributionFromRequest(
     attribution?: ReferralAttributionPayload | null;
   }
 ) {
-  return recordReferralAttribution({
-    ...input,
-    attribution: input.attribution ?? readReferralAttributionFromRequest(request),
-  });
+  const explicit = input.attribution ?? null;
+  const fromRequest = readReferralAttributionFromRequest(request);
+  // Merge: explicit wins for code/manual; request fills landingPath when absent.
+  const merged: ReferralAttributionPayload | null =
+    explicit || fromRequest
+      ? {
+          referralCode: explicit?.referralCode ?? fromRequest?.referralCode ?? null,
+          landingPath: explicit?.landingPath ?? fromRequest?.landingPath ?? null,
+          manualReferrer: explicit?.manualReferrer ?? null,
+        }
+      : null;
+  return recordReferralAttribution({ ...input, attribution: merged });
+}
+
+/**
+ * One-line helper for API routes. Reads `referral_attribution` from the
+ * parsed request body, merges with cookie/Referer-derived attribution, and
+ * writes a row. Never throws — failures are logged and reported via the
+ * boolean return.
+ *
+ * Usage:
+ *   const referralAttributed = await extractAndRecordReferral(
+ *     request,
+ *     body,
+ *     { targetType: "grant_application", targetId: "avalanche-research-proposals" },
+ *     { userId: sessionUserId, userEmail: sessionEmail },
+ *   );
+ */
+export async function extractAndRecordReferral(
+  request: Request,
+  body: unknown,
+  target: { targetType: ReferralTargetType; targetId?: string | null },
+  identity: { userId?: string | null; userEmail?: string | null },
+): Promise<boolean> {
+  const explicit =
+    body && typeof body === "object" && "referral_attribution" in body
+      ? ((body as { referral_attribution?: ReferralAttributionPayload | null })
+          .referral_attribution ?? null)
+      : null;
+  try {
+    const row = await recordReferralAttributionFromRequest(request, {
+      targetType: target.targetType,
+      targetId: target.targetId ?? null,
+      userId: identity.userId ?? null,
+      userEmail: identity.userEmail ?? null,
+      attribution: explicit,
+    });
+    return Boolean(row);
+  } catch (error) {
+    console.error("[Referral] Failed to record attribution", {
+      targetType: target.targetType,
+      targetId: target.targetId ?? null,
+      error,
+    });
+    return false;
+  }
 }

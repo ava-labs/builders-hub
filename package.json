@@ -8,7 +8,7 @@
     "fast-xml-parser": ">=5.5.9",
     "katex": "0.16.35",
     "@shikijs/types": "3.23.0",
-    "next": "^16.2.3"
+    "next": "^16.2.6"
   },
   "scripts": {
     "build": "tsc --noEmit && next build",
@@ -37,6 +37,7 @@
     "@avalabs/avalanchejs": "^5.0.0",
     "@avalanche-sdk/chainkit": "^0.3.0-alpha.9",
     "@avalanche-sdk/client": "^0.0.4-alpha.14",
+    "@avalanche-sdk/interchain": "^0.2.0-alpha.3",
     "@dicebear/collection": "^9.2.4",
     "@dicebear/core": "^9.4.1",
     "@dnd-kit/core": "^6.3.1",
@@ -130,7 +131,6 @@
     "html2canvas": "^1.4.1",
     "idb": "^8.0.3",
     "input-otp": "^1.4.2",
-    "isomorphic-dompurify": "^3.0.0-rc.2",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.0",
     "jszip": "^3.10.1",
@@ -138,9 +138,9 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.553.0",
     "marked": "^17.0.1",
-    "mermaid": "^11.11.0",
+    "mermaid": "^11.15.0",
     "new-github-issue-url": "^1.1.0",
-    "next": "^16.2.3",
+    "next": "^16.2.6",
     "next-auth": "^4.24.12",
     "next-mdx-remote": "^6.0.0",
     "next-themes": "^0.4.6",
@@ -208,6 +208,5 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.58.1"
   },
-
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

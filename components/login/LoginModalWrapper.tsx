@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut, getSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
@@ -14,6 +14,7 @@ import {
   useNewUserLoginListener,
   triggerLoginComplete,
 } from '@/hooks/useLoginModal';
+import { hasCompleteBasicProfile } from '@/lib/profile/socialAccountValidation';
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
@@ -24,7 +25,6 @@ export function LoginModalWrapper() {
     "/events/registration-form",
     "/events/project-submission",
     "/showcase",
-    "/send-notifications",
     "/profile",
     "/student-launchpad",
     "/grants/",
@@ -114,6 +114,36 @@ export function LoginModalWrapper() {
     }
   }, [isOpen, status, session?.user?.id, session?.user?.is_new_user, showTerms, showBasicProfile, closeLoginModal]);
 
+  // Reopen BasicProfileSetup on any authenticated mount when the user is
+  // missing name, country, or at least one role flag. Socials are optional.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (status !== "authenticated") return;
+    if (!session?.user?.id) return;
+    if (session.user.id.startsWith("pending_")) return;
+    if (showTerms || showBasicProfile) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/profile/extended/${session.user.id}`);
+        if (!res.ok) return;
+        const profile = await res.json();
+        if (cancelled) return;
+        if (!hasCompleteBasicProfile(profile)) {
+          setTermsUserId(session.user.id);
+          setShowBasicProfile(true);
+        }
+      } catch {
+        // silent: enforcement is a best-effort gate on navigation
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status, session?.user?.id, showTerms, showBasicProfile]);
+
   const handleTermsSuccess = async (createdUserId?: string) => {
     const firstUpdatedSession = await update();
     let realUserId = createdUserId || firstUpdatedSession?.user?.id || session?.user?.id;
@@ -131,18 +161,15 @@ export function LoginModalWrapper() {
     if (typeof window !== "undefined" && userIdForStorage) {
       const termsKey = `shouldShowTerms_${userIdForStorage}`;
       localStorage.setItem(termsKey, "false");
-      // Also clean up the pending user key if it exists
       if (termsUserId?.startsWith("pending_")) {
         localStorage.removeItem(`shouldShowTerms_${termsUserId}`);
       }
     }
 
-    // Update termsUserId with the real user ID for BasicProfileSetup
     if (realUserId && !realUserId.startsWith("pending_")) {
       setTermsUserId(realUserId);
     }
 
-    // Close terms modal and show basic profile setup
     setShowTerms(false);
     setShowBasicProfile(true);
   };
@@ -234,7 +261,7 @@ export function LoginModalWrapper() {
             <Dialog.Portal>
               <DialogOverlay />
               <DialogContent
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-[10000] p-0"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-10000 p-0"
                 showCloseButton={false}
               >
                 <VisuallyHidden>
@@ -256,20 +283,21 @@ export function LoginModalWrapper() {
         </>
       )}
 
-      {/* Basic Profile Modal - Shows after accepting terms */}
+      {/* Basic Profile Modal - Shows after accepting terms.
+          Intentionally non-dismissible: the gate effect above re-opens it
+          whenever required social accounts are missing, so allowing outside
+          click / Escape would just flicker the modal closed-and-back-open. */}
       {showBasicProfile && (termsUserId || session?.user?.id) && (
         <>
-          <Dialog.Root open={true} onOpenChange={(open) => {
-            if (!open) {
-              setShowBasicProfile(false);
-              closeLoginModal();
-            }
-          }}>
+          <Dialog.Root open={true}>
             <Dialog.Portal>
               <DialogOverlay />
               <DialogContent
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[500px] max-h-[90vh] overflow-hidden z-[10000] p-0"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[500px] max-h-[90vh] overflow-hidden z-10000 p-0"
                 showCloseButton={false}
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
               >
                 <VisuallyHidden>
                   <DialogTitle>Basic Profile Setup</DialogTitle>

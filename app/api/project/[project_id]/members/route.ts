@@ -1,16 +1,16 @@
-import { withAuth } from "@/lib/protectedRoute";
+import { Session } from 'next-auth';
+import { withAuth, RouteParams } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { isUserProjectMember } from "@/server/services/fileValidation";
 import {
   GetMembersByProjectId,
   UpdateRoleMember,
 } from "@/server/services/memberProject";
-
 import { NextResponse } from "next/server";
 
-export const GET = withAuth(async (request, context: any, session: any) => {
+export const GET = withAuth<RouteParams<{ project_id: string }>>(async (request, { params }, session: Session) => {
   try {
-    const { project_id } = await context.params;
+    const { project_id } = await params;
     if (!project_id) {
       return NextResponse.json(
         { error: "project_id is required" },
@@ -40,11 +40,11 @@ export const GET = withAuth(async (request, context: any, session: any) => {
   }
 });
 
-export const PATCH = withAuth(async (request: Request, context: any, session: any) => {
+export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (request: Request, { params }, session: Session) => {
   try {
     const body = await request.json();
     const { member_id, role } = body;
-    const { project_id } = await context.params;
+    const { project_id } = await params;
     
     console.log("body", member_id);
     if (!member_id || !role) {

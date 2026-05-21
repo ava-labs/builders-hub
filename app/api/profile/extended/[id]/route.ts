@@ -1,20 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  getExtendedProfile, 
+import { Session } from 'next-auth';
+import {
+  getExtendedProfile,
   updateExtendedProfile,
   ProfileValidationError
 } from '@/server/services/profile/profile.service';
-import { UpdateExtendedProfileData } from '@/types/extended-profile';
-import { withAuth } from '@/lib/protectedRoute';
+import {
+  UpdateExtendedProfileSchema,
+  type UpdateExtendedProfileInput,
+} from '@/lib/schemas/extended-profile';
+import { withAuth, RouteParams } from '@/lib/protectedRoute';
+
+/**
+ * Parses and validates the request body against the extended profile update
+ * schema. Returns the validated payload, or a ready-to-send 400 NextResponse
+ * when the body is malformed or fails validation.
+ */
+async function parseProfileUpdateBody(
+  req: NextRequest,
+): Promise<UpdateExtendedProfileInput | NextResponse> {
+  let rawBody: unknown;
+  try {
+    rawBody = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: 'Invalid JSON body.' },
+      { status: 400 },
+    );
+  }
+
+  const parsed = UpdateExtendedProfileSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: 'Invalid request body.',
+        details: parsed.error.flatten(),
+      },
+      { status: 400 },
+    );
+  }
+
+  return parsed.data;
+}
 
 /**
  * GET /api/profile/extended/[id]
  * Gets the extended profile of a user
  */
-export const GET = withAuth(async (
+export const GET = withAuth<RouteParams<{ id: string }>>(async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-  session: any
+  { params },
+  session: Session
 ) => {
   try {
     const id = (await params).id;
@@ -62,10 +98,10 @@ export const GET = withAuth(async (
  * PUT /api/profile/extended/[id]
  * update extended profile
  */
-export const PUT = withAuth(async (
+export const PUT = withAuth<RouteParams<{ id: string }>>(async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-  session: any
+  { params },
+  session: Session
 ) => {
   try {
     const id = (await params).id;
@@ -77,7 +113,6 @@ export const PUT = withAuth(async (
       );
     }
 
-    // verify that the user can only update their own profile
     if (session.user.id !== id) {
       return NextResponse.json(
         { error: 'Forbidden: You can only update your own profile.' },
@@ -85,16 +120,15 @@ export const PUT = withAuth(async (
       );
     }
 
-    const newProfileData = (await req.json()) as UpdateExtendedProfileData;
+    const parsedBody = await parseProfileUpdateBody(req);
+    if (parsedBody instanceof NextResponse) return parsedBody;
 
-    // The service now handles all business validations
-    const updatedProfile = await updateExtendedProfile(id, newProfileData);
+    const updatedProfile = await updateExtendedProfile(id, parsedBody);
 
     return NextResponse.json(updatedProfile);
   } catch (error) {
     console.error('Error in PUT /api/profile/extended/[id]:', error);
-    
-    // Handle validation errors with the appropriate status code
+
     if (error instanceof ProfileValidationError) {
       return NextResponse.json(
         { error: error.message },
@@ -102,9 +136,8 @@ export const PUT = withAuth(async (
       );
     }
 
-    // Handle other errors
     return NextResponse.json(
-      { 
+      {
         error: 'Internal Server Error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -113,3 +146,55 @@ export const PUT = withAuth(async (
   }
 });
 
+/**
+ * PATCH /api/profile/extended/[id]
+ * Partial update of extended profile (useful for settings updates)
+ */
+export const PATCH = withAuth<RouteParams<{ id: string }>>(async (
+  req: NextRequest,
+  { params },
+  session: Session
+) => {
+  try {
+    const id = (await params).id;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'User ID is required.' },
+        { status: 400 }
+      );
+    }
+
+    if (session.user.id !== id) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only update your own profile.' },
+        { status: 403 }
+      );
+    }
+
+    const parsedBody = await parseProfileUpdateBody(req);
+    if (parsedBody instanceof NextResponse) return parsedBody;
+
+    const updatedProfile = await updateExtendedProfile(id, parsedBody);
+
+    return NextResponse.json(updatedProfile);
+  } catch (error) {
+    console.error('Error in PATCH /api/profile/extended/[id]:', error);
+
+    if (error instanceof ProfileValidationError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
+    }
+
+    console.error('Error in PATCH /api/profile/extended/[id]:', (error as Error).message);
+    return NextResponse.json(
+      {
+        error: 'Internal Server Error',
+        details: (error as Error).message
+      },
+      { status: 500 }
+    );
+  }
+});

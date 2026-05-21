@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { AuthOptions } from '@/lib/auth/authOptions';
+import { Session } from 'next-auth';
 import { prisma } from '@/prisma/prisma';
 import { syncUserDataToHubSpot } from '@/server/services/hubspotUserData';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
@@ -25,6 +24,7 @@ async function recordBhSignupReferral(
     return false;
   }
 }
+import { withAuth } from '@/lib/protectedRoute';
 
 /**
  * API endpoint to create a new user after they accept terms.
@@ -32,24 +32,24 @@ async function recordBhSignupReferral(
  * created in the database yet (to avoid creating accounts for users who
  * don't accept terms).
  */
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (
+  req: NextRequest,
+  _context: unknown,
+  session: Session
+) => {
   try {
-    const session = await getServerSession(AuthOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Unauthorized: No valid session' },
-        { status: 401 }
-      );
-    }
-
     const email = session.user.email;
     const body = await req.json();
-    const { notifications = false, referral_attribution = null } = body;
+    const {
+      notifications = false,
+      consent_sharing = false,
+      referral_attribution = null,
+    } = body;
 
     // Check if user already exists (shouldn't happen, but safety check)
     const existingUser = await prisma.user.findUnique({
       where: { email },
+      select: { id: true, email: true, created_at: true },
     });
 
     if (existingUser) {
@@ -70,15 +70,17 @@ export async function POST(req: NextRequest) {
 
     // Create the new user
     const newUser = await prisma.user.create({
+      select: { id: true, email: true, name: true, notifications: true, consent_sharing: true },
       data: {
-        email,
+        email: email || '',
         notification_email: email,
         name: '',
         image: '',
         authentication_mode: 'credentials',
         last_login: new Date(),
         notifications: notifications,
-      },
+        consent_sharing: consent_sharing,
+      }
     });
 
     // Sync user data to HubSpot (after terms acceptance)
@@ -88,6 +90,7 @@ export async function POST(req: NextRequest) {
           email: newUser.email,
           name: newUser.name || undefined,
           notifications: newUser.notifications ?? undefined,
+          consent_sharing: newUser.consent_sharing ?? undefined,
           gdpr: true, // User accepted terms and conditions
         });
       } catch (error) {
@@ -111,4 +114,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

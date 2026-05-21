@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SocialLoginProps } from "@/types/socialLoginProps";
 
 function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
-  async function SignInSocialMedia(provider: "google" | "github" | "X") {
+  async function SignInSocialMedia(provider: "google" | "github") {
     await signIn(provider, { callbackUrl: callbackUrl });
   }
 
@@ -17,14 +17,14 @@ function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
           <div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
         </div>
         <div className="relative flex justify-center text-[10px]">
-          <span className="bg-[inherit] px-2 text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">
+          <span className="bg-inherit px-2 text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">
             Or
           </span>
         </div>
       </div>
 
       {/* Social Buttons */}
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5">
         <Button
           variant="outline"
           className="h-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 group"
@@ -52,20 +52,6 @@ function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
             className="w-5 h-5 dark:invert"
           />
           <span className="sr-only">Github</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 group"
-          onClick={() => SignInSocialMedia("X")}
-        >
-          <Image
-            src="/brands/x.svg"
-            alt="X"
-            width={20}
-            height={20}
-            className="w-5 h-5 dark:invert"
-          />
-          <span className="sr-only">X</span>
         </Button>
       </div>
     </div>

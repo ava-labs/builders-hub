@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react';
 
+type StorageVariant = 'primary' | 'l1';
+
 interface StorageRequirementsProps {
   nodeType: 'validator' | 'rpc' | 'archival';
   pruningEnabled: boolean;
@@ -9,6 +11,15 @@ interface StorageRequirementsProps {
   stateSyncEnabled: boolean;
   debugEnabled?: boolean;
   network?: 'mainnet' | 'fuji';
+  /**
+   * Storage baseline profile. `'primary'` uses real Avalanche C-Chain
+   * measurements (~13 TB archival mainnet). `'l1'` uses much smaller
+   * numbers anchored on the typical Avalanche L1 baseline shown in the L1
+   * node setup tile (~200 GB pruned validator mainnet, ~40 GB Fuji). L1
+   * storage varies enormously with chain activity — the L1 figures are
+   * conservative averages, not precise predictions. Default `'primary'`.
+   */
+  variant?: StorageVariant;
 }
 
 interface StorageEstimate {
@@ -18,18 +29,63 @@ interface StorageEstimate {
   oneYearTotal: number;
 }
 
-// Storage estimates in GB (decimal)
-// Real data: Validator ~300GB with state sync, RPC slightly more
-// Archival: 12.1 TiB ≈ 13.3 TB, grows ~0.64 TiB/month ≈ 700 GB/month
-// Debug tracing adds ~20% overhead (stores execution traces)
+// Baseline figures in GB, per profile. Values are picked so that the
+// "typical validator" cell (pruned + state sync + skip TX index) matches
+// the visible figure in the corresponding node setup's Set up Instance
+// tile, keeping the right-sidebar storage estimate consistent with the
+// hardware-spec callout.
+//
+// Sources:
+//   - Primary Network: real C-Chain measurements. Validator ~300 GB with
+//     state sync, RPC ~350 GB. Archival 12.1 TiB ≈ 13.3 TB, growing
+//     ~0.64 TiB/mo ≈ 700 GB/mo. Fuji at ~15% of mainnet.
+//   - L1: anchored on the existing "~40 GB Fuji / ~200 GB Mainnet"
+//     baseline used in the L1 node setup hardware tile (validator + state
+//     sync + skip tx index). Archival figures scaled ~4x pruned to reflect
+//     full-history storage being substantially larger than pruned, but
+//     nowhere near the 13 TB C-Chain archival since L1s are smaller,
+//     lower-volume chains. Growth rates assume light-to-moderate L1
+//     traffic; user is reminded that real values track actual chain
+//     throughput.
+interface ProfileBaseline {
+  archival: { initial: number; monthly: number };
+  prunedSyncSkip: { initial: number; monthly: number }; // pruned + state sync + skip tx idx
+  prunedSyncFull: { initial: number; monthly: number }; // pruned + state sync + full tx idx
+  prunedNoSyncSkip: { initial: number; monthly: number }; // pruned + replay + skip tx idx
+  prunedNoSyncFull: { initial: number; monthly: number }; // pruned + replay + full tx idx
+  fujiMultiplier: number;
+}
+
+const STORAGE_BASELINES: Record<StorageVariant, ProfileBaseline> = {
+  primary: {
+    archival: { initial: 13300, monthly: 700 },
+    prunedSyncSkip: { initial: 300, monthly: 80 },
+    prunedSyncFull: { initial: 350, monthly: 100 },
+    prunedNoSyncSkip: { initial: 450, monthly: 80 },
+    prunedNoSyncFull: { initial: 500, monthly: 100 },
+    fujiMultiplier: 0.15,
+  },
+  l1: {
+    archival: { initial: 800, monthly: 35 },
+    prunedSyncSkip: { initial: 200, monthly: 10 },
+    prunedSyncFull: { initial: 240, monthly: 12 },
+    prunedNoSyncSkip: { initial: 260, monthly: 10 },
+    prunedNoSyncFull: { initial: 300, monthly: 12 },
+    // 200 GB Mainnet → 40 GB Fuji matches the Set up Instance tile (40/200=0.2)
+    fujiMultiplier: 0.2,
+  },
+};
+
 const getStorageEstimate = (
   pruningEnabled: boolean,
   skipTxIndexing: boolean,
   stateSyncEnabled: boolean,
   debugEnabled: boolean,
   network: 'mainnet' | 'fuji',
+  variant: StorageVariant,
 ): StorageEstimate => {
-  const mult = network === 'fuji' ? 0.15 : 1;
+  const profile = STORAGE_BASELINES[variant];
+  const mult = network === 'fuji' ? profile.fujiMultiplier : 1;
   // Debug tracing stores execution traces, adding ~20% storage overhead
   const debugMult = debugEnabled ? 1.2 : 1;
 
@@ -37,19 +93,16 @@ const getStorageEstimate = (
   let monthlyGrowth: number;
 
   if (!pruningEnabled) {
-    // Archival: full historical state
-    initial = 13300 * mult;
-    monthlyGrowth = 700 * mult;
+    initial = profile.archival.initial * mult;
+    monthlyGrowth = profile.archival.monthly * mult;
   } else if (stateSyncEnabled) {
-    // Pruned + State Sync
-    // Validator (no TX index): ~300 GB
-    // RPC (with TX index): ~350 GB
-    initial = (skipTxIndexing ? 300 : 350) * mult;
-    monthlyGrowth = (skipTxIndexing ? 80 : 100) * mult;
+    const cell = skipTxIndexing ? profile.prunedSyncSkip : profile.prunedSyncFull;
+    initial = cell.initial * mult;
+    monthlyGrowth = cell.monthly * mult;
   } else {
-    // Pruned + No State Sync (full replay from genesis)
-    initial = (skipTxIndexing ? 450 : 500) * mult;
-    monthlyGrowth = (skipTxIndexing ? 80 : 100) * mult;
+    const cell = skipTxIndexing ? profile.prunedNoSyncSkip : profile.prunedNoSyncFull;
+    initial = cell.initial * mult;
+    monthlyGrowth = cell.monthly * mult;
   }
 
   // Apply debug multiplier to growth rate (traces accumulate over time)
@@ -71,15 +124,16 @@ export function StorageRequirements({
   stateSyncEnabled,
   debugEnabled = false,
   network = 'mainnet',
+  variant = 'primary',
 }: StorageRequirementsProps) {
   const estimate = useMemo(
-    () => getStorageEstimate(pruningEnabled, skipTxIndexing, stateSyncEnabled, debugEnabled, network),
-    [pruningEnabled, skipTxIndexing, stateSyncEnabled, debugEnabled, network],
+    () => getStorageEstimate(pruningEnabled, skipTxIndexing, stateSyncEnabled, debugEnabled, network, variant),
+    [pruningEnabled, skipTxIndexing, stateSyncEnabled, debugEnabled, network, variant],
   );
 
   // Reference lines don't include debug overhead for clearer comparison
-  const prunedRef = getStorageEstimate(true, false, true, false, network);
-  const archivalRef = getStorageEstimate(false, false, false, false, network);
+  const prunedRef = getStorageEstimate(true, false, true, false, network, variant);
+  const archivalRef = getStorageEstimate(false, false, false, false, network, variant);
 
   const maxStorage = archivalRef.oneYearTotal;
   const isArchival = !pruningEnabled;

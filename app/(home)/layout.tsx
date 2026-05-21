@@ -3,10 +3,6 @@
 import type { ReactNode } from "react";
 import { Footer } from "@/components/navigation/footer";
 import { baseOptions } from "@/app/layout.config";
-import { SessionProvider, useSession } from "next-auth/react";
-import { useEffect, Suspense } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { toast } from "@/lib/toast";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
@@ -20,10 +16,7 @@ export default function Layout({
   children: ReactNode;
 }): React.ReactElement {
   return (
-    <SessionProvider
-      refetchInterval={5 * 60}
-      refetchOnWindowFocus={false}
-    >
+    <>
       <TrackNewUser />
       <NavbarDropdownInjector />
       <WalletProvider>
@@ -34,7 +27,7 @@ export default function Layout({
         <AutoLoginModalTrigger />
         <LoginModalWrapper />
       </WalletProvider>
-    </SessionProvider>
+    </>
   );
 }
 

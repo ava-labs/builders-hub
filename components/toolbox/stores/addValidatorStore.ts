@@ -25,6 +25,9 @@ interface AddValidatorState {
   evmTxHash: string;
   validatorBalance: string;
   blsProofOfPossession: string;
+  // Set by StakingManager-backed L1s (PoS native/erc20) on initiate; PoA derives this
+  // locally from the warp message in CompletePChainRegistration, so it stays empty there.
+  validationID: string;
   pChainTxId: string;
   globalError: string | null;
   globalSuccess: string | null;
@@ -34,6 +37,7 @@ interface AddValidatorState {
   setEvmTxHash: (evmTxHash: string) => void;
   setValidatorBalance: (validatorBalance: string) => void;
   setBlsProofOfPossession: (blsProofOfPossession: string) => void;
+  setValidationID: (validationID: string) => void;
   setPChainTxId: (pChainTxId: string) => void;
   setGlobalError: (globalError: string | null) => void;
   setGlobalSuccess: (globalSuccess: string | null) => void;
@@ -46,6 +50,7 @@ const initialValues = {
   evmTxHash: '',
   validatorBalance: '',
   blsProofOfPossession: '',
+  validationID: '',
   pChainTxId: '',
   globalError: null as string | null,
   globalSuccess: null as string | null,
@@ -63,6 +68,7 @@ const { getStore: getAddValidatorStore, useStore: useAddValidatorStore } = creat
         evmTxHash: '',
         validatorBalance: '',
         blsProofOfPossession: '',
+        validationID: '',
         pChainTxId: '',
         globalError: null,
         globalSuccess: null,
@@ -74,6 +80,7 @@ const { getStore: getAddValidatorStore, useStore: useAddValidatorStore } = creat
         evmTxHash: '',
         validatorBalance: '',
         blsProofOfPossession: '',
+        validationID: '',
         pChainTxId: '',
         globalError: null,
         globalSuccess: null,
@@ -83,6 +90,7 @@ const { getStore: getAddValidatorStore, useStore: useAddValidatorStore } = creat
 
     setValidatorBalance: (validatorBalance: string) => set({ validatorBalance }),
     setBlsProofOfPossession: (blsProofOfPossession: string) => set({ blsProofOfPossession }),
+    setValidationID: (validationID: string) => set({ validationID }),
 
     setPChainTxId: (pChainTxId: string) => set({ pChainTxId, globalError: null, globalSuccess: null }),
 

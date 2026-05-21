@@ -1,8 +1,9 @@
+import { Session } from 'next-auth';
 import { withAuth } from "@/lib/protectedRoute";
 import { NextResponse } from "next/server";
 import { CheckInvitation } from "@/server/services/projects";
 
-export const GET = withAuth(async (request, context, session) => {
+export const GET = withAuth(async (request, _context: unknown, session: Session) => {
   const { searchParams } = new URL(request.url);
   const invitationId = searchParams.get("invitation");
   const user_id = searchParams.get("user_id");

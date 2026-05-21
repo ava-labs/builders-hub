@@ -1,41 +1,56 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  LINKEDIN_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
+} from "@/lib/profile/socialAccountValidation";
 
-// Zod validation schema - no required fields, only format validations
 export const profileSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().trim().min(1, 'Name is required'),
   username: z.string().optional(),
   bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
-  email: z.email("Invalid email").optional(), // Email from session, optional
+  email: z.email("Invalid email").optional(),
   image: z.string().optional(),
   country: z.string().optional(),
-  // user_type as JSON object - all optional
   is_student: z.boolean().optional().default(false),
   is_founder: z.boolean().optional().default(false),
   is_employee: z.boolean().optional().default(false),
   is_developer: z.boolean().optional().default(false),
   is_enthusiast: z.boolean().optional().default(false),
-  // Founder fields
   founder_company_name: z.string().optional(),
-  // Employee fields
   employee_company_name: z.string().optional(),
   employee_role: z.string().optional(),
-  // Student fields
   student_institution: z.string().optional(),
-  // Legacy fields (for backward compatibility)
   company_name: z.string().optional(),
   role: z.string().optional(),
-  github: z.string().optional(),
+  github_account: z
+    .union([z.string().regex(GITHUB_ACCOUNT_PATTERN, "Enter a valid GitHub username or github.com URL"), z.literal("")])
+    .optional()
+    .default(""),
+  x_account: z
+    .union([z.string().regex(X_ACCOUNT_PATTERN, "Enter a URL like https://x.com/yourhandle"), z.literal("")])
+    .optional()
+    .default(""),
+  linkedin_account: z
+    .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"), z.literal("")])
+    .optional()
+    .default(""),
   wallet: z.array(z.string()).optional().default([]),
-  socials: z.array(z.string()).default([]),
+  additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
-  telegram_user: z.string().optional(),
+  telegram_account: z
+    .union([z.string().regex(TELEGRAM_ACCOUNT_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"), z.literal("")])
+    .optional()
+    .default(""),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -43,6 +58,9 @@ export type ProfileFormValues = z.infer<typeof profileSchema>;
 export function useProfileForm() {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -50,10 +68,12 @@ export function useProfileForm() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialLoadRef = useRef(true);
   const lastSavedDataRef = useRef<string>("");
+  const [githubConnected, setGithubConnected] = useState(false);
 
   // Initialize form with react-hook-form and Zod
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       username: "",
@@ -72,106 +92,110 @@ export function useProfileForm() {
       student_institution: "",
       company_name: "",
       role: "",
-      github: "",
+      github_account: "",
+      x_account: "",
+      linkedin_account: "",
       wallet: [],
-      socials: [],
+      additional_social_accounts: [],
       skills: [],
       notifications: false,
       profile_privacy: "public",
-      telegram_user: "",
+      telegram_account: "",
     },
   });
 
   const { watch, setValue, formState } = form;
   const watchedValues = watch();
 
-  // Load profile data on component mount
-  useEffect(() => {
-    async function loadProfile() {
-      if (!session?.user?.id) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/profile/extended/${session.user.id}`);
-        
-        if (response.ok) {
-          const profile = await response.json();
-          
-          // Check if there's basic profile data from the modal in localStorage
-          let basicProfileData = null;
-          if (typeof window !== "undefined") {
-            const savedBasicProfile = localStorage.getItem('basicProfileData');
-            if (savedBasicProfile) {
-              try {
-                basicProfileData = JSON.parse(savedBasicProfile);
-                // Clear it after reading
-                localStorage.removeItem('basicProfileData');
-              } catch (e) {
-                console.error('Error parsing basic profile data:', e);
-              }
-            }
-          }
-
-          // Decompose user_type from JSON to individual form fields
-          // Merge with basic profile data if available
-          const formData = {
-            name: basicProfileData?.name || profile.name || "",
-            username: profile.username || "",
-            bio: profile.bio || "",
-            email: profile.email || session.user.email || "",
-            notification_email: profile.notification_email || "",
-            image: profile.image || "",
-            country: basicProfileData?.country || profile.country || "",
-            is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
-            is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
-            is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
-            is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
-            is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
-            founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
-            employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
-            employee_role: basicProfileData?.employee_role || profile.user_type?.employee_role || "",
-            student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
-            company_name: profile.user_type?.company_name || "",
-            role: profile.user_type?.role || "",
-            github: profile.github || "",
-            wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
-            socials: profile.socials || [],
-            skills: profile.skills || [],
-            notifications: profile.notifications || false,
-            profile_privacy: profile.profile_privacy || "public",
-            telegram_user: profile.telegram_user || "",
-          };
-
-          form.reset(formData);
-          
-          // Update last saved data reference
-          lastSavedDataRef.current = JSON.stringify(formData);
-          
-          // Mark initial load as complete after a short delay
-          setTimeout(() => {
-            isInitialLoadRef.current = false;
-          }, 500);
-        }
-      } catch (error) {
-        console.error('Error loading profile:', error);
-        toast({
-          title: "Error loading profile",
-          description: "Could not load your profile data. Please refresh the page.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-        // Mark initial load as complete even on error
-        setTimeout(() => {
-          isInitialLoadRef.current = false;
-        }, 500);
-      }
+  const loadProfile = useCallback(async () => {
+    if (!session?.user?.id) {
+      setIsLoading(false);
+      return;
     }
 
-    loadProfile();
+    try {
+      const response = await fetch(`/api/profile/extended/${session.user.id}`);
+
+      if (response.ok) {
+        const profile = await response.json();
+
+        let basicProfileData = null;
+        if (typeof window !== "undefined") {
+          const savedBasicProfile = localStorage.getItem('basicProfileData');
+          if (savedBasicProfile) {
+            try {
+              basicProfileData = JSON.parse(savedBasicProfile);
+              localStorage.removeItem('basicProfileData');
+            } catch (e) {
+              console.error('Error parsing basic profile data:', e);
+            }
+          }
+        }
+
+        const formValues = {
+          name: basicProfileData?.name || profile.name || "",
+          username: profile.username || "",
+          bio: profile.bio || "",
+          email: profile.email || session.user.email || "",
+          notification_email: profile.notification_email || "",
+          image: profile.image || "",
+          country: basicProfileData?.country || profile.country || "",
+          is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
+          is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
+          is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
+          is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
+          is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
+          founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
+          employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
+          employee_role: basicProfileData?.employee_role || profile.user_type?.employee_role || "",
+          student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
+          company_name: profile.user_type?.company_name || "",
+          role: profile.user_type?.role || "",
+          github_account: profile.github_account || "",
+          x_account: profile.x_account || "",
+          linkedin_account: profile.linkedin_account || "",
+          wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
+          additional_social_accounts: profile.additional_social_accounts || [],
+          skills: profile.skills || [],
+          notifications: profile.notifications || false,
+          profile_privacy: profile.profile_privacy || "public",
+          telegram_account: profile.telegram_account || "",
+        };
+
+        setGithubConnected(Boolean(profile.githubConnected));
+        form.reset(formValues);
+        lastSavedDataRef.current = JSON.stringify(formValues);
+        setTimeout(() => { isInitialLoadRef.current = false; }, 500);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast({
+        title: "Error loading profile",
+        description: "Could not load your profile data. Please refresh the page.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => { isInitialLoadRef.current = false; }, 500);
+    }
   }, [session?.user?.id, session?.user?.email, form, toast]);
+  
+  useEffect(() => {
+    const gh = searchParams.get('gh');
+    const x = searchParams.get('x');
+    if (!gh && !x) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('gh');
+    params.delete('x');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, []);
+
+  // Load profile data on component mount
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   // Update email when session is available
   useEffect(() => {
@@ -250,6 +274,8 @@ export function useProfileForm() {
         company_name,
         role,
         wallet,
+        github_account: _githubAccount,
+        x_account: _xAccount,
         ...restData
       } = data;
 
@@ -417,6 +443,8 @@ export function useProfileForm() {
         company_name,
         role,
         wallet,
+        github_account: _githubAccount,
+        x_account: _xAccount,
         ...restData
       } = data;
 
@@ -478,6 +506,7 @@ export function useProfileForm() {
         is_student: updatedProfile.user_type?.is_student || false,
         is_founder: updatedProfile.user_type?.is_founder || false,
         is_employee: updatedProfile.user_type?.is_employee || false,
+        is_developer: updatedProfile.user_type?.is_developer || false,
         is_enthusiast: updatedProfile.user_type?.is_enthusiast || false,
         founder_company_name: updatedProfile.user_type?.founder_company_name || "",
         employee_company_name: updatedProfile.user_type?.employee_company_name || "",
@@ -485,13 +514,15 @@ export function useProfileForm() {
         student_institution: updatedProfile.user_type?.student_institution || "",
         company_name: updatedProfile.user_type?.company_name || "",
         role: updatedProfile.user_type?.role || "",
-        github: updatedProfile.github || "",
+        github_account: updatedProfile.github_account || "",
+        x_account: updatedProfile.x_account || "",
+        linkedin_account: updatedProfile.linkedin_account || "",
         wallet: Array.isArray(updatedProfile.wallet) ? updatedProfile.wallet : (updatedProfile.wallet ? [updatedProfile.wallet] : []),
-        socials: updatedProfile.socials || [],
+        additional_social_accounts: updatedProfile.additional_social_accounts || [],
         skills: updatedProfile.skills || [],
         notifications: updatedProfile.notifications || false,
         profile_privacy: updatedProfile.profile_privacy || "public",
-        telegram_user: updatedProfile.telegram_user || "",
+        telegram_account: updatedProfile.telegram_account || "",
       };
 
       form.reset(newFormData);
@@ -526,25 +557,26 @@ export function useProfileForm() {
 
   // Social handlers
   const handleAddSocial = () => {
-    const currentSocials = watchedValues.socials || [];
-    setValue("socials", [...currentSocials, ""], { shouldDirty: true });
+    const currentSocials = watchedValues.additional_social_accounts || [];
+    setValue("additional_social_accounts", [...currentSocials, ""], { shouldDirty: true });
   };
 
   const handleRemoveSocial = (index: number) => {
-    const currentSocials = watchedValues.socials || [];
-    setValue("socials", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
+    const currentSocials = watchedValues.additional_social_accounts || [];
+    setValue("additional_social_accounts", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
   };
 
   // Wallet handlers
   const handleAddWallet = (address: string) => {
     const currentWallets = watchedValues.wallet || [];
-    // Validar formato antes de agregar
-    if (address && address.trim() !== "" && /^0x[a-fA-F0-9]{40}$/.test(address.trim())) {
-      const trimmedAddress = address.trim();
-      // Evitar duplicados
-      if (!currentWallets.includes(trimmedAddress)) {
-        setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
-      }
+    const trimmedAddress = address?.trim() ?? "";
+    if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
+    // Evitar duplicados (comparación case-insensitive: las direcciones Ethereum son la misma con distinta capitalización)
+    const isDuplicate = currentWallets.some(
+      (w) => w.toLowerCase() === trimmedAddress.toLowerCase()
+    );
+    if (!isDuplicate) {
+      setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
     }
   };
 
@@ -559,6 +591,8 @@ export function useProfileForm() {
     isLoading,
     isSaving,
     isAutoSaving,
+    githubConnected,
+    setGithubConnected,
     handleFileSelect,
     handleAddSkill,
     handleRemoveSkill,
@@ -569,4 +603,3 @@ export function useProfileForm() {
     onSubmit: form.handleSubmit(onSubmit),
   };
 }
-

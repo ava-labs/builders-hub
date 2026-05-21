@@ -573,6 +573,8 @@ export default function CChainValidatorMetrics() {
     subnetId: cChainData?.subnetId,
   };
 
+  // Validator/delegator weight breakdowns are surfaced in the stacked Total
+  // Stake chart above, so we only render the two count charts in the grid.
   const chartConfigs = [
     {
       title: "Primary Network Validator Count",
@@ -583,28 +585,12 @@ export default function CChainValidatorMetrics() {
       chartType: "bar" as const,
     },
     {
-      title: "Primary Network Validator Stake",
-      icon: Landmark,
-      metricKey: "validator_weight" as const,
-      description: "Total staked amount by validators",
-      color: chainConfig.color,
-      chartType: "area" as const,
-    },
-    {
       title: "Primary Network Delegator Count",
       icon: HandCoins,
       metricKey: "delegator_count" as const,
       description: "Number of active delegators on the Primary Network",
       color: "#E84142",
       chartType: "bar" as const,
-    },
-    {
-      title: "Primary Network Delegated Stake",
-      icon: Landmark,
-      metricKey: "delegator_weight" as const,
-      description: "Total delegated amount across validators",
-      color: "#E84142",
-      chartType: "area" as const,
     },
   ];
 
@@ -3347,8 +3333,11 @@ function TotalWeightStackedChartCard({
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
   };
 
+  // Total uses the chain accent color. The two breakdown colors below stay
+  // for the tooltip dots so a hover still distinguishes staked vs delegated.
+  const totalColor = color;
   const stakedColor = color;
-  const delegatedColor = "#60a5fa"; // Light blue for better contrast
+  const delegatedColor = "#60a5fa";
 
   return (
     <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
@@ -3429,12 +3418,8 @@ function TotalWeightStackedChartCard({
             )}
             <div className="flex items-center gap-3 ml-auto text-xs">
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: stakedColor }} />
-                <span className="text-muted-foreground">Staked</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: delegatedColor }} />
-                <span className="text-muted-foreground">Delegated</span>
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: totalColor }} />
+                <span className="text-muted-foreground">Total stake</span>
               </div>
             </div>
           </div>
@@ -3445,13 +3430,9 @@ function TotalWeightStackedChartCard({
               <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="gradient-staked-weight" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={stakedColor} stopOpacity={0.8} />
-                      <stop offset="95%" stopColor={stakedColor} stopOpacity={0.3} />
-                    </linearGradient>
-                    <linearGradient id="gradient-delegated-weight" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={delegatedColor} stopOpacity={0.8} />
-                      <stop offset="95%" stopColor={delegatedColor} stopOpacity={0.3} />
+                    <linearGradient id="gradient-total-weight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={totalColor} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={totalColor} stopOpacity={0.3} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -3499,20 +3480,14 @@ function TotalWeightStackedChartCard({
                       );
                     }}
                   />
+                  {/* Single area for the combined total. The merged data
+                      keeps `staked` and `delegated` on each point so the
+                      tooltip can break them out on hover. */}
                   <Area
                     type="monotone"
-                    dataKey="staked"
-                    stackId="1"
-                    stroke={stakedColor}
-                    fill="url(#gradient-staked-weight)"
-                    strokeWidth={2}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="delegated"
-                    stackId="1"
-                    stroke={delegatedColor}
-                    fill="url(#gradient-delegated-weight)"
+                    dataKey="total"
+                    stroke={totalColor}
+                    fill="url(#gradient-total-weight)"
                     strokeWidth={2}
                   />
                 </AreaChart>

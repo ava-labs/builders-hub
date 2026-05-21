@@ -1,10 +1,9 @@
 import React from "react";
-import { redirect } from "next/navigation";
-import ProjectOverview from "../../../../components/showcase/ProjectOverview";
 import { getProject } from "@/server/services/projects";
-import { Project } from "@/types/showcase";
 import { getUserBadgesByProjectId } from "@/server/services/project-badge";
+import { ShowcaseProjectAuthWrapper } from "@/components/showcase/ShowcaseProjectAuthWrapper";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { hasShowcaseRole } from "@/lib/auth/roles";
 
 export default async function ProjectPage({
   params,
@@ -13,18 +12,20 @@ export default async function ProjectPage({
 }) {
   const { id } = await params;
 
-  // Require authentication
   const session = await getAuthSession();
 
+  // When unauthenticated, return a minimal page.
+  // AutoLoginModalTrigger (in layout) will open the LoginModal automatically.
+  // After login, LoginModalWrapper redirects back here triggering a full reload.
   if (!session?.user?.id) {
-    redirect(`/login?callbackUrl=/showcase/${id}`);
+    return (
+      <main className="container relative max-w-[1400px] pb-16 flex items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+      </main>
+    );
   }
 
-  // Showcase individual project pages are admin-only
-  const userRoles = session.user.custom_attributes || [];
-  const hasShowcaseRole = userRoles.includes('showcase') || userRoles.includes('devrel') || userRoles.includes('admin');
-
-  if (!hasShowcaseRole) {
+  if (!hasShowcaseRole(session.user.custom_attributes)) {
     // Render unauthorized message directly
     const { Alert, AlertDescription } = await import("@/components/ui/alert");
     const { AlertCircle } = await import("lucide-react");
@@ -50,8 +51,10 @@ export default async function ProjectPage({
   const badges = await getUserBadgesByProjectId(id);
 
   return (
-    <main className="container relative max-w-[1400px] pb-16">
-      <ProjectOverview project={project as unknown as Project} badges={badges} />
-    </main>
+    <ShowcaseProjectAuthWrapper
+      project={project}
+      badges={badges}
+      projectId={id}
+    />
   );
 }

@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
-import { User } from "@prisma/client";
+import { Prisma, User } from "@prisma/client";
 
 export const projectValidations: Validation[] = [
   {
@@ -39,6 +39,16 @@ function normalizeCategories(categories: string | string[] | undefined): string[
   }
   return [];
 }
+
+// Type guard to check if a value is a non-empty object
+const isNonEmptyObject = (value: unknown): value is Record<string, unknown> => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.keys(value).length > 0
+  );
+};
 
 // Helper function to normalize deployed_addresses from JsonValue[] to Array<{ address: string; tag?: string }>
 function normalizeDeployedAddresses(
@@ -159,6 +169,15 @@ export async function createProject(
           categories: normalizeCategories(projectData.categories),
           other_category: projectData.other_category ?? null,
           deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
+          website: isNonEmptyObject(projectData.website)
+            ? projectData.website
+            : Prisma.JsonNull,
+          socials: isNonEmptyObject(projectData.socials)
+            ? projectData.socials
+            : Prisma.JsonNull,
+          ...(typeof projectData.consent_sharing === "boolean"
+            ? { consent_sharing: projectData.consent_sharing }
+            : {}),
         },
       });
 
@@ -183,6 +202,15 @@ export async function createProject(
         categories: normalizeCategories(projectData.categories),
         other_category: projectData.other_category ?? null,
         deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
+        website: isNonEmptyObject(projectData.website)
+          ? projectData.website
+          : Prisma.JsonNull,
+        socials: isNonEmptyObject(projectData.socials)
+          ? projectData.socials
+          : Prisma.JsonNull,
+        ...(typeof projectData.consent_sharing === "boolean"
+          ? { consent_sharing: projectData.consent_sharing }
+          : {}),
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly
@@ -226,7 +254,7 @@ function normalizeUser(user: Partial<User>): User {
     id: user.id ?? "",
     name: user.name ?? null,
     email: user.email ?? "",
-    telegram_user: user.telegram_user ?? null,
+    telegram_account: user.telegram_account ?? null,
     image: user.image ?? null,
     authentication_mode: user.authentication_mode ?? null,
     integration: user.integration ?? null,
@@ -236,18 +264,20 @@ function normalizeUser(user: Partial<User>): User {
     custom_attributes: user.custom_attributes ?? [],
     bio: user.bio ?? null,
     profile_privacy: user.profile_privacy ?? null,
-    social_media: user.social_media ?? [],
+    additional_social_accounts: user.additional_social_accounts ?? [],
     notifications: user.notifications ?? null,
     created_at: user.created_at ?? new Date(),
     country: user.country ?? null,
     user_type: user.user_type ?? null,
-    github: user.github ?? null,
+    github_account: user.github_account ?? null,
+    x_account: user.x_account ?? null,
+    linkedin_account: user.linkedin_account ?? null,
     wallet: user.wallet ?? [],
     skills: user.skills ?? [],
     team_id: user.team_id ?? null,
     noun_avatar_seed: user.noun_avatar_seed ?? null,
     noun_avatar_enabled: user.noun_avatar_enabled ?? false,
-  };
+  } as unknown as User;
 }
 export async function getProject(projectId: string): Promise<Project | null> {
   const projectData = await prisma.project.findUnique({
@@ -293,7 +323,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
         id: user?.id ?? "",
         name: user?.name ?? null,
         email: user?.email ?? member.email ?? "",
-        telegram_user: user?.telegram_user ?? null,
+        telegram_account: user?.telegram_account ?? null,
         image: user?.image ?? null,
         custom_attributes: user?.custom_attributes ?? [],
         authentication_mode: user?.authentication_mode ?? "",

@@ -2,6 +2,15 @@
 import { prisma } from "@/prisma/prisma";
 import { Account, Profile, User } from "next-auth";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
+import { encryptToken } from "@/lib/github-token";
+
+const oauthUserSelect = {
+  id: true,
+  email: true,
+  name: true,
+  image: true,
+  authentication_mode: true,
+} as const;
 
 export async function upsertUser(user: User, account: Account | null, profile: Profile | undefined) {
   if (!user.email) {
@@ -11,6 +20,7 @@ export async function upsertUser(user: User, account: Account | null, profile: P
 
   const existingUser = await prisma.user.findUnique({
     where: { email: user.email },
+    select: oauthUserSelect,
   });
 
   const updatedAuthMode = existingUser?.authentication_mode?.includes(account?.provider ?? "")
@@ -19,21 +29,31 @@ export async function upsertUser(user: User, account: Account | null, profile: P
 
   let upsertedUser;
 
+  const githubData = account?.provider === 'github' && (profile as { login?: string })?.login
+    ? {
+        github_account: `https://github.com/${(profile as { login: string }).login}`,
+        ...(account.access_token
+          ? { github_access_token: encryptToken(account.access_token) }
+          : {}),
+      }
+    : {};
+
   if (existingUser) {
-    // Usuario existe, actualizar
     upsertedUser = await prisma.user.update({
       where: { email: user.email },
+      select: oauthUserSelect,
       data: {
         name: user.name || "",
         image: existingUser.image || user.image || "",
         authentication_mode: updatedAuthMode,
         last_login: new Date(),
-        user_name: (profile as any)?.login ?? "",
+        user_name: (profile as { login?: string })?.login ?? "",
+        ...githubData,
       },
     });
   } else {
-    // Usuario no existe, crear
     upsertedUser = await prisma.user.create({
+      select: oauthUserSelect,
       data: {
         email: user.email,
         notification_email: user.email,
@@ -41,8 +61,9 @@ export async function upsertUser(user: User, account: Account | null, profile: P
         image: user.image || "",
         authentication_mode: account?.provider ?? "",
         last_login: new Date(),
-        user_name: (profile as any)?.login ?? "",
+        user_name: (profile as { login?: string })?.login ?? "",
         notifications: null,
+        ...githubData,
       },
     });
   }

@@ -159,7 +159,7 @@ export default function Events({
       try {
         const queryString = buildQueryString(filters, searchQuery, pageSize, pastEventType);
         const { data } = await axios.get(
-          `/api/hackathons?${queryString}&status=ENDED`,
+          `/api/events?${queryString}&status=ENDED`,
           {
             signal,
           }

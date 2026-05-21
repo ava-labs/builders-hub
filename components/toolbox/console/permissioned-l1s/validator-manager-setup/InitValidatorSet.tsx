@@ -3,12 +3,18 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { getPChainRpcUrl, getGlacierNetwork } from '@/components/toolbox/utils/avalancheEndpoints';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
-import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from 'viem';
-import { packWarpIntoAccessList } from '../validator-manager/packWarp';
+import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData, type Hex } from 'viem';
+import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
+import {
+  extractSubnetToL1ConversionDataFromPChainTx,
+  initializeValidatorSet,
+  type ExtractSubnetToL1ConversionDataResult,
+} from '@avalanche-sdk/interchain/validator-manager';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Button } from '@/components/toolbox/components/Button';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
@@ -21,12 +27,13 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import versions from '@/scripts/versions.json';
-import { fetchConversionData, ConversionData } from './fetchConversionData';
+
+type ConversionData = ExtractSubnetToL1ConversionDataResult & { signingSubnetId: string };
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 const add0x = (hex: string): `0x${string}` => (hex.startsWith('0x') ? (hex as `0x${string}`) : `0x${hex}`);
@@ -42,7 +49,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [conversionTxID, setConversionTxID] = useState<string>('');
   const [L1ConversionSignature, setL1ConversionSignature] = useState<string>('');
   const viemChain = useViemChainStore();
-  const { walletEVMAddress, isTestnet } = useWalletStore();
+  const { isTestnet, avalancheNetworkID } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const walletType = useWalletStore((s) => s.walletType);
@@ -69,8 +76,26 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     setIsAggregating(true);
 
     const aggPromise = (async () => {
-      // Use fetchConversionData (P-Chain RPC + Glacier) — no wallet dependency
-      const data = await fetchConversionData(conversionTxID, isTestnet);
+      // SDK extracts the conversion data + builds the unsigned warp message.
+      // Glacier provides the signing-subnet (the subnet that attests to the
+      // L1's bootstrap validators); kept out of the SDK to avoid pulling in
+      // a Glacier dep there.
+      const extracted = await extractSubnetToL1ConversionDataFromPChainTx({
+        txId: conversionTxID,
+        pChainRpcUrl: getPChainRpcUrl(isTestnet),
+        networkId: avalancheNetworkID,
+      });
+
+      const network = getGlacierNetwork(isTestnet);
+      const glacierRes = await fetch(
+        `https://glacier-api.avax.network/v1/networks/${network}/blockchains/${extracted.blockchainId}`,
+        { headers: { accept: 'application/json' } },
+      );
+      if (!glacierRes.ok) throw new Error(`Glacier returned ${glacierRes.status}`);
+      const glacierData = await glacierRes.json();
+      if (!glacierData.subnetId) throw new Error('No subnetId from Glacier');
+
+      const data: ConversionData = { ...extracted, signingSubnetId: glacierData.subnetId };
       setConversionResult(data);
 
       if (data.managerAddress) {
@@ -78,8 +103,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       }
 
       const { signedMessage } = await aggregateSignature({
-        message: data.message,
-        justification: data.justification,
+        message: data.unsignedMessageHex,
+        justification: data.justificationHex,
         signingSubnetId: data.signingSubnetId,
       });
       setL1ConversionSignature(signedMessage);
@@ -138,8 +163,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   function buildTxArgs(data: ConversionData) {
     return [
       {
-        subnetID: add0x(cb58ToHex(data.subnetId)),
-        validatorManagerBlockchainID: add0x(cb58ToHex(data.chainId)),
+        subnetID: CB58ToHex(data.subnetId),
+        validatorManagerBlockchainID: CB58ToHex(data.blockchainId),
         validatorManagerAddress: data.managerAddress as `0x${string}`,
         initialValidators: data.validators.map(
           ({ nodeID, weight, signer }: { nodeID: string; weight: number; signer: { publicKey: string } }) => {
@@ -179,27 +204,35 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const txArgs = buildTxArgs(conversionResult);
       setCollectedData({ ...(txArgs[0] as any), L1ConversionSignature });
 
-      const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
-      const accessList = packWarpIntoAccessList(signatureBytes);
-
-      const initPromise = walletClient.writeContract({
-        address: conversionResult.managerAddress as `0x${string}`,
-        abi: ValidatorManagerABI.abi,
-        functionName: 'initializeValidatorSet',
-        args: txArgs,
-        accessList,
-        gas: BigInt(2_000_000),
-        chain: viemChain || undefined,
-        account: walletEVMAddress as `0x${string}`,
+      const initPromise = initializeValidatorSet(walletClient, chainPublicClient!, {
+        contractAddress: conversionResult.managerAddress as `0x${string}`,
+        networkId: avalancheNetworkID,
+        subnetId: conversionResult.subnetId,
+        blockchainId: conversionResult.blockchainId,
+        validators: conversionResult.validators.map(({ nodeID, weight, signer }) => ({
+          nodeId: nodeID,
+          weight: BigInt(weight),
+          blsPublicKey: (signer.publicKey.startsWith('0x') ? signer.publicKey : `0x${signer.publicKey}`) as Hex,
+        })),
+        // The signature was already aggregated in step 1; the SDK rebuilds the
+        // unsigned message internally and asks us to sign it. Return the
+        // signature we already have — it must match because both paths derive
+        // from the same ConversionData.
+        aggregateSignatures: async () => add0x(L1ConversionSignature),
       });
 
-      notify({ type: 'call', name: 'Initialize Validator Set' }, initPromise, viemChain ?? undefined);
+      // notify expects a tx-hash promise; the SDK helper resolves to
+      // {txHash, receipt, signedMessageHex}. Feed it the hash sub-promise.
+      notify(
+        { type: 'call', name: 'Initialize Validator Set' },
+        initPromise.then((r) => r.txHash),
+        viemChain ?? undefined,
+      );
 
-      const hash = await initPromise;
-      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
+      const { txHash, receipt } = await initPromise;
 
       if (receipt.status !== 'success') {
-        const decodedError = await debugTraceAndDecode(hash, selectedL1?.rpcUrl);
+        const decodedError = await debugTraceAndDecode(txHash, selectedL1?.rpcUrl);
         throw new Error(
           `Transaction reverted (gas used: ${receipt.gasUsed.toLocaleString()} / 2,000,000): ${decodedError}`,
         );

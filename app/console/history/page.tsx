@@ -1,6 +1,8 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -23,6 +25,7 @@ const MAX_RECENT_ITEMS = 15;
 
 export default function ConsoleHistoryPage() {
   const { data: session, status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
   const { logs: fullHistory, getExplorerUrl, loading } = useConsoleNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
