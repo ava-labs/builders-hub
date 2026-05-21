@@ -220,7 +220,13 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         aggregateSignatures: async () => add0x(L1ConversionSignature),
       });
 
-      notify({ type: 'call', name: 'Initialize Validator Set' }, initPromise, viemChain ?? undefined);
+      // notify expects a tx-hash promise; the SDK helper resolves to
+      // {txHash, receipt, signedMessageHex}. Feed it the hash sub-promise.
+      notify(
+        { type: 'call', name: 'Initialize Validator Set' },
+        initPromise.then((r) => r.txHash),
+        viemChain ?? undefined,
+      );
 
       const { txHash, receipt } = await initPromise;
 

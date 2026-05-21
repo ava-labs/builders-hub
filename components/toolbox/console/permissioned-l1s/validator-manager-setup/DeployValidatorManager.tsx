@@ -123,7 +123,14 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         validatorMessagesAddress: validatorMessagesLibAddress as `0x${string}`,
       });
 
-      notify({ type: 'deploy', name: 'ValidatorManager' }, deployPromise, viemChain ?? undefined);
+      // notify's 'deploy' branch awaits a tx-hash promise (then runs
+      // waitForTransactionReceipt). The SDK helper resolves to the full
+      // {address, deployTxHash} result, so feed it the hash sub-promise.
+      notify(
+        { type: 'deploy', name: 'ValidatorManager' },
+        deployPromise.then((r) => r.deployTxHash),
+        viemChain ?? undefined,
+      );
 
       const { address } = await deployPromise;
       setValidatorManagerAddress(address);
