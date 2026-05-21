@@ -120,3 +120,69 @@ export async function getTopHackathonTrafficSources(
     reachedRegister: toNumber(row.reachedRegister),
   }));
 }
+
+interface BatchRow extends RawRow {
+  hackathon_id: string | null;
+}
+
+/**
+ * Batched variant — top-N traffic sources for a list of hackathons in a single
+ * HogQL query. Used by the Builder Insights event-history view where we'd
+ * otherwise make one HTTP roundtrip per row. Returns a map keyed by
+ * hackathonId; events missing from the result are returned as empty arrays.
+ */
+export async function getTopHackathonTrafficSourcesBatch(
+  hackathonIds: string[],
+  { days = 90, limit = 3 }: TopTrafficSourcesOptions = {},
+): Promise<Map<string, HackathonTrafficSource[]>> {
+  const safeIds = Array.from(new Set(hackathonIds.filter(isSafeHackathonId)));
+  const result = new Map<string, HackathonTrafficSource[]>();
+  for (const id of safeIds) result.set(id, []);
+  if (safeIds.length === 0) return result;
+
+  const safeDays = Math.max(1, Math.min(365, Math.floor(days)));
+  const safeLimit = Math.max(1, Math.min(20, Math.floor(limit)));
+  const idList = safeIds.map((id) => `'${id}'`).join(", ");
+
+  // `LIMIT N BY column` is ClickHouse syntax: keep the first N rows per group
+  // after ORDER BY. Gives top-N per hackathon in one query.
+  const query = `
+    SELECT
+      coalesce(
+        nullIf(properties.hackathon_id, ''),
+        extract(properties.$pathname, '^/hackathons/([a-fA-F0-9-]{36})')
+      ) AS hackathon_id,
+      ${SOURCE_BUCKET_EXPR} AS source,
+      count(DISTINCT distinct_id) AS visitors,
+      countIf(properties.$pathname LIKE '%/registration-form%') AS reachedRegister
+    FROM events
+    WHERE event = '$pageview'
+      AND ${HOGQL_HOST_FILTER}
+      AND timestamp >= now() - INTERVAL ${safeDays} DAY
+      AND coalesce(
+        nullIf(properties.hackathon_id, ''),
+        extract(properties.$pathname, '^/hackathons/([a-fA-F0-9-]{36})')
+      ) IN (${idList})
+    GROUP BY hackathon_id, source
+    ORDER BY hackathon_id, visitors DESC
+    LIMIT ${safeLimit} BY hackathon_id
+  `.trim();
+
+  const rows = await runHogQL<BatchRow>({
+    projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
+    query,
+  });
+
+  for (const row of rows) {
+    if (!row.hackathon_id) continue;
+    const bucket = result.get(row.hackathon_id);
+    if (!bucket) continue;
+    bucket.push({
+      source: row.source ?? "Direct",
+      visitors: toNumber(row.visitors),
+      reachedRegister: toNumber(row.reachedRegister),
+    });
+  }
+
+  return result;
+}

@@ -672,12 +672,13 @@ function EventHistorySection({ data }: { data: BuilderInsightsData }) {
               <th>Event</th>
               <th className="pr-num">Inscriptions</th>
               <th className="pr-num">Projects submitted</th>
+              <th>Top traffic sources (90d)</th>
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={3} className="pr-leaderboard__empty">
+                <td colSpan={4} className="pr-leaderboard__empty">
                   No events recorded yet.
                 </td>
               </tr>
@@ -694,6 +695,22 @@ function EventHistorySection({ data }: { data: BuilderInsightsData }) {
                   </td>
                   <td className="pr-num">{formatNumber(e.registrations)}</td>
                   <td className="pr-num">{formatNumber(e.projects)}</td>
+                  <td>
+                    {e.topTrafficSources.length === 0 ? (
+                      <span className="pr-leaderboard__country">No data</span>
+                    ) : (
+                      <ul className="pr-traffic-sources">
+                        {e.topTrafficSources.map((src) => (
+                          <li key={src.source}>
+                            <span className="pr-traffic-sources__name">{src.source}</span>
+                            <span className="pr-traffic-sources__count">
+                              {formatNumber(src.visitors)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
                 </tr>
               ))
             )}
