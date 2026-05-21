@@ -71,7 +71,7 @@ export default function ModernEventLayout({
       : `${format(validStartDate, "MMMM d")} - ${format(validEndDate, "MMMM d, yyyy")}`;
 
   const isValidSrc = (src: string | undefined | null) =>
-    /^(https?:\/\/|\/)/.test((src ?? '').trim());
+    /^(https?:\/\/|\/|data:)/.test((src ?? '').trim());
 
   const bannerSrc = isValidSrc(hackathon.banner)
     ? hackathon.banner!
@@ -176,6 +176,7 @@ export default function ModernEventLayout({
               height={760}
               className="w-full h-auto rounded-lg"
               priority
+              unoptimized={bannerSrc.startsWith('data:')}
             />
           </div>
 

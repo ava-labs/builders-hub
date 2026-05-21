@@ -142,7 +142,7 @@ export default function LegacyEventLayout({
               hackathonId={id}
               customLink={hackathon.content.join_custom_link}
               bannerSrc={
-                /^(https?:\/\/|\/)/.test((hackathon.banner ?? '').trim())
+                /^(https?:\/\/|\/|data:)/.test((hackathon.banner ?? '').trim())
                   ? hackathon.banner!
                   : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
               }

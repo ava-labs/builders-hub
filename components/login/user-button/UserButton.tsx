@@ -18,6 +18,7 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
+import { canAccessEvaluationTools, canAccessBuilderInsights } from '@/lib/auth/permissions';
 
 const AVATAR_PX = 36;
 
@@ -56,6 +57,9 @@ export function UserButton() {
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
+
+  const canAccessEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
+  const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
 
   useEffect(() => {
     if (!isAuthenticated) {
