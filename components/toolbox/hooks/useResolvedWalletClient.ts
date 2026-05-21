@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useWalletClient } from 'wagmi';
 import { createWalletClient, custom } from 'viem';
+import { avalanche, avalancheFuji } from 'viem/chains';
 import type { WalletClient } from 'viem';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
@@ -17,6 +18,7 @@ import { useActiveWalletProvider } from './useLiveWalletChainId';
 export function useResolvedWalletClient(): WalletClient | undefined {
   const { data: wagmiWalletClient } = useWalletClient();
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
   const viemChain = useViemChainStore();
   const activeProvider = useActiveWalletProvider({
     enabled: Boolean(walletEVMAddress),
@@ -35,13 +37,18 @@ export function useResolvedWalletClient(): WalletClient | undefined {
     if (wagmiWalletClient && viemChain && wagmiWalletClient.chain?.id === viemChain.id) {
       return wagmiWalletClient;
     }
-    if (!walletEVMAddress || !viemChain) return wagmiWalletClient ?? undefined;
+    if (!walletEVMAddress) return wagmiWalletClient ?? undefined;
     if (!activeProvider) return wagmiWalletClient ?? undefined;
 
+    // Default to C-Chain when viemChain hasn't resolved (e.g. mid-bootstrap
+    // after resetAllStores() cleared the L1 list). See the matching note in
+    // ConnectedWalletContext for the full motivation.
+    const chainForClient = viemChain ?? (isTestnet ? avalancheFuji : avalanche);
+
     return createWalletClient({
-      chain: viemChain,
+      chain: chainForClient,
       transport: custom(activeProvider),
       account: walletEVMAddress as `0x${string}`,
     });
-  }, [activeProvider, wagmiWalletClient, walletEVMAddress, viemChain]);
+  }, [activeProvider, wagmiWalletClient, walletEVMAddress, viemChain, isTestnet]);
 }

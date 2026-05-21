@@ -3,6 +3,7 @@ import { useWalletStore } from '../stores/walletStore';
 import { useWalletClient, useAccount, useConnectorClient } from 'wagmi';
 import { useViemChainStore } from '../stores/toolboxStore';
 import { createWalletClient, custom } from 'viem';
+import { avalanche, avalancheFuji } from 'viem/chains';
 import type { CoreWalletClientType } from '../coreViem';
 import type { WalletClient } from 'viem';
 import { useActiveWalletProvider } from '../hooks/useLiveWalletChainId';
@@ -19,6 +20,7 @@ const ConnectedWalletContext = createContext<ConnectedWalletContextValue | null>
 export function ConnectedWalletProvider({ children }: { children: React.ReactNode }) {
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
   const { data: wagmiWalletClient, isLoading: isWalletClientLoading } = useWalletClient();
   const { data: connectorClient } = useConnectorClient();
   const { address } = useAccount();
@@ -44,15 +46,23 @@ export function ConnectedWalletProvider({ children }: { children: React.ReactNod
     if (wagmiClient && wagmiChainMatches) return null;
 
     const effectiveAddress = address || walletEVMAddress;
-    if (!effectiveAddress || !viemChain) return null;
+    if (!effectiveAddress) return null;
     if (!activeProvider) return null;
 
+    // Default to C-Chain (Fuji on testnet, Avalanche on mainnet) when we
+    // don't yet have a resolved viemChain. Happens after `resetAllStores()`
+    // wipes the custom L1 list and the wallet hasn't reported a known chain
+    // yet — without this default the provider rendered "Connecting wallet…"
+    // indefinitely. As soon as `walletChainId` resolves to a chain in the
+    // L1 list, this memo rebuilds with the correct viemChain.
+    const chainForClient = viemChain ?? (isTestnet ? avalancheFuji : avalanche);
+
     return createWalletClient({
-      chain: viemChain,
+      chain: chainForClient,
       transport: custom(activeProvider),
       account: effectiveAddress as `0x${string}`,
     });
-  }, [activeProvider, wagmiWalletClient, connectorClient, address, walletEVMAddress, viemChain]);
+  }, [activeProvider, wagmiWalletClient, connectorClient, address, walletEVMAddress, viemChain, isTestnet]);
 
   // Resolution order: prefer the wagmi client only when its chain agrees
   // with viemChain. Otherwise (chain mismatch or no wagmi client) take the
