@@ -6,7 +6,7 @@ import {
 } from '@/server/services/hackathons';
 import { HackathonStatus } from '@/types/hackathons';
 import { getUserById } from '@/server/services/getUser';
-import { withAuthRole } from '@/lib/protectedRoute';
+import { withAuth } from '@/lib/protectedRoute';
 import { getAuthSession } from '@/lib/auth/authSession';
 
 
@@ -26,6 +26,8 @@ export async function GET(req: NextRequest) {
       status: searchParams.get('status') as HackathonStatus || undefined,
       search: searchParams.get('search') || undefined,
       event: searchParams.get('event') || undefined,
+      visibility: (searchParams.get('visibility') as 'all' | 'public' | 'private') || undefined,
+      sort: searchParams.get('sort') || undefined,
     };
 
     const managedOnly = searchParams.get('managed') === 'true';
@@ -72,10 +74,23 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const POST = withAuth(async (req: NextRequest, context: any, session: any) => {
+  const customAttributes: string[] = session?.user?.custom_attributes || [];
+  const canCreate =
+    customAttributes.includes('devrel') ||
+    customAttributes.includes('team1-admin') ||
+    customAttributes.includes('hackathonCreator');
+
+  if (!canCreate) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
-    const body = await req.json();
-    const newHackathon = await createHackathon(body);
+    const { id: _discardedId, ...body } = await req.json();
+    const newHackathon = await createHackathon({
+      ...body,
+      created_by: session.user.id,
+    });
 
     return NextResponse.json(
       { message: 'Hackathon created', hackathon: newHackathon },
