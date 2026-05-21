@@ -66,8 +66,6 @@ export type Hackathon = {
   tech_stack_options?: string[]
   /** "full" (legacy long form) or "simple" (slim registration). Defaults to "full". */
   registration_mode?: "full" | "simple"
-  /** When true, registration shows Solo/Duo + teammate input (TeamPartnerInput). */
-  team_partner_enabled?: boolean
 }
 
 export type ScheduleActivity = {

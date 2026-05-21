@@ -74,8 +74,6 @@ export interface IDataMain {
     tech_stack_options?: string[];
     /** "full" (legacy long form) or "simple" (slim registration). Defaults to "full". */
     registration_mode?: "full" | "simple";
-    /** When true, registration shows Solo/Duo + teammate input (TeamPartnerInput). */
-    team_partner_enabled?: boolean;
   }
   
   export interface IDataLatest {
@@ -155,7 +153,6 @@ export interface IDataMain {
           team_size_max: undefined,
           tech_stack_options: [],
           registration_mode: 'full',
-          team_partner_enabled: false,
       },
       latest: {
           start_date: '',

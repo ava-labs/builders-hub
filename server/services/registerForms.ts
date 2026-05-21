@@ -13,31 +13,6 @@ import { sendMail } from "./mail";
 import { recordReferralAttribution } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
-import { generateInvitation } from "./inviteProjectMember";
-
-/**
- * Resolve a teammate handle (email, @user_name, or github_account) to an email
- * we can pass to generateInvitation. Returns null when nothing matches.
- */
-async function resolvePartnerEmail(handle: string): Promise<string | null> {
-  const trimmed = handle.trim();
-  if (!trimmed) return null;
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-    return trimmed.toLowerCase();
-  }
-  const bareHandle = trimmed.replace(/^@/, "");
-  const byUserName = await prisma.user.findFirst({
-    where: { user_name: { equals: bareHandle, mode: "insensitive" } },
-    select: { email: true },
-  });
-  if (byUserName) return byUserName.email;
-  const byGithub = await prisma.user.findFirst({
-    where: { github_account: { equals: bareHandle, mode: "insensitive" } },
-    select: { email: true },
-  });
-  if (byGithub) return byGithub.email;
-  return null;
-}
 
 export const registerValidations: Validation[] = [
   {
@@ -138,7 +113,6 @@ export const validateRegisterForm = (
 export async function createRegisterForm(
   registerData: Partial<RegistrationForm> & {
     x_account?: string;
-    team_partner?: { mode: "solo" | "duo"; partnerHandle: string | null } | null;
   }
 ): Promise<RegistrationForm> {
   // Get hackathon information to determine if it's online
@@ -147,12 +121,6 @@ export async function createRegisterForm(
   });
 
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
-  const hackathonContent = (hackathon?.content ?? {}) as Record<string, unknown>;
-  const teamSizeMax =
-    typeof hackathonContent.team_size_max === "number" &&
-    Number.isFinite(hackathonContent.team_size_max)
-      ? (hackathonContent.team_size_max as number)
-      : undefined;
 
   // Telegram is mandatory on the User profile (BasicProfileSetup gate),
   // so the registration form no longer asks for it. Pull it from the user
@@ -227,25 +195,6 @@ export async function createRegisterForm(
         console.error("[Registration] Failed to persist x_account:", err);
       }
     }
-  }
-
-  // Team-size cap enforcement: when the event sets team_size_max, reject a duo
-  // registration that would exceed it.
-  if (
-    teamSizeMax !== undefined &&
-    registerData.team_partner?.mode === "duo" &&
-    teamSizeMax < 2
-  ) {
-    throw new ValidationError(
-      `This event only allows solo participants (max team size: ${teamSizeMax}).`,
-      [
-        {
-          field: "team_partner",
-          message: `This event only allows solo participants (max team size: ${teamSizeMax}).`,
-          validation: () => false,
-        },
-      ],
-    );
   }
 
   const errors = validateRegisterForm(registerData, isOnlineHackathon);
@@ -327,49 +276,6 @@ export async function createRegisterForm(
     referralAttributed = Boolean(attribution);
   } catch (error) {
     console.error("[Referral] Failed to record hackathon registration attribution:", error);
-  }
-
-  // Duo team partner: invite the teammate. Reuses generateInvitation which finds-or-creates
-  // a Project row for the registrant and writes a Member row for the partner with
-  // status="Pending Confirmation" + sends an invitation email. The Project starts as a stub
-  // ("Untitled Project") and gets filled in on the submission form.
-  if (
-    registerData.team_partner?.mode === "duo" &&
-    registerData.team_partner.partnerHandle &&
-    existingUser
-  ) {
-    try {
-      const partnerEmail = await resolvePartnerEmail(registerData.team_partner.partnerHandle);
-      if (!partnerEmail) {
-        throw new ValidationError(
-          "Could not find a Builder Hub user matching that handle. Try inviting by email instead.",
-          [
-            {
-              field: "team_partner",
-              message:
-                "Could not find a Builder Hub user matching that handle. Try inviting by email instead.",
-              validation: () => false,
-            },
-          ],
-        );
-      }
-      // generateInvitation also de-dups self-invites.
-      const inviterLang = normalizeEventsLang((hackathon?.content as any)?.language);
-      await generateInvitation(
-        registerData.hackathon_id as string,
-        existingUser.id,
-        registerData.name ?? "",
-        [partnerEmail],
-        undefined,
-        undefined,
-        inviterLang,
-      );
-    } catch (err) {
-      // Surface validation errors (no-user-found); swallow transient send-mail failures so the
-      // registrant is still in.
-      if (err instanceof ValidationError) throw err;
-      console.error("[Registration] Failed to invite team partner:", err);
-    }
   }
 
   // Send registration data to HubSpot

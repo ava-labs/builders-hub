@@ -17,7 +17,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { RegisterFormStep3 } from "./RegisterFormStep3";
 import RegisterFormStep1 from "./RegisterFormStep1";
-import TeamPartnerInput, { type TeamPartnerValue } from "./TeamPartnerInput";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
 import axios from "axios";
@@ -125,12 +124,6 @@ export function RegisterForm({
   const [isSavingLater, setIsSavingLater] = useState(false);
   const isAdvancingStepRef = useRef(false);
   const [referrer, setReferrer] = useState<ReferrerPickerValue>(EMPTY_REFERRER);
-  // Solo/Duo selection + optional teammate handle. Shipped alongside the RegisterForm payload
-  // when hackathon.content.team_partner_enabled is true.
-  const [teamPartner, setTeamPartner] = useState<TeamPartnerValue>({
-    mode: "solo",
-    partnerHandle: null,
-  });
   // Country becomes read-only once profile.country is set, which happens on first registration's
   // step-1 save (saveStep1ToProfile). Server-side enforcement lives in /api/profile/extended.
   const [countryLocked, setCountryLocked] = useState(false);
@@ -157,7 +150,6 @@ export function RegisterForm({
   const lang = normalizeEventsLang(hackathon?.content?.language);
   const registrationMode: "full" | "simple" = hackathon?.content?.registration_mode === "simple" ? "simple" : "full";
   const isSimpleMode = registrationMode === "simple";
-  const teamPartnerEnabled = Boolean(hackathon?.content?.team_partner_enabled);
   // In simple mode, registration is one step. Otherwise the existing two-step flow stays.
   const totalSteps = isSimpleMode ? 1 : 2;
   
@@ -192,8 +184,11 @@ export function RegisterForm({
     prohibited_items: false,
     founder_check: false,
     avalanche_ecosystem_member: false,
-    user_notifications: false,
-    user_consent_sharing: false,
+    // User-level consents default pre-checked. Each participant must accept
+    // these to register; defaulting on aligns with the mandatory-consent
+    // direction (Team1 administers SPEEDRUN). User can still uncheck.
+    user_notifications: true,
+    user_consent_sharing: true,
   });
 
   const form = useForm<RegisterFormValues>({
@@ -528,8 +523,6 @@ export function RegisterForm({
         tools: data.tools,
         // Only include prohibited_items if it's not an online hackathon
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
-        // Solo/Duo + teammate handle, only when the event enabled the picker.
-        team_partner: teamPartnerEnabled ? teamPartner : null,
       };
 
       const result = await saveProject(finalData);
@@ -683,15 +676,12 @@ export function RegisterForm({
                 countryLocked={countryLocked}
                 requireSocials={isSimpleMode}
               />
-              {teamPartnerEnabled && (
-                <TeamPartnerInput
-                  hackathonId={hackathon_id as string}
-                  lang={lang}
-                  currentUserEmail={currentUser?.email ?? null}
-                  teamSizeMax={hackathon?.content?.team_size_max}
-                  value={teamPartner}
-                  onChange={setTeamPartner}
-                />
+              {isSimpleMode && (
+                <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
+                  {lang === "es"
+                    ? "¿Vas a formar equipo? Podrás agregar compañeros cuando envíes tu proyecto. Cada miembro del equipo debe registrarse individualmente primero."
+                    : "Forming a team? You'll add teammates when you submit your project. Each teammate registers individually first."}
+                </p>
               )}
               <ReferralFormSection
                 value={referrer}

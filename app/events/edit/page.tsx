@@ -839,7 +839,6 @@ const HackathonsEdit = () => {
       team_size_max: hackathon.content?.team_size_max,
       tech_stack_options: hackathon.content?.tech_stack_options ?? [],
       registration_mode: hackathon.content?.registration_mode ?? 'full',
-      team_partner_enabled: hackathon.content?.team_partner_enabled ?? false,
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
     const trackDescriptions: { [key: number]: string } = {};
@@ -2978,24 +2977,6 @@ const HackathonsEdit = () => {
                           <option value="simple">simple</option>
                         </select>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="team_partner_enabled"
-                          type="checkbox"
-                          checked={!!formDataContent.team_partner_enabled}
-                          onChange={(e) =>
-                            setFormDataContent({
-                              ...formDataContent,
-                              team_partner_enabled: e.target.checked,
-                            })
-                          }
-                          className="h-4 w-4"
-                        />
-                        <label htmlFor="team_partner_enabled" className="text-sm text-zinc-300 cursor-pointer">
-                          {t[language].teamPartnerEnabled}
-                        </label>
-                      </div>
-                      <div className="text-zinc-400 text-sm">{t[language].teamPartnerEnabledHelp}</div>
                     </div>
                   )}
 
