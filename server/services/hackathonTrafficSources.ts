@@ -7,18 +7,23 @@ const HOGQL_HOST_FILTER =
 
 /**
  * HogQL expression that buckets every pageview into a single `source` string.
- * Priority: explicit UTM → specific social account → other known referrer →
- * BuildersHub internal → bare domain → "Direct".
+ *
+ * Channel-mix only — no handle/page extraction. X (t.co) and LinkedIn strip
+ * the originating tweet/post from the Referer header, so organic social can
+ * only be attributed at the channel level. UTM-tagged links keep full
+ * granularity via the first branch (use utm_content for the poster handle).
+ *
+ * Priority: explicit UTM → broad channel → bare domain → "Direct".
  */
 const SOURCE_BUCKET_EXPR = `
   multiIf(
     notEmpty(properties.utm_source),
       concat(properties.utm_source, ' / ', coalesce(properties.utm_campaign, '(no campaign)')),
     properties.$referring_domain IN ('x.com', 'twitter.com', 't.co'),
-      concat('X / ', coalesce(extract(properties.$referrer, 'https?://(?:www\\\\.)?(?:x|twitter)\\\\.com/([^/?#]+)'), '(unknown handle)')),
+      'X (untagged)',
     properties.$referring_domain = 'linkedin.com'
       OR endsWith(properties.$referring_domain, '.linkedin.com'),
-      concat('LinkedIn / ', coalesce(extract(properties.$referrer, 'linkedin\\\\.com/(?:company|in|posts|feed/update)/([^/?#]+)'), '(unknown page)')),
+      'LinkedIn (untagged)',
     properties.$referring_domain IN ('youtube.com', 'www.youtube.com', 'youtu.be'),
       'YouTube',
     properties.$referring_domain IN ('discord.com', 'discord.gg'),
