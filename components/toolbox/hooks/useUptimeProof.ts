@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { bytesToHex, hexToBytes } from 'viem';
-import { packValidationUptimeMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { newValidationUptimeMessage, newWarpMessage } from '@avalanche-sdk/interchain/warp';
+import { CB58ToHex, hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import { cb58ToHex, hexToCB58 } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import { getBlockchainInfo } from '@/components/toolbox/coreViem/utils/glacier';
 
 interface UptimeProofResult {
@@ -50,14 +50,14 @@ async function getValidatorUptimeFromNode(
     if (validationID.startsWith('0x')) {
       hexValidationID = validationID.toLowerCase();
       try {
-        cb58ValidationID = hexToCB58(validationID.slice(2));
+        cb58ValidationID = hexToCB58(validationID as `0x${string}`);
       } catch {
         // If conversion fails, just use hex
       }
     } else {
       cb58ValidationID = validationID;
       try {
-        hexValidationID = '0x' + cb58ToHex(validationID).toLowerCase();
+        hexValidationID = CB58ToHex(validationID).toLowerCase() as `0x${string}`;
       } catch {
         // If conversion fails, just use CB58
       }
@@ -71,7 +71,7 @@ async function getValidatorUptimeFromNode(
 
       if (!responseId.startsWith('0x') && hexValidationID) {
         try {
-          const responseHex = '0x' + cb58ToHex(responseId).toLowerCase();
+          const responseHex = CB58ToHex(responseId).toLowerCase();
           if (responseHex === hexValidationID) return true;
         } catch {
           // Conversion failed, skip
@@ -134,11 +134,9 @@ export function useUptimeProof() {
     uptimeBlockchainID: string,
   ): Uint8Array {
     try {
-      return packValidationUptimeMessage(
-        { validationID, uptime: uptimeSeconds },
-        avalancheNetworkID,
-        uptimeBlockchainID,
-      );
+      const inner = newValidationUptimeMessage(hexToCB58(bytesToHex(validationID) as `0x${string}`), uptimeSeconds);
+      const unsigned = newWarpMessage(avalancheNetworkID, uptimeBlockchainID, '', inner.toHex());
+      return hexToBytes(unsigned.toHex() as `0x${string}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`Failed to create uptime proof warp message: ${message}`);
@@ -164,7 +162,7 @@ export function useUptimeProof() {
     try {
       // Convert hex bytes32 uptimeBlockchainID to CB58 for the warp message
       const uptimeBlockchainCB58 = hexToCB58(
-        uptimeBlockchainID.startsWith('0x') ? uptimeBlockchainID.slice(2) : uptimeBlockchainID,
+        (uptimeBlockchainID.startsWith('0x') ? uptimeBlockchainID : `0x${uptimeBlockchainID}`) as `0x${string}`,
       );
 
       // Resolve the signing subnet from the uptimeBlockchainID via Glacier

@@ -77,7 +77,7 @@ export function EvaluationPanel({
     eventConfig?.scoreCriteria ?? DEFAULT_SCORE_CRITERIA;
 
   const [selectedVerdict, setSelectedVerdict] = useState<Verdict | null>(
-    (myEvaluation?.verdict as Verdict) ?? null
+    myEvaluation?.verdict ?? null
   );
   const [comment, setComment] = useState(myEvaluation?.comment ?? "");
   const [finalScore, setFinalScore] = useState<number | null>(
@@ -279,20 +279,26 @@ export function EvaluationPanel({
           </h3>
           <div className="space-y-1">
             {otherEvaluations.map((e) => (
-              <div key={e.id} className="text-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-zinc-500 dark:text-zinc-400">{e.evaluatorName}:</span>
-                  <VerdictBadge verdict={e.verdict as Verdict} />
-                  {e.scoreOverall !== null && (
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
-                      {e.scoreOverall}/5
-                    </span>
-                  )}
-                </div>
-                {e.comment && (
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 whitespace-pre-wrap break-words">
-                    &mdash; &ldquo;{e.comment}&rdquo;
-                  </p>
+              <div key={e.id} className="flex items-center gap-2 text-sm">
+                <span className="text-zinc-500 dark:text-zinc-400">{e.evaluatorName}:</span>
+                {e.verdict === null ? (
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 italic">
+                    Reviewed
+                  </span>
+                ) : (
+                  <>
+                    <VerdictBadge verdict={e.verdict} />
+                    {e.scoreOverall !== null && (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
+                        {e.scoreOverall}/5
+                      </span>
+                    )}
+                    {e.comment && (
+                      <span className="text-zinc-500 text-xs truncate">
+                        &mdash; &ldquo;{e.comment}&rdquo;
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             ))}
@@ -300,12 +306,17 @@ export function EvaluationPanel({
         </div>
       )}
 
-      {stageEvaluations.length > 0 && <VoteSummary evaluations={stageEvaluations} />}
+      {stageEvaluations.length > 0 &&
+        stageEvaluations.every((e) => e.verdict !== null) && (
+          <VoteSummary evaluations={stageEvaluations as VoteSummaryEvaluation[]} />
+        )}
     </div>
   );
 }
 
-function VoteSummary({ evaluations }: { evaluations: EvaluationData[] }) {
+type VoteSummaryEvaluation = Omit<EvaluationData, "verdict"> & { verdict: Verdict };
+
+function VoteSummary({ evaluations }: { evaluations: VoteSummaryEvaluation[] }) {
   const verdictAvg =
     evaluations.reduce(
       (sum, e) => sum + (VERDICT_SCORES[e.verdict] ?? 0),
