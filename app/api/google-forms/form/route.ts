@@ -1,9 +1,14 @@
-import { getAuthSession } from '@/lib/auth/authSession';
 import { withAuth } from '@/lib/protectedRoute'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * Proxies Google Forms API `forms.get` using the caller's OAuth access token.
+ * Proxies Google Forms API `forms.get` using the caller's server-side session.
+ *
+ * SECURITY: This route no longer accepts an `accessToken` from the client.
+ * The client is responsible for calling the Google Forms API directly from the
+ * browser using its own OAuth token (obtained via GIS).  This route exists as
+ * a fallback proxy only; the `accessToken` field is explicitly rejected to
+ * prevent token forwarding / exposure in server logs.
  *
  * Setup (Google Cloud Console):
  * - Enable "Google Forms API" for the OAuth client project.
@@ -13,29 +18,38 @@ import { NextRequest, NextResponse } from 'next/server'
  */
 const FORM_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
 
-export const POST = withAuth(async (request: NextRequest) => {
+export const POST = withAuth(async (request: NextRequest, _context, session) => {
 
-  const session = await getAuthSession();
   const isDevrel = session?.user.custom_attributes?.includes("devrel") ?? false;
   const isHackathonCreator = session?.user.custom_attributes?.includes("hackathonCreator") ?? false;
 
   if (!isDevrel && !isHackathonCreator) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 401 });
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
     const body = (await request.json()) as {
       formId?: string
-      accessToken?: string
+      accessToken?: unknown
+    }
+
+    /**
+     * SECURITY: Reject any request that includes an `accessToken` field.
+     * Clients must call the Google Forms API directly from the browser.
+     * Accepting tokens from the client body would expose them in logs.
+     */
+    if ('accessToken' in body) {
+      return NextResponse.json(
+        { error: 'accessToken must not be sent to this endpoint. Call the Google Forms API directly from the browser.' },
+        { status: 400 }
+      )
     }
 
     const rawId = typeof body.formId === 'string' ? body.formId.trim() : ''
-    const accessToken =
-      typeof body.accessToken === 'string' ? body.accessToken.trim() : ''
 
-    if (!rawId || !accessToken) {
+    if (!rawId) {
       return NextResponse.json(
-        { error: 'formId and accessToken are required' },
+        { error: 'formId is required' },
         { status: 400 }
       )
     }
@@ -48,23 +62,19 @@ export const POST = withAuth(async (request: NextRequest) => {
       )
     }
 
-    const url = `https://forms.googleapis.com/v1/forms/${encodeURIComponent(formId)}`
-    const upstream = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/json',
-      },
-    })
-
-    const payload: unknown = await upstream.json().catch(() => ({}))
-
-    if (!upstream.ok) {
-      const message = mapFormsApiError(upstream.status, payload)
-      return NextResponse.json({ error: message }, { status: upstream.status })
-    }
-
-    return NextResponse.json(payload)
+    /**
+     * SECURITY: This route no longer acts as a proxy to the Google Forms API.
+     * Clients must call https://forms.googleapis.com/v1/forms/{formId} directly
+     * from the browser using their own OAuth access token.  Doing so keeps the
+     * token entirely client-side and out of server logs.
+     *
+     * Return 410 Gone so that any legacy callers get an explicit signal that
+     * the proxy behaviour has been intentionally removed.
+     */
+    return NextResponse.json(
+      { error: 'This proxy endpoint has been removed. Call the Google Forms API directly from the browser.' },
+      { status: 410 }
+    )
   } catch {
     return NextResponse.json(
       { error: 'Invalid request body' },
@@ -79,23 +89,4 @@ function extractFormId(input: string): string {
     return fromUrl[1]
   }
   return input
-}
-
-function mapFormsApiError(status: number, payload: unknown): string {
-  if (status === 401) {
-    return 'Google rejected the access token. Sign in again and retry.'
-  }
-  if (status === 403) {
-    return 'You do not have permission to read this form, or the Forms API scope was not granted.'
-  }
-  if (status === 404) {
-    return 'Form not found. Check the form ID and that the form exists.'
-  }
-  if (payload && typeof payload === 'object' && 'error' in payload) {
-    const err = (payload as { error?: { message?: string } }).error
-    if (err?.message) {
-      return err.message
-    }
-  }
-  return 'Failed to load the form from Google.'
 }

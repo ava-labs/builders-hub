@@ -18,7 +18,6 @@ import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 import StagesSection from "@/components/hackathons/hackathon/sections/StagesSection";
-import { getUserById } from "@/server/services/getUser";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -91,28 +90,23 @@ export default async function HackathonPage({
   ];
 
   if (!hackathon) redirect("/events");
-  const hacakthonCreator = await getUserById(hackathon.created_by);
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
-        {
-          hacakthonCreator?.email?.includes('@team1.network') ? (
-            <Image
-              src={'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg'}
-              alt="Hackathon background"
-              width={40}
-              height={40}
-            />
-          ) : (
-            <Image
-              src={'/images/avax.png'}
-              alt="Hackathon background"
-              width={40}
-              height={40}
-            />
-          )
-        }
+        {/*
+          SECURITY: Removed hardcoded `@team1.network` domain check.
+          Business logic must not be coupled to email domains — it exposes
+          partner information and can be trivially bypassed.  The hackathon's
+          own `icon` field is used as the branding logo instead, which is
+          controlled by the hackathon creator at data entry time.
+        */}
+        <Image
+          src={hackathon.icon?.trim() ? hackathon.icon : '/images/avax.png'}
+          alt="Hackathon logo"
+          width={40}
+          height={40}
+        />
         <span className="text-sm sm:text-xl font-bold">{hackathon.title}</span>{" "}
         <JoinButton
           isRegistered={isRegistered}
@@ -172,11 +166,6 @@ export default async function HackathonPage({
           </div>
         </div>
       </div>
-      {/* <div className="flex justify-end mt-4">
-        <Link href={`/hackathons/${id}/admin-panel`}>
-          <Button>Edit Hackathon</Button>
-        </Link>
-      </div> */}
     </main>
   );
 }

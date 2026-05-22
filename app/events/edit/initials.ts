@@ -66,6 +66,13 @@ export interface IDataContent {
   judging_guidelines: string;
   submission_deadline: string;
   registration_deadline: string;
+  /**
+   * NOTE: Typed as `any` here because this field is used directly with react-hook-form,
+   * whose type inference collapses discriminated union fields to `unknown`, breaking
+   * assignments throughout the editor. Server-side Zod validation (hackathons.ts,
+   * hackathonStagesArraySchema) is the authoritative security boundary for this field.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stages: any;
 }
 

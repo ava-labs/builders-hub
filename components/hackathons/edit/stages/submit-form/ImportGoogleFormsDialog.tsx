@@ -67,22 +67,26 @@ export default function ImportGoogleFormsDialog({
     }
 
     try {
+      /**
+       * SECURITY: The Google OAuth access token is obtained in the browser and
+       * used here directly to call the Google Forms API — it is never sent to
+       * our own server.  The token only appears in the Authorization header of
+       * a request that travels from the user's browser to Google, keeping it
+       * out of server-side logs, APM traces, and any request body we control.
+       */
       const accessToken = await requestFormsAccessToken()
-      const response = await fetch('/api/google-forms/form', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ formId: parsedId, accessToken }),
+      const url = `https://forms.googleapis.com/v1/forms/${encodeURIComponent(parsedId)}`
+      const upstream = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+        },
       })
 
-      const payload: unknown = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        const message =
-          payload &&
-          typeof payload === 'object' &&
-          'error' in payload &&
-          typeof (payload as { error: unknown }).error === 'string'
-            ? (payload as { error: string }).error
-            : 'Could not load the form from Google.'
+      const payload: unknown = await upstream.json().catch(() => ({}))
+      if (!upstream.ok) {
+        const message = mapGoogleFormsApiError(upstream.status, payload)
         setImportError(message)
         setImportPhase('result')
         return
@@ -288,4 +292,19 @@ function requestFormsAccessToken(): Promise<string> {
         client.requestAccessToken()
       })
   )
+}
+
+/**
+ * Maps Google Forms API HTTP error codes to user-friendly messages.
+ * Kept client-side because the browser now calls Google directly.
+ */
+function mapGoogleFormsApiError(status: number, payload: unknown): string {
+  if (status === 401) return 'Google rejected the access token. Sign in again and retry.'
+  if (status === 403) return 'You do not have permission to read this form, or the Forms API scope was not granted.'
+  if (status === 404) return 'Form not found. Check the form ID and that the form exists.'
+  if (payload && typeof payload === 'object' && 'error' in payload) {
+    const err = (payload as { error?: { message?: string } }).error
+    if (err?.message) return err.message
+  }
+  return 'Failed to load the form from Google.'
 }

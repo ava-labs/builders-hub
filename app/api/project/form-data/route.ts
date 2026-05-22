@@ -104,89 +104,51 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     const sessionUserId: string = session.user.id;
     const sessionUserEmail: string = session.user.email ?? '';
 
+    /**
+     * SECURITY: Resolve the project outside the transaction so we can return
+     * an early 404 without leaking a `NextResponse` through the transaction
+     * return value.  Automatic project creation has been removed to prevent
+     * unbounded resource creation (DoS).
+     */
+    let resolvedProject: { id: string; project_name: string } | null = null;
+
+    if (incomingProjectId) {
+      resolvedProject = await prisma.project.findFirst({
+        where: {
+          id: incomingProjectId,
+          hackaton_id: hackathonId,
+          members: { some: { user_id: sessionUserId } },
+        },
+        select: { id: true, project_name: true },
+      });
+    }
+
+    if (!resolvedProject) {
+      resolvedProject = await prisma.project.findFirst({
+        where: {
+          hackaton_id: hackathonId,
+          members: { some: { user_id: sessionUserId } },
+        },
+        select: { id: true, project_name: true },
+        orderBy: { created_at: 'desc' },
+      });
+    }
+
+    if (!resolvedProject) {
+      /**
+       * SECURITY: Do NOT create a project automatically.  Previously this
+       * path created an unbounded number of "Draft Project" rows for any
+       * authenticated user, enabling a DoS / resource-exhaustion attack.
+       * Callers must create a project via the dedicated project-creation
+       * endpoint before submitting stage data.
+       */
+      return NextResponse.json(
+        { error: 'No project found for this hackathon. Please create a project first.' },
+        { status: 404 }
+      );
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-      let resolvedProject: {
-        id: string;
-        project_name: string;
-      } | null = null;
-
-      if (incomingProjectId) {
-        resolvedProject = await tx.project.findFirst({
-          where: {
-            id: incomingProjectId,
-            hackaton_id: hackathonId,
-            members: {
-              some: {
-                user_id: sessionUserId,
-              },
-            },
-          },
-          select: {
-            id: true,
-            project_name: true,
-          },
-        });
-      }
-
-      if (!resolvedProject) {
-        resolvedProject = await tx.project.findFirst({
-          where: {
-            hackaton_id: hackathonId,
-            members: {
-              some: {
-                user_id: sessionUserId,
-              },
-            },
-          },
-          select: {
-            id: true,
-            project_name: true,
-          },
-          orderBy: {
-            created_at: 'desc',
-          },
-        });
-      }
-
-      if (!resolvedProject) {
-        const dummyProject = await tx.project.create({
-          data: {
-            hackaton_id: hackathonId,
-            project_name: `Draft Project ${new Date().toISOString()}`,
-            short_description: 'Draft project created from stage submission',
-            full_description: '',
-            tech_stack: '',
-            github_repository: '',
-            demo_link: '',
-            logo_url: '',
-            cover_url: '',
-            demo_video_link: '',
-            screenshots: [],
-            tracks: [],
-            explanation: '',
-            is_preexisting_idea: false,
-            small_cover_url: '',
-            tags: [],
-            categories: [],
-            origin: 'stage-submit',
-            members: {
-              create: {
-                user_id: sessionUserId,
-                email: sessionUserEmail,
-                role: 'Owner',
-                status: 'Confirmed',
-              },
-            },
-          },
-          select: {
-            id: true,
-            project_name: true,
-          },
-        });
-
-        resolvedProject = dummyProject;
-      }
-
       const existingFormData = await tx.formData.findFirst({
         where: {
           project_id: resolvedProject.id,

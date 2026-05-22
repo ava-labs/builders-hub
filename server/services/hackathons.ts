@@ -14,6 +14,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getDateWithTimezone } from "./date-parser";
 import { getUserById } from "./getUser";
+import { hackathonStagesArraySchema } from "@/lib/validations/hackathon-stage.schema";
 
 const prisma = new PrismaClient();
 
@@ -324,6 +325,24 @@ export async function createHackathon(
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
+
+  /**
+   * SECURITY: Validate `content.stages` with the Zod schema before persisting.
+   * The `stages` field is a JSON column; without this check arbitrary nested
+   * structures could be written to the database.  Return a ValidationError
+   * (which the API layer maps to 400) so callers get actionable feedback.
+   */
+  if (hackathonData.content?.stages !== undefined) {
+    const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
+    if (!stagesResult.success) {
+      throw new ValidationError(
+        "Invalid stages data",
+        [{ field: "content.stages", message: JSON.stringify(stagesResult.error.flatten()), validation: () => false }]
+      );
+    }
+    hackathonData.content.stages = stagesResult.data;
+  }
+
   if (hackathonData.content?.schedule) {
     const schedule = hackathonData.content.schedule.map(
       (activity: ScheduleActivity) => {
@@ -386,6 +405,23 @@ export async function updateHackathon(
     console.log(errors);
     if (errors.length > 0) {
       throw new ValidationError("Validation failed", errors);
+    }
+
+    /**
+     * SECURITY: Validate `content.stages` with the Zod schema before
+     * persisting to the database.  Unvalidated JSON columns are a schema-
+     * injection risk; an attacker could store arbitrary structures that
+     * affect rendering or downstream processing.
+     */
+    if (hackathonData.content?.stages !== undefined) {
+      const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
+      if (!stagesResult.success) {
+        throw new ValidationError(
+          "Invalid stages data",
+          [{ field: "content.stages", message: JSON.stringify(stagesResult.error.flatten()), validation: () => false }]
+        );
+      }
+      hackathonData.content.stages = stagesResult.data;
     }
   }
 
