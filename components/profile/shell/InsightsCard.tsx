@@ -672,7 +672,7 @@ function EventHistorySection({ data }: { data: BuilderInsightsData }) {
               <th>Event</th>
               <th className="pr-num">Inscriptions</th>
               <th className="pr-num">Projects submitted</th>
-              <th>Top traffic sources (90d)</th>
+              <th className="pr-num">Top traffic sources (90d)</th>
             </tr>
           </thead>
           <tbody>
@@ -697,7 +697,7 @@ function EventHistorySection({ data }: { data: BuilderInsightsData }) {
                   <td className="pr-num">{formatNumber(e.projects)}</td>
                   <td>
                     {e.topTrafficSources.length === 0 ? (
-                      <span className="pr-leaderboard__country">No data</span>
+                      <div className="pr-traffic-sources__empty">No data</div>
                     ) : (
                       <ul className="pr-traffic-sources">
                         {e.topTrafficSources.map((src) => (

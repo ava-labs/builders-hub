@@ -37,7 +37,7 @@ const SOURCE_BUCKET_EXPR = `
       'Telegram',
     properties.$referring_domain IN ('build.avax.network', 'www.build.avax.network'),
       'BuildersHub (internal)',
-    notEmpty(properties.$referring_domain),
+    notEmpty(properties.$referring_domain) AND properties.$referring_domain != '$direct',
       properties.$referring_domain,
     'Direct'
   )
@@ -100,7 +100,9 @@ export async function getTopHackathonTrafficSourcesBatch(
   const idList = safeIds.map((id) => `'${id}'`).join(", ");
 
   // `LIMIT N BY column` is ClickHouse syntax: keep the first N rows per group
-  // after ORDER BY. Gives top-N per hackathon in one query.
+  // after ORDER BY. Gives top-N per hackathon in one query. We pre-filter
+  // pageviews that would bucket as "Direct" (no referrer + no real UTM) so
+  // they never compete for a top-N slot.
   const query = `
     SELECT
       coalesce(
@@ -118,6 +120,10 @@ export async function getTopHackathonTrafficSourcesBatch(
         nullIf(properties.hackathon_id, ''),
         extract(properties.$pathname, '^/hackathons/([a-fA-F0-9-]{36})')
       ) IN (${idList})
+      AND (
+        (notEmpty(properties.$referring_domain) AND properties.$referring_domain != '$direct')
+        OR (notEmpty(properties.utm_source) AND properties.utm_source != '$direct')
+      )
     GROUP BY hackathon_id, source
     ORDER BY hackathon_id, visitors DESC
     LIMIT ${safeLimit} BY hackathon_id

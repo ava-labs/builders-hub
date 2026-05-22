@@ -2161,11 +2161,13 @@
 }
 .profile .pr-traffic-sources {
   list-style: none;
-  margin: 0;
+  margin: 0 0 0 auto;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  width: 240px;
+  max-width: 100%;
 }
 .profile .pr-traffic-sources li {
   display: flex;
@@ -2186,6 +2188,12 @@
   font-size: 10.5px;
   color: var(--pr-g-650);
   flex-shrink: 0;
+}
+.profile .pr-traffic-sources__empty {
+  font-family: var(--pr-mono);
+  font-size: 10px;
+  color: var(--pr-g-650);
+  text-align: right;
 }
 
 /* Hackathon history — 4-up grid with one wide featured tile. Each card
