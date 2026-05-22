@@ -99,16 +99,19 @@ export async function getTopHackathonTrafficSourcesBatch(
   const safeLimit = Math.max(1, Math.min(20, Math.floor(limit)));
   const idList = safeIds.map((id) => `'${id}'`).join(", ");
 
+  // Hackathon attribution: extract the UUID from /events/<id> or /hackathons/<id>
+  // URLs. Both routes serve the same hackathon today.
+  //
   // `LIMIT N BY column` is ClickHouse syntax: keep the first N rows per group
-  // after ORDER BY. Gives top-N per hackathon in one query. We pre-filter
+  // after ORDER BY — gives top-N per hackathon in one query. We pre-filter
   // pageviews that would bucket as "Direct" (no referrer + no real UTM) so
   // they never compete for a top-N slot.
+  const HACKATHON_ID_FROM_PATH =
+    "extract(properties.$pathname, '^/(?:hackathons|events)/([a-fA-F0-9-]{36})')";
+
   const query = `
     SELECT
-      coalesce(
-        nullIf(properties.hackathon_id, ''),
-        extract(properties.$pathname, '^/hackathons/([a-fA-F0-9-]{36})')
-      ) AS hackathon_id,
+      ${HACKATHON_ID_FROM_PATH} AS hackathon_id,
       ${SOURCE_BUCKET_EXPR} AS source,
       count(DISTINCT distinct_id) AS visitors,
       countIf(properties.$pathname LIKE '%/registration-form%') AS reachedRegister
@@ -116,10 +119,7 @@ export async function getTopHackathonTrafficSourcesBatch(
     WHERE event = '$pageview'
       AND ${HOGQL_HOST_FILTER}
       AND timestamp >= now() - INTERVAL ${safeDays} DAY
-      AND coalesce(
-        nullIf(properties.hackathon_id, ''),
-        extract(properties.$pathname, '^/hackathons/([a-fA-F0-9-]{36})')
-      ) IN (${idList})
+      AND ${HACKATHON_ID_FROM_PATH} IN (${idList})
       AND (
         (notEmpty(properties.$referring_domain) AND properties.$referring_domain != '$direct')
         OR (notEmpty(properties.utm_source) AND properties.utm_source != '$direct')
