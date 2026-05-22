@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
@@ -802,6 +803,24 @@ const HackathonsEdit = () => {
       getMyHackathons();
     }
   }, [session, status]);
+
+  // Deep-link support: ?event=<id> auto-selects the matching hackathon
+  // once the list has loaded. Lets /events/new and the Edit Event button
+  // hand off directly to the right row instead of stranding the user on
+  // the picker.
+  const searchParams = useSearchParams();
+  const requestedEventId = searchParams?.get("event") ?? null;
+  const autoSelectedRef = useRef(false);
+  useEffect(() => {
+    if (autoSelectedRef.current) return;
+    if (!requestedEventId) return;
+    if (myHackathons.length === 0) return;
+    const match = myHackathons.find((h) => h.id === requestedEventId);
+    if (match) {
+      autoSelectedRef.current = true;
+      handleSelectHackathon(match);
+    }
+  }, [requestedEventId, myHackathons]);
 
   const handleSelectHackathon = (hackathon: any) => {
     setIsSelectedHackathon(true);

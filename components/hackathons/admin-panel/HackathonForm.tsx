@@ -335,10 +335,18 @@ export default function HackathonForm({
           title: 'Hackathon updated successfully',
         });
       } else {
-        await axios.post(`/api/events/`, payload);
+        // Default to unpublished on create so the creator can finish
+        // configuring tracks / dates / etc. before participants see it.
+        // Visibility is then flipped on /events/edit via the is_public toggle.
+        const createPayload = { ...payload, is_public: false };
+        const response = await axios.post(`/api/events/`, createPayload);
+        const newId = response?.data?.hackathon?.id;
         toast({
-          title: 'Hackathon created successfully',
+          title: 'Hackathon created — finish configuring it before publishing',
         });
+        if (newId) {
+          router.push(`/events/edit?event=${newId}`);
+        }
       }
     } catch (error) {
       console.log(error);
