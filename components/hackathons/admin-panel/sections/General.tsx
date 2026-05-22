@@ -63,11 +63,11 @@ function General({
   return (
     <>
       <h3 className='font-medium text-2xl'>General Section</h3>
-      <p className='text-muted-foreground'>
+      <p className='text-zinc-400'>
         Manage the basic settings and primary details of your hackathon.
       </p>
 
-      <hr className='my-4 border-t border-border' />
+      <hr className='my-4 border-t border-zinc-800' />
       {/* Hackathon Name */}
       <div className='flex flex-col gap-12 max-w-full'>
         <FormField
@@ -84,7 +84,7 @@ function General({
                   value={field.value?? ''}
                 />
               </FormControl>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 This is the name that will be displayed on the public hackathon
                 page.
               </FormDescription>
@@ -108,7 +108,7 @@ function General({
                   value={field.value?? ''}
                 />
               </FormControl>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Keep it concise and clear (Max: 500 characters). Focus on
                 objectives, themes, and any unique aspects of the hackathon.
               </FormDescription>
@@ -135,7 +135,7 @@ function General({
                   }}
                 />
               </FormControl>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 File Requirements:
                 <br />
                 • Supported formats: PNG, JPG, SVG
@@ -165,7 +165,7 @@ function General({
                   }}
                 />
               </FormControl>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 File Requirements:
                 <br />
                 • Supported formats: PNG, JPG <br />
@@ -177,7 +177,7 @@ function General({
           )}
         />
 
-        <hr className='my-4 border-t border-border' />
+        <hr className='my-4 border-t border-zinc-800' />
 
         {/* Hackathon Format */}
         <FormField
@@ -204,7 +204,7 @@ function General({
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Choose whether the hackathon will be held virtual, on-site, or
                 in a hybrid format.
               </FormDescription>
@@ -228,7 +228,7 @@ function General({
                   value={field.value?? ''}
                 />
               </FormControl>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Specify the exact location if it&apos;s an on-site or hybrid
                 hackathon.
               </FormDescription>
@@ -251,7 +251,7 @@ function General({
                       variant='outline'
                       className={cn(
                         'pl-3 text-left font-normal w-full overflow-hidden',
-                        !field.value && 'text-muted-foreground'
+                        !field.value && 'text-zinc-400'
                       )}
                     >
                       {field.value ? (
@@ -265,18 +265,18 @@ function General({
                 </PopoverTrigger>
                 <PopoverContent className='w-auto p-0' align='start'>
                   <Calendar
-                    className='bg-background'
+                    className='bg-zinc-950'
                     mode='single'
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                      date > new Date() || date < new Date('1900-01-01')
                     }
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Set the last date and time for participant registration. Must be
                 before the hackathon start date.
               </FormDescription>
@@ -299,7 +299,7 @@ function General({
                       variant='outline'
                       className={cn(
                         'justify-start text-left font-normal w-full truncate',
-                        !field.value && 'text-muted-foreground'
+                        !field.value && 'text-zinc-400'
                       )}
                     >
                       {field.value
@@ -311,18 +311,18 @@ function General({
                 </PopoverTrigger>
                 <PopoverContent className='w-auto p-0' align='start'>
                   <Calendar
-                    className='bg-background'
+                    className='bg-zinc-950'
                     mode='single'
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                      date > new Date() || date < new Date('1900-01-01')
                     }
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Set the official start date and time of the hackathon. Must be
                 after the registration deadline.
               </FormDescription>
@@ -345,7 +345,7 @@ function General({
                       variant='outline'
                       className={cn(
                         'justify-start text-left font-normal w-full truncate',
-                        !field.value && 'text-muted-foreground'
+                        !field.value && 'text-zinc-400'
                       )}
                     >
                       {field.value
@@ -357,18 +357,18 @@ function General({
                 </PopoverTrigger>
                 <PopoverContent className='w-auto p-0' align='start'>
                   <Calendar
-                    className='bg-background'
+                    className='bg-zinc-950'
                     mode='single'
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                      date > new Date() || date < new Date('1900-01-01')
                     }
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Set the official start date and time of the hackathon. Must be
                 after the registration deadline.
               </FormDescription>
@@ -408,7 +408,7 @@ function General({
                   {/* etc... */}
                 </SelectContent>
               </Select>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Select the official time zone for event scheduling. This will
                 affect deadlines and submission times.
               </FormDescription>
@@ -417,7 +417,7 @@ function General({
           )}
         />
 
-        <hr className='my-4 border-t border-border' />
+        <hr className='my-4 border-t border-zinc-800' />
 
         {/* Hackathon Status */}
         <FormField
@@ -441,7 +441,7 @@ function General({
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Public events are visible to everyone. Private events require an
                 invitation.
               </FormDescription>
@@ -473,7 +473,7 @@ function General({
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <FormDescription className='text-muted-foreground'>
+              <FormDescription className='text-zinc-400'>
                 Select the current state of the hackathon. <br /> The status
                 updates automatically based on the selected dates. You can
                 override it manually if needed.

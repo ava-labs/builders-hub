@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuthRole(['devrel', 'team1-admin'], async (req: NextRequest, context: any, session: any) => {
+export const POST = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
   try {
     const body = await req.json();
     const newHackathon = await createHackathon(body);

@@ -74,13 +74,7 @@ export default function Hackathons({
   totalUpcomingHackathons,
 }: Props) {
   const { data: session, status } = useSession();
-  // See note in Events.tsx: server-side gate is `devrel`; legacy attributes
-  // (hackathonCreator / team1-admin) are accepted to avoid kicking existing
-  // creators out of the button while we transition.
-  const isHackathonCreator =
-    session?.user?.custom_attributes.includes("devrel") ||
-    session?.user?.custom_attributes.includes("hackathonCreator") ||
-    session?.user?.custom_attributes.includes("team1-admin");
+  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
   
   const router = useRouter();
 
@@ -192,7 +186,7 @@ export default function Hackathons({
                           ongoingHackathons.find((x) => x.top_most);
 
   const addNewHackathon = () => {
-    router.push('/events/new');
+    router.push('/events/edit');
   };
 
   const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
