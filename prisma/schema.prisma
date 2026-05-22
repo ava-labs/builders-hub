@@ -86,7 +86,7 @@ model User {
   noun_avatar_seed           Json?
   skills                     String[]                  @default([])
   user_type                  Json?
-  wallet                     String[]                  @default([])
+  wallet                     Json                      @default("[]")
   notification_means         Json?                     @default("{}")
   github_access_token        String?
   chatConversations          ChatConversation[]

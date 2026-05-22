@@ -313,14 +313,22 @@ export default function ProfilePage({ teamLabel }: Props) {
     );
   };
 
-  const onAddWalletAndToast = (address: string) => {
-    handleAddWallet(address);
+  const onAddWalletAndToast = (address: string, tag?: string) => {
+    handleAddWallet(address, tag);
     pushToast("Wallet connected");
   };
 
   const onRemoveWallet = (address: string) => {
-    const current = watchedValues.wallet ?? [];
-    const idx = current.findIndex((w) => w.toLowerCase() === address.toLowerCase());
+    const current = (watchedValues.wallet ?? []) as Array<
+      | string
+      | { address: string; tag?: string }
+    >;
+    const idx = current.findIndex((entry) => {
+      if (typeof entry === "string") {
+        return entry.toLowerCase() === address.toLowerCase();
+      }
+      return entry.address.toLowerCase() === address.toLowerCase();
+    });
     if (idx >= 0) {
       handleRemoveWallet(idx);
       pushToast("Wallet removed");

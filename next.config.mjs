@@ -1,6 +1,13 @@
 import { createMDX } from 'fumadocs-mdx/next';
+import path from 'node:path';
 
 const withMDX = createMDX();
+const optionalWalletConnectorAliases = {
+  accounts: './lib/reown/empty-accounts.ts',
+  porto: './lib/reown/empty-porto.ts',
+  'porto/internal': './lib/reown/empty-porto.ts',
+  '@metamask/connect-evm': './lib/reown/empty-metamask-connect.ts',
+};
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -23,6 +30,24 @@ const config = {
     '/*': ['./tsconfig.json'],
   },
   transpilePackages: ["next-mdx-remote"],
+  turbopack: {
+    resolveAlias: {
+      ...optionalWalletConnectorAliases,
+    },
+  },
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      ...Object.fromEntries(
+        Object.entries(optionalWalletConnectorAliases).map(([moduleName, filePath]) => [
+          moduleName,
+          path.resolve(filePath),
+        ]),
+      ),
+    };
+
+    return config;
+  },
   images: {
     remotePatterns: [
       {

@@ -64,7 +64,12 @@ export const UpdateExtendedProfileSchema = z
       LINKEDIN_ACCOUNT_PATTERN,
       "Invalid LinkedIn URL.",
     ),
-    wallet: z.array(z.string()).nullable().optional(),
+    wallet: z.array(
+      z.object({
+        address: z.string().trim().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address."),
+        tag: z.string().trim().optional(),
+      }),
+    ).nullable().optional(),
     additional_social_accounts: z.array(z.string()).optional(),
     skills: z.array(z.string()).optional(),
     notifications: z.boolean().nullable().optional(),

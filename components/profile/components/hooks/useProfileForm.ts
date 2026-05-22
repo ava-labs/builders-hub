@@ -42,7 +42,12 @@ export const profileSchema = z.object({
     .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"), z.literal("")])
     .optional()
     .default(""),
-  wallet: z.array(z.string()).optional().default([]),
+  wallet: z.array(
+    z.object({
+      address: z.string().trim().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address."),
+      tag: z.string().trim().optional(),
+    }),
+  ).optional().default([]),
   additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
   skills: z.array(z.string()).default([]),
   notifications: z.boolean().default(false),
@@ -107,6 +112,27 @@ export function useProfileForm() {
   const { watch, setValue, formState } = form;
   const watchedValues = watch();
 
+  const normalizeWallets = (rawWallets: unknown): Array<{ address: string; tag?: string }> => {
+    if (!Array.isArray(rawWallets)) return [];
+
+    return rawWallets.flatMap((item) => {
+      if (typeof item === "string") {
+        const address = item.trim();
+        return address ? [{ address }] : [];
+      }
+
+      if (item && typeof item === "object" && typeof (item as any).address === "string") {
+        const address = (item as any).address.trim();
+        if (!address) return [];
+        const rawTag = (item as any).tag;
+        const tag = typeof rawTag === "string" ? rawTag.trim() : undefined;
+        return [tag ? { address, tag } : { address }];
+      }
+
+      return [];
+    });
+  };
+
   const loadProfile = useCallback(async () => {
     if (!session?.user?.id) {
       setIsLoading(false);
@@ -154,7 +180,7 @@ export function useProfileForm() {
           github_account: profile.github_account || "",
           x_account: profile.x_account || "",
           linkedin_account: profile.linkedin_account || "",
-          wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
+          wallet: normalizeWallets(profile.wallet),
           additional_social_accounts: profile.additional_social_accounts || [],
           skills: profile.skills || [],
           notifications: profile.notifications || false,
@@ -279,14 +305,23 @@ export function useProfileForm() {
         ...restData
       } = data;
 
-      // Clean wallet array: remove empty strings and duplicates
       const cleanedWallets = Array.isArray(wallet)
-        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))]
-        : [];
+        ? normalizeWallets(wallet).reduce<Record<string, { address: string; tag?: string }>>(
+            (acc, item) => {
+              const key = item.address.toLowerCase();
+              if (!(key in acc)) {
+                acc[key] = item.tag ? { address: item.address, tag: item.tag } : { address: item.address };
+              }
+              return acc;
+            },
+            {},
+          )
+        : {};
+      const cleanedWalletEntries = Array.isArray(wallet) ? Object.values(cleanedWallets) : [];
 
       const profileData = {
         ...restData,
-        wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
+        wallet: cleanedWalletEntries.length > 0 ? cleanedWalletEntries : [],
         image: imageUrl,
         user_type: {
           is_student,
@@ -378,8 +413,8 @@ export function useProfileForm() {
 
     // Validate wallet format if provided (validate each wallet in the array)
     if (data.wallet && Array.isArray(data.wallet) && data.wallet.length > 0) {
-      const invalidWallets = data.wallet.filter(
-        (wallet) => wallet && wallet.trim() !== "" && !/^0x[a-fA-F0-9]{40}$/.test(wallet.trim())
+      const invalidWallets = normalizeWallets(data.wallet).filter(
+        (wallet) => !/^0x[a-fA-F0-9]{40}$/.test(wallet.address),
       );
       
       if (invalidWallets.length > 0) {
@@ -448,14 +483,21 @@ export function useProfileForm() {
         ...restData
       } = data;
 
-      // Clean wallet array: remove empty strings and duplicates
-      const cleanedWallets = Array.isArray(wallet)
-        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))]
-        : [];
+      const cleanedWalletEntries = normalizeWallets(wallet).reduce<Record<string, { address: string; tag?: string }>>(
+        (acc, item) => {
+          const key = item.address.toLowerCase();
+          if (!(key in acc)) {
+            acc[key] = item.tag ? { address: item.address, tag: item.tag } : { address: item.address };
+          }
+          return acc;
+        },
+        {},
+      );
+      const cleanedWalletArray = Object.values(cleanedWalletEntries);
 
       const profileData = {
         ...restData,
-        wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
+        wallet: cleanedWalletArray.length > 0 ? cleanedWalletArray : [],
         image: imageUrl, // Use uploaded image or existing one
         user_type: {
           is_student,
@@ -517,7 +559,7 @@ export function useProfileForm() {
         github_account: updatedProfile.github_account || "",
         x_account: updatedProfile.x_account || "",
         linkedin_account: updatedProfile.linkedin_account || "",
-        wallet: Array.isArray(updatedProfile.wallet) ? updatedProfile.wallet : (updatedProfile.wallet ? [updatedProfile.wallet] : []),
+        wallet: normalizeWallets(updatedProfile.wallet),
         additional_social_accounts: updatedProfile.additional_social_accounts || [],
         skills: updatedProfile.skills || [],
         notifications: updatedProfile.notifications || false,
@@ -567,16 +609,25 @@ export function useProfileForm() {
   };
 
   // Wallet handlers
-  const handleAddWallet = (address: string) => {
-    const currentWallets = watchedValues.wallet || [];
+  const handleAddWallet = (address: string, tag?: string) => {
+    const currentWallets = normalizeWallets(watchedValues.wallet);
     const trimmedAddress = address?.trim() ?? "";
     if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
-    // Evitar duplicados (comparación case-insensitive: las direcciones Ethereum son la misma con distinta capitalización)
-    const isDuplicate = currentWallets.some(
-      (w) => w.toLowerCase() === trimmedAddress.toLowerCase()
+
+    const normalizedTag = tag?.trim();
+    const isDuplicate = currentWallets.some((entry) =>
+      entry.address.trim().toLowerCase() === trimmedAddress.toLowerCase(),
     );
+
     if (!isDuplicate) {
-      setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
+      setValue(
+        "wallet",
+        [
+          ...currentWallets,
+          { address: trimmedAddress, ...(normalizedTag ? { tag: normalizedTag } : {}) },
+        ],
+        { shouldDirty: true },
+      );
     }
   };
 
