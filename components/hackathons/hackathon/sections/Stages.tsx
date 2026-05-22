@@ -118,17 +118,19 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
           </div>
 
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-            <a
-              href="https://calendar.google.com/calendar"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative inline-flex w-full sm:w-auto"
-            >
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition duration-300" />
-              <div className="relative flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-3 bg-[#d66666] rounded-lg font-medium text-[#152d44] group-hover:bg-[#e57f7f] transition-all duration-200 shadow-lg shadow-amber-500/20 group-hover:shadow-amber-500/40">
-                <span className="text-sm sm:text-[15px]">Add to Calendar</span>
-              </div>
-            </a>
+            {hackathon.google_calendar_id && (
+              <a
+                href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(hackathon.google_calendar_id)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative inline-flex w-full sm:w-auto"
+              >
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition duration-300" />
+                <div className="relative flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-3 bg-[#d66666] rounded-lg font-medium text-[#152d44] group-hover:bg-[#e57f7f] transition-all duration-200 shadow-lg shadow-amber-500/20 group-hover:shadow-amber-500/40">
+                  <span className="text-sm sm:text-[15px]">Add to Calendar</span>
+                </div>
+              </a>
+            )}
           </div>
         </div>
 

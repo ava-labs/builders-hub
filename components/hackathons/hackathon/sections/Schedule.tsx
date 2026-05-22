@@ -36,7 +36,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
   const [selectedDay, setSelectedDay] = useState<string>('');
 
   // Use the schedule strategy hook - source is determined programmatically via scheduleSource prop
-  const { schedule: scheduleData, calendarTimeZone } = useSchedule({
+  const { schedule: scheduleData, calendarTimeZone, isLoading, error } = useSchedule({
     source: scheduleSource,
     hackathonId: hackathon.id,
     existingSchedule: hackathon.content.schedule,
@@ -164,7 +164,23 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
         {t(lang, 'section.schedule.title')}
       </h2>
       <Separator className='my-2 sm:my-8 bg-zinc-300 dark:bg-zinc-800' />
-      
+
+      {isLoading && (
+        <div className='flex items-center gap-3 py-6 text-zinc-500 dark:text-zinc-400'>
+          <svg className='animate-spin h-5 w-5 shrink-0' viewBox='0 0 24 24' fill='none'>
+            <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
+            <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z' />
+          </svg>
+          <span className='text-sm'>{t(lang, 'schedule.loadingCalendar')}</span>
+        </div>
+      )}
+
+      {!isLoading && error && (
+        <div className='rounded-md border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-400'>
+          {t(lang, 'schedule.calendarError')}
+        </div>
+      )}
+
       <span className='dark:text-zinc-50 text-zinc-900 text-lg font-medium sm:text-base'>
         {getDateRange(scheduleData)}
       </span>

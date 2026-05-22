@@ -153,6 +153,6 @@ export function mapFormToHackathonHeader(params: {
     is_public: main.is_public ?? true,
     event: latest.event,
     new_layout: latest.new_layout,
-    google_calendar_id: latest.google_calendar_id,
+    google_calendar_id: latest.google_calendar_id?.trim() || null,
   };
 }
