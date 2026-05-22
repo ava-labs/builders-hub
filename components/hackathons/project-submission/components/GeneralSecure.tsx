@@ -399,7 +399,6 @@ export default function GeneralSecureComponent({
                       await handleSaveWithoutRoute();
                     }}
                     availableTracks={hackathon?.content?.tracks ?? []}
-                    availableStackOptions={hackathon?.content?.tech_stack_options ?? []}
                     openjoinTeamDialog={openJoinTeam}
                     openCurrentProject={openCurrentProject}
                     setOpenCurrentProject={(open) =>

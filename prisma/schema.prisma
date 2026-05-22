@@ -175,7 +175,6 @@ model Project {
   website             Json?
   socials             Json?
   consent_sharing     Boolean?
-  stack               String[]            @default([])
   formData            FormData[]
   members             Member[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)

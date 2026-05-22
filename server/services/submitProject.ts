@@ -157,9 +157,6 @@ export async function createProject(
           short_description: projectData.short_description ?? "",
           full_description: projectData.full_description ?? "",
           tech_stack: projectData.tech_stack ?? "",
-          stack: Array.isArray((projectData as any).stack)
-            ? ((projectData as any).stack as string[])
-            : [],
           github_repository: projectData.github_repository ?? "",
           demo_link: projectData.demo_link ?? "",
           explanation: projectData.explanation ?? "",
@@ -194,9 +191,6 @@ export async function createProject(
         short_description: projectData.short_description ?? "",
         full_description: projectData.full_description ?? "",
         tech_stack: projectData.tech_stack ?? "",
-        stack: Array.isArray((projectData as any).stack)
-          ? ((projectData as any).stack as string[])
-          : [],
         github_repository: projectData.github_repository ?? "",
         demo_link: projectData.demo_link ?? "",
         is_preexisting_idea: projectData.is_preexisting_idea ?? false,

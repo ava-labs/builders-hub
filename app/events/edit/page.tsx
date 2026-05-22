@@ -837,7 +837,6 @@ const HackathonsEdit = () => {
       submission_open: hackathon.content?.submission_open ? toLocalDatetimeString(hackathon.content.submission_open) : '',
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
       team_size_max: hackathon.content?.team_size_max,
-      tech_stack_options: hackathon.content?.tech_stack_options ?? [],
       registration_mode: hackathon.content?.registration_mode ?? 'full',
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
@@ -2939,24 +2938,6 @@ const HackathonsEdit = () => {
                               team_size_max: Number.isFinite(parsed) ? parsed : undefined,
                             });
                           }}
-                          className="w-full mb-4"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].techStackOptions}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].techStackOptionsHelp}</div>
-                        <Input
-                          placeholder="Frontend, Backend, Smart Contract, AI/ML, Mobile, Infra"
-                          value={(formDataContent.tech_stack_options ?? []).join(', ')}
-                          onChange={(e) =>
-                            setFormDataContent({
-                              ...formDataContent,
-                              tech_stack_options: e.target.value
-                                .split(',')
-                                .map((s) => s.trim())
-                                .filter(Boolean),
-                            })
-                          }
                           className="w-full mb-4"
                         />
                       </div>

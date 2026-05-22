@@ -32,8 +32,6 @@ export interface projectProps {
   onProjectCreated?: () => void;
   onHandleSave?: () => Promise<void>;
   availableTracks: HackathonTrack[];
-  /** Admin-defined tech-stack tokens for this event (Hackathon.content.tech_stack_options). */
-  availableStackOptions?: string[];
 
   openjoinTeamDialog?: boolean;
   onOpenChange: (open: boolean) => void;
@@ -195,39 +193,6 @@ const SubmitStep1: FC<projectProps> = (project) => {
             )}
           />
         )}
-
-        {/* Tech stack tokens (only when admin defined options on this hackathon). */}
-        {hasHackathon &&
-          project.availableStackOptions &&
-          project.availableStackOptions.length > 0 && (
-            <FormField
-              control={form.control}
-              name='stack'
-              render={({ field }) => {
-                const stackOptions: trackProp[] = (project.availableStackOptions ?? []).map(
-                  (token) => ({ value: token, label: token })
-                );
-                return (
-                  <FormItem>
-                    <FormLabelWithCheck
-                      label='Tech Stack'
-                      checked={!!field.value && field.value.length > 0}
-                    />
-                    <FormControl>
-                      <MultiSelect
-                        options={stackOptions}
-                        selected={field.value || []}
-                        onChange={field.onChange}
-                        placeholder='Select your tech stack'
-                        searchPlaceholder='Search tech stack'
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
-          )}
 
         {!hasHackathon && (
           <FormField

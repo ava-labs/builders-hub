@@ -62,8 +62,6 @@ export type Hackathon = {
   resources: Resource[]
   /** Optional cap on members per project (Solo=1, Duo=2). When undefined, no cap. */
   team_size_max?: number
-  /** Admin-defined tech-stack tokens shown in the submission multi-select. */
-  tech_stack_options?: string[]
   /** "full" (legacy long form) or "simple" (slim registration). Defaults to "full". */
   registration_mode?: "full" | "simple"
 }

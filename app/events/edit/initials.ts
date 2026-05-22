@@ -70,8 +70,6 @@ export interface IDataMain {
     registration_deadline: string;
     /** Optional cap on members per project (Solo=1, Duo=2, etc.). When undefined, no cap. */
     team_size_max?: number;
-    /** Admin-defined tech-stack tokens shown in the submission multi-select. */
-    tech_stack_options?: string[];
     /** "full" (legacy long form) or "simple" (slim registration). Defaults to "full". */
     registration_mode?: "full" | "simple";
   }
@@ -151,7 +149,6 @@ export interface IDataMain {
           submission_open: '',
           registration_deadline: '',
           team_size_max: undefined,
-          tech_stack_options: [],
           registration_mode: 'full',
       },
       latest: {
