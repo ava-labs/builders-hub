@@ -199,13 +199,6 @@ export function UserButton() {
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
             {
-              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('notify_event')) && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/send-notifications'>Send notifications</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {
               (session?.user?.custom_attributes.includes('devrel') ||
                 session?.user?.custom_attributes?.includes('hackathonCreator') ||
                 session?.user?.custom_attributes?.includes('team1-admin')) && (
@@ -221,18 +214,6 @@ export function UserButton() {
                 </DropdownMenuItem>
               )
             }
-            {
-              canAccessInsights && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/builder-insights'>Builder Insights</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {/* <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile?tab=settings'>Settings</Link>
-            </DropdownMenuItem> */}
-
-
             <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-700" />
             <DropdownMenuItem
               onClick={() => setSignOutOpen(true)}
