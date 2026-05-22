@@ -791,6 +791,37 @@ async function checkGlacierSupport(chainId: string): Promise<boolean> {
   }
 }
 
+// Probe metrics API for any non-zero activity over the last ~30 days.
+// Returns false if metrics API is unconfigured, errors out, or every value is zero —
+// which is our signal that the chain is not indexed yet.
+async function checkChainIndexed(chainId: string): Promise<boolean> {
+  const metricsApiUrl = process.env.METRICS_API_URL;
+  if (!metricsApiUrl) return false;
+  try {
+    const endTimestamp = Math.floor(Date.now() / 1000);
+    const startTimestamp = endTimestamp - 30 * 24 * 60 * 60;
+    const url = new URL(`${metricsApiUrl}/v2/chains/${chainId}/metrics/cumulativeTxCount`);
+    url.searchParams.set('timeInterval', 'day');
+    url.searchParams.set('startTimestamp', String(startTimestamp));
+    url.searchParams.set('endTimestamp', String(endTimestamp));
+    url.searchParams.set('pageSize', '30');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    try {
+      const res = await fetch(url.toString(), { signal: controller.signal });
+      if (!res.ok) return false;
+      const data = await res.json();
+      const results: { value?: number }[] = Array.isArray(data?.results) ? data.results : [];
+      return results.some((r) => Number(r?.value) > 0);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ chainId: string }> }
@@ -827,9 +858,10 @@ export async function GET(
     // If priceOnly, just fetch price and glacier support (for ExplorerContext)
     if (priceOnly) {
       const priceOnlyStart = Date.now();
-      const [price, glacierSupported] = await Promise.all([
+      const [price, glacierSupported, hasMetricsActivity] = await Promise.all([
         coingeckoId ? fetchPrice(coingeckoId) : Promise.resolve(undefined),
         checkGlacierSupport(chainId),
+        checkChainIndexed(chainId),
       ]);
       requestTiming.priceOnly = Date.now() - priceOnlyStart;
       requestTiming.total = Date.now() - requestStart;
@@ -838,6 +870,7 @@ export async function GET(
         price,
         tokenSymbol,
         glacierSupported,
+        isIndexed: glacierSupported && hasMetricsActivity,
       });
     }
 

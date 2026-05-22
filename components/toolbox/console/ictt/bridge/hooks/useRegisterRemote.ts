@@ -7,7 +7,7 @@ import { useIcttBridgeStore } from '@/components/toolbox/stores/iccttBridgeStore
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ByChainId } from '@/components/toolbox/stores/l1ListStore';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
-import { cb58ToHex } from '@/components/tools/common/utils/cb58';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import ERC20TokenHomeAbi from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import TeleporterMessengerAbi from '@/contracts/icm-contracts/compiled/TeleporterMessenger.json';
 import { truncateAddress } from '../utils/explorer-url';
@@ -88,7 +88,7 @@ export function useRegisterRemote({
     setHomePollState('polling');
     setPollAttempts(0);
 
-    const blockchainIDHex = cb58ToHex(target.l1Id) as Address;
+    const blockchainIDHex = CB58ToHex(target.l1Id) as Address;
     let attempt = 0;
 
     const tick = async () => {
