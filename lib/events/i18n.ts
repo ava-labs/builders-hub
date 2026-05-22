@@ -101,7 +101,7 @@ const dict: Record<EventsLang, Dict> = {
     "events.tabs.hackathons": "Hackathons",
     "events.tabs.workshops": "Workshops",
     "events.tabs.bootcamps": "Bootcamps",
-    "events.myHackathons": "My Hackathons",
+    "events.myHackathons": "Create Hackathon",
     "events.emptyActive":
       "No upcoming or ongoing events at the moment. Join our Telegram community to be the first to know about new opportunities!",
     "events.joinTelegram": "Join Telegram Group",
@@ -554,7 +554,7 @@ const dict: Record<EventsLang, Dict> = {
     "events.tabs.hackathons": "Hackathons",
     "events.tabs.workshops": "Workshops",
     "events.tabs.bootcamps": "Bootcamps",
-    "events.myHackathons": "Mis hackathons",
+    "events.myHackathons": "Crear hackathon",
     "events.emptyActive":
       "No hay eventos próximos o en curso por el momento. Únete a nuestra comunidad de Telegram para enterarte primero de nuevas oportunidades.",
     "events.joinTelegram": "Unirse al grupo de Telegram",
