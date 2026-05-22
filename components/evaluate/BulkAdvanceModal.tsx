@@ -36,7 +36,7 @@ const VERDICT_OPTIONS: { value: Verdict; label: string }[] = [
 
 function computeAvgVerdictScore(evaluations: EvaluationData[]): number | null {
   if (evaluations.length === 0) return null;
-  return evaluations.reduce((sum, e) => sum + (VERDICT_SCORES[e.verdict] ?? 0), 0) / evaluations.length;
+  return evaluations.reduce((sum, e) => sum + (e.verdict ? VERDICT_SCORES[e.verdict] ?? 0 : 0), 0) / evaluations.length;
 }
 
 function computeAvgOverallScore(evaluations: EvaluationData[]): number | null {

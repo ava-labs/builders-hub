@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { HackathonEvaluationPhase } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,7 +12,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Trophy } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, EyeOff, Lock, Trophy, Unlock } from "lucide-react";
 import { SubmissionDetailPanel } from "./SubmissionDetailPanel";
 import type { EvaluationData, SubmissionRow, Verdict } from "./types";
 
@@ -69,6 +86,9 @@ type Props = {
   hackathonId: string;
   viewerId: string;
   canPickWinners: boolean;
+  canManagePhase: boolean;
+  initialPhase: HackathonEvaluationPhase;
+  initialReviewed: number;
   projects: Project[];
 };
 
@@ -78,7 +98,7 @@ function toEvaluationData(e: Evaluation): EvaluationData {
     formDataId: "",
     evaluatorId: e.evaluator_id,
     evaluatorName: e.evaluator.name ?? e.evaluator.email,
-    verdict: (e.verdict ?? "maybe") as Verdict,
+    verdict: (e.verdict ?? null) as Verdict | null,
     comment: e.comment,
     scoreOverall: e.score_overall,
     scores: (e.scores as Record<string, number> | null) ?? null,
@@ -203,6 +223,9 @@ export function HackathonEvaluateDashboard({
   hackathonId,
   viewerId,
   canPickWinners,
+  canManagePhase,
+  initialPhase,
+  initialReviewed,
   projects: initialProjects,
 }: Props) {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
@@ -230,6 +253,19 @@ export function HackathonEvaluateDashboard({
     [projects, viewerId],
   );
   const pendingCount = projects.length - evaluatedCount;
+  const [phase, setPhase] = useState<HackathonEvaluationPhase>(initialPhase);
+  const [phaseConfirmOpen, setPhaseConfirmOpen] = useState(false);
+  const [phaseAdvancing, setPhaseAdvancing] = useState(false);
+  const [phaseError, setPhaseError] = useState<string | null>(null);
+
+  const isEvaluation = phase === HackathonEvaluationPhase.EVALUATION;
+  const totalProjects = projects.length;
+  const reviewedCount = useMemo(
+    () => projects.filter((p) => p.evaluations.length > 0).length,
+    [projects],
+  );
+  const reviewed = projects.length === 0 ? initialReviewed : reviewedCount;
+  const allReviewed = totalProjects > 0 && reviewed >= totalProjects;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -276,7 +312,7 @@ export function HackathonEvaluateDashboard({
 
   const openProject = projects.find((p) => p.id === openProjectId) ?? null;
 
-  async function toggleWinner(projectId: string, next: boolean) {
+  async function setIsWinner(projectId: string, next: boolean) {
     setWinnerSaving(projectId);
     const previous = projects;
     setProjects((prev) =>
@@ -293,6 +329,31 @@ export function HackathonEvaluateDashboard({
       setProjects(previous);
     } finally {
       setWinnerSaving(null);
+    }
+  }
+
+  async function confirmAdvancePhase() {
+    setPhaseAdvancing(true);
+    setPhaseError(null);
+    try {
+      const res = await fetch(
+        `/api/events/${hackathonId}/evaluation-phase`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+        },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setPhaseError(body.error ?? "Failed to advance phase");
+        return;
+      }
+      setPhase(HackathonEvaluationPhase.PICKING);
+      setPhaseConfirmOpen(false);
+    } catch {
+      setPhaseError("Network error — please try again");
+    } finally {
+      setPhaseAdvancing(false);
     }
   }
 
@@ -322,8 +383,67 @@ export function HackathonEvaluateDashboard({
     );
   }
 
+  const advanceButton = canManagePhase && isEvaluation ? (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button
+              size="sm"
+              onClick={() => setPhaseConfirmOpen(true)}
+              disabled={!allReviewed}
+              className="gap-1.5"
+            >
+              <Unlock className="size-3.5" />
+              Move to picking phase
+            </Button>
+          </span>
+        </TooltipTrigger>
+        {!allReviewed && (
+          <TooltipContent>
+            {reviewed}/{totalProjects} projects reviewed — every project needs
+            at least one evaluation before scores can be revealed.
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
+  ) : null;
+
   return (
     <>
+      <div
+        className={
+          "mb-4 flex flex-col gap-2 rounded-md border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between " +
+          (isEvaluation
+            ? "border-amber-500/30 bg-amber-500/5 text-amber-900 dark:text-amber-200"
+            : "border-emerald-500/30 bg-emerald-500/5 text-emerald-900 dark:text-emerald-200")
+        }
+      >
+        <div className="flex items-start gap-2">
+          {isEvaluation ? (
+            <EyeOff className="mt-0.5 size-4 shrink-0" />
+          ) : (
+            <Lock className="mt-0.5 size-4 shrink-0" />
+          )}
+          <div>
+            <div className="font-medium">
+              {isEvaluation ? "Evaluation phase" : "Picking phase"}
+            </div>
+            <div className="text-xs opacity-90">
+              {isEvaluation
+                ? "Scores are hidden between judges until devrel moves to the picking phase."
+                : "All judges' scores are visible. Devrel can now select winners."}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-zinc-600 dark:text-zinc-400">
+            {reviewed}/{totalProjects} reviewed
+          </span>
+          {advanceButton}
+        </div>
+      </div>
+
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
           value={query}
@@ -472,35 +592,19 @@ export function HackathonEvaluateDashboard({
                     {p.evaluations.length}
                   </TableCell>
                   <TableCell className="text-right text-sm text-zinc-700 dark:text-zinc-300">
-                    {avg !== null ? `${avg.toFixed(1)} / 5` : "—"}
+                    {isEvaluation ? "—" : avg !== null ? `${avg.toFixed(1)} / 5` : "—"}
                   </TableCell>
                   <TableCell className="text-right text-sm font-medium text-zinc-900 dark:text-zinc-100">
                     {mine?.score_overall ?? "—"}
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    {canPickWinners ? (
-                      <Button
-                        variant={p.is_winner ? "default" : "ghost"}
-                        size="sm"
-                        disabled={winnerSaving === p.id}
-                        onClick={() => toggleWinner(p.id, !p.is_winner)}
-                        aria-pressed={Boolean(p.is_winner)}
-                      >
-                        <Trophy
-                          className={
-                            "size-3.5 " +
-                            (p.is_winner ? "text-amber-300" : "text-zinc-500 dark:text-zinc-600 dark:text-zinc-500")
-                          }
-                        />
-                        {p.is_winner ? "Winner" : "Pick"}
-                      </Button>
-                    ) : p.is_winner ? (
-                      <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
-                        <Trophy className="size-3.5" /> Winner
-                      </span>
-                    ) : (
-                      <span className="text-xs text-zinc-500 dark:text-zinc-600">—</span>
-                    )}
+                    <WinnerControl
+                      isWinner={p.is_winner === true}
+                      canPickWinners={canPickWinners}
+                      isPickingPhase={!isEvaluation}
+                      isSaving={winnerSaving === p.id}
+                      onToggle={(next) => setIsWinner(p.id, next)}
+                    />
                   </TableCell>
                 </TableRow>
               );
@@ -520,6 +624,82 @@ export function HackathonEvaluateDashboard({
           onEvaluationSaved={handleEvaluationSaved}
         />
       )}
+
+      <AlertDialog open={phaseConfirmOpen} onOpenChange={setPhaseConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move to picking phase?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All judges' scores will become visible to every judge and to
+              devrel. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {phaseError && (
+            <p className="text-sm text-red-500">{phaseError}</p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={phaseAdvancing}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={phaseAdvancing}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmAdvancePhase();
+              }}
+            >
+              {phaseAdvancing ? "Advancing…" : "Move to picking phase"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
+  );
+}
+
+type WinnerControlProps = {
+  isWinner: boolean;
+  canPickWinners: boolean;
+  isPickingPhase: boolean;
+  isSaving: boolean;
+  onToggle: (next: boolean) => void;
+};
+
+function WinnerControl({
+  isWinner,
+  canPickWinners,
+  isPickingPhase,
+  isSaving,
+  onToggle,
+}: WinnerControlProps) {
+  if (!canPickWinners || !isPickingPhase) {
+    if (isWinner) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+          <Trophy className="size-3.5 text-amber-300" />
+          Winner
+        </span>
+      );
+    }
+    return <span className="text-xs text-zinc-500 dark:text-zinc-600">—</span>;
+  }
+
+  return (
+    <Button
+      variant={isWinner ? "default" : "ghost"}
+      size="sm"
+      disabled={isSaving}
+      aria-pressed={isWinner}
+      onClick={() => onToggle(!isWinner)}
+      className="gap-1.5"
+    >
+      <Trophy
+        className={
+          "size-3.5 " +
+          (isWinner ? "text-amber-300" : "text-zinc-500 dark:text-zinc-600")
+        }
+      />
+      {isWinner ? "Winner" : "Pick"}
+    </Button>
   );
 }

@@ -3,7 +3,7 @@
 import { Calendar, Clock, Users, Coins, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
 import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { ValidatorResponse, formatTimestamp, formatStake } from './types';
 
 interface ValidatorDetailsProps {
@@ -103,7 +103,7 @@ function OwnerSection({
 export function ValidatorDetails({ validator, onClose, copyToClipboard, copiedId }: ValidatorDetailsProps) {
   const hexValidationId = (() => {
     try {
-      return '0x' + cb58ToHex(validator.validationId);
+      return CB58ToHex(validator.validationId);
     } catch {
       return null;
     }
