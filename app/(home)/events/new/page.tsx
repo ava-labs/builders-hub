@@ -6,7 +6,8 @@ export default async function NewHackathonPage() {
   const session = await getAuthSession();
 
   const customAttributes: string[] = (session?.user as any)?.custom_attributes ?? [];
-  if (!session || !customAttributes.includes("devrel")) {
+  const HACKATHON_CREATE_ROLES = ["devrel", "team1-admin"];
+  if (!session || !HACKATHON_CREATE_ROLES.some((r) => customAttributes.includes(r))) {
     redirect("/");
   }
 

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PUT = withAuthRole(['devrel', 'team1-admin'], async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
@@ -43,7 +43,7 @@ export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any,
   }
 });
 
-export const PATCH = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PATCH = withAuthRole(['devrel', 'team1-admin'], async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();

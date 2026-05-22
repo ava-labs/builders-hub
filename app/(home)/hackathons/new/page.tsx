@@ -6,13 +6,14 @@ export default async function NewHackathonPage() {
   const session = await getAuthSession();
 
   const customAttributes: string[] = (session?.user as any)?.custom_attributes ?? [];
-  if (!session || !customAttributes.includes("devrel")) {
+  const HACKATHON_CREATE_ROLES = ["devrel", "team1-admin"];
+  if (!session || !HACKATHON_CREATE_ROLES.some((r) => customAttributes.includes(r))) {
     redirect("/");
   }
 
   return (
-    <main className='container  relative px-2 py-4 lg:py-16'>
-      <div className='border border-zinc-800 shadow-sm bg-zinc-950 rounded-md'>
+    <main className='container relative px-2 py-4 lg:py-16'>
+      <div className='border border-border shadow-sm bg-background rounded-md'>
         <HackathonForm />
       </div>
     </main>
