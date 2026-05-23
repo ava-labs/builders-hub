@@ -113,7 +113,6 @@ export function RegisterFormStep3({
           <div className="space-y-2">
             <GroupedUserConsents
               groupLabel={t(lang, "consents.group.label")}
-              groupHint={t(lang, "consents.group.hint")}
               items={consentItems}
             />
             {sharingError ? (

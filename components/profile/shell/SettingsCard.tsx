@@ -18,7 +18,7 @@ const CONSENTS: ReadonlyArray<ConsentDef> = [
     field: "notifications",
     title: "Receive Avalanche news and updates",
     description:
-      "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+      "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
   },
   {
     field: "consent_sharing",

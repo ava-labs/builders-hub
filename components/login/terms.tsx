@@ -205,7 +205,6 @@ export const Terms = ({
               {/* Grouped User-level consents (newsletter + Team1 outreach) */}
               <GroupedUserConsents
                 groupLabel="Stay connected with Avalanche"
-                groupHint="Choose how you'd like to hear from us. You can change these anytime in your profile settings."
                 items={[
                   {
                     key: "notifications",
