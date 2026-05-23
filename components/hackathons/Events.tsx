@@ -93,7 +93,14 @@ export default function Events({
   // Listing language is global (mixed events). Default to English unless you later add a global locale.
   const lang = normalizeEventsLang(undefined);
   const { data: session, status } = useSession();
-  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
+  // Show the Create Hackathon button to anyone with permission to manage hackathons.
+  // The /events/new page enforces `devrel` server-side; keep the legacy attributes
+  // accepted here so existing creators (hackathonCreator / team1-admin) don't lose
+  // access while we transition.
+  const isHackathonCreator =
+    session?.user?.custom_attributes.includes("devrel") ||
+    session?.user?.custom_attributes.includes("hackathonCreator") ||
+    session?.user?.custom_attributes.includes("team1-admin");
   
   const router = useRouter();
 
@@ -244,7 +251,7 @@ export default function Events({
   };
 
   const addNewHackathon = () => {
-    router.push('/events/edit');
+    router.push('/events/new');
   };
 
   const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';

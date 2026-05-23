@@ -111,7 +111,9 @@ export const validateRegisterForm = (
   isOnlineHackathon: boolean = false
 ): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon), registerData);
 export async function createRegisterForm(
-  registerData: Partial<RegistrationForm>
+  registerData: Partial<RegistrationForm> & {
+    x_account?: string;
+  }
 ): Promise<RegistrationForm> {
   // Get hackathon information to determine if it's online
   const hackathon = await prisma.hackathon.findUnique({
@@ -127,16 +129,71 @@ export async function createRegisterForm(
   // canonical User.notifications value; mirror it here so the column reflects
   // the user's current marketing consent even when the grouped block in
   // Step 3 was hidden (because notifications was already true on the User).
+  let existingUser: {
+    id: string;
+    telegram_account: string | null;
+    notifications: boolean | null;
+    country: string | null;
+    x_account: string | null;
+  } | null = null;
   if (registerData.email) {
-    const user = await prisma.user.findUnique({
+    existingUser = await prisma.user.findUnique({
       where: { email: registerData.email },
-      select: { telegram_account: true, notifications: true },
+      select: {
+        id: true,
+        telegram_account: true,
+        notifications: true,
+        country: true,
+        x_account: true,
+      },
     });
-    if (user?.telegram_account) {
-      registerData.telegram_account = user.telegram_account;
+    if (existingUser?.telegram_account) {
+      registerData.telegram_account = existingUser.telegram_account;
     }
-    if (user && typeof user.notifications === "boolean") {
-      registerData.newsletter_subscription = user.notifications;
+    if (existingUser && typeof existingUser.notifications === "boolean") {
+      registerData.newsletter_subscription = existingUser.notifications;
+    }
+  }
+
+  // Country lock: once User.country is set (happens on first registration),
+  // subsequent registrations cannot change it. Mirror the User value into
+  // registerData.city so a mismatched client-side value gets corrected
+  // silently, then reject only when the client tried to *change* it.
+  if (existingUser?.country) {
+    if (
+      registerData.city &&
+      registerData.city.trim() &&
+      registerData.city.trim() !== existingUser.country
+    ) {
+      throw new ValidationError(
+        "Country is locked after your first registration. Contact support to change it.",
+        [
+          {
+            field: "city",
+            message:
+              "Country is locked after your first registration. Contact support to change it.",
+            validation: () => false,
+          },
+        ],
+      );
+    }
+    registerData.city = existingUser.country;
+  }
+
+  // Persist X (Twitter) handle to the User record so future events can prefill it.
+  // x_account is not stored on RegisterForm — it's a User-level field.
+  if (existingUser && typeof registerData.x_account === "string") {
+    const trimmed = registerData.x_account.trim();
+    if (trimmed.length > 0 && trimmed !== existingUser.x_account) {
+      try {
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { x_account: trimmed },
+        });
+      } catch (err) {
+        // Don't block registration on x_account persistence failure.
+        console.error("[Registration] Failed to persist x_account:", err);
+      }
     }
   }
 
@@ -220,7 +277,7 @@ export async function createRegisterForm(
   } catch (error) {
     console.error("[Referral] Failed to record hackathon registration attribution:", error);
   }
-  
+
   // Send registration data to HubSpot
   try {
     await sendRegistrationToHubSpot(newRegisterFormData, hackathon);

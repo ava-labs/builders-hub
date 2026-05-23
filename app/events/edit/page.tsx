@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, memo, useCallback, useRef } from 'react';
+import React, { Suspense, useState, useEffect, memo, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
@@ -803,6 +804,24 @@ const HackathonsEdit = () => {
     }
   }, [session, status]);
 
+  // Deep-link support: ?event=<id> auto-selects the matching hackathon
+  // once the list has loaded. Lets /events/new and the Edit Event button
+  // hand off directly to the right row instead of stranding the user on
+  // the picker.
+  const searchParams = useSearchParams();
+  const requestedEventId = searchParams?.get("event") ?? null;
+  const autoSelectedRef = useRef(false);
+  useEffect(() => {
+    if (autoSelectedRef.current) return;
+    if (!requestedEventId) return;
+    if (myHackathons.length === 0) return;
+    const match = myHackathons.find((h) => h.id === requestedEventId);
+    if (match) {
+      autoSelectedRef.current = true;
+      handleSelectHackathon(match);
+    }
+  }, [requestedEventId, myHackathons]);
+
   const handleSelectHackathon = (hackathon: any) => {
     setIsSelectedHackathon(true);
     setSelectedHackathon(hackathon);
@@ -834,7 +853,10 @@ const HackathonsEdit = () => {
       submission_custom_link: hackathon.content?.submission_custom_link ?? null,
       judging_guidelines: hackathon.content?.judging_guidelines ?? '',
       submission_deadline: toLocalDatetimeString(hackathon.content?.submission_deadline ?? ''),
+      submission_open: hackathon.content?.submission_open ? toLocalDatetimeString(hackathon.content.submission_open) : '',
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
+      team_size_max: hackathon.content?.team_size_max,
+      registration_mode: hackathon.content?.registration_mode ?? 'full',
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
     const trackDescriptions: { [key: number]: string } = {};
@@ -1232,6 +1254,9 @@ const HackathonsEdit = () => {
   const getDataToSend = () => {
     const content = { ...formDataContent };
     content.submission_deadline = toIso8601(content.submission_deadline);
+    if (content.submission_open) {
+      content.submission_open = toIso8601(content.submission_open);
+    }
     content.registration_deadline = toIso8601(content.registration_deadline);
     content.schedule = content.schedule.map(ev => ({ ...ev, date: toIso8601(ev.date) }));
     const latest = { ...formDataLatest };
@@ -2894,6 +2919,17 @@ const HackathonsEdit = () => {
                   {formDataLatest.event === 'hackathon' && contentTab === 'submission' && (
                     <div className="space-y-4">
                       <div>
+                        <label className="font-medium text-xl mb-2 block">{t[language].submissionOpen}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionOpenHelp}</div>
+                        <Input
+                          type="datetime-local"
+                          placeholder="Submission Opens At"
+                          value={formDataContent.submission_open ?? ''}
+                          onChange={(e) => setFormDataContent({ ...formDataContent, submission_open: e.target.value })}
+                          className="w-full mb-4"
+                        />
+                      </div>
+                      <div>
                         <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
                         <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
                         <Input
@@ -2904,6 +2940,42 @@ const HackathonsEdit = () => {
                           className="w-full mb-4"
                           required
                         />
+                      </div>
+                      <div>
+                        <label className="font-medium text-xl mb-2 block">{t[language].teamSizeMax}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].teamSizeMaxHelp}</div>
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="(no cap)"
+                          value={formDataContent.team_size_max ?? ''}
+                          onChange={(e) => {
+                            const raw = e.target.value.trim();
+                            const parsed = raw === '' ? undefined : Number(raw);
+                            setFormDataContent({
+                              ...formDataContent,
+                              team_size_max: Number.isFinite(parsed) ? parsed : undefined,
+                            });
+                          }}
+                          className="w-full mb-4"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-medium text-xl mb-2 block">{t[language].registrationMode}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].registrationModeHelp}</div>
+                        <select
+                          value={formDataContent.registration_mode ?? 'full'}
+                          onChange={(e) =>
+                            setFormDataContent({
+                              ...formDataContent,
+                              registration_mode: e.target.value === 'simple' ? 'simple' : 'full',
+                            })
+                          }
+                          className="w-full mb-4 bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                        >
+                          <option value="full">full</option>
+                          <option value="simple">simple</option>
+                        </select>
                       </div>
                     </div>
                   )}
@@ -3171,9 +3243,15 @@ const HackathonsEdit = () => {
 };
 
 export default function Page() {
+  // HackathonsEdit calls useSearchParams to honor ?event=<id> deep links.
+  // In the App Router that needs a Suspense boundary around any client
+  // component that reads searchParams, otherwise prerendering bails out
+  // with the missing-suspense-with-csr-bailout error.
   return (
     <SessionProvider>
-      <HackathonsEdit />
+      <Suspense fallback={null}>
+        <HackathonsEdit />
+      </Suspense>
     </SessionProvider>
   );
 } 

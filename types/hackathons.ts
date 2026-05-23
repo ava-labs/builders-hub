@@ -53,11 +53,17 @@ export type Hackathon = {
   speakers: Speaker[]
   become_sponsor_link: string
   submission_deadline: Date
+  /** Optional submission open timestamp. When set, submission form is locked with a countdown until this time. */
+  submission_open?: string | Date
   mentors_judges_img_url: string
   judging_guidelines: string
   speakers_banner: string
   speakers_text: string
   resources: Resource[]
+  /** Optional cap on members per project (Solo=1, Duo=2). When undefined, no cap. */
+  team_size_max?: number
+  /** "full" (legacy long form) or "simple" (slim registration). Defaults to "full". */
+  registration_mode?: "full" | "simple"
 }
 
 export type ScheduleActivity = {

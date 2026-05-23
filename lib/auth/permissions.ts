@@ -63,6 +63,23 @@ export function canManageEvaluationPhase(
 }
 
 /**
+ * True when the user may create new hackathons or edit any hackathon's
+ * settings. Matches the gate enforced by /events/new, /hackathons/new and
+ * the events API write endpoints — kept in one place so client-side
+ * buttons and server-side redirects can't drift.
+ *
+ * `team1-admin` gets the narrow scope: create + edit hackathons, plus the
+ * visibility toggle. It does NOT inherit devrel powers like judges
+ * management, evaluation tools, or notifications.
+ */
+export function canManageHackathons(
+  session: { user?: { custom_attributes?: string[] } } | null | undefined,
+): boolean {
+  if (!session?.user) return false;
+  return hasAnyAttribute(session.user.custom_attributes, ["devrel", "team1-admin"]);
+}
+
+/**
  * Constant-time bearer-token check for the public projects endpoint.
  * Expects `Authorization: Bearer <token>`. Compares to the
  * HACKATHON_PROJECTS_API_KEY env var. Returns false if the env var is
