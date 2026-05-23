@@ -18,6 +18,8 @@ interface RegisterFormStep3Props {
   lang?: EventsLang;
   showNotificationsConsent?: boolean;
   showSharingConsent?: boolean;
+  /** Team1-organized event — sharing consent is mandatory to register. */
+  requireSharingConsent?: boolean;
 }
 
 export function RegisterFormStep3({
@@ -25,8 +27,12 @@ export function RegisterFormStep3({
   lang = "en",
   showNotificationsConsent = false,
   showSharingConsent = false,
+  requireSharingConsent = false,
 }: RegisterFormStep3Props) {
   const form = useFormContext<RegisterFormValues>();
+  const sharingError = form.formState.errors.user_consent_sharing?.message as
+    | string
+    | undefined;
 
   const consentItems: GroupedConsentItem[] = [];
   if (showNotificationsConsent) {
@@ -42,11 +48,17 @@ export function RegisterFormStep3({
   if (showSharingConsent) {
     consentItems.push({
       key: "user_consent_sharing",
-      label: t(lang, "consents.consentSharing.label"),
+      label:
+        t(lang, "consents.consentSharing.label") +
+        (requireSharingConsent ? " *" : ""),
       hint: t(lang, "consents.consentSharing.hint"),
       checked: form.watch("user_consent_sharing") ?? false,
-      onCheckedChange: (next) =>
-        form.setValue("user_consent_sharing", next, { shouldDirty: true }),
+      onCheckedChange: (next) => {
+        form.setValue("user_consent_sharing", next, { shouldDirty: true });
+        if (next && sharingError) {
+          form.clearErrors("user_consent_sharing");
+        }
+      },
     });
   }
 
@@ -88,20 +100,26 @@ export function RegisterFormStep3({
                     {t(lang, "reg.step3.privacyLink")}
                   </a> *
                 </FormLabel>
-                <FormMessage className="text-zinc-400">
+                <p className="text-zinc-400 text-sm">
                   {t(lang, "reg.step3.terms.hint")}
-                </FormMessage>
+                </p>
+                <FormMessage />
               </div>
             </FormItem>
           )}
         />
 
         {consentItems.length > 0 && (
-          <GroupedUserConsents
-            groupLabel={t(lang, "consents.group.label")}
-            groupHint={t(lang, "consents.group.hint")}
-            items={consentItems}
-          />
+          <div className="space-y-2">
+            <GroupedUserConsents
+              groupLabel={t(lang, "consents.group.label")}
+              groupHint={t(lang, "consents.group.hint")}
+              items={consentItems}
+            />
+            {sharingError ? (
+              <p className="text-sm text-red-500">{sharingError}</p>
+            ) : null}
+          </div>
         )}
 
         {/* Only show prohibited items for in-person hackathons */}
@@ -120,9 +138,10 @@ export function RegisterFormStep3({
                 </FormControl>
                 <div className="space-y-1 leading-none">
                   <FormLabel>{t(lang, "reg.step3.prohibited.label")}</FormLabel>
-                  <FormMessage className="text-zinc-400">
+                  <p className="text-zinc-400 text-sm">
                     {t(lang, "reg.step3.prohibited.hint")}
-                  </FormMessage>
+                  </p>
+                  <FormMessage />
                 </div>
               </FormItem>
             )}
