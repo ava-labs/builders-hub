@@ -371,7 +371,7 @@ const dict: Record<EventsLang, Dict> = {
     "reg.referral.membersError": "Couldn't load team members",
 
     // Step 3
-    "reg.step3.title": "Step 3: Terms & Agreements",
+    "reg.step3.title": "Step 2: Terms & Agreements",
     "reg.step3.subtitle": "Review and agree to the terms to complete your registration. For information about our privacy practices and commitment to protecting your privacy, please review our",
     "reg.step3.privacyLink": "Avalanche Privacy Policy.",
     "reg.step3.terms.label": "I have read and agree to the Event Participation",
@@ -379,22 +379,22 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step3.terms.connector": " and the ",
     "reg.step3.terms.hint": "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
     "reg.step3.newsletter.label": "I wish to stay informed about Avalanche news and events.",
-    "reg.step3.newsletter.hint": "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+    "reg.step3.newsletter.hint": "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
     "reg.step3.prohibited.label": "I agree not to bring any of the following prohibited items. *",
     "reg.step3.prohibited.hint": "Review the list of restricted items before attending in-person events.",
 
     // Grouped User-level consents (used in account creation and event registration)
     "consents.group.label": "Stay connected with Avalanche",
-    "consents.group.hint":
-      "Choose how you'd like to hear from us. You can change these anytime in your profile settings.",
     "consents.notifications.label":
       "I wish to stay informed about Avalanche news and events.",
     "consents.notifications.hint":
-      "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+      "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
     "consents.consentSharing.label":
-      "I consent to share my contact information with Avalanche Team1 so they can reach out for local support or invite me to regional initiatives.",
+      "I consent to share my contact information with Avalanche Team1.",
     "consents.consentSharing.hint":
       "Team1 may contact you about local events, mentorship opportunities, or regional ecosystem programs.",
+    "consents.consentSharing.required":
+      "You must consent to share your contact information with Avalanche Team1 to register for this event.",
 
     // Completed dialog
     "reg.dialog.title": "Application Submitted",
@@ -836,8 +836,6 @@ const dict: Record<EventsLang, Dict> = {
 
     // Consentimientos a nivel usuario (creación de cuenta y registro a eventos)
     "consents.group.label": "Mantente conectado con Avalanche",
-    "consents.group.hint":
-      "Elige cómo te gustaría recibir noticias. Puedes cambiar estas opciones en cualquier momento desde tu perfil.",
     "consents.notifications.label":
       "Deseo mantenerme informado sobre noticias y eventos de Avalanche.",
     "consents.notifications.hint":
@@ -846,6 +844,8 @@ const dict: Record<EventsLang, Dict> = {
       "Acepto compartir mi información de contacto con Avalanche Team1 para que puedan contactarme para apoyo local o invitarme a iniciativas regionales.",
     "consents.consentSharing.hint":
       "Team1 podría contactarte sobre eventos locales, oportunidades de mentoría o programas regionales del ecosistema.",
+    "consents.consentSharing.required":
+      "Debes aceptar compartir tu información de contacto con Avalanche Team1 para registrarte en este evento.",
 
     // Completed dialog
     "reg.dialog.title": "Solicitud enviada",
