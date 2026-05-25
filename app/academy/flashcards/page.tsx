@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getAcademyCatalog } from '@/lib/flashcards/catalog';
 import { DeckPicker } from '@/components/flashcards/deck-picker';
+import type { SourceAnchor } from '@/lib/flashcards/types';
 
 export const metadata: Metadata = {
   title: 'Flashcard Studio | Avalanche Academy',
@@ -8,12 +9,41 @@ export const metadata: Metadata = {
     'Generate Anki-compatible flashcard decks from any Avalanche Academy chapter. Preview, edit, and download for offline study.',
 };
 
-// Catalog is read from disk on each request, but the module-level cache in
-// catalog.ts means actual filesystem walking happens once per server process.
-export const dynamic = 'force-static';
+// Reads searchParams (?source, ?title, ?kind) when the user arrives from the
+// "Create Flashcards" button in the page-actions sidebar.
+export const dynamic = 'force-dynamic';
 
-export default async function FlashcardStudioPage() {
-  const catalog = await getAcademyCatalog();
+interface StudioSearchParams {
+  source?: string;
+  title?: string;
+  kind?: string;
+}
+
+function buildInitialSources(params: StudioSearchParams): SourceAnchor[] {
+  const { source, title, kind } = params;
+  if (!source || !title) return [];
+  if (!source.startsWith('/')) return [];
+  if (source.length > 500 || title.length > 200) return [];
+  const resolvedKind: SourceAnchor['kind'] = kind === 'docs' ? 'docs' : 'academy';
+  return [
+    {
+      kind: resolvedKind,
+      path: source,
+      chapterTitle: title,
+    },
+  ];
+}
+
+export default async function FlashcardStudioPage({
+  searchParams,
+}: {
+  searchParams: Promise<StudioSearchParams>;
+}) {
+  const [catalog, sp] = await Promise.all([
+    getAcademyCatalog(),
+    searchParams,
+  ]);
+  const initialSources = buildInitialSources(sp);
 
   return (
     <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
@@ -32,7 +62,7 @@ export default async function FlashcardStudioPage() {
         </p>
       </header>
 
-      <DeckPicker catalog={catalog} />
+      <DeckPicker catalog={catalog} initialSources={initialSources} />
     </main>
   );
 }

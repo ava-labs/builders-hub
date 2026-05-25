@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink, Copy, Check } from 'lucide-react';
+import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink, Copy, Check, Sparkles } from 'lucide-react';
 import newGithubIssueUrl from 'new-github-issue-url';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -189,6 +189,21 @@ Page: [${pagePath}](https://build.avax.network${pagePath})
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Create Flashcards — opens the studio pre-seeded with this page */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full justify-start gap-2"
+        asChild
+      >
+        <a
+          href={`/academy/flashcards?source=${encodeURIComponent(fullPath)}&title=${encodeURIComponent(title)}&kind=${pageType}`}
+        >
+          <Sparkles className="size-4" />
+          Create Flashcards
+        </a>
+      </Button>
     </div>
   );
 }

@@ -23,6 +23,7 @@ import type { SourceAnchor } from '@/lib/flashcards/types';
 
 interface DeckPickerProps {
   catalog: CategoryItem[];
+  initialSources?: SourceAnchor[];
 }
 
 interface SelectedItem {
@@ -30,12 +31,46 @@ interface SelectedItem {
   title: string;
   courseSlug: string;
   courseTitle: string;
+  kind: SourceAnchor['kind'];
 }
 
 const TARGET_CARD_COUNT_DEFAULT = 25;
 const MIN_TARGET = 10;
 const MAX_TARGET = 50;
 const MAX_SELECTED = 12;
+
+function findChapterLocation(
+  catalog: CategoryItem[],
+  path: string,
+): { courseSlug: string; courseTitle: string } | null {
+  for (const cat of catalog) {
+    for (const course of cat.courses) {
+      if (course.chapters.some((c) => c.path === path)) {
+        return { courseSlug: course.slug, courseTitle: course.title };
+      }
+    }
+  }
+  return null;
+}
+
+function buildInitialSelected(
+  catalog: CategoryItem[],
+  initialSources: SourceAnchor[] | undefined,
+): Map<string, SelectedItem> {
+  const map = new Map<string, SelectedItem>();
+  if (!initialSources?.length) return map;
+  for (const anchor of initialSources.slice(0, MAX_SELECTED)) {
+    const loc = findChapterLocation(catalog, anchor.path);
+    map.set(anchor.path, {
+      path: anchor.path,
+      title: anchor.chapterTitle,
+      kind: anchor.kind,
+      courseSlug: loc?.courseSlug ?? (anchor.kind === 'docs' ? 'docs' : 'other'),
+      courseTitle: loc?.courseTitle ?? (anchor.kind === 'docs' ? 'Documentation' : 'Other'),
+    });
+  }
+  return map;
+}
 
 function chapterMatchesQuery(item: ChapterItem, query: string): boolean {
   if (!query) return true;
@@ -65,7 +100,7 @@ function filterCatalog(catalog: CategoryItem[], query: string): CategoryItem[] {
     .filter((cat) => cat.courses.length > 0);
 }
 
-export function DeckPicker({ catalog }: DeckPickerProps) {
+export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
   const router = useRouter();
   const { status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
@@ -74,8 +109,16 @@ export function DeckPicker({ catalog }: DeckPickerProps) {
   const setError = useStudioStore((s) => s.setError);
 
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<Map<string, SelectedItem>>(new Map());
-  const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Map<string, SelectedItem>>(() =>
+    buildInitialSelected(catalog, initialSources),
+  );
+  const [expandedCourses, setExpandedCourses] = useState<Set<string>>(() => {
+    const set = new Set<string>();
+    for (const item of buildInitialSelected(catalog, initialSources).values()) {
+      set.add(item.courseSlug);
+    }
+    return set;
+  });
   const [targetCount, setTargetCount] = useState(TARGET_CARD_COUNT_DEFAULT);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -96,6 +139,7 @@ export function DeckPicker({ catalog }: DeckPickerProps) {
           title: chapter.title,
           courseSlug: course.slug,
           courseTitle: course.title,
+          kind: 'academy',
         });
         setSubmitError(null);
       }
@@ -134,7 +178,7 @@ export function DeckPicker({ catalog }: DeckPickerProps) {
     startGenerating();
 
     const sources: SourceAnchor[] = Array.from(selected.values()).map((s) => ({
-      kind: 'academy',
+      kind: s.kind,
       path: s.path,
       chapterTitle: s.title,
     }));
