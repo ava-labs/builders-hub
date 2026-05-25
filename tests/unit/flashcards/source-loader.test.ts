@@ -50,6 +50,45 @@ describe('stripMdx', () => {
     const second = stripMdx(first);
     expect(first).toEqual(second);
   });
+
+  it('preserves JSX-looking content inside fenced code blocks', () => {
+    const input = [
+      '# Title',
+      '',
+      'Some prose.',
+      '',
+      '```tsx',
+      '<Button onClick={() => alert("hi")}>Click me</Button>',
+      '```',
+      '',
+      'After the code.',
+    ].join('\n');
+    const out = stripMdx(input);
+    expect(out).toContain('<Button onClick={() => alert("hi")}>Click me</Button>');
+    expect(out).toContain('Some prose.');
+    expect(out).toContain('After the code.');
+  });
+
+  it('preserves JSX-looking content inside inline backticks', () => {
+    const input = 'Use the `<Button />` component in your tree.';
+    const out = stripMdx(input);
+    expect(out).toContain('`<Button />`');
+    expect(out).toContain('Use the');
+    expect(out).toContain('component in your tree.');
+  });
+
+  it('still strips JSX in prose while keeping look-alikes in code', () => {
+    const input = [
+      '<Callout type="info">Hidden</Callout>',
+      '',
+      '```jsx',
+      '<Callout type="info">Visible in code</Callout>',
+      '```',
+    ].join('\n');
+    const out = stripMdx(input);
+    expect(out).not.toContain('Hidden');
+    expect(out).toContain('Visible in code');
+  });
 });
 
 describe('resolveMdxPath', () => {
