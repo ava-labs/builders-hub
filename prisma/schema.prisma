@@ -413,7 +413,7 @@ model FormData {
 
 model Evaluation {
   id            String   @id @default(dbgenerated("gen_random_uuid()"))
-  form_data_id  String
+  form_data_id  String?
   project_id    String?
   hackathon_id  String?
   evaluator_id  String
@@ -425,7 +425,7 @@ model Evaluation {
   stage         Int       @default(0)
   evaluator     User      @relation("Evaluations", fields: [evaluator_id], references: [id], onDelete: Cascade)
   project       Project?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  verdict       String
+  verdict       String?
   formData      FormData? @relation(fields: [form_data_id], references: [id], onDelete: Cascade)
 
   @@unique([form_data_id, evaluator_id, stage])
@@ -620,11 +620,11 @@ model Repository {
 }
 
 model Speaker {
-  id       String @id @default(uuid())
-  icon     String
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name     String
   category String
   picture  String
+  icon     String? 
 }
 
 model Resource {
