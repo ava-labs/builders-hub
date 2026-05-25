@@ -13,7 +13,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 const RequestSchema = z.object({
-  sources: z.array(SourceAnchorSchema).min(1).max(20),
+  sources: z.array(SourceAnchorSchema).min(1).max(60),
   deckTitle: z.string().min(1).max(200).optional(),
   targetCardCount: z.number().int().min(5).max(60).optional(),
   audience: z.string().max(500).optional(),

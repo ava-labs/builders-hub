@@ -53,7 +53,7 @@ describe('stripMdx', () => {
 });
 
 describe('resolveMdxPath', () => {
-  it('appends .mdx and joins under content/', () => {
+  it('resolves a chapter path to its <path>.mdx file', () => {
     const anchor: SourceAnchor = {
       kind: 'academy',
       path: '/academy/blockchain/blockchain-fundamentals/02-what-is-a-blockchain/03-decentralized-applications',
@@ -63,10 +63,23 @@ describe('resolveMdxPath', () => {
     expect(out.endsWith(path.normalize('content/academy/blockchain/blockchain-fundamentals/02-what-is-a-blockchain/03-decentralized-applications.mdx'))).toBe(true);
   });
 
-  it('strips leading slashes', () => {
-    const anchor: SourceAnchor = { kind: 'docs', path: '/docs/overview', chapterTitle: 'X' };
+  it('falls back to <path>/index.mdx when the direct file does not exist (course root URL)', () => {
+    const anchor: SourceAnchor = {
+      kind: 'academy',
+      path: '/academy/avalanche-l1/avalanche-fundamentals',
+      chapterTitle: 'Welcome',
+    };
     const out = resolveMdxPath(anchor);
-    expect(out.endsWith(path.normalize('content/docs/overview.mdx'))).toBe(true);
+    expect(out.endsWith(path.normalize('content/academy/avalanche-l1/avalanche-fundamentals/index.mdx'))).toBe(true);
+  });
+
+  it('throws a descriptive error when neither candidate exists', () => {
+    const anchor: SourceAnchor = {
+      kind: 'docs',
+      path: '/docs/definitely-not-real/nope',
+      chapterTitle: 'X',
+    };
+    expect(() => resolveMdxPath(anchor)).toThrow(/No MDX file found/);
   });
 });
 

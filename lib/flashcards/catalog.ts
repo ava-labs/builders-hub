@@ -166,3 +166,27 @@ export async function getAcademyCatalog(): Promise<CategoryItem[]> {
   cached = categories;
   return categories;
 }
+
+/**
+ * Match a fumadocs URL against a known course root. Returns the matching
+ * `CourseItem` when `urlPath` is exactly `/academy/<categorySlug>/<courseSlug>`
+ * (a course landing page), otherwise `null`.
+ *
+ * Trailing slashes are tolerated. Chapter paths under that course do NOT
+ * match — use a per-chapter lookup for those.
+ */
+export function findCourseByPath(
+  catalog: CategoryItem[],
+  urlPath: string,
+): { course: CourseItem; categorySlug: string; categoryTitle: string } | null {
+  const normalized = urlPath.replace(/\/+$/, '');
+  for (const cat of catalog) {
+    for (const course of cat.courses) {
+      const root = `/academy/${cat.slug}/${course.slug}`;
+      if (root === normalized) {
+        return { course, categorySlug: cat.slug, categoryTitle: cat.title };
+      }
+    }
+  }
+  return null;
+}

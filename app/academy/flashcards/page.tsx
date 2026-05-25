@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getAcademyCatalog } from '@/lib/flashcards/catalog';
+import { findCourseByPath, getAcademyCatalog, type CategoryItem } from '@/lib/flashcards/catalog';
 import { DeckPicker } from '@/components/flashcards/deck-picker';
 import type { SourceAnchor } from '@/lib/flashcards/types';
 
@@ -19,11 +19,27 @@ interface StudioSearchParams {
   kind?: string;
 }
 
-function buildInitialSources(params: StudioSearchParams): SourceAnchor[] {
+function buildInitialSources(
+  params: StudioSearchParams,
+  catalog: CategoryItem[],
+): SourceAnchor[] {
   const { source, title, kind } = params;
   if (!source || !title) return [];
   if (!source.startsWith('/')) return [];
   if (source.length > 500 || title.length > 200) return [];
+
+  // Course-root URLs (e.g. `/academy/avalanche-l1/avalanche-fundamentals`)
+  // expand to every chapter of that course, matching the user expectation
+  // when clicking "Create Flashcards" from a course landing page.
+  const courseMatch = findCourseByPath(catalog, source);
+  if (courseMatch) {
+    return courseMatch.course.chapters.map((chapter) => ({
+      kind: 'academy' as const,
+      path: chapter.path,
+      chapterTitle: chapter.title,
+    }));
+  }
+
   const resolvedKind: SourceAnchor['kind'] = kind === 'docs' ? 'docs' : 'academy';
   return [
     {
@@ -43,7 +59,7 @@ export default async function FlashcardStudioPage({
     getAcademyCatalog(),
     searchParams,
   ]);
-  const initialSources = buildInitialSources(sp);
+  const initialSources = buildInitialSources(sp, catalog);
 
   return (
     <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 lg:py-14">

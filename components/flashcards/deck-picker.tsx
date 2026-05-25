@@ -37,7 +37,7 @@ interface SelectedItem {
 const TARGET_CARD_COUNT_DEFAULT = 25;
 const MIN_TARGET = 10;
 const MAX_TARGET = 50;
-const MAX_SELECTED = 12;
+const MAX_SELECTED = 60;
 
 function findChapterLocation(
   catalog: CategoryItem[],
@@ -164,6 +164,40 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
     });
   };
 
+  const selectAllInCourse = (course: CourseItem) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      let hitCap = false;
+      for (const chapter of course.chapters) {
+        if (next.has(chapter.path)) continue;
+        if (next.size >= MAX_SELECTED) {
+          hitCap = true;
+          break;
+        }
+        next.set(chapter.path, {
+          path: chapter.path,
+          title: chapter.title,
+          courseSlug: course.slug,
+          courseTitle: course.title,
+          kind: 'academy',
+        });
+      }
+      setSubmitError(hitCap ? `Stopped at ${MAX_SELECTED}-chapter cap.` : null);
+      return next;
+    });
+  };
+
+  const clearCourse = (course: CourseItem) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      for (const chapter of course.chapters) {
+        next.delete(chapter.path);
+      }
+      return next;
+    });
+    setSubmitError(null);
+  };
+
   const handleGenerate = async () => {
     if (selected.size === 0) {
       setSubmitError('Pick at least one chapter.');
@@ -237,30 +271,50 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
                   const courseSelectedCount = course.chapters.filter((c) =>
                     selected.has(c.path),
                   ).length;
+                  const allSelected = courseSelectedCount === course.chapters.length;
+                  const remainingBudget = MAX_SELECTED - selected.size;
+                  const selectAllDisabled = !allSelected && remainingBudget === 0;
                   return (
                     <div key={course.slug} className="rounded-lg border bg-card">
-                      <button
-                        type="button"
-                        onClick={() => toggleCourse(course.slug)}
-                        className="flex w-full items-center justify-between p-3 text-left"
-                        aria-expanded={expanded}
-                      >
-                        <span className="flex items-center gap-2">
+                      <div className="flex w-full items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => toggleCourse(course.slug)}
+                          className="flex flex-1 items-center gap-2 p-3 text-left"
+                          aria-expanded={expanded}
+                        >
                           {expanded ? (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                           )}
-                          <BookOpen className="h-4 w-4 text-muted-foreground" />
+                          <BookOpen className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span className="font-medium">{course.title}</span>
                           <span className="text-xs text-muted-foreground">
                             {course.chapters.length} chapter{course.chapters.length === 1 ? '' : 's'}
                           </span>
-                        </span>
-                        {courseSelectedCount > 0 && (
-                          <Badge variant="secondary">{courseSelectedCount} picked</Badge>
-                        )}
-                      </button>
+                        </button>
+                        <div className="flex items-center gap-3 pr-3">
+                          {courseSelectedCount > 0 && (
+                            <Badge variant="secondary">{courseSelectedCount} picked</Badge>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              allSelected ? clearCourse(course) : selectAllInCourse(course)
+                            }
+                            disabled={selectAllDisabled}
+                            className="text-xs font-medium text-red-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed dark:text-red-400"
+                            aria-label={
+                              allSelected
+                                ? `Clear all chapters of ${course.title}`
+                                : `Select all chapters of ${course.title}`
+                            }
+                          >
+                            {allSelected ? 'Clear' : 'Select all'}
+                          </button>
+                        </div>
+                      </div>
                       {expanded && (
                         <ul className="border-t divide-y">
                           {course.chapters.map((chapter) => {

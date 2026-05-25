@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
 import type { SourceAnchor } from './types';
@@ -15,15 +16,24 @@ export interface LoadedSource {
 /**
  * Resolve a fumadocs URL path back to an MDX file on disk.
  *
+ * Chapter URLs map to `<path>.mdx`. Course-root URLs (e.g.
+ * `/academy/avalanche-l1/avalanche-fundamentals`) map to `<path>/index.mdx`.
+ *
  * Examples:
  *   `/academy/blockchain/blockchain-fundamentals/02-what-is-a-blockchain/03-decentralized-applications`
  *     -> content/academy/blockchain/blockchain-fundamentals/02-what-is-a-blockchain/03-decentralized-applications.mdx
  *   `/docs/cross-chain/icm/overview`
  *     -> content/docs/cross-chain/icm/overview.mdx
+ *   `/academy/avalanche-l1/avalanche-fundamentals`
+ *     -> content/academy/avalanche-l1/avalanche-fundamentals/index.mdx
  */
 export function resolveMdxPath(anchor: SourceAnchor): string {
   const trimmed = anchor.path.replace(/^\/+/, '').replace(/\/+$/, '');
-  return path.join(CONTENT_ROOT, `${trimmed}.mdx`);
+  const direct = path.join(CONTENT_ROOT, `${trimmed}.mdx`);
+  if (existsSync(direct)) return direct;
+  const indexed = path.join(CONTENT_ROOT, trimmed, 'index.mdx');
+  if (existsSync(indexed)) return indexed;
+  throw new Error(`No MDX file found for source "${anchor.path}" (tried ${path.relative(process.cwd(), direct)} and ${path.relative(process.cwd(), indexed)})`);
 }
 
 const IMPORT_RE = /^\s*import\s+[^;]+?;?\s*$/gm;
