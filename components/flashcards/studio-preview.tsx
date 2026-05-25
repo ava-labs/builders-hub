@@ -282,7 +282,7 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
             {savedDeckId && !showSaveForm && (
               <Button
                 variant="outline"
-                onClick={() => router.push(`/academy/flashcards/play/user:${savedDeckId}`)}
+                onClick={() => router.push(`/academy/flashcards/play/user/${savedDeckId}`)}
               >
                 <BookOpen className="mr-2 h-4 w-4" />
                 Study now

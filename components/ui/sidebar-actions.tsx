@@ -268,7 +268,7 @@ function FlashcardsAction({ fullPath, title, pageType }: FlashcardsActionProps) 
             {userDecks!.map((deck) => (
               <DropdownMenuItem asChild key={deck.id}>
                 <a
-                  href={`/academy/flashcards/play/${encodeURIComponent(`user:${deck.id}`)}`}
+                  href={`/academy/flashcards/play/user/${encodeURIComponent(deck.id)}`}
                   className="flex items-center gap-2 cursor-pointer"
                 >
                   <span className="flex-1 truncate">{deck.name}</span>
