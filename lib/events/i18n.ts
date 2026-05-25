@@ -60,6 +60,18 @@ const dict: Record<EventsLang, Dict> = {
     "schedule.untitledActivity": "Untitled Activity",
     "schedule.joinVideoCall": "Join video call",
     "schedule.tbd": "TBD",
+    "schedule.timezoneSelector.label": "Time zone",
+    "schedule.timezoneSelector.none": "No time zone selected",
+    "schedule.timezoneSelector.button": "Change",
+    "schedule.timezoneSelector.modalTitle": "Select time zone",
+    "schedule.timezoneSelector.modalDescription": "Search and select the time zone used to display the schedule.",
+    "schedule.timezoneSelector.searchPlaceholder": "Search by city or region",
+    "schedule.timezoneSelector.city": "City",
+    "schedule.timezoneSelector.utc": "UTC",
+    "schedule.timezoneSelector.diff": "Diff",
+    "schedule.timezoneSelector.localTime": "Local time",
+    "schedule.timezoneSelector.same": "same",
+    "schedule.timezoneSelector.empty": "No time zones found",
 
     // Mentors & judges
     "section.mentorsJudges.title": "Mentors & Judges",
@@ -507,6 +519,18 @@ const dict: Record<EventsLang, Dict> = {
     "schedule.untitledActivity": "Actividad sin título",
     "schedule.joinVideoCall": "Unirse a videollamada",
     "schedule.tbd": "Por confirmar",
+    "schedule.timezoneSelector.label": "Zona horaria",
+    "schedule.timezoneSelector.none": "Sin zona horaria seleccionada",
+    "schedule.timezoneSelector.button": "Cambiar",
+    "schedule.timezoneSelector.modalTitle": "Seleccionar zona horaria",
+    "schedule.timezoneSelector.modalDescription": "Busca y selecciona la zona horaria usada para mostrar la agenda.",
+    "schedule.timezoneSelector.searchPlaceholder": "Buscar por ciudad o región",
+    "schedule.timezoneSelector.city": "Ciudad",
+    "schedule.timezoneSelector.utc": "UTC",
+    "schedule.timezoneSelector.diff": "Dif.",
+    "schedule.timezoneSelector.localTime": "Hora local",
+    "schedule.timezoneSelector.same": "igual",
+    "schedule.timezoneSelector.empty": "No se encontraron zonas horarias",
 
     // Mentors & judges
     "section.mentorsJudges.title": "Mentores y jurado",
@@ -915,4 +939,3 @@ export function t(
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
 }
-

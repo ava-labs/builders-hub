@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Divider } from '@/components/ui/divider';
 import { SearchEventInput } from '@/components/ui/search-event-input';
-import { TimeZoneSelect, resolveTimezone } from '@/components/ui/timezone-select';
+import { resolveTimezone } from '@/components/ui/timezone-select';
 import { HackathonHeader, ScheduleActivity } from '@/types/hackathons';
 import {
   Link as LinkIcon,
@@ -19,6 +19,7 @@ import DeadLine from '../DeadLine';
 import { Button } from '@/components/ui/button';
 import { useSchedule, ScheduleSource, GoogleCalendarConfig } from '@/hooks/useSchedule';
 import { normalizeEventsLang, t } from '@/lib/events/i18n';
+import { TimezoneSelectorModal } from './TimezoneSelectorModal';
 
 export type ScheduleProps = {
   hackathon: HackathonHeader;
@@ -33,6 +34,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
   const locale = lang === 'es' ? 'es-ES' : 'en-US';
   const [search, setSearch] = useState<string>('');
   const [timeZone, setTimeZone] = useState<string>('');
+  const [timezoneModalOpen, setTimezoneModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string>('');
 
   // Use the schedule strategy hook - source is determined programmatically via scheduleSource prop
@@ -50,11 +52,16 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
     if (rawTimeZone) {
       setTimeZone(resolveTimezone(rawTimeZone));
     }
-    // Set initial selected day to the first day in schedule
+  }, [hackathon, calendarTimeZone]);
+
+  useEffect(() => {
+    // Keep the selected day aligned with the current timezone-derived groups.
     const groupedActivities = groupActivitiesByDay(scheduleData);
-    const firstDay = Object.keys(groupedActivities)[0];
-    setSelectedDay(firstDay);
-  }, [hackathon, scheduleData, calendarTimeZone]);
+    const days = Object.keys(groupedActivities);
+    setSelectedDay((currentDay) =>
+      currentDay && days.includes(currentDay) ? currentDay : days[0] || ''
+    );
+  }, [scheduleData, timeZone]);
 
   const defineTimeZone = (formatDateParams: any) => {
     if (timeZone) return { ...formatDateParams, timeZone: timeZone };
@@ -75,14 +82,32 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
     }
   }
 
-  function getFormattedDay(date: Date) {
-    const day = date.getDate();
-    const weekday = date.toLocaleString(
+  function getConvertedDateParts(date: Date) {
+    const formatter = new Intl.DateTimeFormat(
       locale,
       defineTimeZone({
         weekday: 'long',
+        month: 'long',
+        day: 'numeric',
       })
     );
+    const parts = formatter.formatToParts(date);
+    const getPart = (type: string) =>
+      parts.find((part) => part.type === type)?.value || '';
+
+    return {
+      day: Number(getPart('day')),
+      month: getPart('month'),
+      weekday: getPart('weekday'),
+    };
+  }
+
+  function getFormattedDay(date: Date) {
+    if (isNaN(date.getTime())) return '';
+
+    const { day, weekday } = getConvertedDateParts(date);
+    if (!day || !weekday) return '';
+
     if (lang === 'es') {
       return `${day} ${weekday}`.toLocaleUpperCase();
     }
@@ -94,9 +119,11 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
     activities: ScheduleActivity[]
   ): GroupedActivities {
     return activities.reduce((groups: GroupedActivities, activity) => {
-      // Format the date to YYYY-MM-DD to use as key
       const date = new Date(activity.date);
+      if (isNaN(date.getTime())) return groups;
+
       const dateKey = getFormattedDay(date);
+      if (!dateKey) return groups;
 
       // If this date doesn't exist in groups, create an empty array
       if (!groups[dateKey]) {
@@ -187,7 +214,34 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
       <div className='flex flex-col lg:flex-row justify-between gap-4 md:gap-10 mt-4 min-w-full'>
         <div className='flex flex-col md:flex-row items-start md:items-center justify-start lg:justify-center gap-4 md:gap-10 w-full md:w-auto'>
           <SearchEventInput setSearch={setSearch} />
-          <TimeZoneSelect timeZone={timeZone} setTimeZone={setTimeZone} />
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
+            <span className='text-sm font-medium text-foreground'>
+              {t(lang, 'schedule.timezoneSelector.label')}
+            </span>
+            <Badge
+              variant='outline'
+              className='max-w-[240px] justify-start truncate px-3 py-1'
+            >
+              <span className='truncate'>
+                {timeZone || t(lang, 'schedule.timezoneSelector.none')}
+              </span>
+            </Badge>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              onClick={() => setTimezoneModalOpen(true)}
+            >
+              {t(lang, 'schedule.timezoneSelector.button')}
+            </Button>
+          </div>
+          <TimezoneSelectorModal
+            open={timezoneModalOpen}
+            onOpenChangeAction={setTimezoneModalOpen}
+            timeZone={timeZone}
+            setTimeZoneAction={setTimeZone}
+            lang={lang}
+          />
         </div>
         <DeadLine deadline={hackathon.content.submission_deadline} />
       </div>
@@ -216,10 +270,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                 if (isNaN(date.getTime())) {
                   return null;
                 }
-                const month = date
-                  .toLocaleString(locale, { month: 'long' })
-                  .toUpperCase();
-                const day = date.getDate();
+                const { month, day } = getConvertedDateParts(date);
                 return (
                   <div
                     key={index}
@@ -231,7 +282,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                     onClick={() => setSelectedDay(formattedDate)}
                   >
                     <div className='flex items-center justify-center gap-1 py-1.5 px-2 sm:px-3'>
-                      {month && <span className='text-xs sm:text-sm font-medium'>{month}</span>}
+                      {month && <span className='text-xs sm:text-sm font-medium'>{month.toUpperCase()}</span>}
                       {day && <span className='text-xs sm:text-sm font-medium'>{day}</span>}
                     </div>
                   </div>
