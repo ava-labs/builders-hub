@@ -273,7 +273,8 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
                   ).length;
                   const allSelected = courseSelectedCount === course.chapters.length;
                   const remainingBudget = MAX_SELECTED - selected.size;
-                  const selectAllDisabled = !allSelected && remainingBudget === 0;
+                  const selectAllDisabled = allSelected || remainingBudget === 0;
+                  const clearDisabled = courseSelectedCount === 0;
                   return (
                     <div key={course.slug} className="rounded-lg border bg-card">
                       <div className="flex w-full items-center justify-between">
@@ -298,21 +299,27 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
                           {courseSelectedCount > 0 && (
                             <Badge variant="secondary">{courseSelectedCount} picked</Badge>
                           )}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              allSelected ? clearCourse(course) : selectAllInCourse(course)
-                            }
-                            disabled={selectAllDisabled}
-                            className="text-xs font-medium text-red-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed dark:text-red-400"
-                            aria-label={
-                              allSelected
-                                ? `Clear all chapters of ${course.title}`
-                                : `Select all chapters of ${course.title}`
-                            }
-                          >
-                            {allSelected ? 'Clear' : 'Select all'}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => selectAllInCourse(course)}
+                              disabled={selectAllDisabled}
+                              className="text-xs font-medium text-red-600 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed dark:text-red-400"
+                              aria-label={`Select all chapters of ${course.title}`}
+                            >
+                              Select all
+                            </button>
+                            <span aria-hidden className="text-xs text-muted-foreground">·</span>
+                            <button
+                              type="button"
+                              onClick={() => clearCourse(course)}
+                              disabled={clearDisabled}
+                              className="text-xs font-medium text-muted-foreground hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                              aria-label={`Clear chapters of ${course.title}`}
+                            >
+                              Clear
+                            </button>
+                          </div>
                         </div>
                       </div>
                       {expanded && (
