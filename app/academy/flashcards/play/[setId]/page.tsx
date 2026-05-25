@@ -5,7 +5,11 @@ import { parseLegacyData } from '@/lib/flashcards/legacy';
 import { getDeckSummary } from '@/lib/flashcards/deck-resolver';
 import { PlayDeck } from '@/components/flashcards/play/play-deck';
 
-export const dynamic = 'force-static';
+// Must be dynamic: `[setId]` accepts both curated ids from flashcardData.json
+// and arbitrary `user:<uuid>` ids saved per-browser in IndexedDB. We can't
+// enumerate those at build time, so force-static would 404 every request in
+// production (see v2.2 plan).
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ setId: string }>;

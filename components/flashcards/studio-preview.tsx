@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Download, AlertCircle, Loader2, Save, Check } from 'lucide-react';
+import { ArrowLeft, Download, AlertCircle, Loader2, Save, Check, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStudioStore } from '@/lib/flashcards/store';
@@ -274,12 +274,21 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
             {savedDeckId && !showSaveForm && (
               <span className="ml-3 inline-flex items-center gap-1 text-green-600 dark:text-green-400">
                 <Check className="h-3.5 w-3.5" />
-                Saved — find it under Flashcards on your course page
+                Saved to your library
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            {!showSaveForm && (
+            {savedDeckId && !showSaveForm && (
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/academy/flashcards/play/user:${savedDeckId}`)}
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                Study now
+              </Button>
+            )}
+            {!showSaveForm && !savedDeckId && (
               <Button
                 variant="outline"
                 onClick={openSaveForm}
