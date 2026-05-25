@@ -2,20 +2,27 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
   HelpCircle,
+  Pencil,
   RotateCw,
   Shuffle,
   ThumbsUp,
+  Trash2,
   X as XIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
+  deleteUserDeck,
   getDeckRatings,
+  getUserDeck,
+  renameUserDeck,
   resetDeckRatings,
   setCardRating,
   type FlashcardRating,
@@ -60,23 +67,62 @@ function shuffleInPlace<T>(arr: T[]): T[] {
   return arr;
 }
 
+const USER_DECK_PREFIX = 'user:';
+
 export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
-  const total = items.length;
+  const router = useRouter();
+  const isUserDeck = setId.startsWith(USER_DECK_PREFIX);
+
+  // For user decks the props.items arrives empty (server can't read IDB);
+  // hydrate from `getUserDeck` after mount. For curated decks, items is the
+  // initial source of truth.
+  const [liveItems, setLiveItems] = useState<LegacyFlashcardItem[]>(items);
+  const [liveTitle, setLiveTitle] = useState(title);
+  const [deckLoadState, setDeckLoadState] = useState<'loading' | 'ready' | 'not-found'>(
+    isUserDeck ? 'loading' : 'ready',
+  );
 
   const [ratings, setRatings] = useState<Record<number, FlashcardRating>>({});
   const [hydrated, setHydrated] = useState(false);
   const [tab, setTab] = useState<StudyTab>('all');
   const [order, setOrder] = useState<number[]>(() =>
-    Array.from({ length: total }, (_unused, i) => i),
+    Array.from({ length: items.length }, (_unused, i) => i),
   );
   const [position, setPosition] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionNeedsReview, setSessionNeedsReview] = useState(0);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showRenameForm, setShowRenameForm] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Hydrate ratings from IndexedDB once on mount.
+  const total = liveItems.length;
+
+  // Load user deck from IDB on mount when setId has the user: prefix.
   useEffect(() => {
+    if (!isUserDeck) return;
+    let cancelled = false;
+    const id = setId.slice(USER_DECK_PREFIX.length);
+    getUserDeck(id).then((deck) => {
+      if (cancelled) return;
+      if (!deck) {
+        setDeckLoadState('not-found');
+        return;
+      }
+      setLiveItems(deck.items);
+      setLiveTitle(deck.name);
+      setOrder(Array.from({ length: deck.items.length }, (_unused, i) => i));
+      setDeckLoadState('ready');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isUserDeck, setId]);
+
+  // Hydrate ratings from IndexedDB after the deck contents are known.
+  useEffect(() => {
+    if (deckLoadState !== 'ready') return;
     let cancelled = false;
     getDeckRatings(setId, total).then((loaded) => {
       if (!cancelled) {
@@ -87,7 +133,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
     return () => {
       cancelled = true;
     };
-  }, [setId, total]);
+  }, [setId, total, deckLoadState]);
 
   // Recompute the order when the tab or ratings change. Reset position to 0
   // so the new tab starts from the top.
@@ -104,7 +150,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
 
   const queueSize = order.length;
   const currentIndex = order[position] ?? -1;
-  const currentCard = currentIndex >= 0 ? items[currentIndex] : null;
+  const currentCard = currentIndex >= 0 ? liveItems[currentIndex] : null;
 
   const counts = useMemo(() => {
     const out = { all: total, new: 0, review: 0 };
@@ -165,6 +211,32 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
     });
   }, [setId, total]);
 
+  const openRenameForm = useCallback(() => {
+    setRenameValue(liveTitle);
+    setShowRenameForm(true);
+  }, [liveTitle]);
+
+  const submitRename = useCallback(async () => {
+    if (!isUserDeck) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === liveTitle) {
+      setShowRenameForm(false);
+      return;
+    }
+    const id = setId.slice(USER_DECK_PREFIX.length);
+    const updated = await renameUserDeck(id, trimmed);
+    if (updated) setLiveTitle(updated.name);
+    setShowRenameForm(false);
+  }, [isUserDeck, renameValue, liveTitle, setId]);
+
+  const confirmDelete = useCallback(async () => {
+    if (!isUserDeck) return;
+    const id = setId.slice(USER_DECK_PREFIX.length);
+    await deleteUserDeck(id);
+    await resetDeckRatings(setId, total);
+    router.push('/academy/flashcards');
+  }, [isUserDeck, setId, total, router]);
+
   // Keyboard shortcuts: Space toggles answer; 1/2/3 rate; ←/→ navigate.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -201,6 +273,31 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
   const finishedQueue = hydrated && queueSize > 0 && position >= queueSize;
   const emptyQueue = hydrated && queueSize === 0;
 
+  if (deckLoadState === 'loading') {
+    return (
+      <div className="flex h-96 items-center justify-center text-sm text-muted-foreground">
+        Loading deck…
+      </div>
+    );
+  }
+
+  if (deckLoadState === 'not-found') {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+        <p className="text-lg font-semibold">Deck not found</p>
+        <p className="text-sm text-muted-foreground">
+          It may have been deleted, or this link is from a different browser.
+        </p>
+        <Link
+          href="/academy/flashcards"
+          className="text-sm text-red-600 hover:underline dark:text-red-400"
+        >
+          Back to Flashcard Studio
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -211,9 +308,14 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Academy
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{liveTitle}</h1>
         {courseTitle && (
           <p className="text-sm text-muted-foreground">{courseTitle}</p>
+        )}
+        {isUserDeck && (
+          <p className="text-xs text-muted-foreground">
+            Saved locally · rename or delete from the Actions panel
+          </p>
         )}
       </div>
 
@@ -358,6 +460,79 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                 </button>
               )}
             </div>
+            {isUserDeck && (
+              <div className="mt-3 space-y-2 border-t pt-3">
+                {showRenameForm ? (
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      maxLength={120}
+                      className="h-8 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          submitRename();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setShowRenameForm(false);
+                        }
+                      }}
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" onClick={submitRename} className="flex-1">
+                        Save name
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowRenameForm(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openRenameForm}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Rename deck
+                  </button>
+                )}
+                {showDeleteConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={confirmDelete}
+                      className="flex-1"
+                    >
+                      Confirm delete
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowDeleteConfirm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="flex items-center gap-1.5 text-xs text-red-600 hover:underline dark:text-red-400"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Delete deck
+                  </button>
+                )}
+              </div>
+            )}
           </section>
         </aside>
 

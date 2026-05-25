@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Download, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, AlertCircle, Loader2, Save, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useStudioStore } from '@/lib/flashcards/store';
-import type { Flashcard } from '@/lib/flashcards/types';
+import { toLegacyItem, type Flashcard } from '@/lib/flashcards/types';
+import { courseRootFromPath } from '@/lib/flashcards/course-path';
+import { saveUserDeck, type UserFlashcardDeck } from '@/utils/quizzes/indexedDB';
 import { StudioCard } from './studio-card';
 
 interface StudioPreviewProps {
@@ -28,6 +31,11 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
   const [hydrated, setHydrated] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [savedDeckId, setSavedDeckId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     setHydrated(true);
@@ -133,6 +141,49 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
     router.push('/academy/flashcards');
   };
 
+  const openSaveForm = () => {
+    setSaveName(deck.title);
+    setSaveError(null);
+    setSavedDeckId(null);
+    setShowSaveForm(true);
+  };
+
+  const onSave = async () => {
+    setSaveError(null);
+    if (kept.length === 0) {
+      setSaveError('Keep at least one card before saving.');
+      return;
+    }
+    const trimmed = saveName.trim();
+    if (!trimmed) {
+      setSaveError('Give the deck a name.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const id = `01${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+      const coursePath = deck.sources[0]?.path
+        ? courseRootFromPath(deck.sources[0].path)
+        : null;
+      const userDeck: UserFlashcardDeck = {
+        id,
+        name: trimmed,
+        coursePath,
+        items: kept.map((c) => toLegacyItem(c)),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      await saveUserDeck(userDeck);
+      setSavedDeckId(id);
+      setShowSaveForm(false);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Save failed';
+      setSaveError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-32">
       <header className="space-y-3">
@@ -175,26 +226,83 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
       )}
 
       <div className="fixed inset-x-0 bottom-0 border-t bg-background/95 backdrop-blur">
+        {showSaveForm && (
+          <div className="mx-auto max-w-6xl border-b px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="save-deck-name" className="text-xs font-medium text-muted-foreground">
+                Deck name:
+              </label>
+              <Input
+                id="save-deck-name"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                maxLength={120}
+                className="h-9 flex-1 min-w-[16rem]"
+                placeholder="My Avalanche cheatsheet"
+                autoFocus
+              />
+              <Button size="sm" variant="ghost" onClick={() => setShowSaveForm(false)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={onSave} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                    Save to library
+                  </>
+                )}
+              </Button>
+            </div>
+            {saveError && (
+              <p className="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">
+                {saveError}
+              </p>
+            )}
+          </div>
+        )}
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div className="text-sm text-muted-foreground">
-            {kept.length} card{kept.length === 1 ? '' : 's'} ready for download
+            {kept.length} card{kept.length === 1 ? '' : 's'} ready
             {downloadError && (
               <span className="ml-3 text-red-600 dark:text-red-400">· {downloadError}</span>
             )}
-          </div>
-          <Button onClick={onDownload} disabled={downloading || kept.length === 0}>
-            {downloading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Building .apkg...
-              </>
-            ) : (
-              <>
-                <Download className="mr-2 h-4 w-4" />
-                Download for Anki
-              </>
+            {savedDeckId && !showSaveForm && (
+              <span className="ml-3 inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+                <Check className="h-3.5 w-3.5" />
+                Saved — find it under Flashcards on your course page
+              </span>
             )}
-          </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            {!showSaveForm && (
+              <Button
+                variant="outline"
+                onClick={openSaveForm}
+                disabled={saving || kept.length === 0}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save deck
+              </Button>
+            )}
+            <Button onClick={onDownload} disabled={downloading || kept.length === 0}>
+              {downloading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Building .apkg...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download for Anki
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

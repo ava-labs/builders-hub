@@ -2,6 +2,21 @@ import { openDB, type IDBPDatabase } from "idb"
 
 export type FlashcardRatingStatus = 'new' | 'easy' | 'hard' | 'unknown'
 
+export interface UserFlashcardItem {
+  term: string
+  definition: string
+  example?: string
+}
+
+export interface UserFlashcardDeck {
+  id: string
+  name: string
+  coursePath: string | null
+  items: UserFlashcardItem[]
+  createdAt: number
+  updatedAt: number
+}
+
 interface QuizDB {
   quizResponses: {
     key: string
@@ -29,18 +44,23 @@ interface QuizDB {
       timesSeen: number
     }
   }
+  userFlashcardDecks: {
+    key: string
+    value: UserFlashcardDeck
+  }
 }
 
 const dbName = "QuizDatabase"
 const quizStoreName = "quizResponses"
 const flashcardStoreName = "flashcardProgress"
 const flashcardRatingsStoreName = "flashcardRatings"
+const userDecksStoreName = "userFlashcardDecks"
 
 let dbPromise: Promise<IDBPDatabase<QuizDB>> | null = null
 
 function getDBPromise() {
   if (!dbPromise) {
-    dbPromise = openDB<QuizDB>(dbName, 3, {
+    dbPromise = openDB<QuizDB>(dbName, 4, {
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           db.createObjectStore(quizStoreName)
@@ -53,6 +73,11 @@ function getDBPromise() {
         if (oldVersion < 3) {
           if (!db.objectStoreNames.contains(flashcardRatingsStoreName)) {
             db.createObjectStore(flashcardRatingsStoreName)
+          }
+        }
+        if (oldVersion < 4) {
+          if (!db.objectStoreNames.contains(userDecksStoreName)) {
+            db.createObjectStore(userDecksStoreName)
           }
         }
       },
@@ -173,4 +198,48 @@ export async function resetDeckRatings(flashcardSetId: string, totalCards: numbe
       db.delete(flashcardRatingsStoreName, cardKey(flashcardSetId, i)),
     ),
   )
+}
+
+// User-saved decks (Studio output that the user explicitly keeps). Stored
+// separately from curated `flashcardData.json` so the play UI can route to
+// either by setId prefix (`user:<id>` -> IDB, otherwise -> static JSON).
+
+export async function saveUserDeck(deck: UserFlashcardDeck): Promise<void> {
+  if (typeof window === "undefined") return
+  const db = await getDBPromise()
+  await db.put(userDecksStoreName, deck, deck.id)
+}
+
+export async function getUserDeck(deckId: string): Promise<UserFlashcardDeck | undefined> {
+  if (typeof window === "undefined") return undefined
+  const db = await getDBPromise()
+  return db.get(userDecksStoreName, deckId)
+}
+
+export async function listUserDecks(): Promise<UserFlashcardDeck[]> {
+  if (typeof window === "undefined") return []
+  const db = await getDBPromise()
+  return db.getAll(userDecksStoreName)
+}
+
+export async function listUserDecksForCoursePath(coursePath: string): Promise<UserFlashcardDeck[]> {
+  if (!coursePath) return []
+  const all = await listUserDecks()
+  return all.filter((d) => d.coursePath === coursePath)
+}
+
+export async function renameUserDeck(deckId: string, name: string): Promise<UserFlashcardDeck | undefined> {
+  if (typeof window === "undefined") return undefined
+  const existing = await getUserDeck(deckId)
+  if (!existing) return undefined
+  const next: UserFlashcardDeck = { ...existing, name, updatedAt: Date.now() }
+  const db = await getDBPromise()
+  await db.put(userDecksStoreName, next, deckId)
+  return next
+}
+
+export async function deleteUserDeck(deckId: string): Promise<void> {
+  if (typeof window === "undefined") return
+  const db = await getDBPromise()
+  await db.delete(userDecksStoreName, deckId)
 }
