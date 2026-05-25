@@ -70,7 +70,7 @@ Solidity is actively developed and new versions can introduce breaking changes. 
 pragma solidity ^0.8.20;
 ```
 
-The caret (`^`) means "any compiler whose minor version starts with 0.8". So `0.8.20`, `0.8.24`, and `0.8.28` are all accepted, but `0.9.0` is not. You can also express exact versions or ranges:
+The caret (`^`) means "this version or any newer one that does not change the leftmost non-zero component". For `^0.8.20` that resolves to `>=0.8.20 <0.9.0`, so `0.8.20`, `0.8.24`, and `0.8.28` are all accepted, but `0.8.19` (older patch) and `0.9.0` (next minor) are not. You can also express exact versions or ranges:
 
 ```solidity
 pragma solidity 0.8.28;            // exact version only
@@ -109,7 +109,7 @@ On the EVM there are two kinds of addresses:
 - **Externally Owned Accounts (EOA)**: accounts controlled by a private key. A human uses a wallet to sign transactions and initiate interactions. EOAs have no code.
 - **Contract Accounts**: addresses where the EVM has stored bytecode. These accounts hold state and code, but they cannot initiate transactions on their own — they can only respond to calls or messages sent to them.
 
-Both types share the same 20-byte address format. The distinction matters in practice because certain operations (like receiving ETH via `transfer`) behave differently, and the `address payable` type exists specifically to mark addresses that are meant to receive native currency.
+Both types share the same 20-byte address format. The distinction matters in practice because certain operations (like receiving AVAX via `transfer`) behave differently, and the `address payable` type exists specifically to mark addresses that are meant to receive native currency.
 
 ## Creating, Compiling, and Deploying to an Avalanche L1
 

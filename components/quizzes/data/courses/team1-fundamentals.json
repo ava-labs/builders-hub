@@ -1,7 +1,7 @@
 {
   "title": "Team1 Fundamentals",
   "quizzes": {
-    "4001": {
+    "40001": {
       "question": "What is the primary mission of Team1?",
       "options": [
         "To maximize AVAX price through trading strategies",
@@ -16,7 +16,7 @@
       "explanation": "Team1 is a global network of builders, developers, creatives, gamers, and community members who grow the Avalanche ecosystem through events, education, content, and builder support—not trading or replacing core teams.",
       "chapter": "What Is Team1?"
     },
-    "4002": {
+    "40002": {
       "question": "How did the Avalanche Ambassador DAO evolve into today's Team1 program?",
       "options": [
         "The Ambassador DAO was shut down and replaced entirely by a centralized marketing agency",
@@ -31,7 +31,7 @@
       "explanation": "Team1 grew out of lessons from the Avalanche Ambassador DAO: what worked and what didn't in a large, distributed community. Those learnings were used to design a more structured, scalable program with clear roles, incentives, and expectations—rather than abandoning the model entirely.",
       "chapter": "Origins: From Ambassadors to Team1"
     },
-    "4003": {
+    "40003": {
       "question": "Which of the following best captures what is expected from a Team1 member?",
       "options": [
         "Occasional low-effort participation with no clear responsibilities",
@@ -46,7 +46,7 @@
       "explanation": "The fundamentals course and Team1 Manual emphasize that members are expected to contribute consistently, act as stewards of Avalanche's values, and behave professionally in both internal and public spaces—whether they focus on events, education, builders, content, or other tracks.",
       "chapter": "What's Expected from a Team1 Member"
     },
-    "4004": {
+    "40004": {
       "question": "Why does the course emphasize how Team1 members should interact with each other and the wider ecosystem?",
       "options": [
         "Because contribution volume is less important than social media follower counts",
@@ -61,7 +61,7 @@
       "explanation": "The course explains that Team1's impact comes not only from what members do, but from how they interact—internally and externally. Clear, respectful communication and good collaboration practices help maintain trust with the ecosystem and inside the program.",
       "chapter": "How Team1 Members Should Interact"
     },
-    "4005": {
+    "40005": {
       "question": "What is the primary purpose of Team1’s bounty systems and XP recognition mechanisms?",
       "options": [
         "To rank members by social media following and reward only the most popular ones",

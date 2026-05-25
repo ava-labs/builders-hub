@@ -242,9 +242,9 @@ contract GameItems is ERC1155, Ownable {
 A **reentrancy attack** occurs when an external contract calls back into the victim contract before the first execution has finished. The classic scenario:
 
 1. Attacker calls `withdraw()` on a vault contract.
-2. The vault sends ETH to the attacker's contract via `call`.
-3. The attacker's contract, on receiving ETH, immediately calls `withdraw()` again.
-4. The vault has not yet updated the attacker's balance — so it sends ETH again.
+2. The vault sends the specified token, for instance AVAX, to the attacker's contract via `call`.
+3. The attacker's contract, on receiving AVAX, immediately calls `withdraw()` again.
+4. The vault has not yet updated the attacker's balance — so it sends AVAX again.
 5. Steps 3–4 repeat until the vault is drained.
 
 This is exactly how the 2016 DAO hack drained $50 million. The fix is the **checks-effects-interactions** pattern: always update state before making external calls.
