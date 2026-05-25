@@ -5,7 +5,7 @@ import { hasPermission } from "@/lib/auth/roles";
 
 export const POST = withAuth(async (req: NextRequest, _context: any, session: any) => {
     const customAttributes = session?.user?.custom_attributes || [];
-    const hasAccess = hasPermission(customAttributes, { resource: "hackathon", action: "write" });
+    const hasAccess = hasPermission(customAttributes, { resource: "showcase", action: "export" });
 
     if (!hasAccess) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

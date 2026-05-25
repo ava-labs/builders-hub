@@ -47,7 +47,7 @@ type Props = {
 function checkUserPermissions(customAttributes: string[] = []) {
   return {
     hasShowcaseAccess: hasPermission(customAttributes, { resource: "showcase", action: "read" }),
-    hasExportAccess: hasPermission(customAttributes, { resource: "platform", action: "admin" }),
+    hasExportAccess: hasPermission(customAttributes, { resource: "showcase", action: "export" }),
   };
 }
 

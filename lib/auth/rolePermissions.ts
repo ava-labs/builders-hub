@@ -35,7 +35,7 @@ export type Resource =
   | "platform"
   | string; // open for subnamespaces like "badge:nft"
 
-export type Action = "read" | "write" | "delete" | "manage" | "admin" | "*";
+export type Action = "read" | "write" | "delete" | "manage" | "admin" | "export" | "*";
 
 export interface Permission {
   resource: Resource;
@@ -66,6 +66,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     { resource: "resource", action: "read" },
     { resource: "speaker", action: "read" },
     { resource: "showcase", action: "read" },
+    { resource: "showcase", action: "export" },
   ],
 
   // ── Showcase ──────────────────────────────────────────────────────────────
@@ -89,6 +90,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
   // ── Builder insights ─────────────────────────────────────────────────────
   builder_insights: [{ resource: "builder_insights", action: "read" }, { resource: "builder_insights", action: "write" }],
+
+  // ── Team 1 internal roles ─────────────────────────────────────────────────
+  "Team1-Leader": [{ resource: "builder_insights", action: "read" }],
+  "Team1-member": [{ resource: "builder_insights", action: "read" }],
+  "T1-Technical": [{ resource: "builder_insights", action: "read" }],
 } as const;
 
 // ---------------------------------------------------------------------------
