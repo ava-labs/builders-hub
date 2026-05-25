@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
+import { hasPermission } from "@/lib/auth/roles";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
 
     if (
       !session?.user?.id ||
-      !session.user.custom_attributes?.includes("devrel")
+      !hasPermission(session.user.custom_attributes, { resource: "platform", action: "admin" })
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 401 });
     }

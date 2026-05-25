@@ -1,9 +1,9 @@
 import { Session } from 'next-auth';
-import { withAuthRole } from "@/lib/protectedRoute";
+import { withAuthPermission } from "@/lib/protectedRoute";
 import { SetWinner } from "@/server/services/set-project-winner";
 import { NextRequest, NextResponse } from "next/server";
 
-export const PUT = withAuthRole("badge_admin", async (req: NextRequest, _context: unknown, session: Session) => {
+export const PUT = withAuthPermission({ resource: "badge", action: "manage" }, async (req: NextRequest, _context: unknown, session: Session) => {
   const body = await req.json();
   const name = session.user.name || "user";
 

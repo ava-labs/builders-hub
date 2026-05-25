@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import {
-  canAccessEvaluationTools,
-  canEvaluateHackathon,
-} from "@/lib/auth/permissions";
+import { hasPermission, canEvaluateHackathon } from "@/lib/auth/roles";
 
 const ALLOWED_VERDICTS = ["top", "strong", "maybe", "weak", "reject"];
 
@@ -89,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     if (formDataId) {
       // Legacy Build Games / FormData-attached path.
-      if (!canAccessEvaluationTools(session.user.custom_attributes)) {
+      if (!hasPermission(session.user.custom_attributes, { resource: "judge", action: "read" })) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 

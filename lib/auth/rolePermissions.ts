@@ -32,9 +32,10 @@ export type Resource =
   | "notification"
   | "judge"
   | "user"
+  | "platform"
   | string; // open for subnamespaces like "badge:nft"
 
-export type Action = "read" | "write" | "delete" | "manage" | "*";
+export type Action = "read" | "write" | "delete" | "manage" | "admin" | "*";
 
 export interface Permission {
   resource: Resource;
@@ -47,8 +48,8 @@ export interface Permission {
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   // ── Super users (full wildcard) ──────────────────────────────────────────
-  superadmin: [{ resource: "*", action: "*" }],
-  devrel: [{ resource: "*", action: "*" }],
+  superadmin: [{ resource: "*", action: "*" }, { resource: "platform", action: "admin" }],
+  devrel: [{ resource: "*", action: "*" }, { resource: "platform", action: "admin" }],
 
   // ── Team admin ────────────────────────────────────────────────────────────
   "team1-admin": [
@@ -87,7 +88,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   notify_event: [{ resource: "notification", action: "write" }],
 
   // ── Builder insights ─────────────────────────────────────────────────────
-  builder_insights: [{ resource: "builder_insights", action: "read" }],
+  builder_insights: [{ resource: "builder_insights", action: "read" }, { resource: "builder_insights", action: "write" }],
 } as const;
 
 // ---------------------------------------------------------------------------

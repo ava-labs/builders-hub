@@ -1,12 +1,11 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { exportShowcase } from "@/server/services/exportShowcase";
 import { NextRequest, NextResponse } from "next/server";
+import { hasPermission } from "@/lib/auth/roles";
 
 export const POST = withAuth(async (req: NextRequest, _context: any, session: any) => {
     const customAttributes = session?.user?.custom_attributes || [];
-    const hasAccess = customAttributes.includes("devrel")
-        || customAttributes.includes("team1-admin")
-        || customAttributes.includes("hackathonCreator");
+    const hasAccess = hasPermission(customAttributes, { resource: "hackathon", action: "write" });
 
     if (!hasAccess) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

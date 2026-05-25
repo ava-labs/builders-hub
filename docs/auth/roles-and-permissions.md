@@ -95,6 +95,7 @@ Resources follow a `namespace` or `namespace:subnamespace` convention:
 | `judge` | Judge assignments per hackathon |
 | `user` | User accounts and role management |
 | `builder_insights` | Internal analytics dashboard |
+| `platform` | Platform-level admin actions (devrel/superadmin only) |
 | `*` | Wildcard — matches any resource |
 
 Sub-namespaces (e.g. `badge:nft`) are supported by `checkPermission()` via
@@ -118,15 +119,15 @@ Defined in [`lib/auth/rolePermissions.ts`](../../lib/auth/rolePermissions.ts).
 
 | Role | Permissions |
 |---|---|
-| `superadmin` | `*:*` (full access) |
-| `devrel` | `*:*` (full access) |
+| `superadmin` | `*:*` (full access), `platform:admin` |
+| `devrel` | `*:*` (full access), `platform:admin` |
 | `team1-admin` | `hackathon:manage`, `resource:manage`, `speaker:manage`, `showcase:read` |
 | `hackathonCreator` | `hackathon:write`, `hackathon:read`, `resource:read`, `speaker:read`, `showcase:read` |
 | `showcase` | `showcase:read`, `showcase:write` |
 | `judge` | `judge:read`, `judge:write`, `badge:write` |
 | `badge_admin` | `badge:manage` |
 | `notify_event` | `notification:write` |
-| `builder_insights` | `builder_insights:read` |
+| `builder_insights` | `builder_insights:read`, `builder_insights:write` |
 
 **To add a new role:** add one entry to `ROLE_PERMISSIONS` in `rolePermissions.ts`.
 No other file needs to change.
@@ -230,7 +231,7 @@ export const DELETE = withAuthResource(
 
 Base URL: `GET|POST|DELETE /api/admin/user-roles`
 
-All endpoints require `user:manage` permission (`superadmin` or `devrel` only).
+All endpoints require `platform:admin` permission (`superadmin` or `devrel` only).
 
 ### GET — List roles for a user
 
@@ -302,22 +303,22 @@ Content-Type: application/json
        │
 2. NextAuth jwt() callback fires
        │
-3. Loads User.custom_attributes (legacy roles)          [DB read]
-4. Loads UserRole rows WHERE expires_at IS NULL
+3. Loads UserRole rows WHERE expires_at IS NULL
                          OR expires_at > NOW()           [DB read]
-5. Merges + deduplicates → token.custom_attributes
        │
-6. Session is created → session.user.custom_attributes
+4. Maps rows → role strings → token.custom_attributes
        │
-7. Request arrives at /api/badge/assign
+5. Session is created → session.user.custom_attributes
        │
-8. middleware.ts checks routeManifest → { resource: "badge" }
-9. Infers action from POST → "write"
-10. Checks token: hasPermission(custom_attributes, { resource: "badge", action: "write" })
+6. Request arrives at /api/badge/assign
        │
-11. ✅ Passes through to route handler
+7. middleware.ts checks routeManifest → { resource: "badge" }
+8. Infers action from POST → "write"
+9. Checks token: hasPermission(custom_attributes, { resource: "badge", action: "write" })
        │
-12. Handler runs business logic (no auth boilerplate needed)
+10. ✅ Passes through to route handler
+       │
+11. Handler runs business logic (no auth boilerplate needed)
 ```
 
 ---
@@ -336,13 +337,12 @@ invalidated.
 - Call `session update` from the client after revoking a role.
 - For critical operations, add a real-time DB check in the handler using `getUserActiveRoles()`.
 
-### ⚠️ Legacy `custom_attributes` coexistence
+### ⚠️ Legacy `custom_attributes` column
 
-Roles in `User.custom_attributes` are **permanent** and cannot expire. They are
-merged into the JWT alongside `UserRole` rows. The admin API only manages the
-`UserRole` table. To fully migrate to the new system with expiration support,
-legacy roles should be moved from `custom_attributes` to `UserRole` rows and
-the `custom_attributes` field cleared — this is a manual data migration step.
+`User.custom_attributes` (PostgreSQL `String[]`) still exists in the schema but is
+**no longer read by the JWT callback**. Token roles are sourced exclusively from
+`UserRole` rows. The column is kept for reference until a data migration moves any
+remaining values into `UserRole` rows.
 
 ### ⚠️ Mixed public/protected routes
 
@@ -355,9 +355,14 @@ for these routes.
 
 ### ⚠️ `superadmin` and `devrel` as wildcards
 
-Both `superadmin` and `devrel` have `{ resource: "*", action: "*" }` permissions.
-`hasAnyRole()` also short-circuits to `true` for these roles. This means they bypass
-all resource:action checks. Assign these roles with extreme care.
+Both `superadmin` and `devrel` have `{ resource: "*", action: "*" }` permissions,
+which bypass all resource:action checks. They also carry an explicit
+`{ resource: "platform", action: "admin" }` permission used for strictly
+platform-level gates (admin panels, final verdict, advance stage, user search
+admin scope, showcase export, send-to-all notifications).
+
+Use `platform:admin` — not `*:*` — when the intent is "devrel/superadmin only".
+Assign these roles with extreme care.
 
 ### ⚠️ No UI for role management yet
 
@@ -377,9 +382,37 @@ or `devrel` user.
 | `lib/protectedRoute.ts` | **Updated.** Added `withAuthPermission(required, handler)` and `withAuthResource(resource, handler)`. `withAuthRole` kept for gradual migration. |
 | `middleware.ts` / `proxy.ts` | **Updated.** Central middleware now consumes the route manifest. Single auth decision point for all manifest-listed routes. |
 | `prisma/schema.prisma` | **Updated.** Added `UserRole` model with `expires_at`. Added `user_roles` relation to `User`. |
-| `lib/auth/authOptions.ts` | **Updated.** JWT callback now merges `User.custom_attributes` with active `UserRole` rows (filtered by expiry). |
-| `app/api/events/route.ts` | **Migrated.** Inline `customAttributes.includes("devrel")` replaced with `hasPermission()`. `withAuthRole('devrel')` on POST replaced with `withAuthPermission({ resource: "hackathon", action: "write" })`. |
-| `app/api/events/[id]/route.ts` | **Migrated.** `withAuthRole('devrel')` on PUT/PATCH replaced with `withAuthPermission`. |
-| `app/api/events/[id]/judges/route.ts` | **Migrated.** `withAuthRole("devrel")` replaced with `withAuthPermission` for GET and POST. |
-| `app/api/events/[id]/judges/[userId]/route.ts` | **Migrated.** `withAuthRole("devrel")` on DELETE replaced with `withAuthPermission`. |
-| `app/api/admin/user-roles/route.ts` | **New.** REST API for assigning, updating, and revoking user roles with optional expiration. |
+| `lib/auth/authOptions.ts` | **Updated.** JWT callback now loads only active `UserRole` rows (filtered by expiry). `User.custom_attributes` is no longer merged. |
+| `lib/auth/permissions.ts` | **Deleted.** All helpers (`canAccessEvaluationTools`, `canManageHackathonJudges`, etc.) replaced by `hasPermission()` calls at each callsite. |
+| `lib/auth/roles.ts` | **Updated.** `hasAnyRole` removed. `isHackathonJudge` and `canEvaluateHackathon` moved here from `permissions.ts`. |
+| `lib/protectedRoute.ts` | **Updated.** `withAuthRole` removed. Only `withAuth`, `withAuthPermission`, and `withAuthResource` remain. |
+| `lib/auth/rolePermissions.ts` | **Updated.** Added `platform:admin` to `superadmin` and `devrel`. Added `builder_insights:write` to `builder_insights`. |
+| `app/api/badge/console-migrate/route.ts` | **Migrated.** `includes("devrel")` → `hasPermission(..., { resource: "badge", action: "manage" })`. |
+| `app/api/badge/assign/route.ts` | **Migrated.** Role includes replaced with `hasPermission(..., { resource: "badge", action: "manage" })`. |
+| `app/api/notifications/create/route.ts` | **Migrated.** `includes("devrel")` / `includes("notify_event")` → `hasPermission(..., { resource: "notification", action: "write" })`. |
+| `app/api/project/set-winner/route.ts` | **Migrated.** `withAuthRole("badge_admin")` → `withAuthPermission({ resource: "badge", action: "manage" })`. |
+| `app/api/projects/[id]/winner/route.ts` | **Migrated.** `withAuthRole("devrel")` → `withAuthPermission({ resource: "hackathon", action: "manage" })`. |
+| `app/api/evaluate/route.ts` | **Migrated.** `canAccessEvaluationTools` → `hasPermission(..., { resource: "judge", action: "read" })`. |
+| `app/api/evaluate/submissions/route.ts` | **Migrated.** Same as above. |
+| `app/api/evaluate/final-verdict/route.ts` | **Migrated.** `includes("devrel")` → `hasPermission(..., { resource: "platform", action: "admin" })`. |
+| `app/api/evaluate/advance-stage/route.ts` | **Migrated.** Same as above. |
+| `app/api/referrals/route.ts` | **Migrated.** `canGenerateRestrictedReferralLinks` → `builder_insights:write`. `canGenerateReferralLinkForTarget` inlined as direct type check. |
+| `app/api/users/search/route.ts` | **Migrated.** `includes("devrel")` → `platform:admin`. |
+| `app/api/projects/export/route.ts` | **Migrated.** Triple includes → `hackathon:write`. |
+| `app/hackathons/edit/page.tsx` | **Migrated.** All role includes replaced with `hasPermission()`. `isDevrel` uses `platform:admin`. |
+| `app/events/edit/page.tsx` | **Migrated.** Same as above. |
+| `app/(home)/evaluate/page.tsx` | **Migrated.** `canAccessEvaluationTools` → `judge:read`. `isDevrel` → `platform:admin`. |
+| `app/(home)/builder-insights/page.tsx` | **Migrated.** `canAccessBuilderInsights` → `builder_insights:read`. |
+| `app/(home)/events/new/page.tsx` | **Migrated.** `includes("devrel")` → `platform:admin`. |
+| `app/(home)/events/[id]/admin-panel/page.tsx` | **Migrated.** Same. |
+| `app/(home)/hackathons/new/page.tsx` | **Migrated.** Same. |
+| `app/(home)/hackathons/[id]/admin-panel/page.tsx` | **Migrated.** Same. |
+| `app/(home)/events/[id]/evaluate/page.tsx` | **Migrated.** `canManageHackathonJudges` → `platform:admin`. |
+| `app/(home)/events/[id]/admin-panel/judges/page.tsx` | **Migrated.** Same. |
+| `components/evaluate/HostNavButtons.tsx` | **Migrated.** Same. |
+| `components/login/user-button/UserButton.tsx` | **Migrated.** All role includes replaced with `hasPermission()`. |
+| `components/showcase/ShowCaseCard.tsx` | **Migrated.** Local `checkUserPermissions` uses `showcase:read` and `platform:admin`. |
+| `components/showcase/ShowcaseProjectAuthWrapper.tsx` | **Migrated.** Uses `hasShowcaseRole` shortcut (delegates to `showcase:read`). |
+| `components/hackathons/Hackathons.tsx` | **Migrated.** `isHackathonCreator` uses `hackathon:write`. |
+| `components/hackathons/Events.tsx` | **Migrated.** Same. |
+| `components/notification/send-notifications-form.tsx` | **Migrated.** "All" audience tab uses `platform:admin`. |

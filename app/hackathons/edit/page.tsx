@@ -17,6 +17,7 @@ import HackathonPreview from '@/components/hackathons/HackathonPreview';
 import { EmailListInput } from '@/components/common/EmailListInput';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
+import { hasPermission } from '@/lib/auth/roles';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -927,11 +928,8 @@ const HackathonsEdit = () => {
       setHasEditPermission(false);
       return;
     }
-    const customAttributes: string[] = session.user.custom_attributes || [];
-    const isSpecialRole =
-      customAttributes.includes("hackathonCreator") ||
-      customAttributes.includes("team1-admin") ||
-      customAttributes.includes("devrel");
+    const attrs: string[] = session.user.custom_attributes ?? [];
+    const isSpecialRole = hasPermission(attrs, { resource: "hackathon", action: "write" });
     
     // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
@@ -1759,9 +1757,7 @@ const HackathonsEdit = () => {
   // Check if user has required permissions
   const hasRequiredPermissions = () => {
     if (!session?.user?.custom_attributes) return false;
-    return session.user.custom_attributes.includes("team1-admin") || 
-           session.user.custom_attributes.includes("hackathonCreator") || 
-           session.user.custom_attributes.includes("devrel");
+    return hasPermission(session.user.custom_attributes, { resource: "hackathon", action: "write" });
   };
 
   // Show login modal for unauthorized users
@@ -1848,7 +1844,7 @@ const HackathonsEdit = () => {
         language={language} 
         onSelect={handleSelectHackathon} 
         selectedId={selectedHackathon?.id ?? null} 
-        isDevrel={session?.user?.custom_attributes?.includes("devrel") || false}
+        isDevrel={hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })}
         loading={loadingHackathons}
       />
       {/* Sticky bar: action buttons + step navigation (always visible when editing) */}
@@ -1862,7 +1858,7 @@ const HackathonsEdit = () => {
               <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleUpdateClick}>
                 {t[language].update}
               </Button>  
-              {session?.user?.custom_attributes?.includes("devrel") && (
+              {hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" }) && (
                 <Button 
                   type="button" 
                   className={`${

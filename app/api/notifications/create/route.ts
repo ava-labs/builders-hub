@@ -1,5 +1,6 @@
 import { getToken, encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import { hasPermission } from "@/lib/auth/roles";
 
 function stripMdxExpressions(content: string): string {
   return content
@@ -15,13 +16,8 @@ export async function POST(req: any): Promise<Response> {
       req,
       secret: process.env.NEXTAUTH_SECRET ?? "",
     });
-    const sessionCustomAttributes = token?.custom_attributes || [""];
-    if (
-      !(
-        sessionCustomAttributes.includes("devrel") ||
-        sessionCustomAttributes.includes("notify_event")
-      )
-    ) {
+    const attrs = (token?.custom_attributes as string[] | undefined) ?? [];
+    if (!hasPermission(attrs, { resource: "notification", action: "write" })) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     if (!token) return new Response("Unauthorized", { status: 401 });

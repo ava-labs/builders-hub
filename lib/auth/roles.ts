@@ -21,29 +21,13 @@ import {
   getPermissionsFromRoles,
   checkPermission,
 } from "./rolePermissions";
+import { prisma } from "@/prisma/prisma";
 
 export type { Permission };
 
 // ---------------------------------------------------------------------------
 // Core helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Returns true when `customAttributes` contains at least one of the
- * `allowedRoles`.
- *
- * superadmin and devrel always return true (wildcard roles).
- */
-export function hasAnyRole(
-  customAttributes: readonly string[] | null | undefined,
-  allowedRoles: readonly string[],
-): boolean {
-  if (!customAttributes || customAttributes.length === 0) return false;
-  if (allowedRoles.length === 0) return false;
-  const owned = new Set(customAttributes);
-  if (owned.has("superadmin") || owned.has("devrel")) return true;
-  return allowedRoles.some((role) => owned.has(role));
-}
 
 /**
  * Returns true when the user's roles grant the required { resource, action }.
@@ -85,3 +69,35 @@ export const hasJudgeRole = (
 export const hasNotificationsRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasPermission(customAttributes, { resource: "notification", action: "write" });
+
+// ---------------------------------------------------------------------------
+// Judge helpers (DB-backed)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true when the user has a per-hackathon judge assignment row.
+ */
+export async function isHackathonJudge(
+  userId: string | undefined | null,
+  hackathonId: string,
+): Promise<boolean> {
+  if (!userId) return false;
+  const row = await prisma.hackathonJudge.findUnique({
+    where: { hackathon_id_user_id: { hackathon_id: hackathonId, user_id: userId } },
+    select: { id: true },
+  });
+  return row !== null;
+}
+
+/**
+ * Returns true when the user may evaluate projects for the given hackathon:
+ * any role with judge:read (devrel, judge) OR an assigned HackathonJudge row.
+ */
+export async function canEvaluateHackathon(
+  session: { user?: { id?: string; custom_attributes?: string[] } } | null | undefined,
+  hackathonId: string,
+): Promise<boolean> {
+  if (!session?.user) return false;
+  if (hasPermission(session.user.custom_attributes, { resource: "judge", action: "read" })) return true;
+  return isHackathonJudge(session.user.id, hackathonId);
+}

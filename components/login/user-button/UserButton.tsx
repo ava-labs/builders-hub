@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 
 const AVATAR_SIZE = 32;
 
-import { canAccessBuilderInsights, canAccessEvaluationTools } from '@/lib/auth/permissions';
+import { hasPermission } from '@/lib/auth/roles';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -31,8 +31,8 @@ export function UserButton() {
   const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
-  const canAccessEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
-  const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
+  const canAccessEvaluate = hasPermission(session?.user?.custom_attributes, { resource: "judge", action: "read" });
+  const canAccessInsights = hasPermission(session?.user?.custom_attributes, { resource: "builder_insights", action: "read" });
   const router = useRouter();
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
@@ -166,14 +166,14 @@ export function UserButton() {
               <Link href='/profile?tab=projects'>Projects</Link>
             </DropdownMenuItem>
             {
-              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('notify_event')) && (
+              hasPermission(session?.user?.custom_attributes, { resource: "notification", action: "write" }) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/send-notifications'>Send notifications</Link>
                 </DropdownMenuItem>
               )
             }
             {
-              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('hackathonCreator')) && (
+              hasPermission(session?.user?.custom_attributes, { resource: "hackathon", action: "write" }) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/events/edit'>Event Management</Link>
                 </DropdownMenuItem>

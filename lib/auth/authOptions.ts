@@ -81,7 +81,6 @@ const authUserSelect = {
   email: true,
   image: true,
   name: true,
-  custom_attributes: true,
   authentication_mode: true,
   notifications: true,
   user_name: true,
@@ -213,11 +212,7 @@ export const AuthOptions: NextAuthOptions = {
           select: { role: true },
         });
 
-        // Merge legacy custom_attributes with new table roles (deduplicated)
-        const allRoles = [
-          ...dbUser.custom_attributes,
-          ...activeUserRoles.map((r: { role: string }) => r.role),
-        ].filter((v: string, i: number, a: string[]) => a.indexOf(v) === i);
+        const allRoles = activeUserRoles.map((r: { role: string }) => r.role);
 
         token.id = dbUser.id;
         token.avatar = dbUser.image || token.avatar || user?.image || null;

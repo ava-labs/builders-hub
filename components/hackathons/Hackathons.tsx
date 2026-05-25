@@ -1,5 +1,6 @@
 "use client";
 import { Search, Building2 } from "lucide-react";
+import { hasPermission } from "@/lib/auth/roles";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -74,7 +75,7 @@ export default function Hackathons({
   totalUpcomingHackathons,
 }: Props) {
   const { data: session, status } = useSession();
-  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
+  const isHackathonCreator = hasPermission(session?.user?.custom_attributes, { resource: "hackathon", action: "write" });
   
   const router = useRouter();
 
@@ -136,7 +137,7 @@ export default function Hackathons({
     if (status === "authenticated" && session?.user) {
       console.log("User ID:", session.user.id);
 
-      if (session.user.custom_attributes?.includes("hackathonCreator") || session.user.custom_attributes?.includes("team1-admin")) {
+      if (hasPermission(session.user.custom_attributes, { resource: "hackathon", action: "write" })) {
         console.log("User is hackathonCreator");
       }
     }

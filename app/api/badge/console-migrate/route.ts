@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
+import { hasPermission } from "@/lib/auth/roles";
 import { evaluateAllConsoleBadges } from "@/server/services/consoleBadge/consoleBadgeService";
 
 export async function POST() {
@@ -9,8 +10,7 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const hasDevrel = session.user.custom_attributes?.includes("devrel") ?? false;
-  if (!hasDevrel) {
+  if (!hasPermission(session.user.custom_attributes, { resource: "badge", action: "manage" })) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Session } from 'next-auth';
 import { getAuthSession } from './auth/authSession';
 import { Permission, actionFromMethod } from './auth/rolePermissions';
-import { hasPermission, hasAnyRole } from './auth/roles';
+import { hasPermission } from './auth/roles';
 import type { Resource } from './auth/rolePermissions';
 
 /**
@@ -34,36 +34,6 @@ export function withAuth<TContext = unknown>(
         { status: 401 },
       );
     }
-    return handler(request, context, session);
-  };
-}
-
-// ---------------------------------------------------------------------------
-// withAuthRole — requires one of the listed roles (backward compat)
-// ---------------------------------------------------------------------------
-
-export function withAuthRole<TContext = unknown>(
-  role: string | string[],
-  handler: Handler<TContext>,
-) {
-  return async function (request: NextRequest, context: TContext) {
-    const session = await getAuthSession();
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required. Please log in to access this resource.' },
-        { status: 401 },
-      );
-    }
-
-    const roles = Array.isArray(role) ? role : [role];
-    const attrs = session.user.custom_attributes ?? [];
-    if (!hasAnyRole(attrs, roles)) {
-      return NextResponse.json(
-        { error: 'Forbidden', message: 'Access denied.' },
-        { status: 403 },
-      );
-    }
-
     return handler(request, context, session);
   };
 }

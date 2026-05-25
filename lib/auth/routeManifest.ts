@@ -13,6 +13,15 @@
  *
  * Routes NOT listed here are public.
  *
+ * Defense-in-depth for API routes:
+ *   API entries here act as a first line of defense at the Edge (middleware),
+ *   before the request reaches the route handler. The withAuth* guards inside
+ *   the handlers are the second layer. Both layers must pass independently.
+ *   Removing an API entry from this manifest does NOT remove its protection if
+ *   the handler still has a withAuth* guard — but it weakens the system:
+ *   a future handler added under the same path prefix without a guard would be
+ *   left completely unprotected.
+ *
  * Trailing-segment note:
  *   Both "/api/hackathons" and "/api/hackathons/*" are declared explicitly
  *   so that the base path without a trailing segment is also protected.
@@ -113,7 +122,12 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
  *  1. Exact match
  *  2. Wildcard patterns — longest pattern first (more specific wins)
  *
- * Wildcard "*" matches exactly one path segment (non-greedy).
+ * Wildcard "*" matches exactly one path segment (any character except "/").
+ * It is non-greedy and does NOT cross segment boundaries, so:
+ *   "/api/hackathons/*" matches "/api/hackathons/123"
+ *                   but NOT "/api/hackathons/123/sub"
+ *
+ * For multi-segment wildcards, add a dedicated entry (e.g. "/**").
  * Returns null for public routes.
  */
 export function matchRoute(pathname: string): RouteConfig | null {

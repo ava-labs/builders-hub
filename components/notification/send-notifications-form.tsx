@@ -1,6 +1,7 @@
 'use client'
 
 import { Divider } from "@/components/ui/divider";
+import { hasPermission } from "@/lib/auth/roles";
 import {
   Dialog,
   DialogContent,
@@ -213,7 +214,7 @@ export default function SendNotificationsForm() {
                       className="w-full flex items-center my-2"
                     >
                       <TabsList>
-                        <TabsTrigger disabled={!sessionPayload?.custom_attributes.includes('devrel')} value="all">All</TabsTrigger>
+                        <TabsTrigger disabled={!hasPermission(sessionPayload?.custom_attributes, { resource: "platform", action: "admin" })} value="all">All</TabsTrigger>
                         <TabsTrigger value="hackathons">Hackathons</TabsTrigger>
                         <TabsTrigger value="custom">Custom</TabsTrigger>
                       </TabsList>

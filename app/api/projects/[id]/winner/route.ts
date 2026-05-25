@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
-import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
+import { withAuthPermission, type RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
 
 type Body = { is_winner?: boolean };
 
-export const POST = withAuthRole<Params>(
-  "devrel",
+export const POST = withAuthPermission<Params>(
+  { resource: "hackathon", action: "manage" },
   async (request: NextRequest, context: Params) => {
     const { id: projectId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as Body;

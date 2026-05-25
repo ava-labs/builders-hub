@@ -3,7 +3,7 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { EvaluateDashboard } from "@/components/evaluate/EvaluateDashboard";
 import type { SubmissionRow, EvaluationData } from "@/components/evaluate/types";
-import { canAccessEvaluationTools } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/roles";
 
 function computeStageProgress(origin: string, data: Record<string, unknown>): number {
   if (origin !== "build_games") return 0;
@@ -26,7 +26,7 @@ export default async function EvaluatePage({
     redirect("/");
   }
 
-  const canAccess = canAccessEvaluationTools(session.user?.custom_attributes);
+  const canAccess = hasPermission(session.user?.custom_attributes, { resource: "judge", action: "read" });
 
   if (!canAccess) {
     redirect("/");
@@ -194,7 +194,7 @@ export default async function EvaluatePage({
       };
     });
 
-    const isDevrel = session.user?.custom_attributes?.includes("devrel") ?? false;
+    const isDevrel = hasPermission(session.user?.custom_attributes, { resource: "platform", action: "admin" });
 
     return (
       <main className="container relative px-2 py-4 lg:py-16">

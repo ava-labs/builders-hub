@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { withAuth } from "@/lib/protectedRoute";
+import { hasPermission } from "@/lib/auth/roles";
 
 const MAX_RESULTS = 20;
 
@@ -16,7 +17,7 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
   }
 
   if (scope === "admin") {
-    const isDevrel = session.user?.custom_attributes?.includes("devrel") ?? false;
+    const isDevrel = hasPermission(session.user?.custom_attributes, { resource: "platform", action: "admin" });
     if (!isDevrel) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { canManageHackathonJudges } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/roles";
 import { JudgesManager } from "@/components/evaluate/JudgesManager";
 
 export default async function HackathonJudgesPage({
@@ -10,7 +10,7 @@ export default async function HackathonJudgesPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getAuthSession();
-  if (!canManageHackathonJudges(session)) {
+  if (!hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })) {
     redirect("/");
   }
 

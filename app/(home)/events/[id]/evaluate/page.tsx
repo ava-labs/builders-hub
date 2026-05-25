@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import {
-  canEvaluateHackathon,
-  canManageHackathonJudges,
-} from "@/lib/auth/permissions";
+import { canEvaluateHackathon, hasPermission } from "@/lib/auth/roles";
 import { HackathonEvaluateDashboard } from "@/components/evaluate/HackathonEvaluateDashboard";
 
 export default async function HackathonEvaluatePage({
@@ -94,7 +91,7 @@ export default async function HackathonEvaluatePage({
       <HackathonEvaluateDashboard
         hackathonId={hackathon.id}
         viewerId={session!.user!.id}
-        canPickWinners={canManageHackathonJudges(session)}
+        canPickWinners={hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })}
         projects={projects.map((p) => ({
           ...p,
           created_at: p.created_at.toISOString(),
