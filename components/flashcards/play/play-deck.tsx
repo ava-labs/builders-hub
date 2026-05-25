@@ -5,9 +5,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Download,
   HelpCircle,
+  Keyboard,
+  Layers,
+  Loader2,
   Pencil,
   RotateCw,
   Shuffle,
@@ -17,18 +23,28 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import {
   deleteUserDeck,
   getDeckRatings,
   getUserDeck,
+  listUserDecks,
   renameUserDeck,
   resetDeckRatings,
   setCardRating,
   type FlashcardRating,
   type FlashcardRatingStatus,
+  type UserFlashcardDeck,
 } from '@/utils/quizzes/indexedDB';
-import type { LegacyFlashcardItem } from '@/lib/flashcards/types';
+import type { Deck, LegacyFlashcardItem } from '@/lib/flashcards/types';
 import { parseTextWithLinks } from '@/utils/safeHtml';
 
 type StudyTab = 'all' | 'new' | 'review';
@@ -96,6 +112,10 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
   const [showRenameForm, setShowRenameForm] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [recentDecks, setRecentDecks] = useState<UserFlashcardDeck[]>([]);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [showKeyboardHints, setShowKeyboardHints] = useState(false);
 
   const total = liveItems.length;
 
@@ -237,6 +257,72 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
     router.push('/academy/flashcards');
   }, [isUserDeck, setId, total, router]);
 
+  // Hydrate the recent-decks dropdown on mount and after any save/delete.
+  useEffect(() => {
+    listUserDecks().then((all) => {
+      all.sort((a, b) => b.updatedAt - a.updatedAt);
+      setRecentDecks(all);
+    });
+  }, [liveTitle]); // re-list when title changes (rename event)
+
+  const handleDownload = useCallback(async () => {
+    setDownloadError(null);
+    if (deckLoadState !== 'ready' || liveItems.length === 0) return;
+    if (!isUserDeck) {
+      // Curated deck — straight GET, browser handles the download.
+      window.location.href = `/api/flashcards/download/${encodeURIComponent(setId)}`;
+      return;
+    }
+    setDownloading(true);
+    try {
+      const id = setId.slice(USER_DECK_PREFIX.length);
+      const deckPayload: Deck = {
+        id,
+        title: liveTitle,
+        sources: [
+          {
+            kind: 'academy',
+            path: `/academy/flashcards/play/user/${id}`,
+            chapterTitle: liveTitle,
+          },
+        ],
+        cards: liveItems.map((item, index) => ({
+          id: `${id}-${index}`,
+          type: 'qa',
+          front: item.term,
+          back: item.example ? `${item.definition}\n\n*Example:* ${item.example}` : item.definition,
+          source: {
+            kind: 'academy',
+            path: `/academy/flashcards/play/user/${id}`,
+            chapterTitle: liveTitle,
+          },
+        })),
+      };
+      const res = await fetch('/api/flashcards/studio-download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deckPayload),
+      });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(detail.message ?? detail.error ?? `Failed: ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${liveTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'deck'}.apkg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setDownloadError(error instanceof Error ? error.message : 'Download failed');
+    } finally {
+      setDownloading(false);
+    }
+  }, [deckLoadState, liveItems, isUserDeck, setId, liveTitle]);
+
   // Keyboard shortcuts: Space toggles answer; 1/2/3 rate; ←/→ navigate.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -308,13 +394,80 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Academy
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{liveTitle}</h1>
-        {courseTitle && (
-          <p className="text-sm text-muted-foreground">{courseTitle}</p>
-        )}
-        {isUserDeck && (
-          <p className="text-xs text-muted-foreground">
-            Saved locally · rename or delete from the Actions panel
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{liveTitle}</h1>
+            {courseTitle && (
+              <p className="mt-1 text-sm text-muted-foreground">{courseTitle}</p>
+            )}
+            {isUserDeck && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Saved locally · rename or delete from the Actions panel
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {recentDecks.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Layers className="h-3.5 w-3.5" />
+                    Switch deck
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                    Recent decks
+                  </DropdownMenuLabel>
+                  {recentDecks.slice(0, 5).map((deck) => {
+                    const isCurrent = isUserDeck && setId === `${USER_DECK_PREFIX}${deck.id}`;
+                    return (
+                      <DropdownMenuItem key={deck.id} asChild disabled={isCurrent}>
+                        <Link
+                          href={`/academy/flashcards/play/user/${encodeURIComponent(deck.id)}`}
+                          className="flex items-center gap-2"
+                        >
+                          <span className="flex-1 truncate">{deck.name}</span>
+                          <span className="text-xs text-muted-foreground">{deck.items.length}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/academy/flashcards/library" className="flex items-center gap-2">
+                      <Layers className="h-3.5 w-3.5" />
+                      <span className="flex-1">View all decks</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownload}
+              disabled={downloading || deckLoadState !== 'ready'}
+              className="gap-1.5"
+            >
+              {downloading ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Packing…
+                </>
+              ) : (
+                <>
+                  <Download className="h-3.5 w-3.5" />
+                  Anki
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+        {downloadError && (
+          <p className="text-xs text-red-600 dark:text-red-400" role="alert">
+            {downloadError}
           </p>
         )}
       </div>
@@ -412,30 +565,45 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                 >
                   <RotateCw className="h-4 w-4" />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowKeyboardHints((v) => !v)}
+                  className={cn(
+                    'rounded p-1 hover:bg-muted hover:text-foreground',
+                    showKeyboardHints ? 'text-foreground' : 'text-muted-foreground',
+                  )}
+                  aria-label="Toggle keyboard shortcuts"
+                  aria-expanded={showKeyboardHints}
+                  title="Keyboard shortcuts"
+                >
+                  <Keyboard className="h-4 w-4" />
+                </button>
               </div>
             </div>
-            <dl className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-              <div className="flex items-center justify-between">
-                <dt>Show answer:</dt>
-                <dd className="font-mono">Space</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt>Don&apos;t know:</dt>
-                <dd className="font-mono">1</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt>Hard:</dt>
-                <dd className="font-mono">2</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt>Easy:</dt>
-                <dd className="font-mono">3</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt>Navigate:</dt>
-                <dd className="font-mono">← →</dd>
-              </div>
-            </dl>
+            {showKeyboardHints && (
+              <dl className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between">
+                  <dt>Show answer:</dt>
+                  <dd className="font-mono">Space</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt>Don&apos;t know:</dt>
+                  <dd className="font-mono">1</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt>Hard:</dt>
+                  <dd className="font-mono">2</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt>Easy:</dt>
+                  <dd className="font-mono">3</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt>Navigate:</dt>
+                  <dd className="font-mono">← →</dd>
+                </div>
+              </dl>
+            )}
             <div className="mt-3 border-t pt-3">
               {showResetConfirm ? (
                 <div className="flex items-center gap-2">
@@ -657,7 +825,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                   variant="outline"
                   className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:border-amber-500/40 dark:text-amber-400"
                 >
-                  <HelpCircle className="mr-1.5 h-4 w-4" />
+                  <Clock className="mr-1.5 h-4 w-4" />
                   Hard
                 </Button>
                 <Button

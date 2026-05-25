@@ -18,6 +18,7 @@ import { MailIcon } from "./icons";
 import { IdentityHero } from "./IdentityHero";
 import { PersonalCard } from "./PersonalCard";
 import { ProjectsCard, type ProjectsCardProject } from "./ProjectsCard";
+import { MyDecksCard } from "./MyDecksCard";
 import { AchievementsCard, type AchievementsCardBadge } from "./AchievementsCard";
 import { SettingsCard } from "./SettingsCard";
 import { CompletionWidget } from "./CompletionWidget";
@@ -48,6 +49,7 @@ import type { ProfileLink, ProfileRole } from "./types";
 type Tab =
   | "personal"
   | "projects"
+  | "decks"
   | "achievements"
   | "settings"
   | "insights"
@@ -59,6 +61,7 @@ interface TabSpec {
 const BASE_TABS: ReadonlyArray<TabSpec> = [
   { id: "personal", label: "Personal" },
   { id: "projects", label: "Projects" },
+  { id: "decks", label: "My Decks" },
   { id: "achievements", label: "Achievements" },
   { id: "settings", label: "Settings" },
 ];
@@ -142,6 +145,7 @@ export default function ProfilePage({ teamLabel }: Props) {
   } = useProfileForm();
 
   const [tab, setTab] = React.useState<Tab>("personal");
+  const [deckCount, setDeckCount] = React.useState<number>(0);
   const [isAvatarOpen, setIsAvatarOpen] = React.useState(false);
   const [nounAvatarSeed, setNounAvatarSeed] = React.useState<AvatarSeed | null>(null);
   const [nounAvatarEnabled, setNounAvatarEnabled] = React.useState(false);
@@ -500,6 +504,7 @@ export default function ProfilePage({ teamLabel }: Props) {
     personal:
       completion.completed === completion.total ? null : completion.completed,
     projects: summary.projects.length,
+    decks: deckCount,
     achievements: summary.badges.filter((badge) => badge.isUnlocked).length,
     settings: null,
     insights: insightsData?.latest30DaySignups ?? null,
@@ -636,6 +641,9 @@ export default function ProfilePage({ teamLabel }: Props) {
                 projects={summary.projects}
                 loading={summaryLoading}
               />
+            )}
+            {tab === "decks" && (
+              <MyDecksCard onCountChange={setDeckCount} />
             )}
             {tab === "achievements" && (
               <AchievementsCard

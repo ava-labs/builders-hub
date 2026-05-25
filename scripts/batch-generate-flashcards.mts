@@ -16,7 +16,7 @@
  *                                   [--include-existing] re-generate even
  *                                                       courses that already
  *                                                       have a set
- *                                   [--target-count=N]  default 30
+ *                                   [--target-count=N]  default 40
  *
  * The script writes progressively — if one course fails the others still land.
  * Inspect the diff (`git diff components/flashcards/flashcardData.json`)
@@ -45,7 +45,7 @@ interface CliArgs {
 function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = {
     dryRun: false,
-    targetCount: 30,
+    targetCount: 40,
     includeExisting: false,
   };
   for (const raw of argv) {
