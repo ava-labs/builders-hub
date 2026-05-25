@@ -25,9 +25,11 @@
 import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { generateDeck } from '../lib/flashcards/generate';
-import { toLegacyItem, type SourceAnchor, type Flashcard } from '../lib/flashcards/types';
-import { parseLegacyData } from '../lib/flashcards/legacy';
+import type { SourceAnchor, Flashcard } from '../lib/flashcards/types.ts';
+
+// Runtime imports happen inside main() — tsx's ESM loader resolves named
+// exports through dynamic `import()` reliably, while static named imports
+// from local .ts files surface as `does not provide an export` at runtime.
 
 const CONTENT_ROOT = path.join(process.cwd(), 'content');
 const DATA_FILE = path.join(process.cwd(), 'components/flashcards/flashcardData.json');
@@ -136,13 +138,20 @@ function pathToAnchor(absPath: string): SourceAnchor {
   return { kind, path: url, chapterTitle };
 }
 
-function cardsToLegacy(cards: Flashcard[]) {
+function cardsToLegacy(
+  cards: Flashcard[],
+  toLegacyItem: typeof import('../lib/flashcards/types.ts')['toLegacyItem'],
+) {
   return cards.map((card) => toLegacyItem(card));
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   console.log(`📚 Generating flashcards for set "${args.setId}" from "${args.source}"`);
+
+  const { generateDeck } = await import('../lib/flashcards/generate.ts');
+  const { toLegacyItem } = await import('../lib/flashcards/types.ts');
+  const { parseLegacyData } = await import('../lib/flashcards/legacy.ts');
 
   const files = await listMdxFiles(args.source);
   if (files.length === 0) {
@@ -164,7 +173,7 @@ async function main() {
   console.log(`✅ Generated ${result.deck.cards.length} cards (dropped ${result.droppedDuplicateIds.length} duplicates from a starting ${result.deck.cards.length + result.droppedDuplicateIds.length}).`);
   console.log(`   Approx source tokens: ${result.totalSourceTokens}`);
 
-  const legacyItems = cardsToLegacy(result.deck.cards);
+  const legacyItems = cardsToLegacy(result.deck.cards, toLegacyItem);
 
   if (args.dryRun) {
     console.log('\n--- DRY RUN — would write ---');

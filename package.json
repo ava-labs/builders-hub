@@ -21,6 +21,7 @@
     "generate:event-signatures": "tsx ./scripts/generate-event-signatures.mts",
     "generate:course": "tsx ./scripts/generate-course.mts",
     "generate:flashcards": "tsx ./scripts/generate-flashcards.mts",
+    "generate:flashcards:batch": "tsx ./scripts/batch-generate-flashcards.mts",
     "enrich:chains": "tsx ./scripts/enrich-chains.mts",
     "enrich:chains:prune": "tsx ./scripts/enrich-chains.mts --prune",
     "index-repos": "tsx ./scripts/index-repos.mts",

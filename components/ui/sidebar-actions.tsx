@@ -1,9 +1,9 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink, Copy, Check, Sparkles } from 'lucide-react';
+import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink, Copy, Check, Sparkles, BookOpen } from 'lucide-react';
 import newGithubIssueUrl from 'new-github-issue-url';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getExistingDeckForCoursePath } from '@/lib/flashcards/deck-resolver';
 
 export interface SidebarActionsProps {
   editUrl: string;
@@ -190,20 +191,64 @@ Page: [${pagePath}](https://build.avax.network${pagePath})
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Create Flashcards — opens the studio pre-seeded with this page */}
+      <FlashcardsAction fullPath={fullPath} title={title} pageType={pageType} />
+    </div>
+  );
+}
+
+interface FlashcardsActionProps {
+  fullPath: string;
+  title: string;
+  pageType: 'docs' | 'academy';
+}
+
+function FlashcardsAction({ fullPath, title, pageType }: FlashcardsActionProps) {
+  const existing = useMemo(() => getExistingDeckForCoursePath(fullPath), [fullPath]);
+  const generateHref = `/academy/flashcards?source=${encodeURIComponent(fullPath)}&title=${encodeURIComponent(title)}&kind=${pageType}`;
+
+  if (!existing) {
+    return (
       <Button
         variant="outline"
         size="sm"
         className="w-full justify-start gap-2"
         asChild
       >
-        <a
-          href={`/academy/flashcards?source=${encodeURIComponent(fullPath)}&title=${encodeURIComponent(title)}&kind=${pageType}`}
-        >
+        <a href={generateHref}>
           <Sparkles className="size-4" />
-          Create Flashcards
+          Generate Flashcards
         </a>
       </Button>
-    </div>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+          <Sparkles className="size-4" />
+          Flashcards
+          <ChevronDown className="size-3 ml-auto" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem asChild>
+          <a
+            href={`/academy/flashcards/play/${encodeURIComponent(existing.setId)}`}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <BookOpen className="size-4" />
+            <span className="flex-1">Use existing deck</span>
+            <span className="text-xs text-muted-foreground">{existing.cardCount}</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={generateHref} className="flex items-center gap-2 cursor-pointer">
+            <Sparkles className="size-4" />
+            <span className="flex-1">Generate new deck</span>
+          </a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
