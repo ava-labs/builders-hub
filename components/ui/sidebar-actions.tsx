@@ -206,22 +206,6 @@ function FlashcardsAction({ fullPath, title, pageType }: FlashcardsActionProps) 
   const existing = useMemo(() => getExistingDeckForCoursePath(fullPath), [fullPath]);
   const generateHref = `/academy/flashcards?source=${encodeURIComponent(fullPath)}&title=${encodeURIComponent(title)}&kind=${pageType}`;
 
-  if (!existing) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full justify-start gap-2"
-        asChild
-      >
-        <a href={generateHref}>
-          <Sparkles className="size-4" />
-          Generate Flashcards
-        </a>
-      </Button>
-    );
-  }
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -231,17 +215,25 @@ function FlashcardsAction({ fullPath, title, pageType }: FlashcardsActionProps) 
           <ChevronDown className="size-3 ml-auto" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem asChild>
-          <a
-            href={`/academy/flashcards/play/${encodeURIComponent(existing.setId)}`}
-            className="flex items-center gap-2 cursor-pointer"
-          >
+      <DropdownMenuContent align="end" className="w-60">
+        {existing ? (
+          <DropdownMenuItem asChild>
+            <a
+              href={`/academy/flashcards/play/${encodeURIComponent(existing.setId)}`}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <BookOpen className="size-4" />
+              <span className="flex-1">Study existing deck</span>
+              <span className="text-xs text-muted-foreground">{existing.cardCount}</span>
+            </a>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem disabled className="flex items-center gap-2 opacity-60">
             <BookOpen className="size-4" />
-            <span className="flex-1">Use existing deck</span>
-            <span className="text-xs text-muted-foreground">{existing.cardCount}</span>
-          </a>
-        </DropdownMenuItem>
+            <span className="flex-1">Study existing deck</span>
+            <span className="text-xs">No deck yet</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <a href={generateHref} className="flex items-center gap-2 cursor-pointer">
             <Sparkles className="size-4" />
