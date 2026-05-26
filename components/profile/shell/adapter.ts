@@ -1,4 +1,5 @@
 import type { ProfileLink, ProfileRole, ProfileWallet } from "./types";
+import { normalizeWalletTag } from "@/lib/profile/walletTag";
 
 interface RawProfileValues {
   name?: string;
@@ -85,7 +86,7 @@ export function walletsFromValues(v: RawProfileValues): ProfileWallet[] {
     if (item && typeof item === "object" && typeof item.address === "string") {
       const address = item.address.trim();
       if (!address) return [];
-      const tag = typeof item.tag === "string" ? item.tag.trim() : undefined;
+      const tag = normalizeWalletTag(item.tag);
       return [{ address, ...(tag ? { tag } : {}) }];
     }
 

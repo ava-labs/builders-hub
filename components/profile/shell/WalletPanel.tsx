@@ -4,6 +4,12 @@ import * as React from "react";
 import { Check, Tag, Wallet } from "lucide-react";
 import { WalletConnectButton } from "../components/WalletConnectButton";
 import type { ProfileWallet } from "./types";
+import {
+  normalizeWalletTag,
+  WALLET_TAG_INPUT_PATTERN,
+  WALLET_TAG_MAX_LENGTH,
+  WALLET_TAG_VALIDATION_MESSAGE,
+} from "@/lib/profile/walletTag";
 
 interface Props {
   wallets: ProfileWallet[];
@@ -23,7 +29,7 @@ export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
   const lastAddress = wallets[wallets.length - 1]?.address;
 
   const handleAddWalletWithTag = (address: string) => {
-    const tag = pendingTag.trim();
+    const tag = normalizeWalletTag(pendingTag);
     onAddWallet(address, tag || undefined);
     setPendingTag("");
   };
@@ -37,11 +43,14 @@ export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <input
           value={pendingTag}
-          onChange={(event) => setPendingTag(event.target.value)}
+          onChange={(event) => setPendingTag(event.target.value.slice(0, WALLET_TAG_MAX_LENGTH))}
           placeholder="Optional tag"
           className="pr-input"
           style={{ minWidth: 0, flex: 1 }}
           aria-label="Wallet tag"
+          maxLength={WALLET_TAG_MAX_LENGTH}
+          pattern={WALLET_TAG_INPUT_PATTERN}
+          title={WALLET_TAG_VALIDATION_MESSAGE}
         />
         <WalletConnectButton onWalletConnected={handleAddWalletWithTag} />
       </div>

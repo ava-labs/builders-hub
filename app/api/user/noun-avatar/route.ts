@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Session } from 'next-auth';
+import type { Prisma } from '@prisma/client';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 
@@ -65,11 +66,25 @@ export const PUT = withAuth(async (
       );
     }
 
+    const nounAvatarSeed: Prisma.InputJsonValue = {
+      backgroundColor: seed.backgroundColor,
+      hair: seed.hair,
+      eyes: seed.eyes,
+      eyebrows: seed.eyebrows,
+      nose: seed.nose,
+      mouth: seed.mouth,
+      glasses: seed.glasses,
+      earrings: seed.earrings,
+      beard: seed.beard,
+      hairAccessories: seed.hairAccessories,
+      freckles: seed.freckles,
+    };
+
     // Update user with noun avatar data
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
-        noun_avatar_seed: seed as any,
+        noun_avatar_seed: nounAvatarSeed,
         noun_avatar_enabled: enabled ?? false,
       },
       select: {

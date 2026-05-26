@@ -11,6 +11,12 @@ import {
   TELEGRAM_ACCOUNT_PATTERN,
   X_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
+import {
+  normalizeWalletTag,
+  WALLET_TAG_MAX_LENGTH,
+  WALLET_TAG_PATTERN,
+  WALLET_TAG_VALIDATION_MESSAGE,
+} from "@/lib/profile/walletTag";
 
 export const profileSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
@@ -45,7 +51,12 @@ export const profileSchema = z.object({
   wallet: z.array(
     z.object({
       address: z.string().trim().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address."),
-      tag: z.string().trim().optional(),
+      tag: z
+        .string()
+        .trim()
+        .max(WALLET_TAG_MAX_LENGTH, `Tag must not exceed ${WALLET_TAG_MAX_LENGTH} characters.`)
+        .regex(WALLET_TAG_PATTERN, WALLET_TAG_VALIDATION_MESSAGE)
+        .optional(),
     }),
   ).optional().default([]),
   additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
@@ -59,6 +70,67 @@ export const profileSchema = z.object({
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
+
+interface WalletFormEntry {
+  address: string;
+  tag?: string;
+}
+
+function hasWalletAddress(value: unknown): value is { address: string; tag?: unknown } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "address" in value &&
+    typeof value.address === "string"
+  );
+}
+
+function readApiErrorMessage(errorData: unknown, fallback: string): string {
+  if (!errorData || typeof errorData !== "object") {
+    return fallback;
+  }
+
+  const errorRecord = errorData as Record<string, unknown>;
+  const baseMessage =
+    typeof errorRecord.error === "string" ? errorRecord.error : fallback;
+
+  const details = errorRecord.details;
+  if (!details || typeof details !== "object") {
+    return baseMessage;
+  }
+
+  const detailRecord = details as Record<string, unknown>;
+  const fieldErrors = detailRecord.fieldErrors;
+  if (fieldErrors && typeof fieldErrors === "object") {
+    const formattedFieldErrors = Object.entries(fieldErrors as Record<string, unknown>)
+      .flatMap(([field, messages]) => {
+        if (!Array.isArray(messages)) {
+          return [];
+        }
+
+        return messages
+          .filter((message): message is string => typeof message === "string")
+          .map((message) => `${field}: ${message}`);
+      });
+
+    if (formattedFieldErrors.length > 0) {
+      return `${baseMessage} ${formattedFieldErrors.join(" | ")}`;
+    }
+  }
+
+  const formErrors = detailRecord.formErrors;
+  if (Array.isArray(formErrors)) {
+    const formattedFormErrors = formErrors.filter(
+      (message): message is string => typeof message === "string",
+    );
+
+    if (formattedFormErrors.length > 0) {
+      return `${baseMessage} ${formattedFormErrors.join(" | ")}`;
+    }
+  }
+
+  return `${baseMessage} ${JSON.stringify(details)}`;
+}
 
 export function useProfileForm() {
   const { data: session } = useSession();
@@ -112,7 +184,7 @@ export function useProfileForm() {
   const { watch, setValue, formState } = form;
   const watchedValues = watch();
 
-  const normalizeWallets = (rawWallets: unknown): Array<{ address: string; tag?: string }> => {
+  const normalizeWallets = (rawWallets: unknown): WalletFormEntry[] => {
     if (!Array.isArray(rawWallets)) return [];
 
     return rawWallets.flatMap((item) => {
@@ -121,11 +193,10 @@ export function useProfileForm() {
         return address ? [{ address }] : [];
       }
 
-      if (item && typeof item === "object" && typeof (item as any).address === "string") {
-        const address = (item as any).address.trim();
+      if (hasWalletAddress(item)) {
+        const address = item.address.trim();
         if (!address) return [];
-        const rawTag = (item as any).tag;
-        const tag = typeof rawTag === "string" ? rawTag.trim() : undefined;
+        const tag = normalizeWalletTag(item.tag);
         return [tag ? { address, tag } : { address }];
       }
 
@@ -345,7 +416,15 @@ export function useProfileForm() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to auto-save profile');
+        const errorData: unknown = await response.json().catch(() => null);
+        const message = readApiErrorMessage(errorData, "Failed to auto-save profile");
+        console.error("[Profile auto-save] invalid response", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          payload: profileData,
+        });
+        throw new Error(message);
       }
       
       const updatedProfile = await response.json();
@@ -524,8 +603,15 @@ export function useProfileForm() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update profile');
+        const errorData: unknown = await response.json().catch(() => null);
+        const message = readApiErrorMessage(errorData, "Failed to update profile");
+        console.error("[Profile save] invalid response", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          payload: profileData,
+        });
+        throw new Error(message);
       }
       
       const updatedProfile = await response.json();
@@ -614,7 +700,7 @@ export function useProfileForm() {
     const trimmedAddress = address?.trim() ?? "";
     if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
 
-    const normalizedTag = tag?.trim();
+    const normalizedTag = normalizeWalletTag(tag);
     const isDuplicate = currentWallets.some((entry) =>
       entry.address.trim().toLowerCase() === trimmedAddress.toLowerCase(),
     );

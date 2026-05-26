@@ -2,6 +2,35 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { ExtendedProfile, UserType, UpdateExtendedProfileData } from "@/types/extended-profile";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
+import { normalizeWalletTag } from "@/lib/profile/walletTag";
+
+type WalletEntry = {
+    address: string;
+    tag?: string;
+};
+
+const EXTENDED_PROFILE_USER_SELECT = {
+    id: true,
+    name: true,
+    user_name: true,
+    bio: true,
+    email: true,
+    notification_email: true,
+    image: true,
+    country: true,
+    user_type: true,
+    github_account: true,
+    github_access_token: true,
+    x_account: true,
+    linkedin_account: true,
+    wallet: true,
+    additional_social_accounts: true,
+    skills: true,
+    notifications: true,
+    consent_sharing: true,
+    profile_privacy: true,
+    telegram_account: true,
+} satisfies Prisma.UserSelect;
 
 /**
  * Custom errors for profile service
@@ -19,26 +48,16 @@ export class ProfileValidationError extends Error {
  * @returns Complete user profile with all fields
  */
 export async function getExtendedProfile(id: string): Promise<ExtendedProfile | null> {
-    // Get all user fields
-    // Note: Prisma types may be outdated. Fields exist in the database.
-    const user: any = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
         where: { id },
+        select: EXTENDED_PROFILE_USER_SELECT,
     });
 
     if (!user) {
         return null;
     }
 
-    // Parse user_type from JSON to object, with default values if it doesn't exist
-    const userType: UserType = user.user_type ?
-        (typeof user.user_type === 'string' ? JSON.parse(user.user_type) : user.user_type) :
-        {
-            is_student: false,
-            is_founder: false,
-            is_employee: false,
-            is_developer: false,
-            is_enthusiast: false,
-        };
+    const userType = parseUserType(user.user_type);
 
     // Map user_name to username to maintain consistency with frontend
     return {
@@ -55,7 +74,7 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         githubConnected: Boolean(user.github_access_token),
         x_account: user.x_account || null,
         linkedin_account: user.linkedin_account || null,
-        wallet: Array.isArray(user.wallet) ? (user.wallet.length > 0 ? user.wallet : null) : (user.wallet ? [user.wallet] : null),
+        wallet: normalizeWallets(user.wallet),
         additional_social_accounts: user.additional_social_accounts || [],
         skills: user.skills || [],
         notifications: user.notifications,
@@ -82,6 +101,83 @@ function nullableTrimmedString(value: string | null | undefined): string | null 
     return trimmed.length > 0 ? trimmed : null;
 }
 
+function parseUserType(value: Prisma.JsonValue | null): UserType {
+    if (!value) {
+        return {
+            is_student: false,
+            is_founder: false,
+            is_employee: false,
+            is_developer: false,
+            is_enthusiast: false,
+        };
+    }
+
+    if (typeof value === "string") {
+        try {
+            return parseUserType(JSON.parse(value) as Prisma.JsonValue);
+        } catch {
+            return parseUserType(null);
+        }
+    }
+
+    if (typeof value !== "object" || Array.isArray(value)) {
+        return parseUserType(null);
+    }
+
+    const record = value as Record<string, Prisma.JsonValue>;
+    return {
+        is_student: record.is_student === true,
+        is_founder: record.is_founder === true,
+        is_employee: record.is_employee === true,
+        is_developer: record.is_developer === true,
+        is_enthusiast: record.is_enthusiast === true,
+        ...(typeof record.student_institution === "string" && { student_institution: record.student_institution }),
+        ...(typeof record.founder_company_name === "string" && { founder_company_name: record.founder_company_name }),
+        ...(typeof record.employee_company_name === "string" && { employee_company_name: record.employee_company_name }),
+        ...(typeof record.employee_role === "string" && { employee_role: record.employee_role }),
+    };
+}
+
+function normalizeWallets(value: Prisma.JsonValue): WalletEntry[] | null {
+    if (!Array.isArray(value)) {
+        return null;
+    }
+
+    const wallets = value.flatMap((item): WalletEntry[] => {
+        if (typeof item === "string") {
+            const address = item.trim();
+            return address ? [{ address }] : [];
+        }
+
+        if (typeof item !== "object" || item === null || Array.isArray(item)) {
+            return [];
+        }
+
+        const address = item.address;
+        if (typeof address !== "string" || !address.trim()) {
+            return [];
+        }
+
+        const tag = normalizeWalletTag(item.tag);
+        return tag
+            ? [{ address: address.trim(), tag }]
+            : [{ address: address.trim() }];
+    });
+
+    return wallets.length > 0 ? wallets : null;
+}
+
+function walletEntriesToJson(wallets: WalletEntry[] | null | undefined): Prisma.InputJsonValue {
+    if (!wallets) {
+        return [];
+    }
+
+    return wallets.map((wallet) => ({
+        address: wallet.address,
+        ...(wallet.tag ? { tag: wallet.tag } : {}),
+    }));
+}
+
 function buildUserUpdateData(
     profileData: UpdateExtendedProfileData
 ): Prisma.UserUpdateInput {
@@ -95,7 +191,7 @@ function buildUserUpdateData(
     if (profileData.image !== undefined) updateData.image = profileData.image;
     if (profileData.country !== undefined) updateData.country = profileData.country;
     if (profileData.linkedin_account !== undefined) updateData.linkedin_account = nullableTrimmedString(profileData.linkedin_account);
-    if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
+    if (profileData.wallet !== undefined) updateData.wallet = walletEntriesToJson(profileData.wallet);
     if (profileData.skills !== undefined) updateData.skills = profileData.skills;
     if (profileData.notifications !== undefined) updateData.notifications = profileData.notifications;
     if (profileData.consent_sharing !== undefined) updateData.consent_sharing = profileData.consent_sharing;
@@ -128,6 +224,7 @@ export async function updateExtendedProfile(
 ): Promise<ExtendedProfile> {
     const existingUser = await prisma.user.findUnique({
         where: { id },
+        select: { id: true },
     });
 
     if (!existingUser) {
@@ -197,7 +294,8 @@ export async function isUsernameAvailable(username: string, currentUserId?: stri
         where: {
             user_name: username,
             ...(currentUserId && { id: { not: currentUserId } })
-        }
+        },
+        select: { id: true },
     });
 
     return !existingUser;
