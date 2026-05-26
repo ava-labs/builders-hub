@@ -67,13 +67,23 @@ const createHackathonSchema = z.object({
 
 
 
+const visibilitySchema = z.enum(['all', 'public', 'private']).optional();
+
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
 
-    const session = await getAuthSession();
-    const userId = session?.user?.id;
+    // SECURITY: Parse and validate the visibility param BEFORE acting on it.
+    // An unauthorized caller must never be able to use this param to bypass
+    // the is_public filter — validation and role check happen first.
+    const rawVisibility = searchParams.get('visibility') ?? undefined;
+    const visibilityParse = visibilitySchema.safeParse(rawVisibility);
+    if (!visibilityParse.success) {
+      return NextResponse.json({ error: 'Invalid visibility value' }, { status: 400 });
+    }
+    const requestedVisibility = visibilityParse.data;
 
+    // Build options WITHOUT visibility — it will be set after the role check.
     let options: GetHackathonsOptions = {
       page: Number(searchParams.get('page') || 1),
       pageSize: Number(searchParams.get('pageSize') || 10),
@@ -82,24 +92,26 @@ export async function GET(req: NextRequest) {
       status: searchParams.get('status') as HackathonStatus || undefined,
       search: searchParams.get('search') || undefined,
       event: searchParams.get('event') || undefined,
-      visibility: (searchParams.get('visibility') as 'all' | 'public' | 'private') || undefined,
       sort: searchParams.get('sort') || undefined,
     };
 
+    const session = await getAuthSession();
+    const userId = session?.user?.id;
     const managedOnly = searchParams.get('managed') === 'true';
 
+    let isPrivileged = false; // devrel or team1-admin — the only roles allowed to see private hackathons
+
     if (userId) {
-      // Get user from database to validate permissions
       const user = await getUserById(userId);
       if (!user) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      // Check user's custom_attributes for permissions
       const customAttributes = user.custom_attributes || [];
       const isDevrel = customAttributes.includes("devrel");
       const isTeam1Admin = customAttributes.includes("team1-admin");
       const isHackathonCreator = customAttributes.includes("hackathonCreator");
+      isPrivileged = isDevrel || isTeam1Admin;
 
       if (managedOnly) {
         options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
@@ -110,12 +122,20 @@ export async function GET(req: NextRequest) {
       } else {
         options.include_private = false;
       }
-
-      console.log('API GET /events:', { userId, isDevrel, isTeam1Admin, isHackathonCreator, managedOnly, options });
     } else {
       options.include_private = false;
-      console.log('API GET /events (no userId):', { options });
     }
+
+    // SECURITY: Only devrel/team1-admin may request visibility=private or visibility=all.
+    // All other callers receive only public hackathons regardless of the param.
+    if (requestedVisibility === 'private' || requestedVisibility === 'all') {
+      if (!isPrivileged) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+    options.visibility = requestedVisibility;
+
+    console.warn('API GET /events:', { userId, isPrivileged, managedOnly });
 
     const response = await getFilteredHackathons(options);
 
@@ -162,9 +182,8 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
     // SECURITY: Audit log — record who is creating the hackathon and which
     // role was used to authorise the action.  Do NOT log the full body as it
     // may contain PII.
-    console.info('[AUDIT] POST /api/events — hackathon creation', {
+    console.warn('[AUDIT] POST /api/events — hackathon creation', {
       userId: session.user.id,
-      userEmail: session.user.email,
       roleUsed,
       title: validatedBody.title,
       timestamp: new Date().toISOString(),

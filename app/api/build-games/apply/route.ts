@@ -279,7 +279,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
   console.log('[Build Games Apply DB] Starting database save...');
 
   const email = formData.email as string;
-  console.log('[Build Games Apply DB] Email:', email);
   if (!email) return { success: false, error: 'Email is required' };
 
   try {

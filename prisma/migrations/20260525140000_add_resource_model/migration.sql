@@ -1,4 +1,4 @@
--- Migration: add_events_stages_fields
+-- Migration: add_resource_model
 -- Adds the new Resource table introduced in the PR.
 -- All operations are idempotent (IF NOT EXISTS / DO NOTHING guards).
 

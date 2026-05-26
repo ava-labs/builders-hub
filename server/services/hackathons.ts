@@ -142,7 +142,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   )
     throw new Error("Pagination params invalid", { cause: "BadRequest" });
 
-  console.log("GET hackathons with options:", options);
+  console.warn("GET hackathons:", { page: options.page, pageSize: options.pageSize });
   const page = options.page ?? 1;
   const pageSize = options.pageSize ?? 10;
   const offset = (page - 1) * pageSize;
@@ -279,7 +279,6 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     filters = { AND: conditions };
   }
 
-  console.log("Filters: ", filters);
   const hackathonCount = await prisma.hackathon.count({ where: filters });
 
   // Determine ordering
@@ -321,7 +320,6 @@ export async function createHackathon(
   hackathonData: Partial<HackathonHeader>
 ): Promise<HackathonHeader> {
   const errors = validateHackathon(hackathonData);
-  console.log(errors);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
@@ -402,7 +400,6 @@ export async function updateHackathon(
 
   if (!isOnlyPublicUpdate) {
     const errors = validateHackathon(hackathonData);
-    console.log(errors);
     if (errors.length > 0) {
       throw new ValidationError("Validation failed", errors);
     }

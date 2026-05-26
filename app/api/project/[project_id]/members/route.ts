@@ -46,7 +46,6 @@ export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (reques
     const { member_id, role } = body;
     const { project_id } = await params;
     
-    console.log("body", member_id);
     if (!member_id || !role) {
       return NextResponse.json(
         { error: "member_id and role are required" },

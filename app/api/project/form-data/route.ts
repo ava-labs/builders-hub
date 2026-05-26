@@ -102,7 +102,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     }
 
     const sessionUserId: string = session.user.id;
-    const sessionUserEmail: string = session.user.email ?? '';
 
     /**
      * SECURITY: Resolve the project outside the transaction so we can return
@@ -121,9 +120,18 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         },
         select: { id: true, project_name: true },
       });
-    }
 
-    if (!resolvedProject) {
+      // SECURITY: If the caller specified a projectId and it was not found (or
+      // does not belong to them), return 404 immediately. Do NOT fall back to
+      // another project — that silent substitution risks overwriting a different
+      // project's FormData with the current user's submission.
+      if (!resolvedProject) {
+        return NextResponse.json(
+          { error: 'Project not found or access denied' },
+          { status: 404 }
+        );
+      }
+    } else {
       resolvedProject = await prisma.project.findFirst({
         where: {
           hackaton_id: hackathonId,
@@ -149,6 +157,12 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      // SECURITY: Acquire a row-level lock on the parent Project before reading
+      // FormData. Any concurrent transaction for the same projectId will block
+      // here until this transaction commits, preventing the findFirst→create race
+      // condition that could produce duplicate FormData rows.
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${resolvedProject.id} FOR UPDATE`;
+
       const existingFormData = await tx.formData.findFirst({
         where: {
           project_id: resolvedProject.id,
