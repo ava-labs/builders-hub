@@ -70,6 +70,10 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/api/events/*/judges":                  { resource: "judge" },
   "/api/events/*/judges/*":                { resource: "judge" },
 
+  // ── API – evaluate (judge scoring; all methods require judge:read or higher) ──
+  "/api/evaluate":                         { resource: "judge" },
+  "/api/evaluate/*":                       { resource: "judge" },
+
   // ── API – speakers ────────────────────────────────────────────────────────
   "/api/speakers":                         { resource: "speaker" },
   "/api/speakers/*":                       { resource: "speaker" },

@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       !session?.user?.id ||
       !hasPermission(session.user.custom_attributes, { resource: "platform", action: "admin" })
     ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 401 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();

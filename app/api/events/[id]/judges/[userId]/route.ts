@@ -5,7 +5,7 @@ import { withAuthPermission, type RouteParams } from "@/lib/protectedRoute";
 type Params = RouteParams<{ id: string; userId: string }>;
 
 export const DELETE = withAuthPermission<Params>(
-  { resource: "judge", action: "delete" },
+  { resource: "judge", action: "assign" },
   async (_request: NextRequest, context: Params) => {
     const { id: hackathonId, userId } = await context.params;
 

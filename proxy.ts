@@ -7,7 +7,16 @@ import { hasPermission } from "@/lib/auth/roles";
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const response = NextResponse.next();
-  response.headers.set("Access-Control-Allow-Origin", "*");
+
+  // Restrict CORS to the application's own origin.
+  // Using "*" on authenticated routes allows any website to read API responses
+  // from the user's browser session (e.g. judge lists with role data).
+  const allowedOrigin = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const requestOrigin = req.headers.get("origin");
+  if (requestOrigin === allowedOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
+    response.headers.set("Vary", "Origin");
+  }
   response.headers.set(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS"

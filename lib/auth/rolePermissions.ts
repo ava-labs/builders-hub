@@ -33,9 +33,10 @@ export type Resource =
   | "judge"
   | "user"
   | "platform"
-  | string; // open for subnamespaces like "badge:nft"
+  | "builder_insights"
+  | "*"; // wildcard — matches any resource in checkPermission()
 
-export type Action = "read" | "write" | "delete" | "manage" | "admin" | "export" | "*";
+export type Action = "read" | "write" | "delete" | "manage" | "admin" | "export" | "assign" | "*";
 
 export interface Permission {
   resource: Resource;
@@ -48,8 +49,8 @@ export interface Permission {
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   // ── Super users (full wildcard) ──────────────────────────────────────────
-  superadmin: [{ resource: "*", action: "*" }, { resource: "platform", action: "admin" }],
-  devrel: [{ resource: "*", action: "*" }, { resource: "platform", action: "admin" }],
+  superadmin: [{ resource: "*", action: "manage" }, { resource: "platform", action: "admin" }, { resource: "judge", action: "assign" }],
+  devrel: [{ resource: "*", action: "manage" }, { resource: "platform", action: "admin" }, { resource: "judge", action: "assign" }],
 
   // ── Team admin ────────────────────────────────────────────────────────────
   "team1-admin": [
@@ -57,6 +58,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     { resource: "resource", action: "manage" },
     { resource: "speaker", action: "manage" },
     { resource: "showcase", action: "read" },
+    { resource: "judge", action: "assign" },
   ],
 
   // ── Hackathon creator ─────────────────────────────────────────────────────
@@ -76,9 +78,10 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   // ── Judge ─────────────────────────────────────────────────────────────────
+  // Note: judge:assign is intentionally NOT granted here.
+  // Assigning/removing judges is reserved for devrel, superadmin, and team1-admin.
   judge: [
     { resource: "judge", action: "read" },
-    { resource: "judge", action: "write" },
     { resource: "badge", action: "write" },
   ],
 
@@ -121,24 +124,35 @@ export function actionFromMethod(method: string): Action {
   return map[method.toUpperCase()] ?? "read";
 }
 
+// ---------------------------------------------------------------------------
+// Per-process memoization — avoids rebuilding the permission set on every
+// hasPermission() call for the same role combination.
+// ---------------------------------------------------------------------------
+const _permCache = new Map<string, Permission[]>();
+
 /**
  * Resolves all permissions for a list of role names.
- * Deduplicates automatically. Handles wildcards at collection time.
+ * Results are memoized by the sorted role key for the lifetime of the process.
  */
 export function getPermissionsFromRoles(roles: string[]): Permission[] {
+  const key = [...roles].sort().join("\x00");
+  const cached = _permCache.get(key);
+  if (cached) return cached;
+
   const seen = new Set<string>();
   const permissions: Permission[] = [];
 
   for (const role of roles) {
     for (const perm of ROLE_PERMISSIONS[role] ?? []) {
-      const key = `${perm.resource}:${perm.action}`;
-      if (!seen.has(key)) {
-        seen.add(key);
+      const permKey = `${perm.resource}:${perm.action}`;
+      if (!seen.has(permKey)) {
+        seen.add(permKey);
         permissions.push(perm);
       }
     }
   }
 
+  _permCache.set(key, permissions);
   return permissions;
 }
 

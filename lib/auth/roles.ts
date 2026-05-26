@@ -50,22 +50,22 @@ export function hasPermission(
 // Backward-compatible shortcuts (kept so existing call-sites compile)
 // ---------------------------------------------------------------------------
 
-/** Shortcut: user can access the /showcase area. */
+/** @deprecated Use `hasPermission(attrs, { resource: "showcase", action: "read" })` directly. */
 export const hasShowcaseRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasPermission(customAttributes, { resource: "showcase", action: "read" });
 
-/** Shortcut: user can create/edit hackathons. */
+/** @deprecated Use `hasPermission(attrs, { resource: "hackathon", action: "write" })` directly. */
 export const hasHackathonEditorRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasPermission(customAttributes, { resource: "hackathon", action: "write" });
 
-/** Shortcut: user can judge/evaluate submissions. */
+/** @deprecated Use `hasPermission(attrs, { resource: "judge", action: "read" })` directly. */
 export const hasJudgeRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasPermission(customAttributes, { resource: "judge", action: "read" });
 
-/** Shortcut: user can send notifications. */
+/** @deprecated Use `hasPermission(attrs, { resource: "notification", action: "write" })` directly. */
 export const hasNotificationsRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasPermission(customAttributes, { resource: "notification", action: "write" });

@@ -20,7 +20,6 @@ export const GET = withAuthPermission<Params>(
             email: true,
             image: true,
             user_name: true,
-            custom_attributes: true,
           },
         },
       },
@@ -31,7 +30,7 @@ export const GET = withAuthPermission<Params>(
 );
 
 export const POST = withAuthPermission<Params>(
-  { resource: "judge", action: "write" },
+  { resource: "judge", action: "assign" },
   async (request: NextRequest, context: Params, session) => {
     const { id: hackathonId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as { userId?: string };
@@ -72,7 +71,6 @@ export const POST = withAuthPermission<Params>(
             email: true,
             image: true,
             user_name: true,
-            custom_attributes: true,
           },
         },
       },

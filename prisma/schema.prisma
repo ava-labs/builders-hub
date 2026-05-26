@@ -124,6 +124,7 @@ model UserRole {
   @@unique([user_id, role])
   @@index([user_id])
   @@index([expires_at])
+  @@index([user_id, expires_at])
 }
 
 model VerificationToken {

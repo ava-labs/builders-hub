@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const session = await getAuthSession();
 
     if (!session?.user?.id || !hasPermission(session.user.custom_attributes, { resource: "judge", action: "read" })) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 401 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

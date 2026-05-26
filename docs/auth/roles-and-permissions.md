@@ -11,7 +11,7 @@
 2. [Roles Table](#roles-table)
 3. [Permissions Table](#permissions-table)
 4. [Role → Permission Map](#role--permission-map)
-5. [Role Expiration (UserRole table)](#role-expiration-usertole-table)
+5. [Role Expiration (UserRole table)](#role-expiration-userrole-table)
 6. [Middleware & Route Manifest](#middleware--route-manifest)
 7. [How to Protect a New Route](#how-to-protect-a-new-route)
 8. [Admin API (role management)](#admin-api-role-management)
@@ -46,9 +46,10 @@ Roles are strings stored in two places:
 | `User.custom_attributes` (PostgreSQL `String[]`) | Legacy roles, permanently assigned | ❌ no |
 | `UserRole` table | New roles, managed via admin API | ✅ optional |
 
-At login, the NextAuth JWT callback **merges both** into `token.custom_attributes`
-(deduplicated), filtering out any expired `UserRole` entries. The session always
-reflects the current effective set of roles.
+At login, the NextAuth JWT callback reads all active `UserRole` rows
+(deduplicated) into `token.custom_attributes`, filtering out expired entries.
+Legacy values in `User.custom_attributes` were migrated to `UserRole` rows
+during the deploy migration and are no longer read by the JWT callback.
 
 ### UserRole Table Schema
 
@@ -109,7 +110,10 @@ prefix matching. A user with `badge:manage` automatically has access to `badge:n
 | `write` | Mutations | `POST`, `PUT`, `PATCH` |
 | `delete` | Removal | `DELETE` |
 | `manage` | `read` + `write` + `delete` | any |
-| `*` | Wildcard — all actions | any |
+| `assign` | Specific delegation action (e.g. assigning judges) | `POST`, `DELETE` |
+| `export` | Data export operations | `GET`, `POST` |
+| `admin` | Platform-level administration (devrel/superadmin only) | any |
+| `*` | Wildcard — all actions (internal use in `checkPermission` only) | any |
 
 ---
 
@@ -119,12 +123,12 @@ Defined in [`lib/auth/rolePermissions.ts`](../../lib/auth/rolePermissions.ts).
 
 | Role | Permissions |
 |---|---|
-| `superadmin` | `*:*` (full access), `platform:admin` |
-| `devrel` | `*:*` (full access), `platform:admin` |
-| `team1-admin` | `hackathon:manage`, `resource:manage`, `speaker:manage`, `showcase:read` |
-| `hackathonCreator` | `hackathon:write`, `hackathon:read`, `resource:read`, `speaker:read`, `showcase:read` |
+| `superadmin` | `*:manage` (full access), `platform:admin`, `judge:assign` |
+| `devrel` | `*:manage` (full access), `platform:admin`, `judge:assign` |
+| `team1-admin` | `hackathon:manage`, `resource:manage`, `speaker:manage`, `showcase:read`, `judge:assign` |
+| `hackathonCreator` | `hackathon:write`, `hackathon:read`, `resource:read`, `speaker:read`, `showcase:read`, `showcase:export` |
 | `showcase` | `showcase:read`, `showcase:write` |
-| `judge` | `judge:read`, `judge:write`, `badge:write` |
+| `judge` | `judge:read`, `badge:write` |
 | `badge_admin` | `badge:manage` |
 | `notify_event` | `notification:write` |
 | `builder_insights` | `builder_insights:read`, `builder_insights:write` |
@@ -254,7 +258,6 @@ GET /api/admin/user-roles?user_id=<id>
       "created_at": "...",
       "permissions": [
         { "resource": "judge", "action": "read" },
-        { "resource": "judge", "action": "write" },
         { "resource": "badge", "action": "write" }
       ]
     }

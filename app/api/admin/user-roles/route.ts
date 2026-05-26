@@ -13,9 +13,51 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { withAuthPermission } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
-import { ROLE_PERMISSIONS } from "@/lib/auth/rolePermissions";
+import { ROLE_PERMISSIONS, checkPermission, getPermissionsFromRoles } from "@/lib/auth/rolePermissions";
+
+// ---------------------------------------------------------------------------
+// Validation schemas
+// ---------------------------------------------------------------------------
+
+const assignSchema = z.object({
+  user_id: z.string().min(1),
+  role: z.string().min(1).refine((r) => r in ROLE_PERMISSIONS, {
+    message: `Role must be one of: ${Object.keys(ROLE_PERMISSIONS).join(", ")}`,
+  }),
+  expires_at: z
+    .string()
+    .datetime({ offset: true })
+    .refine((d) => new Date(d) > new Date(), { message: "expires_at must be in the future" })
+    .nullish(),
+});
+
+const revokeSchema = z.object({
+  user_id: z.string().min(1),
+  role: z.string().min(1),
+});
+
+// ---------------------------------------------------------------------------
+// Anti-escalation helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true when the actor's permissions are sufficient to grant the target
+ * role. An actor cannot grant a role whose permissions exceed their own.
+ *
+ * Specifically: if the target role contains a wildcard-resource permission
+ * (resource === "*"), the actor must also have a wildcard-resource permission.
+ */
+function canActorGrantRole(actorRoles: string[], targetRole: string): boolean {
+  const targetPerms = ROLE_PERMISSIONS[targetRole] ?? [];
+  const hasWildcardResource = targetPerms.some((p) => p.resource === "*");
+  if (!hasWildcardResource) return true;
+
+  const actorPerms = getPermissionsFromRoles(actorRoles);
+  return actorPerms.some((p) => p.resource === "*");
+}
 
 // ---------------------------------------------------------------------------
 // GET /api/admin/user-roles?user_id=<id>
@@ -81,28 +123,23 @@ export const GET = withAuthPermission(
 export const POST = withAuthPermission(
   { resource: "user", action: "manage" },
   async (req: NextRequest, _ctx: unknown, session: any) => {
-    const body = await req.json().catch(() => null);
-
-    if (!body || !body.user_id || !body.role) {
+    const raw = await req.json().catch(() => null);
+    const parsed = assignSchema.safeParse(raw);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "user_id and role are required" },
+        { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
 
-    const { user_id, role, expires_at } = body as {
-      user_id: string;
-      role: string;
-      expires_at?: string | null;
-    };
+    const { user_id, role, expires_at } = parsed.data;
 
-    // Validate that the role is known
-    if (!(role in ROLE_PERMISSIONS)) {
+    // Anti-escalation: actor cannot grant roles with wider permissions than their own
+    const actorRoles: string[] = session.user.custom_attributes ?? [];
+    if (!canActorGrantRole(actorRoles, role)) {
       return NextResponse.json(
-        {
-          error: `Unknown role "${role}". Valid roles: ${Object.keys(ROLE_PERMISSIONS).join(", ")}`,
-        },
-        { status: 400 },
+        { error: "Forbidden: cannot grant a role with permissions exceeding your own" },
+        { status: 403 },
       );
     }
 
@@ -115,12 +152,6 @@ export const POST = withAuthPermission(
     }
 
     const expiresAt = expires_at ? new Date(expires_at) : null;
-    if (expiresAt && isNaN(expiresAt.getTime())) {
-      return NextResponse.json(
-        { error: "Invalid expires_at date format" },
-        { status: 400 },
-      );
-    }
 
     const userRole = await prisma.userRole.upsert({
       where: { user_id_role: { user_id, role } },
@@ -135,6 +166,15 @@ export const POST = withAuthPermission(
         granted_by: session.user.id,
       },
     });
+
+    console.log(JSON.stringify({
+      event: "role_assigned",
+      actor: session.user.id,
+      target: user_id,
+      role,
+      expires_at: expiresAt?.toISOString() ?? null,
+      ts: new Date().toISOString(),
+    }));
 
     return NextResponse.json(
       {
@@ -153,17 +193,17 @@ export const POST = withAuthPermission(
 
 export const DELETE = withAuthPermission(
   { resource: "user", action: "manage" },
-  async (req: NextRequest) => {
-    const body = await req.json().catch(() => null);
-
-    if (!body || !body.user_id || !body.role) {
+  async (req: NextRequest, _ctx: unknown, session: any) => {
+    const raw = await req.json().catch(() => null);
+    const parsed = revokeSchema.safeParse(raw);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "user_id and role are required" },
+        { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
 
-    const { user_id, role } = body as { user_id: string; role: string };
+    const { user_id, role } = parsed.data;
 
     const existing = await prisma.userRole.findUnique({
       where: { user_id_role: { user_id, role } },
@@ -180,6 +220,14 @@ export const DELETE = withAuthPermission(
     await prisma.userRole.delete({
       where: { user_id_role: { user_id, role } },
     });
+
+    console.log(JSON.stringify({
+      event: "role_revoked",
+      actor: session.user.id,
+      target: user_id,
+      role,
+      ts: new Date().toISOString(),
+    }));
 
     return NextResponse.json({ success: true, revoked: { user_id, role } });
   },

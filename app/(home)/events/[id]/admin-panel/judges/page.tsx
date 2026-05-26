@@ -10,7 +10,7 @@ export default async function HackathonJudgesPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getAuthSession();
-  if (!hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })) {
+  if (!hasPermission(session?.user?.custom_attributes, { resource: "judge", action: "assign" })) {
     redirect("/");
   }
 
