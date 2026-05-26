@@ -84,3 +84,21 @@ export const hasJudgeRole = (
 export const hasNotificationsRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasRoleGroup(customAttributes, "notifications");
+
+const TEAM1_PREFIX = "team1";
+
+/**
+ * Shortcut: user has access to the Team1 Academy area.
+ * Grants access to any user whose custom_attributes contain at least one tag
+ * starting with `team1` (admin, member, etc.) or the `devrel` tag. Uses prefix
+ * matching so newly-introduced team1-scoped tags grant access without needing
+ * to be enumerated here.
+ */
+export function hasTeam1AcademyAccess(
+  customAttributes: readonly string[] | null | undefined,
+): boolean {
+  if (!customAttributes || customAttributes.length === 0) return false;
+  return customAttributes.some(
+    (a) => a.startsWith(TEAM1_PREFIX) || a === "devrel",
+  );
+}

@@ -2,6 +2,8 @@ import { getToken } from "next-auth/jwt";
 import { NextRequestWithAuth, withAuth } from "next-auth/middleware";
 import { NextMiddlewareResult } from "next/dist/server/web/types";
 import { NextRequest, NextResponse } from "next/server";
+import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
+import { PROTECTED_PATHS } from "@/lib/auth/protected-paths";
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
@@ -20,16 +22,40 @@ export async function proxy(req: NextRequest) {
     return new Response(null, { status: 204 });
   }
 
+  // Team1 raw markdown API: the only branch we can't express through the
+  // canonical machinery below — it's an API (so it needs JSON responses
+  // instead of redirects/headers) and there is no client-side modal trigger
+  // in scope. Everything else for Team1 (HTML pages, markdown negotiation)
+  // is handled by adding /academy/team1 to PROTECTED_PATHS + the
+  // authenticated branch below.
+  if (pathname.startsWith('/api/raw/academy/team1')) {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const attrs = (token.custom_attributes as string[]) ?? [];
+    if (!hasTeam1AcademyAccess(attrs)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    // Access OK: fall through to the normal flow.
+  }
+
   // Content negotiation: serve markdown when Accept: text/markdown is requested
   const contentPrefixes = ['/docs/', '/academy/', '/blog/', '/integrations/'];
   const isContentPath = contentPrefixes.some(prefix => pathname.startsWith(prefix));
   const acceptHeader = req.headers.get('accept') || '';
   const wantsMarkdown = acceptHeader.includes('text/markdown');
 
-  // Protected academy sub-paths must NOT skip auth
+  // Paths that must not take the markdown bypass shortcut. They flow into
+  // the canonical auth machinery instead. We include /academy/team1 here so
+  // that an anonymous `curl -H "Accept: text/markdown" /academy/team1/...`
+  // does NOT get rewritten to /api/raw/...; it falls through and hits the
+  // protected-paths block which returns x-auth-required.
   const protectedAcademySuffixes = ['/get-certificate', '/certificate'];
-  const isProtectedAcademyPath = pathname.startsWith('/academy/') &&
-    protectedAcademySuffixes.some(suffix => pathname.endsWith(suffix));
+  const isProtectedAcademyPath =
+    pathname.startsWith('/academy/team1') ||
+    (pathname.startsWith('/academy/') &&
+      protectedAcademySuffixes.some(suffix => pathname.endsWith(suffix)));
 
   if (wantsMarkdown && isContentPath && !isProtectedAcademyPath) {
     const apiUrl = new URL(`/api/raw${pathname}`, req.url);
@@ -52,19 +78,7 @@ export async function proxy(req: NextRequest) {
   const isSendNotifications = pathname.startsWith("/send-notifications");
   const custom_attributes = token?.custom_attributes as string[] ?? []
 
-  const protectedPaths = [
-    "/hackathons/registration-form",
-    "/hackathons/project-submission",
-    "/events/registration-form",
-    "/events/project-submission",
-    "/showcase",
-    "/send-notifications",
-    "/profile",
-    "/student-launchpad",
-    "/grants/"
-  ];
-
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+  const isProtectedPath = PROTECTED_PATHS.some(path => pathname.startsWith(path));
 
   // Protect routes: block unauthenticated access to protected paths without redirecting
   // The client-side component (AutoLoginModalTrigger) will detect this and show the login modal
@@ -84,6 +98,9 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(new URL("/events", req.url))
 
     if (isSendNotifications && !(custom_attributes.includes('devrel') || custom_attributes.includes('notify_event')))
+      return NextResponse.redirect(new URL("/", req.url))
+
+    if (pathname.startsWith("/academy/team1") && !hasTeam1AcademyAccess(custom_attributes))
       return NextResponse.redirect(new URL("/", req.url))
 
     // Protect hackathons/edit and events/edit routes - only team1-admin and hackathonCreator can access
@@ -113,7 +130,7 @@ export async function proxy(req: NextRequest) {
       )(req as NextRequestWithAuth, {} as any);
     }
   }
-  
+
   // For non-protected paths or unauthenticated users on non-protected paths, allow access
   return NextResponse.next();
 }
@@ -140,5 +157,7 @@ export const config = {
     "/academy/:path*",
     "/blog/:path*",
     "/integrations/:path*",
+    // Team1 raw markdown API
+    "/api/raw/academy/team1/:path*",
   ],
 };
