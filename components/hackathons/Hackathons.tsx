@@ -192,7 +192,7 @@ export default function Hackathons({
                           ongoingHackathons.find((x) => x.top_most);
 
   const addNewHackathon = () => {
-    router.push('/events/new');
+    router.push('/events/edit');
   };
 
   const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
