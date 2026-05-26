@@ -31,6 +31,8 @@ export interface ISchedule {
   location: string;
   description: string;
   duration: number;
+  isVirtual: boolean;
+  infoUrl?: string;
 }
 
 export interface ISpeaker {

@@ -48,7 +48,9 @@ function mapSchedule(items: ISchedule[]): ScheduleActivity[] {
     location: s.location || '',
     category: s.category || '',
     url: s.url ?? '',
-    video_call_url: s.url ?? undefined,
+    isVirtual: s.isVirtual ?? false,
+    infoUrl: s.infoUrl,
+    video_call_url: s.url || undefined,
   }));
 }
 

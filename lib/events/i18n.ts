@@ -56,7 +56,7 @@ const dict: Record<EventsLang, Dict> = {
     "schedule.loadingCalendar": "Loading calendar events…",
     "schedule.calendarError": "Could not load calendar events. Make sure the Google Calendar ID is correct and the calendar is public.",
     "schedule.liveNow": "Live now",
-    "schedule.zoom": "Zoom",
+    "schedule.join": "Join",
     "schedule.untitledActivity": "Untitled Activity",
     "schedule.joinVideoCall": "Join video call",
     "schedule.tbd": "TBD",
@@ -72,6 +72,9 @@ const dict: Record<EventsLang, Dict> = {
     "schedule.timezoneSelector.localTime": "Local time",
     "schedule.timezoneSelector.same": "same",
     "schedule.timezoneSelector.empty": "No time zones found",
+    "event.moreInfo": "More Info",
+    "event.online": "Online",
+    "event.addToCalendar": "Add to Calendar",
 
     // Mentors & judges
     "section.mentorsJudges.title": "Mentors & Judges",
@@ -515,7 +518,7 @@ const dict: Record<EventsLang, Dict> = {
     "schedule.loadingCalendar": "Cargando eventos del calendario…",
     "schedule.calendarError": "No se pudieron cargar los eventos del calendario. Verifica que el Google Calendar ID sea correcto y que el calendario sea público.",
     "schedule.liveNow": "En vivo",
-    "schedule.zoom": "Zoom",
+    "schedule.join": "Unirse",
     "schedule.untitledActivity": "Actividad sin título",
     "schedule.joinVideoCall": "Unirse a videollamada",
     "schedule.tbd": "Por confirmar",
@@ -531,6 +534,9 @@ const dict: Record<EventsLang, Dict> = {
     "schedule.timezoneSelector.localTime": "Hora local",
     "schedule.timezoneSelector.same": "igual",
     "schedule.timezoneSelector.empty": "No se encontraron zonas horarias",
+    "event.moreInfo": "Más información",
+    "event.online": "En línea",
+    "event.addToCalendar": "Añadir al calendario",
 
     // Mentors & judges
     "section.mentorsJudges.title": "Mentores y jurado",

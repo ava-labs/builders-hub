@@ -10,6 +10,7 @@ import {
   MapPin,
   CircleArrowRight,
   CircleArrowLeft,
+  ExternalLink,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -19,6 +20,7 @@ import DeadLine from '../DeadLine';
 import { Button } from '@/components/ui/button';
 import { useSchedule, ScheduleSource, GoogleCalendarConfig } from '@/hooks/useSchedule';
 import { normalizeEventsLang, t } from '@/lib/events/i18n';
+import CalendarPlusButton from '@/components/hackathons/hackathon/CalendarPlusButton';
 import { TimezoneSelectorModal } from './TimezoneSelectorModal';
 
 export type ScheduleProps = {
@@ -184,12 +186,19 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
   }
   return (
     <section className='flex flex-col gap-6'>
-      <h2
-        className='text-4xl font-bold mb-2 md:text-4xl sm:text-3xl'
-        id='schedule'
-      >
-        {t(lang, 'section.schedule.title')}
-      </h2>
+      <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-2'>
+        <h2
+          className='text-4xl font-bold md:text-4xl sm:text-3xl'
+          id='schedule'
+        >
+          {t(lang, 'section.schedule.title')}
+        </h2>
+        <CalendarPlusButton
+          googleCalendarId={hackathon.google_calendar_id}
+          lang={lang}
+          variant='schedule'
+        />
+      </div>
       <Separator className='my-2 sm:my-8 bg-zinc-300 dark:bg-zinc-800' />
 
       {isLoading && (
@@ -348,6 +357,12 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                       !activity.host_icon &&
                       !activity.host_name &&
                       !activity.host_media;
+                    const joinUrl = (
+                      activity.video_call_url ||
+                      activity.url ||
+                      ''
+                    ).trim();
+                    const moreInfoUrl = (activity.infoUrl || '').trim();
                     return (
                       <div
                         key={index}
@@ -373,13 +388,22 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                   {t(lang, 'schedule.liveNow')}
                                 </div>
                               )}
-                              {!activityIsOcurring && dateIsCurrentDate && (
+                              {!activityIsOcurring &&
+                                dateIsCurrentDate &&
+                                activity.isVirtual &&
+                                joinUrl && (
                                 <div className='border dark:bg-zinc-800 bg-zinc-300 flex items-center justify-center gap-1 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-3 py-1 border-none'>
-                                  <LinkIcon
-                                    size={16}
-                                    className='!text-zinc-900 dark:!text-zinc-50'
-                                  />
-                                  {t(lang, 'schedule.zoom')}
+                                  <a
+                                    href={joinUrl}
+                                    target='_blank'
+                                    rel='noopener noreferrer'
+                                  >
+                                    <LinkIcon
+                                      size={16}
+                                      className='!text-zinc-900 dark:!text-zinc-50'
+                                    />
+                                  </a>
+                                  {t(lang, 'schedule.join')}
                                 </div>
                               )}
                             </div>
@@ -479,23 +503,32 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                               }`}
                             >
                               <div className='flex flex-col gap-1'>
-                                {/* Video call link */}
-                                {activity.video_call_url && (
+                                {activity.isVirtual && joinUrl && (
                                   <div className='flex flex-row items-center gap-2'>
-                                    <LinkIcon color='#8F8F99' className='w-5 h-5' />
-                                    <Link
-                                      href={activity.video_call_url}
+                                    <a
+                                      href={joinUrl}
                                       target='_blank'
+                                      rel='noopener noreferrer'
+                                    >
+                                      <LinkIcon color='#8F8F99' className='w-5 h-5' />
+                                    </a>
+                                    <Link
+                                      href={joinUrl}
+                                      target='_blank'
+                                      rel='noopener noreferrer'
                                       className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
                                     >
                                       {t(lang, 'schedule.joinVideoCall')}
                                     </Link>
                                   </div>
                                 )}
-                                {/* Physical location */}
                                 <div className='flex flex-row items-center gap-2'>
                                   <MapPin color='#8F8F99' className='w-5 h-5' />
-                                  {activity.location && activity.location !== 'TBD' ? (
+                                  {activity.isVirtual ? (
+                                    <span className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal'>
+                                      {t(lang, 'event.online')}
+                                    </span>
+                                  ) : activity.location && activity.location !== 'TBD' ? (
                                     activity.location.toLowerCase() === 'online' && activity.url ? (
                                       <Link
                                         href={activity.url}
@@ -523,6 +556,17 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                     </span>
                                   )}
                                 </div>
+                                {moreInfoUrl && (
+                                  <a
+                                    href={moreInfoUrl}
+                                    target='_blank'
+                                    rel='noopener noreferrer'
+                                    className='flex flex-row items-center gap-2 dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
+                                  >
+                                    <ExternalLink color='#8F8F99' className='w-5 h-5' />
+                                    {t(lang, 'event.moreInfo')}
+                                  </a>
+                                )}
                               </div>
                               {/* <Button
                                   variant="secondary"
