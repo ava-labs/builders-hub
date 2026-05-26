@@ -232,8 +232,8 @@ export default function StageSubmitPageContent({
 
     form.reset({
       ...buildDefaultValues(stage),
-      ...projectFallback,
       ...nonEmptyFormData,
+      ...projectFallback,
     })
   }, [projectId, formData, loading, loadingFormData, stage, form, project])
 

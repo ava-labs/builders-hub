@@ -167,8 +167,6 @@ export async function POST(request: Request) {
 
     // Run HubSpot submission and DB save in parallel
     console.log('[Build Games Apply] Starting submission...');
-    console.log('[Build Games Apply] HubSpot payload fields:', JSON.stringify(fields, null, 2));
-    console.log('[Build Games Apply] HubSpot legal consent:', JSON.stringify(hubspotPayload.legalConsentOptions, null, 2));
 
     const hubspotUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${BUILD_GAMES_FORM_GUID}`;
     console.log('[Build Games Apply] HubSpot URL:', hubspotUrl);
@@ -305,8 +303,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
       privacy_policy_read: formData.privacyPolicyRead === true,
       marketing_consent: formData.marketingConsent === true,
     };
-
-    console.log('[Build Games Apply DB] Upserting application with data:', JSON.stringify(applicationData, null, 2));
 
     const result = await prisma.buildGamesApplication.upsert({
       where: { email: email },

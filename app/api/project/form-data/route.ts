@@ -292,7 +292,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         github_repository: getLinkValue('github_repository', 'githubRepository'),
         demo_link: getLinkValue('demo_link', 'demoOtherLinks'),
         tech_stack: getStringValue('explanation', 'tech_stack', 'howItsMade'),
-        explanation: getStringValue('explanation', 'howItsMade'),
+        explanation: getStringValue('howItsMade'),
       };
 
       Object.entries(projectColumnValues).forEach(([column, value]) => {

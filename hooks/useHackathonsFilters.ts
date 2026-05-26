@@ -31,9 +31,9 @@ export default function useHackathonsFilters(userId?: string, pageSize = 20) {
       parts.push(`search=${encodeURIComponent(f.search)}`);
     }
     
-    // Always send visibility to be explicit about the filter
-    const visibility = f.visibility ?? 'all';
-    parts.push(`visibility=${visibility}`);
+    if (f.visibility && f.visibility !== 'all') {
+      parts.push(`visibility=${f.visibility}`);
+    }
     
     // Always send sort to maintain ordering
     if (f.sort) {
