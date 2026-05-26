@@ -22,6 +22,7 @@
  *            (NOT the slug from content/courses.tsx).
  *   --dry-run prints what would be written without modifying disk.
  */
+import 'dotenv/config';
 import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';

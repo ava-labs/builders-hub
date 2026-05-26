@@ -22,6 +22,7 @@
  * Inspect the diff (`git diff components/flashcards/flashcardData.json`)
  * before committing.
  */
+import 'dotenv/config';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
