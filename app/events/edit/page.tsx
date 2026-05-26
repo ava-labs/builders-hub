@@ -804,10 +804,6 @@ const HackathonsEdit = () => {
     }
   }, [session, status]);
 
-  // Deep-link support: ?event=<id> auto-selects the matching hackathon
-  // once the list has loaded. Lets /events/new and the Edit Event button
-  // hand off directly to the right row instead of stranding the user on
-  // the picker.
   const searchParams = useSearchParams();
   const requestedEventId = searchParams?.get("event") ?? null;
   const autoSelectedRef = useRef(false);
@@ -3243,10 +3239,6 @@ const HackathonsEdit = () => {
 };
 
 export default function Page() {
-  // HackathonsEdit calls useSearchParams to honor ?event=<id> deep links.
-  // In the App Router that needs a Suspense boundary around any client
-  // component that reads searchParams, otherwise prerendering bails out
-  // with the missing-suspense-with-csr-bailout error.
   return (
     <SessionProvider>
       <Suspense fallback={null}>

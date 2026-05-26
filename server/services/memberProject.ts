@@ -124,9 +124,6 @@ async function deleteProjectIfNoMembers(projectId: string) {
 }
 
 export async function GetMembersByProjectId(project_id: string) {
-  // Lazy teammate auto-conversion: when the hackathon's registration_deadline has passed,
-  // any still-pending Member row is converted to "Removed" so the team effectively becomes
-  // solo. Avoids a scheduled job; this is the read path the submission form uses.
   try {
     const project = await prisma.project.findUnique({
       where: { id: project_id },
@@ -144,7 +141,6 @@ export async function GetMembersByProjectId(project_id: string) {
       }
     }
   } catch (err) {
-    // Don't block the read if the lazy conversion fails.
     console.error("[Members] Lazy pending-teammate cleanup failed:", err);
   }
 

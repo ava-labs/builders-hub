@@ -93,10 +93,6 @@ export default function Events({
   // Listing language is global (mixed events). Default to English unless you later add a global locale.
   const lang = normalizeEventsLang(undefined);
   const { data: session, status } = useSession();
-  // Show the Manage Hackathons button to anyone with permission to manage hackathons.
-  // /events/edit is the canonical create+list+edit surface and gates writes
-  // server-side via the events API; we still accept the legacy attributes here
-  // (hackathonCreator / team1-admin) so existing creators don't lose the button.
   const isHackathonCreator =
     session?.user?.custom_attributes.includes("devrel") ||
     session?.user?.custom_attributes.includes("hackathonCreator") ||

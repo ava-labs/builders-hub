@@ -335,9 +335,6 @@ export default function HackathonForm({
           title: 'Hackathon updated successfully',
         });
       } else {
-        // Default to unpublished on create so the creator can finish
-        // configuring tracks / dates / etc. before participants see it.
-        // Visibility is then flipped on /events/edit via the is_public toggle.
         const createPayload = { ...payload, is_public: false };
         const response = await axios.post(`/api/events/`, createPayload);
         const newId = response?.data?.hackathon?.id;

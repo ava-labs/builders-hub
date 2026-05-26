@@ -141,10 +141,6 @@ export async function updateExtendedProfile(
         }
     }
 
-    // Country lock: once the user has registered for any hackathon, country becomes
-    // immutable. Some events are country-specific and the registrant identity must be
-    // stable. Client-side enforcement happens in RegistrationForm; this is the
-    // authoritative server check.
     if (
         typeof profileData.country === "string" &&
         existingUser.country &&

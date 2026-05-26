@@ -65,12 +65,9 @@ export interface IDataMain {
     submission_custom_link: string | null;
     judging_guidelines: string;
     submission_deadline: string;
-    /** Optional submission open timestamp (ISO). When set, submission form is locked with countdown until this time. */
     submission_open?: string;
     registration_deadline: string;
-    /** Optional cap on members per project (Solo=1, Duo=2, etc.). When undefined, no cap. */
     team_size_max?: number;
-    /** "full" (legacy long form) or "simple" (slim registration). Defaults to "full". */
     registration_mode?: "full" | "simple";
   }
   

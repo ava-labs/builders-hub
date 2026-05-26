@@ -155,10 +155,6 @@ export async function createRegisterForm(
     }
   }
 
-  // Country lock: once User.country is set (happens on first registration),
-  // subsequent registrations cannot change it. Mirror the User value into
-  // registerData.city so a mismatched client-side value gets corrected
-  // silently, then reject only when the client tried to *change* it.
   if (existingUser?.country) {
     if (
       registerData.city &&
@@ -180,8 +176,6 @@ export async function createRegisterForm(
     registerData.city = existingUser.country;
   }
 
-  // Persist X (Twitter) handle to the User record so future events can prefill it.
-  // x_account is not stored on RegisterForm — it's a User-level field.
   if (existingUser && typeof registerData.x_account === "string") {
     const trimmed = registerData.x_account.trim();
     if (trimmed.length > 0 && trimmed !== existingUser.x_account) {
@@ -191,7 +185,6 @@ export async function createRegisterForm(
           data: { x_account: trimmed },
         });
       } catch (err) {
-        // Don't block registration on x_account persistence failure.
         console.error("[Registration] Failed to persist x_account:", err);
       }
     }

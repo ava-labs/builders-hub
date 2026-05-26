@@ -125,18 +125,11 @@ export function RegisterForm({
   const [isSavingLater, setIsSavingLater] = useState(false);
   const isAdvancingStepRef = useRef(false);
   const [referrer, setReferrer] = useState<ReferrerPickerValue>(EMPTY_REFERRER);
-  // Country becomes read-only once profile.country is set, which happens on first registration's
-  // step-1 save (saveStep1ToProfile). Server-side enforcement lives in /api/profile/extended.
   const [countryLocked, setCountryLocked] = useState(false);
-  // Current value of the User-level consents (notifications + Team1 outreach).
-  // null = never asked. The grouped consent block in Step 3 only renders the
-  // children that are not already `true` on the User record.
   const [userConsentState, setUserConsentState] = useState<{
     notifications: boolean | null;
     consent_sharing: boolean | null;
   }>({ notifications: null, consent_sharing: null });
-  // Stays false until /api/profile/extended/{id} succeeds. Hide-by-default avoids
-  // double-asking users whose extended profile fetch fails or is slow.
   const [consentsLoaded, setConsentsLoaded] = useState(false);
   const showNotificationsConsent =
     consentsLoaded && userConsentState.notifications !== true;
@@ -158,7 +151,6 @@ export function RegisterForm({
   const lang = normalizeEventsLang(hackathon?.content?.language);
   const registrationMode: "full" | "simple" = hackathon?.content?.registration_mode === "simple" ? "simple" : "full";
   const isSimpleMode = registrationMode === "simple";
-  // In simple mode, registration is one step. Otherwise the existing two-step flow stays.
   const totalSteps = isSimpleMode ? 1 : 2;
   
   const getDefaultValues = () => ({
@@ -192,9 +184,6 @@ export function RegisterForm({
     prohibited_items: false,
     founder_check: false,
     avalanche_ecosystem_member: false,
-    // User-level consents default pre-checked. Each participant must accept
-    // these to register; defaulting on aligns with the mandatory-consent
-    // direction (Team1 administers SPEEDRUN). User can still uncheck.
     user_notifications: true,
     user_consent_sharing: true,
   });
@@ -459,7 +448,6 @@ export function RegisterForm({
     setDataFromLocalStorage();
   }, [hackathon_id]);
 
-  /** Registration runs 1–2 in full mode and 1-only in simple mode; clamp if state jumps. */
   useEffect(() => {
     if (step > totalSteps) setStep(totalSteps);
     if (step < 1) setStep(1);
@@ -491,8 +479,6 @@ export function RegisterForm({
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
-    // Simple mode is single-step (no Step 3). Skip the step-2-only T&C / prohibited-items
-    // gating here; T&C is collected via an inline checkbox in the simple-mode JSX below.
     if (!isSimpleMode && step < 2) {
       setStep((prev) => (prev < 2 ? prev + 1 : prev));
     } else {

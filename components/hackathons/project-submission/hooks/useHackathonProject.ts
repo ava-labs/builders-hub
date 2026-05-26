@@ -16,8 +16,6 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000
   );
-  // Submission open timestamp from hackathon.content.submission_open. When zero, the
-  // window is implicitly always-open (legacy behavior preserved).
   const [submissionOpenAt, setSubmissionOpenAt] = useState<number>(0);
   const [loadData, setLoadData] = useState<boolean>(true);
   const timeLeft = useCountdown(deadline);

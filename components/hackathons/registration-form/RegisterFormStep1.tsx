@@ -30,11 +30,8 @@ const hackathonParticipationOptions = [
 interface Step1Props {
   user?: User;
   lang?: EventsLang;
-  /** "simple" renders only name/email/country/telegram/github/x. "full" renders the legacy long form. */
   mode?: "full" | "simple";
-  /** When true, country Select is read-only with a "locked after registration" hint. */
   countryLocked?: boolean;
-  /** When true, X and GitHub handles are required (and rendered with the * label). */
   requireSocials?: boolean;
 }
 export default function RegisterFormStep1({
