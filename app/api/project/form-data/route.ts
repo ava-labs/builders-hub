@@ -249,13 +249,23 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         return undefined;
       };
 
-      const getDeployedAddressesValue = (...keys: string[]): Array<{ address: string }> | undefined => {
-        const addresses = getStringArrayValue(...keys);
-        if (!addresses) {
+      const getDeployedAddressesValue = (...keys: string[]): Array<{ address: string; tag?: string }> | undefined => {
+        const items = getStringArrayValue(...keys);
+        if (!items) {
           return undefined;
         }
 
-        return addresses.map((address) => ({ address }));
+        return items.map((item) => {
+          try {
+            const parsed = JSON.parse(item) as { address?: string; tag?: string };
+            if (parsed && typeof parsed.address === 'string' && parsed.address.trim()) {
+              return { address: parsed.address.trim(), ...(parsed.tag?.trim() ? { tag: parsed.tag.trim() } : {}) };
+            }
+          } catch {
+            // not JSON — treat as plain address
+          }
+          return { address: item };
+        });
       };
 
       let projectColumnsToUpdate: { [key: string]: unknown } = {};
@@ -267,6 +277,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         categories: getStringArrayValue('categories'),
         github_repository: getLinkValue('github_repository', 'githubRepository'),
         demo_link: getLinkValue('demo_link', 'demoOtherLinks'),
+        tech_stack: getStringValue('explanation', 'tech_stack', 'howItsMade'),
         explanation: getStringValue('explanation', 'howItsMade'),
       };
 

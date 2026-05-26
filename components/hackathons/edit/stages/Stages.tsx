@@ -481,10 +481,48 @@ export default function HackathonsEditStages({
       return
     }
 
-    if (stages.length > 0 && !stages[0].submitForm?.fields.find((field) => field.id === 'project_name' || field.id === 'projectName')) {
+    const existingFields = stages[0].submitForm?.fields ?? []
+    const hasProjectName = existingFields.some(
+      (f) => f.id === 'project_name' || f.id === 'projectName'
+    )
+    const hasShortDescription = existingFields.some(
+      (f) => f.id === 'short_description' || f.id === 'shortDescription'
+    )
+
+    if (!hasProjectName || !hasShortDescription) {
+      let newFields: SubmitFormField[]
+
+      if (!hasProjectName && !hasShortDescription) {
+        newFields = [
+          BASE_SUBMIT_FORM_FIELDS.project_name.field,
+          BASE_SUBMIT_FORM_FIELDS.short_description.field,
+          ...existingFields,
+        ]
+      } else if (!hasProjectName) {
+        newFields = [BASE_SUBMIT_FORM_FIELDS.project_name.field, ...existingFields]
+      } else {
+        const pnIdx = existingFields.findIndex(
+          (f) => f.id === 'project_name' || f.id === 'projectName'
+        )
+        newFields = [
+          ...existingFields.slice(0, pnIdx + 1),
+          BASE_SUBMIT_FORM_FIELDS.short_description.field,
+          ...existingFields.slice(pnIdx + 1),
+        ]
+      }
+
       setFormDataContent({
         ...formDataContent,
-        stages: [{ ...stages[0], submitForm: { ...stages[0].submitForm, fields: [BASE_SUBMIT_FORM_FIELDS.project_name.field, ...(stages[0].submitForm?.fields ?? [])] } }, ...stages.slice(1)]
+        stages: [
+          {
+            ...stages[0],
+            submitForm: {
+              ...stages[0].submitForm,
+              fields: newFields,
+            },
+          },
+          ...stages.slice(1),
+        ],
       })
       return
     }

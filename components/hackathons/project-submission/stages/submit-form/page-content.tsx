@@ -28,8 +28,10 @@ import {
   validateStringArray,
   detectDangerousUrl,
 } from '@/utils/input-validator'
+import { toast } from 'sonner'
 
 type StageSubmitValues = Record<string, string | string[]>
+
 
 type StageSubmitPageContentProps = {
   hackathon: HackathonHeader
@@ -43,6 +45,51 @@ type StageSubmitPageContentProps = {
     user_name?: string
   }
   renderInPreview?: boolean
+}
+
+function buildProjectFallback(
+  project: Record<string, unknown>,
+  stageFields: SubmitFormField[]
+): StageSubmitValues {
+  const fallback: StageSubmitValues = {}
+
+  for (const field of stageFields) {
+    // 'explanation' in stage form corresponds to 'tech_stack' in the full project submission
+    const projectKey = field.id === 'explanation' ? 'tech_stack' : field.id
+    const value = project[projectKey] ?? project[field.id]
+    if (value === undefined || value === null) continue
+
+    const isArrayField =
+      field.type === SubmitFormFieldType.Link ||
+      field.type === SubmitFormFieldType.MultiSelect
+
+    if (isArrayField) {
+      if (Array.isArray(value)) {
+        if (value.every((v) => typeof v === 'string')) {
+          // plain string array (e.g. categories)
+          fallback[field.id] = value as string[]
+        } else {
+          // array of objects — serialize each as JSON (e.g. deployed_addresses: {address, tag}[])
+          const serialized = value
+            .map((v) => {
+              if (typeof v === 'string') return v
+              if (v && typeof v === 'object') return JSON.stringify(v)
+              return null
+            })
+            .filter((v): v is string => v !== null)
+          if (serialized.length > 0) fallback[field.id] = serialized
+        }
+      } else if (typeof value === 'string' && value.trim()) {
+        fallback[field.id] = [value]
+      }
+    } else {
+      if (typeof value === 'string') {
+        fallback[field.id] = value
+      }
+    }
+  }
+
+  return fallback
 }
 
 function buildDefaultValues(stage: HackathonStage): StageSubmitValues {
@@ -125,8 +172,9 @@ export default function StageSubmitPageContent({
 }: StageSubmitPageContentProps): React.JSX.Element | null {
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false)
   const [linkDrafts, setLinkDrafts] = React.useState<Record<string, string>>({})
+  const [linkDraftErrors, setLinkDraftErrors] = React.useState<Record<string, string>>({})
   const [activeTab, setActiveTab] = React.useState<string>('form')
-  const { projectId, teamName, loading } = useProjectByHackaUser({
+  const { projectId, teamName, loading, project } = useProjectByHackaUser({
     hackathonId: hackathon.id,
     userId: user?.id ?? '',
   })
@@ -137,7 +185,6 @@ export default function StageSubmitPageContent({
 
   const form = useForm<StageSubmitValues>({
     defaultValues: buildDefaultValues(stage),
-    shouldUnregister: true,
   })
   const watchedValues: StageSubmitValues = form.watch()
   const hasMissingRequiredFields: boolean = (stage.submitForm?.fields ?? []).some(
@@ -155,26 +202,58 @@ export default function StageSubmitPageContent({
 
   React.useEffect((): void => {
     setLinkDrafts({})
+    setLinkDraftErrors({})
 
     if (!projectId) {
       form.reset(buildDefaultValues(stage))
       return
     }
 
-    if (loading) {
+    if (loading || loadingFormData) {
       return
+    }
+
+    const projectFallback: StageSubmitValues = project
+      ? buildProjectFallback(
+          project as Record<string, unknown>,
+          stage.submitForm?.fields ?? []
+        )
+      : {}
+
+    // Only apply formData values that are non-empty so that a previous empty
+    // stage submission doesn't erase real project data (e.g. explanation).
+    const nonEmptyFormData: StageSubmitValues = {}
+    if (formData) {
+      for (const [key, val] of Object.entries(formData)) {
+        const hasValue = Array.isArray(val) ? val.length > 0 : typeof val === 'string' ? val.trim().length > 0 : val != null
+        if (hasValue) nonEmptyFormData[key] = val
+      }
     }
 
     form.reset({
       ...buildDefaultValues(stage),
-      ...(formData ?? {}),
+      ...projectFallback,
+      ...nonEmptyFormData,
     })
-  }, [projectId, formData, loading, stage, form])
+  }, [projectId, formData, loading, loadingFormData, stage, form, project])
 
   React.useEffect((): void => {
     setResolvedProjectId(projectId ?? '')
   }, [projectId])
 
+
+  const validateDraftUrl = (url: string): string => {
+    const trimmed = url.trim()
+    if (!trimmed) return ''
+    if (detectDangerousUrl(trimmed)) return 'URL contains a dangerous protocol'
+    const normalized = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
+    try {
+      new URL(normalized)
+      return ''
+    } catch {
+      return 'Please enter a valid URL'
+    }
+  }
 
   const renderField = (field: SubmitFormField): React.JSX.Element | null => {
     switch (field.type) {
@@ -227,6 +306,145 @@ export default function StageSubmitPageContent({
         const linkField: LinkStagesSubmitFormField =
           field as LinkStagesSubmitFormField
 
+        // Deployed addresses: special address+tag list UI
+        if (linkField.id === 'deployed_addresses') {
+          return (
+            <FormField
+              key={linkField.id}
+              control={form.control}
+              name={linkField.id}
+              rules={{
+                validate: (value: string | string[] | undefined): true | string => {
+                  if (!linkField.required) return true
+                  return validateRequiredArray(value, linkField)
+                },
+              }}
+              render={({ field: rhfField }) => {
+                const rawEntries: string[] = Array.isArray(rhfField.value)
+                  ? (rhfField.value as string[])
+                  : []
+
+                const entries: Array<{ address: string; tag: string }> = rawEntries.map((raw) => {
+                  try {
+                    const p = JSON.parse(raw) as { address?: string; tag?: string }
+                    return { address: p.address ?? raw, tag: p.tag ?? '' }
+                  } catch {
+                    return { address: raw, tag: '' }
+                  }
+                })
+
+                const draftAddress: string = linkDrafts[`${linkField.id}_address`] ?? ''
+                const draftTag: string = linkDrafts[`${linkField.id}_tag`] ?? ''
+
+                const updateEntries = (next: Array<{ address: string; tag: string }>): void => {
+                  form.setValue(
+                    linkField.id,
+                    next.map((e) => JSON.stringify({ address: e.address, tag: e.tag })),
+                    { shouldDirty: true, shouldValidate: true }
+                  )
+                }
+
+                const handleAddEntry = (): void => {
+                  const addr = draftAddress.trim()
+                  if (!addr) return
+                  updateEntries([...entries, { address: addr, tag: draftTag.trim() }])
+                  setLinkDrafts((prev) => ({
+                    ...prev,
+                    [`${linkField.id}_address`]: '',
+                    [`${linkField.id}_tag`]: '',
+                  }))
+                }
+
+                const handleRemoveEntry = (index: number): void => {
+                  updateEntries(entries.filter((_, i) => i !== index))
+                }
+
+                const handleEntryChange = (
+                  index: number,
+                  key: 'address' | 'tag',
+                  value: string
+                ): void => {
+                  const next = entries.map((e, i) =>
+                    i === index ? { ...e, [key]: value } : e
+                  )
+                  updateEntries(next)
+                }
+
+                return (
+                  <FormItem>
+                    <FormLabel className={fieldLabelClassName}>
+                      {linkField.label}
+                      {linkField.required ? (
+                        <span className="ml-1 text-[#d66666]">*</span>
+                      ) : null}
+                    </FormLabel>
+                    <FormDescription className={fieldDescriptionClassName}>
+                      {linkField.description}
+                    </FormDescription>
+
+                    {entries.length > 0 && (
+                      <div className="space-y-2">
+                        {entries.map((entry, index) => (
+                          <div key={index} className="flex gap-2 items-center">
+                            <Input
+                              value={entry.tag}
+                              onChange={(e) => handleEntryChange(index, 'tag', e.target.value)}
+                              placeholder="Tag (optional)"
+                              className={`w-28 shrink-0 ${inputClassName}`}
+                            />
+                            <Input
+                              value={entry.address}
+                              onChange={(e) => handleEntryChange(index, 'address', e.target.value)}
+                              placeholder="Address or URL"
+                              className={`flex-1 ${inputClassName}`}
+                            />
+                            <button
+                              type="button"
+                              className="cursor-pointer text-zinc-500 transition-colors hover:text-[#d66666] dark:text-zinc-400"
+                              onClick={() => handleRemoveEntry(index)}
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        value={draftTag}
+                        onChange={(e) =>
+                          setLinkDrafts((prev) => ({ ...prev, [`${linkField.id}_tag`]: e.target.value }))
+                        }
+                        placeholder="Tag (optional)"
+                        className={`w-28 shrink-0 ${inputClassName}`}
+                      />
+                      <Input
+                        value={draftAddress}
+                        onChange={(e) =>
+                          setLinkDrafts((prev) => ({ ...prev, [`${linkField.id}_address`]: e.target.value }))
+                        }
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddEntry() } }}
+                        placeholder={linkField.placeholder ?? 'Address or URL'}
+                        className={`flex-1 ${inputClassName}`}
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleAddEntry}
+                        className="bg-[#d66666] text-zinc-900 hover:bg-[#e57f7f] shrink-0"
+                      >
+                        Add
+                      </Button>
+                    </div>
+
+                    <FormMessage />
+                  </FormItem>
+                )
+              }}
+            />
+          )
+        }
+
         return (
           <FormField
             key={linkField.id}
@@ -234,13 +452,16 @@ export default function StageSubmitPageContent({
             name={linkField.id}
             rules={{
               validate: (value: string | string[] | undefined): true | string => {
-                // First check if required
                 const requiredCheck = validateRequiredArray(value, linkField)
-                if (requiredCheck !== true) {
-                  return requiredCheck
+                if (requiredCheck !== true) return requiredCheck
+                const dangerCheck = validateUrlInput(value)
+                if (dangerCheck !== true) return dangerCheck
+                const urls = Array.isArray(value) ? value : typeof value === 'string' ? [value] : []
+                for (const url of urls) {
+                  const err = validateDraftUrl(url.trim())
+                  if (err) return err
                 }
-                // Then check for dangerous URLs
-                return validateUrlInput(value)
+                return true
               },
             }}
             render={({ field: rhfField }) => {
@@ -249,6 +470,7 @@ export default function StageSubmitPageContent({
                 : []
 
               const draftValue: string = linkDrafts[linkField.id] ?? ''
+              const draftError: string = linkDraftErrors[linkField.id] ?? ''
               const maxLinks: number | null =
                 typeof linkField.maxLinks === 'number' && linkField.maxLinks > 0
                   ? linkField.maxLinks
@@ -258,59 +480,35 @@ export default function StageSubmitPageContent({
 
               const normalizeUrl = (url: string): string => {
                 const trimmedUrl: string = url.trim()
-
-                if (
-                  trimmedUrl.startsWith('http://') ||
-                  trimmedUrl.startsWith('https://')
-                ) {
-                  return trimmedUrl
-                }
-
-                return `https://${trimmedUrl}`
+                return trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')
+                  ? trimmedUrl
+                  : `https://${trimmedUrl}`
               }
 
               const handleAddLink = (): void => {
-                if (!canAddMoreLinks) {
-                  return
-                }
-
+                if (!canAddMoreLinks) return
                 const trimmedValue: string = draftValue.trim()
-
-                if (!trimmedValue) {
+                if (!trimmedValue) return
+                const err = validateDraftUrl(trimmedValue)
+                if (err) {
+                  setLinkDraftErrors((prev) => ({ ...prev, [linkField.id]: err }))
                   return
                 }
-
-                // Check for dangerous URL
-                if (detectDangerousUrl(trimmedValue)) {
-                  return
-                }
-
                 const normalizedUrl: string = normalizeUrl(trimmedValue)
-
-                if (links.includes(normalizedUrl)) {
-                  setLinkDrafts((prev: Record<string, string>): Record<string, string> => ({
-                    ...prev,
-                    [linkField.id]: '',
-                  }))
-                  return
+                if (!links.includes(normalizedUrl)) {
+                  form.setValue(linkField.id, [...links, normalizedUrl], {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
                 }
-
-                form.setValue(linkField.id, [...links, normalizedUrl], {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-
-                setLinkDrafts((prev: Record<string, string>): Record<string, string> => ({
-                  ...prev,
-                  [linkField.id]: '',
-                }))
+                setLinkDrafts((prev) => ({ ...prev, [linkField.id]: '' }))
+                setLinkDraftErrors((prev) => ({ ...prev, [linkField.id]: '' }))
               }
 
-              const handleSingleLinkChange = (
-                event: React.ChangeEvent<HTMLInputElement>
-              ): void => {
+              const handleSingleLinkChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
                 const value: string = event.target.value
-
+                const err = value.trim() ? validateDraftUrl(value) : ''
+                setLinkDraftErrors((prev) => ({ ...prev, [linkField.id]: err }))
                 form.setValue(linkField.id, value.trim() ? [value] : [], {
                   shouldDirty: true,
                   shouldValidate: true,
@@ -319,13 +517,8 @@ export default function StageSubmitPageContent({
 
               const handleSingleLinkBlur = (): void => {
                 const value: string = links[0]?.trim() ?? ''
-
-                if (!value) {
-                  return
-                }
-
+                if (!value) return
                 const normalizedUrl: string = normalizeUrl(value)
-
                 form.setValue(linkField.id, [normalizedUrl], {
                   shouldDirty: true,
                   shouldValidate: true,
@@ -336,15 +529,12 @@ export default function StageSubmitPageContent({
                 form.setValue(
                   linkField.id,
                   links.filter((link: string): boolean => link !== linkToRemove),
-                  {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  }
+                  { shouldDirty: true, shouldValidate: true }
                 )
               }
 
               return (
-                <FormItem >
+                <FormItem>
                   <FormLabel className={fieldLabelClassName}>
                     {linkField.label}
                     {linkField.required ? (
@@ -362,22 +552,18 @@ export default function StageSubmitPageContent({
                             handleSingleLinkChange(event)
                             return
                           }
-
-                          setLinkDrafts(
-                            (prev: Record<string, string>): Record<string, string> => ({
-                              ...prev,
-                              [linkField.id]: event.target.value,
-                            })
-                          )
+                          const val = event.target.value
+                          setLinkDrafts((prev) => ({ ...prev, [linkField.id]: val }))
+                          setLinkDraftErrors((prev) => ({
+                            ...prev,
+                            [linkField.id]: val.trim() ? validateDraftUrl(val) : '',
+                          }))
                         }}
                         onBlur={isSingleLink ? handleSingleLinkBlur : undefined}
                         onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>): void => {
                           if (event.key === 'Enter') {
                             event.preventDefault()
-                            if (isSingleLink) {
-                              handleSingleLinkBlur()
-                              return
-                            }
+                            if (isSingleLink) { handleSingleLinkBlur(); return }
                             handleAddLink()
                           }
                         }}
@@ -399,14 +585,16 @@ export default function StageSubmitPageContent({
                     )}
                   </div>
 
+                  {draftError && (
+                    <p className="text-sm text-[#d66666]">{draftError}</p>
+                  )}
+
                   {!!links.length && (
                     <div className="flex flex-wrap gap-2">
                       {links.map((link: string, index: number): React.JSX.Element => {
                         const maxLength: number = 40
                         const displayValue: string =
-                          link.length > maxLength
-                            ? `${link.slice(0, maxLength)}...`
-                            : link
+                          link.length > maxLength ? `${link.slice(0, maxLength)}...` : link
 
                         return (
                           <div
@@ -422,7 +610,6 @@ export default function StageSubmitPageContent({
                             >
                               {displayValue}
                             </a>
-
                             <button
                               type="button"
                               className="cursor-pointer text-zinc-500 transition-colors hover:text-[#d66666] dark:text-zinc-400"
@@ -630,11 +817,14 @@ export default function StageSubmitPageContent({
       if (data.projectId) {
         setResolvedProjectId(data.projectId)
       }
+
+      toast.success(`${stage.label} saved successfully`)
     } catch (error: unknown) {
       const message: string =
         error instanceof Error ? error.message : 'Unknown error'
 
       console.error('Error saving stage submission:', message)
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -668,7 +858,7 @@ export default function StageSubmitPageContent({
                 disabled={isSubmitting}
                 className=" bg-[#d66666] py-4 text-base font-semibold text-zinc-900 hover:bg-[#e57f7f]"
               >
-                {isSubmitting ? 'Saving...' : `Save ${stage.label}`}
+                {isSubmitting ? 'Saving...' : 'Save'}
               </Button>
             </div> */}
           </form>
@@ -769,7 +959,7 @@ export default function StageSubmitPageContent({
                       disabled={isSaveDisabled}
                       className=" bg-[#d66666] py-4 text-base font-semibold text-zinc-900 hover:bg-[#e57f7f]"
                     >
-                      {isSubmitting ? 'Saving...' : `Save ${stage.label}`}
+                      {isSubmitting ? 'Saving...' : 'Save'}
                     </Button>
                   </div>
                 </form>

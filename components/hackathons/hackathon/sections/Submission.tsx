@@ -24,6 +24,7 @@ export default function Submission({
 }) {
   const lang = normalizeEventsLang(hackathon.content?.language);
   const locale = lang === 'es' ? 'es-ES' : 'en-US';
+  const hasStages = Array.isArray(hackathon.content.stages) && hackathon.content.stages.length > 0;
 
   const submissionDeadlineDate = hackathon.content?.submission_deadline
     ? new Date(hackathon.content.submission_deadline)
@@ -151,12 +152,14 @@ export default function Submission({
             </div>
           </DialogContent>
         </Dialog>
-        <SubmitButton
-          hackathonId={hackathon.id}
-          customSubmissionLink={hackathon.content.submission_custom_link}
-          label={t(lang, "section.submission.submitProject")}
-          isAuthenticated={isAuthenticated}
-        />
+        {!hasStages && (
+          <SubmitButton
+            hackathonId={hackathon.id}
+            customSubmissionLink={hackathon.content.submission_custom_link}
+            label={t(lang, "section.submission.submitProject")}
+            isAuthenticated={isAuthenticated}
+          />
+        )}
       </div>
     </section>
   );

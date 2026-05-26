@@ -41,16 +41,15 @@ export const BASE_SUBMIT_FORM_FIELDS = {
     },
   },
   deployed_addresses: {
-    label: 'Deployed Address',
+    label: 'Deployed Addresses',
     field: {
       id: 'deployed_addresses',
-      type: SubmitFormFieldType.Text,
-      label: 'Deployed Address',
-      placeholder: 'Enter the deployed address',
-      description: 'The address where the project is deployed.',
-      maxCharacters: 200,
+      type: SubmitFormFieldType.Link,
+      label: 'Deployed Addresses',
+      placeholder: 'Enter a contract address or URL',
+      description: 'Addresses or links where the project is deployed. Each entry can have an optional tag.',
       predefinedField: true,
-      required: true,
+      required: false,
     },
   },
   categories: {

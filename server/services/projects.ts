@@ -346,6 +346,10 @@ export async function GetProjectByHackathonAndUser(
     where: {
       OR: [{ id: user_id }, { email: user_id }],
     },
+    select: {
+      id: true,
+      email: true,
+    },
   });
 
   if (!user) {
