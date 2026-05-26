@@ -697,16 +697,40 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
               </SelectContent>
             </Select>
             <SubformFieldError fieldError={fieldError} field="category" />
+            <div className="mb-3 flex items-center gap-3">
+              <Switch
+                id={`schedule-is-virtual-${index}`}
+                checked={event.isVirtual}
+                onCheckedChange={(checked) => onChange(index, 'isVirtual', checked)}
+                className="cursor-pointer"
+              />
+              <label htmlFor={`schedule-is-virtual-${index}`} className="text-sm font-medium cursor-pointer">
+                {t[language].scheduleIsVirtual}
+              </label>
+            </div>
+            <div className="mb-3 text-zinc-700 dark:text-zinc-400 text-xs">{t[language].scheduleIsVirtualHelp}</div>
             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleLocation}</div>
             <Input
               type="text"
-              placeholder="Location"
+              placeholder={t[language].scheduleLocationPlaceholder}
               value={event.location}
               onChange={(e) => onChange(index, 'location', e.target.value)}
+              disabled={event.isVirtual}
               className="w-full mb-3"
-              required
+              required={!event.isVirtual}
             />
             <SubformFieldError fieldError={fieldError} field="location" />
+            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleJoinUrl}</div>
+            <Input
+              type="url"
+              placeholder={t[language].scheduleJoinUrlPlaceholder}
+              value={event.url ?? ''}
+              onChange={(e) => onChange(index, 'url', e.target.value || null)}
+              disabled={!event.isVirtual}
+              className="w-full mb-1"
+            />
+            <div className="mb-3 text-zinc-700 dark:text-zinc-400 text-xs">{t[language].scheduleJoinUrlHelp}</div>
+            <SubformFieldError fieldError={fieldError} field="url" />
             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleDescription}</div>
             <Input
               type="text"
@@ -717,6 +741,16 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
               required
             />
             <SubformFieldError fieldError={fieldError} field="description" />
+            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleInfoUrl}</div>
+            <Input
+              type="url"
+              placeholder={t[language].scheduleInfoUrlPlaceholder}
+              value={event.infoUrl ?? ''}
+              onChange={(e) => onChange(index, 'infoUrl', e.target.value || undefined)}
+              className="w-full mb-1"
+            />
+            <div className="mb-3 text-zinc-700 dark:text-zinc-400 text-xs">{t[language].scheduleInfoUrlHelp}</div>
+            <SubformFieldError fieldError={fieldError} field="infoUrl" />
             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].scheduleDuration}</div>
             <Input
               type="number"
@@ -728,7 +762,6 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
               min="1"
             />
             <SubformFieldError fieldError={fieldError} field="duration" />
-            <SubformFieldError fieldError={fieldError} field="url" />
           </>
         </AccordionContent>
       </AccordionItem>
@@ -1309,7 +1342,15 @@ const HackathonsEdit = () => {
       tracks: hackathon.content?.tracks ?? [{ icon: '', logo: '', name: '', partner: '', description: '', short_description: '' }],
       address: hackathon.content?.address ?? '',
       partners: hackathon.content?.partners ?? [],
-      schedule: hackathon.content?.schedule ?? [{ url: null, date: '', name: '', category: '', location: '', description: '', duration: 0 }],
+      schedule: hackathon.content?.schedule?.map((schedule: ISchedule & { joinUrl?: string }) => {
+        const isVirtual = schedule.isVirtual ?? Boolean(schedule.url);
+        return {
+          ...schedule,
+          isVirtual,
+          location: isVirtual ? '' : schedule.location,
+          infoUrl: schedule.infoUrl ?? schedule.joinUrl,
+        };
+      }) ?? [{ url: null, date: '', name: '', category: '', location: '', description: '', duration: 0, isVirtual: false }],
       speakers: (hackathon.content?.speakers ?? []).map((s: any) => ({ ...s, picture: s.picture ?? '' })),
       resources: hackathon.content?.resources ?? [{ icon: '', link: '', title: '', description: '' }],
       tracks_text: hackathon.content?.tracks_text ?? '',
@@ -1707,6 +1748,7 @@ const HackathonsEdit = () => {
           location: '',
           description: '',
           duration: 0,
+          isVirtual: false,
         },
       ],
     });
@@ -1784,7 +1826,7 @@ const HackathonsEdit = () => {
       if (issues.length === 0) return;
       const fieldLabelMap: Record<string, string> = {
         date: 'Date', name: 'Name', category: 'Category', location: 'Location',
-        description: 'Description', duration: 'Duration', url: 'URL', icon: 'Icon',
+        description: 'Description', duration: 'Duration', url: 'URL', infoUrl: 'Info URL', icon: 'Icon',
         link: 'Link', title: 'Title', logo: 'Logo', partner: 'Partner',
         short_description: 'Short Description',
       };
@@ -2313,7 +2355,17 @@ const HackathonsEdit = () => {
   const handleScheduleFieldChange = useCallback((idx: number, field: string, value: any) => {
     setFormDataContent(prev => {
       const newSchedule = [...prev.schedule];
-      newSchedule[idx] = { ...newSchedule[idx], [field]: field === 'duration' ? Number(value) : value };
+      if (field === 'isVirtual') {
+        const isVirtual = Boolean(value);
+        newSchedule[idx] = {
+          ...newSchedule[idx],
+          isVirtual,
+          location: isVirtual ? '' : newSchedule[idx].location,
+          url: isVirtual ? newSchedule[idx].url : null,
+        };
+      } else {
+        newSchedule[idx] = { ...newSchedule[idx], [field]: field === 'duration' ? Number(value) : value };
+      }
       return { ...prev, schedule: newSchedule };
     });
     scrollToSection('schedule');
@@ -2411,7 +2463,8 @@ const HackathonsEdit = () => {
           category: "Registration",
           location: "Main Stage",
           description: "Welcome to Avalanche Hackathon 2025! Join us for an inspiring opening ceremony with keynote speakers from the Avalanche ecosystem.",
-          duration: 60
+          duration: 60,
+          isVirtual: false
         },
         {
           url: null,
@@ -2420,7 +2473,8 @@ const HackathonsEdit = () => {
           category: "Networking",
           location: "Networking Area",
           description: "Meet other participants, form teams, and start brainstorming your hackathon project ideas.",
-          duration: 90
+          duration: 90,
+          isVirtual: false
         },
         {
           url: null,
@@ -2429,7 +2483,8 @@ const HackathonsEdit = () => {
           category: "Workshop",
           location: "Workshop Room A",
           description: "Learn the fundamentals of building on Avalanche, including smart contract development and deployment.",
-          duration: 120
+          duration: 120,
+          isVirtual: false
         },
         {
           url: null,
@@ -2438,7 +2493,8 @@ const HackathonsEdit = () => {
           category: "Workshop",
           location: "Mentor Lounge",
           description: "Get guidance from industry experts and experienced developers on your project.",
-          duration: 180
+          duration: 180,
+          isVirtual: false
         },
         {
           url: null,
@@ -2447,7 +2503,8 @@ const HackathonsEdit = () => {
           category: "Judging",
           location: "Main Stage",
           description: "Present your projects to judges and the community. Showcase your innovative solutions built on Avalanche.",
-          duration: 240
+          duration: 240,
+          isVirtual: false
         }
       ],
       speakers: [

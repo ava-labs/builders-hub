@@ -12,10 +12,13 @@ import {
 import { Upload } from "lucide-react";
 import StageSubmitPageContent from '@/components/hackathons/project-submission/stages/submit-form/page-content'
 import { renderStageIcon } from '@/components/hackathons/edit/stages/IconPicker'
+import CalendarPlusButton from '@/components/hackathons/hackathon/CalendarPlusButton'
+import { normalizeEventsLang } from '@/lib/events/i18n'
 
 type StageStatus = "completed" | "current" | "upcoming";
 
 export default function Stages({ isParticipant, stages, hackathon, renderInPreview }: { isParticipant: boolean; stages: HackathonStage[]; hackathon: HackathonHeader; renderInPreview?: boolean }): JSX.Element {
+  const lang = normalizeEventsLang(hackathon.content?.language);
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
   const [selectedPhaseIndex, setSelectedPhaseIndex] = useState<number>(0);
 
@@ -118,19 +121,10 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
           </div>
 
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-            {hackathon.google_calendar_id && (
-              <a
-                href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(hackathon.google_calendar_id)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative inline-flex w-full sm:w-auto"
-              >
-                <div className="absolute -inset-1 bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition duration-300" />
-                <div className="relative flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-3 bg-[#d66666] rounded-lg font-medium text-[#152d44] group-hover:bg-[#e57f7f] transition-all duration-200 shadow-lg shadow-amber-500/20 group-hover:shadow-amber-500/40">
-                  <span className="text-sm sm:text-[15px]">Add to Calendar</span>
-                </div>
-              </a>
-            )}
+            <CalendarPlusButton
+              googleCalendarId={hackathon.google_calendar_id}
+              lang={lang}
+            />
           </div>
         </div>
 

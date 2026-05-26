@@ -107,6 +107,8 @@ const scheduleSchema = z.object({
   location: z.string().max(100),
   description: z.string().max(500),
   duration: z.number().int().min(0).max(500),
+  isVirtual: z.boolean().default(false),
+  infoUrl: urlOrEmptySchema.optional(),
 });
 
 const speakerSchema = z.object({

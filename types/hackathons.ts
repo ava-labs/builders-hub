@@ -75,6 +75,8 @@ export type ScheduleActivity = {
   location: string
   category: string
   url: string
+  isVirtual: boolean
+  infoUrl?: string
   /** Video call URL (Google Meet, Zoom, etc.) - separate from physical location */
   video_call_url?: string
 }
@@ -113,5 +115,3 @@ export type Speaker = {
   icon: string
   category: string
 }
-
-
