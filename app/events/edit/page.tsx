@@ -2403,8 +2403,18 @@ const HackathonsEdit = () => {
   );
 
   const loadMockData = () => {
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const addDays = (d: Date, days: number, h = 0, m = 0) => {
+      const r = new Date(d);
+      r.setDate(r.getDate() + days);
+      r.setHours(h, m, 0, 0);
+      return r;
+    };
+    const start = addDays(new Date(), 14, 9, 0);
+
     setFormDataMain({
-      title: "Avalanche 2025",
+      title: "Avalanche 2026",
       description: "Build the future of Web3 on Avalanche. Join us for an exciting hackathon where we will create innovative blockchain solutions.",
       location: "Virtual & In-Person Events Worldwide",
       total_prizes: 10000,
@@ -2415,8 +2425,8 @@ const HackathonsEdit = () => {
     });
 
     setFormDataLatest({
-      start_date: "2025-10-15T09:00",
-      end_date: "2025-10-17T18:00",
+      start_date: fmt(start),
+      end_date: fmt(addDays(start, 2, 18, 0)),
       timezone: "America/New_York",
       banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
       icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
@@ -2458,7 +2468,7 @@ const HackathonsEdit = () => {
       schedule: [
         {
           url: null,
-          date: "2025-10-15T09:00",
+          date: fmt(addDays(start, 0, 9, 0)),
           name: "Opening Ceremony & Keynote",
           category: "Registration",
           location: "Main Stage",
@@ -2468,7 +2478,7 @@ const HackathonsEdit = () => {
         },
         {
           url: null,
-          date: "2025-10-15T10:30",
+          date: fmt(addDays(start, 0, 10, 30)),
           name: "Team Formation & Networking",
           category: "Networking",
           location: "Networking Area",
@@ -2478,7 +2488,7 @@ const HackathonsEdit = () => {
         },
         {
           url: null,
-          date: "2025-10-15T14:00",
+          date: fmt(addDays(start, 0, 14, 0)),
           name: "Technical Workshop: Building on Avalanche",
           category: "Workshop",
           location: "Workshop Room A",
@@ -2488,7 +2498,7 @@ const HackathonsEdit = () => {
         },
         {
           url: null,
-          date: "2025-10-16T10:00",
+          date: fmt(addDays(start, 1, 10, 0)),
           name: "Mentorship Sessions",
           category: "Workshop",
           location: "Mentor Lounge",
@@ -2498,7 +2508,7 @@ const HackathonsEdit = () => {
         },
         {
           url: null,
-          date: "2025-10-17T14:00",
+          date: fmt(addDays(start, 2, 14, 0)),
           name: "Project Presentations",
           category: "Judging",
           location: "Main Stage",
@@ -2542,7 +2552,7 @@ const HackathonsEdit = () => {
       tracks_text: "# 🚀 Avalanche Hackathon 2025\n\n## Welcome to the Future of Web3\n\nJoin us for an incredible 48-hour hackathon where developers, designers, and entrepreneurs come together to build the next generation of blockchain applications on **Avalanche**.\n\n### 🎯 What We're Looking For\n\n- **Innovation**: Breakthrough ideas that push the boundaries of what's possible\n- **Technical Excellence**: Well-architected, secure, and scalable solutions\n- **User Experience**: Applications that are intuitive and accessible to everyone\n- **Real-World Impact**: Solutions that solve actual problems and create value\n\n### 🏆 Prizes & Recognition\n\n- **1st Place**: $25,000 + Incubation Program\n- **2nd Place**: $15,000 + Mentorship\n- **3rd Place**: $10,000 + Community Support\n- **Special Tracks**: Additional prizes for DeFi, Gaming, and Security innovations\n\n### 🤝 Community & Support\n\nOur team of mentors, technical experts, and community members will be available throughout the hackathon to help you succeed. Don't hesitate to reach out for guidance, technical support, or just to chat about your ideas!\n\n---\n\n**Ready to build the future? Let's make it happen together!** 🚀",
       join_custom_text: "Join now",
       judging_guidelines: "Projects will be evaluated based on innovation, technical implementation, user experience, and potential impact.",
-      submission_deadline: "2026-03-17T16:00:00.000-04:00",
+      submission_deadline: fmt(addDays(start, 16, 16, 0)),
       registration_deadline: "",
       speakers_banner: "",
       become_sponsor_link: "",

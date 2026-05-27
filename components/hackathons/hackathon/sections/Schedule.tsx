@@ -502,7 +502,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                   : 'justify-between'
                               }`}
                             >
-                              <div className='flex flex-col gap-1'>
+                              <div className='flex flex-row flex-wrap gap-x-4 gap-y-1'>
                                 {activity.isVirtual && joinUrl && (
                                   <div className='flex flex-row items-center gap-2'>
                                     <a
