@@ -7,6 +7,7 @@ import {
   createFlashcardsRateLimitHeaders,
 } from '@/lib/flashcards/rate-limit';
 import { generateDeck } from '@/lib/flashcards/generate';
+import { sanitizeFlashcardError } from '@/lib/flashcards/errors';
 import { SourceAnchorSchema } from '@/lib/flashcards/types';
 
 export const runtime = 'nodejs';
@@ -87,11 +88,11 @@ export async function POST(request: Request) {
       { headers: createFlashcardsRateLimitHeaders(rate) },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[flashcards/generate] Failed:', error);
-    return NextResponse.json(
-      { error: 'Generation failed', message },
-      { status: 500, headers: createFlashcardsRateLimitHeaders(rate) },
-    );
+    const sanitized = sanitizeFlashcardError(error);
+    return NextResponse.json(sanitized.body, {
+      status: sanitized.status,
+      headers: createFlashcardsRateLimitHeaders(rate),
+    });
   }
 }

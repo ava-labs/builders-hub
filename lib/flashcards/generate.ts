@@ -13,6 +13,11 @@ import {
 import { loadSources, estimateTokens, type LoadedSource } from './source-loader';
 import { buildFullDeckPrompt, buildSingleCardPrompt } from './prompt';
 import { dedupeFlashcards } from './dedupe';
+import {
+  FLASHCARDS_MAX_SOURCE_TOKENS,
+  ServiceUnavailableError,
+  TokenBudgetExceededError,
+} from './errors';
 
 const FLASHCARD_MODEL = 'claude-sonnet-4-6';
 
@@ -33,7 +38,7 @@ export interface GenerateDeckResult {
 function buildAnthropicClient() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not configured');
+    throw new ServiceUnavailableError('Flashcard generation is not configured');
   }
   return createAnthropic({ apiKey });
 }
@@ -72,6 +77,13 @@ export async function generateDeck(
     (sum, s) => sum + estimateTokens(s.markdown),
     0,
   );
+
+  if (totalSourceTokens > FLASHCARDS_MAX_SOURCE_TOKENS) {
+    throw new TokenBudgetExceededError(
+      totalSourceTokens,
+      FLASHCARDS_MAX_SOURCE_TOKENS,
+    );
+  }
 
   const targetCardCount = Math.min(Math.max(opts.targetCardCount ?? 25, 5), 60);
 
