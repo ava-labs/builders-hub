@@ -5,6 +5,7 @@ import { ChevronDown, Search, X } from 'lucide-react';
 import { JobCard } from '@/components/ecosystem-careers/JobCard';
 import { HiringCta } from '@/components/ecosystem-careers/HiringCta';
 import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
+import { DevRelReviewLink } from '@/components/ecosystem-careers/DevRelReviewLink';
 import type { CompanyOption, SerializableJobCard } from '@/server/services/ecosystemCareers/queries';
 
 interface Props {
@@ -15,6 +16,9 @@ interface Props {
   viewerAuthenticated: boolean;
   viewerMissingSocials: ('x' | 'linkedin')[];
   previewCount: number;
+  viewerIsDevRel: boolean;
+  pendingProjects: number;
+  pendingListings: number;
 }
 
 const REMOTE_OPTIONS = [
@@ -31,6 +35,9 @@ export default function EcosystemCareersClient({
   viewerAuthenticated,
   viewerMissingSocials,
   previewCount,
+  viewerIsDevRel,
+  pendingProjects,
+  pendingListings,
 }: Props) {
   const [search, setSearch] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -62,8 +69,18 @@ export default function EcosystemCareersClient({
   const hasFilters = !!search || !!companyId || !!remoteType;
 
   return (
-    <main className="relative">
-      <section className="px-4 pt-16 pb-10">
+    <>
+      {/* Match the page-level surface used by /integrations and other home
+          pages: subtle slate-to-white gradient with a faint grid overlay in
+          light mode; flat near-black in dark mode. Fixed so it stays put
+          while content scrolls. */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]" />
+        </div>
+      </div>
+      <main className="relative">
+        <section className="px-4 pt-16 pb-10">
         <div className="max-w-5xl mx-auto text-center space-y-5">
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95]">
             <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white">
@@ -78,8 +95,14 @@ export default function EcosystemCareersClient({
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
             Open roles from teams across the Avalanche ecosystem. Click into a listing to read more and apply on the company&apos;s site.
           </p>
-          <div className="flex justify-center pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <HiringCta variant="button" />
+            {viewerIsDevRel && (
+              <DevRelReviewLink
+                pendingProjects={pendingProjects}
+                pendingListings={pendingListings}
+              />
+            )}
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-500 max-w-2xl mx-auto pt-2">
             Listings are reviewed and sourced externally. When you click through, you&apos;ll leave Builders Hub for a third-party site — we don&apos;t host applications, and per our{' '}
@@ -179,7 +202,7 @@ export default function EcosystemCareersClient({
           ) : viewerCanViewAll ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} />
               ))}
             </div>
           ) : (
@@ -188,11 +211,13 @@ export default function EcosystemCareersClient({
               previewCount={previewCount}
               authenticated={viewerAuthenticated}
               missingSocials={viewerMissingSocials}
+              viewerIsDevRel={viewerIsDevRel}
             />
           )}
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -201,11 +226,13 @@ function GatedGrid({
   previewCount,
   authenticated,
   missingSocials,
+  viewerIsDevRel,
 }: {
   jobs: SerializableJobCard[];
   previewCount: number;
   authenticated: boolean;
   missingSocials: ('x' | 'linkedin')[];
+  viewerIsDevRel: boolean;
 }) {
   const visible = jobs.slice(0, previewCount);
   const blurred = jobs.slice(previewCount);
@@ -214,7 +241,7 @@ function GatedGrid({
       {visible.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visible.map((job) => (
-            <JobCard key={job.id} job={job} />
+            <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} />
           ))}
         </div>
       )}
@@ -225,7 +252,7 @@ function GatedGrid({
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pointer-events-none select-none filter blur-md saturate-75 opacity-80"
           >
             {blurred.map((job) => (
-              <JobCard key={job.id} job={job} />
+              <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} />
             ))}
           </div>
           <UnlockPrompt

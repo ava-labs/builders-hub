@@ -1,6 +1,6 @@
 import { prisma } from '@/prisma/prisma';
 
-export type ListingSource = 'community' | 'external' | 'legacy';
+export type ListingSource = 'community' | 'external' | 'legacy' | 'getro';
 
 // Legacy listings are a one-time frozen Getro seed; anything posted more
 // than ~10 months ago is too stale to surface. Computed at call time so the
@@ -218,7 +218,7 @@ export async function listCompaniesWithActiveJobs(): Promise<CompanyOption[]> {
       by: ['company_name'],
       where: {
         is_active: true,
-        source: { in: ['external', 'legacy'] },
+        source: { in: ['external', 'legacy', 'getro'] },
         company_name: { not: null },
         OR: [
           { source: { not: 'legacy' } },
@@ -302,7 +302,7 @@ export async function listMoreJobsFromSameCompany(
     where = { source: 'community', project_id: job.project_id, is_active: true, NOT: { id: job.id } };
   } else if (job.company_name) {
     where = {
-      source: { in: ['external', 'legacy'] },
+      source: { in: ['external', 'legacy', 'getro'] },
       company_name: job.company_name,
       is_active: true,
       NOT: { id: job.id },

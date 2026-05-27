@@ -5,18 +5,29 @@ import type {
   SerializableJobCard,
 } from '@/server/services/ecosystemCareers/queries';
 import { formatPostedAt, prettyRemoteType, prettySeniority } from './labels';
+import { DevRelEditButton } from './DevRelEditButton';
 
 interface Props {
   job: SerializableJobCard;
+  viewerIsDevRel?: boolean;
 }
 
-// Neon-tinted provenance pill: yellow for legacy (frozen Getro seed),
-// purple for external (web3.career ingest), green for community
-// (project owner submission via Builders Hub).
+// Neon-tinted provenance pill: yellow for fresh Getro weekly ingest,
+// purple for external (web3.career ingest), green for community (project
+// owner submission via Builders Hub OR the original frozen jobs.avax.network
+// seed — both are ecosystem-curated and read the same to a browser).
 function SourceBadge({ source }: { source: ListingSource }) {
+  const community = {
+    label: 'Community',
+    classes:
+      'bg-emerald-300 text-emerald-950 ring-1 ring-emerald-400/70 shadow-[0_0_10px_rgba(52,211,153,0.45)]',
+  };
   const map: Record<ListingSource, { label: string; classes: string }> = {
-    legacy: {
-      label: 'Legacy',
+    // Legacy rows render with the community badge — the jobs.avax.network
+    // seed predates the new ingest pipeline but is still curated by us.
+    legacy: community,
+    getro: {
+      label: 'Getro',
       classes:
         'bg-yellow-300 text-yellow-950 ring-1 ring-yellow-400/70 shadow-[0_0_10px_rgba(250,204,21,0.45)]',
     },
@@ -25,13 +36,10 @@ function SourceBadge({ source }: { source: ListingSource }) {
       classes:
         'bg-fuchsia-300 text-fuchsia-950 ring-1 ring-fuchsia-400/70 shadow-[0_0_10px_rgba(217,70,239,0.45)]',
     },
-    community: {
-      label: 'Community',
-      classes:
-        'bg-emerald-300 text-emerald-950 ring-1 ring-emerald-400/70 shadow-[0_0_10px_rgba(52,211,153,0.45)]',
-    },
+    community,
   };
-  const { label, classes } = map[source];
+  const entry = map[source] ?? community;
+  const { label, classes } = entry;
   return (
     <span
       className={`shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${classes}`}
@@ -41,11 +49,19 @@ function SourceBadge({ source }: { source: ListingSource }) {
   );
 }
 
-export function JobCard({ job }: Props) {
+export function JobCard({ job, viewerIsDevRel = false }: Props) {
   return (
+    <div className="group relative h-full">
+      {viewerIsDevRel && (
+        <DevRelEditButton
+          listingId={job.id}
+          currentTitle={job.title}
+          currentLogoUrl={job.company.logoUrl}
+        />
+      )}
     <Link
       href={`/ecosystem-careers/${job.id}`}
-      className="group relative flex flex-col h-full min-h-[210px] gap-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 p-5 shadow-[0_2px_10px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.3)] transition-all duration-200 hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-zinc-300/80 dark:hover:border-zinc-700/80"
+      className="relative flex flex-col h-full min-h-[210px] gap-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 p-5 shadow-[0_2px_10px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.3)] transition-all duration-200 hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-zinc-300/80 dark:hover:border-zinc-700/80"
     >
       <div className="flex items-start gap-3">
         {job.company.logoUrl ? (
@@ -111,5 +127,6 @@ export function JobCard({ job }: Props) {
         </span>
       </div>
     </Link>
+    </div>
   );
 }
