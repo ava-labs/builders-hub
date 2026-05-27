@@ -7,23 +7,33 @@ export interface IngestResult {
   updated: number;
   skipped: number;
   queriesRun: number;
+  candidatesAfterFilter: number;
   error: string | null;
 }
 
-// web3.career API uses ?token=KEY query auth and returns a tri-element array:
-// ["ok", "v1", [...jobs]]. No pagination — limit caps payload (max 100).
-// We only fetch tag=avalanche so we don't end up promoting roles for other
-// ecosystems (Ethereum-only / Polygon-only / Solana-only). If a company isn't
-// deployed on Avalanche, web3.career won't have tagged it `avalanche`.
+// web3.career API uses ?token=KEY query auth and returns ["meta", "help",
+// [...jobs]] when show_description=true (mandatory — `false` strips the id
+// field which we need for idempotency). No pagination — `limit` caps at 100.
+//
+// Filtering strategy: web3.career has zero jobs under tag=avalanche today, so
+// we fetch broader Web3 tags and then post-filter to keep only roles that
+// are clearly Avalanche-relevant. A job qualifies if either:
+//   1. Its company name matches one already in our Getro corpus (the
+//      Avalanche-curated job board), OR
+//   2. Its title/description mentions a specific Avalanche term:
+//      'avalanche', 'avax', 'c-chain', 'p-chain' (intentionally not
+//      'subnet' or 'l1' — those are ambiguous with Bittensor / Cosmos).
+//
+// This combines high precision (company allow-list) with reasonable recall
+// (keyword catch for teams that build on Avalanche but aren't yet on the
+// Getro board). Anything that slips through still lands is_active=false so
+// devrel makes the final call in /admin/ecosystem-careers.
 const WEB3_CAREER_BASE = 'https://web3.career/api/v1';
 const LIMIT = 100;
-const RELEVANT_TAGS = ['avalanche'];
-// Drop anything more than a year old — stale listings clutter the queue.
+const RELEVANT_TAGS = ['defi', 'layer-2', 'smart-contract', 'solidity', 'rust'];
 const MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
+const AVAX_KEYWORDS = ['avalanche', 'avax', 'c-chain', 'p-chain'];
 
-// Shape confirmed empirically against the live API on 2026-05-27 — the OpenAPI
-// spec from the public docs is out of date (claimed `remote`, `postedAt`;
-// actual fields are `is_remote`, `date`).
 interface Web3CareerJob {
   id: string | number;
   title: string;
@@ -37,8 +47,6 @@ interface Web3CareerJob {
   apply_url: string;
   date?: string | null;
   date_epoch?: number | null;
-  estimated_min_salary?: number | null;
-  estimated_max_salary?: number | null;
 }
 
 interface IngestOptions {
@@ -51,6 +59,7 @@ export interface DryRunResult {
   fetched: number;
   uniqueIds: number;
   afterAgeFilter: number;
+  afterAvalancheFilter: number;
   sample: Web3CareerJob[];
   error: string | null;
 }
@@ -60,8 +69,6 @@ async function fetchTag(apiKey: string, tag: string): Promise<Web3CareerJob[]> {
   url.searchParams.set('token', apiKey);
   url.searchParams.set('tag', tag);
   url.searchParams.set('limit', String(LIMIT));
-  // show_description=true is non-negotiable: with it false, the response is a
-  // flat array of jobs WITHOUT the `id` field, which breaks idempotent ingest.
   url.searchParams.set('show_description', 'true');
 
   const res = await fetch(url.toString(), { cache: 'no-store' });
@@ -70,15 +77,53 @@ async function fetchTag(apiKey: string, tag: string): Promise<Web3CareerJob[]> {
     throw new Error(`web3.career ${res.status}${body ? `: ${body.slice(0, 200)}` : ''}`);
   }
   const payload = (await res.json()) as unknown;
-  // With show_description=true the shape is [meta_string, help_string, [...jobs]].
-  // Find the first inner-array — robust against future preamble shape changes.
   if (!Array.isArray(payload)) return [];
   const jobsArr = payload.find((x) => Array.isArray(x)) as unknown;
   return Array.isArray(jobsArr) ? (jobsArr as Web3CareerJob[]) : [];
 }
 
+// Pulls the Avalanche company allow-list from existing Getro rows. Getro
+// network 10223 is the curated jobs.avax.network board — every company
+// on it is, by definition, deployed on Avalanche. Returns a lowercased
+// Set; lookups use substring containment so "Aave" matches "Aave Labs".
+async function loadAvalancheCompanyAllowList(): Promise<Set<string>> {
+  const rows = await prisma.jobListing.findMany({
+    where: { source: 'getro', company_name: { not: null } },
+    select: { company_name: true },
+    distinct: ['company_name'],
+  });
+  const set = new Set<string>();
+  for (const r of rows) {
+    const name = r.company_name?.trim().toLowerCase();
+    if (name) set.add(name);
+  }
+  return set;
+}
+
+function passesAvalancheFilter(
+  job: Web3CareerJob,
+  allowList: Set<string>,
+): { matched: boolean; reason: 'company' | 'keyword' | null } {
+  const company = (job.company ?? '').trim().toLowerCase();
+  if (company) {
+    for (const a of allowList) {
+      if (company.includes(a) || a.includes(company)) {
+        return { matched: true, reason: 'company' };
+      }
+    }
+  }
+  const blob = `${job.title ?? ''} ${job.description ?? ''} ${(job.tags ?? []).join(' ')}`
+    .toLowerCase()
+    .replace(/<[^>]*>/g, ' ');
+  for (const kw of AVAX_KEYWORDS) {
+    const re = new RegExp(`\\b${kw}\\b`, 'i');
+    if (re.test(blob)) return { matched: true, reason: 'keyword' };
+  }
+  return { matched: false, reason: null };
+}
+
 export async function fetchWeb3CareerDryRun(
-  opts: IngestOptions = {},
+  _opts: IngestOptions = {},
 ): Promise<DryRunResult> {
   const apiKey = process.env.WEB3_CAREER_API_KEY?.trim();
   if (!apiKey) {
@@ -88,11 +133,13 @@ export async function fetchWeb3CareerDryRun(
       fetched: 0,
       uniqueIds: 0,
       afterAgeFilter: 0,
+      afterAvalancheFilter: 0,
       sample: [],
       error: 'WEB3_CAREER_API_KEY not configured',
     };
   }
   try {
+    const allowList = await loadAvalancheCompanyAllowList();
     const all: Web3CareerJob[] = [];
     let queries = 0;
     for (const tag of RELEVANT_TAGS) {
@@ -112,13 +159,15 @@ export async function fetchWeb3CareerDryRun(
       const postedMs = epoch ?? dateParsed;
       return postedMs === null || Number.isNaN(postedMs) || postedMs >= cutoff;
     });
+    const relevant = fresh.filter((j) => passesAvalancheFilter(j, allowList).matched);
     return {
       source: 'external',
       queriesRun: queries,
       fetched: all.length,
       uniqueIds: byId.size,
       afterAgeFilter: fresh.length,
-      sample: fresh.slice(0, 3),
+      afterAvalancheFilter: relevant.length,
+      sample: relevant.slice(0, 3),
       error: null,
     };
   } catch (err) {
@@ -128,14 +177,13 @@ export async function fetchWeb3CareerDryRun(
       fetched: 0,
       uniqueIds: 0,
       afterAgeFilter: 0,
+      afterAvalancheFilter: 0,
       sample: [],
       error: err instanceof Error ? err.message : 'fetch failed',
     };
   }
 }
 
-// Idempotent on (source='external', external_id). De-duplicates across the
-// multi-tag fan-out: the same job may appear under both 'solidity' and 'defi'.
 export async function ingestWeb3Career(
   opts: IngestOptions = {},
 ): Promise<IngestResult> {
@@ -147,10 +195,12 @@ export async function ingestWeb3Career(
       updated: 0,
       skipped: 0,
       queriesRun: 0,
+      candidatesAfterFilter: 0,
       error: 'WEB3_CAREER_API_KEY not configured',
     };
   }
 
+  const allowList = await loadAvalancheCompanyAllowList();
   let queries = 0;
   const byId = new Map<string, Web3CareerJob>();
   try {
@@ -169,17 +219,25 @@ export async function ingestWeb3Career(
       updated: 0,
       skipped: 0,
       queriesRun: queries,
+      candidatesAfterFilter: 0,
       error: err instanceof Error ? err.message : 'fetch failed',
     };
   }
+
+  // Apply Avalanche relevance filter once — saves DB calls for non-matching
+  // rows during the loop below.
+  const relevant = Array.from(byId.values()).filter(
+    (j) => passesAvalancheFilter(j, allowList).matched,
+  );
 
   if (opts.dryRun) {
     return {
       source: 'external',
       inserted: 0,
       updated: 0,
-      skipped: byId.size,
+      skipped: relevant.length,
       queriesRun: queries,
+      candidatesAfterFilter: relevant.length,
       error: null,
     };
   }
@@ -188,10 +246,9 @@ export async function ingestWeb3Career(
   let updated = 0;
   let skipped = 0;
   const now = new Date();
+  const ageCutoff = Date.now() - MAX_AGE_MS;
 
-  const ageCutoff = new Date(Date.now() - MAX_AGE_MS);
-
-  for (const j of byId.values()) {
+  for (const j of relevant) {
     const externalId = j.id?.toString();
     if (!externalId || !j.title || !j.apply_url) {
       skipped += 1;
@@ -201,7 +258,7 @@ export async function ingestWeb3Career(
     const epoch = typeof j.date_epoch === 'number' ? j.date_epoch * 1000 : null;
     const dateParsed = j.date ? new Date(j.date).getTime() : null;
     const postedMs = epoch ?? dateParsed;
-    if (postedMs !== null && !Number.isNaN(postedMs) && postedMs < ageCutoff.getTime()) {
+    if (postedMs !== null && !Number.isNaN(postedMs) && postedMs < ageCutoff) {
       skipped += 1;
       continue;
     }
@@ -220,8 +277,6 @@ export async function ingestWeb3Career(
       continue;
     }
 
-    // Prefer the split city/country fields when available — they're cleaner
-    // than the joined location string which often has leading whitespace.
     const locationDisplay =
       [j.city?.trim(), j.country?.trim()].filter(Boolean).join(', ') ||
       j.location?.trim() ||
@@ -237,7 +292,6 @@ export async function ingestWeb3Career(
       data: {
         source: 'external',
         external_id: externalId,
-        // web3.career returns company as a bare string — no logo/website.
         company_name: j.company ?? null,
         company_logo: null,
         company_website: null,
@@ -252,7 +306,6 @@ export async function ingestWeb3Career(
         employment_type: null,
         seniority: null,
         tags: (j.tags ?? []).slice(0, 10),
-        // ToS: use apply_url verbatim; do NOT add nofollow on the rendered link.
         apply_url: cleanApplyUrl(j.apply_url),
         source_url: null,
         posted_at: postedAt && !Number.isNaN(postedAt.getTime()) ? postedAt : null,
@@ -269,6 +322,7 @@ export async function ingestWeb3Career(
     updated,
     skipped,
     queriesRun: queries,
+    candidatesAfterFilter: relevant.length,
     error: null,
   };
 }

@@ -9,13 +9,14 @@ export interface DigestPayload {
   reviewUrl: string;
 }
 
-// Posts a Block Kit message to the Hermes-managed Slack webhook. Returns null
-// on success, an error string on failure. Webhook URL comes from
-// HERMES_CAREERS_DIGEST_WEBHOOK so the same job can target staging vs prod by
-// swapping the env var.
+// Posts a Block Kit payload to a generic webhook URL. Returns null on
+// success, an error string on failure. The receiver just needs to accept
+// a Slack-shaped JSON POST — Slack, Discord (via Slack-compat adapter),
+// Ditto, or any custom internal endpoint all work. Env var:
+// SIGNAL_DIGEST_WEBHOOK. Same name for staging/prod; only the URL differs.
 export async function postSlackDigest(payload: DigestPayload): Promise<string | null> {
-  const webhook = process.env.HERMES_CAREERS_DIGEST_WEBHOOK?.trim();
-  if (!webhook) return 'HERMES_CAREERS_DIGEST_WEBHOOK not configured';
+  const webhook = process.env.SIGNAL_DIGEST_WEBHOOK?.trim();
+  if (!webhook) return 'SIGNAL_DIGEST_WEBHOOK not configured';
 
   const totalPending =
     payload.projectsPending + payload.externalListingsPending + payload.getroListingsPending;

@@ -18,19 +18,21 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const [getroResult, web3careerResult, projectsPending, externalPending, getroPending] =
-    await Promise.all([
-      ingestGetro(),
-      ingestWeb3Career(),
-      prisma.project.count({
-        where: {
-          careers_approved: false,
-          jobListings: { some: { source: 'community', is_active: false } },
-        },
-      }),
-      prisma.jobListing.count({ where: { source: 'external', is_active: false } }),
-      prisma.jobListing.count({ where: { source: 'getro', is_active: false } }),
-    ]);
+  // Sequence matters: ingestWeb3Career reads the distinct Getro company
+  // names to build its Avalanche allow-list, so Getro must finish first.
+  const getroResult = await ingestGetro();
+  const web3careerResult = await ingestWeb3Career();
+
+  const [projectsPending, externalPending, getroPending] = await Promise.all([
+    prisma.project.count({
+      where: {
+        careers_approved: false,
+        jobListings: { some: { source: 'community', is_active: false } },
+      },
+    }),
+    prisma.jobListing.count({ where: { source: 'external', is_active: false } }),
+    prisma.jobListing.count({ where: { source: 'getro', is_active: false } }),
+  ]);
 
   const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://build.avax.network'}/admin/ecosystem-careers`;
   const slackError = await postSlackDigest({

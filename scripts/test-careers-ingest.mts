@@ -110,7 +110,7 @@ function mapW3C(j: Record<string, unknown>) {
   } else if (WRITE) {
     const r = await ingestWeb3Career();
     console.log('  inserted:', r.inserted, '· updated:', r.updated, '· skipped:', r.skipped);
-    console.log('  queriesRun:', r.queriesRun);
+    console.log('  queriesRun:', r.queriesRun, '· candidatesAfterFilter:', r.candidatesAfterFilter);
     if (r.error) console.log('  ERROR:', r.error);
   } else {
     const r = await fetchWeb3CareerDryRun();
@@ -119,10 +119,11 @@ function mapW3C(j: Record<string, unknown>) {
       '· total returned:', r.fetched,
       '· unique ids:', r.uniqueIds,
       '· after age filter:', r.afterAgeFilter,
+      '· passes Avalanche filter:', r.afterAvalancheFilter,
     );
     if (r.error) console.log('  ERROR:', r.error);
     if (r.sample[0]) {
-      console.log('  First row mapped to JobListing:');
+      console.log('  First Avalanche-relevant row mapped to JobListing:');
       console.log('  ' + JSON.stringify(mapW3C(r.sample[0] as Record<string, unknown>), null, 2).split('\n').join('\n  '));
     }
   }
