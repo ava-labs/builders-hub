@@ -36,8 +36,7 @@ const EXPORT_FEE_BUFFER_NAVAX = 1_000_000;
 // drift, so we floor in the integer domain and divide back only once.
 function avaxToSafeNAvaxNumber(avax: number): number {
   if (!Number.isFinite(avax) || avax <= 0) return 0;
-  const nAvax = Math.floor(avax * 1e9);
-  return nAvax > 0 ? nAvax / 1e9 : 0;
+  return Math.floor(avax * 1e9);
 }
 
 const metadata: ConsoleToolMetadata = {
