@@ -1260,11 +1260,10 @@ const HackathonsEdit = () => {
     latest.start_date = toIso8601(latest.start_date);
     latest.end_date = toIso8601(latest.end_date);
     latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
-    const { icon, ...latestWithoutIcon } = latest;
     return {
       ...formDataMain,
       content,
-      ...latestWithoutIcon,
+      ...latest,
       cohosts: cohostsEmails,
       custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
