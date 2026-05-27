@@ -412,7 +412,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
           {track.description && (
             <div className="mb-3">
               <div className="text-muted-foreground text-sm mb-2">HTML Preview:</div>
-              <div className="p-3 bg-secondary border border-input rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-20 overflow-y-auto">
+              <div className="p-3 bg-secondary border border-input rounded-lg text-green-700 dark:text-green-400 text-xs font-mono whitespace-pre-wrap max-h-20 overflow-y-auto">
                 {track.description}
               </div>
             </div>
@@ -1987,8 +1987,8 @@ const HackathonsEdit = () => {
         <>
           {/* Cohosts Section - Always Visible */}
           <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-2 text-blue-300">{t[language].cohostsTitle}</h2>
-            <p className="text-sm text-blue-200 mb-4">
+            <h2 className="text-xl font-semibold mb-2 text-blue-700 dark:text-blue-300">{t[language].cohostsTitle}</h2>
+            <p className="text-sm text-blue-700/80 dark:text-blue-200 mb-4">
               {t[language].cohostsDescription}
             </p>
             <EmailListInput
@@ -2069,8 +2069,8 @@ const HackathonsEdit = () => {
               {!collapsed.main && (
                 <>
                   <div className="mb-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-green-300 mb-2">Hackathon Details</h3>
-                    <p className="text-sm text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
+                    <h3 className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">Hackathon Details</h3>
+                    <p className="text-sm text-green-700/80 dark:text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
                   </div>
                   
                   <div className="mb-2 text-muted-foreground text-sm">Hackathon Title</div>
@@ -2165,8 +2165,8 @@ const HackathonsEdit = () => {
               {!collapsed.images && (
                 <>
                   <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-blue-300 mb-2">Hackathon Images & Branding</h3>
-                    <p className="text-sm text-blue-200">Upload your hackathon banner and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
+                    <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-300 mb-2">Hackathon Images & Branding</h3>
+                    <p className="text-sm text-blue-700/80 dark:text-blue-200">Upload your hackathon banner and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
                   </div>
                   
                   {/* Banner Image */}
@@ -2339,8 +2339,8 @@ const HackathonsEdit = () => {
                   {formDataLatest.event === 'hackathon' && (
                     <>
                       <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
-                        <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
-                        <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
+                        <h3 className="text-lg font-semibold text-orange-700 dark:text-orange-300 mb-2">Participants & Prize Information</h3>
+                        <p className="text-sm text-orange-700/80 dark:text-orange-200">Now let's add details about participants and the prize pool.</p>
                       </div>
                       <div className="mb-2 text-muted-foreground text-sm">Expected Number of Participants</div>
                       <Input
@@ -2427,8 +2427,8 @@ const HackathonsEdit = () => {
               {!collapsed.trackText && (
                 <>
                   <div className="mb-4 p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-purple-300 mb-2">Track Description</h3>
-                    <p className="text-sm text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
+                    <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Track Description</h3>
+                    <p className="text-sm text-purple-700/80 dark:text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
                   </div>
                   
                   <div className="mb-2 text-muted-foreground text-sm">Schedule Text:</div>
@@ -2622,7 +2622,7 @@ const HackathonsEdit = () => {
                     >
                       Load Current
                     </button>
-                    <div className="text-green-400 text-sm flex items-center">
+                    <div className="text-green-700 dark:text-green-400 text-sm flex items-center">
                       ✓ Auto-converting to markdown as you type
                     </div>
                   </div>
@@ -2630,7 +2630,7 @@ const HackathonsEdit = () => {
                   {formDataContent.tracks_text && (
                     <div className="mb-4">
                       <div className="text-muted-foreground text-sm mb-2">Markdown Preview:</div>
-                      <div className="p-3 bg-secondary border border-input rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                      <div className="p-3 bg-secondary border border-input rounded-lg text-green-700 dark:text-green-400 text-xs font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
                         {formDataContent.tracks_text}
                       </div>
                     </div>
@@ -3151,9 +3151,9 @@ const HackathonsEdit = () => {
         </>
       )}
       {showForm && !hasEditPermission && (
-        <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-900/10 text-red-100 max-w-2xl mx-auto text-center">
+        <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-900/10 text-red-700 dark:text-red-100 max-w-2xl mx-auto text-center">
           <h2 className="text-xl font-semibold mb-2">You don&apos;t have permission to edit this hackathon</h2>
-          <p className="text-sm text-red-200">
+          <p className="text-sm text-red-700/80 dark:text-red-200">
             Only the creator, authorized roles, or configured cohosts can edit this hackathon. Please contact the hackathon owner if you believe this is a mistake.
           </p>
         </div>
