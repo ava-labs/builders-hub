@@ -168,7 +168,7 @@ model Project {
   small_cover_url     String?             @default("")
   tags                String[]            @default([])
   is_winner                Boolean?            @default(false)
-  is_blacklisted           Boolean             @default(false)
+  is_rejected              Boolean             @default(false)
   submission_email_sent    Boolean             @default(false)
   categories          String[]            @default([])
   origin              String              @default("unknown")

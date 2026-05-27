@@ -57,7 +57,7 @@ export default async function HackathonEvaluatePage({
       website: true,
       socials: true,
       is_winner: true,
-      is_blacklisted: true,
+      is_rejected: true,
       created_at: true,
       members: {
         select: {
@@ -91,11 +91,10 @@ export default async function HackathonEvaluatePage({
   const viewerId = session!.user!.id;
   const isDevrel = canManageHackathonJudges(session);
 
-  // Judges must not receive blacklisted projects at all — filter server-side
-  // so the data never reaches the client for non-devrel users.
+  // Rejected projects must never reach the client for non-devrel users — filter server-side.
   const visibleProjects = isDevrel
     ? projects
-    : projects.filter((p) => !p.is_blacklisted);
+    : projects.filter((p) => !p.is_rejected);
 
   const projectsForViewer = stripEvaluationsForViewer(
     visibleProjects,

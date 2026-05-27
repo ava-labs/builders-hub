@@ -1,6 +1,9 @@
 /**
- * Calculates submission completeness for a project saved in the database.
- * Mirrors the required-field logic in GeneralSecure.tsx / FormSchema.
+ * Single source of truth for required submission fields.
+ * Imported by:
+ *   - isProjectComplete()      → server/services/submitProject.ts (email gate)
+ *   - calcSubmissionProgress() → here (event-page status)
+ *   - getAllFields()            → components/…/GeneralSecure.tsx (form progress bar)
  */
 
 type RawProject = {
@@ -14,7 +17,7 @@ type RawProject = {
   tracks: string[];
 };
 
-const REQUIRED_FIELDS: Array<keyof RawProject> = [
+export const REQUIRED_SUBMISSION_FIELDS: Array<keyof RawProject> = [
   "project_name",
   "short_description",
   "full_description",
@@ -24,15 +27,15 @@ const REQUIRED_FIELDS: Array<keyof RawProject> = [
   "tracks",
 ];
 
-function fieldComplete(value: unknown): boolean {
+export function fieldComplete(value: unknown): boolean {
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === "string") return value.trim().length > 0;
   return false;
 }
 
 export function calcSubmissionProgress(project: RawProject): number {
-  const filled = REQUIRED_FIELDS.filter((f) => fieldComplete(project[f])).length;
-  return Math.round((filled / REQUIRED_FIELDS.length) * 100);
+  const filled = REQUIRED_SUBMISSION_FIELDS.filter((f) => fieldComplete(project[f])).length;
+  return Math.round((filled / REQUIRED_SUBMISSION_FIELDS.length) * 100);
 }
 
 export type SubmissionStatus = "none" | "draft" | "complete";

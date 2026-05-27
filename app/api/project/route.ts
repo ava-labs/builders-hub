@@ -2,10 +2,20 @@ import { Session } from 'next-auth';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 import { GetProjectByHackathonAndUser } from '@/server/services/projects';
-import { createProject } from '@/server/services/submitProject';
+import { createProject, ProjectCreateResult } from '@/server/services/submitProject';
 import { NextResponse } from 'next/server';
 
-async function autoRegisterIfNeeded(session: Session, hackathonId: string) {
+interface RegistrationData {
+  terms_event_conditions: boolean;
+  city?: string;
+  telegram_account?: string;
+}
+
+async function autoRegisterIfNeeded(
+  session: Session,
+  hackathonId: string,
+  regData?: RegistrationData,
+) {
   if (!session.user?.email || !hackathonId) return;
   const existing = await prisma.registerForm.findUnique({
     where: { hackathon_id_email: { hackathon_id: hackathonId, email: session.user.email } },
@@ -13,10 +23,34 @@ async function autoRegisterIfNeeded(session: Session, hackathonId: string) {
   });
   if (existing) return;
 
-  const user = await prisma.user.findUnique({
+  let user = await prisma.user.findUnique({
     where: { email: session.user.email },
     select: { name: true, telegram_account: true, notifications: true, country: true },
   });
+
+  // OTP pending user: no DB record exists yet — create a minimal one so the
+  // RegisterForm connect doesn't fail.
+  if (!user) {
+    try {
+      await prisma.user.create({
+        data: { email: session.user.email, name: session.user.name ?? '' },
+      });
+      user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { name: true, telegram_account: true, notifications: true, country: true },
+      });
+    } catch (err: any) {
+      // P2002 = unique constraint: another request created the user concurrently — fine.
+      if (!err.code?.includes('P2002')) {
+        console.error('[AutoRegister] Failed to create pending OTP user:', err);
+        return;
+      }
+      user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { name: true, telegram_account: true, notifications: true, country: true },
+      });
+    }
+  }
 
   try {
     await prisma.registerForm.create({
@@ -24,9 +58,9 @@ async function autoRegisterIfNeeded(session: Session, hackathonId: string) {
         hackathon: { connect: { id: hackathonId } },
         user: { connect: { email: session.user.email } },
         name: user?.name ?? session.user.name ?? '',
-        city: user?.country ?? '',
-        telegram_account: user?.telegram_account ?? '',
-        terms_event_conditions: true,
+        city: regData?.city ?? user?.country ?? '',
+        telegram_account: regData?.telegram_account ?? user?.telegram_account ?? '',
+        terms_event_conditions: regData?.terms_event_conditions ?? false,
         prohibited_items: false,
         newsletter_subscription: user?.notifications ?? false,
         hackathon_participation: '',
@@ -48,41 +82,29 @@ export const POST = withAuth(async (request, _context: unknown, session: Session
   try{
     const body = await request.json();
 
-    // Auto-register the submitter if they haven't registered for the hackathon yet
+    // Auto-register the submitter if they haven't registered for the hackathon yet.
+    // registrationData carries the terms acceptance and any fields collected in the modal.
     if (body.hackaton_id) {
-      await autoRegisterIfNeeded(session, body.hackaton_id);
+      await autoRegisterIfNeeded(session, body.hackaton_id, body.registrationData);
     }
 
-    const newProject = await createProject({ ...body, submittedBy: session.user.email });
+    // OTP pending users have id = "pending_${email}" in their session — no matching
+    // User row. Resolve the real DB id by email (the row was just created above if needed).
+    let resolvedUserId: string = session.user.id;
+    if (!resolvedUserId || resolvedUserId.startsWith('pending_')) {
+      const realUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
+      if (realUser) {
+        resolvedUserId = realUser.id;
+      }
+    }
 
-    // Fetch members with user info for the success screen
-    const projectWithMembers = await prisma.project.findUnique({
-      where: { id: newProject.id },
-      select: {
-        id: true,
-        project_name: true,
-        members: {
-          select: {
-            id: true,
-            role: true,
-            status: true,
-            email: true,
-            user: { select: { id: true, name: true, email: true } },
-          },
-        },
-      },
-    });
-
-    const members = (projectWithMembers?.members ?? []).map((m) => ({
-      id: m.id,
-      role: m.role,
-      status: m.status,
-      name: m.user?.name ?? null,
-      email: m.user?.email ?? m.email ?? null,
-    }));
+    const newProject: ProjectCreateResult = await createProject({ ...body, submittedBy: session.user.email, user_id: resolvedUserId });
 
     return NextResponse.json(
-      { message: 'project created', project: { ...newProject, members } },
+      { message: 'project created', project: newProject },
       { status: 201 }
     );
   }

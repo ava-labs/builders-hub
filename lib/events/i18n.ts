@@ -164,6 +164,14 @@ const dict: Record<EventsLang, Dict> = {
     "submission.step1.otherCategory.placeholder": "Enter your custom category",
     "submission.step1.deployedAddresses.label": "Deployed Addresses",
     "submission.step1.deployedAddresses.addButton": "+ new address",
+    "submission.step1.website.label": "Website",
+    "submission.step1.website.tagPlaceholder": "Tag",
+    "submission.step1.website.urlPlaceholder": "https://example.com",
+    "submission.step1.website.addButton": "+ new website",
+    "submission.step1.socials.label": "Socials",
+    "submission.step1.socials.tagPlaceholder": "Tag",
+    "submission.step1.socials.urlPlaceholder": "https://example.com",
+    "submission.step1.socials.addButton": "+ new social",
     "submission.step1.team.title": "Team & Collaboration",
     "submission.step1.consentSharing.label":
       "I consent to share this project's information with Avalanche Team1 so they can reach out to offer local support.",
@@ -436,6 +444,10 @@ const dict: Record<EventsLang, Dict> = {
     "submission.success.backToEvent": "Back to event",
     "submission.success.editProject": "Edit submission",
 
+    // Pending user gate (terms not yet accepted)
+    "submission.pendingUser.message": "Complete your account setup to submit a project.",
+    "submission.pendingUser.cta": "Complete setup",
+
     // Form field indicators
     "field.required": "Required",
     "field.optional": "Optional",
@@ -649,6 +661,14 @@ const dict: Record<EventsLang, Dict> = {
       "Ingresa tu categoría personalizada",
     "submission.step1.deployedAddresses.label": "Direcciones desplegadas",
     "submission.step1.deployedAddresses.addButton": "+ nueva dirección",
+    "submission.step1.website.label": "Sitio web",
+    "submission.step1.website.tagPlaceholder": "Etiqueta",
+    "submission.step1.website.urlPlaceholder": "https://ejemplo.com",
+    "submission.step1.website.addButton": "+ nuevo sitio web",
+    "submission.step1.socials.label": "Redes sociales",
+    "submission.step1.socials.tagPlaceholder": "Etiqueta",
+    "submission.step1.socials.urlPlaceholder": "https://ejemplo.com",
+    "submission.step1.socials.addButton": "+ nueva red social",
     "submission.step1.team.title": "Equipo y colaboración",
     "submission.step1.consentSharing.label":
       "Acepto compartir la información de este proyecto con Avalanche Team1 para que puedan contactarme y ofrecer apoyo local.",
@@ -920,6 +940,10 @@ const dict: Record<EventsLang, Dict> = {
     "submission.success.goToProfile": "Ver mis proyectos",
     "submission.success.backToEvent": "Volver al evento",
     "submission.success.editProject": "Editar envío",
+
+    // Pending user gate (terms not yet accepted)
+    "submission.pendingUser.message": "Completa la configuración de tu cuenta para enviar un proyecto.",
+    "submission.pendingUser.cta": "Completar configuración",
 
     // Form field indicators
     "field.required": "Obligatorio",

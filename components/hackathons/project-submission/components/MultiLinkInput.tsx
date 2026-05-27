@@ -117,7 +117,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
             <FormLabelWithCheck
               label={label}
               checked={!!field.value && (field.value as string[]).length > 0}
-              required={required}
+              required={required ?? false}
               lang={lang}
             />
           )}

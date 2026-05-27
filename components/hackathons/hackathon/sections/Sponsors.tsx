@@ -64,9 +64,9 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
                   <Image
                     src={partner.logo}
                     alt={partner.name}
-                  className="object-contain filter grayscale invert dark:invert-0"
-                  height={120}
-                  width={200}
+                    className="object-contain filter grayscale invert dark:invert-0"
+                    height={120}
+                    width={200}
                   />
                 </CarouselItem>
               ))}

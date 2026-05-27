@@ -77,7 +77,7 @@ type Project = {
   website: unknown;
   socials: unknown;
   is_winner: boolean | null;
-  is_blacklisted: boolean;
+  is_rejected: boolean;
   created_at: string;
   members: Member[];
   evaluations: Evaluation[];
@@ -230,7 +230,7 @@ export function HackathonEvaluateDashboard({
   projects: initialProjects,
 }: Props) {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [blacklistSaving, setBlacklistSaving] = useState<string | null>(null);
+  const [rejectSaving, setBlacklistSaving] = useState<string | null>(null);
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [winnerSaving, setWinnerSaving] = useState<string | null>(null);
@@ -311,10 +311,10 @@ export function HackathonEvaluateDashboard({
         return (av - bv) * dir;
       });
     })();
-    // Blacklisted projects always sink to the bottom
+    // Rejected projects always sink to the bottom
     return [...base].sort((a, b) => {
-      if (a.is_blacklisted === b.is_blacklisted) return 0;
-      return a.is_blacklisted ? 1 : -1;
+      if (a.is_rejected === b.is_rejected) return 0;
+      return a.is_rejected ? 1 : -1;
     });
   }, [filtered, sort, viewerId]);
 
@@ -340,17 +340,17 @@ export function HackathonEvaluateDashboard({
     }
   }
 
-  async function setIsBlacklisted(projectId: string, next: boolean) {
+  async function setIsRejected(projectId: string, next: boolean) {
     setBlacklistSaving(projectId);
     const previous = projects;
     setProjects((prev) =>
-      prev.map((p) => (p.id === projectId ? { ...p, is_blacklisted: next } : p)),
+      prev.map((p) => (p.id === projectId ? { ...p, is_rejected: next } : p)),
     );
     try {
-      const res = await fetch(`/api/projects/${projectId}/blacklist`, {
+      const res = await fetch(`/api/projects/${projectId}/reject`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ is_blacklisted: next }),
+        body: JSON.stringify({ is_rejected: next }),
       });
       if (!res.ok) setProjects(previous);
     } catch {
@@ -576,19 +576,19 @@ export function HackathonEvaluateDashboard({
               const avg = averageScore(p.evaluations);
               const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
               const evaluatedByMe = Boolean(mine);
-              const isBlacklisted = p.is_blacklisted;
+              const isRejected = p.is_rejected;
               return (
                 <TableRow
                   key={p.id}
                   className={
                     "cursor-pointer relative " +
-                    (isBlacklisted
+                    (isRejected
                       ? "opacity-40 hover:opacity-60 transition-opacity"
                       : evaluatedByMe
                         ? "bg-emerald-50/40 dark:bg-emerald-500/5"
                         : "")
                   }
-                  onClick={() => !isBlacklisted && setOpenProjectId(p.id)}
+                  onClick={() => !isRejected && setOpenProjectId(p.id)}
                 >
                   <TableCell className="overflow-hidden">
                     <div className="flex items-center gap-3 min-w-0">
@@ -601,19 +601,19 @@ export function HackathonEvaluateDashboard({
                         <div className="flex items-center gap-2 min-w-0">
                           <div className={
                             "truncate text-sm font-medium " +
-                            (isBlacklisted
+                            (isRejected
                               ? "line-through text-zinc-400 dark:text-zinc-600"
                               : "text-zinc-900 dark:text-zinc-100")
                           }>
                             {p.project_name}
                           </div>
-                          {isBlacklisted && (
+                          {isRejected && (
                             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-500">
                               <EyeOff className="size-3" />
                               Hidden
                             </span>
                           )}
-                          {!isBlacklisted && evaluatedByMe && (
+                          {!isRejected && evaluatedByMe && (
                             <span
                               title="You have evaluated this project"
                               className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
@@ -655,10 +655,10 @@ export function HackathonEvaluateDashboard({
                   </TableCell>
                   {canPickWinners && (
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <BlacklistControl
-                        isBlacklisted={isBlacklisted}
-                        isSaving={blacklistSaving === p.id}
-                        onToggle={(next) => setIsBlacklisted(p.id, next)}
+                      <RejectControl
+                        isRejected={isRejected}
+                        isSaving={rejectSaving === p.id}
+                        onToggle={(next) => setIsRejected(p.id, next)}
                       />
                     </TableCell>
                   )}
@@ -713,14 +713,14 @@ export function HackathonEvaluateDashboard({
   );
 }
 
-type BlacklistControlProps = {
-  isBlacklisted: boolean;
+type RejectControlProps = {
+  isRejected: boolean;
   isSaving: boolean;
   onToggle: (next: boolean) => void;
 };
 
-function BlacklistControl({ isBlacklisted, isSaving, onToggle }: BlacklistControlProps) {
-  if (isBlacklisted) {
+function RejectControl({ isRejected, isSaving, onToggle }: RejectControlProps) {
+  if (isRejected) {
     return (
       <TooltipProvider delayDuration={150}>
         <Tooltip>

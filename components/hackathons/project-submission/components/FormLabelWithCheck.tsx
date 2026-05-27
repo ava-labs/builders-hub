@@ -10,8 +10,8 @@ import { EventsLang, t } from '@/lib/events/i18n';
 interface FormLabelWithCheckProps {
   label: string;
   checked?: boolean;
-  /** When true shows a red asterisk. When false/undefined shows an "Optional" badge. */
-  required?: boolean;
+  /** When true shows a red asterisk. When false shows an "Optional" badge. */
+  required: boolean;
   lang?: EventsLang;
 }
 

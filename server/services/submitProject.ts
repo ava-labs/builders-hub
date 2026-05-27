@@ -4,6 +4,7 @@ import {
   validateEntity,
   Validation,
 } from "./base";
+import { REQUIRED_SUBMISSION_FIELDS, fieldComplete } from "@/lib/hackathons/submission-progress";
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
@@ -13,16 +14,8 @@ import { sendSubmissionConfirmationMail } from "./registerForms";
 
 /** Returns true when all required submission fields are filled in. */
 export function isProjectComplete(p: Partial<Project>): boolean {
-  const hasText = (v: unknown) => typeof v === "string" && v.trim().length >= 1;
-  const hasItems = (v: unknown) => Array.isArray(v) ? v.length > 0 : hasText(v);
-  return (
-    hasText(p.project_name) &&
-    hasText(p.short_description) &&
-    hasText(p.full_description) &&
-    hasText(p.tech_stack) &&
-    hasItems(p.github_repository) &&
-    hasItems(p.demo_link) &&
-    (Array.isArray(p.tracks) ? p.tracks.length > 0 : hasText(p.tracks))
+  return REQUIRED_SUBMISSION_FIELDS.every((field) =>
+    fieldComplete(p[field as keyof typeof p])
   );
 }
 
@@ -90,9 +83,33 @@ function normalizeDeployedAddresses(
     }));
 }
 
+type RawMemberRow = {
+  id: string;
+  role: string;
+  status: string;
+  email: string;
+  user: { id: string; name: string | null; email: string } | null;
+};
+
+export type ProjectCreateResult = Omit<Project, "members"> & {
+  members: Array<{ id: string; role: string; status: string; name: string | null; email: string | null }>;
+};
+
+const memberInclude = {
+  members: {
+    select: {
+      id: true,
+      role: true,
+      status: true,
+      email: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  },
+} as const;
+
 export async function createProject(
   projectData: Partial<Project>
-): Promise<Project> {
+): Promise<ProjectCreateResult> {
   const isDraft = projectData.isDraft ?? false;
 
   // Atomic transaction to prevent race conditions and duplication
@@ -196,6 +213,7 @@ export async function createProject(
             ? { consent_sharing: projectData.consent_sharing }
             : {}),
         },
+        include: memberInclude,
       });
 
       projectData.id = updatedProject.id;
@@ -254,6 +272,7 @@ export async function createProject(
       
       const newProjectData = await tx.project.create({
         data: projectDataToCreate,
+        include: memberInclude,
       });
 
       projectData.id = newProjectData.id;
@@ -274,21 +293,14 @@ export async function createProject(
     isProjectComplete(projectData) &&
     savedProject.hackaton_id &&
     projectData.submittedBy &&
-    !(savedProject as any).submission_email_sent
+    !savedProject.submission_email_sent
   ) {
     try {
-      // Mark email as sent first so duplicate submits don't resend.
-      // This update will silently fail if the migration hasn't run yet (field unknown),
-      // but the catch block ensures the email still sends on first submit.
-      try {
-        await prisma.project.update({
-          where: { id: savedProject.id },
-          data: { submission_email_sent: true } as any,
-          select: { id: true },
-        });
-      } catch {
-        // Field not yet in DB — migration pending, continue anyway
-      }
+      await prisma.project.update({
+        where: { id: savedProject.id },
+        data: { submission_email_sent: true },
+        select: { id: true },
+      });
       await sendSubmissionConfirmationMail(
         projectData.submittedBy as string,
         savedProject.project_name,
@@ -299,7 +311,16 @@ export async function createProject(
     }
   }
 
-  return savedProject;
+  const rawMembers = (savedProject as unknown as { members?: RawMemberRow[] }).members ?? [];
+  const members = rawMembers.map((m) => ({
+    id: m.id,
+    role: m.role,
+    status: m.status,
+    name: m.user?.name ?? null,
+    email: m.user?.email ?? m.email ?? null,
+  }));
+
+  return { ...(savedProject as unknown as Project), members } as ProjectCreateResult;
 }
 
 function normalizeUser(user: Partial<User>): User {
@@ -378,7 +399,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
         email: user?.email ?? member.email ?? "",
         telegram_account: user?.telegram_account ?? null,
         image: user?.image ?? null,
-        custom_attributes: [],
+        custom_attributes: user?.custom_attributes ?? [],
         authentication_mode: user?.authentication_mode ?? "",
         role: member.role,
         status: member.status,

@@ -265,7 +265,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Website'
+                label={t(lang, "submission.step1.website.label")}
                 checked={!!field.value && field.value.length > 0}
                 required={false}
                 lang={lang}
@@ -277,7 +277,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                       <div key={index} className='flex gap-3 items-start'>
                         <div className='w-32'>
                           <Input
-                            placeholder='Tag'
+                            placeholder={t(lang, "submission.step1.website.tagPlaceholder")}
                             value={item.key || ''}
                             onChange={(e) => {
                               const newItems = [...(field.value || [])];
@@ -293,7 +293,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                         </div>
                         <div className='flex-1'>
                           <Input
-                            placeholder='https://example.com'
+                            placeholder={t(lang, "submission.step1.website.urlPlaceholder")}
                             value={item.value || ''}
                             onChange={(e) => {
                               const newItems = [...(field.value || [])];
@@ -336,7 +336,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   }}
                   className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
                 >
-                  + new website
+                  {t(lang, "submission.step1.website.addButton")}
                 </Button>
               </div>
               <FormMessage />
@@ -350,7 +350,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Socials'
+                label={t(lang, "submission.step1.socials.label")}
                 checked={!!field.value && field.value.length > 0}
                 required={false}
                 lang={lang}
@@ -362,7 +362,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                       <div key={index} className='flex gap-3 items-start'>
                         <div className='w-32'>
                           <Input
-                            placeholder='Tag'
+                            placeholder={t(lang, "submission.step1.socials.tagPlaceholder")}
                             value={item.key || ''}
                             onChange={(e) => {
                               const newItems = [...(field.value || [])];
@@ -378,7 +378,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                         </div>
                         <div className='flex-1'>
                           <Input
-                            placeholder='https://example.com'
+                            placeholder={t(lang, "submission.step1.socials.urlPlaceholder")}
                             value={item.value || ''}
                             onChange={(e) => {
                               const newItems = [...(field.value || [])];
@@ -421,7 +421,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   }}
                   className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
                 >
-                  + new social
+                  {t(lang, "submission.step1.socials.addButton")}
                 </Button>
               </div>
               <FormMessage />

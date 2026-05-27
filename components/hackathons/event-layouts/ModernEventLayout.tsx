@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
 import { HostNavButtons } from "@/components/evaluate/HostNavButtons";
@@ -154,7 +155,7 @@ export default function ModernEventLayout({
         />
         {isHackathon && <HostNavButtons hackathonId={id} />}
         {isHackathon && isAuthenticated && submissionStatus !== "none" && (
-          <a
+          <Link
             href={
               submissionProjectId
                 ? `/events/project-submission?event=${id}&project=${submissionProjectId}`
@@ -174,7 +175,7 @@ export default function ModernEventLayout({
             {submissionStatus === "complete"
               ? t(lang, "section.submission.editProject")
               : `${submissionProgress}% · ${t(lang, "section.submission.continueProject")}`}
-          </a>
+          </Link>
         )}
       </div>
       <div className="p-4 flex flex-col gap-24">

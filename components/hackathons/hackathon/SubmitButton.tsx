@@ -28,11 +28,10 @@ export default function SubmitButton({
   const { status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
 
-  const baseHref = customSubmissionLink
+  const href = customSubmissionLink
     ?? (projectId
       ? `/events/project-submission?event=${hackathonId}&project=${projectId}`
       : `/events/project-submission?event=${hackathonId}`);
-  const href = baseHref;
   const target = customSubmissionLink ? "_blank" : "_self";
 
   const handleClick = (e: React.MouseEvent) => {

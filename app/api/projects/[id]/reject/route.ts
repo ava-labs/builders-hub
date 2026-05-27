@@ -10,9 +10,9 @@ export const POST = withAuthRole<Params>(
     const { id: projectId } = await context.params;
 
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    if (typeof body.is_blacklisted !== "boolean") {
+    if (typeof body.is_rejected !== "boolean") {
       return NextResponse.json(
-        { error: "is_blacklisted must be a boolean" },
+        { error: "is_rejected must be a boolean" },
         { status: 400 },
       );
     }
@@ -27,8 +27,8 @@ export const POST = withAuthRole<Params>(
 
     const updated = await prisma.project.update({
       where: { id: projectId },
-      data: { is_blacklisted: body.is_blacklisted },
-      select: { id: true, is_blacklisted: true },
+      data: { is_rejected: body.is_rejected },
+      select: { id: true, is_rejected: true },
     });
 
     return NextResponse.json({ project: updated });
