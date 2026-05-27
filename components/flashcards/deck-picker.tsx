@@ -16,6 +16,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { useStudioStore } from '@/lib/flashcards/store';
@@ -298,7 +303,14 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
                         </button>
                         <div className="flex items-center gap-3 pr-3">
                           {courseSelectedCount > 0 && (
-                            <Badge variant="secondary">{courseSelectedCount} picked</Badge>
+                            <Badge
+                              variant="secondary"
+                              role="status"
+                              aria-live="polite"
+                              aria-label={`${courseSelectedCount} chapter${courseSelectedCount === 1 ? '' : 's'} selected in ${course.title}`}
+                            >
+                              {courseSelectedCount} picked
+                            </Badge>
                           )}
                           <div className="flex items-center gap-2">
                             <button
@@ -365,7 +377,11 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
       <aside className="lg:sticky lg:top-24 lg:self-start space-y-4 rounded-xl border bg-card p-5">
         <div>
           <h3 className="font-semibold">Selected sources</h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p
+            className="text-sm text-muted-foreground mt-1"
+            role="status"
+            aria-live="polite"
+          >
             {selected.size === 0
               ? 'Pick chapters from the left to build your deck.'
               : `${selected.size} chapter${selected.size === 1 ? '' : 's'} selected (max ${MAX_SELECTED}).`}
@@ -426,38 +442,56 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
             you return.
           </p>
         )}
-        <Button
-          onClick={handleGenerate}
-          disabled={isPending || selected.size === 0}
-          variant={
-            status !== 'authenticated' && selected.size > 0
-              ? 'outline'
-              : 'default'
-          }
-          aria-describedby={
-            status !== 'authenticated' && selected.size > 0
-              ? 'auth-required-hint'
-              : undefined
-          }
-          className="w-full"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : status === 'authenticated' ? (
-            <>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate deck
-            </>
-          ) : (
-            <>
-              <LogIn className="mr-2 h-4 w-4" />
-              Sign in to start
-            </>
-          )}
-        </Button>
+        {selected.size === 0 ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="block w-full">
+                <Button
+                  onClick={handleGenerate}
+                  disabled
+                  className="w-full"
+                  aria-describedby="pick-chapters-hint"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate deck
+                </Button>
+                <span id="pick-chapters-hint" className="sr-only">
+                  Pick at least one chapter to generate a deck.
+                </span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              Pick at least one chapter to generate.
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <Button
+            onClick={handleGenerate}
+            disabled={isPending}
+            variant={status !== 'authenticated' ? 'outline' : 'default'}
+            aria-describedby={
+              status !== 'authenticated' ? 'auth-required-hint' : undefined
+            }
+            className="w-full"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : status === 'authenticated' ? (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate deck
+              </>
+            ) : (
+              <>
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign in to start
+              </>
+            )}
+          </Button>
+        )}
       </aside>
     </div>
   );

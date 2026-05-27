@@ -138,13 +138,14 @@ export function MyDecksCard({ onCountChange }: Props) {
                       height: 32,
                       borderRadius: 6,
                       background:
-                        "linear-gradient(135deg,#e84142,#9c2c2d)",
+                        "linear-gradient(135deg, var(--pr-primary-main), var(--pr-accent-dark))",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       color: "#fff",
                       flexShrink: 0,
                     }}
+                    aria-hidden
                   >
                     <BookOpen size={16} />
                   </div>
@@ -165,7 +166,7 @@ export function MyDecksCard({ onCountChange }: Props) {
                     <div
                       style={{
                         fontSize: 12,
-                        color: "var(--pr-text-2)",
+                        color: "var(--pr-g-650)",
                         marginTop: 2,
                       }}
                     >
@@ -182,6 +183,7 @@ export function MyDecksCard({ onCountChange }: Props) {
                       gap: 4,
                       fontSize: 13,
                     }}
+                    aria-label={`Open deck ${deck.name}`}
                   >
                     Open
                   </Link>
@@ -211,7 +213,7 @@ export function MyDecksCard({ onCountChange }: Props) {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
-                  color: "var(--pr-text-2)",
+                  color: "var(--pr-g-650)",
                 }}
               >
                 Manage decks (rename, delete) →

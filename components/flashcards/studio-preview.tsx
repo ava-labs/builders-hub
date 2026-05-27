@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Download, AlertCircle, Loader2, Save, Check, BookOpen } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  ArrowLeft,
+  Download,
+  AlertCircle,
+  Library,
+  Loader2,
+  Save,
+  Check,
+  BookOpen,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStudioStore } from '@/lib/flashcards/store';
@@ -55,8 +65,15 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
 
   if (!hydrated) {
     return (
-      <div className="flex items-center justify-center py-24">
+      <div
+        className="flex flex-col items-center justify-center gap-3 py-24"
+        role="status"
+        aria-live="polite"
+      >
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          Preparing your flashcard studio…
+        </p>
       </div>
     );
   }
@@ -69,6 +86,23 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
       </div>
     );
   }
+
+  const onReject = (card: Flashcard) => {
+    rejectCard(card.id);
+    const previewLabel = card.front
+      .replace(/\[\[(.+?)\]\]/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80);
+    toast('Card rejected', {
+      description: previewLabel || undefined,
+      action: {
+        label: 'Undo',
+        onClick: () => acceptCard(card.id),
+      },
+      duration: 5000,
+    });
+  };
 
   const onRegenerate = async (card: Flashcard) => {
     startRegenerating(card.id);
@@ -205,6 +239,50 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
         </div>
       </header>
 
+      {savedDeckId && !showSaveForm && (
+        <div
+          className="flex flex-col gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-3">
+            <span
+              className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+              aria-hidden
+            >
+              <Check className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="font-medium text-emerald-800 dark:text-emerald-200">
+                Saved to your library
+              </p>
+              <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                Study now or return to this deck any time from your library.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            <Button
+              size="sm"
+              onClick={() =>
+                router.push(`/academy/flashcards/play/user/${savedDeckId}`)
+              }
+            >
+              <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+              Study now
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => router.push('/academy/flashcards/library')}
+            >
+              <Library className="mr-1.5 h-3.5 w-3.5" />
+              View library
+            </Button>
+          </div>
+        </div>
+      )}
+
       {deck.cards.length === 0 ? (
         <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
           The model returned no cards — try a different source mix.
@@ -218,7 +296,7 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
               isRejected={rejectedIds.includes(card.id)}
               isRegenerating={regeneratingIds.includes(card.id)}
               onAccept={() => acceptCard(card.id)}
-              onReject={() => rejectCard(card.id)}
+              onReject={() => onReject(card)}
               onRegenerate={() => onRegenerate(card)}
             />
           ))}

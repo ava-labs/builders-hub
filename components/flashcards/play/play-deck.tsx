@@ -24,6 +24,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -116,6 +126,17 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
+
+  // One-time onboarding: open the keyboard hints panel the first time a user
+  // lands on play mode so the 1/2/3 + Space shortcuts are discoverable.
+  // localStorage persists across sessions; clearing browser data resets it.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const KEY = 'flashcards.keyboard-hints-seen';
+    if (window.localStorage.getItem(KEY) === '1') return;
+    setShowKeyboardHints(true);
+    window.localStorage.setItem(KEY, '1');
+  }, []);
 
   const total = liveItems.length;
 
@@ -369,17 +390,38 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
 
   if (deckLoadState === 'not-found') {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-        <p className="text-lg font-semibold">Deck not found</p>
-        <p className="text-sm text-muted-foreground">
-          It may have been deleted, or this link is from a different browser.
-        </p>
-        <Link
-          href="/academy/flashcards"
-          className="text-sm text-red-600 hover:underline dark:text-red-400"
+      <div
+        className="mx-auto flex max-w-md flex-col items-center justify-center gap-4 rounded-xl border bg-card p-10 text-center"
+        role="alert"
+      >
+        <div
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground"
+          aria-hidden
         >
-          Back to Flashcard Studio
-        </Link>
+          <Layers className="h-6 w-6" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-lg font-semibold">Deck not found</p>
+          <p className="text-sm text-muted-foreground">
+            It may have been deleted, or this link came from a different
+            browser. Decks you save in the Studio are stored on the device
+            where you created them.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button asChild>
+            <Link href="/academy/flashcards/library">
+              <Layers className="mr-1.5 h-3.5 w-3.5" />
+              Browse decks
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/academy/flashcards">
+              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              Back to Studio
+            </Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -522,7 +564,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                   className={cn(
                     'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors',
                     tab === key
-                      ? 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-600/90'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                       : 'hover:bg-muted',
                   )}
                   aria-pressed={tab === key}
@@ -532,7 +574,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                     className={cn(
                       'rounded px-1.5 py-0.5 text-xs',
                       tab === key
-                        ? 'bg-white/20 text-white'
+                        ? 'bg-primary-foreground/20 text-primary-foreground'
                         : 'bg-muted text-muted-foreground',
                     )}
                   >
@@ -671,25 +713,10 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                     Rename deck
                   </button>
                 )}
-                {showDeleteConfirm ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={confirmDelete}
-                      className="flex-1"
-                    >
-                      Confirm delete
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowDeleteConfirm(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
+                <AlertDialog
+                  open={showDeleteConfirm}
+                  onOpenChange={setShowDeleteConfirm}
+                >
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
@@ -698,7 +725,25 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                     <Trash2 className="h-3 w-3" />
                     Delete deck
                   </button>
-                )}
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this deck?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        “{liveTitle}” will be removed from this browser along
+                        with its study progress. This cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={confirmDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete deck
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
           </section>
@@ -782,60 +827,101 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                     <Button
                       onClick={() => setRevealed((r) => !r)}
                       variant={revealed ? 'outline' : 'default'}
-                      className={cn(!revealed && 'bg-red-600 text-white hover:bg-red-700')}
+                      aria-keyshortcuts="Space"
                     >
                       {revealed ? 'Hide answer' : 'Reveal answer'}
+                      <kbd className="ml-2 inline-flex h-5 items-center rounded border bg-background/10 px-1.5 font-mono text-[10px] text-current/80">
+                        Space
+                      </kbd>
                     </Button>
                   </div>
                 </div>
                 <footer className="flex items-center justify-between border-t px-5 py-3">
-                  <button
+                  <Button
                     type="button"
                     onClick={goBack}
                     disabled={position === 0}
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Previous card"
+                    aria-keyshortcuts="ArrowLeft"
+                    className="text-muted-foreground"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="mr-1 h-4 w-4" />
                     Previous
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={advance}
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Skip to next card"
+                    aria-keyshortcuts="ArrowRight"
+                    className="text-muted-foreground"
                   >
                     Skip
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
                 </footer>
               </article>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Button
                   type="button"
                   onClick={() => rate('unknown')}
                   variant="outline"
-                  className="border-red-600/40 text-red-600 hover:bg-red-600/10 hover:text-red-700 dark:border-red-500/40 dark:text-red-400"
+                  size="lg"
+                  aria-keyshortcuts="1"
+                  className="min-h-12 justify-between border-red-600/40 text-red-600 hover:bg-red-600/10 hover:text-red-700 dark:border-red-500/40 dark:text-red-400"
                 >
-                  <XIcon className="mr-1.5 h-4 w-4" />
-                  Don&apos;t Know
+                  <span className="flex items-center">
+                    <XIcon className="mr-1.5 h-4 w-4" />
+                    Don&apos;t Know
+                  </span>
+                  <kbd
+                    className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded border bg-background/40 font-mono text-[10px] text-current/80"
+                    aria-hidden
+                  >
+                    1
+                  </kbd>
                 </Button>
                 <Button
                   type="button"
                   onClick={() => rate('hard')}
                   variant="outline"
-                  className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:border-amber-500/40 dark:text-amber-400"
+                  size="lg"
+                  aria-keyshortcuts="2"
+                  className="min-h-12 justify-between border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:border-amber-500/40 dark:text-amber-400"
                 >
-                  <Clock className="mr-1.5 h-4 w-4" />
-                  Hard
+                  <span className="flex items-center">
+                    <Clock className="mr-1.5 h-4 w-4" />
+                    Hard
+                  </span>
+                  <kbd
+                    className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded border bg-background/40 font-mono text-[10px] text-current/80"
+                    aria-hidden
+                  >
+                    2
+                  </kbd>
                 </Button>
                 <Button
                   type="button"
                   onClick={() => rate('easy')}
                   variant="outline"
-                  className="border-green-600/40 text-green-700 hover:bg-green-600/10 hover:text-green-800 dark:border-green-500/40 dark:text-green-400"
+                  size="lg"
+                  aria-keyshortcuts="3"
+                  className="min-h-12 justify-between border-green-600/40 text-green-700 hover:bg-green-600/10 hover:text-green-800 dark:border-green-500/40 dark:text-green-400"
                 >
-                  <ThumbsUp className="mr-1.5 h-4 w-4" />
-                  Easy
+                  <span className="flex items-center">
+                    <ThumbsUp className="mr-1.5 h-4 w-4" />
+                    Easy
+                  </span>
+                  <kbd
+                    className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded border bg-background/40 font-mono text-[10px] text-current/80"
+                    aria-hidden
+                  >
+                    3
+                  </kbd>
                 </Button>
               </div>
             </>

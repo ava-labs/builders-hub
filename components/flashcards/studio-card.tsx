@@ -4,6 +4,11 @@ import { useState } from 'react';
 import { Check, X, RotateCcw, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { Flashcard } from '@/lib/flashcards/types';
 
@@ -22,23 +27,41 @@ const TYPE_LABELS: Record<Flashcard['type'], string> = {
   code: 'Code',
 };
 
+const TYPE_TOOLTIPS: Record<Flashcard['type'], string> = {
+  qa: 'Question on the front, concise answer on the back. Best for definitions and conceptual contrasts.',
+  cloze: 'Fill-in-the-blank. A sentence with one term hidden until you reveal the answer.',
+  code: 'Code prompt or fill-in. The back contains the correct snippet in a specific language.',
+};
+
 const TYPE_STYLES: Record<Flashcard['type'], string> = {
   qa: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
   cloze: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
   code: 'bg-amber-500/15 text-amber-800 dark:text-amber-300',
 };
 
-function renderCloze(front: string) {
+function renderCloze(front: string, revealed: boolean) {
   const parts = front.split(/(\[\[.+?\]\])/g);
   return (
     <>
       {parts.map((part, i) => {
         const match = /^\[\[(.+?)\]\]$/.exec(part);
         if (match) {
+          if (!revealed) {
+            return (
+              <span
+                key={i}
+                className="mx-0.5 inline-flex items-baseline rounded border border-dashed border-muted-foreground/40 bg-muted px-2 py-0.5 align-baseline font-mono text-xs uppercase tracking-wider text-muted-foreground"
+                aria-label="hidden answer"
+              >
+                ____
+              </span>
+            );
+          }
           return (
             <span
               key={i}
-              className="rounded bg-red-500/15 px-1.5 py-0.5 font-medium text-red-700 dark:text-red-300"
+              className="rounded bg-primary/15 px-1.5 py-0.5 font-medium text-primary"
+              aria-label="answer"
             >
               {match[1]}
             </span>
@@ -88,9 +111,21 @@ export function StudioCard({
     >
       <header className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2 min-w-0">
-          <Badge className={cn('shrink-0', TYPE_STYLES[card.type])} variant="secondary">
-            {TYPE_LABELS[card.type]}
-          </Badge>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                className={cn('shrink-0 cursor-help', TYPE_STYLES[card.type])}
+                variant="secondary"
+                tabIndex={0}
+                aria-label={`${TYPE_LABELS[card.type]} card — ${TYPE_TOOLTIPS[card.type]}`}
+              >
+                {TYPE_LABELS[card.type]}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              {TYPE_TOOLTIPS[card.type]}
+            </TooltipContent>
+          </Tooltip>
           <span className="truncate text-xs text-muted-foreground" title={card.source.path}>
             {card.source.chapterTitle}
           </span>
@@ -119,7 +154,9 @@ export function StudioCard({
         </div>
         <div className="mt-2">
           {card.type === 'cloze' ? (
-            <p className="text-sm leading-relaxed">{renderCloze(card.front)}</p>
+            <p className="text-sm leading-relaxed">
+              {renderCloze(card.front, showBack)}
+            </p>
           ) : (
             <CardBody text={card.front} isCode={card.type === 'code'} language={card.language} />
           )}
