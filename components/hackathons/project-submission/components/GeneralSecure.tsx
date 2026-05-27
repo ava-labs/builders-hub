@@ -12,7 +12,7 @@ import { useHackathonProject } from "../hooks/useHackathonProject";
 import { useDebounce } from "../hooks/useDebounce";
 import { ProgressBar } from "../components/ProgressBar";
 import { StepNavigation } from "../components/StepNavigation";
-import { Tag, Users, Pickaxe, Image, AlertCircle } from "lucide-react";
+import { Tag, Users, Pickaxe, Image, AlertCircle, PartyPopper, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,7 @@ import { useProjectSubmission } from "../context/ProjectSubmissionContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import InvalidInvitationComponent from "./InvalidInvitationDialog";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import Link from "next/link";
 
 export default function GeneralSecureComponent({
   searchParams,
@@ -28,6 +29,12 @@ export default function GeneralSecureComponent({
 }) {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(0);
+  type SubmittedMember = { name?: string | null; email?: string | null; role?: string };
+  const [submitted, setSubmitted] = useState<{
+    projectName: string;
+    hackathonTitle: string;
+    members: SubmittedMember[];
+  } | null>(null);
 
   const debouncedProgress = useDebounce(progress, 300); 
 
@@ -213,11 +220,17 @@ export default function GeneralSecureComponent({
       const result = await saveProject(data);
 
       if (result.success) {
-        toast({
-          title: t(lang, "submission.form.toast.submitted"),
-          description: t(lang, "submission.form.toast.submittedDesc"),
+        const savedMembers: SubmittedMember[] = (result as any).project?.members ?? [];
+        const fallbackMember: SubmittedMember = {
+          name: currentUser?.name ?? null,
+          email: currentUser?.email ?? null,
+          role: "Lead",
+        };
+        setSubmitted({
+          projectName: data.project_name ?? "",
+          hackathonTitle: hackathon?.title ?? "",
+          members: savedMembers.length > 0 ? savedMembers : [fallbackMember],
         });
-        router.push('/profile?tab=projects');
       } else {
         console.error('❌ Save failed, result.success is false');
       }
@@ -250,6 +263,92 @@ export default function GeneralSecureComponent({
             {error || t(lang, "submission.form.error.init")}
           </AlertDescription>
         </Alert>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="max-w-lg w-full text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="rounded-full bg-emerald-500/15 p-6">
+              <PartyPopper className="size-14 text-emerald-500" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+              {t(lang, "submission.success.congrats")}
+            </h1>
+            <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">
+              {t(lang, "submission.success.headline")}
+            </h2>
+          </div>
+
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">
+            {t(lang, "submission.success.body")}{" "}
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {submitted.projectName}
+            </span>{" "}
+            {t(lang, "submission.success.body2")}{" "}
+            <span className="font-semibold">{submitted.hackathonTitle}</span>.
+          </div>
+
+          {submitted.members.length > 0 && (
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700 text-sm text-left">
+              {submitted.members.map((m, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase">
+                    {(m.name ?? m.email ?? "?")[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {m.name && (
+                      <p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{m.name}</p>
+                    )}
+                    {m.email && (
+                      <p className={`truncate ${m.name ? "text-xs text-zinc-500" : "font-medium text-zinc-900 dark:text-zinc-100"}`}>
+                        {m.email}
+                      </p>
+                    )}
+                    {!m.name && !m.email && (
+                      <p className="text-zinc-400 italic text-xs">—</p>
+                    )}
+                  </div>
+                  {m.role && (
+                    <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">{m.role}</span>
+                  )}
+                  <Mail className="shrink-0 size-4 text-zinc-400" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <Link
+              href="/profile?tab=projects"
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {t(lang, "submission.success.goToProfile")}
+            </Link>
+            {hackathonId && (
+              <Link
+                href={`/events/${hackathonId}`}
+                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                {t(lang, "submission.success.backToEvent")}
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setSubmitted(null)}
+              className="rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+            >
+              {t(lang, "submission.success.editProject")}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

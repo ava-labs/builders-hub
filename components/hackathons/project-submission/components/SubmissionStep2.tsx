@@ -44,6 +44,8 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
               <FormLabelWithCheck
                 label={t(lang, "submission.step2.techStack.label")}
                 checked={!!field.value}
+                required
+                lang={lang}
               />
               <FormControl>
                 <Textarea
@@ -66,6 +68,8 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
           label={t(lang, "submission.step2.github.label")}
           placeholder={t(lang, "submission.step2.github.placeholder")}
           validationMessage={t(lang, "submission.step2.github.validation")}
+          required
+          lang={lang}
         />
 
         {/* Campo: Demo Link */}
@@ -74,6 +78,8 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
           label={t(lang, "submission.step2.demo.label")}
           placeholder={t(lang, "submission.step2.demo.placeholder")}
           validationMessage={t(lang, "submission.step2.demo.validation")}
+          required
+          lang={lang}
         />
       </section>
 
@@ -120,7 +126,12 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
             name="explanation"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t(lang, "submission.step2.explanation.label")}</FormLabel>
+                <FormLabelWithCheck
+                  label={t(lang, "submission.step2.explanation.label")}
+                  checked={!!form.getValues("explanation")}
+                  required={isPreexistingIdea === true}
+                  lang={lang}
+                />
                 <FormControl>
                   <Textarea
                     placeholder={t(lang, "submission.step2.explanation.placeholder")}

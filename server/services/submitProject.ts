@@ -9,6 +9,22 @@ import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
+import { sendSubmissionConfirmationMail } from "./registerForms";
+
+/** Returns true when all required submission fields are filled in. */
+export function isProjectComplete(p: Partial<Project>): boolean {
+  const hasText = (v: unknown) => typeof v === "string" && v.trim().length >= 1;
+  const hasItems = (v: unknown) => Array.isArray(v) ? v.length > 0 : hasText(v);
+  return (
+    hasText(p.project_name) &&
+    hasText(p.short_description) &&
+    hasText(p.full_description) &&
+    hasText(p.tech_stack) &&
+    hasItems(p.github_repository) &&
+    hasItems(p.demo_link) &&
+    (Array.isArray(p.tracks) ? p.tracks.length > 0 : hasText(p.tracks))
+  );
+}
 
 export const projectValidations: Validation[] = [
   {
@@ -77,9 +93,10 @@ function normalizeDeployedAddresses(
 export async function createProject(
   projectData: Partial<Project>
 ): Promise<Project> {
+  const isDraft = projectData.isDraft ?? false;
+
   // Atomic transaction to prevent race conditions and duplication
-  return await prisma.$transaction(async (tx) => {
-    const isDraft = projectData.isDraft ?? false;
+  const savedProject = await prisma.$transaction(async (tx) => {
     if (!isDraft) {
       const errors = validateProject(projectData);
       console.log("errors", errors);
@@ -222,6 +239,7 @@ export async function createProject(
             status: "Confirmed",
             email: (await tx.user.findUnique({
               where: { id: projectData.user_id as string },
+              select: { email: true },
             }))?.email ?? "",
           },
         },
@@ -247,6 +265,41 @@ export async function createProject(
     maxWait: 5000, // Maximum 5 seconds waiting for lock
     timeout: 10000, // Maximum 10 seconds executing transaction
   });
+
+  // Send submission confirmation email once, outside the transaction,
+  // when this is a final submit (not a draft save) and all required fields
+  // are filled and the email hasn't been sent yet.
+  if (
+    !isDraft &&
+    isProjectComplete(projectData) &&
+    savedProject.hackaton_id &&
+    projectData.submittedBy &&
+    !(savedProject as any).submission_email_sent
+  ) {
+    try {
+      // Mark email as sent first so duplicate submits don't resend.
+      // This update will silently fail if the migration hasn't run yet (field unknown),
+      // but the catch block ensures the email still sends on first submit.
+      try {
+        await prisma.project.update({
+          where: { id: savedProject.id },
+          data: { submission_email_sent: true } as any,
+          select: { id: true },
+        });
+      } catch {
+        // Field not yet in DB — migration pending, continue anyway
+      }
+      await sendSubmissionConfirmationMail(
+        projectData.submittedBy as string,
+        savedProject.project_name,
+        savedProject.hackaton_id,
+      );
+    } catch (err) {
+      console.error("[Submission email] Failed to send:", err);
+    }
+  }
+
+  return savedProject;
 }
 
 function normalizeUser(user: Partial<User>): User {
@@ -325,7 +378,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
         email: user?.email ?? member.email ?? "",
         telegram_account: user?.telegram_account ?? null,
         image: user?.image ?? null,
-        custom_attributes: user?.custom_attributes ?? [],
+        custom_attributes: [],
         authentication_mode: user?.authentication_mode ?? "",
         role: member.role,
         status: member.status,

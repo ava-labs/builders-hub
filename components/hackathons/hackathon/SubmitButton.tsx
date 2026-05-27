@@ -13,6 +13,7 @@ interface SubmitButtonProps {
   variant?: "red" | "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   label?: string;
   isAuthenticated?: boolean;
+  projectId?: string | null;
 }
 
 export default function SubmitButton({
@@ -22,11 +23,16 @@ export default function SubmitButton({
   variant = "red",
   label = "Submit project",
   isAuthenticated = false,
+  projectId = null,
 }: SubmitButtonProps) {
   const { status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
 
-  const href = customSubmissionLink ?? `/events/project-submission?event=${hackathonId}`;
+  const baseHref = customSubmissionLink
+    ?? (projectId
+      ? `/events/project-submission?event=${hackathonId}&project=${projectId}`
+      : `/events/project-submission?event=${hackathonId}`);
+  const href = baseHref;
   const target = customSubmissionLink ? "_blank" : "_self";
 
   const handleClick = (e: React.MouseEvent) => {

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/url-validation";
+import { EventsLang } from "@/lib/events/i18n";
 
 interface MultiLinkInputProps {
   name: string;
@@ -27,6 +28,9 @@ interface MultiLinkInputProps {
   description?: string;
   /** When true, skips domain-origin validation (e.g. allows YouTube/Loom links). */
   allowAllDomains?: boolean;
+  /** Passed through to FormLabelWithCheck to show required/optional indicator. */
+  required?: boolean;
+  lang?: EventsLang;
 }
 
 export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
@@ -37,6 +41,8 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   plainLabel = false,
   description,
   allowAllDomains = false,
+  required,
+  lang,
 }) => {
   const form = useFormContext<FieldValues>();
   const [newLink, setNewLink] = React.useState("");
@@ -111,6 +117,8 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
             <FormLabelWithCheck
               label={label}
               checked={!!field.value && (field.value as string[]).length > 0}
+              required={required}
+              lang={lang}
             />
           )}
           {description && (

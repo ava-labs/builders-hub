@@ -47,6 +47,8 @@ const dict: Record<EventsLang, Dict> = {
     "section.submission.viewFullGuidelines": "View full guidelines",
     "section.submission.guidelinesTitle": "Guidelines",
     "section.submission.submitProject": "Submit project",
+    "section.submission.editProject": "Edit project",
+    "section.submission.continueProject": "Continue submission",
 
     // Schedule
     "section.schedule.title": "Schedule",
@@ -424,6 +426,40 @@ const dict: Record<EventsLang, Dict> = {
     "reg.email.ignore": "If you did not expect this invitation, you can safely ignore this email.",
     "reg.email.footer": "Avalanche Builder's Hub © 2025",
 
+    // Submission success screen
+    "submission.success.congrats": "Congratulations!",
+    "submission.success.headline": "Your project has been submitted!",
+    "submission.success.body": "Your project",
+    "submission.success.body2": "has been successfully submitted to",
+    "submission.success.teamNote": "Team members will receive an email invitation to confirm their participation.",
+    "submission.success.goToProfile": "View my projects",
+    "submission.success.backToEvent": "Back to event",
+    "submission.success.editProject": "Edit submission",
+
+    // Form field indicators
+    "field.required": "Required",
+    "field.optional": "Optional",
+
+    // Submission confirmation email
+    "submission.email.subject": "Your project \"{projectName}\" has been submitted!",
+    "submission.email.h2": "Project submission confirmed",
+    "submission.email.congrats": "Congratulations!",
+    "submission.email.body": "Your project",
+    "submission.email.body2": "has been successfully submitted to",
+    "submission.email.body3": "Good luck — we're excited to see what you've built!",
+    "submission.email.automated": "This is an automated message — please do not reply.",
+    "submission.email.ignore": "If you did not submit a project, you can safely ignore this email.",
+    "submission.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission status card (event page)
+    "submission.status.notStarted": "You haven't started your submission yet.",
+    "submission.status.notStartedCta": "Start now",
+    "submission.status.inProgress": "Your submission is in progress",
+    "submission.status.inProgressCta": "Continue editing",
+    "submission.status.complete": "Your project is submitted!",
+    "submission.status.completeSub": "All required fields are complete. You can still edit before the deadline.",
+    "submission.status.editCta": "Edit submission",
+
     // Invitation email
     "invitation.email.subject": "You're invited to collaborate on \"{projectName}\"",
     "invitation.email.title": "You're Invited to Collaborate",
@@ -492,6 +528,8 @@ const dict: Record<EventsLang, Dict> = {
     "section.submission.viewFullGuidelines": "Ver pautas completas",
     "section.submission.guidelinesTitle": "Pautas",
     "section.submission.submitProject": "Enviar proyecto",
+    "section.submission.editProject": "Editar proyecto",
+    "section.submission.continueProject": "Continuar envío",
 
     // Schedule
     "section.schedule.title": "Agenda",
@@ -872,6 +910,40 @@ const dict: Record<EventsLang, Dict> = {
     "reg.email.automated": "Este es un mensaje automático — por favor no respondas.",
     "reg.email.ignore": "Si no esperabas esta invitación, puedes ignorar este correo con seguridad.",
     "reg.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission success screen
+    "submission.success.congrats": "¡Felicidades!",
+    "submission.success.headline": "¡Tu proyecto ha sido entregado!",
+    "submission.success.body": "Tu proyecto",
+    "submission.success.body2": "ha sido entregado exitosamente en",
+    "submission.success.teamNote": "Los miembros del equipo recibirán un correo de invitación para confirmar su participación.",
+    "submission.success.goToProfile": "Ver mis proyectos",
+    "submission.success.backToEvent": "Volver al evento",
+    "submission.success.editProject": "Editar envío",
+
+    // Form field indicators
+    "field.required": "Obligatorio",
+    "field.optional": "Opcional",
+
+    // Submission confirmation email
+    "submission.email.subject": "¡Tu proyecto \"{projectName}\" ha sido enviado!",
+    "submission.email.h2": "Envío de proyecto confirmado",
+    "submission.email.congrats": "¡Felicidades!",
+    "submission.email.body": "Tu proyecto",
+    "submission.email.body2": "ha sido enviado exitosamente a",
+    "submission.email.body3": "¡Mucha suerte — estamos emocionados de ver lo que construiste!",
+    "submission.email.automated": "Este es un mensaje automático — por favor no respondas.",
+    "submission.email.ignore": "Si no enviaste un proyecto, puedes ignorar este correo con seguridad.",
+    "submission.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission status card (event page)
+    "submission.status.notStarted": "Aún no has comenzado tu envío.",
+    "submission.status.notStartedCta": "Comenzar ahora",
+    "submission.status.inProgress": "Tu envío está en progreso",
+    "submission.status.inProgressCta": "Continuar editando",
+    "submission.status.complete": "¡Tu proyecto está enviado!",
+    "submission.status.completeSub": "Todos los campos obligatorios están completos. Aún puedes editar antes de la fecha límite.",
+    "submission.status.editCta": "Editar envío",
 
     // Invitation email
     "invitation.email.subject": "Te invitaron a colaborar en \"{projectName}\"",

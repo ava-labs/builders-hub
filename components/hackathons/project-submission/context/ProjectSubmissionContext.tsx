@@ -26,7 +26,7 @@ export interface ProjectContextType {
   dispatch: React.Dispatch<ProjectAction>;
   actions: {
     initializeProject: (hackathonId: string, invitationId?: string) => Promise<void>;
-    saveProject: (data: any) => Promise<{ success: boolean; projectId?: string }>;
+    saveProject: (data: any) => Promise<{ success: boolean; projectId?: string; project?: any }>;
     resetProject: () => void;
     setTeamName: (name: string) => void;
     setOpenJoinTeam: (open: boolean) => void;
@@ -193,7 +193,7 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
     }
   }, [session?.user?.id, toast]);
 
-  const saveProject = useCallback(async (data: any): Promise<{ success: boolean; projectId?: string }> => {
+  const saveProject = useCallback(async (data: any): Promise<{ success: boolean; projectId?: string; project?: any }> => {
     try {
       dispatch({ type: 'SET_STATUS', payload: 'saving' });
 
@@ -209,6 +209,7 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
       if (response.data?.project?.id) {
         const projectId = response.data.project.id;
         dispatch({ type: 'SET_PROJECT_ID', payload: projectId });
+        dispatch({ type: 'SET_PROJECT_DATA', payload: response.data.project });
         dispatch({ type: 'SET_STATUS', payload: 'editing' });
 
         toast({
@@ -216,7 +217,7 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
           description: 'Your project has been saved.',
         });
 
-        return { success: true, projectId };
+        return { success: true, projectId, project: response.data.project };
       }
 
       return { success: false };

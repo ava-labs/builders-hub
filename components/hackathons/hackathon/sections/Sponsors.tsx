@@ -31,7 +31,7 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
       <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
         {t(lang, "section.partners.subtitle")}
       </p>
-      <div className="w-screen left-1/2 transform -translate-x-1/2 relative dark:bg-zinc-200 bg-zinc-700 py-4">
+      <div className="w-screen left-1/2 transform -translate-x-1/2 relative py-4 [background-color:#1b1b1b] dark:[background-color:#e4e4e4]">
         {hackathon.content.partners.length <= 5 ? (
           <div className="flex flex-wrap justify-around items-center gap-8 px-8">
             {hackathon.content.partners.map((partner, index) => (
@@ -64,9 +64,9 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
                   <Image
                     src={partner.logo}
                     alt={partner.name}
-                    className="object-contain filter grayscale invert dark:invert-0"
-                    height={120}
-                    width={200}
+                  className="object-contain filter grayscale invert dark:invert-0"
+                  height={120}
+                  width={200}
                   />
                 </CarouselItem>
               ))}

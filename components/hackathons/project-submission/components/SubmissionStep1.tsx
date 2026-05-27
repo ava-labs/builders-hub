@@ -107,6 +107,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormLabelWithCheck
                 label={t(lang, "submission.step1.projectName.label")}
                 checked={!!field.value}
+                required
+                lang={lang}
               />
               <FormControl>
                 <Input
@@ -129,6 +131,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormLabelWithCheck
                 label={t(lang, "submission.step1.shortDesc.label")}
                 checked={!!field.value}
+                required
+                lang={lang}
               />
               <FormControl>
                 <Textarea
@@ -156,6 +160,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormLabelWithCheck
                 label={t(lang, "submission.step1.fullDesc.label")}
                 checked={!!field.value}
+                required
+                lang={lang}
               />
               <FormControl>
                 <Textarea
@@ -178,6 +184,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 <FormLabelWithCheck
                   label={t(lang, "submission.step1.tracks.label")}
                   checked={!!field.value && field.value.length > 0}
+                  required
+                  lang={lang}
                 />
                 <FormControl>
                   <MultiSelect
@@ -203,6 +211,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 <FormLabelWithCheck
                   label={t(lang, "submission.step1.categories.label")}
                   checked={!!field.value && field.value.length > 0}
+                  required
+                  lang={lang}
                 />
                 <FormControl>
                   <MultiSelect
@@ -233,6 +243,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 <FormLabelWithCheck
                   label={t(lang, "submission.step1.otherCategory.label")}
                   checked={!!field.value}
+                  required
+                  lang={lang}
                 />
                 <FormControl>
                   <Input
@@ -255,6 +267,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormLabelWithCheck
                 label='Website'
                 checked={!!field.value && field.value.length > 0}
+                required={false}
+                lang={lang}
               />
               <div className='space-y-3'>
                 {(field.value && field.value.length > 0) ? (
@@ -338,6 +352,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormLabelWithCheck
                 label='Socials'
                 checked={!!field.value && field.value.length > 0}
+                required={false}
+                lang={lang}
               />
               <div className='space-y-3'>
                 {(field.value && field.value.length > 0) ? (
@@ -423,6 +439,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 <FormLabelWithCheck
                   label={t(lang, "submission.step1.deployedAddresses.label")}
                   checked={!!field.value && field.value.length > 0}
+                  required={false}
+                  lang={lang}
                 />
                 <div className='space-y-3'>
                   {(field.value && field.value.length > 0) ? (
