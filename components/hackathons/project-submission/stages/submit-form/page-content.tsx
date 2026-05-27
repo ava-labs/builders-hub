@@ -64,10 +64,17 @@ function buildProjectFallback(
       field.type === SubmitFormFieldType.MultiSelect
 
     if (isArrayField) {
-      if (Array.isArray(value)) {
+      if (Array.isArray(value) && value.length > 0) {
         if (value.every((v) => typeof v === 'string')) {
-          // plain string array (e.g. categories)
-          fallback[field.id] = value as string[]
+          // plain string array (e.g. categories) — deduplicate case-insensitively
+          // for MultiSelect fields so stale variants (e.g. "Defi" vs "DeFi") don't
+          // both appear. Last occurrence wins to preserve the most canonical casing.
+          const stringValues = value as string[]
+          const deduped =
+            field.type === SubmitFormFieldType.MultiSelect
+              ? Array.from(new Map(stringValues.map((v) => [v.toLowerCase(), v])).values())
+              : stringValues
+          fallback[field.id] = deduped
         } else {
           // array of objects — serialize each as JSON (e.g. deployed_addresses: {address, tag}[])
           const serialized = value
@@ -174,12 +181,12 @@ export default function StageSubmitPageContent({
   const [linkDrafts, setLinkDrafts] = React.useState<Record<string, string>>({})
   const [linkDraftErrors, setLinkDraftErrors] = React.useState<Record<string, string>>({})
   const [activeTab, setActiveTab] = React.useState<string>('form')
-  const { projectId, teamName, loading, project } = useProjectByHackaUser({
+  const { projectId, teamName, loading, project, refetch: refetchProject } = useProjectByHackaUser({
     hackathonId: hackathon.id,
     userId: user?.id ?? '',
   })
   const [resolvedProjectId, setResolvedProjectId] = React.useState<string>(projectId ?? '')
-  const { formData, loading: loadingFormData } = useProjectFormData({
+  const { formData, formDataTimestamp, loading: loadingFormData } = useProjectFormData({
     projectId: projectId || '',
   })
 
@@ -230,11 +237,18 @@ export default function StageSubmitPageContent({
       }
     }
 
-    form.reset({
-      ...buildDefaultValues(stage),
-      ...nonEmptyFormData,
-      ...projectFallback,
-    })
+    // If the project was updated after the last stage form save, project data
+    // takes priority so that edits made from the profile page are reflected here.
+    const projectUpdatedAt = (project as Record<string, unknown> | null)?.updated_at as string | undefined
+    const projectIsNewer =
+      !!projectUpdatedAt && !!formDataTimestamp &&
+      new Date(projectUpdatedAt) > new Date(formDataTimestamp)
+
+    form.reset(
+      projectIsNewer
+        ? { ...buildDefaultValues(stage), ...nonEmptyFormData, ...projectFallback }
+        : { ...buildDefaultValues(stage), ...projectFallback, ...nonEmptyFormData }
+    )
   }, [projectId, formData, loading, loadingFormData, stage, form, project])
 
   React.useEffect((): void => {
@@ -784,21 +798,68 @@ export default function StageSubmitPageContent({
   const handleSubmit = async (values: StageSubmitValues): Promise<void> => {
     try {
       setIsSubmitting(true)
-      // Values are already validated by form validation rules
-      // No dangerous input can reach here because submit button is disabled if validation fails
-      const valuesForSubmit: StageSubmitValues = { ...values }
+
+      let effectiveProjectId: string = resolvedProjectId
+
+      if (!effectiveProjectId) {
+        // Server-side check first: the hook may have stale/error state (e.g. network
+        // blip on load). Ask the server authoritatively before creating anything —
+        // this prevents duplicate projects if one already exists but the hook missed it.
+        const checkRes: Response = await fetch(
+          `/api/project?hackathon_id=${encodeURIComponent(hackathon.id)}&user_id=${encodeURIComponent(user?.id ?? '')}`,
+          { method: 'GET', credentials: 'include' }
+        )
+        if (checkRes.ok) {
+          const checkData: { project?: { id?: string } | null } = await checkRes.json()
+          if (checkData.project?.id) {
+            effectiveProjectId = checkData.project.id
+            setResolvedProjectId(effectiveProjectId)
+          }
+        }
+      }
+
+      if (!effectiveProjectId) {
+        const projectName =
+          typeof values['project_name'] === 'string' && values['project_name'].trim()
+            ? values['project_name'].trim()
+            : 'Untitled Project'
+        const shortDesc =
+          typeof values['short_description'] === 'string'
+            ? values['short_description'].trim()
+            : ''
+
+        const createRes: Response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            project_name: projectName,
+            short_description: shortDesc,
+            hackaton_id: hackathon.id,
+            origin: 'stage-form',
+          }),
+        })
+
+        const createData: { project?: { id?: string }; error?: string } = await createRes.json()
+        if (!createRes.ok) {
+          throw new Error(createData.error ?? 'Failed to create project')
+        }
+        effectiveProjectId = createData.project?.id ?? ''
+        if (effectiveProjectId) {
+          setResolvedProjectId(effectiveProjectId)
+          void refetchProject()
+        }
+      }
 
       const response: Response = await fetch('/api/project/form-data', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           hackathonId: hackathon.id,
-          projectId: resolvedProjectId,
+          projectId: effectiveProjectId,
           stageIndex,
-          values: valuesForSubmit,
+          values,
         }),
       })
 

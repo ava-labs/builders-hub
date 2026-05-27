@@ -60,18 +60,19 @@ export function MultiSelect({
     };
   }, []);
 
-  const selectedItems = React.useMemo(() => 
-    options.filter((option) => (selected || []).includes(option.value)),
-    [selected, options]
-  );
+  const selectedItems = React.useMemo(() => {
+    const optionMap = new Map(options.map((o) => [o.value, o]));
+    return (selected || []).map((v) => optionMap.get(v) ?? { label: v, value: v });
+  }, [selected, options]);
 
   const handleSelect = React.useCallback((value: string) => {
     const newSelected = selected || [];
-    const isSelected = newSelected.includes(value);
-    
+    const valueLower = value.toLowerCase();
+    const isCurrentlySelected = newSelected.some((item) => item.toLowerCase() === valueLower);
+
     onChange(
-      isSelected
-        ? newSelected.filter((item) => item !== value)
+      isCurrentlySelected
+        ? newSelected.filter((item) => item.toLowerCase() !== valueLower)
         : [...newSelected, value]
     );
   }, [selected, onChange]);
@@ -207,7 +208,9 @@ export function MultiSelect({
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup className="max-h-[200px] overflow-auto p-1">
               {filteredOptions.map((option, index) => {
-                const isSelected = (selected || []).includes(option.value);
+                const isSelected = (selected || []).some(
+                  (s) => s.toLowerCase() === option.value.toLowerCase()
+                );
                 return (
                   <CommandItem
                     key={option.value}

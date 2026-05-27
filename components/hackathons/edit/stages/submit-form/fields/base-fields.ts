@@ -62,7 +62,7 @@ export const BASE_SUBMIT_FORM_FIELDS = {
       placeholder: 'Select categories',
       predefinedField: true,
       required: true,
-      options: ['Consumer', 'Defi', 'Enterprise', 'Developer Tooling', 'RWA', 'Gaming', 'Social'],
+      options: ['Consumer', 'DeFi', 'Enterprise', 'Developer Tooling', 'RWA', 'Gaming', 'Social'],
     },
   },
   github_repository: {

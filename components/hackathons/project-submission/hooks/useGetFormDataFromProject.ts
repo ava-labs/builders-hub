@@ -10,6 +10,7 @@ type UseProjectFormDataParams = {
 
 type UseProjectFormDataResult = {
   formData: StageSubmitValues | null
+  formDataTimestamp: string | null
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
@@ -19,6 +20,7 @@ export function useProjectFormData({
   projectId,
 }: UseProjectFormDataParams): UseProjectFormDataResult {
   const [formData, setFormData] = React.useState<StageSubmitValues | null>(null)
+  const [formDataTimestamp, setFormDataTimestamp] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState<boolean>(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -45,6 +47,7 @@ export function useProjectFormData({
         error?: string
         formData?: {
           form_data: StageSubmitValues
+          timestamp?: string | null
         } | null
       } = await response.json()
 
@@ -53,12 +56,14 @@ export function useProjectFormData({
       }
 
       setFormData(data.formData?.form_data ?? null)
+      setFormDataTimestamp(data.formData?.timestamp ?? null)
     } catch (err: unknown) {
       const message: string =
         err instanceof Error ? err.message : 'Unknown error'
 
       setError(message)
       setFormData(null)
+      setFormDataTimestamp(null)
     } finally {
       setLoading(false)
     }
@@ -70,6 +75,7 @@ export function useProjectFormData({
 
   return {
     formData,
+    formDataTimestamp,
     loading,
     error,
     refetch: fetchFormData,
