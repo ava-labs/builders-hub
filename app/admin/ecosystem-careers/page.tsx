@@ -5,8 +5,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { createMetadata } from '@/utils/metadata';
 import { getAuthSession } from '@/lib/auth/authSession';
-import { listProjectsUnderReview } from '@/server/services/ecosystemCareers/adminQueries';
+import {
+  listIngestedListingsUnderReview,
+  listProjectsUnderReview,
+} from '@/server/services/ecosystemCareers/adminQueries';
 import { ReviewActions } from '@/components/ecosystem-careers/ReviewActions';
+import { ApproveListingButton } from '@/components/ecosystem-careers/ApproveListingButton';
 
 export const metadata: Metadata = createMetadata({
   title: 'Ecosystem Careers · Review queue',
@@ -36,19 +40,26 @@ export default async function EcosystemCareersAdminPage() {
     );
   }
 
-  const queue = await listProjectsUnderReview();
+  const [queue, ingestedQueue] = await Promise.all([
+    listProjectsUnderReview(),
+    listIngestedListingsUnderReview(),
+  ]);
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-12 lg:py-16 space-y-8">
+    <main className="max-w-5xl mx-auto px-4 py-12 lg:py-16 space-y-12">
       <header className="space-y-2">
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
           Review queue
         </h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Teams whose first listing is waiting for a sign-off. Approving the company auto-publishes every queued listing under it. Rejection hides them and surfaces the reason on the submitter&apos;s &ldquo;My listings&rdquo; page.
+          Teams whose first listing is waiting for a sign-off. Approving the company auto-publishes every queued listing under it. Ingested listings from Getro and web3.career are reviewed per-row below.
         </p>
       </header>
 
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          Community projects · {queue.length}
+        </h2>
       {queue.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-12 text-center text-zinc-600 dark:text-zinc-300">
           Nothing pending. ✨
@@ -164,6 +175,72 @@ export default async function EcosystemCareersAdminPage() {
           ))}
         </ul>
       )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          Ingested listings · {ingestedQueue.length}
+        </h2>
+        {ingestedQueue.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-8 text-center text-zinc-600 dark:text-zinc-300 text-sm">
+            No ingested listings waiting on review.
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {ingestedQueue.map((row) => (
+              <li
+                key={row.id}
+                className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40 p-4 flex items-start gap-4"
+              >
+                {row.companyLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={row.companyLogo}
+                    alt={row.companyName ?? row.title}
+                    className="w-10 h-10 rounded-lg object-contain bg-zinc-100 dark:bg-zinc-800 shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xs font-semibold text-zinc-500 shrink-0">
+                    {(row.companyName ?? row.title).slice(0, 1)}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                        row.source === 'getro'
+                          ? 'bg-yellow-100 dark:bg-yellow-500/15 text-yellow-700 dark:text-yellow-300'
+                          : 'bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300'
+                      }`}
+                    >
+                      {row.source}
+                    </span>
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-white truncate">
+                      {row.title}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    {row.companyName ?? 'Unknown company'}
+                    {row.location ? ` · ${row.location}` : ''}
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">
+                    {row.shortDescription}
+                  </p>
+                  <a
+                    href={row.applyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="text-[11px] text-zinc-500 dark:text-zinc-400 hover:underline truncate inline-block"
+                  >
+                    {row.applyUrl}
+                  </a>
+                </div>
+                <ApproveListingButton listingId={row.id} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }

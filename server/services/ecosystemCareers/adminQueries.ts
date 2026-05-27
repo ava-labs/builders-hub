@@ -30,8 +30,69 @@ function firstUrl(value: unknown): string | null {
 }
 
 export async function listProjectsUnderReview(): Promise<PendingProjectRow[]> {
-  const projects = await prisma.project.findMany({
-    where: { careers_authorization_status: 'pending' },
+  // Surface unapproved projects that actually have a community listing waiting.
+  // A project that just exists without a queued listing isn't a review item.
+  return mapProjects(await loadPendingProjects());
+}
+
+export interface PendingListingRow {
+  id: string;
+  source: 'external' | 'getro';
+  title: string;
+  companyName: string | null;
+  companyLogo: string | null;
+  companyWebsite: string | null;
+  location: string | null;
+  applyUrl: string;
+  shortDescription: string;
+  postedAt: Date | null;
+  createdAt: Date;
+}
+
+export async function listIngestedListingsUnderReview(): Promise<PendingListingRow[]> {
+  const rows = await prisma.jobListing.findMany({
+    where: {
+      source: { in: ['external', 'getro'] },
+      is_active: false,
+    },
+    orderBy: [{ posted_at: 'desc' }, { created_at: 'desc' }],
+    select: {
+      id: true,
+      source: true,
+      title: true,
+      company_name: true,
+      company_logo: true,
+      company_website: true,
+      location: true,
+      apply_url: true,
+      short_description: true,
+      posted_at: true,
+      created_at: true,
+    },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    source: r.source as 'external' | 'getro',
+    title: r.title,
+    companyName: r.company_name,
+    companyLogo: r.company_logo,
+    companyWebsite: r.company_website,
+    location: r.location,
+    applyUrl: r.apply_url,
+    shortDescription: r.short_description,
+    postedAt: r.posted_at,
+    createdAt: r.created_at,
+  }));
+}
+
+type ProjectQueryResult = Awaited<ReturnType<typeof loadPendingProjects>>;
+
+async function loadPendingProjects() {
+  return prisma.project.findMany({
+    where: {
+      careers_approved: false,
+      jobListings: { some: { source: 'community', is_active: false } },
+    },
     orderBy: { updated_at: 'asc' },
     select: {
       id: true,
@@ -59,7 +120,9 @@ export async function listProjectsUnderReview(): Promise<PendingProjectRow[]> {
       },
     },
   });
+}
 
+function mapProjects(projects: ProjectQueryResult): PendingProjectRow[] {
   return projects.map((p) => ({
     id: p.id,
     name: p.project_name,

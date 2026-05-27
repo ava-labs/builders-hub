@@ -1,7 +1,6 @@
 import { prisma } from '@/prisma/prisma';
 
 export type ListingSource = 'community' | 'external' | 'legacy';
-export type CareersAuthorizationStatus = 'pending' | 'approved' | 'rejected';
 
 // Legacy listings are a one-time frozen Getro seed; anything posted more
 // than ~10 months ago is too stale to surface. Computed at call time so the
@@ -325,16 +324,14 @@ export interface UserOwnedProject {
   id: string;
   project_name: string;
   logo_url: string | null;
-  authorization_status: CareersAuthorizationStatus | null;
-  rejection_reason: string | null;
+  careers_approved: boolean;
 }
 
 export interface UserListingsResult {
   ownProjects: UserOwnedProject[];
   listings: (JobCard & {
     isActive: boolean;
-    careersStatus: CareersAuthorizationStatus;
-    rejectionReason: string | null;
+    careersApproved: boolean;
   })[];
 }
 
@@ -347,8 +344,7 @@ export async function listListingsForUser(userId: string): Promise<UserListingsR
           id: true,
           project_name: true,
           logo_url: true,
-          careers_authorization_status: true,
-          careers_rejection_reason: true,
+          careers_approved: true,
         },
       },
     },
@@ -361,8 +357,7 @@ export async function listListingsForUser(userId: string): Promise<UserListingsR
       id: p.id,
       project_name: p.project_name,
       logo_url: p.logo_url || null,
-      authorization_status: (p.careers_authorization_status as CareersAuthorizationStatus) ?? null,
-      rejection_reason: p.careers_rejection_reason ?? null,
+      careers_approved: p.careers_approved,
     }));
   const projectIds = ownProjects.map((p) => p.id);
 
@@ -381,9 +376,7 @@ export async function listListingsForUser(userId: string): Promise<UserListingsR
     listings: rows.map((row) => ({
       ...toJobCard(row as NonNullable<JobRow>),
       isActive: row.is_active,
-      careersStatus:
-        (row.project?.careers_authorization_status as CareersAuthorizationStatus) ?? 'approved',
-      rejectionReason: row.project?.careers_rejection_reason ?? null,
+      careersApproved: row.project?.careers_approved ?? false,
     })),
   };
 }

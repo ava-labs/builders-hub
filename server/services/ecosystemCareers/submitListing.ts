@@ -34,38 +34,13 @@ export class QuotaError extends Error {
   }
 }
 
-export class ProjectRejectedError extends Error {
-  constructor(reason: string | null) {
-    super(reason ?? 'This project has been rejected for ecosystem careers');
-    this.name = 'ProjectRejectedError';
-  }
-}
-
-export type CareersAuthorizationStatus = 'pending' | 'approved' | 'rejected';
-
-// Helper that resolves the Project's current careers review state. Side
-// effect: if the project hasn't been through the careers funnel yet (still
-// 'approved' by default but never marked pending/approved by a devrel for a
-// careers submission), we leave it alone — the default keeps existing
-// hackathon projects unaffected.
-//
-// First-time community submissions explicitly transition the project to
-// 'pending' below.
-async function loadProjectCareersStatus(
-  projectId: string,
-): Promise<{ status: CareersAuthorizationStatus; rejection_reason: string | null }> {
+async function loadProjectCareersApproved(projectId: string): Promise<boolean> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: {
-      careers_authorization_status: true,
-      careers_rejection_reason: true,
-    },
+    select: { careers_approved: true },
   });
   if (!project) throw new Error(`Project ${projectId} not found`);
-  return {
-    status: (project.careers_authorization_status as CareersAuthorizationStatus) ?? 'approved',
-    rejection_reason: project.careers_rejection_reason ?? null,
-  };
+  return project.careers_approved;
 }
 
 export async function createListing(
@@ -89,25 +64,7 @@ export async function createListing(
     );
   }
 
-  // First community submission for a project flips its careers status to
-  // 'pending' (default is 'approved' for unrelated hackathon projects, so we
-  // only narrow when we see an explicit non-pending/non-rejected state AND
-  // no prior community listing). Subsequent submissions inherit the current
-  // status.
-  const existingCommunity = await prisma.jobListing.count({
-    where: { source: 'community', project_id: input.project_id },
-  });
-  if (existingCommunity === 0) {
-    await prisma.project.update({
-      where: { id: input.project_id },
-      data: { careers_authorization_status: 'pending' },
-    });
-  }
-
-  const status = await loadProjectCareersStatus(input.project_id);
-  if (status.status === 'rejected') {
-    throw new ProjectRejectedError(status.rejection_reason);
-  }
+  const approved = await loadProjectCareersApproved(input.project_id);
 
   const sanitizedDescription = sanitizeJobHtml(input.description) || null;
   const shortDescription = (input.short_description?.trim() ||
@@ -127,14 +84,12 @@ export async function createListing(
       employment_type: input.employment_type ?? null,
       seniority: trimOrNull(input.seniority),
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 6),
-      // Community listings: apply URL is whatever the user provided; clean
-      // it of typical UTM noise (cleanApplyUrl is the existing helper).
       apply_url: cleanApplyUrl(input.apply_url.trim()),
       source_url: null,
       posted_at: new Date(),
       last_seen_at: new Date(),
-      // Hidden while the team is in review; flipped live in bulk on approve.
-      is_active: status.status === 'approved',
+      // Hidden until devrel approves the project; flipped live in bulk on approve.
+      is_active: approved,
     },
     select: { id: true },
   });
@@ -171,10 +126,7 @@ export async function updateListing(
     throw new AuthorizationError('Cannot move listing between projects');
   }
 
-  const status = await loadProjectCareersStatus(projectId);
-  if (status.status === 'rejected') {
-    throw new ProjectRejectedError(status.rejection_reason);
-  }
+  const approved = await loadProjectCareersApproved(projectId);
 
   const sanitizedDescription = sanitizeJobHtml(input.description) || null;
   const shortDescription = (input.short_description?.trim() ||
@@ -194,7 +146,7 @@ export async function updateListing(
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 6),
       apply_url: cleanApplyUrl(input.apply_url.trim()),
       last_seen_at: new Date(),
-      is_active: status.status === 'approved',
+      is_active: approved,
     },
   });
 }
@@ -229,27 +181,20 @@ export async function deactivateListing(
   });
 }
 
-// Admin actions — devrel-gated. Mutate the Project's careers review state
-// and propagate to all queued community listings under it.
-
+// Admin action — devrel-gated. Approves the project for careers and
+// activates every queued community listing under it in one shot.
 export async function approveProjectForCareers(
   projectId: string,
-  reviewerUserId: string,
 ): Promise<{ activated: number }> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true, careers_authorization_status: true },
+    select: { id: true },
   });
   if (!project) throw new Error('Project not found');
 
   await prisma.project.update({
     where: { id: projectId },
-    data: {
-      careers_authorization_status: 'approved',
-      careers_authorized_by_user_id: reviewerUserId,
-      careers_authorized_at: new Date(),
-      careers_rejection_reason: null,
-    },
+    data: { careers_approved: true },
   });
 
   const result = await prisma.jobListing.updateMany({
@@ -261,33 +206,6 @@ export async function approveProjectForCareers(
     data: { is_active: true, last_seen_at: new Date() },
   });
   return { activated: result.count };
-}
-
-export async function rejectProjectForCareers(
-  projectId: string,
-  reviewerUserId: string,
-  reason: string | null,
-): Promise<void> {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { id: true },
-  });
-  if (!project) throw new Error('Project not found');
-
-  await prisma.project.update({
-    where: { id: projectId },
-    data: {
-      careers_authorization_status: 'rejected',
-      careers_authorized_by_user_id: reviewerUserId,
-      careers_authorized_at: new Date(),
-      careers_rejection_reason: reason?.trim() || null,
-    },
-  });
-
-  await prisma.jobListing.updateMany({
-    where: { project_id: projectId, source: 'community', is_active: true },
-    data: { is_active: false },
-  });
 }
 
 function trimOrNull(value: string | null | undefined): string | null {

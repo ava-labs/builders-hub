@@ -176,14 +176,11 @@ model Project {
   website             Json?
   socials             Json?
   consent_sharing     Boolean?
-  // Per-project review state for the Ecosystem Careers feature. Defaults to
-  // 'approved' so the existing hackathon projects don't get flagged
-  // retroactively; new community-submitted careers projects start as
-  // 'pending' until a devrel signs off on the team.
-  careers_authorization_status  String    @default("approved")
-  careers_authorized_by_user_id String?
-  careers_authorized_at         DateTime? @db.Timestamptz(3)
-  careers_rejection_reason      String?
+  // One-shot devrel approval for the Ecosystem Careers feature. Every project
+  // starts unapproved regardless of origin (community form, hackathon submission,
+  // grant application). A devrel flips this at /admin/ecosystem-careers, which
+  // also activates every queued listing under the project in one action.
+  careers_approved    Boolean             @default(false)
   formData            FormData[]
   members             Member[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)

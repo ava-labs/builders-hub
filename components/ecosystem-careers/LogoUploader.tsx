@@ -107,38 +107,61 @@ export function LogoUploader({ value, onChange, label = 'Logo', required }: Prop
   }
 
   return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+    <div className="pr-field" style={{ gap: 8 }}>
+      <label>
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </span>
+        {required && <span className="pr-req"> *</span>}
+      </label>
 
-      <div className="flex items-center gap-3">
-        <div className="relative w-16 h-16 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 flex items-center justify-center overflow-hidden shrink-0">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div
+          style={{
+            position: 'relative',
+            width: 64,
+            height: 64,
+            borderRadius: 12,
+            border: '1px dashed var(--pr-g-500)',
+            background: 'var(--pr-g-200)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={value}
               alt="Logo preview"
-              className="w-full h-full object-contain"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           ) : (
-            <ImagePlus className="w-5 h-5 text-zinc-400" />
+            <ImagePlus size={20} style={{ color: 'var(--pr-g-600)' }} />
           )}
           {uploading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-zinc-900/70">
-              <Loader2 className="w-4 h-4 animate-spin text-zinc-600 dark:text-zinc-300" />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255,255,255,0.7)',
+              }}
+            >
+              <Loader2 size={16} className="animate-spin" style={{ color: 'var(--pr-g-800)' }} />
             </div>
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
-              className="text-sm font-medium px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 transition"
+              className="pr-btn pr-btn--outline pr-btn--sm"
             >
               {value ? 'Replace' : 'Choose file'}
             </button>
@@ -147,17 +170,19 @@ export function LogoUploader({ value, onChange, label = 'Logo', required }: Prop
                 type="button"
                 onClick={clear}
                 disabled={uploading}
-                className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-60"
+                className="pr-btn pr-btn--ghost pr-btn--sm"
               >
-                <X className="w-3.5 h-3.5" />
+                <X size={14} />
                 Remove
               </button>
             )}
           </div>
-          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-            Square PNG, JPG, SVG, or WebP · min {MIN_DIMENSION}×{MIN_DIMENSION}px · under{' '}
-            {(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)} MB
-          </p>
+          <div className="pr-helper" style={{ marginTop: 6 }}>
+            <span>
+              Square PNG/JPG/SVG/WebP · min {MIN_DIMENSION}×{MIN_DIMENSION}px · under{' '}
+              {(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)} MB
+            </span>
+          </div>
         </div>
       </div>
 
@@ -165,12 +190,12 @@ export function LogoUploader({ value, onChange, label = 'Logo', required }: Prop
         ref={inputRef}
         type="file"
         accept={ACCEPTED_EXT}
-        className="sr-only"
+        className="pr-sr-only"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) void handleFile(f);
         }}
       />
-    </label>
+    </div>
   );
 }

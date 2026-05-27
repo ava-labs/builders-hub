@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { toast } from 'sonner';
+import { Briefcase } from 'lucide-react';
 import { POPULAR_LOCATIONS } from '@/lib/ecosystemCareers/locations';
 
 interface ProjectOption {
@@ -51,21 +52,23 @@ const REMOTE_OPTS = [
 ];
 
 const EMPLOYMENT_OPTS = [
-  { value: '', label: 'Not specified' },
   { value: 'full_time', label: 'Full-time' },
   { value: 'contract', label: 'Contract' },
   { value: 'part_time', label: 'Part-time' },
 ];
 
+const DIRTY_INITIAL = (initial: SubmitListingFormInitialValues): SubmitListingFormInitialValues =>
+  ({ ...initial });
 
 export function SubmitListingForm({ projects, initialValues, listingId }: Props) {
   const router = useRouter();
   const locationsListId = useId();
-  const [values, setValues] = useState<SubmitListingFormInitialValues>({
+  const initial: SubmitListingFormInitialValues = {
     ...EMPTY,
     project_id: projects[0]?.id ?? '',
     ...initialValues,
-  });
+  };
+  const [values, setValues] = useState<SubmitListingFormInitialValues>(DIRTY_INITIAL(initial));
   const [submitting, setSubmitting] = useState(false);
 
   const update = <K extends keyof SubmitListingFormInitialValues>(
@@ -88,6 +91,8 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
       };
     });
   }
+
+  const isDirty = JSON.stringify(values) !== JSON.stringify(initial);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -112,9 +117,6 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
       .filter(Boolean)
       .slice(0, 6);
 
-    // The form collects raw years (e.g. "3"); we serialize as a label
-    // ("3+ years") so display logic doesn't need to know the difference
-    // between a community years value and a legacy/external category label.
     const yearsRaw = values.seniority.trim();
     let seniorityLabel: string | null = null;
     if (yearsRaw) {
@@ -129,9 +131,6 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
     const body = {
       project_id: values.project_id,
       title: values.title.trim(),
-      // Server-side createListing derives a teaser from `description` when
-      // short_description is empty (htmlToPlainText, capped at 280 chars).
-      // We omit the field entirely so there's one source of truth.
       short_description: null,
       description: values.description.trim(),
       location: values.location.trim(),
@@ -161,11 +160,6 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
         toast.error(msg);
         return;
       }
-      // Always land on /my-listings — community listings start in pending
-      // review (is_active=false) which would 404 if we tried to push to the
-      // public detail page. My-listings renders pending entries with the
-      // amber "Pending review" badge so the submitter sees exactly what
-      // they posted.
       toast.success(
         listingId
           ? 'Listing updated.'
@@ -182,152 +176,248 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <Field label="Project" required>
-        <select
-          value={values.project_id}
-          onChange={(e) => update('project_id', e.target.value)}
-          className={selectCls}
-          disabled={!!listingId}
-        >
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.project_name}
-            </option>
-          ))}
-        </select>
-        {!listingId && (
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Don&apos;t see your team? <a className="text-red-600 dark:text-red-400 hover:underline" href="/projects/new">Create a project →</a>
-          </p>
-        )}
-      </Field>
+    <form onSubmit={onSubmit}>
+      <div className="pr-card">
+        <div className="pr-head">
+          <div className="pr-ico">
+            <Briefcase size={18} />
+          </div>
+          <div>
+            <h3>{listingId ? 'Edit role' : 'Post a role'}</h3>
+            <div className="pr-desc">
+              Roles link out to your apply URL. Builders Hub never hosts applications.
+            </div>
+          </div>
+        </div>
 
-      <Field label="Job title" required>
-        <input
-          type="text"
-          value={values.title}
-          onChange={(e) => update('title', e.target.value)}
-          maxLength={160}
-          className={inputCls}
-          placeholder="e.g. Senior Solidity Engineer"
-        />
-      </Field>
+        <div className="pr-body">
+          <div className="pr-field">
+            <label htmlFor="ec-project">
+              Project <span className="pr-req">*</span>
+            </label>
+            <select
+              id="ec-project"
+              className="pr-input"
+              value={values.project_id}
+              onChange={(e) => update('project_id', e.target.value)}
+              disabled={!!listingId}
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.project_name}
+                </option>
+              ))}
+            </select>
+            {!listingId && (
+              <div className="pr-helper">
+                <span>
+                  Don&apos;t see your team?{' '}
+                  <a className="text-red-600 dark:text-red-400 hover:underline" href="/projects/new">
+                    Create a project →
+                  </a>
+                </span>
+              </div>
+            )}
+          </div>
 
-      <Field
-        label="Job description"
-        required
-        hint="Markdown is OK. Sanitized server-side. The first ~280 chars auto-fill the card teaser."
-      >
-        <textarea
-          value={values.description}
-          onChange={(e) => update('description', e.target.value)}
-          rows={10}
-          className={textareaCls}
-          placeholder="What does the role involve? What does the team look like? Tech stack, perks, anything candidates need."
-        />
-      </Field>
+          <div className="pr-field">
+            <label htmlFor="ec-title">
+              Job title <span className="pr-req">*</span>
+            </label>
+            <input
+              id="ec-title"
+              type="text"
+              className="pr-input"
+              value={values.title}
+              onChange={(e) => update('title', e.target.value)}
+              maxLength={160}
+              placeholder="e.g. Senior Solidity Engineer"
+            />
+            <div className="pr-helper">
+              <span />
+              <span style={{ fontFamily: 'var(--pr-mono)' }}>
+                {values.title.length}/160
+              </span>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field
-          label="Location"
-          required
-          hint='Start typing — pick a suggestion or enter your own. Picking "Remote (…)" auto-sets work mode.'
-        >
-          <input
-            type="text"
-            list={locationsListId}
-            value={values.location}
-            onChange={(e) => setLocation(e.target.value)}
-            maxLength={120}
-            className={inputCls}
-            placeholder="Search a city, country, or remote region…"
-            autoComplete="off"
-          />
-          <datalist id={locationsListId}>
-            {POPULAR_LOCATIONS.map((loc) => (
-              <option key={loc} value={loc} />
-            ))}
-          </datalist>
-        </Field>
-        <Field label="Work mode">
-          <select
-            value={values.remote_type}
-            onChange={(e) => update('remote_type', e.target.value as SubmitListingFormInitialValues['remote_type'])}
-            className={selectCls}
-          >
-            {REMOTE_OPTS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Employment type" required>
-          <select
-            value={values.employment_type}
-            onChange={(e) => update('employment_type', e.target.value as SubmitListingFormInitialValues['employment_type'])}
-            className={selectCls}
-          >
-            <option value="" disabled>
-              Select one…
-            </option>
-            {EMPLOYMENT_OPTS.filter((o) => o.value !== '').map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field
-          label="Years of work experience"
-          hint="Minimum candidates should bring. Leave blank for any."
-        >
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={40}
-            value={values.seniority}
-            onChange={(e) => update('seniority', e.target.value)}
-            className={inputCls}
-            placeholder="e.g. 3"
-          />
-        </Field>
+          <div className="pr-field">
+            <label htmlFor="ec-description">
+              Job description <span className="pr-req">*</span>
+            </label>
+            <textarea
+              id="ec-description"
+              className="pr-input"
+              style={{ minHeight: 220 }}
+              value={values.description}
+              onChange={(e) => update('description', e.target.value)}
+              rows={10}
+              placeholder="What does the role involve? Tech stack, team shape, perks, anything candidates need."
+            />
+            <div className="pr-helper">
+              <span>Markdown supported — sanitized server-side. First ~280 chars auto-fill the card teaser.</span>
+              <span style={{ fontFamily: 'var(--pr-mono)' }}>
+                {values.description.length} chars
+              </span>
+            </div>
+          </div>
+
+          <div className="pr-field-row">
+            <div className="pr-field">
+              <label htmlFor="ec-location">
+                Location <span className="pr-req">*</span>
+              </label>
+              <input
+                id="ec-location"
+                type="text"
+                list={locationsListId}
+                className="pr-input"
+                value={values.location}
+                onChange={(e) => setLocation(e.target.value)}
+                maxLength={120}
+                placeholder="Search a city, country, or remote region…"
+                autoComplete="off"
+              />
+              <datalist id={locationsListId}>
+                {POPULAR_LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
+              <div className="pr-helper">
+                <span>Picking &ldquo;Remote (…)&rdquo; auto-sets work mode.</span>
+              </div>
+            </div>
+            <div className="pr-field">
+              <label htmlFor="ec-remote">Work mode</label>
+              <select
+                id="ec-remote"
+                className="pr-input"
+                value={values.remote_type}
+                onChange={(e) =>
+                  update('remote_type', e.target.value as SubmitListingFormInitialValues['remote_type'])
+                }
+              >
+                {REMOTE_OPTS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="pr-field-row">
+            <div className="pr-field">
+              <label htmlFor="ec-employment">
+                Employment type <span className="pr-req">*</span>
+              </label>
+              <select
+                id="ec-employment"
+                className="pr-input"
+                value={values.employment_type}
+                onChange={(e) =>
+                  update(
+                    'employment_type',
+                    e.target.value as SubmitListingFormInitialValues['employment_type'],
+                  )
+                }
+              >
+                <option value="" disabled>
+                  Select one…
+                </option>
+                {EMPLOYMENT_OPTS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="pr-field">
+              <label htmlFor="ec-seniority">
+                Years of work experience{' '}
+                <span className="pr-opt">— minimum candidates should bring</span>
+              </label>
+              <input
+                id="ec-seniority"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={40}
+                className="pr-input"
+                value={values.seniority}
+                onChange={(e) => update('seniority', e.target.value)}
+                placeholder="e.g. 3"
+              />
+            </div>
+          </div>
+
+          <div className="pr-field">
+            <label htmlFor="ec-tags">
+              Tags <span className="pr-opt">— comma-separated, max 6</span>
+            </label>
+            <input
+              id="ec-tags"
+              type="text"
+              className="pr-input"
+              value={values.tags}
+              onChange={(e) => update('tags', e.target.value)}
+              placeholder="solidity, defi, remote-ok"
+            />
+          </div>
+
+          <div className="pr-field">
+            <label htmlFor="ec-apply">
+              Apply URL <span className="pr-req">*</span>
+            </label>
+            <div className="pr-input-group">
+              <span className="pr-pre">https://</span>
+              <input
+                id="ec-apply"
+                type="text"
+                value={values.apply_url.replace(/^https?:\/\//i, '')}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  update('apply_url', raw ? `https://${raw.replace(/^https?:\/\//i, '')}` : '');
+                }}
+                placeholder="yourcompany.com/careers/role-123"
+              />
+            </div>
+            <div className="pr-helper">
+              <span>LinkedIn, your careers page, Greenhouse — wherever applicants should land.</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <Field label="Tags" hint="Comma-separated, max 6 — e.g. solidity, defi, remote-ok.">
-        <input
-          type="text"
-          value={values.tags}
-          onChange={(e) => update('tags', e.target.value)}
-          className={inputCls}
-          placeholder="solidity, defi"
-        />
-      </Field>
-
-      <Field label="Apply URL" required hint="LinkedIn, your careers page, Greenhouse — wherever applicants should land.">
-        <input
-          type="url"
-          value={values.apply_url}
-          onChange={(e) => update('apply_url', e.target.value)}
-          className={inputCls}
-          placeholder="https://yourcompany.com/careers/role-123"
-        />
-      </Field>
-
-      <div className="flex items-center justify-end gap-3 pt-2">
+      <div
+        className={`pr-savebar${isDirty || submitting ? '' : ' pr-hidden'}`}
+        role="status"
+        aria-live="polite"
+      >
+        <span className="pr-dot" />
+        <span className="pr-msg">
+          {listingId ? (
+            <>
+              <b>Unsaved changes</b> — review and save when you&apos;re ready.
+            </>
+          ) : (
+            <>
+              <b>Ready to submit</b> — devrel reviews new teams within a week.
+            </>
+          )}
+        </span>
         <button
           type="button"
+          className="pr-btn pr-btn--ghost pr-btn--sm"
           onClick={() => router.back()}
-          className="px-4 py-2.5 text-sm font-medium rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+          disabled={submitting}
         >
           Cancel
         </button>
         <button
           type="submit"
+          className="pr-btn pr-btn--primary pr-btn--sm"
           disabled={submitting}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 hover:scale-[1.02] transition-all duration-200 disabled:opacity-60 disabled:hover:scale-100"
         >
           {submitting ? 'Saving…' : listingId ? 'Save changes' : 'Publish listing'}
         </button>
@@ -335,33 +425,3 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
     </form>
   );
 }
-
-function Field({
-  label,
-  required,
-  hint,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-        {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </span>
-      {children}
-      {hint && <span className="block text-xs text-zinc-500 dark:text-zinc-400">{hint}</span>}
-    </label>
-  );
-}
-
-const inputCls =
-  'w-full px-4 py-2.5 text-sm rounded-xl bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/60 transition';
-
-const textareaCls = `${inputCls} resize-y leading-relaxed`;
-
-const selectCls = inputCls;

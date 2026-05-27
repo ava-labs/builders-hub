@@ -5,13 +5,10 @@ import { approveProjectForCareers } from '@/server/services/ecosystemCareers/sub
 
 export const POST = withAuthRole<RouteParams<{ id: string }>>(
   'devrel',
-  async (_req, ctx, session) => {
-    const userId = session.user.id;
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+  async (_req, ctx) => {
     const { id } = await ctx.params;
     try {
-      const result = await approveProjectForCareers(id, userId);
+      const result = await approveProjectForCareers(id);
       revalidatePath('/ecosystem-careers');
       revalidatePath('/admin/ecosystem-careers');
       return NextResponse.json({ ok: true, activated: result.activated });

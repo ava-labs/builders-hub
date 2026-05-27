@@ -4,18 +4,16 @@
 -- table with both relational (community) and denormalized (external/legacy)
 -- company linkage.
 
--- ── Per-project careers review state on Project ──
--- Defaults to 'approved' so existing hackathon projects are unaffected;
--- community submissions transition the project to 'pending' on first listing
--- and a devrel approves at /admin/ecosystem-careers.
+-- ── Per-project careers approval on Project ──
+-- Defaults to false for every project regardless of origin (community form,
+-- hackathon submission, grant application). A devrel flips this at
+-- /admin/ecosystem-careers, which also activates every queued listing under
+-- the project in one action.
 ALTER TABLE "Project"
-    ADD COLUMN IF NOT EXISTS "careers_authorization_status"  TEXT NOT NULL DEFAULT 'approved',
-    ADD COLUMN IF NOT EXISTS "careers_authorized_by_user_id" TEXT,
-    ADD COLUMN IF NOT EXISTS "careers_authorized_at"         TIMESTAMPTZ(3),
-    ADD COLUMN IF NOT EXISTS "careers_rejection_reason"      TEXT;
+    ADD COLUMN IF NOT EXISTS "careers_approved" BOOLEAN NOT NULL DEFAULT false;
 
-CREATE INDEX IF NOT EXISTS "Project_careers_authorization_status_idx"
-    ON "Project"("careers_authorization_status");
+CREATE INDEX IF NOT EXISTS "Project_careers_approved_idx"
+    ON "Project"("careers_approved");
 
 -- ── JobListing table ──
 -- source = 'community'  → project_id is set (FK to Project); company_* fields NULL

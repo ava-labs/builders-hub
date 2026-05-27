@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { X as XIcon } from 'lucide-react';
+import { X as XIcon, Puzzle } from 'lucide-react';
 import {
   GITHUB_ACCOUNT_PATTERN,
   LINKEDIN_ACCOUNT_PATTERN,
@@ -39,6 +39,31 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
   const [teamMembers, setTeamMembers] = useState<SearchUser[]>([]);
   const update = <K extends keyof typeof values>(k: K, v: string) =>
     setValues((prev) => ({ ...prev, [k]: v }));
+
+  // Mono-prefix social inputs: store the full URL but show only the handle/slug.
+  function stripPrefix(value: string, prefix: RegExp): string {
+    return value.replace(prefix, '').replace(/\/+$/, '');
+  }
+  const xHandle = stripPrefix(values.x_account, /^https?:\/\/(?:www\.)?x\.com\//i);
+  const linkedinSlug = stripPrefix(
+    values.linkedin_account,
+    /^https?:\/\/(?:www\.)?linkedin\.com\/company\//i,
+  );
+  const githubHandle = stripPrefix(
+    values.github_account,
+    /^https?:\/\/(?:www\.)?github\.com\//i,
+  );
+
+  const setUrlField = (key: 'x_account' | 'linkedin_account' | 'github_account', base: string, slug: string) => {
+    const cleaned = slug.trim().replace(/^\/+|\/+$/g, '');
+    update(key, cleaned ? `${base}${cleaned}` : '');
+  };
+
+  const setWebsite = (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return update('website', '');
+    update('website', HTTPS_RE.test(trimmed) ? trimmed : `https://${trimmed.replace(/^\/+/, '')}`);
+  };
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,17 +112,14 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
       .map((m) => ({
         user_id: m.id,
         role: 'Member',
-        // New members start in pending state — they accept the invitation
-        // via the existing inbox/notifications flow.
         status: 'Pending Confirmation',
       }));
 
-    // Derive a card-friendly teaser from the full description.
     const fullDesc = values.full_description.trim();
     const teaser = fullDesc
       .replace(/\s+/g, ' ')
       .slice(0, 260)
-      .replace(/\s\S*$/, '') // don't cut a word in half
+      .replace(/\s\S*$/, '')
       .trim();
     const shortDescription = teaser.length < fullDesc.length ? `${teaser}…` : teaser;
 
@@ -159,165 +181,213 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
     setTeamMembers((prev) => prev.filter((m) => m.id !== id));
   }
 
+  const dirty =
+    !!values.project_name.trim() ||
+    !!values.full_description.trim() ||
+    !!values.logo_url.trim() ||
+    !!values.website.trim() ||
+    !!values.x_account.trim() ||
+    !!values.linkedin_account.trim() ||
+    !!values.github_account.trim() ||
+    !!values.tags.trim() ||
+    teamMembers.length > 0;
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <Field label="Project name" required>
-        <input
-          type="text"
-          value={values.project_name}
-          onChange={(e) => update('project_name', e.target.value)}
-          maxLength={120}
-          className={inputCls}
-          placeholder="Acme Labs"
-        />
-      </Field>
+    <form onSubmit={onSubmit}>
+      <div className="pr-card">
+        <div className="pr-head">
+          <div className="pr-ico">
+            <Puzzle size={18} />
+          </div>
+          <div>
+            <h3>Project profile</h3>
+            <div className="pr-desc">
+              Team-level info that powers your listings on Ecosystem Careers.
+            </div>
+          </div>
+        </div>
 
-      <LogoUploader
-        value={values.logo_url}
-        onChange={(url) => update('logo_url', url)}
-        required
-      />
+        <div className="pr-body">
+          <div className="pr-field">
+            <label htmlFor="np-name">
+              Project name <span className="pr-req">*</span>
+            </label>
+            <input
+              id="np-name"
+              type="text"
+              className="pr-input"
+              value={values.project_name}
+              onChange={(e) => update('project_name', e.target.value)}
+              maxLength={120}
+              placeholder="Acme Labs"
+            />
+          </div>
 
-      <Field
-        label="About"
-        required
-        hint="A short paragraph about your team. The first ~260 chars show on cards."
-      >
-        <textarea
-          value={values.full_description}
-          onChange={(e) => update('full_description', e.target.value)}
-          rows={5}
-          className={textareaCls}
-          placeholder="What does your team build, and what's the elevator pitch?"
-        />
-      </Field>
-
-      <Field label="Website" required hint="Your team's canonical site.">
-        <input
-          type="url"
-          value={values.website}
-          onChange={(e) => update('website', e.target.value)}
-          className={inputCls}
-          placeholder="https://yourcompany.com"
-        />
-      </Field>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Company X account" required hint="https://x.com/…">
-          <input
-            type="url"
-            value={values.x_account}
-            onChange={(e) => update('x_account', e.target.value)}
-            className={inputCls}
-            placeholder="https://x.com/yourcompany"
+          <LogoUploader
+            value={values.logo_url}
+            onChange={(url) => update('logo_url', url)}
+            required
           />
-        </Field>
-        <Field
-          label="Company LinkedIn account"
-          required
-          hint="Company or organization page."
-        >
-          <input
-            type="url"
-            value={values.linkedin_account}
-            onChange={(e) => update('linkedin_account', e.target.value)}
-            className={inputCls}
-            placeholder="https://linkedin.com/company/yourcompany"
-          />
-        </Field>
+
+          <div className="pr-field">
+            <label htmlFor="np-about">
+              About <span className="pr-req">*</span>
+            </label>
+            <textarea
+              id="np-about"
+              className="pr-input"
+              style={{ minHeight: 140 }}
+              value={values.full_description}
+              onChange={(e) => update('full_description', e.target.value)}
+              rows={5}
+              placeholder="What does your team build, and what's the elevator pitch?"
+            />
+            <div className="pr-helper">
+              <span>The first ~260 chars show on cards.</span>
+              <span style={{ fontFamily: 'var(--pr-mono)' }}>
+                {values.full_description.length} chars
+              </span>
+            </div>
+          </div>
+
+          <div className="pr-field">
+            <label htmlFor="np-website">
+              Website <span className="pr-req">*</span>
+            </label>
+            <div className="pr-input-group">
+              <span className="pr-pre">https://</span>
+              <input
+                id="np-website"
+                type="text"
+                value={values.website.replace(/^https?:\/\//i, '')}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="yourcompany.com"
+              />
+            </div>
+          </div>
+
+          <div className="pr-field-row">
+            <div className="pr-field">
+              <label htmlFor="np-x">
+                Company X account <span className="pr-req">*</span>
+              </label>
+              <div className="pr-input-group">
+                <span className="pr-pre">x.com/</span>
+                <input
+                  id="np-x"
+                  type="text"
+                  value={xHandle}
+                  onChange={(e) => setUrlField('x_account', 'https://x.com/', e.target.value)}
+                  placeholder="yourcompany"
+                />
+              </div>
+            </div>
+            <div className="pr-field">
+              <label htmlFor="np-li">
+                Company LinkedIn <span className="pr-req">*</span>
+              </label>
+              <div className="pr-input-group">
+                <span className="pr-pre">linkedin.com/company/</span>
+                <input
+                  id="np-li"
+                  type="text"
+                  value={linkedinSlug}
+                  onChange={(e) =>
+                    setUrlField('linkedin_account', 'https://linkedin.com/company/', e.target.value)
+                  }
+                  placeholder="yourcompany"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="pr-field">
+            <label htmlFor="np-gh">
+              GitHub <span className="pr-opt">— optional org or handle</span>
+            </label>
+            <div className="pr-input-group">
+              <span className="pr-pre">github.com/</span>
+              <input
+                id="np-gh"
+                type="text"
+                value={githubHandle}
+                onChange={(e) => setUrlField('github_account', 'https://github.com/', e.target.value)}
+                placeholder="yourorg"
+              />
+            </div>
+          </div>
+
+          <div className="pr-field">
+            <label>
+              Team members <span className="pr-opt">— optional, send pending invites</span>
+            </label>
+            <UserSearchPicker
+              onSelect={addTeamMember}
+              excludeUserIds={[userId, ...teamMembers.map((m) => m.id)]}
+              placeholder="Search by name…"
+            />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              <MemberChip
+                name={currentUserName ?? 'You'}
+                image={currentUserImage}
+                role="Creator"
+                removable={false}
+              />
+              {teamMembers.map((m) => (
+                <MemberChip
+                  key={m.id}
+                  name={m.name ?? m.user_name ?? 'Member'}
+                  image={m.image}
+                  role="Pending"
+                  removable
+                  onRemove={() => removeTeamMember(m.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="pr-field">
+            <label htmlFor="np-tags">
+              Tags <span className="pr-opt">— comma-separated, max 10</span>
+            </label>
+            <input
+              id="np-tags"
+              type="text"
+              className="pr-input"
+              value={values.tags}
+              onChange={(e) => update('tags', e.target.value)}
+              placeholder="defi, infra, gaming"
+            />
+          </div>
+        </div>
       </div>
 
-      <Field
-        label="GitHub"
-        hint="Optional — organization URL or handle."
+      <div
+        className={`pr-savebar${dirty || submitting ? '' : ' pr-hidden'}`}
+        role="status"
+        aria-live="polite"
       >
-        <input
-          type="text"
-          value={values.github_account}
-          onChange={(e) => update('github_account', e.target.value)}
-          className={inputCls}
-          placeholder="https://github.com/yourorg"
-        />
-      </Field>
-
-      <Field
-        label="Team members"
-        hint="Optional — invite other Builders Hub users by name. They'll see a pending invite to accept."
-      >
-        <UserSearchPicker
-          onSelect={addTeamMember}
-          excludeUserIds={[userId, ...teamMembers.map((m) => m.id)]}
-          placeholder="Search by name…"
-        />
-        <div className="mt-2 flex flex-wrap gap-2">
-          <MemberChip
-            name={currentUserName ?? 'You'}
-            image={currentUserImage}
-            role="Creator"
-            removable={false}
-          />
-          {teamMembers.map((m) => (
-            <MemberChip
-              key={m.id}
-              name={m.name ?? m.user_name ?? 'Member'}
-              image={m.image}
-              role="Pending"
-              removable
-              onRemove={() => removeTeamMember(m.id)}
-            />
-          ))}
-        </div>
-      </Field>
-
-      <Field label="Tags" hint="Comma-separated, max 10 — e.g. defi, infra, gaming.">
-        <input
-          type="text"
-          value={values.tags}
-          onChange={(e) => update('tags', e.target.value)}
-          className={inputCls}
-        />
-      </Field>
-
-      <div className="flex items-center justify-end gap-3 pt-2">
+        <span className="pr-dot" />
+        <span className="pr-msg">
+          <b>Ready to create</b> — you&apos;ll be sent to post your first role.
+        </span>
         <button
           type="button"
+          className="pr-btn pr-btn--ghost pr-btn--sm"
           onClick={() => router.back()}
-          className="px-4 py-2.5 text-sm font-medium rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+          disabled={submitting}
         >
           Cancel
         </button>
         <button
           type="submit"
+          className="pr-btn pr-btn--primary pr-btn--sm"
           disabled={submitting}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 hover:scale-[1.02] transition-all duration-200 disabled:opacity-60 disabled:hover:scale-100"
         >
           {submitting ? 'Creating…' : 'Create project'}
         </button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  required,
-  hint,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-        {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </span>
-      {children}
-      {hint && <span className="block text-xs text-zinc-500 dark:text-zinc-400">{hint}</span>}
-    </label>
   );
 }
 
@@ -335,33 +405,45 @@ function MemberChip({
   onRemove?: () => void;
 }) {
   return (
-    <span className="inline-flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/60 text-sm">
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 overflow-hidden">
+    <span
+      className="pr-chip"
+      style={{ paddingLeft: 4, paddingRight: removable ? 4 : 10, gap: 8 }}
+    >
+      <span
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          background: 'var(--pr-g-300)',
+          color: 'var(--pr-g-800)',
+          display: 'grid',
+          placeItems: 'center',
+          fontSize: 10,
+          fontWeight: 600,
+          overflow: 'hidden',
+          flexShrink: 0,
+        }}
+      >
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={name} className="w-full h-full object-cover" />
+          <img src={image} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           name.slice(0, 1).toUpperCase()
         )}
       </span>
-      <span className="text-zinc-900 dark:text-zinc-100">{name}</span>
-      <span className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-        {role}
-      </span>
+      <span>{name}</span>
+      <span style={{ fontSize: 10, opacity: 0.6, fontFamily: 'var(--pr-mono)' }}>{role}</span>
       {removable && onRemove && (
         <button
           type="button"
           onClick={onRemove}
-          className="ml-0.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+          className="pr-btn pr-btn--icon pr-btn--ghost"
+          style={{ width: 22, height: 22, padding: 0 }}
           aria-label={`Remove ${name}`}
         >
-          <XIcon className="w-3.5 h-3.5" />
+          <XIcon size={12} />
         </button>
       )}
     </span>
   );
 }
-
-const inputCls =
-  'w-full px-4 py-2.5 text-sm rounded-xl bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/60 transition';
-const textareaCls = `${inputCls} resize-y leading-relaxed`;

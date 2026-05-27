@@ -5,6 +5,7 @@ import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
 import { getListingForEdit } from '@/server/services/ecosystemCareers/queries';
 import { SubmitListingForm } from '@/components/ecosystem-careers/SubmitListingForm';
+import '@/components/profile/shell/styles.css';
 
 export const metadata: Metadata = createMetadata({
   title: 'Edit listing · Ecosystem Careers',
@@ -31,38 +32,36 @@ export default async function EditListingPage({ params }: Params) {
   if (!project) notFound();
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-12 lg:py-16 space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-          Edit listing
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Updating &ldquo;{listing.title}&rdquo; for {project.project_name}.
-        </p>
-      </header>
-      <SubmitListingForm
-        projects={[project]}
-        listingId={listing.id}
-        initialValues={{
-          project_id: project.id,
-          title: listing.title,
-          short_description: listing.shortDescription,
-          description: listing.description ?? '',
-          location: listing.location ?? '',
-          remote_type:
-            (listing.remoteType as 'remote' | 'onsite' | 'hybrid' | null) ?? '',
-          employment_type:
-            (listing.employmentType as 'full_time' | 'contract' | 'part_time' | null) ?? '',
-          // The submit form takes a raw number-of-years; if the stored value
-          // is "3+ years" (community submissions store it that way), pull the
-          // number back out for the input. Legacy/external rows that hold a
-          // category label like "senior" simply pre-fill blank.
-          seniority: extractYears(listing.seniority),
-          tags: listing.tags.join(', '),
-          apply_url: listing.applyUrl,
-        }}
-      />
-    </main>
+    <div className="profile">
+      <main className="pr-page" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px 96px' }}>
+        <header className="pr-page-head">
+          <div>
+            <h1 className="pr-ttl">Edit listing</h1>
+            <p className="pr-sub">
+              Updating &ldquo;{listing.title}&rdquo; for {project.project_name}.
+            </p>
+          </div>
+        </header>
+        <SubmitListingForm
+          projects={[project]}
+          listingId={listing.id}
+          initialValues={{
+            project_id: project.id,
+            title: listing.title,
+            short_description: listing.shortDescription,
+            description: listing.description ?? '',
+            location: listing.location ?? '',
+            remote_type:
+              (listing.remoteType as 'remote' | 'onsite' | 'hybrid' | null) ?? '',
+            employment_type:
+              (listing.employmentType as 'full_time' | 'contract' | 'part_time' | null) ?? '',
+            seniority: extractYears(listing.seniority),
+            tags: listing.tags.join(', '),
+            apply_url: listing.applyUrl,
+          }}
+        />
+      </main>
+    </div>
   );
 }
 
