@@ -1334,7 +1334,7 @@ const HackathonsEdit = () => {
 
   const processBase64Images = async (data: any): Promise<any> => {
     const processedData = { ...data };
-    const imageFields = ['banner', 'small_banner'];
+    const imageFields = ['banner', 'small_banner', 'icon'];
     for (const field of imageFields) {
       if (processedData[field] && processedData[field].startsWith('data:image/')) {
         const fileName = `builders-hub/hackathon-images/${processedData.title.toLowerCase().replace(/ /g, '-')}/${processedData.title}-${field}-${Date.now()}.${processedData[field].split(';')[0].split('/')[1]}`;
