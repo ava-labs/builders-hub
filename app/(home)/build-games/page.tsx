@@ -12,7 +12,7 @@ import type { Metadata } from "next";
 // BuildGamesMentors / Partners / Resources read the live hackathon row
 // from Postgres. Pre-rendering this page at build time fails when the
 // Neon serverless DB is napping — render at request time instead.
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Build Games 2026 | $1,000,000 Builder Competition on Avalanche",

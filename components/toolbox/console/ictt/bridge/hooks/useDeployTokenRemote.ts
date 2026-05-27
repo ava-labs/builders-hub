@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import ERC20TokenRemote from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
 import NativeTokenRemote from '@/contracts/icm-contracts/compiled/NativeTokenRemote.json';
-import { cb58ToHex } from '@/components/tools/common/utils/cb58';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import { useContractDeployer } from '@/components/toolbox/hooks/contracts';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
@@ -63,7 +63,7 @@ export function useDeployTokenRemote(remoteL1Id: string | null) {
       return null;
     }
     try {
-      const tokenHomeBlockchainID = cb58ToHex(params.homeL1Id) as Address;
+      const tokenHomeBlockchainID = CB58ToHex(params.homeL1Id) as Address;
       const decimals = params.decimals ?? params.homeDecimals;
 
       const settings = {
