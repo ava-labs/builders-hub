@@ -305,15 +305,15 @@ export async function createHackathon(
     throw new ValidationError("Validation failed", errors);
   }
   if (hackathonData.content?.schedule) {
-    const schedule = hackathonData.content.schedule.map(
-      (activity: ScheduleActivity) => {
+    const schedule = hackathonData.content.schedule
+      .filter((activity: ScheduleActivity) => typeof activity?.date === "string" && activity.date.trim() !== "")
+      .map((activity: ScheduleActivity) => {
         activity.date = getDateWithTimezone(
           activity.date,
           hackathonData.timezone ?? ""
         ).toISOString();
         return activity;
-      }
-    );
+      });
     hackathonData.content!.schedule = schedule;
   }
   const content = { ...hackathonData.content } as Prisma.JsonObject;
@@ -377,15 +377,15 @@ export async function updateHackathon(
   }
 
   if (hackathonData.content?.schedule) {
-    const schedule = hackathonData.content.schedule.map(
-      (activity: ScheduleActivity) => {
+    const schedule = hackathonData.content.schedule
+      .filter((activity: ScheduleActivity) => typeof activity?.date === "string" && activity.date.trim() !== "")
+      .map((activity: ScheduleActivity) => {
         activity.date = getDateWithTimezone(
           activity.date,
           hackathonData.timezone ?? ""
         ).toISOString();
         return activity;
-      }
-    );
+      });
     hackathonData.content!.schedule = schedule;
   }
   // Build update data object with only provided fields
