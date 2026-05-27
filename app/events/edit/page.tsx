@@ -1775,41 +1775,12 @@ const HackathonsEdit = () => {
     });
   };
 
-  // Check if user has required permissions
-  const hasRequiredPermissions = () => {
-    if (!session?.user?.custom_attributes) return false;
-    return session.user.custom_attributes.includes("team1-admin") || 
-           session.user.custom_attributes.includes("hackathonCreator") || 
-           session.user.custom_attributes.includes("devrel");
-  };
-
-  // Redirect unauthorized users
-  React.useEffect(() => {
-    if (status === "loading") return; // Still loading
-    
-    if (status === "unauthenticated") {
-      window.location.href = "/login";
-      return;
-    }
-    
-    if (status === "authenticated" && !hasRequiredPermissions()) {
-      window.location.href = "/";
-      return;
-    }
-  }, [session, status]);
-
-  // Show loading while checking authentication
   if (status === "loading") {
-  return (
+    return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
       </div>
     );
-  }
-
-  // Don't render if user is not authenticated or doesn't have permissions
-  if (status === "unauthenticated" || (status === "authenticated" && !hasRequiredPermissions())) {
-    return null; // Will redirect via useEffect
   }
 
   return (
