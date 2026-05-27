@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -34,10 +35,45 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLDivElement>(null);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
   const [focusedIndex, setFocusedIndex] = React.useState(-1);
   const listRef = React.useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const [dropdownPos, setDropdownPos] = React.useState({ top: 0, left: 0, width: 0 });
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updateDropdownPos = React.useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (open) {
+      updateDropdownPos();
+    }
+  }, [open, updateDropdownPos]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    window.addEventListener('scroll', updateDropdownPos, true);
+    window.addEventListener('resize', updateDropdownPos);
+    return () => {
+      window.removeEventListener('scroll', updateDropdownPos, true);
+      window.removeEventListener('resize', updateDropdownPos);
+    };
+  }, [open, updateDropdownPos]);
 
   const filteredOptions = React.useMemo(() => {
     return options.filter(option => 
@@ -47,7 +83,10 @@ export function MultiSelect({
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current && !containerRef.current.contains(event.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
         setFocusedIndex(-1);
         setSearchQuery('');
@@ -139,8 +178,8 @@ export function MultiSelect({
   }, [open]);
 
   return (
-    <div 
-      className="relative" 
+    <div
+      className="relative"
       ref={containerRef}
       role="combobox"
       aria-expanded={open}
@@ -148,6 +187,7 @@ export function MultiSelect({
       aria-controls="multi-select-listbox"
     >
       <div
+        ref={triggerRef}
         className={cn(
           "relative flex min-h-[44px] w-full flex-wrap items-center justify-between gap-1 rounded-md border border-input bg-background dark:bg-input/30 dark:hover:bg-input/50 px-3 py-2 text-sm ring-offset-background cursor-pointer",
           open && "border-ring"
@@ -190,15 +230,24 @@ export function MultiSelect({
         </div>
         <ChevronDown className={cn("h-4 w-4 shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
       </div>
-      {open && (
-        <div 
-          className="absolute top-full z-50 w-full mt-1"
+      {open && mounted && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            width: dropdownPos.width,
+            zIndex: 9999,
+          }}
           role="listbox"
           id="multi-select-listbox"
-          ref={listRef}
+          ref={(node) => {
+            (listRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+            (dropdownRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          }}
         >
           <Command className="rounded-lg border shadow-md">
-            <CommandInput 
+            <CommandInput
               ref={inputRef}
               placeholder={searchPlaceholder}
               value={searchQuery}
@@ -254,7 +303,8 @@ export function MultiSelect({
               })}
             </CommandGroup>
           </Command>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
