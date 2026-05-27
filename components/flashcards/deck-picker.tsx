@@ -9,6 +9,7 @@ import {
   Search,
   Sparkles,
   Loader2,
+  LogIn,
   X,
   BookOpen,
 } from 'lucide-react';
@@ -419,9 +420,25 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
           </p>
         )}
 
+        {status !== 'authenticated' && selected.size > 0 && (
+          <p className="text-xs text-muted-foreground" id="auth-required-hint">
+            Sign-in required to generate a deck. Your selections are kept until
+            you return.
+          </p>
+        )}
         <Button
           onClick={handleGenerate}
           disabled={isPending || selected.size === 0}
+          variant={
+            status !== 'authenticated' && selected.size > 0
+              ? 'outline'
+              : 'default'
+          }
+          aria-describedby={
+            status !== 'authenticated' && selected.size > 0
+              ? 'auth-required-hint'
+              : undefined
+          }
           className="w-full"
         >
           {isPending ? (
@@ -429,10 +446,15 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Generating...
             </>
-          ) : (
+          ) : status === 'authenticated' ? (
             <>
               <Sparkles className="mr-2 h-4 w-4" />
-              {status === 'authenticated' ? 'Generate deck' : 'Sign in to generate'}
+              Generate deck
+            </>
+          ) : (
+            <>
+              <LogIn className="mr-2 h-4 w-4" />
+              Sign in to start
             </>
           )}
         </Button>
