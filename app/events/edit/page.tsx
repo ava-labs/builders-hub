@@ -75,7 +75,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
           <li
             key={hackathon.id}
             className={
-              `text-sm px-3 py-2 rounded-md font-medium transition-colors duration-150 shadow-sm border border-zinc-300 dark:border-zinc-600 ` +
+              `text-sm px-3 py-2 rounded-md font-medium transition-colors duration-150 shadow-sm border border-zinc-300 dark:border-input ` +
               (hackathon.id === selectedId
                 ? 'bg-red-500 text-white'
                 : 'bg-zinc-200 dark:bg-zinc-700 hover:bg-red-500 hover:text-white')
@@ -101,7 +101,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-white text-white border-gray-300 hover:bg-gray-50"
+                    className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-background text-foreground border-input hover:bg-accent"
                     onClick={(e) => {
                       e.stopPropagation();
                       window.open(`/events/${hackathon.id}`, '_blank');
@@ -147,7 +147,7 @@ const UpdateModal = ({ open, onClose, onConfirm, fieldsToUpdate, t, language }: 
   if (!open) return null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 max-w-4xl w-full max-h-[90vh] flex flex-col">
+        <div className="bg-white dark:bg-card rounded-lg shadow-lg p-6 max-w-4xl w-full max-h-[90vh] flex flex-col">
           <h2 className="text-lg font-bold mb-4 flex-shrink-0">{t[language].confirmUpdateTitle || 'Confirm Update'}</h2>
           <p className="mb-2 flex-shrink-0">{t[language].confirmUpdateText || 'You are about to update the following fields:'}</p>
           <ul className="list-disc pl-6 flex-1 min-h-0 overflow-y-auto overflow-x-auto mb-4">
@@ -193,7 +193,7 @@ type TrackItemProps = {
 const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, onDone, onExpand, onRemove, onScrollToPreview, t, language, removing, tracksLength, rawTrackDescriptions, setRawTrackDescriptions, convertToHTML }: TrackItemProps) {
   return (
     <div
-      className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`track-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}
+      className={`border border-input rounded-lg p-4 mb-6 bg-card/40 relative transition-all duration-300 ease-in-out ${removing[`track-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}
     >
       {tracksLength > 1 && (
         <button
@@ -208,13 +208,13 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
       <h3 className="text-lg font-semibold mb-2">Track {index + 1}</h3>
       {collapsed ? (
         <div className="flex justify-end">
-          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
             <ChevronRight className="w-5 h-5" /> {t[language].expand}
           </button>
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].selectIcon}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].selectIcon}</div>
           <Select
             value={track.icon}
             onValueChange={(value) => {
@@ -235,7 +235,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
               <SelectItem value="cpu">CPU</SelectItem>
             </SelectContent>
           </Select>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].selectLogo}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].selectLogo}</div>
           <Select
             value={track.logo}
             onValueChange={(value) => {
@@ -256,7 +256,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
               <SelectItem value="cpu">CPU</SelectItem>
             </SelectContent>
           </Select>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].trackName}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].trackName}</div>
           <Input
             type="text"
             placeholder="Name"
@@ -265,7 +265,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].trackPartner}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].trackPartner}</div>
           <Input
             type="text"
             placeholder="Partner"
@@ -274,10 +274,10 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].trackDescription}</div>
-          <div className="mb-2 text-zinc-500 text-xs">Type a detailed description with formatting. Use the buttons below or type HTML directly.</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].trackDescription}</div>
+          <div className="mb-2 text-muted-foreground text-xs">Type a detailed description with formatting. Use the buttons below or type HTML directly.</div>
           {/* Formatting Toolbar for Track Description */}
-          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-zinc-800/50 border border-zinc-600 rounded-lg">
+          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-secondary/50 border border-input rounded-lg">
             <button
               type="button"
               onClick={() => {
@@ -406,18 +406,18 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
                 }
               }
             }}
-            className="w-full mb-3 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-32"
+            className="w-full mb-3 p-3 bg-secondary border border-input rounded-lg text-foreground placeholder:text-muted-foreground resize-none h-32"
             required
           />
           {track.description && (
             <div className="mb-3">
-              <div className="text-zinc-400 text-sm mb-2">HTML Preview:</div>
-              <div className="p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-20 overflow-y-auto">
+              <div className="text-muted-foreground text-sm mb-2">HTML Preview:</div>
+              <div className="p-3 bg-secondary border border-input rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-20 overflow-y-auto">
                 {track.description}
               </div>
             </div>
           )}
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].shortDescription}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].shortDescription}</div>
           <Input
             type="text"
             placeholder="Short Description"
@@ -454,7 +454,7 @@ type ScheduleItemProps = {
 
 const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, scheduleLength, toLocalDatetimeString }: ScheduleItemProps) {
   return (
-    <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`schedule-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
+    <div className={`border border-input rounded-lg p-4 mb-6 bg-card/40 relative transition-all duration-300 ease-in-out ${removing[`schedule-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       <button
         type="button"
         onClick={() => onRemove(index)}
@@ -466,13 +466,13 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
       <h3 className="text-lg font-semibold mb-2">Schedule {index + 1}</h3>
       {collapsed ? (
         <div className="flex justify-end">
-          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
             <ChevronRight className="w-5 h-5" /> {t[language].expand}
           </button>
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleDate}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].scheduleDate}</div>
           <Input
             type="datetime-local"
             placeholder="Date"
@@ -483,7 +483,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleName}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].scheduleName}</div>
           <Input
             type="text"
             placeholder="Name"
@@ -492,7 +492,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleCategory}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].scheduleCategory}</div>
           <Select
             value={event.category}
             onValueChange={(value) => onChange(index, 'category', value)}
@@ -513,7 +513,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
               <SelectItem value="Ceremony">Ceremony</SelectItem>
             </SelectContent>
           </Select>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleLocation}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].scheduleLocation}</div>
           <Input
             type="text"
             placeholder="Location"
@@ -522,7 +522,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleDescription}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].scheduleDescription}</div>
           <Input
             type="text"
             placeholder="Description"
@@ -531,7 +531,7 @@ const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleDuration}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].scheduleDuration}</div>
           <Input
             type="number"
             placeholder="Duration (minutes)"
@@ -570,7 +570,7 @@ type SpeakerItemProps = {
 
 const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, speakersLength, onPictureChange, onImageFileTooLarge }: SpeakerItemProps) {
   return (
-    <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
+    <div className={`border border-input rounded-lg p-4 mb-6 bg-card/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       {speakersLength > 1 && (
         <button
           type="button"
@@ -584,13 +584,13 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
       <h3 className="text-lg font-semibold mb-2">Speaker {index + 1}</h3>
       {collapsed ? (
         <div className="flex justify-end">
-          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
             <ChevronRight className="w-5 h-5" /> {t[language].expand}
           </button>
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerIcon}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].speakerIcon}</div>
           <Select
             value={speaker.icon}
             onValueChange={(value) => onChange(index, 'icon', value)}
@@ -603,7 +603,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
               <SelectItem value="megaphone">Megaphone</SelectItem>
             </SelectContent>
           </Select>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerName}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].speakerName}</div>
           <Input
             type="text"
             placeholder="Name"
@@ -612,7 +612,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerCompany}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].speakerCompany}</div>
           <Input
             type="text"
             placeholder="Category"
@@ -621,7 +621,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             className="w-full mb-1"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">Picture</div>
+          <div className="mb-2 text-muted-foreground text-sm">Picture</div>
           <div className="mb-2">
             <input
               type="file"
@@ -640,7 +640,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
                   reader.readAsDataURL(file);
                 }
               }}
-              className="w-full p-2 border border-zinc-600 rounded bg-zinc-800 text-zinc-200"
+              className="w-full p-2 border border-input rounded bg-secondary text-foreground"
             />
           </div>
           <div className="mb-2">
@@ -657,7 +657,7 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
               <img 
                 src={speaker.picture} 
                 alt={speaker.name} 
-                className="w-20 h-20 object-cover rounded border border-zinc-600" 
+                className="w-20 h-20 object-cover rounded border border-input" 
               />
             </div>
           )}
@@ -688,7 +688,7 @@ type ResourceItemProps = {
 
 const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, resourcesLength }: ResourceItemProps) {
   return (
-    <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`resource-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
+    <div className={`border border-input rounded-lg p-4 mb-6 bg-card/40 relative transition-all duration-300 ease-in-out ${removing[`resource-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       {resourcesLength > 1 && (
         <button
           type="button"
@@ -702,13 +702,13 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
       <h3 className="text-lg font-semibold mb-2">Resource {index + 1}</h3>
       {collapsed ? (
         <div className="flex justify-end">
-          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
             <ChevronRight className="w-5 h-5" /> {t[language].expand}
           </button>
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].resourceIcon}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].resourceIcon}</div>
           <Select
             value={resource.icon}
             onValueChange={(value) => onChange(index, 'icon', value)}
@@ -723,7 +723,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
               <SelectItem value="layout-grid">Layout Grid</SelectItem>
             </SelectContent>
           </Select>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].resourceLink}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].resourceLink}</div>
           <Input
             type="text"
             placeholder="Link"
@@ -732,7 +732,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].resourceTitle}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].resourceTitle}</div>
           <Input
             type="text"
             placeholder="Title"
@@ -741,7 +741,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
             className="w-full mb-3"
             required
           />
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].resourceDescription}</div>
+          <div className="mb-2 text-muted-foreground text-sm">{t[language].resourceDescription}</div>
           <Input
             type="text"
             placeholder="Description"
@@ -1419,9 +1419,12 @@ const HackathonsEdit = () => {
           await getMyHackathons();
         } else {
           const data = await response.json().catch(() => ({}));
+          const details = Array.isArray(data?.details) && data.details.length > 0
+            ? data.details.map((d: any) => `• ${d.field}: ${d.message}`).join('\n')
+            : null;
           toast({
             title: 'Error creating event',
-            description: data?.error ?? 'Failed to create event. Please try again.',
+            description: details ?? data?.error ?? 'Failed to create event. Please try again.',
             variant: 'destructive',
           });
         }
@@ -1463,9 +1466,12 @@ const HackathonsEdit = () => {
           await getMyHackathons();
         } else {
           const data = await response.json().catch(() => ({}));
+          const details = Array.isArray(data?.details) && data.details.length > 0
+            ? data.details.map((d: any) => `• ${d.field}: ${d.message}`).join('\n')
+            : null;
           toast({
             title: 'Error updating event',
-            description: data?.error ?? 'Failed to update event. Please try again.',
+            description: details ?? data?.error ?? 'Failed to update event. Please try again.',
             variant: 'destructive',
           });
         }
@@ -1779,7 +1785,7 @@ const HackathonsEdit = () => {
   if (status === "loading") {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-foreground text-xl">Loading...</div>
       </div>
     );
   }
@@ -1788,10 +1794,10 @@ const HackathonsEdit = () => {
     <div className="h-screen flex flex-col">
       <Toaster />
       {/* Header */}
-      <div className="bg-zinc-900 border-b border-zinc-700 p-4">
+      <div className="bg-card border-b border-input p-4">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-white">{t[language].editEvents}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t[language].editEvents}</h1>
             <div className="flex items-center gap-2 px-3 py-1 bg-green-600 rounded-full text-sm">
               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
               <span className="text-white">Live Preview</span>
@@ -1821,7 +1827,7 @@ const HackathonsEdit = () => {
         {/* Left Panel - Edit Form */}
         <div
           ref={leftPanelRef}
-          className="w-1/2 overflow-y-auto bg-zinc-950 max-h-[calc(100vh-80px)]"
+          className="w-1/2 overflow-y-auto bg-background max-h-[calc(100vh-80px)]"
         >
     <div className="container mx-auto px-4 py-8">
       <UpdateModal
@@ -1843,7 +1849,7 @@ const HackathonsEdit = () => {
       />
       {/* Sticky bar: action buttons + step navigation (always visible when editing) */}
       {(isSelectedHackathon || (showForm && hasEditPermission)) && (
-        <div className="sticky top-0 z-20 bg-zinc-950/98 backdrop-blur border-b border-zinc-800 mb-4">
+        <div className="sticky top-0 z-20 bg-background/98 backdrop-blur border-b border-border mb-4">
           {isSelectedHackathon && (
             <div className="flex gap-2 py-2 flex-wrap items-center">
               <Button onClick={handleCancelEdit} variant="outline">
@@ -1868,7 +1874,7 @@ const HackathonsEdit = () => {
             </div>
           )}
           {showForm && hasEditPermission && (
-            <div className={`flex flex-wrap gap-2 py-3 ${isSelectedHackathon ? 'border-t border-zinc-800/80' : ''}`}>
+            <div className={`flex flex-wrap gap-2 py-3 ${isSelectedHackathon ? 'border-t border-border/80' : ''}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -1881,7 +1887,7 @@ const HackathonsEdit = () => {
                 className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                   activeStep === 'step1'
                     ? 'bg-red-600 text-white border-red-500'
-                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                    : 'bg-card text-foreground border-input hover:bg-secondary'
                 }`}
               >
                 Basic Info
@@ -1898,7 +1904,7 @@ const HackathonsEdit = () => {
                 className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                   activeStep === 'step2'
                     ? 'bg-red-600 text-white border-red-500'
-                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                    : 'bg-card text-foreground border-input hover:bg-secondary'
                 }`}
               >
                 Images & Branding
@@ -1915,7 +1921,7 @@ const HackathonsEdit = () => {
                 className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                   activeStep === 'step3'
                     ? 'bg-red-600 text-white border-red-500'
-                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                    : 'bg-card text-foreground border-input hover:bg-secondary'
                 }`}
               >
                 {formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}
@@ -1933,7 +1939,7 @@ const HackathonsEdit = () => {
                   className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                     activeStep === 'step4'
                       ? 'bg-red-600 text-white border-red-500'
-                      : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                      : 'bg-card text-foreground border-input hover:bg-secondary'
                   }`}
                 >
                   Track Text
@@ -1951,7 +1957,7 @@ const HackathonsEdit = () => {
                 className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                   activeStep === 'step5'
                     ? 'bg-red-600 text-white border-red-500'
-                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                    : 'bg-card text-foreground border-input hover:bg-secondary'
                 }`}
               >
                 Content
@@ -1968,7 +1974,7 @@ const HackathonsEdit = () => {
                 className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                   activeStep === 'step6'
                     ? 'bg-red-600 text-white border-red-500'
-                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                    : 'bg-card text-foreground border-input hover:bg-secondary'
                 }`}
               >
                 Last Details
@@ -2046,17 +2052,17 @@ const HackathonsEdit = () => {
                 Use new layout (modern event page)
               </label>
             </div>
-            <p className="text-zinc-400 text-sm mt-2">
+            <p className="text-muted-foreground text-sm mt-2">
               Toggle on for the modern layout (workshop-style), off for the legacy hackathon layout.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div ref={step1Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step1Ref} className="bg-card/60 border border-input rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
                 {collapsed.main && (
-                  <button onClick={() => setCollapsed({ ...collapsed, main: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                  <button onClick={() => setCollapsed({ ...collapsed, main: false })} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
                   </button>
                 )}
@@ -2068,7 +2074,7 @@ const HackathonsEdit = () => {
                     <p className="text-sm text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
                   </div>
                   
-                  <div className="mb-2 text-zinc-400 text-sm">Hackathon Title</div>
+                  <div className="mb-2 text-muted-foreground text-sm">Hackathon Title</div>
                   <Input
                     type="text"
                     name="title"
@@ -2082,7 +2088,7 @@ const HackathonsEdit = () => {
                     required
                   />
                   
-                  <div className="mb-2 text-zinc-400 text-sm">Description</div>
+                  <div className="mb-2 text-muted-foreground text-sm">Description</div>
                   <textarea
                     name="description"
                     placeholder="Describe your hackathon, its goals, and what participants will build..."
@@ -2091,11 +2097,11 @@ const HackathonsEdit = () => {
                       setFormDataMain(prev => ({ ...prev, description: e.target.value }));
                       scrollToSection('about');
                     }}
-                    className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-24"
+                    className="w-full mb-4 p-3 bg-secondary border border-input rounded-lg text-foreground placeholder:text-muted-foreground resize-none h-24"
                     required
                   />
                   
-                  <div className="mb-2 text-zinc-400 text-sm">Location</div>
+                  <div className="mb-2 text-muted-foreground text-sm">Location</div>
                   <Input
                     type="text"
                     name="location"
@@ -2109,9 +2115,9 @@ const HackathonsEdit = () => {
                     required
                   />
                   
-                  <div className="flex flex-col space-y-2 bg-zinc-900/60 border border-zinc-700 rounded-lg p-4 my-4">
+                  <div className="flex flex-col space-y-2 bg-card/60 border border-input rounded-lg p-4 my-4">
                     <label className="font-medium">Tags (Optional)</label>
-                    <div className="mb-2 text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
+                    <div className="mb-2 text-muted-foreground text-sm">Add relevant tags to help participants find your hackathon</div>
                     <div className="flex flex-wrap gap-2 items-center">
                       {formDataMain.tags.map((tag, idx) => (
                         <div key={idx} className="flex items-center gap-1">
@@ -2143,16 +2149,16 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.main && (
-                <div className="text-zinc-400 italic">✓ Basic hackathon info completed</div>
+                <div className="text-muted-foreground italic">✓ Basic hackathon info completed</div>
               )}
             </div>
             
             {/* Step 2: Images & Branding */}
-            <div ref={step2Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step2Ref} className="bg-card/60 border border-input rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 2: Images & Branding</h2>
                 {collapsed.images && (
-                  <button onClick={() => setCollapsed({ ...collapsed, images: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                  <button onClick={() => setCollapsed({ ...collapsed, images: false })} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
                   </button>
                 )}
@@ -2167,7 +2173,7 @@ const HackathonsEdit = () => {
                   {/* Banner Image */}
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Main Banner:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">The main banner image displayed at the top of your hackathon page</div>
+                    <div className="mb-2 text-muted-foreground text-sm">The main banner image displayed at the top of your hackathon page</div>
                     
                     <div className="mb-4">
                       <div className="flex gap-4 items-start">
@@ -2195,7 +2201,7 @@ const HackathonsEdit = () => {
                                 reader.readAsDataURL(file);
                               }
                             }}
-                            className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                            className="w-full p-2 bg-secondary border border-input rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
                           />
                         </div>
                         
@@ -2214,8 +2220,8 @@ const HackathonsEdit = () => {
                       {/* Banner Preview */}
                       {formDataLatest.banner && (
                         <div className="mt-4">
-                          <div className="text-zinc-400 text-sm mb-2">Preview (1600 x 909):</div>
-                          <div className="relative w-full max-w-2xl mx-auto bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden" style={{ aspectRatio: '1600/909' }}>
+                          <div className="text-muted-foreground text-sm mb-2">Preview (1600 x 909):</div>
+                          <div className="relative w-full max-w-2xl mx-auto bg-secondary border border-input rounded-lg overflow-hidden" style={{ aspectRatio: '1600/909' }}>
                             <img
                               src={formDataLatest.banner}
                               alt="Banner preview"
@@ -2225,7 +2231,7 @@ const HackathonsEdit = () => {
                                 (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
                               }}
                             />
-                            <div className="hidden absolute inset-0 items-center justify-center text-zinc-500">
+                            <div className="hidden absolute inset-0 items-center justify-center text-muted-foreground">
                               Invalid image URL
                             </div>
                           </div>
@@ -2237,7 +2243,7 @@ const HackathonsEdit = () => {
                   
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Small Banner:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">A smaller banner image for additional branding</div>
+                    <div className="mb-2 text-muted-foreground text-sm">A smaller banner image for additional branding</div>
                     
                     <div className="mb-4">
                       <div className="flex gap-4 items-start">
@@ -2264,7 +2270,7 @@ const HackathonsEdit = () => {
                                 reader.readAsDataURL(file);
                               }
                             }}
-                            className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                            className="w-full p-2 bg-secondary border border-input rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
                           />
                         </div>
                         
@@ -2281,8 +2287,8 @@ const HackathonsEdit = () => {
                       
                       {formDataLatest.small_banner && (
                         <div className="mt-4">
-                          <div className="text-zinc-400 text-sm mb-2">Preview (601 x 1028):</div>
-                          <div className="relative w-32 mx-auto bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden" style={{ aspectRatio: '601/1028' }}>
+                          <div className="text-muted-foreground text-sm mb-2">Preview (601 x 1028):</div>
+                          <div className="relative w-32 mx-auto bg-secondary border border-input rounded-lg overflow-hidden" style={{ aspectRatio: '601/1028' }}>
                             <img
                               src={formDataLatest.small_banner}
                               alt="Small banner preview"
@@ -2292,7 +2298,7 @@ const HackathonsEdit = () => {
                                 (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
                               }}
                             />
-                            <div className="hidden absolute inset-0 items-center justify-center text-zinc-500 text-xs">
+                            <div className="hidden absolute inset-0 items-center justify-center text-muted-foreground text-xs">
                               Invalid image URL
                             </div>
                           </div>
@@ -2313,18 +2319,18 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.images && (
-                <div className="text-zinc-400 italic">✓ Images & branding completed</div>
+                <div className="text-muted-foreground italic">✓ Images & branding completed</div>
               )}
             </div>
             
             {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
-            <div ref={step3Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step3Ref} className="bg-card/60 border border-input rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">
                   {formDataLatest.event === 'hackathon' ? 'Step 3: Participants & Prizes' : 'Step 3: Organizer'}
                 </h2>
                 {collapsed.about && (
-                  <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                  <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
                   </button>
                 )}
@@ -2337,7 +2343,7 @@ const HackathonsEdit = () => {
                         <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
                         <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
                       </div>
-                      <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
+                      <div className="mb-2 text-muted-foreground text-sm">Expected Number of Participants</div>
                       <Input
                         type="number"
                         name="participants"
@@ -2352,7 +2358,7 @@ const HackathonsEdit = () => {
                       />
                     </>
                   )}
-                  <div className="mb-2 text-zinc-400 text-sm">Organizing team</div>
+                  <div className="mb-2 text-muted-foreground text-sm">Organizing team</div>
                   <select
                     name="organizers"
                     value={formDataMain.organizers || ''}
@@ -2360,7 +2366,7 @@ const HackathonsEdit = () => {
                       setFormDataMain(prev => ({ ...prev, organizers: e.target.value }));
                       scrollToSection('about');
                     }}
-                    className="w-full mb-4 bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                    className="w-full mb-4 bg-card border border-input rounded-md px-3 py-2 text-foreground"
                     required
                   >
                     <option value="">Select an organizing team…</option>
@@ -2375,7 +2381,7 @@ const HackathonsEdit = () => {
                   </select>
                   {formDataLatest.event === 'hackathon' && (
                     <>
-                      <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
+                      <div className="mb-2 text-muted-foreground text-sm">Total Prize Pool (USD)</div>
                       <Input
                         type="number"
                         name="total_prizes"
@@ -2402,7 +2408,7 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.about && (
-                <div className="text-zinc-400 italic">
+                <div className="text-muted-foreground italic">
                   {formDataLatest.event === 'hackathon' ? '✓ Participants & prizes completed' : '✓ Organizer completed'}
                 </div>
               )}
@@ -2410,11 +2416,11 @@ const HackathonsEdit = () => {
             
             {/* Step 4: Track Text - Only for Hackathons */}
             {formDataLatest.event === 'hackathon' && (
-            <div ref={step4Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step4Ref} className="bg-card/60 border border-input rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
                 {collapsed.trackText && (
-                  <button onClick={() => setCollapsed({ ...collapsed, trackText: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                  <button onClick={() => setCollapsed({ ...collapsed, trackText: false })} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
                   </button>
                 )}
@@ -2426,11 +2432,11 @@ const HackathonsEdit = () => {
                     <p className="text-sm text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
                   </div>
                   
-                  <div className="mb-2 text-zinc-400 text-sm">Schedule Text:</div>
-                  <div className="mb-2 text-zinc-500 text-xs">Write a step-by-step schedule outlining what will happen, either hour by hour or week by week. Use the formatting buttons below or type markdown directly.</div>
+                  <div className="mb-2 text-muted-foreground text-sm">Schedule Text:</div>
+                  <div className="mb-2 text-muted-foreground text-xs">Write a step-by-step schedule outlining what will happen, either hour by hour or week by week. Use the formatting buttons below or type markdown directly.</div>
                   
                   {/* Formatting Toolbar */}
-                  <div className="flex flex-wrap gap-2 mb-3 p-3 bg-zinc-800/50 border border-zinc-600 rounded-lg">
+                  <div className="flex flex-wrap gap-2 mb-3 p-3 bg-secondary/50 border border-input rounded-lg">
                     <button
                       type="button"
                       onClick={() => {
@@ -2603,7 +2609,7 @@ const HackathonsEdit = () => {
                         }
                       }
                     }}
-                    className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-48"
+                    className="w-full mb-4 p-3 bg-secondary border border-input rounded-lg text-foreground placeholder:text-muted-foreground resize-none h-48"
                     required
                   />
                   
@@ -2624,8 +2630,8 @@ const HackathonsEdit = () => {
                   
                   {formDataContent.tracks_text && (
                     <div className="mb-4">
-                      <div className="text-zinc-400 text-sm mb-2">Markdown Preview:</div>
-                      <div className="p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                      <div className="text-muted-foreground text-sm mb-2">Markdown Preview:</div>
+                      <div className="p-3 bg-secondary border border-input rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
                         {formDataContent.tracks_text}
                       </div>
                     </div>
@@ -2643,17 +2649,17 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.trackText && (
-                <div className="text-zinc-400 italic">✓ Track text completed</div>
+                <div className="text-muted-foreground italic">✓ Track text completed</div>
               )}
             </div>
             )}
             
             {/* Step 5: Content - Tracks, Schedule, etc. */}
-            <div ref={step5Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step5Ref} className="bg-card/60 border border-input rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 5: Content</h2>
                 {collapsed.content && (
-                  <button onClick={() => setCollapsed({ ...collapsed, content: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                  <button onClick={() => setCollapsed({ ...collapsed, content: false })} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
                   </button>
                 )}
@@ -2670,7 +2676,7 @@ const HackathonsEdit = () => {
                           className={`px-3 py-1 rounded-full text-xs border transition-colors ${
                             contentTab === 'tracks'
                               ? 'bg-red-600 text-white border-red-500'
-                              : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                              : 'bg-card text-foreground border-input hover:bg-secondary'
                           }`}
                         >
                           {t[language].tracks}
@@ -2682,7 +2688,7 @@ const HackathonsEdit = () => {
                         className={`px-3 py-1 rounded-full text-xs border transition-colors ${
                           contentTab === 'meta'
                             ? 'bg-red-600 text-white border-red-500'
-                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                            : 'bg-card text-foreground border-input hover:bg-secondary'
                         }`}
                       >
                         Meta
@@ -2693,7 +2699,7 @@ const HackathonsEdit = () => {
                         className={`px-3 py-1 rounded-full text-xs border transition-colors ${
                           contentTab === 'schedule'
                             ? 'bg-red-600 text-white border-red-500'
-                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                            : 'bg-card text-foreground border-input hover:bg-secondary'
                         }`}
                       >
                         {t[language].schedule}
@@ -2704,7 +2710,7 @@ const HackathonsEdit = () => {
                         className={`px-3 py-1 rounded-full text-xs border transition-colors ${
                           contentTab === 'resources'
                             ? 'bg-red-600 text-white border-red-500'
-                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                            : 'bg-card text-foreground border-input hover:bg-secondary'
                         }`}
                       >
                         {t[language].resources}
@@ -2715,7 +2721,7 @@ const HackathonsEdit = () => {
                         className={`px-3 py-1 rounded-full text-xs border transition-colors ${
                           contentTab === 'speakers'
                             ? 'bg-red-600 text-white border-red-500'
-                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                            : 'bg-card text-foreground border-input hover:bg-secondary'
                         }`}
                       >
                         {t[language].speakers}
@@ -2727,7 +2733,7 @@ const HackathonsEdit = () => {
                           className={`px-3 py-1 rounded-full text-xs border transition-colors ${
                             contentTab === 'submission'
                               ? 'bg-red-600 text-white border-red-500'
-                              : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                              : 'bg-card text-foreground border-input hover:bg-secondary'
                           }`}
                         >
                           {t[language].submissionDeadline}
@@ -2773,7 +2779,7 @@ const HackathonsEdit = () => {
                     <>
                       <div className="space-y-4">
                         <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
+                        <div className="mb-2 text-muted-foreground text-sm">{t[language].addressHelp}</div>
                         <Input
                           type="text"
                           placeholder="Address"
@@ -2785,7 +2791,7 @@ const HackathonsEdit = () => {
                       </div>
                       <div className="space-y-4">
                         <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
+                        <div className="mb-2 text-muted-foreground text-sm">{t[language].googleCalendarIdHelp}</div>
                         <Input
                           type="text"
                           placeholder="e.g. primary or abc123@group.calendar.google.com"
@@ -2801,7 +2807,7 @@ const HackathonsEdit = () => {
                   {contentTab === 'schedule' && (
                     <div className="space-y-4">
                       <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
+                      <div className="mb-2 text-muted-foreground text-sm">{t[language].scheduleHelp}</div>
                       {formDataContent.schedule.map((event, index) => (
                         <ScheduleItem
                           key={index}
@@ -2896,7 +2902,7 @@ const HackathonsEdit = () => {
                     <div className="space-y-4">
                       <div>
                         <label className="font-medium text-xl mb-2 block">{t[language].submissionOpen}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionOpenHelp}</div>
+                        <div className="mb-2 text-muted-foreground text-sm">{t[language].submissionOpenHelp}</div>
                         <Input
                           type="datetime-local"
                           placeholder="Submission Opens At"
@@ -2907,7 +2913,7 @@ const HackathonsEdit = () => {
                       </div>
                       <div>
                         <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
+                        <div className="mb-2 text-muted-foreground text-sm">{t[language].submissionDeadlineHelp}</div>
                         <Input
                           type="datetime-local"
                           placeholder="Submission Deadline"
@@ -2919,7 +2925,7 @@ const HackathonsEdit = () => {
                       </div>
                       <div>
                         <label className="font-medium text-xl mb-2 block">{t[language].teamSizeMax}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].teamSizeMaxHelp}</div>
+                        <div className="mb-2 text-muted-foreground text-sm">{t[language].teamSizeMaxHelp}</div>
                         <Input
                           type="number"
                           min={1}
@@ -2938,7 +2944,7 @@ const HackathonsEdit = () => {
                       </div>
                       <div>
                         <label className="font-medium text-xl mb-2 block">{t[language].registrationMode}:</label>
-                        <div className="mb-2 text-zinc-400 text-sm">{t[language].registrationModeHelp}</div>
+                        <div className="mb-2 text-muted-foreground text-sm">{t[language].registrationModeHelp}</div>
                         <select
                           value={formDataContent.registration_mode ?? 'full'}
                           onChange={(e) =>
@@ -2947,7 +2953,7 @@ const HackathonsEdit = () => {
                               registration_mode: e.target.value === 'simple' ? 'simple' : 'full',
                             })
                           }
-                          className="w-full mb-4 bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                          className="w-full mb-4 bg-card border border-input rounded-md px-3 py-2 text-foreground"
                         >
                           <option value="full">full</option>
                           <option value="simple">simple</option>
@@ -2968,14 +2974,14 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.content && (
-                <div className="text-zinc-400 italic">{t[language].contentCompleted}</div>
+                <div className="text-muted-foreground italic">{t[language].contentCompleted}</div>
               )}
             </div>
-            <div ref={step6Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
+            <div ref={step6Ref} className="bg-card/60 border border-input rounded-lg p-6 my-6 mt-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 6: Last Details</h2>
                 {collapsed.last && (
-                  <button onClick={() => setCollapsed({ ...collapsed, last: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                  <button onClick={() => setCollapsed({ ...collapsed, last: false })} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
                   </button>
                 )}
@@ -2993,13 +2999,13 @@ const HackathonsEdit = () => {
                           setFormDataLatest(prev => ({ ...prev, top_most: checked }));
                         }}
                       />
-                      <label htmlFor="top_most" className="text-zinc-400 text-sm cursor-pointer">
+                      <label htmlFor="top_most" className="text-muted-foreground text-sm cursor-pointer">
                         Top most
                       </label>
                     </div>
                     */}
                     <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
+                    <div className="mb-2 text-muted-foreground text-sm">{t[language].customLinkHelp}</div>
                     <Input
                       type="text"
                       name="custom_link"
@@ -3011,7 +3017,7 @@ const HackathonsEdit = () => {
                       className="w-full mb-4"
                     />
                     <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
+                    <div className="mb-2 text-muted-foreground text-sm">{t[language].joinCustomLinkHelp}</div>
                     <Input
                       type="text"
                       name="join_custom_link"
@@ -3023,7 +3029,7 @@ const HackathonsEdit = () => {
                       className="w-full mb-4"
                     />
                     <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
+                    <div className="mb-2 text-muted-foreground text-sm">{t[language].submissionCustomLinkHelp}</div>
                     <Input
                       type="text"
                       name="submission_custom_link"
@@ -3036,7 +3042,7 @@ const HackathonsEdit = () => {
                     />
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].startDateHelp}</div>
+                      <div className="mb-2 text-muted-foreground text-sm">{t[language].startDateHelp}</div>
                       <Input
                         type="datetime-local"
                         placeholder="Start Date"
@@ -3052,7 +3058,7 @@ const HackathonsEdit = () => {
                     </div>
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].endDate}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].endDateHelp}</div>
+                      <div className="mb-2 text-muted-foreground text-sm">{t[language].endDateHelp}</div>
                       <Input
                         type="datetime-local"
                         placeholder="End Date"
@@ -3071,7 +3077,7 @@ const HackathonsEdit = () => {
                     </div>
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].timezoneHelp}</div>
+                      <div className="mb-2 text-muted-foreground text-sm">{t[language].timezoneHelp}</div>
                       <Select
                         value={formDataLatest.timezone}
                         onValueChange={(value) => setFormDataLatest({ ...formDataLatest, timezone: value })}
@@ -3134,7 +3140,7 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.last && (
-                <div className="text-zinc-400 italic">{t[language].lastDetailsCompleted}</div>
+                <div className="text-muted-foreground italic">{t[language].lastDetailsCompleted}</div>
               )}
             </div>
             {!isSelectedHackathon && (
@@ -3163,7 +3169,7 @@ const HackathonsEdit = () => {
             )}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 max-w-lg w-full">
+          <div className="bg-white dark:bg-card rounded-lg shadow-lg p-6 max-w-lg w-full">
             <h2 className="text-lg font-bold mb-4">Are you sure you want to delete the hackathon?</h2>
             <p className="mb-4">This action cannot be undone.<br/>Hackathon: <span className="font-semibold">{selectedHackathon?.title}</span></p>
             <div className="flex justify-end gap-2">
@@ -3175,7 +3181,7 @@ const HackathonsEdit = () => {
       )}
           </div>
         </div>
-        <div className="w-1/2 border-l border-zinc-700 bg-white dark:bg-zinc-900">
+        <div className="w-1/2 border-l border-input bg-white dark:bg-card">
         <div className="h-full">
             <HackathonPreview 
               hackathonData={{
