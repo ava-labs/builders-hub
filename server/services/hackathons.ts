@@ -17,6 +17,12 @@ import { getUserById } from "./getUser";
 
 const prisma = new PrismaClient();
 
+const isNonEmptyString = (v: unknown): boolean =>
+  typeof v === "string" && v.trim() !== "";
+
+const isFiniteNumber = (v: unknown): boolean =>
+  typeof v === "number" && Number.isFinite(v);
+
 export const hackathonsValidations: Validation[] = [
   {
     field: "title",
@@ -48,7 +54,39 @@ export const hackathonsValidations: Validation[] = [
   {
     field: "tags",
     message: "Please add at least one category or tag.",
-    validation: (hackathon: Hackathon) => hasAtLeastOne(hackathon, "tags"),
+    validation: (hackathon: any) =>
+      Array.isArray(hackathon?.tags) &&
+      hackathon.tags.some((t: unknown) => isNonEmptyString(t)),
+  },
+  {
+    field: "timezone",
+    message: "Please select a timezone for the hackathon.",
+    validation: (hackathon: any) => isNonEmptyString(hackathon?.timezone),
+  },
+  {
+    field: "icon",
+    message: "Please upload an icon for the hackathon.",
+    validation: (hackathon: any) => isNonEmptyString(hackathon?.icon),
+  },
+  {
+    field: "banner",
+    message: "Please upload a banner image for the hackathon.",
+    validation: (hackathon: any) => isNonEmptyString(hackathon?.banner),
+  },
+  {
+    field: "small_banner",
+    message: "Please upload a small banner image for the hackathon.",
+    validation: (hackathon: any) => isNonEmptyString(hackathon?.small_banner),
+  },
+  {
+    field: "total_prizes",
+    message: "Total prize pool is required (use 0 if no monetary prizes).",
+    validation: (hackathon: any) => isFiniteNumber(hackathon?.total_prizes),
+  },
+  {
+    field: "participants",
+    message: "Expected participants is required (use 0 if unknown).",
+    validation: (hackathon: any) => isFiniteNumber(hackathon?.participants),
   },
 ];
 
@@ -65,6 +103,26 @@ export class ValidationError extends Error {
     this.cause = "ValidationError";
     this.details = details;
   }
+}
+
+function pruneContentPlaceholders(content: any): any {
+  if (!content || typeof content !== "object") return content;
+  const next: any = { ...content };
+  if (Array.isArray(next.tracks)) {
+    next.tracks = next.tracks.filter((t: any) => isNonEmptyString(t?.name));
+  }
+  if (Array.isArray(next.partners)) {
+    next.partners = next.partners.filter((p: any) => isNonEmptyString(p?.name));
+  }
+  if (Array.isArray(next.resources)) {
+    next.resources = next.resources.filter(
+      (r: any) => isNonEmptyString(r?.title) || isNonEmptyString(r?.link),
+    );
+  }
+  if (Array.isArray(next.speakers)) {
+    next.speakers = next.speakers.filter((s: any) => isNonEmptyString(s?.name));
+  }
+  return next;
 }
 
 export async function getHackathonLite(
@@ -316,6 +374,7 @@ export async function createHackathon(
       });
     hackathonData.content!.schedule = schedule;
   }
+  hackathonData.content = pruneContentPlaceholders(hackathonData.content);
   const content = { ...hackathonData.content } as Prisma.JsonObject;
   const newHackathon = await prisma.hackathon.create({
     data: {
@@ -387,6 +446,9 @@ export async function updateHackathon(
         return activity;
       });
     hackathonData.content!.schedule = schedule;
+  }
+  if (hackathonData.content) {
+    hackathonData.content = pruneContentPlaceholders(hackathonData.content);
   }
   // Build update data object with only provided fields
   const updateData: any = {};

@@ -37,9 +37,17 @@ export const PUT = withAuthRole(['devrel', 'team1-admin'], async (req: NextReque
       const updatedHackathon = await updateHackathon(partialEditedHackathon.id ?? id, partialEditedHackathon, userId);
       return NextResponse.json(updatedHackathon);
     }
-  } catch (error) {
-    console.error("Error in PUT /api/events/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error in PUT /api/events/[id]:", error?.message, error?.stack);
+    const isValidation = error?.cause === 'ValidationError';
+    return NextResponse.json(
+      {
+        error: error?.message ?? 'Internal Server Error',
+        details: isValidation ? error?.details : undefined,
+        code: error?.code,
+      },
+      { status: isValidation ? 400 : 500 }
+    );
   }
 });
 
@@ -55,8 +63,16 @@ export const PATCH = withAuthRole(['devrel', 'team1-admin'], async (req: NextReq
     } else {
       return NextResponse.json({ error: "Only is_public field can be updated via PATCH" }, { status: 400 });
     }
-  } catch (error) {
-    console.error("Error in PATCH /api/events/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error in PATCH /api/events/[id]:", error?.message, error?.stack);
+    const isValidation = error?.cause === 'ValidationError';
+    return NextResponse.json(
+      {
+        error: error?.message ?? 'Internal Server Error',
+        details: isValidation ? error?.details : undefined,
+        code: error?.code,
+      },
+      { status: isValidation ? 400 : 500 }
+    );
   }
 });
