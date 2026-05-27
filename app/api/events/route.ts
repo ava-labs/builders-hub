@@ -82,11 +82,15 @@ export const POST = withAuthRole(['devrel', 'team1-admin'], async (req: NextRequ
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error POST /api/events:', error.message);
-    const wrappedError = error as Error;
+    console.error('Error POST /api/events:', error?.message, error?.stack);
+    const isValidation = error?.cause === 'ValidationError';
     return NextResponse.json(
-      { error: wrappedError },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
+      {
+        error: error?.message ?? 'Internal Server Error',
+        details: isValidation ? error?.details : undefined,
+        code: error?.code,
+      },
+      { status: isValidation ? 400 : 500 }
     );
   }
 });

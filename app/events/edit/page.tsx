@@ -17,6 +17,7 @@ import HackathonPreview from '@/components/hackathons/HackathonPreview';
 import { EmailListInput } from '@/components/common/EmailListInput';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
+import { REFERRAL_TEAM_LABELS, isReferralTeamId } from '@/lib/referrals/team-labels';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -2351,19 +2352,27 @@ const HackathonsEdit = () => {
                       />
                     </>
                   )}
-                  <div className="mb-2 text-zinc-400 text-sm">Organizer Name/Organization</div>
-                  <Input
-                    type="text"
+                  <div className="mb-2 text-zinc-400 text-sm">Organizing team</div>
+                  <select
                     name="organizers"
-                    placeholder="e.g., Avalanche Foundation, DevRel Team"
                     value={formDataMain.organizers || ''}
                     onChange={(e) => {
                       setFormDataMain(prev => ({ ...prev, organizers: e.target.value }));
                       scrollToSection('about');
                     }}
-                    className="w-full mb-4"
+                    className="w-full mb-4 bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white"
                     required
-                  />
+                  >
+                    <option value="">Select an organizing team…</option>
+                    {Object.entries(REFERRAL_TEAM_LABELS).map(([slug, label]) => (
+                      <option key={slug} value={slug}>{label}</option>
+                    ))}
+                    {formDataMain.organizers && !isReferralTeamId(formDataMain.organizers) && (
+                      <option value={formDataMain.organizers}>
+                        {formDataMain.organizers} (legacy)
+                      </option>
+                    )}
+                  </select>
                   {formDataLatest.event === 'hackathon' && (
                     <>
                       <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>

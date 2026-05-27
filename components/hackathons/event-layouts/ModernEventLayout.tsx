@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
 import { HostNavButtons } from "@/components/evaluate/HostNavButtons";
+import { formatReferralTeamLabel } from "@/lib/referrals/team-labels";
 import About from "@/components/hackathons/hackathon/sections/About";
 import Schedule from "@/components/hackathons/hackathon/sections/Schedule";
 import Tracks from "@/components/hackathons/hackathon/sections/Tracks";
@@ -201,7 +202,7 @@ export default function ModernEventLayout({
                 <div className="flex items-center gap-3">
                   <Users className="w-5 h-5 text-zinc-600 dark:text-zinc-400 flex-shrink-0" />
                   <span className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100">
-                    {hackathon.organizers}
+                    {formatReferralTeamLabel(hackathon.organizers)}
                   </span>
                 </div>
               )}
