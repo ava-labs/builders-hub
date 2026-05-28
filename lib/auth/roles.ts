@@ -26,6 +26,12 @@ export const ROLE_GROUPS = {
   showcase: ["showcase", "devrel", "admin"],
   /** Access to hackathon creation/edition flows. */
   hackathonEditor: ["hackathonCreator", "team1-admin", "devrel"],
+  /**
+   * Permission to create new hackathons and manage org-wide settings.
+   * Narrower than hackathonEditor: excludes per-hackathon creators, who
+   * can only edit hackathons they already own.
+   */
+  hackathonAdmin: ["devrel", "team1-admin"],
   /** Access to evaluation/judge screens and APIs. */
   judge: ["devrel", "judge"],
   /** Access to notification sending flows. */
@@ -74,6 +80,11 @@ export const hasShowcaseRole = (
 export const hasHackathonEditorRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasRoleGroup(customAttributes, "hackathonEditor");
+
+/** Shortcut: user can create new hackathons and manage org-wide settings. */
+export const hasHackathonAdminRole = (
+  customAttributes: readonly string[] | null | undefined,
+): boolean => hasRoleGroup(customAttributes, "hackathonAdmin");
 
 /** Shortcut: user can judge/evaluate submissions. */
 export const hasJudgeRole = (

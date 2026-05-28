@@ -8,6 +8,7 @@ import { HackathonStatus } from '@/types/hackathons';
 import { getUserById } from '@/server/services/getUser';
 import { withAuthRole } from '@/lib/protectedRoute';
 import { getAuthSession } from '@/lib/auth/authSession';
+import { ROLE_GROUPS } from '@/lib/auth/roles';
 
 
 
@@ -37,7 +38,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      // Check user's custom_attributes for permissions
       const customAttributes = user.custom_attributes || [];
       const isDevrel = customAttributes.includes("devrel");
       const isTeam1Admin = customAttributes.includes("team1-admin");
@@ -45,18 +45,25 @@ export async function GET(req: NextRequest) {
 
       if (managedOnly) {
         options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
-        if (!isDevrel) {
+        if (isDevrel) {
+          // Devrel sees every managed hackathon globally.
+        } else if (isTeam1Admin) {
+          // team1-admin manages hackathons for their own org: scope by their
+          // team_id matched against Hackathon.organizers. They also keep
+          // visibility into hackathons they personally created or cohost.
+          options.created_by = userId;
+          options.cohost_email = user.email || undefined;
+          options.organizer_team = user.team_id || null;
+        } else {
+          // Plain hackathonCreator: their own hackathons only.
           options.created_by = userId;
           options.cohost_email = user.email || undefined;
         }
       } else {
         options.include_private = false;
       }
-
-      console.log('API GET /events:', { userId, isDevrel, isTeam1Admin, isHackathonCreator, managedOnly, options });
     } else {
       options.include_private = false;
-      console.log('API GET /events (no userId):', { options });
     }
 
     const response = await getFilteredHackathons(options);
@@ -72,7 +79,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuthRole(['devrel', 'team1-admin'], async (req: NextRequest, context: any, session: any) => {
+export const POST = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequest, context: any, session: any) => {
   try {
     const body = await req.json();
     const newHackathon = await createHackathon(body);

@@ -28,307 +28,19 @@ export default function HackathonForm({
   async function onSubmit(values: z.infer<typeof hackathonAdminFormSchema>) {
     try {
       setIsLoading(true);
-      const payload = {
+      const payload: Record<string, unknown> = {
         ...initialData,
-        tags: ['AI', 'Gaming'],
-        date: new Date().toISOString(),
         title: values.name,
         description: values.description,
         location: values.location,
-        registration_deadline: values.registrationDeadline,
-        agenda: [
-          {
-            date: '2024-12-06T10:00:00.000Z',
-            name: 'Activity 1 for Hackathon 8',
-            stage: 'Stage 1',
-            duration: '1 hour',
-            description: 'Description for Activity 1',
-          },
-          {
-            date: '2024-12-06T12:00:00.000Z',
-            name: 'Activity 2 for Hackathon 8',
-            stage: 'Stage 2',
-            duration: '1 hour',
-            description: 'Description for Activity 2',
-          },
-          {
-            date: '2024-12-06T14:00:00.000Z',
-            name: 'Activity 3 for Hackathon 8',
-            stage: 'Stage 3',
-            duration: '1 hour',
-            description: 'Description for Activity 3',
-          },
-        ],
-        partners: [
-          {
-            logo: 'https://example.com/logos/partner-1.png',
-            name: 'TechCorp',
-            about: 'About TechCorp',
-            links: [
-              {
-                icon: 'https://example.com/icons/partner-link-1.png',
-                link: 'https://www.techcorp.com/link-1',
-                name: 'Partner Link 1',
-              },
-              {
-                icon: 'https://example.com/icons/partner-link-2.png',
-                link: 'https://www.techcorp.com/link-2',
-                name: 'Partner Link 2',
-              },
-            ],
-          },
-          {
-            logo: 'https://example.com/logos/partner-2.png',
-            name: 'InnovateX',
-            about: 'About InnovateX',
-            links: [
-              {
-                icon: 'https://example.com/icons/partner-link-1.png',
-                link: 'https://www.innovatex.com/link-1',
-                name: 'Partner Link 1',
-              },
-              {
-                icon: 'https://example.com/icons/partner-link-2.png',
-                link: 'https://www.innovatex.com/link-2',
-                name: 'Partner Link 2',
-              },
-            ],
-          },
-        ],
-        tracks: [
-          {
-            name: 'Healthcare Track',
-            prizes: [
-              {
-                name: 'Prize 1',
-                type: 'Pool',
-                rewards: [100, 200, 300],
-                criteria: 'Criteria for Prize 1',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 1',
-              },
-              {
-                name: 'Prize 2',
-                type: 'Ranked',
-                rewards: [150, 250, 350],
-                criteria: 'Criteria for Prize 2',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 2',
-              },
-              {
-                name: 'Prize 3',
-                type: 'Pool',
-                rewards: [200, 300, 400],
-                criteria: 'Criteria for Prize 3',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 3',
-              },
-            ],
-            partner: 'TechCorp',
-            resources: [
-              {
-                icon: 'https://example.com/icons/track-resource-1.png',
-                link: 'https://example.com/track-resource-1',
-                name: 'Track Resource 1',
-              },
-              {
-                icon: 'https://example.com/icons/track-resource-2.png',
-                link: 'https://example.com/track-resource-2',
-                name: 'Track Resource 2',
-              },
-            ],
-            description: 'Description for Healthcare track',
-            total_reward: 2250,
-          },
-          {
-            name: 'Finance Track',
-            prizes: [
-              {
-                name: 'Prize 1',
-                type: 'Pool',
-                rewards: [100, 200, 300],
-                criteria: 'Criteria for Prize 1',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 1',
-              },
-              {
-                name: 'Prize 2',
-                type: 'Ranked',
-                rewards: [150, 250, 350],
-                criteria: 'Criteria for Prize 2',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 2',
-              },
-              {
-                name: 'Prize 3',
-                type: 'Pool',
-                rewards: [200, 300, 400],
-                criteria: 'Criteria for Prize 3',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 3',
-              },
-            ],
-            partner: 'InnovateX',
-            resources: [
-              {
-                icon: 'https://example.com/icons/track-resource-1.png',
-                link: 'https://example.com/track-resource-1',
-                name: 'Track Resource 1',
-              },
-              {
-                icon: 'https://example.com/icons/track-resource-2.png',
-                link: 'https://example.com/track-resource-2',
-                name: 'Track Resource 2',
-              },
-            ],
-            description: 'Description for Finance track',
-            total_reward: 2250,
-          },
-          {
-            name: 'Education Track',
-            prizes: [
-              {
-                name: 'Prize 1',
-                type: 'Pool',
-                rewards: [100, 200, 300],
-                criteria: 'Criteria for Prize 1',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 1',
-              },
-              {
-                name: 'Prize 2',
-                type: 'Ranked',
-                rewards: [150, 250, 350],
-                criteria: 'Criteria for Prize 2',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 2',
-              },
-              {
-                name: 'Prize 3',
-                type: 'Pool',
-                rewards: [200, 300, 400],
-                criteria: 'Criteria for Prize 3',
-                resources: [
-                  {
-                    icon: 'https://example.com/icons/resource-1.png',
-                    link: 'https://example.com/resource-1',
-                    name: 'Resource 1',
-                  },
-                  {
-                    icon: 'https://example.com/icons/resource-2.png',
-                    link: 'https://example.com/resource-2',
-                    name: 'Resource 2',
-                  },
-                ],
-                description: 'Description for Prize 3',
-              },
-            ],
-            partner: 'CodeLabs',
-            resources: [
-              {
-                icon: 'https://example.com/icons/track-resource-1.png',
-                link: 'https://example.com/track-resource-1',
-                name: 'Track Resource 1',
-              },
-              {
-                icon: 'https://example.com/icons/track-resource-2.png',
-                link: 'https://example.com/track-resource-2',
-                name: 'Track Resource 2',
-              },
-            ],
-            description: 'Description for Education track',
-            total_reward: 2250,
-          },
-        ],
       };
+      if (values.startDate) payload.start_date = values.startDate;
+      if (values.endDate) payload.end_date = values.endDate;
+      if (values.registrationDeadline) payload.registration_deadline = values.registrationDeadline;
+      if (values.timeZone) payload.timezone = values.timeZone;
+      if (typeof values.visibility === 'string') {
+        payload.is_public = values.visibility === 'public';
+      }
       if (isEditing) {
         await axios.put(`/api/events/${initialData!.id}`, payload);
         toast({
@@ -363,9 +75,13 @@ export default function HackathonForm({
       name: initialData?.title,
       description: initialData?.description,
       location: initialData?.location,
-      registrationDeadline: initialData?.content.registration_deadline
+      registrationDeadline: initialData?.content?.registration_deadline
         ? new Date(initialData.content.registration_deadline)
         : undefined,
+      startDate: initialData?.start_date ? new Date(initialData.start_date) : undefined,
+      endDate: initialData?.end_date ? new Date(initialData.end_date) : undefined,
+      timeZone: initialData?.timezone,
+      visibility: initialData?.is_public === false ? 'private' : 'public',
     },
   });
 

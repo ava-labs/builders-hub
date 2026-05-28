@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getHackathon, updateHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
 import { withAuthRole } from "@/lib/protectedRoute";
+import { ROLE_GROUPS } from "@/lib/auth/roles";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export const PUT = withAuthRole(['devrel', 'team1-admin'], async (req: NextRequest, context: any, session: any) => {
+export const PUT = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
@@ -51,7 +52,7 @@ export const PUT = withAuthRole(['devrel', 'team1-admin'], async (req: NextReque
   }
 });
 
-export const PATCH = withAuthRole(['devrel', 'team1-admin'], async (req: NextRequest, context: any, session: any) => {
+export const PATCH = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();

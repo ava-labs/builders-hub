@@ -1,14 +1,10 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { exportShowcase } from "@/server/services/exportShowcase";
+import { hasHackathonEditorRole } from "@/lib/auth/roles";
 import { NextRequest, NextResponse } from "next/server";
 
 export const POST = withAuth(async (req: NextRequest, _context: any, session: any) => {
-    const customAttributes = session?.user?.custom_attributes || [];
-    const hasAccess = customAttributes.includes("devrel")
-        || customAttributes.includes("team1-admin")
-        || customAttributes.includes("hackathonCreator");
-
-    if (!hasAccess) {
+    if (!hasHackathonEditorRole(session?.user?.custom_attributes)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

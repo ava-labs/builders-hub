@@ -25,10 +25,10 @@ export function withAuth<TContext = unknown>(
   };
 }
 export function withAuthRole<TContext = unknown>(
-  role: string | string[],
+  role: string | readonly string[],
   handler: (request: NextRequest, context: TContext, session: Session) => Promise<NextResponse>
 ) {
-  const allowed = Array.isArray(role) ? role : [role];
+  const allowed: readonly string[] = Array.isArray(role) ? role : [role as string];
   return async function (request: NextRequest, context: TContext) {
     const session = await getAuthSession();
 

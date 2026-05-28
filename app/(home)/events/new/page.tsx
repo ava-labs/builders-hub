@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { hasHackathonAdminRole } from "@/lib/auth/roles";
 import HackathonForm from "@/components/hackathons/admin-panel/HackathonForm";
 
 export default async function NewHackathonPage() {
   const session = await getAuthSession();
 
-  const customAttributes: string[] = (session?.user as any)?.custom_attributes ?? [];
-  const HACKATHON_CREATE_ROLES = ["devrel", "team1-admin"];
-  if (!session || !HACKATHON_CREATE_ROLES.some((r) => customAttributes.includes(r))) {
+  if (!session || !hasHackathonAdminRole(session.user?.custom_attributes)) {
     redirect("/");
   }
 

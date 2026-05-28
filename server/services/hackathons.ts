@@ -164,6 +164,12 @@ export interface GetHackathonsOptions {
   include_private?: boolean;
   cohost_email?: string | null;
   event?: string | null;
+  /**
+   * Team-scoped ownership: rows whose `organizers` matches this team_id
+   * are included alongside the user's own created/updated hackathons.
+   * Use for org-scoped admin views (e.g. team1-admin).
+   */
+  organizer_team?: string | null;
 }
 
 export async function getHackathon(id: string) {
@@ -215,7 +221,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     }
   }
 
-  if (options.created_by || options.cohost_email) {
+  if (options.created_by || options.cohost_email || options.organizer_team) {
     const ownershipConditions: any[] = [];
     if (options.created_by) {
       // Show hackathons where user is either creator OR updater
@@ -230,6 +236,9 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
           has: options.cohost_email,
         },
       });
+    }
+    if (options.organizer_team) {
+      ownershipConditions.push({ organizers: options.organizer_team });
     }
 
     if (ownershipConditions.length > 0) {

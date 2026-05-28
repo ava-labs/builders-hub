@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { ExtendedProfile, UserType, UpdateExtendedProfileData } from "@/types/extended-profile";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
+import { COUNTRY_LOCKED_MESSAGE, isCountryLockedForProfile } from "@/lib/profile/countryLock";
 
 /**
  * Custom errors for profile service
@@ -141,21 +142,14 @@ export async function updateExtendedProfile(
         }
     }
 
-    if (
-        typeof profileData.country === "string" &&
-        existingUser.country &&
-        existingUser.country.trim() !== "" &&
-        profileData.country.trim() !== existingUser.country.trim()
-    ) {
-        const hasRegistration = await prisma.registerForm.findFirst({
-            where: { user: { id } },
-            select: { id: true },
-        });
-        if (hasRegistration) {
-            throw new ProfileValidationError(
-                "Country is locked after your first registration. Contact support to change it.",
-                400,
-            );
+    if (typeof profileData.country === "string") {
+        const locked = await isCountryLockedForProfile(
+            id,
+            existingUser.country,
+            profileData.country,
+        );
+        if (locked) {
+            throw new ProfileValidationError(COUNTRY_LOCKED_MESSAGE, 400);
         }
     }
 

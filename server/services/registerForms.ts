@@ -13,6 +13,7 @@ import { sendMail } from "./mail";
 import { recordReferralAttribution } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
+import { COUNTRY_LOCKED_MESSAGE, isCountryChange } from "@/lib/profile/countryLock";
 
 export const registerValidations: Validation[] = [
   {
@@ -156,22 +157,14 @@ export async function createRegisterForm(
   }
 
   if (existingUser?.country) {
-    if (
-      registerData.city &&
-      registerData.city.trim() &&
-      registerData.city.trim() !== existingUser.country
-    ) {
-      throw new ValidationError(
-        "Country is locked after your first registration. Contact support to change it.",
-        [
-          {
-            field: "city",
-            message:
-              "Country is locked after your first registration. Contact support to change it.",
-            validation: () => false,
-          },
-        ],
-      );
+    if (isCountryChange(existingUser.country, registerData.city)) {
+      throw new ValidationError(COUNTRY_LOCKED_MESSAGE, [
+        {
+          field: "city",
+          message: COUNTRY_LOCKED_MESSAGE,
+          validation: () => false,
+        },
+      ]);
     }
     registerData.city = existingUser.country;
   }
@@ -206,6 +199,24 @@ export async function createRegisterForm(
   }));
 
   const content = { ...registerData } as Prisma.JsonObject;
+  const commonFields = {
+    city: registerData.city ?? "",
+    telegram_account: registerData.telegram_account ?? "",
+    company_name: registerData.company_name ?? null,
+    dietary: registerData.dietary ?? null,
+    hackathon_participation: registerData.hackathon_participation ?? "",
+    interests: (registerData.interests ?? []).join(","),
+    languages: (registerData.languages ?? []).join(","),
+    roles: (registerData.roles ?? []).join(","),
+    name: registerData.name ?? "",
+    newsletter_subscription: registerData.newsletter_subscription ?? false,
+    prohibited_items: registerData.prohibited_items ?? false,
+    role: registerData.role ?? "",
+    terms_event_conditions: registerData.terms_event_conditions ?? false,
+    tools: (registerData.tools ?? []).join(","),
+    web3_proficiency: registerData.web3_proficiency ?? "",
+    github_portfolio: registerData.github_portfolio ?? "",
+  };
   const newRegisterFormData = await prisma.registerForm.upsert({
     where: {
       hackathon_id_email: {
@@ -213,47 +224,15 @@ export async function createRegisterForm(
         email: registerData.email as string,
       },
     },
-    update: {
-      city: registerData.city ?? "",
-      company_name: registerData.company_name ?? null,
-      dietary: registerData.dietary ?? null,
-      hackathon_participation: registerData.hackathon_participation ?? "",
-      interests: (registerData.interests ?? []).join(","),
-      languages: (registerData.languages ?? []).join(","),
-      roles: (registerData.roles ?? []).join(","),
-      name: registerData.name ?? "",
-      newsletter_subscription: registerData.newsletter_subscription ?? false,
-      prohibited_items: registerData.prohibited_items ?? false,
-      role: registerData.role ?? "",
-      terms_event_conditions: registerData.terms_event_conditions ?? false,
-      tools: (registerData.tools ?? []).join(","),
-      web3_proficiency: registerData.web3_proficiency ?? "",
-      github_portfolio: registerData.github_portfolio ?? "",
-      telegram_account: registerData.telegram_account ?? "",
-    },
+    update: commonFields,
     create: {
+      ...commonFields,
       hackathon: {
         connect: { id: registerData.hackathon_id },
       },
       user: {
         connect: { email: registerData.email },
       },
-      city: registerData.city ?? "",
-      telegram_account: registerData.telegram_account ?? "",
-      company_name: registerData.company_name ?? null,
-      dietary: registerData.dietary ?? null,
-      hackathon_participation: registerData.hackathon_participation ?? "",
-      interests: (registerData.interests ?? []).join(","),
-      languages: (registerData.languages ?? []).join(","),
-      roles: (registerData.roles ?? []).join(","),
-      name: registerData.name ?? "",
-      newsletter_subscription: registerData.newsletter_subscription ?? false,
-      prohibited_items: registerData.prohibited_items ?? false,
-      role: registerData.role ?? "",
-      terms_event_conditions: registerData.terms_event_conditions ?? false,
-      tools: (registerData.tools ?? []).join(","),
-      web3_proficiency: registerData.web3_proficiency ?? "",
-      github_portfolio: registerData.github_portfolio ?? "",
     },
   });
   registerData.id = newRegisterFormData.id;

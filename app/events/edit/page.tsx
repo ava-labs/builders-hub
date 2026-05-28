@@ -18,6 +18,7 @@ import { EmailListInput } from '@/components/common/EmailListInput';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { REFERRAL_TEAM_LABELS, isReferralTeamId } from '@/lib/referrals/team-labels';
+import { hasHackathonEditorRole } from '@/lib/auth/roles';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -944,12 +945,8 @@ const HackathonsEdit = () => {
       setHasEditPermission(false);
       return;
     }
-    const customAttributes: string[] = session.user.custom_attributes || [];
-    const isSpecialRole =
-      customAttributes.includes("hackathonCreator") ||
-      customAttributes.includes("team1-admin") ||
-      customAttributes.includes("devrel");
-    
+    const isSpecialRole = hasHackathonEditorRole(session.user.custom_attributes);
+
     // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
       setHasEditPermission(isSpecialRole);
