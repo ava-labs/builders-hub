@@ -22,7 +22,6 @@ interface LegacyEventLayoutProps {
   id: string;
   isRegistered: boolean;
   isAuthenticated: boolean;
-  utm?: string;
   submissionStatus?: SubmissionStatus;
   submissionProgress?: number;
   submissionProjectId?: string | null;

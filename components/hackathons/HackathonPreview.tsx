@@ -243,12 +243,11 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
         <div className="flex flex-col mt-2">
           <div className="sm:px-8 pt-6">
             <div className="sm:block relative w-full">
-              <OverviewBanner 
-                hackathon={transformedHackathon} 
-                id={transformedHackathon.id} 
-                isTopMost={false} 
-                isRegistered={isRegistered} 
-                utm="" 
+              <OverviewBanner
+                hackathon={transformedHackathon}
+                id={transformedHackathon.id}
+                isTopMost={false}
+                isRegistered={isRegistered}
                 isPreview={true}
               />
               <JoinBannerLink
@@ -257,7 +256,6 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
                 customLink={transformedHackathon.content.join_custom_link}
                 bannerSrc={transformedHackathon.banner}
                 altText="Hackathon background"
-                utm=""
               />
             </div>
             

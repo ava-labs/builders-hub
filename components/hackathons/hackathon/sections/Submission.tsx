@@ -17,7 +17,6 @@ export default async function Submission({
   hackathon,
   isRegistered = false,
   isAuthenticated = false,
-  utm = '',
   submissionStatus = 'none',
   submissionProgress = 0,
   submissionProjectId = null,
@@ -25,7 +24,6 @@ export default async function Submission({
   hackathon: HackathonHeader;
   isRegistered?: boolean;
   isAuthenticated?: boolean;
-  utm?: string;
   submissionStatus?: SubmissionStatus;
   submissionProgress?: number;
   submissionProjectId?: string | null;

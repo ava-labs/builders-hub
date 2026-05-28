@@ -51,14 +51,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function HackathonPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const resolvedSearchParams = await searchParams;
-  const utm = resolvedSearchParams?.utm ?? "";
-
+export default async function HackathonPage() {
   const hackathon = await getHackathon(HACKATHON_ID);
 
   // Check if user is authenticated and registered
@@ -132,7 +125,6 @@ export default async function HackathonPage({
                   className="shrink-0"
                   variant="red"
                   showChatWhenRegistered={true}
-                  utm={utm as string}
                 />
               </div>
             </div>

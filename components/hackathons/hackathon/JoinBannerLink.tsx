@@ -14,7 +14,6 @@ interface JoinBannerLinkProps {
   customLink?: string;
   bannerSrc: string;
   altText?: string;
-  utm?: string; // UTM parameter to track campaign source
 }
 
 export default function JoinBannerLink({
@@ -23,7 +22,6 @@ export default function JoinBannerLink({
   customLink,
   bannerSrc,
   altText = "Hackathon background",
-  utm = ""
 }: JoinBannerLinkProps) {
   const currentReferralCode = useCurrentReferralCode();
 
