@@ -10,6 +10,7 @@ import {
   createReferralLink,
   isReferralTargetType,
   listReferralLinksForUser,
+  resolveReferralDestination,
 } from "@/server/services/referrals";
 import type { ReferralTargetType } from "@/lib/referrals/constants";
 import {
@@ -112,7 +113,11 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     links: links.map((link) => ({
       ...link,
-      shareUrl: buildReferralUrl(origin, link.destination_url, link.code),
+      shareUrl: buildReferralUrl(
+        origin,
+        resolveReferralDestination(link.target_type, link.target_id, link.destination_url),
+        link.code,
+      ),
     })),
   });
 }
@@ -148,6 +153,10 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     ...referralLink,
-    shareUrl: buildReferralUrl(getOrigin(request), referralLink.destination_url, referralLink.code),
+    shareUrl: buildReferralUrl(
+      getOrigin(request),
+      resolveReferralDestination(referralLink.target_type, referralLink.target_id, referralLink.destination_url),
+      referralLink.code,
+    ),
   });
 }

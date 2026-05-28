@@ -54,6 +54,23 @@ export function buildReferralUrl(origin: string, destinationUrl: string, code: s
   return url.toString();
 }
 
+/**
+ * Canonical destination for a referral link's share URL. Event referrals always
+ * resolve to the event landing page derived from the target id, so legacy rows
+ * that stored the old `/events/registration-form?event=…` path still point at
+ * the event page. Other target types use the stored destination.
+ */
+export function resolveReferralDestination(
+  targetType: string,
+  targetId: string | null | undefined,
+  storedDestinationUrl: string,
+): string {
+  if (targetType === "hackathon_registration" && targetId) {
+    return `/events/${targetId}`;
+  }
+  return storedDestinationUrl;
+}
+
 function normalizeNullable(value: string | null | undefined): string | null {
   return value?.trim() || null;
 }
@@ -194,13 +211,22 @@ export async function createReferralLink({
 
     const existingByCode = await prisma.referralLink.findUnique({ where: { code } });
     if (existingByCode) {
-      if (
+      const sameOwnerAndTarget =
         existingByCode.owner_user_id === ownerUserId &&
         existingByCode.target_type === targetType &&
         (existingByCode.target_id ?? null) === normalizedTargetId &&
-        existingByCode.destination_url === destination &&
-        !existingByCode.disabled_at
-      ) {
+        !existingByCode.disabled_at;
+
+      if (sameOwnerAndTarget) {
+        // The deterministic code already maps to this owner+target. Reuse it,
+        // refreshing a drifted destination (e.g. legacy event links that stored
+        // the old registration-form path) instead of minting a duplicate code.
+        if (existingByCode.destination_url !== destination) {
+          return prisma.referralLink.update({
+            where: { id: existingByCode.id },
+            data: { destination_url: destination },
+          });
+        }
         return existingByCode;
       }
 
