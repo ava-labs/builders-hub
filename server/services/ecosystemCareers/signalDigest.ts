@@ -14,7 +14,7 @@ export interface DigestPayload {
 // a Slack-shaped JSON POST — Slack, Discord (via Slack-compat adapter),
 // Ditto, or any custom internal endpoint all work. Env var:
 // SIGNAL_DIGEST_WEBHOOK. Same name for staging/prod; only the URL differs.
-export async function postSlackDigest(payload: DigestPayload): Promise<string | null> {
+export async function postSignalDigest(payload: DigestPayload): Promise<string | null> {
   const webhook = process.env.SIGNAL_DIGEST_WEBHOOK?.trim();
   if (!webhook) return 'SIGNAL_DIGEST_WEBHOOK not configured';
 
@@ -63,18 +63,25 @@ export async function postSlackDigest(payload: DigestPayload): Promise<string | 
     ],
   };
 
+  // Optional Bearer auth. Slack incoming webhooks don't require it (the
+  // URL itself is the secret); Ditto's adapter expects it. Setting
+  // SIGNAL_DIGEST_BEARER opts into Authorization: Bearer <value>.
+  const bearer = process.env.SIGNAL_DIGEST_BEARER?.trim();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (bearer) headers.Authorization = `Bearer ${bearer}`;
+
   try {
     const res = await fetch(webhook, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      return `Slack webhook ${res.status}${text ? `: ${text.slice(0, 200)}` : ''}`;
+      return `Signal digest webhook ${res.status}${text ? `: ${text.slice(0, 200)}` : ''}`;
     }
     return null;
   } catch (err) {
-    return err instanceof Error ? err.message : 'slack post failed';
+    return err instanceof Error ? err.message : 'signal digest post failed';
   }
 }

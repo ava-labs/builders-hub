@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
 import { ingestGetro } from '@/server/services/ecosystemCareers/ingestGetro';
 import { ingestWeb3Career } from '@/server/services/ecosystemCareers/ingestWeb3Career';
-import { postSlackDigest } from '@/server/services/ecosystemCareers/slackDigest';
+import { postSignalDigest } from '@/server/services/ecosystemCareers/signalDigest';
 
 // Weekly Vercel Cron: pull fresh roles from Getro + web3.career and ping the
-// DevRel review queue on Slack. Vercel Cron invokes the path with a GET
-// request and the platform CRON_SECRET in the Authorization header. POST is
-// kept open for manual triggering (curl from a maintainer's laptop) using the
-// same secret.
+// DevRel review queue via the Signal digest webhook. Vercel Cron invokes the
+// path with a GET request and the platform CRON_SECRET in the Authorization
+// header. POST is kept open for manual triggering (curl from a maintainer's
+// laptop) using the same secret.
 async function handle(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const isCron =
@@ -35,7 +35,7 @@ async function handle(req: NextRequest) {
   ]);
 
   const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://build.avax.network'}/admin/ecosystem-careers`;
-  const slackError = await postSlackDigest({
+  const signalError = await postSignalDigest({
     projectsPending,
     externalListingsPending: externalPending,
     getroListingsPending: getroPending,
@@ -51,7 +51,7 @@ async function handle(req: NextRequest) {
       externalListings: externalPending,
       getroListings: getroPending,
     },
-    slackError,
+    signalError,
   });
 }
 
