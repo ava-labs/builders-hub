@@ -12,9 +12,10 @@ import {
 /**
  * Hook to track new user creation in PostHog.
  *
- * This hook identifies new users and captures a "user_created" event with
- * attribution data (UTM parameters, referrer). Deduplication is handled via
- * localStorage to ensure each user is only tracked once.
+ * Identifies new users and captures a "user_created" event with signup
+ * attribution (referral code + browser referrer). UTM lives on $pageview
+ * events via PostHog auto-capture; signup-by-UTM is not tracked here on
+ * purpose. Deduplication is handled via localStorage.
  *
  * @returns void - This hook only performs side effects
  */
@@ -57,17 +58,8 @@ export function useTrackNewUser(): void {
           name: session.user.name,
         });
 
-        // PostHog persists $initial_utm_* on the anonymous distinct_id from the
-        // first pageview and carries them through identify(), so attribution
-        // survives OAuth redirects and cross-page navigation without us
-        // threading UTM params on URLs.
         posthog.capture("user_created", {
           auth_provider: session.user.authentication_mode,
-          utm_source: posthog.get_property("$initial_utm_source") || undefined,
-          utm_medium: posthog.get_property("$initial_utm_medium") || undefined,
-          utm_campaign: posthog.get_property("$initial_utm_campaign") || undefined,
-          utm_content: posthog.get_property("$initial_utm_content") || undefined,
-          utm_term: posthog.get_property("$initial_utm_term") || undefined,
           referral_code: getStoredReferralAttribution()?.referralCode || undefined,
           referrer: document.referrer || undefined,
         });
