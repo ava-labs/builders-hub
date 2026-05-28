@@ -31,24 +31,46 @@ export const PATCH = withAuthRole<RouteParams<{ id: string }>>(
 
     const existing = await prisma.jobListing.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, source: true, project_id: true },
     });
     if (!existing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    const data: { title?: string; company_logo?: string | null } = {};
-    if (parsed.data.title !== undefined) data.title = parsed.data.title.trim();
+    const listingData: { title?: string; company_logo?: string | null } = {};
+    if (parsed.data.title !== undefined) listingData.title = parsed.data.title.trim();
+
+    let projectLogo: string | null | undefined;
     if (parsed.data.company_logo !== undefined) {
       const v = parsed.data.company_logo;
-      data.company_logo = !v ? null : v;
+      const normalized = !v ? null : v;
+      if (existing.source === 'community' && existing.project_id) {
+        projectLogo = normalized;
+      } else {
+        listingData.company_logo = normalized;
+      }
     }
 
-    if (Object.keys(data).length === 0) {
+    const hasListingUpdate = Object.keys(listingData).length > 0;
+    const hasProjectUpdate = projectLogo !== undefined && existing.project_id;
+    if (!hasListingUpdate && !hasProjectUpdate) {
       return NextResponse.json({ ok: true, noChanges: true });
     }
 
-    await prisma.jobListing.update({ where: { id }, data });
+    const ops: Promise<unknown>[] = [];
+    if (hasListingUpdate) {
+      ops.push(prisma.jobListing.update({ where: { id }, data: listingData }));
+    }
+    if (hasProjectUpdate) {
+      ops.push(
+        prisma.project.update({
+          where: { id: existing.project_id! },
+          data: { logo_url: projectLogo ?? '' },
+        }),
+      );
+    }
+    await Promise.all(ops);
+
     revalidatePath('/ecosystem-careers');
     revalidatePath(`/ecosystem-careers/${id}`);
     return NextResponse.json({ ok: true });
