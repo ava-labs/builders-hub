@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import type {
   ListingSource,
@@ -6,6 +5,7 @@ import type {
 } from '@/server/services/ecosystemCareers/queries';
 import { formatPostedAt, prettyRemoteType, prettySeniority } from './labels';
 import { DevRelEditButton } from './DevRelEditButton';
+import { JobCardLink } from './JobCardLink';
 
 interface Props {
   job: SerializableJobCard;
@@ -59,9 +59,12 @@ export function JobCard({ job, viewerIsDevRel = false }: Props) {
           currentLogoUrl={job.company.logoUrl}
         />
       )}
-    <Link
+    <JobCardLink
       href={`/ecosystem-careers/${job.id}`}
       className="relative flex flex-col h-full min-h-[210px] gap-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 p-5 shadow-[0_2px_10px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.3)] transition-all duration-200 hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-zinc-300/80 dark:hover:border-zinc-700/80"
+      listingId={job.id}
+      listingSource={job.source}
+      companyName={job.company.name}
     >
       <div className="flex items-start gap-3">
         {job.company.logoUrl ? (
@@ -126,7 +129,7 @@ export function JobCard({ job, viewerIsDevRel = false }: Props) {
           {formatPostedAt(job.postedAt)}
         </span>
       </div>
-    </Link>
+    </JobCardLink>
     </div>
   );
 }

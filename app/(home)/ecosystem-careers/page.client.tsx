@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import posthog from 'posthog-js';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { JobCard } from '@/components/ecosystem-careers/JobCard';
 import { HiringCta } from '@/components/ecosystem-careers/HiringCta';
@@ -67,6 +68,33 @@ export default function EcosystemCareersClient({
   }, [initialJobs, search, companyId, remoteType]);
 
   const hasFilters = !!search || !!companyId || !!remoteType;
+
+  const lastSearchTracked = useRef('');
+  useEffect(() => {
+    if (!mounted) return;
+    const trimmed = search.trim();
+    if (trimmed === lastSearchTracked.current) return;
+    const handle = setTimeout(() => {
+      if (trimmed === lastSearchTracked.current) return;
+      lastSearchTracked.current = trimmed;
+      if (!trimmed) return;
+      posthog?.capture?.('careers_search_performed', {
+        query: trimmed,
+        company_filter: companyId,
+        remote_type: remoteType,
+        result_count: filtered.length,
+      });
+    }, 1500);
+    return () => clearTimeout(handle);
+  }, [search, companyId, remoteType, filtered.length, mounted]);
+
+  function trackFilterChange(field: 'company' | 'remote_type', value: string | null) {
+    posthog?.capture?.('careers_filter_changed', {
+      field,
+      value,
+      result_count: filtered.length,
+    });
+  }
 
   return (
     <>
@@ -145,7 +173,11 @@ export default function EcosystemCareersClient({
             <div className="relative lg:w-56">
               <select
                 value={companyId ?? ''}
-                onChange={(e) => setCompanyId(e.target.value || null)}
+                onChange={(e) => {
+                  const value = e.target.value || null;
+                  setCompanyId(value);
+                  trackFilterChange('company', value);
+                }}
                 className="appearance-none w-full pl-4 pr-10 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
               >
                 <option value="">All companies</option>
@@ -161,7 +193,11 @@ export default function EcosystemCareersClient({
             <div className="relative lg:w-40">
               <select
                 value={remoteType ?? ''}
-                onChange={(e) => setRemoteType(e.target.value || null)}
+                onChange={(e) => {
+                  const value = e.target.value || null;
+                  setRemoteType(value);
+                  trackFilterChange('remote_type', value);
+                }}
                 className="appearance-none w-full pl-4 pr-10 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
               >
                 <option value="">Any location</option>
@@ -185,6 +221,11 @@ export default function EcosystemCareersClient({
               {hasFilters && (
                 <button
                   onClick={() => {
+                    posthog?.capture?.('careers_filters_reset', {
+                      had_search: !!search,
+                      had_company: !!companyId,
+                      had_remote_type: !!remoteType,
+                    });
                     setSearch('');
                     setCompanyId(null);
                     setRemoteType(null);

@@ -19,6 +19,7 @@ import {
   missingSocialsFor,
 } from '@/lib/ecosystem-careers/viewerAccess';
 import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
+import { ApplyButton } from '@/components/ecosystem-careers/ApplyButton';
 
 // Auth-conditional + hits Postgres → don't pre-render.
 export const dynamic = 'force-dynamic';
@@ -135,15 +136,16 @@ export default async function EcosystemCareerDetailPage({ params }: Params) {
             </div>
           </div>
           {access.canViewAll && (
-            <a
+            <ApplyButton
               href={job.applyUrl}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
+              listingId={job.id}
+              listingSource={job.source}
+              companyName={job.company.name}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 hover:scale-[1.02] transition-all duration-200 shrink-0"
             >
               Apply on company site
               <ArrowUpRight className="w-4 h-4" />
-            </a>
+            </ApplyButton>
           )}
         </header>
 
@@ -174,15 +176,16 @@ export default async function EcosystemCareerDetailPage({ params }: Params) {
                   </p>
                 )}
                 <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
-                  <a
+                  <ApplyButton
                     href={job.applyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
+                    listingId={job.id}
+                    listingSource={job.source}
+                    companyName={job.company.name}
                     className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all duration-200"
                   >
                     Apply on company site
                     <ArrowUpRight className="w-4 h-4" />
-                  </a>
+                  </ApplyButton>
                   <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
                     Builders Hub does not host or process applications, and per our{' '}
                     <a

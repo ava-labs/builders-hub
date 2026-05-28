@@ -2,6 +2,7 @@ import { prisma } from '@/prisma/prisma';
 import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
 import { htmlToPlainText, sanitizeJobHtml } from '@/lib/ecosystem-careers/sanitizeJobHtml';
 import { isUserProjectMember } from '@/server/services/fileValidation';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export const MAX_ACTIVE_LISTINGS_PER_PROJECT = 5;
 
@@ -93,6 +94,18 @@ export async function createListing(
     },
     select: { id: true },
   });
+
+  void captureServerEvent(
+    'careers_listing_submitted',
+    {
+      listing_id: job.id,
+      project_id: input.project_id,
+      requires_review: !approved,
+      remote_type: input.remote_type ?? null,
+      employment_type: input.employment_type ?? null,
+    },
+    userId,
+  );
 
   return job;
 }

@@ -8,17 +8,7 @@ import {
   createListing,
 } from '@/server/services/ecosystemCareers/submitListing';
 import { listingBodySchema } from '@/server/services/ecosystemCareers/listingSchema';
-
-function incompleteProfileResponse(hasX: boolean, hasLinkedIn: boolean, verb: 'posting' | 'editing') {
-  return NextResponse.json(
-    {
-      error: 'IncompleteProfile',
-      message: `Connect both your X and LinkedIn profiles before ${verb} an ecosystem careers listing.`,
-      missing: [...(hasX ? [] : ['x']), ...(hasLinkedIn ? [] : ['linkedin'])],
-    },
-    { status: 403 },
-  );
-}
+import { incompleteProfileResponse } from './_helpers';
 
 export const POST = withAuth(async (req, _ctx, session) => {
   const userId = session.user.id;

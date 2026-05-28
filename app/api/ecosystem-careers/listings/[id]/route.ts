@@ -8,24 +8,14 @@ import {
   updateListing,
 } from '@/server/services/ecosystemCareers/submitListing';
 import { listingBodySchema } from '@/server/services/ecosystemCareers/listingSchema';
-
-function incompleteProfileResponse(hasX: boolean, hasLinkedIn: boolean) {
-  return NextResponse.json(
-    {
-      error: 'IncompleteProfile',
-      message: 'Connect both your X and LinkedIn profiles before editing an ecosystem careers listing.',
-      missing: [...(hasX ? [] : ['x']), ...(hasLinkedIn ? [] : ['linkedin'])],
-    },
-    { status: 403 },
-  );
-}
+import { incompleteProfileResponse } from '../_helpers';
 
 export const PUT = withAuth<RouteParams<{ id: string }>>(async (req, ctx, session) => {
   const userId = session.user.id;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { hasX, hasLinkedIn } = await userHasConnectedSocials(userId);
-  if (!hasX || !hasLinkedIn) return incompleteProfileResponse(hasX, hasLinkedIn);
+  if (!hasX || !hasLinkedIn) return incompleteProfileResponse(hasX, hasLinkedIn, 'editing');
 
   const { id } = await ctx.params;
   let raw: unknown;

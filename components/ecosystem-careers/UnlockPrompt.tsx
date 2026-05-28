@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import posthog from 'posthog-js';
 import { Linkedin, Lock } from 'lucide-react';
 
 // Inline mark for the X brand (lucide ships a "Twitter" bird; X uses the
@@ -77,6 +80,14 @@ export function UnlockPrompt({
         </div>
         <Link
           href={ctaHref}
+          onClick={() => {
+            posthog?.capture?.('careers_unlock_prompt_clicked', {
+              surface: variant,
+              authenticated,
+              missing: missingSocials,
+              return_to: returnTo,
+            });
+          }}
           className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 hover:scale-[1.02] transition-all duration-200"
         >
           {ctaLabel}
