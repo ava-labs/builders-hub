@@ -11,10 +11,6 @@ interface Props {
   currentLogoUrl: string | null;
 }
 
-// Pencil icon overlaid on a JobCard. Only rendered for devrel-role users
-// (gating happens upstream in JobCard via the viewerIsDevrel prop). Opens
-// a focused modal with the two priority quick-fix fields: title and
-// company logo URL. PATCH to /api/admin/ecosystem-careers/listings/[id]/patch.
 export function DevRelEditButton({
   listingId,
   currentTitle,
@@ -26,8 +22,6 @@ export function DevRelEditButton({
   const [logoUrl, setLogoUrl] = useState(currentLogoUrl ?? '');
   const [saving, setSaving] = useState(false);
 
-  // Reset draft state any time the modal opens, so reopening shows current
-  // values rather than stale ones from a prior edit.
   useEffect(() => {
     if (open) {
       setTitle(currentTitle);
@@ -72,8 +66,6 @@ export function DevRelEditButton({
     }
   }
 
-  // Stop click events from the button (and the modal) from bubbling up to
-  // the parent <Link> wrapping the JobCard.
   function stop(e: React.MouseEvent | React.KeyboardEvent) {
     e.stopPropagation();
     if ('preventDefault' in e) e.preventDefault();

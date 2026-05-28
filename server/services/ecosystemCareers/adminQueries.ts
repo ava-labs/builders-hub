@@ -67,6 +67,7 @@ export async function listIngestedListingsUnderReview(): Promise<PendingListingR
     where: {
       source: { in: ['external', 'getro'] },
       is_active: false,
+      rejected_at: null,
     },
     orderBy: [{ posted_at: 'desc' }, { created_at: 'desc' }],
     select: {
@@ -104,7 +105,8 @@ async function loadPendingProjects() {
   return prisma.project.findMany({
     where: {
       careers_approved: false,
-      jobListings: { some: { source: 'community', is_active: false } },
+      careers_rejected_at: null,
+      jobListings: { some: { source: 'community', is_active: false, rejected_at: null } },
     },
     orderBy: { updated_at: 'asc' },
     select: {
@@ -131,7 +133,7 @@ async function loadPendingProjects() {
         },
       },
       jobListings: {
-        where: { source: 'community', is_active: false },
+        where: { source: 'community', is_active: false, rejected_at: null },
         orderBy: { created_at: 'asc' },
         select: {
           id: true,

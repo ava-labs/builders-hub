@@ -6,10 +6,6 @@ interface Props {
   className?: string;
 }
 
-// Reusable CTA that nudges teams to post a role. Variants:
-// - 'button' for hero placements
-// - 'inline' compact strip (e.g. above the integrations grid)
-// - 'banner' full-width card for stacked layouts (e.g. /showcase top)
 export function HiringCta({ variant = 'button', className }: Props) {
   if (variant === 'button') {
     return (
@@ -52,7 +48,6 @@ export function HiringCta({ variant = 'button', className }: Props) {
     );
   }
 
-  // banner
   return (
     <div
       className={

@@ -1,34 +1,18 @@
 import { prisma } from '@/prisma/prisma';
 import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
-import { upsertExternalListing } from './upsertExternalListing';
+import { pruneStaleExternalListings, upsertExternalListing } from './upsertExternalListing';
 
 export interface IngestResult {
   source: 'external';
   inserted: number;
   updated: number;
   skipped: number;
+  pruned: number;
   queriesRun: number;
   candidatesAfterFilter: number;
   error: string | null;
 }
 
-// web3.career API uses ?token=KEY query auth and returns ["meta", "help",
-// [...jobs]] when show_description=true (mandatory — `false` strips the id
-// field which we need for idempotency). No pagination — `limit` caps at 100.
-//
-// Filtering strategy: web3.career has zero jobs under tag=avalanche today, so
-// we fetch broader Web3 tags and then post-filter to keep only roles that
-// are clearly Avalanche-relevant. A job qualifies if either:
-//   1. Its company name matches one already in our Getro corpus (the
-//      Avalanche-curated job board), OR
-//   2. Its title/description mentions a specific Avalanche term:
-//      'avalanche', 'avax', 'c-chain', 'p-chain' (intentionally not
-//      'subnet' or 'l1' — those are ambiguous with Bittensor / Cosmos).
-//
-// This combines high precision (company allow-list) with reasonable recall
-// (keyword catch for teams that build on Avalanche but aren't yet on the
-// Getro board). Anything that slips through still lands is_active=false so
-// devrel makes the final call in /admin/ecosystem-careers.
 const WEB3_CAREER_BASE = 'https://web3.career/api/v1';
 const LIMIT = 100;
 const RELEVANT_TAGS = ['defi', 'layer-2', 'smart-contract', 'solidity', 'rust'];
@@ -83,10 +67,6 @@ async function fetchTag(apiKey: string, tag: string): Promise<Web3CareerJob[]> {
   return Array.isArray(jobsArr) ? (jobsArr as Web3CareerJob[]) : [];
 }
 
-// Pulls the Avalanche company allow-list from existing Getro rows. Getro
-// network 10223 is the curated jobs.avax.network board — every company
-// on it is, by definition, deployed on Avalanche. Returns a lowercased
-// Set; lookups use substring containment so "Aave" matches "Aave Labs".
 async function loadAvalancheCompanyAllowList(): Promise<Set<string>> {
   const rows = await prisma.jobListing.findMany({
     where: { source: 'getro', company_name: { not: null } },
@@ -195,6 +175,7 @@ export async function ingestWeb3Career(
       inserted: 0,
       updated: 0,
       skipped: 0,
+      pruned: 0,
       queriesRun: 0,
       candidatesAfterFilter: 0,
       error: 'WEB3_CAREER_API_KEY not configured',
@@ -219,14 +200,13 @@ export async function ingestWeb3Career(
       inserted: 0,
       updated: 0,
       skipped: 0,
+      pruned: 0,
       queriesRun: queries,
       candidatesAfterFilter: 0,
       error: err instanceof Error ? err.message : 'fetch failed',
     };
   }
 
-  // Apply Avalanche relevance filter once — saves DB calls for non-matching
-  // rows during the loop below.
   const relevant = Array.from(byId.values()).filter(
     (j) => passesAvalancheFilter(j, allowList).matched,
   );
@@ -237,6 +217,7 @@ export async function ingestWeb3Career(
       inserted: 0,
       updated: 0,
       skipped: relevant.length,
+      pruned: 0,
       queriesRun: queries,
       candidatesAfterFilter: relevant.length,
       error: null,
@@ -299,11 +280,14 @@ export async function ingestWeb3Career(
     else inserted += 1;
   }
 
+  const pruned = await pruneStaleExternalListings('external', MAX_AGE_MS);
+
   return {
     source: 'external',
     inserted,
     updated,
     skipped,
+    pruned,
     queriesRun: queries,
     candidatesAfterFilter: relevant.length,
     error: null,

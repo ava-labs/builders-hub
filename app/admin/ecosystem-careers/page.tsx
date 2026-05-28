@@ -91,14 +91,37 @@ export default async function EcosystemCareersAdminPage() {
                     <p className="text-sm text-zinc-600 dark:text-zinc-300">{c.description}</p>
                   )}
                 </div>
-                <AdminActionButton
-                  endpoint={`/api/admin/ecosystem-careers/projects/${c.id}/approve`}
-                  label="Approve"
-                  busyLabel="Approving…"
-                  successMessage="Approved — listings are live."
-                  errorMessage="Could not approve."
-                  size="md"
-                />
+                <div className="flex items-center gap-2 shrink-0">
+                  <AdminActionButton
+                    endpoint={`/api/admin/ecosystem-careers/projects/${c.id}/approve`}
+                    label="Approve"
+                    busyLabel="Approving…"
+                    successMessage="Approved — listings are live."
+                    errorMessage="Could not approve."
+                    size="md"
+                  />
+                  <AdminActionButton
+                    endpoint={`/api/admin/ecosystem-careers/projects/${c.id}/reject`}
+                    label="Reject"
+                    busyLabel="Rejecting…"
+                    successMessage="Project rejected."
+                    errorMessage="Could not reject."
+                    variant="outline"
+                    size="md"
+                    confirmMessage="Reject this project? Its pending listings will be hidden and it won't reappear in the review queue."
+                  />
+                  <AdminActionButton
+                    endpoint={`/api/admin/ecosystem-careers/projects/${c.id}/pending`}
+                    method="DELETE"
+                    label="Delete"
+                    busyLabel="Deleting…"
+                    successMessage="Pending listings deleted."
+                    errorMessage="Could not delete."
+                    variant="destructive"
+                    size="md"
+                    confirmMessage="Permanently delete this project's pending listings? The project itself stays. This cannot be undone."
+                  />
+                </div>
               </div>
 
               {c.fullDescription && c.fullDescription !== c.description && (
@@ -273,13 +296,34 @@ export default async function EcosystemCareersAdminPage() {
                     {row.applyUrl}
                   </a>
                 </div>
-                <AdminActionButton
-                  endpoint={`/api/admin/ecosystem-careers/listings/${row.id}/approve`}
-                  label="Approve"
-                  busyLabel="Approving…"
-                  successMessage="Listing approved."
-                  errorMessage="Could not approve."
-                />
+                <div className="flex items-center gap-2 shrink-0">
+                  <AdminActionButton
+                    endpoint={`/api/admin/ecosystem-careers/listings/${row.id}/approve`}
+                    label="Approve"
+                    busyLabel="Approving…"
+                    successMessage="Listing approved."
+                    errorMessage="Could not approve."
+                  />
+                  <AdminActionButton
+                    endpoint={`/api/admin/ecosystem-careers/listings/${row.id}/reject`}
+                    label="Reject"
+                    busyLabel="Rejecting…"
+                    successMessage="Listing rejected."
+                    errorMessage="Could not reject."
+                    variant="outline"
+                    confirmMessage="Reject this listing? It won't reappear in the queue or on the public board."
+                  />
+                  <AdminActionButton
+                    endpoint={`/api/admin/ecosystem-careers/listings/${row.id}`}
+                    method="DELETE"
+                    label="Delete"
+                    busyLabel="Deleting…"
+                    successMessage="Listing deleted."
+                    errorMessage="Could not delete."
+                    variant="destructive"
+                    confirmMessage="Permanently delete this listing? This cannot be undone. (External listings may be re-ingested by the next cron — use Reject if you want permanent suppression.)"
+                  />
+                </div>
               </li>
             ))}
           </ul>

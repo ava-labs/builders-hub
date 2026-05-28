@@ -12,7 +12,7 @@ interface Props {
   successMessage: string;
   errorMessage?: string;
   confirmMessage?: string;
-  variant?: 'primary' | 'outline';
+  variant?: 'primary' | 'outline' | 'destructive';
   size?: 'sm' | 'md';
 }
 
@@ -21,6 +21,8 @@ const VARIANT_CLASSES: Record<NonNullable<Props['variant']>, string> = {
     'inline-flex items-center shrink-0 font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60 transition',
   outline:
     'inline-flex items-center font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60',
+  destructive:
+    'inline-flex items-center font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500 disabled:opacity-60 transition',
 };
 
 const SIZE_CLASSES: Record<NonNullable<Props['size']>, string> = {

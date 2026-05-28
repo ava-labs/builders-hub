@@ -181,6 +181,7 @@ model Project {
   // grant application). A devrel flips this at /admin/ecosystem-careers, which
   // also activates every queued listing under the project in one action.
   careers_approved    Boolean             @default(false)
+  careers_rejected_at DateTime?           @db.Timestamptz(3)
   formData            FormData[]
   members             Member[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
@@ -664,6 +665,7 @@ model JobListing {
   posted_at                DateTime? @db.Timestamptz(3)
   last_seen_at             DateTime  @default(now()) @db.Timestamptz(3)
   is_active                Boolean   @default(true)
+  rejected_at              DateTime? @db.Timestamptz(3)
   created_at               DateTime  @default(now()) @db.Timestamptz(3)
   updated_at               DateTime  @updatedAt @db.Timestamptz(3)
 

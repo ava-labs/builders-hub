@@ -1,5 +1,3 @@
-// Display helpers shared between the careers list and detail pages.
-
 export function prettyRemoteType(value: string | null | undefined): string {
   if (!value) return '';
   switch (value) {
@@ -14,25 +12,9 @@ export function prettyRemoteType(value: string | null | undefined): string {
   }
 }
 
-const SENIORITY_LABEL: Record<string, string> = {
-  intern: 'Intern',
-  entry: 'Entry',
-  associate: 'Associate',
-  mid: 'Mid-level',
-  mid_senior: 'Mid–senior',
-  senior: 'Senior',
-  staff: 'Staff',
-  principal: 'Principal',
-  lead: 'Lead',
-  manager: 'Manager',
-  director: 'Director',
-  cxo: 'Executive',
-  vp: 'VP',
-};
-
 export function prettySeniority(value: string | null | undefined): string {
   if (!value) return '';
-  return SENIORITY_LABEL[value] ?? value.replace(/_/g, ' ');
+  return value.replace(/_/g, ' ');
 }
 
 export function formatPostedAt(date: Date | string | null | undefined): string {

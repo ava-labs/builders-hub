@@ -1,24 +1,9 @@
--- Ecosystem Careers — one-shot schema for the careers feature.
--- Idempotent against re-runs (IF NOT EXISTS guards). Reaches the final state
--- on a fresh fork: per-team review fields on Project plus the JobListing
--- table with both relational (community) and denormalized (external/legacy)
--- company linkage.
-
--- ── Per-project careers approval on Project ──
--- Defaults to false for every project regardless of origin (community form,
--- hackathon submission, grant application). A devrel flips this at
--- /admin/ecosystem-careers, which also activates every queued listing under
--- the project in one action.
 ALTER TABLE "Project"
     ADD COLUMN IF NOT EXISTS "careers_approved" BOOLEAN NOT NULL DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS "Project_careers_approved_idx"
     ON "Project"("careers_approved");
 
--- ── JobListing table ──
--- source = 'community'  → project_id is set (FK to Project); company_* fields NULL
--- source = 'external'   → web3.career ingest (project_id NULL; company_* fields set)
--- source = 'legacy'     → original Getro seed, frozen (project_id NULL; company_* fields set)
 CREATE TABLE IF NOT EXISTS "JobListing" (
     "id"                  TEXT NOT NULL,
     "source"              TEXT NOT NULL,
@@ -47,7 +32,6 @@ CREATE TABLE IF NOT EXISTS "JobListing" (
     CONSTRAINT "JobListing_pkey" PRIMARY KEY ("id")
 );
 
--- Indexes + unique constraint
 CREATE UNIQUE INDEX IF NOT EXISTS "JobListing_source_external_id_key"
     ON "JobListing"("source", "external_id");
 
@@ -57,8 +41,6 @@ CREATE INDEX IF NOT EXISTS "JobListing_source_is_active_posted_at_idx"
 CREATE INDEX IF NOT EXISTS "JobListing_project_id_idx"
     ON "JobListing"("project_id");
 
--- Foreign keys (DO blocks for idempotency — pg_constraint introspection
--- because Postgres has no native IF NOT EXISTS for constraints).
 DO $$
 BEGIN
     IF NOT EXISTS (

@@ -3,17 +3,12 @@ import { firstUrl } from '@/lib/ecosystem-careers/firstUrl';
 
 export type ListingSource = 'community' | 'external' | 'legacy' | 'getro';
 
-// Legacy listings are a one-time frozen Getro seed; anything posted more
-// than ~10 months ago is too stale to surface. Computed at call time so the
-// cutoff slides forward automatically as data ages.
 const LEGACY_MAX_AGE_MS = 10 * 30 * 24 * 60 * 60 * 1000;
 
 function legacyAgeCutoff(): Date {
   return new Date(Date.now() - LEGACY_MAX_AGE_MS);
 }
 
-// Prisma where-clause snippet that excludes legacy listings posted more
-// than ~10 months ago. Use inside an AND with the rest of the filters.
 function notStaleLegacy() {
   return {
     OR: [
@@ -23,13 +18,10 @@ function notStaleLegacy() {
   };
 }
 
-// Company display fields normalized for the UI. Resolved from either the
-// linked Project (community source) or the denormalized columns on
-// JobListing (external + legacy sources).
 export interface DisplayCompany {
-  id: string | null;       // Project id when community, null otherwise
+  id: string | null;
   name: string;
-  slug: string | null;     // Reserved for future use — we no longer slug ecosystem companies
+  slug: string | null;
   logoUrl: string | null;
   website: string | null;
   tags: string[];
@@ -45,7 +37,6 @@ export interface JobCard {
   remoteType: string | null;
   seniority: string | null;
   tags: string[];
-  // String when crossing the server→client boundary, Date when used server-side.
   postedAt: Date | string | null;
   applyUrl: string;
   sourceUrl: string | null;
@@ -67,7 +58,6 @@ export function toSerializableJob(job: JobCard): SerializableJobCard {
   };
 }
 
-// Internal row shape with the project optionally joined.
 type JobRow = Awaited<ReturnType<typeof prisma.jobListing.findFirst>> & {
   project: Awaited<ReturnType<typeof prisma.project.findFirst>> | null;
 };
@@ -78,7 +68,6 @@ function projectTags(project: NonNullable<JobRow['project']>): string[] {
 }
 
 function toCompany(row: NonNullable<JobRow>): DisplayCompany {
-  // Community listings get their display from the linked Project.
   if (row.source === 'community' && row.project) {
     return {
       id: row.project.id,
@@ -90,7 +79,6 @@ function toCompany(row: NonNullable<JobRow>): DisplayCompany {
       description: row.project.short_description || null,
     };
   }
-  // External / legacy: denormalized fields on JobListing itself.
   return {
     id: null,
     name: row.company_name ?? 'Unknown',
@@ -139,7 +127,7 @@ export async function listActiveJobs(
   const limit = Math.min(Math.max(opts.limit ?? 60, 1), 200);
   const offset = Math.max(opts.offset ?? 0, 0);
 
-  const where: any = { is_active: true, AND: [notStaleLegacy()] };
+  const where: any = { is_active: true, rejected_at: null, AND: [notStaleLegacy()] };
   if (opts.remoteType) where.remote_type = opts.remoteType;
   if (opts.seniority) where.seniority = opts.seniority;
 
@@ -188,8 +176,6 @@ export async function listActiveJobs(
 }
 
 export interface CompanyOption {
-  // For community listings: the Project id; for external/legacy: the
-  // company name itself (we group by name client-side).
   id: string;
   name: string;
   logoUrl: string | null;
@@ -197,8 +183,6 @@ export interface CompanyOption {
 }
 
 export async function listCompaniesWithActiveJobs(): Promise<CompanyOption[]> {
-  // Two groupings: community via project_id; external/legacy via company_name.
-  // Legacy listings older than the cutoff are excluded.
   const cutoff = legacyAgeCutoff();
   const [byProject, byName] = await Promise.all([
     prisma.jobListing.groupBy({
@@ -232,7 +216,6 @@ export async function listCompaniesWithActiveJobs(): Promise<CompanyOption[]> {
     : [];
   const projectById = new Map(projects.map((p) => [p.id, p]));
 
-  // For external/legacy we sample one row per company_name to grab a logo.
   const externalNames = byName
     .map((g) => g.company_name)
     .filter((n): n is string => !!n);
@@ -273,8 +256,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
     where: { id },
     include: { project: true },
   });
-  if (!row || !row.is_active) return null;
-  // Legacy listings older than the cutoff are treated as not-found.
+  if (!row || !row.is_active || row.rejected_at) return null;
   if (
     row.source === 'legacy' &&
     (!row.posted_at || row.posted_at < legacyAgeCutoff())
@@ -288,15 +270,15 @@ export async function listMoreJobsFromSameCompany(
   job: { id: string; source: ListingSource; project_id: string | null; company_name: string | null },
   limit = 5,
 ): Promise<JobCard[]> {
-  // Community → match by project_id; external/legacy → match by company_name.
   let where: any;
   if (job.source === 'community' && job.project_id) {
-    where = { source: 'community', project_id: job.project_id, is_active: true, NOT: { id: job.id } };
+    where = { source: 'community', project_id: job.project_id, is_active: true, rejected_at: null, NOT: { id: job.id } };
   } else if (job.company_name) {
     where = {
       source: { in: ['external', 'legacy', 'getro'] },
       company_name: job.company_name,
       is_active: true,
+      rejected_at: null,
       NOT: { id: job.id },
       AND: [notStaleLegacy()],
     };

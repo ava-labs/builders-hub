@@ -6,6 +6,23 @@ export type ExternalSource = 'getro' | 'external';
 type ManagedFields = 'source' | 'external_id' | 'last_seen_at' | 'is_active';
 export type ExternalListingCreateData = Omit<Prisma.JobListingUncheckedCreateInput, ManagedFields>;
 
+export async function pruneStaleExternalListings(
+  source: ExternalSource,
+  maxAgeMs: number,
+): Promise<number> {
+  const cutoff = new Date(Date.now() - maxAgeMs);
+  const result = await prisma.jobListing.deleteMany({
+    where: {
+      source,
+      OR: [
+        { posted_at: { lt: cutoff } },
+        { posted_at: null, created_at: { lt: cutoff } },
+      ],
+    },
+  });
+  return result.count;
+}
+
 export async function upsertExternalListing(
   source: ExternalSource,
   externalId: string,

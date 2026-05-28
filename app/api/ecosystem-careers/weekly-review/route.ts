@@ -27,11 +27,12 @@ async function handle(req: NextRequest) {
     prisma.project.count({
       where: {
         careers_approved: false,
-        jobListings: { some: { source: 'community', is_active: false } },
+        careers_rejected_at: null,
+        jobListings: { some: { source: 'community', is_active: false, rejected_at: null } },
       },
     }),
-    prisma.jobListing.count({ where: { source: 'external', is_active: false } }),
-    prisma.jobListing.count({ where: { source: 'getro', is_active: false } }),
+    prisma.jobListing.count({ where: { source: 'external', is_active: false, rejected_at: null } }),
+    prisma.jobListing.count({ where: { source: 'getro', is_active: false, rejected_at: null } }),
   ]);
 
   const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://build.avax.network'}/admin/ecosystem-careers`;

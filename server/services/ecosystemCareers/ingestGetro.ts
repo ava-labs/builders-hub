@@ -1,26 +1,21 @@
 import { prisma } from '@/prisma/prisma';
 import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
-import { upsertExternalListing } from './upsertExternalListing';
+import { pruneStaleExternalListings, upsertExternalListing } from './upsertExternalListing';
 
 export interface IngestResult {
   source: 'getro';
   inserted: number;
   updated: number;
   skipped: number;
+  pruned: number;
   pagesFetched: number;
   error: string | null;
 }
 
-// The Avalanche board on jobs.avax.network is Getro network 10223.
-// Confirmed via the network metadata embedded in the public page HTML.
 const AVALANCHE_NETWORK_ID = 10223;
 const GETRO_BASE = 'https://api.getro.com/v2';
-const PAGE_SIZE = 100; // API max
-// Getro is rate-limited to 30 requests/minute. Hard-cap the loop so a runaway
-// pagination doesn't burn the budget; 50 pages at 100/page is 5k jobs, well
-// past anything realistic for this network.
+const PAGE_SIZE = 100;
 const MAX_PAGES = 50;
-// Drop anything more than a year old — stale listings clutter the queue.
 const MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
 
 interface GetroJob {
@@ -50,7 +45,6 @@ interface GetroResponse {
 
 interface IngestOptions {
   includeDescriptions?: boolean;
-  // Used by the test endpoint to short-circuit before writing to DB.
   dryRun?: boolean;
 }
 
@@ -136,9 +130,6 @@ export async function fetchGetroDryRun(opts: IngestOptions = {}): Promise<DryRun
   }
 }
 
-// Idempotent on (source='getro', external_id). New rows land is_active=false
-// so a devrel approves them in the admin queue. Existing rows are touched
-// with last_seen_at so we can prune anything that stopped appearing.
 export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResult> {
   const apiKey = process.env.GETRO_CAREER_API_KEY?.trim();
   if (!apiKey) {
@@ -147,6 +138,7 @@ export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResul
       inserted: 0,
       updated: 0,
       skipped: 0,
+      pruned: 0,
       pagesFetched: 0,
       error: 'GETRO_CAREER_API_KEY not configured',
     };
@@ -172,6 +164,7 @@ export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResul
       inserted: 0,
       updated: 0,
       skipped: 0,
+      pruned: 0,
       pagesFetched: pages,
       error: err instanceof Error ? err.message : 'fetch failed',
     };
@@ -183,6 +176,7 @@ export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResul
       inserted: 0,
       updated: 0,
       skipped: allJobs.length,
+      pruned: 0,
       pagesFetched: pages,
       error: null,
     };
@@ -239,11 +233,14 @@ export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResul
     else inserted += 1;
   }
 
+  const pruned = await pruneStaleExternalListings('getro', MAX_AGE_MS);
+
   return {
     source: 'getro',
     inserted,
     updated,
     skipped,
+    pruned,
     pagesFetched: pages,
     error: null,
   };

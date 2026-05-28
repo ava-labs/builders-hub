@@ -1,9 +1,3 @@
-// Minimal allowlist sanitizer for Getro job description HTML.
-// Getro returns markup like <div><p>...</p><ul><li>...</li></ul></div> with
-// occasional <strong>, <em>, <a>, <br>. We strip anything outside the
-// allowlist, drop all attributes except href/title on anchors, and force
-// anchors to open in a new tab.
-
 const ALLOWED_TAGS = new Set([
   'p',
   'br',
@@ -39,10 +33,8 @@ const SAFE_URL_RE = /^(?:https?:|mailto:|tel:|\/)/i;
 export function sanitizeJobHtml(input: string | null | undefined): string {
   if (!input) return '';
 
-  // Strip <script>...</script> and <style>...</style> entirely (with content)
   let out = input.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
 
-  // Walk every tag and rewrite it
   out = out.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g, (_, rawTag: string, rawAttrs: string) => {
     const tag = rawTag.toLowerCase();
     if (!ALLOWED_TAGS.has(tag)) return '';
@@ -70,24 +62,15 @@ export function sanitizeJobHtml(input: string | null | undefined): string {
     return `<${tag}${attrsOut}${isSelfClosing ? ' /' : ''}>`;
   });
 
-  // Normalize whitespace + drop "spacer" blocks that are essentially blank.
-  // Getro frequently emits `<p><br /></p>` between real paragraphs, which
-  // doubles vertical spacing once `prose` margins kick in. Iterate so that
-  // nested wrappers (e.g. <div>< br /></div>) collapse too.
   let prev: string;
   do {
     prev = out;
-    out = out
-      // Collapse a block-level wrapper that contains only whitespace,
-      // <br>, &nbsp; entities, or nested empty wrappers.
-      .replace(
-        /<(p|div|li|h[1-6]|blockquote)>\s*(?:<br\s*\/?>\s*|&nbsp;| |\s)*\s*<\/\1>/gi,
-        '',
-      );
+    out = out.replace(
+      /<(p|div|li|h[1-6]|blockquote)>\s*(?:<br\s*\/?>\s*|&nbsp;| |\s)*\s*<\/\1>/gi,
+      '',
+    );
   } while (out !== prev);
 
-  // Collapse insignificant whitespace between block tags so the rendered
-  // HTML doesn't accumulate stray newlines.
   out = out.replace(/>\s+</g, '><').trim();
 
   return out;
@@ -97,7 +80,6 @@ function escapeAttr(value: string): string {
   return value.replace(/[&"<>]/g, (c) => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' }[c]!));
 }
 
-// Plain-text extraction for short_description / search indexing
 export function htmlToPlainText(input: string | null | undefined, maxChars = 280): string {
   if (!input) return '';
   let text = input

@@ -6,10 +6,6 @@ interface Props {
   pendingListings: number;
 }
 
-// Compact admin-queue shortcut, shown only when a devrel-role user is on the
-// public Ecosystem Careers page. The neon-red pill matches the visual
-// vocabulary of the "DevRel only" affordances elsewhere (notifications
-// composer, profile shell).
 export function DevRelReviewLink({ pendingProjects, pendingListings }: Props) {
   const total = pendingProjects + pendingListings;
   return (

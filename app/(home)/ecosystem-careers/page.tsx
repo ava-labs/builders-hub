@@ -36,13 +36,15 @@ async function getDevRelContext() {
     prisma.project.count({
       where: {
         careers_approved: false,
-        jobListings: { some: { source: 'community', is_active: false } },
+        careers_rejected_at: null,
+        jobListings: { some: { source: 'community', is_active: false, rejected_at: null } },
       },
     }),
     prisma.jobListing.count({
       where: {
         source: { in: ['external', 'getro'] },
         is_active: false,
+        rejected_at: null,
       },
     }),
   ]);

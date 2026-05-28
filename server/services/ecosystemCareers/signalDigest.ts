@@ -9,11 +9,6 @@ export interface DigestPayload {
   reviewUrl: string;
 }
 
-// Posts a Block Kit payload to a generic webhook URL. Returns null on
-// success, an error string on failure. The receiver just needs to accept
-// a Slack-shaped JSON POST — Slack, Discord (via Slack-compat adapter),
-// Ditto, or any custom internal endpoint all work. Env var:
-// SIGNAL_DIGEST_WEBHOOK. Same name for staging/prod; only the URL differs.
 export async function postSignalDigest(payload: DigestPayload): Promise<string | null> {
   const webhook = process.env.SIGNAL_DIGEST_WEBHOOK?.trim();
   if (!webhook) return 'SIGNAL_DIGEST_WEBHOOK not configured';
@@ -22,7 +17,6 @@ export async function postSignalDigest(payload: DigestPayload): Promise<string |
     payload.projectsPending + payload.externalListingsPending + payload.getroListingsPending;
 
   if (totalPending === 0 && !payload.ingest.getro.error && !payload.ingest.web3career.error) {
-    // Nothing to review and no ingest errors — skip the noise.
     return null;
   }
 
@@ -63,9 +57,6 @@ export async function postSignalDigest(payload: DigestPayload): Promise<string |
     ],
   };
 
-  // Optional Bearer auth. Slack incoming webhooks don't require it (the
-  // URL itself is the secret); Ditto's adapter expects it. Setting
-  // SIGNAL_DIGEST_BEARER opts into Authorization: Bearer <value>.
   const bearer = process.env.SIGNAL_DIGEST_BEARER?.trim();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (bearer) headers.Authorization = `Bearer ${bearer}`;
