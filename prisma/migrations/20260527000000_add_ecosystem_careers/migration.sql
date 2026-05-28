@@ -1,5 +1,6 @@
 ALTER TABLE "Project"
-    ADD COLUMN IF NOT EXISTS "careers_approved" BOOLEAN NOT NULL DEFAULT false;
+    ADD COLUMN IF NOT EXISTS "careers_approved" BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS "careers_rejected_at" TIMESTAMPTZ(3);
 
 CREATE INDEX IF NOT EXISTS "Project_careers_approved_idx"
     ON "Project"("careers_approved");
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS "JobListing" (
     "posted_at"           TIMESTAMPTZ(3),
     "last_seen_at"        TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "is_active"           BOOLEAN NOT NULL DEFAULT true,
+    "rejected_at"         TIMESTAMPTZ(3),
     "created_at"          TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at"          TIMESTAMPTZ(3) NOT NULL,
     CONSTRAINT "JobListing_pkey" PRIMARY KEY ("id")
@@ -40,6 +42,9 @@ CREATE INDEX IF NOT EXISTS "JobListing_source_is_active_posted_at_idx"
 
 CREATE INDEX IF NOT EXISTS "JobListing_project_id_idx"
     ON "JobListing"("project_id");
+
+CREATE INDEX IF NOT EXISTS "JobListing_rejected_at_idx"
+    ON "JobListing"("rejected_at");
 
 DO $$
 BEGIN
