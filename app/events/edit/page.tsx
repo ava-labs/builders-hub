@@ -3170,43 +3170,6 @@ const HackathonsEdit = () => {
                       </label>
                     </div>
                     */}
-                    <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                    <div className="mb-2 text-muted-foreground text-sm">{t[language].customLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataLatest.custom_link ?? ''}
-                      onChange={(e) => {
-                        setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
-                    <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                    <div className="mb-2 text-muted-foreground text-sm">{t[language].joinCustomLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="join_custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataContent.join_custom_link}
-                      onChange={(e) => {
-                        setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
-                    <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                    <div className="mb-2 text-muted-foreground text-sm">{t[language].submissionCustomLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="submission_custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataContent.submission_custom_link ?? ''}
-                      onChange={(e) => {
-                        setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
-
                     {/* Registration & submission window — grouped here with
                         the other event dates and end-of-flow settings. */}
                     {formDataLatest.event === 'hackathon' && (
