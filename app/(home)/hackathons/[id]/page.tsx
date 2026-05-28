@@ -1,6 +1,3 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getHackathon } from "@/server/services/hackathons";
 import { getRegisterForm } from "@/server/services/registerForms";
@@ -20,6 +17,7 @@ import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
+import StagesSection from "@/components/hackathons/hackathon/sections/StagesSection";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -30,10 +28,10 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  
+
   try {
     const hackathon = await getHackathon(id);
-    
+
     if (!hackathon) {
       return createMetadata({
         title: 'Hackathon Not Found',
@@ -71,7 +69,7 @@ export default async function HackathonPage({
   // Check if user is authenticated and registered
   const session = await getAuthSession();
   let isRegistered = false;
-  
+
   if (session?.user?.email) {
     const registration = await getRegisterForm(session.user.email, id);
     isRegistered = !!registration;
@@ -92,13 +90,16 @@ export default async function HackathonPage({
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
+        {/*
+          SECURITY: Removed hardcoded `@team1.network` domain check.
+          Business logic must not be coupled to email domains — it exposes
+          partner information and can be trivially bypassed.  The hackathon's
+          own `icon` field is used as the branding logo instead, which is
+          controlled by the hackathon creator at data entry time.
+        */}
         <Image
-          src={
-            hackathon.icon?.trim().length > 0
-              ? hackathon.icon
-              : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
-          }
-          alt="Hackathon background"
+          src={hackathon.icon?.trim() ? hackathon.icon : '/images/avax.png'}
+          alt="Hackathon logo"
           width={40}
           height={40}
         />
@@ -133,11 +134,16 @@ export default async function HackathonPage({
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
+            {
+              hackathon.content.stages && hackathon.content.stages.length > 0 && (
+                <StagesSection stages={hackathon.content.stages} hackathon={hackathon} />
+              )
+            }
             {hackathon.content.tracks_text && <About hackathon={hackathon} />}
             {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
             <Resources hackathon={hackathon} />
-            <Schedule 
-              hackathon={hackathon} 
+            <Schedule
+              hackathon={hackathon}
               scheduleSource={hackathon.google_calendar_id ? "google-calendar" : "database"}
               googleCalendarConfig={hackathon.google_calendar_id ? {
                 calendarId: hackathon.google_calendar_id,
@@ -154,11 +160,6 @@ export default async function HackathonPage({
           </div>
         </div>
       </div>
-      {/* <div className="flex justify-end mt-4">
-        <Link href={`/hackathons/${id}/admin-panel`}>
-          <Button>Edit Hackathon</Button>
-        </Link>
-      </div> */}
     </main>
   );
 }
