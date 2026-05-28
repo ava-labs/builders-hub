@@ -6,14 +6,23 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
+import { SafeImage } from "@/components/common/SafeImage";
 import { HackathonHeader } from "@/types/hackathons";
 import AutoScroll from "embla-carousel-auto-scroll";
-import Image from "next/image";
 import Link from "next/link";
-import React from "react";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { cn } from "@/lib/utils";
 
-function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
+type SponsorsProps = {
+  hackathon: HackathonHeader;
+  /** Editor preview: strip stays within the panel width (no `vw`). Omitted on live pages. */
+  isPreview?: boolean;
+};
+
+const stripSurfaceClass =
+  "border-y border-zinc-200 bg-white dark:border-zinc-300/25 dark:bg-zinc-100";
+
+function Sponsors({ hackathon, isPreview = false }: SponsorsProps) {
   const lang = normalizeEventsLang(hackathon.content?.language);
   const plugin = AutoScroll({
     speed: 1,
@@ -22,8 +31,11 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
     playOnInit: true,
   });
 
+  const partners = hackathon.content.partners;
+  const useStaticRow = partners.length <= 5;
+
   return (
-    <section>
+    <section className="min-w-0 w-full max-w-full">
       <h2 className="text-4xl font-bold mb-8" id="sponsors">
         {t(lang, "section.partners.title")}
       </h2>
@@ -31,17 +43,33 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
       <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
         {t(lang, "section.partners.subtitle")}
       </p>
-      <div className="w-screen left-1/2 transform -translate-x-1/2 relative py-4 [background-color:#1b1b1b] dark:[background-color:#e4e4e4]">
-        {hackathon.content.partners.length <= 5 ? (
-          <div className="flex flex-wrap justify-around items-center gap-8 px-8">
-            {hackathon.content.partners.map((partner, index) => (
-              <div key={index} className="h-28 flex items-center justify-center">
-                <Image
+      <div
+        className={cn(
+          "min-w-0 overflow-hidden",
+          !isPreview &&
+            "relative left-1/2 w-screen max-w-none -translate-x-1/2",
+          isPreview && "w-full max-w-full rounded-lg",
+        )}
+      >
+        {useStaticRow ? (
+          <div
+            className={cn(
+              "flex w-full flex-wrap items-center justify-around gap-6 px-4 py-4 sm:gap-8 sm:px-8",
+              stripSurfaceClass,
+              isPreview && "rounded-lg border-x",
+            )}
+          >
+            {partners.map((partner, index) => (
+              <div
+                key={index}
+                className="flex h-28 min-w-0 shrink-0 items-center justify-center"
+              >
+                <SafeImage
                   src={partner.logo}
                   alt={partner.name}
-                  className="object-contain filter grayscale invert dark:invert-0"
-                  height={100}
-                  width={180}
+                  frameClassName="h-[100px] w-[160px] sm:w-[180px] max-w-full"
+                  imageClassName="object-contain opacity-90 grayscale transition hover:opacity-100 hover:grayscale-0 dark:opacity-90 dark:hover:opacity-100"
+                  fallbackIcon="image"
                 />
               </div>
             ))}
@@ -49,24 +77,28 @@ function Sponsors({ hackathon }: { hackathon: HackathonHeader }) {
         ) : (
           <Carousel
             plugins={[plugin]}
-            className="w-full"
+            className={cn(
+              "w-full py-4",
+              stripSurfaceClass,
+              isPreview && "rounded-lg border-x",
+            )}
             opts={{
               loop: true,
               dragFree: false,
             }}
           >
             <CarouselContent>
-              {hackathon.content.partners.map((partner, index) => (
+              {partners.map((partner, index) => (
                 <CarouselItem
                   key={index}
-                  className="basis-1/2 sm:basis-1/3 md:basis-1/5 h-44 items-center justify-center flex"
+                  className="flex h-44 basis-[45%] items-center justify-center sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
                 >
-                  <Image
+                  <SafeImage
                     src={partner.logo}
                     alt={partner.name}
-                    className="object-contain filter grayscale invert dark:invert-0"
-                    height={120}
-                    width={200}
+                    frameClassName="h-[100px] w-[140px] max-w-full sm:h-[120px] sm:w-[200px]"
+                    imageClassName="object-contain opacity-90 grayscale transition hover:opacity-100 hover:grayscale-0 dark:opacity-90 dark:hover:opacity-100"
+                    fallbackIcon="image"
                   />
                 </CarouselItem>
               ))}

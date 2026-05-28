@@ -57,6 +57,7 @@ export async function proxy(req: NextRequest) {
     "/hackathons/project-submission",
     "/events/registration-form",
     "/events/project-submission",
+    "/events/edit",
     "/showcase",
     "/send-notifications",
     "/profile",
@@ -69,6 +70,10 @@ export async function proxy(req: NextRequest) {
   // Protect routes: block unauthenticated access to protected paths without redirecting
   // The client-side component (AutoLoginModalTrigger) will detect this and show the login modal
   if (!isAuthenticated && !isLoginPage && isProtectedPath) {
+    // If it's /events/edit, redirect to home
+    if (pathname.startsWith("/hackathons/edit") || pathname.startsWith("/events/edit")) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
     // Block access by setting a header, but allow the request to continue
     // The page will render but the client will show the login modal
     const blockedResponse = NextResponse.next();

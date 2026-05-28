@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {decode} from "next-auth/jwt"
-import jwt, { JwtPayload } from "jsonwebtoken";
+import { JwtPayload } from "jsonwebtoken";
 
 const JWT_SECRET: string | undefined = process.env.NEXTAUTH_SECRET;
 
