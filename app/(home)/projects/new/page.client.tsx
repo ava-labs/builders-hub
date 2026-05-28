@@ -59,12 +59,6 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
     update(key, cleaned ? `${base}${cleaned}` : '');
   };
 
-  const setWebsite = (raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) return update('website', '');
-    update('website', HTTPS_RE.test(trimmed) ? trimmed : `https://${trimmed.replace(/^\/+/, '')}`);
-  };
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
@@ -254,16 +248,14 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
             <label htmlFor="np-website">
               Website <span className="pr-req">*</span>
             </label>
-            <div className="pr-input-group">
-              <span className="pr-pre">https://</span>
-              <input
-                id="np-website"
-                type="text"
-                value={values.website.replace(/^https?:\/\//i, '')}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="yourcompany.com"
-              />
-            </div>
+            <input
+              id="np-website"
+              type="url"
+              className="pr-input"
+              value={values.website}
+              onChange={(e) => update('website', e.target.value)}
+              placeholder="https://yourcompany.com"
+            />
           </div>
 
           <div className="pr-field-row">

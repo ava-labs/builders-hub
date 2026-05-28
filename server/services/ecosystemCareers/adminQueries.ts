@@ -5,11 +5,23 @@ export interface PendingProjectRow {
   name: string;
   logoUrl: string | null;
   description: string | null;
+  fullDescription: string | null;
   website: string | null;
-  tags: string[];
-  githubRepository: string | null;
+  xAccount: string | null;
+  linkedinAccount: string | null;
+  githubAccount: string | null;
   demoLink: string | null;
+  tags: string[];
+  categories: string[];
+  techStack: string | null;
   createdAt: Date;
+  members: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    role: string;
+    image: string | null;
+  }[];
   pendingListings: {
     id: string;
     title: string;
@@ -27,6 +39,14 @@ function firstUrl(value: unknown): string | null {
     if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim();
   }
   return null;
+}
+
+function readSocial(socials: unknown, key: string): string | null {
+  if (!socials || typeof socials !== 'object') return null;
+  const value = (socials as Record<string, unknown>)[key];
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 export async function listProjectsUnderReview(): Promise<PendingProjectRow[]> {
@@ -98,13 +118,25 @@ async function loadPendingProjects() {
       id: true,
       project_name: true,
       short_description: true,
+      full_description: true,
       logo_url: true,
       website: true,
+      socials: true,
       tags: true,
       tracks: true,
+      categories: true,
+      tech_stack: true,
       github_repository: true,
       demo_link: true,
       created_at: true,
+      members: {
+        where: { status: 'Confirmed' },
+        select: {
+          id: true,
+          role: true,
+          user: { select: { id: true, name: true, email: true, image: true } },
+        },
+      },
       jobListings: {
         where: { source: 'community', is_active: false },
         orderBy: { created_at: 'asc' },
@@ -128,11 +160,28 @@ function mapProjects(projects: ProjectQueryResult): PendingProjectRow[] {
     name: p.project_name,
     logoUrl: p.logo_url || null,
     description: p.short_description || null,
+    fullDescription: p.full_description || null,
     website: firstUrl(p.website),
-    tags: Array.from(new Set([...(p.tags ?? []), ...(p.tracks ?? [])])).slice(0, 10),
-    githubRepository: p.github_repository || null,
+    xAccount: readSocial(p.socials, 'x'),
+    linkedinAccount: readSocial(p.socials, 'linkedin'),
+    // Prefer the social-form value; fall back to the older hackathon-era
+    // github_repository column so projects created via the older flows
+    // still expose their repo link.
+    githubAccount: readSocial(p.socials, 'github') ?? p.github_repository ?? null,
     demoLink: p.demo_link || null,
+    tags: Array.from(new Set([...(p.tags ?? []), ...(p.tracks ?? [])])).slice(0, 10),
+    categories: p.categories ?? [],
+    techStack: p.tech_stack || null,
     createdAt: p.created_at,
+    members: p.members
+      .filter((m) => m.user !== null)
+      .map((m) => ({
+        id: m.user!.id,
+        name: m.user!.name,
+        email: m.user!.email,
+        role: m.role,
+        image: m.user!.image ?? null,
+      })),
     pendingListings: p.jobListings.map((j) => ({
       id: j.id,
       title: j.title,

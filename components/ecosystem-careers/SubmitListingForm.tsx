@@ -333,10 +333,7 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
               </select>
             </div>
             <div className="pr-field">
-              <label htmlFor="ec-seniority">
-                Years of work experience{' '}
-                <span className="pr-opt">— minimum candidates should bring</span>
-              </label>
+              <label htmlFor="ec-seniority">Years of work experience</label>
               <input
                 id="ec-seniority"
                 type="number"
@@ -348,6 +345,9 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
                 onChange={(e) => update('seniority', e.target.value)}
                 placeholder="e.g. 3"
               />
+              <div className="pr-helper">
+                <span>Minimum candidates should bring. Leave blank for any.</span>
+              </div>
             </div>
           </div>
 
@@ -369,19 +369,14 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
             <label htmlFor="ec-apply">
               Apply URL <span className="pr-req">*</span>
             </label>
-            <div className="pr-input-group">
-              <span className="pr-pre">https://</span>
-              <input
-                id="ec-apply"
-                type="text"
-                value={values.apply_url.replace(/^https?:\/\//i, '')}
-                onChange={(e) => {
-                  const raw = e.target.value.trim();
-                  update('apply_url', raw ? `https://${raw.replace(/^https?:\/\//i, '')}` : '');
-                }}
-                placeholder="yourcompany.com/careers/role-123"
-              />
-            </div>
+            <input
+              id="ec-apply"
+              type="url"
+              className="pr-input"
+              value={values.apply_url}
+              onChange={(e) => update('apply_url', e.target.value)}
+              placeholder="https://yourcompany.com/careers/role-123"
+            />
             <div className="pr-helper">
               <span>LinkedIn, your careers page, Greenhouse — wherever applicants should land.</span>
             </div>

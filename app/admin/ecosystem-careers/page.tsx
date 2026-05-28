@@ -91,46 +91,78 @@ export default async function EcosystemCareersAdminPage() {
                   {c.description && (
                     <p className="text-sm text-zinc-600 dark:text-zinc-300">{c.description}</p>
                   )}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {c.tags.slice(0, 6).map((t) => (
-                      <span
-                        key={t}
-                        className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 pt-1 space-x-2">
-                    {c.website && (
-                      <a href={c.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        Website
-                      </a>
-                    )}
-                    {c.githubRepository && (
-                      <a
-                        href={c.githubRepository}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        GitHub
-                      </a>
-                    )}
-                    {c.demoLink && (
-                      <a
-                        href={c.demoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        Demo
-                      </a>
-                    )}
-                  </div>
                 </div>
                 <ReviewActions projectId={c.id} />
               </div>
+
+              {c.fullDescription && c.fullDescription !== c.description && (
+                <div className="text-sm text-zinc-700 dark:text-zinc-200 leading-relaxed whitespace-pre-wrap border-t border-zinc-200 dark:border-zinc-800 pt-4">
+                  {c.fullDescription}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-zinc-200 dark:border-zinc-800 pt-4">
+                <SocialPill href={c.website} label="Website" />
+                <SocialPill href={c.xAccount} label="X" />
+                <SocialPill href={c.linkedinAccount} label="LinkedIn" />
+                <SocialPill href={c.githubAccount} label="GitHub" />
+                <SocialPill href={c.demoLink} label="Demo" />
+                {!c.website && !c.xAccount && !c.linkedinAccount && !c.githubAccount && !c.demoLink && (
+                  <span className="text-xs italic text-zinc-400 dark:text-zinc-500">
+                    No links provided
+                  </span>
+                )}
+              </div>
+
+              {(c.tags.length > 0 || c.categories.length > 0 || c.techStack) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {[...c.tags, ...c.categories].map((t) => (
+                    <span
+                      key={`tag-${t}`}
+                      className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                  {c.techStack && (
+                    <span className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-full border border-dashed border-zinc-300 dark:border-zinc-700">
+                      stack: {c.techStack}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {c.members.length > 0 && (
+                <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-2">
+                  <h3 className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    {c.members.length} confirmed member{c.members.length === 1 ? '' : 's'}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {c.members.map((m) => (
+                      <span
+                        key={m.id}
+                        className="inline-flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/60 text-xs"
+                        title={m.email ?? undefined}
+                      >
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 overflow-hidden">
+                          {m.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={m.image} alt={m.name ?? ''} className="w-full h-full object-cover" />
+                          ) : (
+                            (m.name ?? m.email ?? '?').slice(0, 1).toUpperCase()
+                          )}
+                        </span>
+                        <span className="text-zinc-900 dark:text-zinc-100">
+                          {m.name ?? m.email ?? 'Unknown'}
+                        </span>
+                        <span className="text-[9px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                          {m.role}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {c.pendingListings.length > 0 && (
                 <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-3">
@@ -242,5 +274,21 @@ export default async function EcosystemCareersAdminPage() {
         )}
       </section>
     </main>
+  );
+}
+
+function SocialPill({ href, label }: { href: string | null; label: string }) {
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-200 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors"
+      title={href}
+    >
+      <span>{label}</span>
+      <span className="text-zinc-400 dark:text-zinc-500">↗</span>
+    </a>
   );
 }
