@@ -133,8 +133,11 @@ export default function MediaUploader({
 
         return (
           <FormItem className='space-y-2'>
-            <FormLabel className='text-sm text-foreground font-semibold'>
+            <FormLabel className='text-sm text-foreground font-semibold flex items-center gap-2'>
               {label}
+              <span className='rounded px-1.5 py-0.5 text-[10px] font-medium bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'>
+                {t(lang ?? 'en', 'field.optional')}
+              </span>
             </FormLabel>
 
             <div

@@ -167,7 +167,9 @@ model Project {
   is_preexisting_idea Boolean             @default(false)
   small_cover_url     String?             @default("")
   tags                String[]            @default([])
-  is_winner           Boolean?            @default(false)
+  is_winner                Boolean?            @default(false)
+  is_rejected              Boolean             @default(false)
+  submission_email_sent    Boolean             @default(false)
   categories          String[]            @default([])
   origin              String              @default("unknown")
   other_category      String?
