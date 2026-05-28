@@ -15,6 +15,7 @@ import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { EventReferralButton } from "@/components/hackathons/hackathon/EventReferralModal";
 import type { HackathonHeader } from "@/types/hackathons";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import type { SubmissionStatus } from "@/lib/hackathons/submission-progress";
 
 interface LegacyEventLayoutProps {
   hackathon: HackathonHeader;
@@ -22,6 +23,9 @@ interface LegacyEventLayoutProps {
   isRegistered: boolean;
   isAuthenticated: boolean;
   utm: string;
+  submissionStatus?: SubmissionStatus;
+  submissionProgress?: number;
+  submissionProjectId?: string | null;
 }
 
 export default function LegacyEventLayout({
@@ -30,6 +34,9 @@ export default function LegacyEventLayout({
   isRegistered,
   isAuthenticated,
   utm,
+  submissionStatus = "none",
+  submissionProgress = 0,
+  submissionProjectId = null,
 }: LegacyEventLayoutProps) {
   const lang = normalizeEventsLang(hackathon.content?.language);
 
@@ -153,7 +160,17 @@ export default function LegacyEventLayout({
                 }
               />
             )}
-            {isHackathon && <Submission hackathon={hackathon} isRegistered={isRegistered} isAuthenticated={isAuthenticated} utm={utm} />}
+            {isHackathon && (
+              <Submission
+                hackathon={hackathon}
+                isRegistered={isRegistered}
+                isAuthenticated={isAuthenticated}
+                utm={utm}
+                submissionStatus={submissionStatus}
+                submissionProgress={submissionProgress}
+                submissionProjectId={submissionProjectId}
+              />
+            )}
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />
             {hasPartners && <Sponsors hackathon={hackathon} />}

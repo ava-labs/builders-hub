@@ -47,6 +47,8 @@ const dict: Record<EventsLang, Dict> = {
     "section.submission.viewFullGuidelines": "View full guidelines",
     "section.submission.guidelinesTitle": "Guidelines",
     "section.submission.submitProject": "Submit project",
+    "section.submission.editProject": "Edit project",
+    "section.submission.continueProject": "Continue submission",
 
     // Schedule
     "section.schedule.title": "Schedule",
@@ -162,6 +164,14 @@ const dict: Record<EventsLang, Dict> = {
     "submission.step1.otherCategory.placeholder": "Enter your custom category",
     "submission.step1.deployedAddresses.label": "Deployed Addresses",
     "submission.step1.deployedAddresses.addButton": "+ new address",
+    "submission.step1.website.label": "Website",
+    "submission.step1.website.tagPlaceholder": "Tag",
+    "submission.step1.website.urlPlaceholder": "https://example.com",
+    "submission.step1.website.addButton": "+ new website",
+    "submission.step1.socials.label": "Socials",
+    "submission.step1.socials.tagPlaceholder": "Tag",
+    "submission.step1.socials.urlPlaceholder": "https://example.com",
+    "submission.step1.socials.addButton": "+ new social",
     "submission.step1.team.title": "Team & Collaboration",
     "submission.step1.consentSharing.label":
       "I consent to share this project's information with Avalanche Team1 so they can reach out to offer local support.",
@@ -369,7 +379,7 @@ const dict: Record<EventsLang, Dict> = {
     "reg.referral.membersError": "Couldn't load team members",
 
     // Step 3
-    "reg.step3.title": "Step 3: Terms & Agreements",
+    "reg.step3.title": "Step 2: Terms & Agreements",
     "reg.step3.subtitle": "Review and agree to the terms to complete your registration. For information about our privacy practices and commitment to protecting your privacy, please review our",
     "reg.step3.privacyLink": "Avalanche Privacy Policy.",
     "reg.step3.terms.label": "I have read and agree to the Event Participation",
@@ -377,22 +387,22 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step3.terms.connector": " and the ",
     "reg.step3.terms.hint": "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
     "reg.step3.newsletter.label": "I wish to stay informed about Avalanche news and events.",
-    "reg.step3.newsletter.hint": "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+    "reg.step3.newsletter.hint": "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
     "reg.step3.prohibited.label": "I agree not to bring any of the following prohibited items. *",
     "reg.step3.prohibited.hint": "Review the list of restricted items before attending in-person events.",
 
     // Grouped User-level consents (used in account creation and event registration)
     "consents.group.label": "Stay connected with Avalanche",
-    "consents.group.hint":
-      "Choose how you'd like to hear from us. You can change these anytime in your profile settings.",
     "consents.notifications.label":
       "I wish to stay informed about Avalanche news and events.",
     "consents.notifications.hint":
-      "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+      "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
     "consents.consentSharing.label":
-      "I consent to share my contact information with Avalanche Team1 so they can reach out for local support or invite me to regional initiatives.",
+      "I consent to share my contact information with Avalanche Team1.",
     "consents.consentSharing.hint":
       "Team1 may contact you about local events, mentorship opportunities, or regional ecosystem programs.",
+    "consents.consentSharing.required":
+      "You must consent to share your contact information with Avalanche Team1 to register for this event.",
 
     // Completed dialog
     "reg.dialog.title": "Application Submitted",
@@ -423,6 +433,44 @@ const dict: Record<EventsLang, Dict> = {
     "reg.email.automated": "This is an automated message — please do not reply.",
     "reg.email.ignore": "If you did not expect this invitation, you can safely ignore this email.",
     "reg.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission success screen
+    "submission.success.congrats": "Congratulations!",
+    "submission.success.headline": "Your project has been submitted!",
+    "submission.success.body": "Your project",
+    "submission.success.body2": "has been successfully submitted to",
+    "submission.success.teamNote": "Team members will receive an email invitation to confirm their participation.",
+    "submission.success.goToProfile": "View my projects",
+    "submission.success.backToEvent": "Back to event",
+    "submission.success.editProject": "Edit submission",
+
+    // Pending user gate (terms not yet accepted)
+    "submission.pendingUser.message": "Complete your account setup to submit a project.",
+    "submission.pendingUser.cta": "Complete setup",
+
+    // Form field indicators
+    "field.required": "Required",
+    "field.optional": "Optional",
+
+    // Submission confirmation email
+    "submission.email.subject": "Your project \"{projectName}\" has been submitted!",
+    "submission.email.h2": "Project submission confirmed",
+    "submission.email.congrats": "Congratulations!",
+    "submission.email.body": "Your project",
+    "submission.email.body2": "has been successfully submitted to",
+    "submission.email.body3": "Good luck — we're excited to see what you've built!",
+    "submission.email.automated": "This is an automated message — please do not reply.",
+    "submission.email.ignore": "If you did not submit a project, you can safely ignore this email.",
+    "submission.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission status card (event page)
+    "submission.status.notStarted": "You haven't started your submission yet.",
+    "submission.status.notStartedCta": "Start now",
+    "submission.status.inProgress": "Your submission is in progress",
+    "submission.status.inProgressCta": "Continue editing",
+    "submission.status.complete": "Your project is submitted!",
+    "submission.status.completeSub": "All required fields are complete. You can still edit before the deadline.",
+    "submission.status.editCta": "Edit submission",
 
     // Invitation email
     "invitation.email.subject": "You're invited to collaborate on \"{projectName}\"",
@@ -492,6 +540,8 @@ const dict: Record<EventsLang, Dict> = {
     "section.submission.viewFullGuidelines": "Ver pautas completas",
     "section.submission.guidelinesTitle": "Pautas",
     "section.submission.submitProject": "Enviar proyecto",
+    "section.submission.editProject": "Editar proyecto",
+    "section.submission.continueProject": "Continuar envío",
 
     // Schedule
     "section.schedule.title": "Agenda",
@@ -611,6 +661,14 @@ const dict: Record<EventsLang, Dict> = {
       "Ingresa tu categoría personalizada",
     "submission.step1.deployedAddresses.label": "Direcciones desplegadas",
     "submission.step1.deployedAddresses.addButton": "+ nueva dirección",
+    "submission.step1.website.label": "Sitio web",
+    "submission.step1.website.tagPlaceholder": "Etiqueta",
+    "submission.step1.website.urlPlaceholder": "https://ejemplo.com",
+    "submission.step1.website.addButton": "+ nuevo sitio web",
+    "submission.step1.socials.label": "Redes sociales",
+    "submission.step1.socials.tagPlaceholder": "Etiqueta",
+    "submission.step1.socials.urlPlaceholder": "https://ejemplo.com",
+    "submission.step1.socials.addButton": "+ nueva red social",
     "submission.step1.team.title": "Equipo y colaboración",
     "submission.step1.consentSharing.label":
       "Acepto compartir la información de este proyecto con Avalanche Team1 para que puedan contactarme y ofrecer apoyo local.",
@@ -832,8 +890,6 @@ const dict: Record<EventsLang, Dict> = {
 
     // Consentimientos a nivel usuario (creación de cuenta y registro a eventos)
     "consents.group.label": "Mantente conectado con Avalanche",
-    "consents.group.hint":
-      "Elige cómo te gustaría recibir noticias. Puedes cambiar estas opciones en cualquier momento desde tu perfil.",
     "consents.notifications.label":
       "Deseo mantenerme informado sobre noticias y eventos de Avalanche.",
     "consents.notifications.hint":
@@ -842,6 +898,8 @@ const dict: Record<EventsLang, Dict> = {
       "Acepto compartir mi información de contacto con Avalanche Team1 para que puedan contactarme para apoyo local o invitarme a iniciativas regionales.",
     "consents.consentSharing.hint":
       "Team1 podría contactarte sobre eventos locales, oportunidades de mentoría o programas regionales del ecosistema.",
+    "consents.consentSharing.required":
+      "Debes aceptar compartir tu información de contacto con Avalanche Team1 para registrarte en este evento.",
 
     // Completed dialog
     "reg.dialog.title": "Solicitud enviada",
@@ -872,6 +930,44 @@ const dict: Record<EventsLang, Dict> = {
     "reg.email.automated": "Este es un mensaje automático — por favor no respondas.",
     "reg.email.ignore": "Si no esperabas esta invitación, puedes ignorar este correo con seguridad.",
     "reg.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission success screen
+    "submission.success.congrats": "¡Felicidades!",
+    "submission.success.headline": "¡Tu proyecto ha sido entregado!",
+    "submission.success.body": "Tu proyecto",
+    "submission.success.body2": "ha sido entregado exitosamente en",
+    "submission.success.teamNote": "Los miembros del equipo recibirán un correo de invitación para confirmar su participación.",
+    "submission.success.goToProfile": "Ver mis proyectos",
+    "submission.success.backToEvent": "Volver al evento",
+    "submission.success.editProject": "Editar envío",
+
+    // Pending user gate (terms not yet accepted)
+    "submission.pendingUser.message": "Completa la configuración de tu cuenta para enviar un proyecto.",
+    "submission.pendingUser.cta": "Completar configuración",
+
+    // Form field indicators
+    "field.required": "Obligatorio",
+    "field.optional": "Opcional",
+
+    // Submission confirmation email
+    "submission.email.subject": "¡Tu proyecto \"{projectName}\" ha sido enviado!",
+    "submission.email.h2": "Envío de proyecto confirmado",
+    "submission.email.congrats": "¡Felicidades!",
+    "submission.email.body": "Tu proyecto",
+    "submission.email.body2": "ha sido enviado exitosamente a",
+    "submission.email.body3": "¡Mucha suerte — estamos emocionados de ver lo que construiste!",
+    "submission.email.automated": "Este es un mensaje automático — por favor no respondas.",
+    "submission.email.ignore": "Si no enviaste un proyecto, puedes ignorar este correo con seguridad.",
+    "submission.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission status card (event page)
+    "submission.status.notStarted": "Aún no has comenzado tu envío.",
+    "submission.status.notStartedCta": "Comenzar ahora",
+    "submission.status.inProgress": "Tu envío está en progreso",
+    "submission.status.inProgressCta": "Continuar editando",
+    "submission.status.complete": "¡Tu proyecto está enviado!",
+    "submission.status.completeSub": "Todos los campos obligatorios están completos. Aún puedes editar antes de la fecha límite.",
+    "submission.status.editCta": "Editar envío",
 
     // Invitation email
     "invitation.email.subject": "Te invitaron a colaborar en \"{projectName}\"",

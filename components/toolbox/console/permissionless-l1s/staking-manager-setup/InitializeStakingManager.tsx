@@ -21,7 +21,7 @@ import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20To
 import { parseEther } from 'viem';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import versions from '@/scripts/versions.json';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useCriticalError } from '@/components/toolbox/hooks/useCriticalError';
 import { StakingParametersForm } from '@/components/toolbox/components/StakingParametersForm';
@@ -250,7 +250,7 @@ export function InitializeStakingManagerInner({ onSuccess, initialStakingType }:
       if (!blockchainIdInput) throw new Error('Blockchain ID not found');
       if (isErc20 && !tokenAddress) throw new Error('ERC20 token address required');
 
-      let hexBlockchainId = cb58ToHex(blockchainIdInput);
+      let hexBlockchainId = CB58ToHex(blockchainIdInput).slice(2);
       if (hexBlockchainId.length < 64) {
         hexBlockchainId = hexBlockchainId.padStart(64, '0');
       }

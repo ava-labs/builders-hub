@@ -205,14 +205,13 @@ export const Terms = ({
               {/* Grouped User-level consents (newsletter + Team1 outreach) */}
               <GroupedUserConsents
                 groupLabel="Stay connected with Avalanche"
-                groupHint="Choose how you'd like to hear from us. You can change these anytime in your profile settings."
                 items={[
                   {
                     key: "notifications",
                     label:
                       "I wish to stay informed about Avalanche news and events.",
                     hint:
-                      "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+                      "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
                     checked: form.watch("notifications") ?? false,
                     onCheckedChange: (next) =>
                       form.setValue("notifications", next, {
@@ -222,7 +221,7 @@ export const Terms = ({
                   {
                     key: "consent_sharing",
                     label:
-                      "I consent to share my contact information with Avalanche Team1 so they can reach out for local support or invite me to regional initiatives.",
+                      "I consent to share my contact information with Avalanche Team1.",
                     hint:
                       "Team1 may contact you about local events, mentorship opportunities, or regional ecosystem programs.",
                     checked: form.watch("consent_sharing") ?? false,

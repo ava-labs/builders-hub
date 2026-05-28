@@ -44,7 +44,7 @@ export function StageHistory({ evaluations, currentStage }: Props) {
         Previous Stage Evaluations
       </h3>
       {stages.map(([stage, evals]) => {
-        const avg = evals.reduce((sum, e) => sum + (VERDICT_SCORES[e.verdict] ?? 0), 0) / evals.length;
+        const avg = evals.reduce((sum, e) => sum + (e.verdict ? VERDICT_SCORES[e.verdict] ?? 0 : 0), 0) / evals.length;
         const consensus = SCORE_TO_VERDICT[Math.round(avg)] ?? "maybe";
 
         const withScores = evals.filter((e) => e.scoreOverall !== null);

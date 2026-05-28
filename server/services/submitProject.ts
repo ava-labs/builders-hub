@@ -4,12 +4,20 @@ import {
   validateEntity,
   Validation,
 } from "./base";
+import { REQUIRED_SUBMISSION_FIELDS, fieldComplete } from "@/lib/hackathons/submission-progress";
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
-import { NotificationMeans } from "@/lib/notificationDefaults";
+import { sendSubmissionConfirmationMail } from "./registerForms";
+
+/** Returns true when all required submission fields are filled in. */
+export function isProjectComplete(p: Partial<Project>): boolean {
+  return REQUIRED_SUBMISSION_FIELDS.every((field) =>
+    fieldComplete(p[field as keyof typeof p])
+  );
+}
 
 export const projectValidations: Validation[] = [
   {
@@ -75,12 +83,37 @@ function normalizeDeployedAddresses(
     }));
 }
 
+type RawMemberRow = {
+  id: string;
+  role: string;
+  status: string;
+  email: string;
+  user: { id: string; name: string | null; email: string } | null;
+};
+
+export type ProjectCreateResult = Omit<Project, "members"> & {
+  members: Array<{ id: string; role: string; status: string; name: string | null; email: string | null }>;
+};
+
+const memberInclude = {
+  members: {
+    select: {
+      id: true,
+      role: true,
+      status: true,
+      email: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  },
+} as const;
+
 export async function createProject(
   projectData: Partial<Project>
-): Promise<Project> {
+): Promise<ProjectCreateResult> {
+  const isDraft = projectData.isDraft ?? false;
+
   // Atomic transaction to prevent race conditions and duplication
-  return await prisma.$transaction(async (tx) => {
-    const isDraft = projectData.isDraft ?? false;
+  const savedProject = await prisma.$transaction(async (tx) => {
     if (!isDraft) {
       const errors = validateProject(projectData);
       console.log("errors", errors);
@@ -180,6 +213,7 @@ export async function createProject(
             ? { consent_sharing: projectData.consent_sharing }
             : {}),
         },
+        include: memberInclude,
       });
 
       projectData.id = updatedProject.id;
@@ -223,6 +257,7 @@ export async function createProject(
             status: "Confirmed",
             email: (await tx.user.findUnique({
               where: { id: projectData.user_id as string },
+              select: { email: true },
             }))?.email ?? "",
           },
         },
@@ -237,6 +272,7 @@ export async function createProject(
       
       const newProjectData = await tx.project.create({
         data: projectDataToCreate,
+        include: memberInclude,
       });
 
       projectData.id = newProjectData.id;
@@ -248,6 +284,43 @@ export async function createProject(
     maxWait: 5000, // Maximum 5 seconds waiting for lock
     timeout: 10000, // Maximum 10 seconds executing transaction
   });
+
+  // Send submission confirmation email once, outside the transaction,
+  // when this is a final submit (not a draft save) and all required fields
+  // are filled and the email hasn't been sent yet.
+  if (
+    !isDraft &&
+    isProjectComplete(projectData) &&
+    savedProject.hackaton_id &&
+    projectData.submittedBy &&
+    !savedProject.submission_email_sent
+  ) {
+    try {
+      await prisma.project.update({
+        where: { id: savedProject.id },
+        data: { submission_email_sent: true },
+        select: { id: true },
+      });
+      await sendSubmissionConfirmationMail(
+        projectData.submittedBy as string,
+        savedProject.project_name,
+        savedProject.hackaton_id,
+      );
+    } catch (err) {
+      console.error("[Submission email] Failed to send:", err);
+    }
+  }
+
+  const rawMembers = (savedProject as unknown as { members?: RawMemberRow[] }).members ?? [];
+  const members = rawMembers.map((m) => ({
+    id: m.id,
+    role: m.role,
+    status: m.status,
+    name: m.user?.name ?? null,
+    email: m.user?.email ?? m.email ?? null,
+  }));
+
+  return { ...(savedProject as unknown as Project), members } as ProjectCreateResult;
 }
 
 function normalizeUser(user: Partial<User>): User {
@@ -278,7 +351,6 @@ function normalizeUser(user: Partial<User>): User {
     team_id: user.team_id ?? null,
     noun_avatar_seed: user.noun_avatar_seed ?? null,
     noun_avatar_enabled: user.noun_avatar_enabled ?? false,
-    notification_means: (user.notification_means as unknown as NotificationMeans) ?? null,
   } as unknown as User;
 }
 export async function getProject(projectId: string): Promise<Project | null> {

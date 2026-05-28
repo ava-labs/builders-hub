@@ -21,7 +21,8 @@ export async function UpdateStatusMember(
         { id: user_id },
         { email: email }
       ]
-    }
+    },
+    select: { id: true, email: true, name: true, image: true }
   }) : null;
  
   const member = await prisma.member.findFirst({
