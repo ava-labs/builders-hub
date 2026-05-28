@@ -63,6 +63,17 @@ export type Hackathon = {
   team_size_max?: number
   registration_mode?: "full" | "simple"
   /**
+   * Physical country the event takes place in (from the curated COUNTRIES
+   * list in components/profile/shell/data.ts). Combined with `is_remote`
+   * below to express in-person / online / hybrid events.
+   *
+   *   country set, is_remote false  → in-person, single country
+   *   country set, is_remote true   → hybrid (country + remote attendance)
+   *   country unset, is_remote true → fully online
+   */
+  country?: string
+  is_remote?: boolean
+  /**
    * Empty/missing = global event (no country gate). Non-empty = registration
    * is restricted to users whose `User.country` matches one of these values.
    * Defaults seeded from the organizer's team_id via

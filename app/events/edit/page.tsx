@@ -21,7 +21,38 @@ import { REFERRAL_TEAM_LABELS, isReferralTeamId } from '@/lib/referrals/team-lab
 import { hasHackathonEditorRole } from '@/lib/auth/roles';
 import { COUNTRIES } from '@/components/profile/shell/data';
 import { getDefaultTargetCountries } from '@/lib/hackathons/countryTargetDefaults';
-import { MultiSelect } from '@/components/ui/multi-select';
+
+// --- Location: structured pickers ↔ legacy string ----------------------------
+// The DB still stores a free-text `location` (legacy filter checks use
+// `location === "Online"`). The admin form now drives two structured fields
+// (`content.country` + `content.is_remote`) and we derive `location` from
+// them on save. These helpers parse the legacy string back into the new
+// shape when editing an existing hackathon whose content fields aren't set.
+
+function hydrateCountryFromLocation(location: string | null | undefined): string | undefined {
+  if (!location) return undefined;
+  const trimmed = location.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.toLowerCase() === 'online') return undefined;
+  // Common legacy values: "InPerson", "Hybrid" — no country to recover.
+  if (/^(inperson|in person|hybrid)$/i.test(trimmed)) return undefined;
+  const match = COUNTRIES.find((c) => c.toLowerCase() === trimmed.toLowerCase());
+  return match ?? undefined;
+}
+
+function hydrateRemoteFromLocation(location: string | null | undefined): boolean {
+  if (!location) return false;
+  const t = location.trim().toLowerCase();
+  return t === 'online' || t === 'hybrid';
+}
+
+function composeLocation(country: string | undefined, isRemote: boolean | undefined): string {
+  const hasCountry = !!country?.trim();
+  if (hasCountry && isRemote) return `Hybrid - ${country!.trim()}`;
+  if (hasCountry) return country!.trim();
+  if (isRemote) return 'Online';
+  return '';
+}
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -861,6 +892,10 @@ const HackathonsEdit = () => {
       registration_mode: hackathon.content?.registration_mode ?? 'full',
       tech_stack_options: hackathon.content?.tech_stack_options ?? [],
       target_countries: hackathon.content?.target_countries ?? [],
+      country: hackathon.content?.country ?? hydrateCountryFromLocation(hackathon.location),
+      is_remote: typeof hackathon.content?.is_remote === 'boolean'
+        ? hackathon.content.is_remote
+        : hydrateRemoteFromLocation(hackathon.location),
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
     const trackDescriptions: { [key: number]: string } = {};
@@ -1052,9 +1087,10 @@ const HackathonsEdit = () => {
   }, [formDataContent.resources.length]);
 
   // Meta (address + Google Calendar) only matters for events with a physical
-  // venue. Pure online events hide that tab — admins editing a virtual event
-  // shouldn't have to scroll past "Address" fields.
-  const isOnlineEvent = (formDataMain.location ?? '').trim().toLowerCase() === 'online';
+  // venue. Shown whenever a host country is picked; hidden for remote-only
+  // events. Source of truth = `content.country` (structured), not the legacy
+  // free-text location string.
+  const hasPhysicalVenue = !!formDataContent.country?.trim();
 
   useEffect(() => {
     if (formDataLatest.event !== 'hackathon') {
@@ -1062,12 +1098,12 @@ const HackathonsEdit = () => {
         setContentTab('meta');
       }
     }
-    // If the admin just flipped the event to online while sitting on the Meta
-    // tab, jump them to the Tracks tab so they don't see an empty section.
-    if (isOnlineEvent && contentTab === 'meta') {
+    // If the admin clears the host country while sitting on the Meta tab,
+    // jump them to the Tracks tab so they don't see an empty section.
+    if (!hasPhysicalVenue && contentTab === 'meta') {
       setContentTab(formDataLatest.event === 'hackathon' ? 'tracks' : 'schedule');
     }
-  }, [formDataLatest.event, contentTab, isOnlineEvent]);
+  }, [formDataLatest.event, contentTab, hasPhysicalVenue]);
 
   useEffect(() => {
     if (!leftPanelRef.current) return;
@@ -2114,19 +2150,54 @@ const HackathonsEdit = () => {
                   />
                   
                   <div className="mb-2 text-muted-foreground text-sm">Location</div>
-                  <Input
-                    type="text"
-                    name="location"
-                    placeholder="e.g., Online, New York, San Francisco"
-                    value={formDataMain.location}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, location: e.target.value }));
-                      scrollToSection('about');
-                    }}
-                    className="w-full mb-4"
-                    required
-                  />
-                  
+                  <div className="mb-2 text-muted-foreground text-xs">
+                    Pick a host country, toggle "Available remotely", or both for a hybrid event.
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div className="flex-1">
+                      <Select
+                        value={formDataContent.country ?? '__none__'}
+                        onValueChange={(value) => {
+                          const next = value === '__none__' ? undefined : value;
+                          setFormDataContent((prev) => ({ ...prev, country: next }));
+                          setFormDataMain((prev) => ({
+                            ...prev,
+                            location: composeLocation(next, formDataContent.is_remote),
+                          }));
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Host country (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— No host country —</SelectItem>
+                          {COUNTRIES.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-card cursor-pointer">
+                      <Checkbox
+                        checked={!!formDataContent.is_remote}
+                        onCheckedChange={(checked) => {
+                          const next = checked === true;
+                          setFormDataContent((prev) => ({ ...prev, is_remote: next }));
+                          setFormDataMain((prev) => ({
+                            ...prev,
+                            location: composeLocation(formDataContent.country, next),
+                          }));
+                        }}
+                      />
+                      <span className="text-sm">Available remotely</span>
+                    </label>
+                  </div>
+                  {!formDataContent.country && !formDataContent.is_remote && (
+                    <p className="-mt-2 mb-4 text-xs text-red-500">
+                      Pick a host country, mark the event as remote, or both.
+                    </p>
+                  )}
+
                   <div className="flex flex-col space-y-2 bg-card/60 border border-input rounded-lg p-4 my-4">
                     <label className="font-medium">Tags (Optional)</label>
                     <div className="mb-2 text-muted-foreground text-sm">Add relevant tags to help participants find your hackathon</div>
@@ -2444,36 +2515,68 @@ const HackathonsEdit = () => {
                         className="w-full mb-4"
                       />
 
-                      {/* Target countries — gate registration to specific countries.
-                          Empty = global. Grouped with team size as "who can register". */}
-                      <div className="mt-6 mb-2 text-muted-foreground text-sm">Target countries</div>
-                      <div className="mb-2 text-muted-foreground text-xs">
-                        Leave empty for a global event. When set, only registrants whose profile country matches one of these can register.
-                        {formDataMain.organizers && getDefaultTargetCountries(formDataMain.organizers).length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFormDataContent({
-                                ...formDataContent,
-                                target_countries: getDefaultTargetCountries(formDataMain.organizers),
-                              })
-                            }
-                            className="ml-2 underline text-red-500 hover:text-red-600"
-                          >
-                            Use {REFERRAL_TEAM_LABELS[formDataMain.organizers] ?? formDataMain.organizers} defaults
-                          </button>
-                        )}
-                      </div>
-                      <MultiSelect
-                        options={COUNTRIES.map((c) => ({ value: c, label: c }))}
-                        selected={formDataContent.target_countries ?? []}
-                        onChange={(next) =>
-                          setFormDataContent({ ...formDataContent, target_countries: next })
-                        }
-                        placeholder="Global (no country restriction)"
-                        searchPlaceholder="Search countries…"
-                      />
-                      <div className="h-4" />
+                      {/* Participation scope — Global vs Local. "Local" derives the
+                          allowed-country list from the organizing team's region
+                          (e.g., team1-latam → all LatAm; team1-brazil → just Brazil). */}
+                      {(() => {
+                        const localCountries = getDefaultTargetCountries(formDataMain.organizers);
+                        const hasLocalOption = localCountries.length > 0;
+                        const isLocal = (formDataContent.target_countries ?? []).length > 0;
+                        const orgLabel = formDataMain.organizers
+                          ? REFERRAL_TEAM_LABELS[formDataMain.organizers] ?? formDataMain.organizers
+                          : null;
+                        return (
+                          <>
+                            <div className="mt-6 mb-2 text-muted-foreground text-sm">Participation scope</div>
+                            <div className="mb-3 text-muted-foreground text-xs">
+                              {hasLocalOption
+                                ? `"Local" restricts registration to participants in the ${orgLabel} region.`
+                                : 'Select an organizing team above to unlock "Local" scope.'}
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFormDataContent({ ...formDataContent, target_countries: [] })
+                                }
+                                className={`flex-1 px-4 py-3 rounded-md border text-left transition-colors ${
+                                  !isLocal
+                                    ? 'bg-red-600 text-white border-red-500'
+                                    : 'bg-card text-foreground border-input hover:bg-secondary'
+                                }`}
+                              >
+                                <div className="font-medium">🌍 Global</div>
+                                <div className="text-xs opacity-80 mt-1">Anyone can register from any country.</div>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!hasLocalOption}
+                                onClick={() => {
+                                  if (!hasLocalOption) return;
+                                  setFormDataContent({
+                                    ...formDataContent,
+                                    target_countries: [...localCountries],
+                                  });
+                                }}
+                                className={`flex-1 px-4 py-3 rounded-md border text-left transition-colors ${
+                                  isLocal
+                                    ? 'bg-red-600 text-white border-red-500'
+                                    : hasLocalOption
+                                      ? 'bg-card text-foreground border-input hover:bg-secondary'
+                                      : 'bg-card text-muted-foreground border-input opacity-60 cursor-not-allowed'
+                                }`}
+                              >
+                                <div className="font-medium">📍 Local{orgLabel ? ` — ${orgLabel}` : ''}</div>
+                                <div className="text-xs opacity-80 mt-1">
+                                  {hasLocalOption
+                                    ? localCountries.join(', ')
+                                    : 'No regional defaults configured for this team.'}
+                                </div>
+                              </button>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </>
                   )}
                   <div className="flex justify-end mt-4">
@@ -2772,7 +2875,7 @@ const HackathonsEdit = () => {
                           Tech Stack
                         </button>
                       )}
-                      {!isOnlineEvent && (
+                      {hasPhysicalVenue && (
                         <button
                           type="button"
                           onClick={() => setContentTab('meta')}
@@ -3311,6 +3414,8 @@ const HackathonsEdit = () => {
                   tracks: formDataContent.tracks,
                   tech_stack_options: (formDataContent.tech_stack_options ?? []).filter((opt) => opt?.name?.trim()),
                   target_countries: formDataContent.target_countries ?? [],
+                  country: formDataContent.country ?? undefined,
+                  is_remote: !!formDataContent.is_remote,
                   schedule: formDataContent.schedule,
                   speakers: formDataContent.speakers,
                   speakers_text: formDataContent.speakers_text,

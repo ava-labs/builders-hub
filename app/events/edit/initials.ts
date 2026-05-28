@@ -72,6 +72,8 @@ export interface IDataMain {
     registration_mode?: "full" | "simple";
     tech_stack_options?: { name: string }[];
     target_countries?: string[];
+    country?: string;
+    is_remote?: boolean;
   }
   
   export interface IDataLatest {
@@ -153,6 +155,8 @@ export interface IDataMain {
           registration_mode: 'full',
           tech_stack_options: [],
           target_countries: [],
+          country: undefined,
+          is_remote: false,
       },
       latest: {
           start_date: '',
