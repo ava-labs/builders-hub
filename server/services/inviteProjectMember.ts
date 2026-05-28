@@ -177,8 +177,26 @@ async function sendInvitationEmail(
       ? `${baseUrl.origin}/build-games/submit?stage=${stage ?? 1}&invitation=${member.id}`
       : `${baseUrl.origin}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
   let result = { success: true, inviteLink: inviteLink };
+  // Pull the hackathon record so the email can headline with the event name
+  // and (when available) show its banner — avoids the "Untitled Project"
+  // headline that the stub project would otherwise produce at registration
+  // time.
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { title: true, banner: true },
+  });
+  const hackathonContext = hackathon?.title
+    ? { title: hackathon.title, banner: hackathon.banner || undefined }
+    : undefined;
   try {
-    await sendInvitation(email, project.project_name, inviterName, inviteLink, lang);
+    await sendInvitation(
+      email,
+      project.project_name,
+      inviterName,
+      inviteLink,
+      lang,
+      hackathonContext,
+    );
   } catch (error) {
     result.success = false;
   }

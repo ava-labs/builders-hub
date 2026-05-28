@@ -481,9 +481,13 @@ const dict: Record<EventsLang, Dict> = {
 
     // Invitation email
     "invitation.email.subject": "You're invited to collaborate on \"{projectName}\"",
+    "invitation.email.subjectHackathon": "{inviterName} invited you to {hackathonTitle}",
     "invitation.email.title": "You're Invited to Collaborate",
+    "invitation.email.titleHackathon": "You're invited to join a team",
     "invitation.email.body": "{inviterName} has invited you to join the project:",
+    "invitation.email.bodyHackathon": "{inviterName} added you as a teammate for",
     "invitation.email.cta": "Accept Invitation",
+    "invitation.email.ctaHackathon": "Sign in to confirm",
     "invitation.email.ignore": "If you did not expect this invitation, you can safely ignore this email.",
     "invitation.email.footer": "Avalanche Builder's Hub © 2025",
 
@@ -985,9 +989,13 @@ const dict: Record<EventsLang, Dict> = {
 
     // Invitation email
     "invitation.email.subject": "Te invitaron a colaborar en \"{projectName}\"",
+    "invitation.email.subjectHackathon": "{inviterName} te invitó a {hackathonTitle}",
     "invitation.email.title": "Tienes una invitación para colaborar",
+    "invitation.email.titleHackathon": "Tienes una invitación de equipo",
     "invitation.email.body": "{inviterName} te ha invitado a unirte al proyecto:",
+    "invitation.email.bodyHackathon": "{inviterName} te agregó como compañero de equipo para",
     "invitation.email.cta": "Aceptar invitación",
+    "invitation.email.ctaHackathon": "Inicia sesión para confirmar",
     "invitation.email.ignore": "Si no esperabas esta invitación, puedes ignorar este correo.",
     "invitation.email.footer": "Avalanche Builder's Hub © 2025",
 
