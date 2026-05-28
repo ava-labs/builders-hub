@@ -110,17 +110,6 @@ export default async function EcosystemCareersAdminPage() {
                     size="md"
                     confirmMessage="Reject this project? Its pending listings will be hidden and it won't reappear in the review queue."
                   />
-                  <AdminActionButton
-                    endpoint={`/api/admin/ecosystem-careers/projects/${c.id}/pending`}
-                    method="DELETE"
-                    label="Delete"
-                    busyLabel="Deleting…"
-                    successMessage="Pending listings deleted."
-                    errorMessage="Could not delete."
-                    variant="destructive"
-                    size="md"
-                    confirmMessage="Permanently delete this project's pending listings? The project itself stays. This cannot be undone."
-                  />
                 </div>
               </div>
 

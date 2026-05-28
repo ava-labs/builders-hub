@@ -3,6 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Props {
   endpoint: string;
@@ -43,10 +53,12 @@ export function AdminActionButton({
 }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function onClick() {
+  const buttonClasses = `${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`;
+
+  async function runAction() {
     if (busy) return;
-    if (confirmMessage && !confirm(confirmMessage)) return;
     setBusy(true);
     try {
       const res = await fetch(endpoint, { method });
@@ -68,14 +80,50 @@ export function AdminActionButton({
     }
   }
 
+  function handleClick() {
+    if (busy) return;
+    if (confirmMessage) {
+      setConfirmOpen(true);
+      return;
+    }
+    void runAction();
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={busy}
-      className={`${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}
-    >
-      {busy ? busyLabel : label}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={busy}
+        className={buttonClasses}
+      >
+        {busy ? busyLabel : label}
+      </button>
+
+      {confirmMessage && (
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{label}?</AlertDialogTitle>
+              <AlertDialogDescription>{confirmMessage}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={busy}
+                className={buttonClasses}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setConfirmOpen(false);
+                  void runAction();
+                }}
+              >
+                {busy ? busyLabel : label}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
   );
 }
