@@ -59,6 +59,7 @@ export type Hackathon = {
   speakers_banner: string
   speakers_text: string
   resources: Resource[]
+  team_size_min?: number
   team_size_max?: number
   registration_mode?: "full" | "simple"
   /**

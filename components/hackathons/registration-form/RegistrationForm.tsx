@@ -35,6 +35,8 @@ import {
   buildReferralAttributionPayload,
 } from "@/components/referrals/ReferralFormSection";
 import { EMPTY_REFERRER, type ReferrerPickerValue } from "@/components/referrals/ReferrerPicker";
+import { TeamFormation } from "./TeamFormation";
+import { getTeamSizeRange, hasTeamPicker } from "@/lib/hackathons/teamSizeDefaults";
 import {
   GITHUB_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
@@ -126,6 +128,9 @@ export function RegisterForm({
   const isAdvancingStepRef = useRef(false);
   const [referrer, setReferrer] = useState<ReferrerPickerValue>(EMPTY_REFERRER);
   const [countryLocked, setCountryLocked] = useState(false);
+  const [teamSize, setTeamSize] = useState<number>(1);
+  const [teammateEmails, setTeammateEmails] = useState<string[]>([]);
+  const [teamError, setTeamError] = useState<string | null>(null);
   const [userConsentState, setUserConsentState] = useState<{
     notifications: boolean | null;
     consent_sharing: boolean | null;
@@ -216,6 +221,13 @@ export function RegisterForm({
     try {
       const response = await axios.get(`/api/events/${hackathon_id}`);
       setHackathon(response.data);
+      // Default the picker to the minimum team size the admin required.
+      const content = response.data?.content;
+      const range = getTeamSizeRange({
+        team_size_min: content?.team_size_min,
+        team_size_max: content?.team_size_max,
+      });
+      setTeamSize(range.min);
     } catch (err) {
       console.error("API Error:", err);
     }
@@ -482,6 +494,7 @@ export function RegisterForm({
     if (!isSimpleMode && step < 2) {
       setStep((prev) => (prev < 2 ? prev + 1 : prev));
     } else {
+      setTeamError(null);
       const errors: any = {};
 
       if (!data.terms_event_conditions) {
@@ -505,14 +518,73 @@ export function RegisterForm({
         };
       }
 
+      // Team-size validation: enforce the admin-configured minimum and ensure
+      // every teammate slot has a valid email. The server re-validates, this
+      // is just to surface errors inline before the round-trip.
+      const range = getTeamSizeRange({
+        team_size_min: hackathon?.content?.team_size_min,
+        team_size_max: hackathon?.content?.team_size_max,
+      });
+      const cleanedTeammates = teammateEmails
+        .map((e) => e.trim())
+        .filter((e) => e.length > 0);
+      const expectedTeammates = Math.max(0, teamSize - 1);
+      if (teamSize < range.min) {
+        setTeamError(
+          lang === "es"
+            ? `Este evento requiere un equipo de al menos ${range.min} personas.`
+            : `This event requires a team of at least ${range.min}.`,
+        );
+        errors.__team = true;
+      } else if (cleanedTeammates.length < expectedTeammates) {
+        setTeamError(
+          lang === "es"
+            ? "Completa el correo de todos tus compañeros o cambia el tamaño del equipo."
+            : "Fill in every teammate email, or change the team size.",
+        );
+        errors.__team = true;
+      } else {
+        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const badIdx = cleanedTeammates.findIndex((e) => !emailRe.test(e));
+        if (badIdx >= 0) {
+          setTeamError(
+            lang === "es"
+              ? "Uno de los correos de tu equipo no es válido."
+              : "One of the teammate emails is not valid.",
+          );
+          errors.__team = true;
+        }
+        const selfEmail = (currentUser?.email ?? data.email ?? "").trim().toLowerCase();
+        if (selfEmail && cleanedTeammates.some((e) => e.toLowerCase() === selfEmail)) {
+          setTeamError(
+            lang === "es"
+              ? "No puedes invitarte a ti mismo como compañero."
+              : "You can't invite yourself as a teammate.",
+          );
+          errors.__team = true;
+        }
+        const lowercased = cleanedTeammates.map((e) => e.toLowerCase());
+        if (new Set(lowercased).size !== lowercased.length) {
+          setTeamError(
+            lang === "es"
+              ? "Hay correos repetidos en tu equipo."
+              : "Duplicate teammate emails are not allowed.",
+          );
+          errors.__team = true;
+        }
+      }
+
 
       if (Object.keys(errors).length > 0) {
         Object.keys(errors).forEach(field => {
+          // Team errors live in `teamError` state, not in the form schema.
+          if (field === "__team") return;
           form.setError(field as keyof RegisterFormValues, errors[field]);
         });
         // Bring the first invalid field into view so the user notices the
         // feedback even when scrolled to the submit button.
-        const firstField = Object.keys(errors)[0];
+        const firstField = Object.keys(errors).find((k) => k !== "__team")
+          ?? "__team";
         if (typeof window !== "undefined") {
           const el = document.querySelector<HTMLElement>(
             `[name="${firstField}"], #${CSS.escape(firstField)}`,
@@ -521,6 +593,7 @@ export function RegisterForm({
         }
         return;
       }
+      setTeamError(null);
       setFormData((prevData) => ({ ...prevData, ...data }));
 
       const finalData = {
@@ -533,6 +606,10 @@ export function RegisterForm({
         tools: data.tools,
         // Only include prohibited_items if it's not an online hackathon
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
+        teammates: teammateEmails
+          .map((e) => e.trim())
+          .filter((e) => e.length > 0)
+          .slice(0, Math.max(0, teamSize - 1)),
       };
 
       const result = await saveProject(finalData);
@@ -693,12 +770,36 @@ export function RegisterForm({
                 countryLocked={countryLocked}
                 requireSocials={isSimpleMode}
               />
-              {isSimpleMode && (
-                <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
-                  {lang === "es"
-                    ? "¿Vas a formar equipo? Podrás agregar compañeros cuando envíes tu proyecto. Cada miembro del equipo debe registrarse individualmente primero."
-                    : "Forming a team? You'll add teammates when you submit your project. Each teammate registers individually first."}
-                </p>
+              {hackathon_id && hasTeamPicker(
+                getTeamSizeRange({
+                  team_size_min: hackathon?.content?.team_size_min,
+                  team_size_max: hackathon?.content?.team_size_max,
+                })
+              ) && (
+                <div id="__team">
+                  <TeamFormation
+                    hackathonId={hackathon_id}
+                    hackathon={{
+                      team_size_min: hackathon?.content?.team_size_min,
+                      team_size_max: hackathon?.content?.team_size_max,
+                    }}
+                    selectedSize={teamSize}
+                    onSizeChange={(s) => {
+                      setTeamSize(s);
+                      setTeamError(null);
+                    }}
+                    teammates={teammateEmails}
+                    onTeammatesChange={(e) => {
+                      setTeammateEmails(e);
+                      setTeamError(null);
+                    }}
+                    inviterEmail={currentUser?.email ?? undefined}
+                    lang={lang}
+                  />
+                  {teamError && (
+                    <p className="mt-2 text-sm text-red-500">{teamError}</p>
+                  )}
+                </div>
               )}
               <ReferralFormSection
                 value={referrer}

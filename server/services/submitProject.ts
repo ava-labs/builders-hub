@@ -285,6 +285,28 @@ export async function createProject(
     timeout: 10000, // Maximum 10 seconds executing transaction
   });
 
+  // Spec: "If the teammate hasn't confirmed by the time registration closes,
+  // the team auto-converts to Solo." Triggered lazily on final submission —
+  // no cron needed. Idempotent because "Removed" rows are skipped on next pass.
+  if (!isDraft && savedProject.hackaton_id) {
+    try {
+      const hackathon = await prisma.hackathon.findUnique({
+        where: { id: savedProject.hackaton_id },
+        select: { content: true },
+      });
+      const registrationDeadline = (hackathon?.content as any)?.registration_deadline;
+      const deadlineMs = registrationDeadline ? Date.parse(registrationDeadline) : NaN;
+      if (Number.isFinite(deadlineMs) && Date.now() > deadlineMs) {
+        await prisma.member.updateMany({
+          where: { project_id: savedProject.id, status: "Pending Confirmation" },
+          data: { status: "Removed" },
+        });
+      }
+    } catch (err) {
+      console.error("[Auto-convert] Failed to demote pending members:", err);
+    }
+  }
+
   // Send submission confirmation email once, outside the transaction,
   // when this is a final submit (not a draft save) and all required fields
   // are filled and the email hasn't been sent yet.

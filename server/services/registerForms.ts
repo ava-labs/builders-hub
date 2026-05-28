@@ -14,6 +14,8 @@ import { recordReferralAttribution } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
 import { COUNTRY_LOCKED_MESSAGE, isCountryChange } from "@/lib/profile/countryLock";
+import { getTeamSizeRange } from "@/lib/hackathons/teamSizeDefaults";
+import { generateInvitation } from "./inviteProjectMember";
 
 export const registerValidations: Validation[] = [
   {
@@ -114,6 +116,7 @@ export const validateRegisterForm = (
 export async function createRegisterForm(
   registerData: Partial<RegistrationForm> & {
     x_account?: string;
+    teammates?: string[];
   }
 ): Promise<RegistrationForm> {
   // Get hackathon information to determine if it's online
@@ -122,6 +125,9 @@ export async function createRegisterForm(
   });
 
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
+  // Teammate invitations are handled separately (Member rows + invitation
+  // emails). Keep them out of the RegisterForm payload itself.
+  const rawTeammates = Array.isArray(registerData.teammates) ? registerData.teammates : [];
 
   // Telegram is mandatory on the User profile (BasicProfileSetup gate),
   // so the registration form no longer asks for it. Pull it from the user
@@ -186,6 +192,42 @@ export async function createRegisterForm(
   const errors = validateRegisterForm(registerData, isOnlineHackathon);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
+  }
+
+  // Enforce the admin-configured team-size range, normalize teammate emails,
+  // and reject the registrant inviting themselves or duplicates.
+  const teamRange = getTeamSizeRange({
+    team_size_min: (hackathon?.content as any)?.team_size_min,
+    team_size_max: (hackathon?.content as any)?.team_size_max,
+  });
+  const inviterEmail = (registerData.email ?? "").trim().toLowerCase();
+  const dedupedTeammates: string[] = [];
+  for (const raw of rawTeammates) {
+    if (typeof raw !== "string") continue;
+    const e = raw.trim().toLowerCase();
+    if (!e) continue;
+    if (e === inviterEmail) continue;
+    if (dedupedTeammates.includes(e)) continue;
+    dedupedTeammates.push(e);
+  }
+  const teamSize = 1 + dedupedTeammates.length;
+  if (teamSize < teamRange.min) {
+    throw new ValidationError("Validation failed", [
+      {
+        field: "teammates",
+        message: `This event requires a team of at least ${teamRange.min}.`,
+        validation: () => false,
+      },
+    ]);
+  }
+  if (teamRange.max !== undefined && teamSize > teamRange.max) {
+    throw new ValidationError("Validation failed", [
+      {
+        field: "teammates",
+        message: `Team size cannot exceed ${teamRange.max} for this event.`,
+        validation: () => false,
+      },
+    ]);
   }
 
   const isNewRegistration = !(await prisma.registerForm.findUnique({
@@ -264,6 +306,30 @@ export async function createRegisterForm(
       newRegisterFormData.hackathon_id as string
     );
   }
+
+  // Team invitations: reuse the project-member invite flow so teammate
+  // Members land in "Pending Confirmation" with the existing email + sign-in
+  // confirmation mechanic. The shared helper auto-creates the stub Project
+  // for this (hackathon, user) and is idempotent across re-registrations.
+  if (dedupedTeammates.length > 0 && existingUser?.id) {
+    try {
+      const lang = normalizeEventsLang((hackathon?.content as any)?.language);
+      await generateInvitation(
+        newRegisterFormData.hackathon_id as string,
+        existingUser.id,
+        newRegisterFormData.name ?? existingUser.id,
+        dedupedTeammates,
+        undefined,
+        undefined,
+        lang,
+      );
+    } catch (err) {
+      // Don't block registration on teammate-invitation failure — surface
+      // it via logs and let the registrant retry from the project page.
+      console.error("[Registration] Failed to send teammate invitations:", err);
+    }
+  }
+
   revalidatePath("/api/register-form/");
 
   return {

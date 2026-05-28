@@ -853,6 +853,7 @@ const HackathonsEdit = () => {
       submission_deadline: toLocalDatetimeString(hackathon.content?.submission_deadline ?? ''),
       submission_open: hackathon.content?.submission_open ? toLocalDatetimeString(hackathon.content.submission_open) : '',
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
+      team_size_min: hackathon.content?.team_size_min,
       team_size_max: hackathon.content?.team_size_max,
       registration_mode: hackathon.content?.registration_mode ?? 'full',
       tech_stack_options: hackathon.content?.tech_stack_options ?? [],
@@ -2980,6 +2981,27 @@ const HackathonsEdit = () => {
                           onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
                           className="w-full mb-4"
                           required
+                        />
+                      </div>
+                      <div>
+                        <label className="font-medium text-xl mb-2 block">Min team size:</label>
+                        <div className="mb-2 text-muted-foreground text-sm">
+                          Smallest allowed team size. Leave empty to allow solo (1).
+                        </div>
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="(1 — solo allowed)"
+                          value={formDataContent.team_size_min ?? ''}
+                          onChange={(e) => {
+                            const raw = e.target.value.trim();
+                            const parsed = raw === '' ? undefined : Number(raw);
+                            setFormDataContent({
+                              ...formDataContent,
+                              team_size_min: Number.isFinite(parsed) ? parsed : undefined,
+                            });
+                          }}
+                          className="w-full mb-4"
                         />
                       </div>
                       <div>
