@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
 import { HostNavButtons } from "@/components/evaluate/HostNavButtons";
@@ -16,6 +17,7 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import { format } from "date-fns";
 import type { HackathonHeader } from "@/types/hackathons";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import type { SubmissionStatus } from "@/lib/hackathons/submission-progress";
 
 interface ModernEventLayoutProps {
   hackathon: HackathonHeader;
@@ -23,6 +25,9 @@ interface ModernEventLayoutProps {
   isRegistered: boolean;
   isAuthenticated: boolean;
   utm: string;
+  submissionStatus?: SubmissionStatus;
+  submissionProgress?: number;
+  submissionProjectId?: string | null;
 }
 
 export default function ModernEventLayout({
@@ -31,6 +36,9 @@ export default function ModernEventLayout({
   isRegistered,
   isAuthenticated,
   utm,
+  submissionStatus = "none",
+  submissionProgress = 0,
+  submissionProjectId = null,
 }: ModernEventLayoutProps) {
   const lang = normalizeEventsLang(hackathon.content?.language);
 
@@ -146,6 +154,29 @@ export default function ModernEventLayout({
           lang={lang}
         />
         {isHackathon && <HostNavButtons hackathonId={id} />}
+        {isHackathon && isAuthenticated && submissionStatus !== "none" && (
+          <Link
+            href={
+              submissionProjectId
+                ? `/events/project-submission?event=${id}&project=${submissionProjectId}`
+                : `/events/project-submission?event=${id}`
+            }
+            className={
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80 " +
+              (submissionStatus === "complete"
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300")
+            }
+          >
+            <span className={
+              "size-1.5 rounded-full " +
+              (submissionStatus === "complete" ? "bg-emerald-500" : "bg-amber-500")
+            } />
+            {submissionStatus === "complete"
+              ? t(lang, "section.submission.editProject")
+              : `${submissionProgress}% · ${t(lang, "section.submission.continueProject")}`}
+          </Link>
+        )}
       </div>
       <div className="p-4 flex flex-col gap-24">
         <NavigationMenu items={menuItems} />
@@ -249,7 +280,17 @@ export default function ModernEventLayout({
                 }
               />
             )}
-            {isHackathon && <Submission hackathon={hackathon} isRegistered={isRegistered} isAuthenticated={isAuthenticated} utm={utm} />}
+            {isHackathon && (
+              <Submission
+                hackathon={hackathon}
+                isRegistered={isRegistered}
+                isAuthenticated={isAuthenticated}
+                utm={utm}
+                submissionStatus={submissionStatus}
+                submissionProgress={submissionProgress}
+                submissionProjectId={submissionProjectId}
+              />
+            )}
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />
             {hasPartners && <Sponsors hackathon={hackathon} />}
