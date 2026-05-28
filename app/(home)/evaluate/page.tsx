@@ -163,7 +163,7 @@ export default async function EvaluatePage({
           projectName: fd.project.project_name,
           shortDescription: fd.project.short_description,
           fullDescription: fd.project.full_description ?? "",
-          techStack: fd.project.tech_stack ?? "",
+          techStack: Array.isArray(fd.project.tech_stack) ? fd.project.tech_stack.join(", ") : (fd.project.tech_stack ?? ""),
           githubRepository: fd.project.github_repository ?? "",
           demoLink: fd.project.demo_link ?? "",
           demoVideoLink: fd.project.demo_video_link ?? "",

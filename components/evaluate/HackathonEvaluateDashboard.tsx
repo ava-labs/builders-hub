@@ -64,7 +64,7 @@ type Project = {
   project_name: string;
   short_description: string;
   full_description: string | null;
-  tech_stack: string | null;
+  tech_stack: string[];
   github_repository: string | null;
   demo_link: string | null;
   demo_video_link: string | null;
@@ -147,7 +147,7 @@ function toSubmissionRow(project: Project, hackathonId: string): SubmissionRow {
       projectName: project.project_name,
       shortDescription: project.short_description,
       fullDescription: project.full_description ?? "",
-      techStack: project.tech_stack ?? "",
+      techStack: Array.isArray(project.tech_stack) ? project.tech_stack.join(", ") : (project.tech_stack ?? ""),
       githubRepository: project.github_repository ?? "",
       demoLink: project.demo_link ?? "",
       demoVideoLink: project.demo_video_link ?? "",
@@ -276,7 +276,7 @@ export function HackathonEvaluateDashboard({
       if (statusFilter === "evaluated" && !hasMine) return false;
       if (statusFilter === "pending" && hasMine) return false;
       if (!q) return true;
-      return [p.project_name, p.short_description, p.tech_stack, p.tracks.join(" "), p.tags.join(" ")]
+      return [p.project_name, p.short_description, (Array.isArray(p.tech_stack) ? p.tech_stack.join(" ") : p.tech_stack), p.tracks.join(" "), p.tags.join(" ")]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()

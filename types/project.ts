@@ -13,7 +13,7 @@ export interface Project {
   project_name: string;
   short_description: string;
   full_description?: string;
-  tech_stack?: string,
+  tech_stack?: string[],
   github_repository?: string,
   explanation?: string,
   demo_link?: string,

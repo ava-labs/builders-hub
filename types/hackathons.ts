@@ -61,6 +61,11 @@ export type Hackathon = {
   resources: Resource[]
   team_size_max?: number
   registration_mode?: "full" | "simple"
+  /**
+   * Admin-defined tech-stack options for this hackathon's submission form.
+   * Empty/missing falls back to DEFAULT_TECH_STACK_OPTIONS.
+   */
+  tech_stack_options?: { name: string }[]
 }
 
 export type ScheduleActivity = {

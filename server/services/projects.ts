@@ -209,7 +209,7 @@ export async function createProject(
       github_repository: projectData.github_repository ?? "",
       logo_url: projectData.logo_url ?? "",
       screenshots: projectData.screenshots ?? [],
-      tech_stack: projectData.tech_stack ?? "",
+      tech_stack: Array.isArray(projectData.tech_stack) ? projectData.tech_stack : [],
       tracks: projectData.tracks ?? [],
       hackaton_id: projectData.hackaton_id ?? null,
       members: {
@@ -258,7 +258,7 @@ export async function updateProject(
       github_repository: projectData.github_repository ?? "",
       logo_url: projectData.logo_url ?? "",
       screenshots: projectData.screenshots ?? [],
-      tech_stack: projectData.tech_stack ?? "",
+      tech_stack: Array.isArray(projectData.tech_stack) ? projectData.tech_stack : [],
       tracks: projectData.tracks ?? [],
       members: {
         create: projectData.members?.map((member) => ({

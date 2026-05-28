@@ -21,8 +21,8 @@ export const FormSchema = z
       .string()
       .min(30, { message: 'full description must be at least 30 characters' }),
     tech_stack: z
-      .string()
-      .min(30, { message: 'tech stack must be at least 30 characters' }),
+      .array(z.string())
+      .min(1, { message: 'Select at least one tech stack type' }),
 
     github_repository: z.preprocess(
       (val) => {

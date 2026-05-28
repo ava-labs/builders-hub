@@ -530,7 +530,12 @@ export default function GeneralSecureComponent({
                     lang={lang}
                   />
                 )}
-                {step === 2 && <SubmitStep2 lang={lang} />}
+                {step === 2 && (
+                  <SubmitStep2
+                    lang={lang}
+                    availableTechStack={hackathon?.content?.tech_stack_options ?? []}
+                  />
+                )}
                 {step === 3 && <SubmitStep3 lang={lang} />}
 
                 <Separator />

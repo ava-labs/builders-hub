@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import {
   FormField,
@@ -12,18 +12,30 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { MultiLinkInput } from './MultiLinkInput';
 import { useProjectSubmission } from "../context/ProjectSubmissionContext";
 import { EventsLang, t } from "@/lib/events/i18n";
+import { DEFAULT_TECH_STACK_OPTIONS, type TechStackOption } from "@/lib/hackathons/techStackDefaults";
 
 
+interface SubmitStep2Props {
+  lang?: EventsLang;
+  availableTechStack?: TechStackOption[];
+}
 
-export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
+export default function SubmitStep2({ lang = "en", availableTechStack }: SubmitStep2Props) {
   const form = useFormContext<SubmissionForm>();
   const { state } = useProjectSubmission();
   const hasHackathon = !!state.hackathonId;
   const isPreexistingIdea = form.watch("is_preexisting_idea");
+  const techStackOptions = useMemo(() => {
+    const source = availableTechStack && availableTechStack.length > 0
+      ? availableTechStack
+      : DEFAULT_TECH_STACK_OPTIONS;
+    return source.map((opt) => ({ value: opt.name, label: opt.name }));
+  }, [availableTechStack]);
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
@@ -35,7 +47,8 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
           {t(lang, "submission.step2.technical.subtitle")}
         </p>
 
-        {/* Campo: How It's Made */}
+        {/* Tech stack — multi-select from the hackathon's options
+            (admin-defined per event, defaults from techStackDefaults). */}
         <FormField
           control={form.control}
           name="tech_stack"
@@ -43,15 +56,17 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
             <FormItem>
               <FormLabelWithCheck
                 label={t(lang, "submission.step2.techStack.label")}
-                checked={!!field.value}
+                checked={Array.isArray(field.value) && field.value.length > 0}
                 required
                 lang={lang}
               />
               <FormControl>
-                <Textarea
+                <MultiSelect
+                  options={techStackOptions}
+                  selected={Array.isArray(field.value) ? field.value : []}
+                  onChange={field.onChange}
                   placeholder={t(lang, "submission.step2.techStack.placeholder")}
-                  className=" h-[180px] resize-none dark:bg-zinc-950"
-                  {...field}
+                  searchPlaceholder={t(lang, "submission.step2.techStack.placeholder")}
                 />
               </FormControl>
               <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">

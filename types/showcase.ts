@@ -14,7 +14,7 @@ export type Project = {
   project_name: string;
   short_description: string;
   full_description?: string;
-  tech_stack?: string;
+  tech_stack?: string[];
   github_repository?: string;
   demo_link?: string;
   open_source?: boolean;

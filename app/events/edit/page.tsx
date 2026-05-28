@@ -855,6 +855,7 @@ const HackathonsEdit = () => {
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
       team_size_max: hackathon.content?.team_size_max,
       registration_mode: hackathon.content?.registration_mode ?? 'full',
+      tech_stack_options: hackathon.content?.tech_stack_options ?? [],
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
     const trackDescriptions: { [key: number]: string } = {};
@@ -925,7 +926,7 @@ const HackathonsEdit = () => {
   const step6Ref = useRef<HTMLDivElement | null>(null);
 
   const [activeStep, setActiveStep] = useState<'step1' | 'step2' | 'step3' | 'step4' | 'step5' | 'step6'>('step1');
-  const [contentTab, setContentTab] = useState<'tracks' | 'meta' | 'schedule' | 'resources' | 'speakers' | 'submission'>('tracks');
+  const [contentTab, setContentTab] = useState<'tracks' | 'tech-stack' | 'meta' | 'schedule' | 'resources' | 'speakers' | 'submission'>('tracks');
 
   const getDateRangeError = (start: string, end: string): string | null => {
     if (!start?.trim() || !end?.trim()) return null;
@@ -1047,7 +1048,7 @@ const HackathonsEdit = () => {
 
   useEffect(() => {
     if (formDataLatest.event !== 'hackathon') {
-      if (contentTab === 'tracks' || contentTab === 'submission') {
+      if (contentTab === 'tracks' || contentTab === 'tech-stack' || contentTab === 'submission') {
         setContentTab('meta');
       }
     }
@@ -2678,6 +2679,19 @@ const HackathonsEdit = () => {
                           {t[language].tracks}
                         </button>
                       )}
+                      {formDataLatest.event === 'hackathon' && (
+                        <button
+                          type="button"
+                          onClick={() => setContentTab('tech-stack')}
+                          className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                            contentTab === 'tech-stack'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-card text-foreground border-input hover:bg-secondary'
+                          }`}
+                        >
+                          Tech Stack
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setContentTab('meta')}
@@ -2765,6 +2779,55 @@ const HackathonsEdit = () => {
                       <div className="flex justify-end">
                         <Button type="button" onClick={addTrack} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
                           <Plus className="w-4 h-4" /> {t[language].addTrack}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tech Stack Options — admin-defined per event. Empty list
+                      falls back to DEFAULT_TECH_STACK_OPTIONS at submission time. */}
+                  {formDataLatest.event === 'hackathon' && contentTab === 'tech-stack' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl">Tech Stack Options:</label>
+                      <p className="text-sm text-muted-foreground">
+                        These are the options participants pick from in the submission form. Leave empty to use the defaults (Frontend, Backend, Smart Contract, AI/ML, Mobile, Infra, Other).
+                      </p>
+                      {(formDataContent.tech_stack_options ?? []).map((opt, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            type="text"
+                            placeholder="e.g. Smart Contract"
+                            value={opt.name}
+                            onChange={(e) => {
+                              const next = [...(formDataContent.tech_stack_options ?? [])];
+                              next[index] = { name: e.target.value };
+                              setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                            }}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              const next = (formDataContent.tech_stack_options ?? []).filter((_, i) => i !== index);
+                              setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                            }}
+                            aria-label="Remove tech stack option"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const next = [...(formDataContent.tech_stack_options ?? []), { name: '' }];
+                            setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                          }}
+                          className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2"
+                        >
+                          <Plus className="w-4 h-4" /> Add Option
                         </Button>
                       </div>
                     </div>
@@ -3194,6 +3257,7 @@ const HackathonsEdit = () => {
                   language: formDataContent.language,
                   tracks_text: formDataContent.tracks_text,
                   tracks: formDataContent.tracks,
+                  tech_stack_options: (formDataContent.tech_stack_options ?? []).filter((opt) => opt?.name?.trim()),
                   schedule: formDataContent.schedule,
                   speakers: formDataContent.speakers,
                   speakers_text: formDataContent.speakers_text,

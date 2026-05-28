@@ -11,7 +11,7 @@ type RawProject = {
   project_name: string;
   short_description: string;
   full_description: string | null;
-  tech_stack: string | null;
+  tech_stack: string[];
   github_repository: string | null;
   demo_link: string | null;
   tracks: string[];

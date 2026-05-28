@@ -44,7 +44,7 @@ export async function exportShowcase(rawFilters: unknown) {
         project_name: project.project_name,
         short_description: project.short_description,
         full_description: project.full_description ?? '',
-        tech_stack: project.tech_stack ?? '',
+        tech_stack: (project.tech_stack ?? []).join(', '),
         github_repository: project.github_repository ?? '',
         demo_link: project.demo_link ?? '',
         demo_video_link: project.demo_video_link ?? '',

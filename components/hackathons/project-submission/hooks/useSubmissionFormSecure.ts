@@ -129,8 +129,8 @@ const BaseFormSchema = z.object({
     .string()
     .min(1, { message: 'Full description is required' }),
   tech_stack: z
-    .string()
-    .min(1, { message: 'Tech stack is required' }),
+    .array(z.string())
+    .min(1, { message: 'Select at least one tech stack type' }),
   github_repository: z.preprocess(
     normalizeLinkArray,
     buildUrlArraySchema({
@@ -321,7 +321,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       project_name: '',
       short_description: '',
       full_description: '',
-      tech_stack: '',
+      tech_stack: [],
       tracks: [],
       categories: [],
       other_category: '',
@@ -709,7 +709,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       project_name: project.project_name ?? '',
       short_description: project.short_description ?? '',
       full_description: project.full_description ?? '',
-      tech_stack: project.tech_stack ?? '',
+      tech_stack: Array.isArray(project.tech_stack) ? project.tech_stack : [],
       github_repository: project.github_repository ? project.github_repository.split(',').filter(Boolean) : [],
       explanation: project.explanation ?? '',
       demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],

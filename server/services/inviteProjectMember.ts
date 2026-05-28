@@ -216,7 +216,7 @@ async function createProject(hackathonId: string, userId: string) {
           project_name: "Untitled Project",
           short_description: "",
           full_description: "",
-          tech_stack: "",
+          tech_stack: [],
           github_repository: "",
           demo_link: "",
           is_preexisting_idea: false,
