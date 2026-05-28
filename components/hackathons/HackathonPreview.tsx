@@ -109,6 +109,7 @@ interface HackathonPreviewProps {
       submission_deadline?: string;
       registration_deadline?: string;
       tech_stack_options?: { name: string }[];
+      target_countries?: string[];
     };
     start_date?: string;
     end_date?: string;

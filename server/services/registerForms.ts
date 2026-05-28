@@ -15,6 +15,7 @@ import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
 import { COUNTRY_LOCKED_MESSAGE, isCountryChange } from "@/lib/profile/countryLock";
 import { getTeamSizeRange } from "@/lib/hackathons/teamSizeDefaults";
+import { isCountryAllowed } from "@/lib/hackathons/countryTargetDefaults";
 import { generateInvitation } from "./inviteProjectMember";
 
 export const registerValidations: Validation[] = [
@@ -159,6 +160,28 @@ export async function createRegisterForm(
     }
     if (existingUser && typeof existingUser.notifications === "boolean") {
       registerData.newsletter_subscription = existingUser.notifications;
+    }
+  }
+
+  // Country target gate: when the hackathon restricts to specific countries,
+  // refuse registrants whose stored country (or the country they're trying
+  // to register with) isn't in the whitelist. Empty/missing list = global.
+  const targetCountries = (hackathon?.content as any)?.target_countries as
+    | string[]
+    | undefined;
+  if (Array.isArray(targetCountries) && targetCountries.length > 0) {
+    const candidateCountry = existingUser?.country?.trim() || registerData.city?.trim();
+    if (!isCountryAllowed(targetCountries, candidateCountry)) {
+      throw new ValidationError(
+        `This event is restricted to participants from: ${targetCountries.join(", ")}.`,
+        [
+          {
+            field: "city",
+            message: `This event is restricted to participants from: ${targetCountries.join(", ")}.`,
+            validation: () => false,
+          },
+        ],
+      );
     }
   }
 

@@ -63,6 +63,13 @@ export type Hackathon = {
   team_size_max?: number
   registration_mode?: "full" | "simple"
   /**
+   * Empty/missing = global event (no country gate). Non-empty = registration
+   * is restricted to users whose `User.country` matches one of these values.
+   * Defaults seeded from the organizer's team_id via
+   * lib/hackathons/countryTargetDefaults.
+   */
+  target_countries?: string[]
+  /**
    * Admin-defined tech-stack options for this hackathon's submission form.
    * Empty/missing falls back to DEFAULT_TECH_STACK_OPTIONS.
    */

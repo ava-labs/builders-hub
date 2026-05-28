@@ -71,6 +71,7 @@ export interface IDataMain {
     team_size_max?: number;
     registration_mode?: "full" | "simple";
     tech_stack_options?: { name: string }[];
+    target_countries?: string[];
   }
   
   export interface IDataLatest {
@@ -151,6 +152,7 @@ export interface IDataMain {
           team_size_max: undefined,
           registration_mode: 'full',
           tech_stack_options: [],
+          target_countries: [],
       },
       latest: {
           start_date: '',

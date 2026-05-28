@@ -19,6 +19,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { REFERRAL_TEAM_LABELS, isReferralTeamId } from '@/lib/referrals/team-labels';
 import { hasHackathonEditorRole } from '@/lib/auth/roles';
+import { COUNTRIES } from '@/components/profile/shell/data';
+import { getDefaultTargetCountries } from '@/lib/hackathons/countryTargetDefaults';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -857,6 +860,7 @@ const HackathonsEdit = () => {
       team_size_max: hackathon.content?.team_size_max,
       registration_mode: hackathon.content?.registration_mode ?? 'full',
       tech_stack_options: hackathon.content?.tech_stack_options ?? [],
+      target_countries: hackathon.content?.target_countries ?? [],
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
     const trackDescriptions: { [key: number]: string } = {};
@@ -2984,6 +2988,36 @@ const HackathonsEdit = () => {
                         />
                       </div>
                       <div>
+                        <label className="font-medium text-xl mb-2 block">Target countries:</label>
+                        <div className="mb-2 text-muted-foreground text-sm">
+                          Leave empty for a global event. When set, only registrants whose profile country matches one of these can register.
+                          {formDataMain.organizers && getDefaultTargetCountries(formDataMain.organizers).length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormDataContent({
+                                  ...formDataContent,
+                                  target_countries: getDefaultTargetCountries(formDataMain.organizers),
+                                })
+                              }
+                              className="ml-2 underline text-red-500 hover:text-red-600"
+                            >
+                              Use {REFERRAL_TEAM_LABELS[formDataMain.organizers] ?? formDataMain.organizers} defaults
+                            </button>
+                          )}
+                        </div>
+                        <MultiSelect
+                          options={COUNTRIES.map((c) => ({ value: c, label: c }))}
+                          selected={formDataContent.target_countries ?? []}
+                          onChange={(next) =>
+                            setFormDataContent({ ...formDataContent, target_countries: next })
+                          }
+                          placeholder="Global (no country restriction)"
+                          searchPlaceholder="Search countries…"
+                        />
+                        <div className="h-4" />
+                      </div>
+                      <div>
                         <label className="font-medium text-xl mb-2 block">Min team size:</label>
                         <div className="mb-2 text-muted-foreground text-sm">
                           Smallest allowed team size. Leave empty to allow solo (1).
@@ -3280,6 +3314,7 @@ const HackathonsEdit = () => {
                   tracks_text: formDataContent.tracks_text,
                   tracks: formDataContent.tracks,
                   tech_stack_options: (formDataContent.tech_stack_options ?? []).filter((opt) => opt?.name?.trim()),
+                  target_countries: formDataContent.target_countries ?? [],
                   schedule: formDataContent.schedule,
                   speakers: formDataContent.speakers,
                   speakers_text: formDataContent.speakers_text,
