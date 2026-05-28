@@ -58,15 +58,11 @@ export async function generateMetadata({
 
 export default async function HackathonPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
-  const utm = resolvedSearchParams?.utm ?? "";
-  
+
   const hackathon = await getHackathon(id);
 
   // Check if user is authenticated and registered
@@ -121,7 +117,6 @@ export default async function HackathonPage({
         id={id}
         isRegistered={isRegistered}
         isAuthenticated={isAuthenticated}
-        utm={utm as string}
         submissionStatus={submissionStatus}
         submissionProgress={submissionProgress}
         submissionProjectId={submissionProjectId}
@@ -135,7 +130,6 @@ export default async function HackathonPage({
       id={id}
       isRegistered={isRegistered}
       isAuthenticated={isAuthenticated}
-      utm={utm as string}
       submissionStatus={submissionStatus}
       submissionProgress={submissionProgress}
       submissionProjectId={submissionProjectId}

@@ -22,7 +22,7 @@ interface LegacyEventLayoutProps {
   id: string;
   isRegistered: boolean;
   isAuthenticated: boolean;
-  utm: string;
+  utm?: string;
   submissionStatus?: SubmissionStatus;
   submissionProgress?: number;
   submissionProjectId?: string | null;
@@ -33,7 +33,6 @@ export default function LegacyEventLayout({
   id,
   isRegistered,
   isAuthenticated,
-  utm,
   submissionStatus = "none",
   submissionProgress = 0,
   submissionProjectId = null,
@@ -113,7 +112,6 @@ export default function LegacyEventLayout({
           className="w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer"
           variant="red"
           showChatWhenRegistered={true}
-          utm={utm}
           lang={lang}
         />
       </div>
@@ -128,7 +126,6 @@ export default function LegacyEventLayout({
               id={id}
               isTopMost={false}
               isRegistered={isRegistered}
-              utm={utm}
             />
             <JoinBannerLink
               isRegistered={isRegistered}
@@ -140,7 +137,6 @@ export default function LegacyEventLayout({
                   : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
               }
               altText="Hackathon background"
-              utm={utm}
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
@@ -165,7 +161,6 @@ export default function LegacyEventLayout({
                 hackathon={hackathon}
                 isRegistered={isRegistered}
                 isAuthenticated={isAuthenticated}
-                utm={utm}
                 submissionStatus={submissionStatus}
                 submissionProgress={submissionProgress}
                 submissionProjectId={submissionProjectId}

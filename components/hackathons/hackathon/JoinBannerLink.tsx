@@ -33,7 +33,7 @@ export default function JoinBannerLink({
       return customLink;
     }
     const baseUrl = `/events/registration-form?event=${hackathonId}`;
-    return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode, utm });
+    return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode });
   };
 
   const getTarget = () => {

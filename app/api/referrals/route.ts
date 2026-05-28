@@ -65,7 +65,7 @@ async function resolveReferralTarget(targetType: ReferralTargetType, body: any) 
 
     return {
       targetId: hackathon.id,
-      destinationUrl: `/events/registration-form?event=${hackathon.id}`,
+      destinationUrl: `/events/${hackathon.id}`,
     };
   }
 

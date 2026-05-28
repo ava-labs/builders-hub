@@ -95,7 +95,6 @@ export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered,
               className="w-full bg-red-500 border-none text-zinc-100 rounded-md"
               variant="secondary"
               allowNavigationWhenRegistered={true}
-              utm={utm}
               lang={lang}
             />
           )}

@@ -256,7 +256,7 @@ export async function getActiveReferralTargets() {
     detail: "Active or upcoming event",
     targetType: "hackathon_registration" as const,
     targetId: event.id,
-    destinationUrl: `/events/registration-form?event=${event.id}`,
+    destinationUrl: `/events/${event.id}`,
   }));
 
   return {

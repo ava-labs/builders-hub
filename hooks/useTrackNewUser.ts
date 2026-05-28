@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import {
   captureReferralAttributionFromUrl,
@@ -21,7 +20,6 @@ import {
  */
 export function useTrackNewUser(): void {
   const { data: session, status } = useSession();
-  const searchParams = useSearchParams();
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -59,14 +57,17 @@ export function useTrackNewUser(): void {
           name: session.user.name,
         });
 
-        // Capture the user_created event with attribution data
+        // PostHog persists $initial_utm_* on the anonymous distinct_id from the
+        // first pageview and carries them through identify(), so attribution
+        // survives OAuth redirects and cross-page navigation without us
+        // threading UTM params on URLs.
         posthog.capture("user_created", {
           auth_provider: session.user.authentication_mode,
-          utm_source: searchParams.get("utm_source") || undefined,
-          utm_medium: searchParams.get("utm_medium") || undefined,
-          utm_campaign: searchParams.get("utm_campaign") || undefined,
-          utm_content: searchParams.get("utm_content") || undefined,
-          utm_term: searchParams.get("utm_term") || undefined,
+          utm_source: posthog.get_property("$initial_utm_source") || undefined,
+          utm_medium: posthog.get_property("$initial_utm_medium") || undefined,
+          utm_campaign: posthog.get_property("$initial_utm_campaign") || undefined,
+          utm_content: posthog.get_property("$initial_utm_content") || undefined,
+          utm_term: posthog.get_property("$initial_utm_term") || undefined,
           referral_code: getStoredReferralAttribution()?.referralCode || undefined,
           referrer: document.referrer || undefined,
         });
@@ -98,5 +99,5 @@ export function useTrackNewUser(): void {
     return () => {
       isMountedRef.current = false;
     };
-  }, [session, status, searchParams]);
+  }, [session, status]);
 }
