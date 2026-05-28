@@ -50,7 +50,13 @@ export default function EcosystemCareersClient({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return initialJobs.filter((job) => {
-      if (companyId && job.company.id !== companyId) return false;
+      if (companyId) {
+        if (companyId.startsWith('name:')) {
+          if (job.company.name !== companyId.slice('name:'.length)) return false;
+        } else if (job.company.id !== companyId) {
+          return false;
+        }
+      }
       if (remoteType && job.remoteType !== remoteType) return false;
       if (!q) return true;
       const haystack = [

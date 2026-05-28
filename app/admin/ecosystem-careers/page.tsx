@@ -313,16 +313,6 @@ export default async function EcosystemCareersAdminPage() {
                     variant="outline"
                     confirmMessage="Reject this listing? It won't reappear in the queue or on the public board."
                   />
-                  <AdminActionButton
-                    endpoint={`/api/admin/ecosystem-careers/listings/${row.id}`}
-                    method="DELETE"
-                    label="Delete"
-                    busyLabel="Deleting…"
-                    successMessage="Listing deleted."
-                    errorMessage="Could not delete."
-                    variant="destructive"
-                    confirmMessage="Permanently delete this listing? This cannot be undone. (External listings may be re-ingested by the next cron — use Reject if you want permanent suppression.)"
-                  />
                 </div>
               </li>
             ))}
