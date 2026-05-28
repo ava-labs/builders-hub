@@ -931,7 +931,7 @@ const HackathonsEdit = () => {
   const step6Ref = useRef<HTMLDivElement | null>(null);
 
   const [activeStep, setActiveStep] = useState<'step1' | 'step2' | 'step3' | 'step4' | 'step5' | 'step6'>('step1');
-  const [contentTab, setContentTab] = useState<'tracks' | 'tech-stack' | 'meta' | 'schedule' | 'resources' | 'speakers' | 'submission'>('tracks');
+  const [contentTab, setContentTab] = useState<'tracks' | 'tech-stack' | 'meta' | 'schedule' | 'resources' | 'speakers'>('tracks');
 
   const getDateRangeError = (start: string, end: string): string | null => {
     if (!start?.trim() || !end?.trim()) return null;
@@ -1051,13 +1051,23 @@ const HackathonsEdit = () => {
     });
   }, [formDataContent.resources.length]);
 
+  // Meta (address + Google Calendar) only matters for events with a physical
+  // venue. Pure online events hide that tab — admins editing a virtual event
+  // shouldn't have to scroll past "Address" fields.
+  const isOnlineEvent = (formDataMain.location ?? '').trim().toLowerCase() === 'online';
+
   useEffect(() => {
     if (formDataLatest.event !== 'hackathon') {
-      if (contentTab === 'tracks' || contentTab === 'tech-stack' || contentTab === 'submission') {
+      if (contentTab === 'tracks' || contentTab === 'tech-stack') {
         setContentTab('meta');
       }
     }
-  }, [formDataLatest.event, contentTab]);
+    // If the admin just flipped the event to online while sitting on the Meta
+    // tab, jump them to the Tracks tab so they don't see an empty section.
+    if (isOnlineEvent && contentTab === 'meta') {
+      setContentTab(formDataLatest.event === 'hackathon' ? 'tracks' : 'schedule');
+    }
+  }, [formDataLatest.event, contentTab, isOnlineEvent]);
 
   useEffect(() => {
     if (!leftPanelRef.current) return;
@@ -2396,12 +2406,80 @@ const HackathonsEdit = () => {
                         className="w-full mb-4"
                         required
                       />
+
+                      {/* Team-size range — defines how many participants per team
+                          can register for this event. */}
+                      <div className="mt-6 mb-2 text-muted-foreground text-sm">Min team size</div>
+                      <div className="mb-2 text-muted-foreground text-xs">Smallest allowed team size. Leave empty to allow solo (1).</div>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="(1 — solo allowed)"
+                        value={formDataContent.team_size_min ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value.trim();
+                          const parsed = raw === '' ? undefined : Number(raw);
+                          setFormDataContent({
+                            ...formDataContent,
+                            team_size_min: Number.isFinite(parsed) ? parsed : undefined,
+                          });
+                        }}
+                        className="w-full mb-4"
+                      />
+                      <div className="mb-2 text-muted-foreground text-sm">{t[language].teamSizeMax}</div>
+                      <div className="mb-2 text-muted-foreground text-xs">{t[language].teamSizeMaxHelp}</div>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="(no cap)"
+                        value={formDataContent.team_size_max ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value.trim();
+                          const parsed = raw === '' ? undefined : Number(raw);
+                          setFormDataContent({
+                            ...formDataContent,
+                            team_size_max: Number.isFinite(parsed) ? parsed : undefined,
+                          });
+                        }}
+                        className="w-full mb-4"
+                      />
+
+                      {/* Target countries — gate registration to specific countries.
+                          Empty = global. Grouped with team size as "who can register". */}
+                      <div className="mt-6 mb-2 text-muted-foreground text-sm">Target countries</div>
+                      <div className="mb-2 text-muted-foreground text-xs">
+                        Leave empty for a global event. When set, only registrants whose profile country matches one of these can register.
+                        {formDataMain.organizers && getDefaultTargetCountries(formDataMain.organizers).length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormDataContent({
+                                ...formDataContent,
+                                target_countries: getDefaultTargetCountries(formDataMain.organizers),
+                              })
+                            }
+                            className="ml-2 underline text-red-500 hover:text-red-600"
+                          >
+                            Use {REFERRAL_TEAM_LABELS[formDataMain.organizers] ?? formDataMain.organizers} defaults
+                          </button>
+                        )}
+                      </div>
+                      <MultiSelect
+                        options={COUNTRIES.map((c) => ({ value: c, label: c }))}
+                        selected={formDataContent.target_countries ?? []}
+                        onChange={(next) =>
+                          setFormDataContent({ ...formDataContent, target_countries: next })
+                        }
+                        placeholder="Global (no country restriction)"
+                        searchPlaceholder="Search countries…"
+                      />
+                      <div className="h-4" />
                     </>
                   )}
                   <div className="flex justify-end mt-4">
-                    <button 
+                    <button
                       type="button"
-                      onClick={() => handleDone('about')} 
+                      onClick={() => handleDone('about')}
                       className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
                     >
                       {t[language].done} <ChevronDown className="w-4 h-4" />
@@ -2420,7 +2498,7 @@ const HackathonsEdit = () => {
             {formDataLatest.event === 'hackathon' && (
             <div ref={step4Ref} className="bg-card/60 border border-input rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
+                <h2 className="text-2xl font-bold">Step 4: Long Description</h2>
                 {collapsed.trackText && (
                   <button onClick={() => setCollapsed({ ...collapsed, trackText: false })} className="flex items-center gap-1 text-muted-foreground hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2430,13 +2508,10 @@ const HackathonsEdit = () => {
               {!collapsed.trackText && (
                 <>
                   <div className="mb-4 p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Track Description</h3>
-                    <p className="text-sm text-purple-700/80 dark:text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
+                    <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Long Description</h3>
+                    <p className="text-sm text-purple-700/80 dark:text-purple-200">The long-form description shown on the event page. Use the formatting buttons below or type markdown directly.</p>
                   </div>
-                  
-                  <div className="mb-2 text-muted-foreground text-sm">Schedule Text:</div>
-                  <div className="mb-2 text-muted-foreground text-xs">Write a step-by-step schedule outlining what will happen, either hour by hour or week by week. Use the formatting buttons below or type markdown directly.</div>
-                  
+
                   {/* Formatting Toolbar */}
                   <div className="flex flex-wrap gap-2 mb-3 p-3 bg-secondary/50 border border-input rounded-lg">
                     <button
@@ -2651,7 +2726,7 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.trackText && (
-                <div className="text-muted-foreground italic">✓ Track text completed</div>
+                <div className="text-muted-foreground italic">✓ Long description completed</div>
               )}
             </div>
             )}
@@ -2697,17 +2772,19 @@ const HackathonsEdit = () => {
                           Tech Stack
                         </button>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setContentTab('meta')}
-                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
-                          contentTab === 'meta'
-                            ? 'bg-red-600 text-white border-red-500'
-                            : 'bg-card text-foreground border-input hover:bg-secondary'
-                        }`}
-                      >
-                        Meta
-                      </button>
+                      {!isOnlineEvent && (
+                        <button
+                          type="button"
+                          onClick={() => setContentTab('meta')}
+                          className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                            contentTab === 'meta'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-card text-foreground border-input hover:bg-secondary'
+                          }`}
+                        >
+                          Meta
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setContentTab('schedule')}
@@ -2741,19 +2818,6 @@ const HackathonsEdit = () => {
                       >
                         {t[language].speakers}
                       </button>
-                      {formDataLatest.event === 'hackathon' && (
-                        <button
-                          type="button"
-                          onClick={() => setContentTab('submission')}
-                          className={`px-3 py-1 rounded-full text-xs border transition-colors ${
-                            contentTab === 'submission'
-                              ? 'bg-red-600 text-white border-red-500'
-                              : 'bg-card text-foreground border-input hover:bg-secondary'
-                          }`}
-                        >
-                          {t[language].submissionDeadline}
-                        </button>
-                      )}
                     </div>
                   </div>
 
@@ -2961,122 +3025,6 @@ const HackathonsEdit = () => {
                     </div>
                   )}
 
-                  {/* Submission Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && contentTab === 'submission' && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].submissionOpen}:</label>
-                        <div className="mb-2 text-muted-foreground text-sm">{t[language].submissionOpenHelp}</div>
-                        <Input
-                          type="datetime-local"
-                          placeholder="Submission Opens At"
-                          value={formDataContent.submission_open ?? ''}
-                          onChange={(e) => setFormDataContent({ ...formDataContent, submission_open: e.target.value })}
-                          className="w-full mb-4"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                        <div className="mb-2 text-muted-foreground text-sm">{t[language].submissionDeadlineHelp}</div>
-                        <Input
-                          type="datetime-local"
-                          placeholder="Submission Deadline"
-                          value={formDataContent.submission_deadline}
-                          onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
-                          className="w-full mb-4"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">Target countries:</label>
-                        <div className="mb-2 text-muted-foreground text-sm">
-                          Leave empty for a global event. When set, only registrants whose profile country matches one of these can register.
-                          {formDataMain.organizers && getDefaultTargetCountries(formDataMain.organizers).length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormDataContent({
-                                  ...formDataContent,
-                                  target_countries: getDefaultTargetCountries(formDataMain.organizers),
-                                })
-                              }
-                              className="ml-2 underline text-red-500 hover:text-red-600"
-                            >
-                              Use {REFERRAL_TEAM_LABELS[formDataMain.organizers] ?? formDataMain.organizers} defaults
-                            </button>
-                          )}
-                        </div>
-                        <MultiSelect
-                          options={COUNTRIES.map((c) => ({ value: c, label: c }))}
-                          selected={formDataContent.target_countries ?? []}
-                          onChange={(next) =>
-                            setFormDataContent({ ...formDataContent, target_countries: next })
-                          }
-                          placeholder="Global (no country restriction)"
-                          searchPlaceholder="Search countries…"
-                        />
-                        <div className="h-4" />
-                      </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">Min team size:</label>
-                        <div className="mb-2 text-muted-foreground text-sm">
-                          Smallest allowed team size. Leave empty to allow solo (1).
-                        </div>
-                        <Input
-                          type="number"
-                          min={1}
-                          placeholder="(1 — solo allowed)"
-                          value={formDataContent.team_size_min ?? ''}
-                          onChange={(e) => {
-                            const raw = e.target.value.trim();
-                            const parsed = raw === '' ? undefined : Number(raw);
-                            setFormDataContent({
-                              ...formDataContent,
-                              team_size_min: Number.isFinite(parsed) ? parsed : undefined,
-                            });
-                          }}
-                          className="w-full mb-4"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].teamSizeMax}:</label>
-                        <div className="mb-2 text-muted-foreground text-sm">{t[language].teamSizeMaxHelp}</div>
-                        <Input
-                          type="number"
-                          min={1}
-                          placeholder="(no cap)"
-                          value={formDataContent.team_size_max ?? ''}
-                          onChange={(e) => {
-                            const raw = e.target.value.trim();
-                            const parsed = raw === '' ? undefined : Number(raw);
-                            setFormDataContent({
-                              ...formDataContent,
-                              team_size_max: Number.isFinite(parsed) ? parsed : undefined,
-                            });
-                          }}
-                          className="w-full mb-4"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-medium text-xl mb-2 block">{t[language].registrationMode}:</label>
-                        <div className="mb-2 text-muted-foreground text-sm">{t[language].registrationModeHelp}</div>
-                        <select
-                          value={formDataContent.registration_mode ?? 'full'}
-                          onChange={(e) =>
-                            setFormDataContent({
-                              ...formDataContent,
-                              registration_mode: e.target.value === 'simple' ? 'simple' : 'full',
-                            })
-                          }
-                          className="w-full mb-4 bg-card border border-input rounded-md px-3 py-2 text-foreground"
-                        >
-                          <option value="full">full</option>
-                          <option value="simple">simple</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="flex justify-end mt-4">
                     <button 
                       type="button"
@@ -3155,6 +3103,54 @@ const HackathonsEdit = () => {
                       }}
                       className="w-full mb-4"
                     />
+
+                    {/* Registration & submission window — grouped here with
+                        the other event dates and end-of-flow settings. */}
+                    {formDataLatest.event === 'hackathon' && (
+                      <>
+                        <div>
+                          <label className="font-medium text-xl mb-2 block">{t[language].submissionOpen}:</label>
+                          <div className="mb-2 text-muted-foreground text-sm">{t[language].submissionOpenHelp}</div>
+                          <Input
+                            type="datetime-local"
+                            placeholder="Submission Opens At"
+                            value={formDataContent.submission_open ?? ''}
+                            onChange={(e) => setFormDataContent({ ...formDataContent, submission_open: e.target.value })}
+                            className="w-full mb-4"
+                          />
+                        </div>
+                        <div>
+                          <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
+                          <div className="mb-2 text-muted-foreground text-sm">{t[language].submissionDeadlineHelp}</div>
+                          <Input
+                            type="datetime-local"
+                            placeholder="Submission Deadline"
+                            value={formDataContent.submission_deadline}
+                            onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
+                            className="w-full mb-4"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="font-medium text-xl mb-2 block">{t[language].registrationMode}:</label>
+                          <div className="mb-2 text-muted-foreground text-sm">{t[language].registrationModeHelp}</div>
+                          <select
+                            value={formDataContent.registration_mode ?? 'full'}
+                            onChange={(e) =>
+                              setFormDataContent({
+                                ...formDataContent,
+                                registration_mode: e.target.value === 'simple' ? 'simple' : 'full',
+                              })
+                            }
+                            className="w-full mb-4 bg-card border border-input rounded-md px-3 py-2 text-foreground"
+                          >
+                            <option value="full">full</option>
+                            <option value="simple">simple</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
                       <div className="mb-2 text-muted-foreground text-sm">{t[language].startDateHelp}</div>
