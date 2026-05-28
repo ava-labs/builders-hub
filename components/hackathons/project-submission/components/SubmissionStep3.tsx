@@ -76,6 +76,8 @@ export default function SubmitStep3({ lang = "en" }: { lang?: EventsLang }) {
               <FormLabelWithCheck
                 label={t(lang, "submission.step3.demoVideo.label")}
                 checked={!!field.value}
+                required={false}
+                lang={lang}
               />
               <FormControl>
                 <Input

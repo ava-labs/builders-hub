@@ -92,7 +92,7 @@ const normalizeLinkArray = (val: unknown): string[] => {
 };
 
 /** Builds a schema for an array of URL strings with duplicate and validity checks. */
-const buildUrlArraySchema = (options: { duplicateMessage: string; invalidMessage: string }) =>
+const buildUrlArraySchema = (options: { duplicateMessage: string; invalidMessage: string; requiredMessage?: string }) =>
   z
     .array(z.string())
     .optional()
@@ -101,6 +101,10 @@ const buildUrlArraySchema = (options: { duplicateMessage: string; invalidMessage
       message: options.duplicateMessage,
     })
     .superRefine((links, ctx) => {
+      if (options.requiredMessage && links.length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: options.requiredMessage, path: [] });
+        return;
+      }
       const hasInvalid = links.some((link) => !isValidHttpUrl(link));
       if (hasInvalid) {
         ctx.addIssue({
@@ -123,17 +127,16 @@ const BaseFormSchema = z.object({
     .max(280, { message: 'Max 280 characters allowed' }),
   full_description: z
     .string()
-    .optional()
-    .or(z.literal('')),
+    .min(1, { message: 'Full description is required' }),
   tech_stack: z
     .string()
-    .optional()
-    .or(z.literal('')),
+    .min(1, { message: 'Tech stack is required' }),
   github_repository: z.preprocess(
     normalizeLinkArray,
     buildUrlArraySchema({
       duplicateMessage: 'Duplicate repository links are not allowed',
       invalidMessage: 'Please enter valid repository links (e.g. https://github.com/user/repo)',
+      requiredMessage: 'At least one repository link is required',
     })
   ),
   explanation: z.string().optional(),
@@ -142,6 +145,7 @@ const BaseFormSchema = z.object({
     buildUrlArraySchema({
       duplicateMessage: 'Duplicate demo links are not allowed',
       invalidMessage: 'Please enter a valid URL (e.g. https://example.com)',
+      requiredMessage: 'At least one demo link is required',
     })
   ),
   is_preexisting_idea: z.boolean(),
@@ -486,7 +490,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
     }
   }, [state.hackathonId, session?.user?.id, toast]);
 
-  const saveProject = useCallback(async (data: SubmissionForm): Promise<{ success: boolean; projectId?: string }> => {
+  const saveProject = useCallback(async (data: SubmissionForm): Promise<{ success: boolean; projectId?: string; project?: import('@/types/project').SubmitProjectResult }> => {
     try {
 
       if (!canSubmit) {

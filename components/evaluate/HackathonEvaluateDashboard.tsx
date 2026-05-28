@@ -28,7 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, EyeOff, Lock, Trophy, Unlock } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Eye, EyeOff, Lock, Trophy, Unlock } from "lucide-react";
 import { SubmissionDetailPanel } from "./SubmissionDetailPanel";
 import type { EvaluationData, SubmissionRow, Verdict } from "./types";
 
@@ -77,6 +77,7 @@ type Project = {
   website: unknown;
   socials: unknown;
   is_winner: boolean | null;
+  is_rejected: boolean;
   created_at: string;
   members: Member[];
   evaluations: Evaluation[];
@@ -229,6 +230,7 @@ export function HackathonEvaluateDashboard({
   projects: initialProjects,
 }: Props) {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [rejectSaving, setBlacklistSaving] = useState<string | null>(null);
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [winnerSaving, setWinnerSaving] = useState<string | null>(null);
@@ -283,30 +285,36 @@ export function HackathonEvaluateDashboard({
   }, [projects, query, statusFilter, viewerId]);
 
   const sorted = useMemo(() => {
-    if (sort.key === null) return filtered;
-    const dir = sort.direction === "asc" ? 1 : -1;
-    if (sort.key === "project") {
-      return [...filtered].sort(
-        (a, b) =>
-          a.project_name.localeCompare(b.project_name, undefined, { sensitivity: "base" }) * dir,
-      );
-    }
-    const valueOf = (p: Project): number | null => {
-      if (sort.key === "reviews") return p.evaluations.length;
-      if (sort.key === "avg") return averageScore(p.evaluations);
-      if (sort.key === "mine") {
-        const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
-        return mine?.score_overall ?? null;
+    const base = sort.key === null ? filtered : (() => {
+      const dir = sort.direction === "asc" ? 1 : -1;
+      if (sort.key === "project") {
+        return [...filtered].sort(
+          (a, b) =>
+            a.project_name.localeCompare(b.project_name, undefined, { sensitivity: "base" }) * dir,
+        );
       }
-      return null;
-    };
-    return [...filtered].sort((a, b) => {
-      const av = valueOf(a);
-      const bv = valueOf(b);
-      if (av === null && bv === null) return 0;
-      if (av === null) return 1;
-      if (bv === null) return -1;
-      return (av - bv) * dir;
+      const valueOf = (p: Project): number | null => {
+        if (sort.key === "reviews") return p.evaluations.length;
+        if (sort.key === "avg") return averageScore(p.evaluations);
+        if (sort.key === "mine") {
+          const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
+          return mine?.score_overall ?? null;
+        }
+        return null;
+      };
+      return [...filtered].sort((a, b) => {
+        const av = valueOf(a);
+        const bv = valueOf(b);
+        if (av === null && bv === null) return 0;
+        if (av === null) return 1;
+        if (bv === null) return -1;
+        return (av - bv) * dir;
+      });
+    })();
+    // Rejected projects always sink to the bottom
+    return [...base].sort((a, b) => {
+      if (a.is_rejected === b.is_rejected) return 0;
+      return a.is_rejected ? 1 : -1;
     });
   }, [filtered, sort, viewerId]);
 
@@ -329,6 +337,26 @@ export function HackathonEvaluateDashboard({
       setProjects(previous);
     } finally {
       setWinnerSaving(null);
+    }
+  }
+
+  async function setIsRejected(projectId: string, next: boolean) {
+    setBlacklistSaving(projectId);
+    const previous = projects;
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, is_rejected: next } : p)),
+    );
+    try {
+      const res = await fetch(`/api/projects/${projectId}/reject`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ is_rejected: next }),
+      });
+      if (!res.ok) setProjects(previous);
+    } catch {
+      setProjects(previous);
+    } finally {
+      setBlacklistSaving(null);
     }
   }
 
@@ -531,12 +559,15 @@ export function HackathonEvaluateDashboard({
                 />
               </TableHead>
               <TableHead className="w-[110px] text-right">Winner</TableHead>
+              {canPickWinners && (
+                <TableHead className="w-[110px] text-right">Visibility</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {sorted.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-600 dark:text-zinc-500">
+                <TableCell colSpan={canPickWinners ? 8 : 7} className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-600 dark:text-zinc-500">
                   No projects yet.
                 </TableCell>
               </TableRow>
@@ -545,14 +576,19 @@ export function HackathonEvaluateDashboard({
               const avg = averageScore(p.evaluations);
               const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
               const evaluatedByMe = Boolean(mine);
+              const isRejected = p.is_rejected;
               return (
                 <TableRow
                   key={p.id}
                   className={
-                    "cursor-pointer " +
-                    (evaluatedByMe ? "bg-emerald-50/40 dark:bg-emerald-500/5" : "")
+                    "cursor-pointer relative " +
+                    (isRejected
+                      ? "opacity-40 hover:opacity-60 transition-opacity"
+                      : evaluatedByMe
+                        ? "bg-emerald-50/40 dark:bg-emerald-500/5"
+                        : "")
                   }
-                  onClick={() => setOpenProjectId(p.id)}
+                  onClick={() => !isRejected && setOpenProjectId(p.id)}
                 >
                   <TableCell className="overflow-hidden">
                     <div className="flex items-center gap-3 min-w-0">
@@ -563,10 +599,21 @@ export function HackathonEvaluateDashboard({
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                          <div className={
+                            "truncate text-sm font-medium " +
+                            (isRejected
+                              ? "line-through text-zinc-400 dark:text-zinc-600"
+                              : "text-zinc-900 dark:text-zinc-100")
+                          }>
                             {p.project_name}
                           </div>
-                          {evaluatedByMe && (
+                          {isRejected && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-500">
+                              <EyeOff className="size-3" />
+                              Hidden
+                            </span>
+                          )}
+                          {!isRejected && evaluatedByMe && (
                             <span
                               title="You have evaluated this project"
                               className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
@@ -606,6 +653,15 @@ export function HackathonEvaluateDashboard({
                       onToggle={(next) => setIsWinner(p.id, next)}
                     />
                   </TableCell>
+                  {canPickWinners && (
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <RejectControl
+                        isRejected={isRejected}
+                        isSaving={rejectSaving === p.id}
+                        onToggle={(next) => setIsRejected(p.id, next)}
+                      />
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}
@@ -654,6 +710,57 @@ export function HackathonEvaluateDashboard({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+type RejectControlProps = {
+  isRejected: boolean;
+  isSaving: boolean;
+  onToggle: (next: boolean) => void;
+};
+
+function RejectControl({ isRejected, isSaving, onToggle }: RejectControlProps) {
+  if (isRejected) {
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isSaving}
+              aria-pressed={true}
+              onClick={() => onToggle(false)}
+              className="gap-1.5 text-zinc-400 hover:text-zinc-900 dark:text-zinc-600 dark:hover:text-zinc-100"
+            >
+              <Eye className="size-3.5" />
+              Restore
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Make visible to all judges again</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isSaving}
+            aria-pressed={false}
+            onClick={() => onToggle(true)}
+            className="gap-1.5 text-zinc-400 hover:text-red-600 dark:text-zinc-600 dark:hover:text-red-400"
+          >
+            <EyeOff className="size-3.5" />
+            Hide
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Hide this project from all judges</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
