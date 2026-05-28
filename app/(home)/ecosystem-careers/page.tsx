@@ -10,7 +10,7 @@ import {
   PUBLIC_JOB_PREVIEW_COUNT,
   getViewerAccess,
   missingSocialsFor,
-} from '@/lib/ecosystemCareers/viewerAccess';
+} from '@/lib/ecosystem-careers/viewerAccess';
 import { getAuthSession } from '@/lib/auth/authSession';
 import EcosystemCareersClient from './page.client';
 

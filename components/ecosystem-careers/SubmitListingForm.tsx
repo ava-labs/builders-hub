@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import { Briefcase } from 'lucide-react';
-import { POPULAR_LOCATIONS } from '@/lib/ecosystemCareers/locations';
+import { POPULAR_LOCATIONS } from '@/lib/ecosystem-careers/locations';
 
 interface ProjectOption {
   id: string;

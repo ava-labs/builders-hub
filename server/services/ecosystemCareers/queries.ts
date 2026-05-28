@@ -1,4 +1,5 @@
 import { prisma } from '@/prisma/prisma';
+import { firstUrl } from '@/lib/ecosystem-careers/firstUrl';
 
 export type ListingSource = 'community' | 'external' | 'legacy' | 'getro';
 
@@ -71,15 +72,6 @@ type JobRow = Awaited<ReturnType<typeof prisma.jobListing.findFirst>> & {
   project: Awaited<ReturnType<typeof prisma.project.findFirst>> | null;
 };
 
-function projectWebsite(value: unknown): string | null {
-  if (!value || typeof value !== 'object') return null;
-  const obj = value as Record<string, unknown>;
-  for (const v of Object.values(obj)) {
-    if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim();
-  }
-  return null;
-}
-
 function projectTags(project: NonNullable<JobRow['project']>): string[] {
   const all = [...(project.tags ?? []), ...(project.tracks ?? [])];
   return Array.from(new Set(all.filter((t) => t && t.trim()))).slice(0, 10);
@@ -93,7 +85,7 @@ function toCompany(row: NonNullable<JobRow>): DisplayCompany {
       name: row.project.project_name,
       slug: null,
       logoUrl: row.project.logo_url || null,
-      website: projectWebsite(row.project.website),
+      website: firstUrl(row.project.website),
       tags: projectTags(row.project),
       description: row.project.short_description || null,
     };

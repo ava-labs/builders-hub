@@ -7,7 +7,7 @@ import { prisma } from '@/prisma/prisma';
 import {
   getViewerAccess,
   missingSocialsFor,
-} from '@/lib/ecosystemCareers/viewerAccess';
+} from '@/lib/ecosystem-careers/viewerAccess';
 import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
 import { SubmitListingForm } from '@/components/ecosystem-careers/SubmitListingForm';
 import { Clock } from 'lucide-react';

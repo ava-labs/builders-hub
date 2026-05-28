@@ -1,5 +1,6 @@
 import { prisma } from '@/prisma/prisma';
-import { cleanApplyUrl } from '@/lib/ecosystemCareers/cleanApplyUrl';
+import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
+import { upsertExternalListing } from './upsertExternalListing';
 
 export interface IngestResult {
   source: 'getro';
@@ -209,31 +210,14 @@ export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResul
       }
     }
 
-    const existing = await prisma.jobListing.findFirst({
-      where: { source: 'getro', external_id: externalId },
-      select: { id: true },
-    });
-
-    if (existing) {
-      await prisma.jobListing.update({
-        where: { id: existing.id },
-        data: { last_seen_at: now },
-      });
-      updated += 1;
-      continue;
-    }
-
-    const remoteType =
-      j.work_mode === 'remote'
-        ? 'remote'
-        : j.work_mode === 'on_site'
-          ? 'onsite'
-          : null;
-
-    await prisma.jobListing.create({
-      data: {
-        source: 'getro',
-        external_id: externalId,
+    const outcome = await upsertExternalListing('getro', externalId, now, () => {
+      const remoteType =
+        j.work_mode === 'remote'
+          ? 'remote'
+          : j.work_mode === 'on_site'
+            ? 'onsite'
+            : null;
+      return {
         company_name: j.company?.name ?? null,
         company_logo: j.company?.logo_url ?? null,
         company_website: null,
@@ -249,11 +233,10 @@ export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResul
         apply_url: cleanApplyUrl(j.url),
         source_url: j.url,
         posted_at: j.created_at ? new Date(j.created_at) : null,
-        last_seen_at: now,
-        is_active: false,
-      },
+      };
     });
-    inserted += 1;
+    if (outcome === 'updated') updated += 1;
+    else inserted += 1;
   }
 
   return {

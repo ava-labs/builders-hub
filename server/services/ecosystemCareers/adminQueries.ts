@@ -1,4 +1,5 @@
 import { prisma } from '@/prisma/prisma';
+import { firstUrl } from '@/lib/ecosystem-careers/firstUrl';
 
 export interface PendingProjectRow {
   id: string;
@@ -31,14 +32,6 @@ export interface PendingProjectRow {
     createdAt: Date;
     postedBy: { id: string; name: string | null; email: string | null } | null;
   }[];
-}
-
-function firstUrl(value: unknown): string | null {
-  if (!value || typeof value !== 'object') return null;
-  for (const v of Object.values(value as Record<string, unknown>)) {
-    if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim();
-  }
-  return null;
 }
 
 function readSocial(socials: unknown, key: string): string | null {

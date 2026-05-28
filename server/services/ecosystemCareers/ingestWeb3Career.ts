@@ -1,5 +1,6 @@
 import { prisma } from '@/prisma/prisma';
-import { cleanApplyUrl } from '@/lib/ecosystemCareers/cleanApplyUrl';
+import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
+import { upsertExternalListing } from './upsertExternalListing';
 
 export interface IngestResult {
   source: 'external';
@@ -263,35 +264,18 @@ export async function ingestWeb3Career(
       continue;
     }
 
-    const existing = await prisma.jobListing.findFirst({
-      where: { source: 'external', external_id: externalId },
-      select: { id: true },
-    });
-
-    if (existing) {
-      await prisma.jobListing.update({
-        where: { id: existing.id },
-        data: { last_seen_at: now },
-      });
-      updated += 1;
-      continue;
-    }
-
-    const locationDisplay =
-      [j.city?.trim(), j.country?.trim()].filter(Boolean).join(', ') ||
-      j.location?.trim() ||
-      null;
-    const postedAt =
-      typeof j.date_epoch === 'number'
-        ? new Date(j.date_epoch * 1000)
-        : j.date
-          ? new Date(j.date)
-          : null;
-
-    await prisma.jobListing.create({
-      data: {
-        source: 'external',
-        external_id: externalId,
+    const outcome = await upsertExternalListing('external', externalId, now, () => {
+      const locationDisplay =
+        [j.city?.trim(), j.country?.trim()].filter(Boolean).join(', ') ||
+        j.location?.trim() ||
+        null;
+      const postedAt =
+        typeof j.date_epoch === 'number'
+          ? new Date(j.date_epoch * 1000)
+          : j.date
+            ? new Date(j.date)
+            : null;
+      return {
         company_name: j.company ?? null,
         company_logo: null,
         company_website: null,
@@ -309,11 +293,10 @@ export async function ingestWeb3Career(
         apply_url: cleanApplyUrl(j.apply_url),
         source_url: null,
         posted_at: postedAt && !Number.isNaN(postedAt.getTime()) ? postedAt : null,
-        last_seen_at: now,
-        is_active: false,
-      },
+      };
     });
-    inserted += 1;
+    if (outcome === 'updated') updated += 1;
+    else inserted += 1;
   }
 
   return {

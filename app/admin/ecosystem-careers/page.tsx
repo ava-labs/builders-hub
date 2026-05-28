@@ -9,8 +9,7 @@ import {
   listIngestedListingsUnderReview,
   listProjectsUnderReview,
 } from '@/server/services/ecosystemCareers/adminQueries';
-import { ReviewActions } from '@/components/ecosystem-careers/ReviewActions';
-import { ApproveListingButton } from '@/components/ecosystem-careers/ApproveListingButton';
+import { AdminActionButton } from '@/components/ecosystem-careers/AdminActionButton';
 
 export const metadata: Metadata = createMetadata({
   title: 'Ecosystem Careers · Review queue',
@@ -92,7 +91,14 @@ export default async function EcosystemCareersAdminPage() {
                     <p className="text-sm text-zinc-600 dark:text-zinc-300">{c.description}</p>
                   )}
                 </div>
-                <ReviewActions projectId={c.id} />
+                <AdminActionButton
+                  endpoint={`/api/admin/ecosystem-careers/projects/${c.id}/approve`}
+                  label="Approve"
+                  busyLabel="Approving…"
+                  successMessage="Approved — listings are live."
+                  errorMessage="Could not approve."
+                  size="md"
+                />
               </div>
 
               {c.fullDescription && c.fullDescription !== c.description && (
@@ -267,7 +273,13 @@ export default async function EcosystemCareersAdminPage() {
                     {row.applyUrl}
                   </a>
                 </div>
-                <ApproveListingButton listingId={row.id} />
+                <AdminActionButton
+                  endpoint={`/api/admin/ecosystem-careers/listings/${row.id}/approve`}
+                  label="Approve"
+                  busyLabel="Approving…"
+                  successMessage="Listing approved."
+                  errorMessage="Could not approve."
+                />
               </li>
             ))}
           </ul>

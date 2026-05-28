@@ -17,7 +17,7 @@ import {
 import {
   getViewerAccess,
   missingSocialsFor,
-} from '@/lib/ecosystemCareers/viewerAccess';
+} from '@/lib/ecosystem-careers/viewerAccess';
 import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
 
 // Auth-conditional + hits Postgres → don't pre-render.

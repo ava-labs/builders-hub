@@ -1,6 +1,6 @@
 import { prisma } from '@/prisma/prisma';
-import { cleanApplyUrl } from '@/lib/ecosystemCareers/cleanApplyUrl';
-import { htmlToPlainText, sanitizeJobHtml } from '@/lib/ecosystemCareers/sanitizeJobHtml';
+import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
+import { htmlToPlainText, sanitizeJobHtml } from '@/lib/ecosystem-careers/sanitizeJobHtml';
 import { isUserProjectMember } from '@/server/services/fileValidation';
 
 export const MAX_ACTIVE_LISTINGS_PER_PROJECT = 5;

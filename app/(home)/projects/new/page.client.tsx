@@ -9,7 +9,7 @@ import {
   LINKEDIN_ACCOUNT_PATTERN,
   X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
-import { LogoUploader } from '@/components/ecosystem-careers/LogoUploader';
+import { LogoUploader } from '@/components/common/LogoUploader';
 import {
   UserSearchPicker,
   type SearchUser,

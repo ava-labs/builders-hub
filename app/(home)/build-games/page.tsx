@@ -9,9 +9,6 @@ import BuildGamesPartners from "@/components/build-games/BuildGamesPartners";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
-// BuildGamesMentors / Partners / Resources read the live hackathon row
-// from Postgres. Pre-rendering this page at build time fails when the
-// Neon serverless DB is napping — render at request time instead.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {

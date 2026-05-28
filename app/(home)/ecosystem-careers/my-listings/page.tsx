@@ -5,7 +5,7 @@ import { createMetadata } from '@/utils/metadata';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { listListingsForUser } from '@/server/services/ecosystemCareers/queries';
 import { formatPostedAt, prettyRemoteType } from '@/components/ecosystem-careers/labels';
-import { DeactivateListingButton } from '@/components/ecosystem-careers/DeactivateListingButton';
+import { AdminActionButton } from '@/components/ecosystem-careers/AdminActionButton';
 
 function StatusBadge({
   isActive,
@@ -115,7 +115,18 @@ export default async function MyListingsPage() {
                 >
                   Edit
                 </Link>
-                {row.isActive && <DeactivateListingButton listingId={row.id} />}
+                {row.isActive && (
+                  <AdminActionButton
+                    endpoint={`/api/ecosystem-careers/listings/${row.id}`}
+                    method="DELETE"
+                    label="Deactivate"
+                    busyLabel="Deactivating…"
+                    successMessage="Listing deactivated."
+                    errorMessage="Could not deactivate."
+                    confirmMessage="Deactivate this listing? It will be removed from the public board."
+                    variant="outline"
+                  />
+                )}
               </div>
             </li>
           ))}
