@@ -2649,28 +2649,10 @@ const HackathonsEdit = () => {
     });
   };
 
-  // Check if user has required permissions
-  const hasRequiredPermissions = () => {
-    if (!session?.user?.custom_attributes) return false;
-    return session.user.custom_attributes.includes("team1-admin") ||
-      session.user.custom_attributes.includes("hackathonCreator") ||
-      session.user.custom_attributes.includes("devrel");
-  };
-
-  // Redirect unauthenticated users to home; authenticated without roles to home (same as proxy.ts)
-  React.useEffect(() => {
-    if (status === "loading") return;
-
-    if (status === "unauthenticated") {
-      window.location.href = "/";
-      return;
-    }
-
-    if (status === "authenticated" && !hasRequiredPermissions()) {
-      window.location.href = "/";
-      return;
-    }
-  }, [session, status]);
+  // NOTE: /events/edit access control is enforced server-side in proxy.ts
+  // (devrel / team1-admin / hackathonCreator). Do NOT re-add a client-side
+  // gate here: useSession races NextAuth hydration and bounced authorized
+  // users home before custom_attributes resolved (regressed via a merge once).
 
   // Show loading while checking authentication
   if (status === "loading") {
@@ -2680,12 +2662,6 @@ const HackathonsEdit = () => {
       </div>
     );
   }
-
-  // Don't render if user is not authenticated or doesn't have permissions
-  if (status === "unauthenticated" || (status === "authenticated" && !hasRequiredPermissions())) {
-    return null; // Will redirect via useEffect
-  }
-
 
   const renderHackathonPreviewTabs = (): React.JSX.Element => {
     return (
