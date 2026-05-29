@@ -244,7 +244,9 @@ export function SubmissionDetailPanel({
 
           {showStages && activeTab === "submission" && (
             <div className="space-y-4">
-              {eventConfig?.stageFields ? (
+              {isAnswerEnvelope(displayData) ? (
+                <StageAnswerView envelope={displayData} />
+              ) : eventConfig?.stageFields ? (
                 Object.entries(eventConfig.stageFields).map(
                   ([stageKey, stage]) => {
                     const hasData = stage.fields.some(
@@ -375,6 +377,90 @@ function MemberApplicationSection({
           <p className="text-zinc-500 text-sm">This member did not submit an individual application.</p>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * A single staged answer with the snapshot of the question it answers, as
+ * persisted server-side by the stage-submit endpoint.
+ */
+interface StageAnswerEntry {
+  question_id?: string;
+  question_label?: string;
+  question_type?: string;
+  stage_index?: number;
+  answer?: unknown;
+}
+
+interface StageAnswerEnvelope {
+  answers: Record<string, StageAnswerEntry>;
+}
+
+/**
+ * Detects the question-linked envelope written for staged submissions
+ * (`{ answers: { [fieldId]: { question_label, answer, ... } } }`). Legacy flat
+ * rows and the build_games/applicant payloads lack `answers`, so they keep
+ * their existing rendering path.
+ */
+function isAnswerEnvelope(
+  data: Record<string, unknown>
+): data is Record<string, unknown> & StageAnswerEnvelope {
+  const answers = (data as { answers?: unknown }).answers;
+  return (
+    typeof answers === "object" &&
+    answers !== null &&
+    !Array.isArray(answers)
+  );
+}
+
+/** Formats a staged answer value for display (arrays joined, booleans Yes/No). */
+function formatStageAnswer(answer: unknown): string {
+  if (answer === null || answer === undefined) return "";
+  if (typeof answer === "boolean") return answer ? "Yes" : "No";
+  if (Array.isArray(answer)) {
+    return answer
+      .map((item) =>
+        typeof item === "object" && item !== null
+          ? JSON.stringify(item)
+          : String(item)
+      )
+      .filter((s) => s.trim().length > 0)
+      .join(", ");
+  }
+  if (typeof answer === "object") return JSON.stringify(answer, null, 2);
+  return String(answer);
+}
+
+/**
+ * Renders staged submissions as question -> answer pairs using the server-side
+ * question snapshot, so reviewers see what each answer was responding to.
+ */
+function StageAnswerView({ envelope }: { envelope: StageAnswerEnvelope }) {
+  const entries = Object.entries(envelope.answers)
+    .map(([fieldId, entry]) => ({
+      fieldId,
+      label: entry.question_label?.trim() || fieldId,
+      value: formatStageAnswer(entry.answer),
+    }))
+    .filter((e) => e.value.trim().length > 0);
+
+  if (entries.length === 0) {
+    return <p className="text-zinc-500 text-sm py-4">No submission data.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {entries.map((entry) => (
+        <div key={entry.fieldId} className="space-y-0.5">
+          <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
+            {entry.label}
+          </span>
+          <p className="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap break-words">
+            {entry.value}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }

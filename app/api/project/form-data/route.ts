@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 import {
@@ -11,6 +12,23 @@ type StageSubmitValues = Record<
   string,
   string | string[] | Array<{ address: string }> | null
 >;
+
+/**
+ * A single staged answer paired with a server-side snapshot of the question it
+ * answers. Snapshotting the question metadata (label/type) at submit time means
+ * reviewers always see the question alongside the answer, even if the hackathon
+ * form definition later changes.
+ */
+type StageAnswer = {
+  question_id: string;
+  question_label: string;
+  question_type: string;
+  stage_index: number;
+  answer: unknown;
+};
+
+/** Envelope persisted in FormData.form_data for stage submissions. */
+type StageAnswerEnvelope = { answers: Record<string, StageAnswer> };
 
 /** Allows alphanumeric, hyphens and underscores — covers UUID, CUID and nanoid formats. */
 const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,128}$/;
@@ -176,9 +194,37 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         },
       });
 
-      const mergedFormData: StageSubmitValues = {
-        ...((existingFormData?.form_data as StageSubmitValues | null) ?? {}),
-        ...values,
+      // Snapshot the stage's question metadata so each stored answer carries the
+      // question it answers. Reviewers previously saw answers with no question
+      // (flat { [fieldId]: answer }); the envelope below fixes that.
+      const hackathon = await tx.hackathon.findUnique({
+        where: { id: hackathonId },
+        select: { content: true },
+      });
+      const stageFields: Array<{ id?: string; label?: string; type?: string }> =
+        (hackathon?.content as any)?.stages?.[body.stageIndex]?.submitForm?.fields ?? [];
+      const fieldMeta = new Map<string, { label?: string; type?: string }>(
+        stageFields
+          .filter((f): f is { id: string; label?: string; type?: string } => typeof f?.id === 'string')
+          .map((f) => [f.id, { label: f.label, type: f.type }]),
+      );
+
+      const newAnswers: Record<string, StageAnswer> = {};
+      for (const [fieldId, answer] of Object.entries(values)) {
+        const meta = fieldMeta.get(fieldId);
+        newAnswers[fieldId] = {
+          question_id: fieldId,
+          question_label: meta?.label ?? fieldId,
+          question_type: meta?.type ?? 'unknown',
+          stage_index: body.stageIndex,
+          answer,
+        };
+      }
+
+      const existingAnswers: Record<string, StageAnswer> =
+        (existingFormData?.form_data as StageAnswerEnvelope | null)?.answers ?? {};
+      const envelope: StageAnswerEnvelope = {
+        answers: { ...existingAnswers, ...newAnswers },
       };
 
       const savedFormData = existingFormData
@@ -187,7 +233,10 @@ export const POST = withAuth(async (request: Request, _context, session) => {
               id: existingFormData.id,
             },
             data: {
-              form_data: mergedFormData,
+              // `answer` is typed `unknown` in the domain type; the values are
+              // always JSON-serializable strings/arrays/booleans, so cast at the
+              // Prisma JSON boundary.
+              form_data: envelope as unknown as Prisma.InputJsonValue,
               timestamp: new Date(),
               origin: 'stage-submit',
             },
@@ -199,7 +248,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         : await tx.formData.create({
             data: {
               project_id: resolvedProject.id,
-              form_data: values,
+              form_data: envelope as unknown as Prisma.InputJsonValue,
               timestamp: new Date(),
               origin: 'stage-submit',
             },
@@ -386,10 +435,30 @@ export const GET = withAuth(async (request: Request, _context, session) => {
       },
     });
 
+    // The participant's stage form rehydrates from a FLAT { [fieldId]: answer }
+    // map (see useProjectFormData -> StageSubmitPageContent). New rows store the
+    // question-linked envelope { answers: { [fieldId]: { ..., answer } } }, so
+    // unwrap it back to the flat shape here. Legacy flat rows pass through
+    // unchanged.
+    const rawFormData = formData?.form_data as
+      | StageAnswerEnvelope
+      | Record<string, unknown>
+      | null;
+    const flatFormData =
+      rawFormData && typeof rawFormData === 'object' && 'answers' in rawFormData
+        ? Object.fromEntries(
+            Object.entries((rawFormData as StageAnswerEnvelope).answers).map(
+              ([fieldId, entry]) => [fieldId, entry.answer],
+            ),
+          )
+        : rawFormData;
+
     return NextResponse.json(
       {
         success: true,
-        formData: formData ?? null,
+        formData: formData
+          ? { ...formData, form_data: flatFormData }
+          : null,
       },
       { status: 200 },
     );
