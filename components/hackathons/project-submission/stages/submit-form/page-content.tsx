@@ -39,7 +39,7 @@ type StageSubmitValues = Record<string, string | string[] | boolean>
 
 type StageSubmitPageContentProps = {
   hackathon: HackathonHeader
-  hackathonCreator?: any // Replace 'any' with the correct type for the hackathon creator
+  hackathonCreator?: any
   stage: HackathonStage
   stageIndex: number
   projectId?: string
@@ -58,10 +58,6 @@ function buildProjectFallback(
   const fallback: StageSubmitValues = {}
 
   for (const field of stageFields) {
-    // Each stage field id now maps 1:1 to its project column (e.g. 'explanation'
-    // -> project.explanation, 'tech_stack' -> project.tech_stack). Previously
-    // 'explanation' was remapped to 'tech_stack'; that special case is gone now
-    // that tech_stack is its own dedicated field.
     const projectKey = field.id
     const value = project[projectKey] ?? project[field.id]
     if (value === undefined || value === null) continue
@@ -100,9 +96,6 @@ function buildProjectFallback(
     if (isArrayField) {
       if (Array.isArray(value) && value.length > 0) {
         if (value.every((v) => typeof v === 'string')) {
-          // plain string array (e.g. categories) — deduplicate case-insensitively
-          // for MultiSelect fields so stale variants (e.g. "Defi" vs "DeFi") don't
-          // both appear. Last occurrence wins to preserve the most canonical casing.
           const stringValues = value as string[]
           const deduped =
             field.type === SubmitFormFieldType.MultiSelect
@@ -110,7 +103,6 @@ function buildProjectFallback(
               : stringValues
           fallback[field.id] = deduped
         } else {
-          // array of objects — serialize each as JSON (e.g. deployed_addresses: {address, tag}[])
           const serialized = value
             .map((v) => {
               if (typeof v === 'string') return v
@@ -167,12 +159,6 @@ function getRequiredMessage(label: string): string {
   return `${label || 'This field'} is required`
 }
 
-/**
- * Narrows a stage value to the string/array shape expected by the shared
- * content validators (utils/input-validator). Boolean values only occur for
- * Boolean fields, which use their own validator, so dropping booleans here is
- * safe and keeps the existing text/link/array validators type-correct.
- */
 function toTextValue(
   value: string | string[] | boolean | undefined
 ): string | string[] | undefined {
@@ -214,8 +200,6 @@ function validateRequiredBoolean(
     return true
   }
 
-  // A required boolean field must be explicitly checked (true). Unchecked
-  // (false / undefined) counts as missing.
   return value === true ? true : getRequiredMessage(field.label)
 }
 
@@ -236,13 +220,10 @@ function isRequiredFieldEmpty(
   }
 
   if (field.type === SubmitFormFieldType.Boolean) {
-    // Required checkbox is only satisfied when checked (true).
     return value !== true
   }
 
   if (field.type === SubmitFormFieldType.Image) {
-    // Single-image fields store a URL string; multi-image fields store a
-    // string[] of URLs. Either shape counts as filled when it has a value.
     if (Array.isArray(value)) {
       return !value.some((item: string): boolean => item.trim().length > 0)
     }
@@ -311,8 +292,6 @@ export default function StageSubmitPageContent({
         )
       : {}
 
-    // Only apply formData values that are non-empty so that a previous empty
-    // stage submission doesn't erase real project data (e.g. explanation).
     const nonEmptyFormData: StageSubmitValues = {}
     if (formData) {
       for (const [key, val] of Object.entries(formData)) {
@@ -321,8 +300,6 @@ export default function StageSubmitPageContent({
       }
     }
 
-    // If the project was updated after the last stage form save, project data
-    // takes priority so that edits made from the profile page are reflected here.
     const projectUpdatedAt = (project as Record<string, unknown> | null)?.updated_at as string | undefined
     const projectIsNewer =
       !!projectUpdatedAt && !!formDataTimestamp &&
@@ -353,12 +330,6 @@ export default function StageSubmitPageContent({
     }
   }
 
-  /**
-   * Uploads a single image to the shared `/api/file` blob endpoint and returns
-   * its public URL. This reuses the exact same mechanism the non-staged
-   * submission flow uses for logo / cover / screenshots
-   * (see useSubmissionFormSecure.uploadFile) — no new endpoint is introduced.
-   */
   const uploadStageImage = async (file: File): Promise<string> => {
     const body = new FormData()
     body.append('file', file)
@@ -394,12 +365,10 @@ export default function StageSubmitPageContent({
             name={textField.id}
             rules={{
               validate: (value: string | string[] | boolean | undefined): true | string => {
-                // First check if required
                 const requiredCheck = validateRequiredString(value, textField)
                 if (requiredCheck !== true) {
                   return requiredCheck
                 }
-                // Then check for dangerous content
                 return validateTextInput(toTextValue(value), textField.label)
               },
             }}
@@ -432,7 +401,6 @@ export default function StageSubmitPageContent({
         const linkField: LinkStagesSubmitFormField =
           field as LinkStagesSubmitFormField
 
-        // Deployed addresses: special address+tag list UI
         if (linkField.id === 'deployed_addresses') {
           return (
             <FormField
@@ -767,12 +735,10 @@ export default function StageSubmitPageContent({
             name={chipsField.id}
             rules={{
               validate: (value: string | string[] | boolean | undefined): true | string => {
-                // First check if required
                 const requiredCheck = validateRequiredString(value, chipsField)
                 if (requiredCheck !== true) {
                   return requiredCheck
                 }
-                // Then check for dangerous content
                 return validateTextInput(toTextValue(value), chipsField.label)
               },
             }}
@@ -836,12 +802,10 @@ export default function StageSubmitPageContent({
             name={multiSelectField.id}
             rules={{
               validate: (value: string | string[] | boolean | undefined): true | string => {
-                // First check if required
                 const requiredCheck = validateRequiredArray(value, multiSelectField)
                 if (requiredCheck !== true) {
                   return requiredCheck
                 }
-                // Then check for dangerous content
                 return validateStringArray(toTextValue(value), multiSelectField.label)
               },
             }}
@@ -856,11 +820,6 @@ export default function StageSubmitPageContent({
                   ? multiSelectField.maxSelections
                   : null
 
-              // Two predefined MultiSelect fields carry empty `options` in the
-              // catalog and get their option list injected here at render time:
-              //  - 'tracks'     -> the hackathon's configured tracks
-              //  - 'tech_stack' -> the project tech-stack taxonomy (with defaults)
-              // Every other MultiSelect uses its own authored `options`.
               const rawOptions: string[] =
                 multiSelectField.id === 'tracks'
                   ? hackathon.content.tracks.map((track) => track.name)
@@ -1163,9 +1122,6 @@ export default function StageSubmitPageContent({
       let effectiveProjectId: string = resolvedProjectId
 
       if (!effectiveProjectId) {
-        // Server-side check first: the hook may have stale/error state (e.g. network
-        // blip on load). Ask the server authoritatively before creating anything —
-        // this prevents duplicate projects if one already exists but the hook missed it.
         const checkRes: Response = await fetch(
           `/api/project?hackathon_id=${encodeURIComponent(hackathon.id)}&user_id=${encodeURIComponent(user?.id ?? '')}`,
           { method: 'GET', credentials: 'include' }
@@ -1273,16 +1229,6 @@ export default function StageSubmitPageContent({
             className="space-y-5"
           >
             {stage.submitForm.fields.map(renderField)}
-
-            {/* <div className="flex justify-center pt-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className=" bg-[#d66666] py-4 text-base font-semibold text-zinc-900 hover:bg-[#e57f7f]"
-              >
-                {isSubmitting ? 'Saving...' : 'Save'}
-              </Button>
-            </div> */}
           </form>
         </Form>
       </div>
@@ -1390,7 +1336,6 @@ export default function StageSubmitPageContent({
           </TabsContent>
 
           <TabsContent value="team" className="mt-0">
-            {/* TEAM & COLLABORATION */}
             <section className='space-y-4'>
               <h3 className='font-medium  text-lg md:text-xl' id='team'>
                 Team &amp; Collaboration

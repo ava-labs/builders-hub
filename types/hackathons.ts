@@ -11,7 +11,7 @@ export type HackathonHeader = {
   total_prizes: number
   participants: number
   tags: string[]
-  organizers: string 
+  organizers: string
   cohosts: string[]
   status: HackathonStatus
   small_banner: string
@@ -27,9 +27,7 @@ export type HackathonHeader = {
   updated_by_name?: string
   is_public: boolean
   event?: string
-  /** When true, use modern event layout; when false, use legacy layout. Null/undefined falls back to event type. */
   new_layout?: boolean | null
-  /** Google Calendar ID for schedule integration - if set, uses Google Calendar API instead of DB */
   google_calendar_id?: string | null
 }
 
@@ -41,7 +39,6 @@ export type HackathonsFilters = {
 }
 
 export type Hackathon = {
-  /** Content language for event-specific UI strings. Defaults to 'en' when missing. */
   language?: "en" | "es"
   join_custom_link: string
   join_custom_text: string
@@ -64,28 +61,9 @@ export type Hackathon = {
   team_size_min?: number
   team_size_max?: number
   registration_mode?: "full" | "simple"
-  /**
-   * Physical country the event takes place in (from the curated COUNTRIES
-   * list in components/profile/shell/data.ts). Combined with `is_remote`
-   * below to express in-person / online / hybrid events.
-   *
-   *   country set, is_remote false  → in-person, single country
-   *   country set, is_remote true   → hybrid (country + remote attendance)
-   *   country unset, is_remote true → fully online
-   */
   country?: string
   is_remote?: boolean
-  /**
-   * Empty/missing = global event (no country gate). Non-empty = registration
-   * is restricted to users whose `User.country` matches one of these values.
-   * Defaults seeded from the organizer's team_id via
-   * lib/hackathons/countryTargetDefaults.
-   */
   target_countries?: string[]
-  /**
-   * Admin-defined tech-stack options for this hackathon's submission form.
-   * Empty/missing falls back to DEFAULT_TECH_STACK_OPTIONS.
-   */
   tech_stack_options?: { name: string }[]
   stages: HackathonStage[]
 }
@@ -93,7 +71,7 @@ export type Hackathon = {
 export type ScheduleActivity = {
   stage: string
   date: string
-  duration: number //Duration in minutes
+  duration: number
   name: string
   description: string
   host_name: string
@@ -104,7 +82,6 @@ export type ScheduleActivity = {
   url: string
   isVirtual: boolean
   infoUrl?: string
-  /** Video call URL (Google Meet, Zoom, etc.) - separate from physical location */
   video_call_url?: string
 }
 
@@ -113,7 +90,7 @@ export type Track = {
   short_description: string
   icon: string
   logo: string
-  description: string //Markdown
+  description: string
   total_reward: number
   partner?: string
   resources: Resource[]

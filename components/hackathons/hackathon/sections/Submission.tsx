@@ -37,9 +37,6 @@ export default function Submission({
     : null;
   const hasValidDeadline = submissionDeadlineDate !== null && !isNaN(submissionDeadlineDate.getTime());
 
-  // Stages own the entire submission experience (each stage renders its own
-  // cards + submit form), so when a hackathon has stages the legacy single
-  // Submission section disappears entirely — not just its button.
   if (hasStages) return null;
 
   return (
@@ -52,7 +49,6 @@ export default function Submission({
         {t(lang, 'section.submission.subtitle')}
       </p>
 
-      {/* Hacker submission status card — only shown when logged in and registered */}
       {isAuthenticated && isRegistered && (
         <div className={
           'mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-lg border px-5 py-4 ' +

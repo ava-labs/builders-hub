@@ -27,7 +27,6 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
-import { isTeam1Event } from "@/lib/events/team1";
 import { clearStoredReferralAttribution } from "@/lib/referrals/client";
 import {
   ReferralFormSection,
@@ -39,7 +38,7 @@ import { getTeamSizeRange, hasTeamPicker } from "@/lib/hackathons/teamSizeDefaul
 import {
   GITHUB_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
-  X_HANDLE_PATTERN,
+  X_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
 
 const optionalSocial = (pattern: RegExp, message: string) =>
@@ -56,7 +55,6 @@ const requiredSocial = (pattern: RegExp, requiredMessage: string, formatMessage:
     .min(1, requiredMessage)
     .refine((value) => pattern.test(value), { message: formatMessage });
 
-// Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
@@ -79,7 +77,7 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   languages: z.array(z.string()).optional(),
   hackathon_participation: z.string().optional(),
   dietary: z.string().optional().default(""),
-  github_portfolio: optionalSocial(
+  github_account: optionalSocial(
     GITHUB_ACCOUNT_PATTERN,
     "Enter your GitHub username or https://github.com/<username>",
   ),
@@ -89,7 +87,7 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
     "Enter a valid Telegram handle (5-32 chars, letters/digits/underscore)",
   ),
   x_account: optionalSocial(
-    X_HANDLE_PATTERN,
+    X_ACCOUNT_PATTERN,
     "Enter your X handle (without @) or https://x.com/<handle>",
   ),
   terms_event_conditions: z.boolean().optional(),
@@ -97,13 +95,11 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   prohibited_items: z.boolean().optional(),
   founder_check: z.boolean().optional(),
   avalanche_ecosystem_member: z.boolean().optional(),
-  // Transient: User-level consents collected here when not already true on the User row.
-  // Stripped before persisting RegisterForm; forwarded as `user_consents` to the API.
   user_notifications: z.boolean().optional(),
   user_consent_sharing: z.boolean().optional(),
 });
 
-export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
+export const registerSchema = createRegisterSchema(false);
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -136,22 +132,11 @@ export function RegisterForm({
   }>({ notifications: null, consent_sharing: null });
   const [consentsLoaded, setConsentsLoaded] = useState(false);
 
-  // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
-  // Team1-organized / co-hosted events require the `consent_sharing` opt-in.
-  // Product wants this re-confirmed per Team1 event, so the checkbox is shown
-  // and made mandatory for every Team1 event regardless of any prior consent
-  // already stored on the user's profile.
-  const isTeam1 = hackathon
-    ? isTeam1Event({ organizers: hackathon.organizers, cohosts: hackathon.cohosts })
-    : false;
   const showNotificationsConsent =
     consentsLoaded && userConsentState.notifications !== true;
-  // Always show the Team1 sharing consent for Team1 events (re-confirm per
-  // event); otherwise only show it when the user hasn't already consented.
-  const showSharingConsent =
-    isTeam1 || (consentsLoaded && userConsentState.consent_sharing !== true);
-  const requireSharingConsent = isTeam1 && consentsLoaded;
+  const showSharingConsent = consentsLoaded;
+  const requireSharingConsent = consentsLoaded;
   const lang = normalizeEventsLang(hackathon?.content?.language);
   const registrationMode: "full" | "simple" = hackathon?.content?.registration_mode === "simple" ? "simple" : "full";
   const isSimpleMode = registrationMode === "simple";
@@ -180,7 +165,7 @@ export function RegisterForm({
     roles: [],
     languages: [],
     hackathon_participation: "",
-    github_portfolio: "",
+    github_account: "",
     telegram_account: "",
     x_account: "",
     terms_event_conditions: false,
@@ -220,7 +205,6 @@ export function RegisterForm({
     try {
       const response = await axios.get(`/api/events/${hackathon_id}`);
       setHackathon(response.data);
-      // Default the picker to the minimum team size the admin required.
       const content = response.data?.content;
       const range = getTeamSizeRange({
         team_size_min: content?.team_size_min,
@@ -232,7 +216,6 @@ export function RegisterForm({
     }
   }
 
-  /** Prefill step1 from profile (name, email, country, telegram, company, role) when field is empty */
   async function mergeProfileIntoStep1() {
     const userId = (currentUser as { id?: string })?.id;
     if (!userId) return;
@@ -256,7 +239,7 @@ export function RegisterForm({
         city:  profile.country || current.city || "",
         telegram_account:  profile.telegram_account || current.telegram_account || "",
         x_account:  profile.x_account || current.x_account || "",
-        github_portfolio:  profile.github_account || current.github_portfolio || "",
+        github_account:  profile.github_account || current.github_account || "",
         company_name:  profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
         role:  profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
         is_student: profile.user_type?.is_student ?? current.is_student ?? false,
@@ -277,7 +260,6 @@ export function RegisterForm({
     }
   }
 
-  /** Persist step1 fields to profile (name, email, country, telegram, company_name, role) */
   async function saveStep1ToProfile() {
     const userId = (currentUser as { id?: string })?.id;
     if (!userId) return;
@@ -366,7 +348,7 @@ export function RegisterForm({
             ? parseArrayField(loadedData.languages)
             : [],
           hackathon_participation: loadedData.hackathon_participation || "",
-          github_portfolio: loadedData.github_portfolio || "",
+          github_account: loadedData.github_portfolio || "",
           terms_event_conditions: loadedData.terms_event_conditions || false,
           newsletter_subscription: loadedData.newsletter_subscription || false,
           prohibited_items: !isOnlineHackathon ? (loadedData.prohibited_items || false) : false,
@@ -412,7 +394,7 @@ export function RegisterForm({
 
   async function saveProject(data: RegisterFormValues) {
     try {
-      const { user_notifications, user_consent_sharing, ...registerData } = data;
+      const { user_notifications, user_consent_sharing, github_account, ...registerData } = data;
       const userConsents: { notifications?: boolean; consent_sharing?: boolean } = {};
       if (showNotificationsConsent && typeof user_notifications === "boolean") {
         userConsents.notifications = user_notifications;
@@ -422,6 +404,7 @@ export function RegisterForm({
       }
       const payload = {
         ...registerData,
+        github_portfolio: github_account ?? "",
         ...(Object.keys(userConsents).length > 0 ? { user_consents: userConsents } : {}),
       };
       const response = await axios.post(`/api/register-form/`, payload);
@@ -468,7 +451,6 @@ export function RegisterForm({
     if (step < 1) setStep(1);
   }, [step, totalSteps]);
 
-  // Reinitialize form when hackathon data is loaded to use correct resolver
   useEffect(() => {
     if (hackathon) {
       const currentValues = form.getValues();
@@ -521,30 +503,20 @@ export function RegisterForm({
         };
       }
 
-      // Team-size validation: enforce the admin-configured minimum and ensure
-      // every teammate slot has a valid email. The server re-validates, this
-      // is just to surface errors inline before the round-trip.
       const range = getTeamSizeRange({
         team_size_min: hackathon?.content?.team_size_min,
         team_size_max: hackathon?.content?.team_size_max,
       });
-      // Any teammate email the user actually entered counts — independent of
-      // the Solo/Duo toggle — so a typed invite is never silently dropped.
-      // Cap at the admin-configured max (max - 1 teammates besides the user).
       const maxTeammates =
         range.max !== undefined ? Math.max(0, range.max - 1) : Infinity;
       const cleanedTeammates = teammateEmails
         .map((e) => e.trim())
         .filter((e) => e.length > 0)
         .slice(0, Number.isFinite(maxTeammates) ? (maxTeammates as number) : undefined);
-      // The team is as large as whichever is bigger: the picked size or the
-      // number of teammates actually entered (so entering an email promotes a
-      // "Solo" pick to a team). Never exceeds the configured max.
       const effectiveTeamSize = Math.min(
         range.max ?? Number.MAX_SAFE_INTEGER,
         Math.max(teamSize, 1 + cleanedTeammates.length),
       );
-      // Explicitly-opened slots (via the toggle) must still be filled.
       const expectedTeammates = Math.max(0, teamSize - 1);
       if (effectiveTeamSize < range.min) {
         setTeamError(
@@ -594,12 +566,9 @@ export function RegisterForm({
 
       if (Object.keys(errors).length > 0) {
         Object.keys(errors).forEach(field => {
-          // Team errors live in `teamError` state, not in the form schema.
           if (field === "__team") return;
           form.setError(field as keyof RegisterFormValues, errors[field]);
         });
-        // Bring the first invalid field into view so the user notices the
-        // feedback even when scrolled to the submit button.
         const firstField = Object.keys(errors).find((k) => k !== "__team")
           ?? "__team";
         if (typeof window !== "undefined") {
@@ -621,11 +590,7 @@ export function RegisterForm({
         languages: data.languages ?? [],
         roles: data.roles ?? [],
         tools: data.tools,
-        // Only include prohibited_items if it's not an online hackathon
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
-        // Submit every entered teammate (already trimmed, de-duplicated by
-        // validation, and capped at max - 1) regardless of the Solo/Duo
-        // toggle, so the invite always fires.
         teammates: cleanedTeammates,
       };
 
@@ -633,9 +598,6 @@ export function RegisterForm({
       if (result.referralAttributed) {
         clearStoredReferralAttribution();
       }
-      // Registration succeeded, but some teammate invites may not have been
-      // sent. Surface that inline so the user can re-invite from their project
-      // page instead of assuming everyone was notified.
       if (Array.isArray(result.failedInvites) && result.failedInvites.length > 0) {
         const failed = result.failedInvites.join(", ");
         setTeamError(
@@ -847,7 +809,6 @@ export function RegisterForm({
               requireSharingConsent={requireSharingConsent}
             />
           )}
-          {/* Compact T&C checkbox for simple-mode single-page submission. */}
           {isSimpleMode && step === 1 && (
             <div className="mt-6 flex items-start gap-3">
               <input

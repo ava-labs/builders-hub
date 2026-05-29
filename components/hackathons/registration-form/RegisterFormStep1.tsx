@@ -162,7 +162,7 @@ export default function RegisterFormStep1({
             <div className="col-span-12 md:col-span-6">
               <FormField
                 control={form.control}
-                name="github_portfolio"
+                name="github_account"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>

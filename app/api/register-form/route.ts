@@ -4,7 +4,6 @@ import { Session } from "next-auth";
 import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
-import { isTeam1Event } from "@/lib/events/team1";
 
 type UserConsentsInput = {
   notifications?: unknown;
@@ -43,29 +42,21 @@ export const POST = withAuth(async (
     const body = await req.json();
     const { user_consents, ...registerData } = body ?? {};
 
-    // Enforce server-side so a crafted client request can't bypass the consent check.
     const hackathonId = registerData?.hackathon_id;
     if (session.user?.email && typeof hackathonId === "string" && hackathonId) {
-      const [hackathon, user] = await Promise.all([
-        prisma.hackathon.findUnique({
-          where: { id: hackathonId },
-          select: { organizers: true, cohosts: true },
-        }),
-        prisma.user.findUnique({
-          where: { email: session.user.email },
-          select: { consent_sharing: true },
-        }),
-      ]);
-      const isTeam1 = hackathon ? isTeam1Event(hackathon) : false;
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { consent_sharing: true },
+      });
       const userHasConsent = user?.consent_sharing === true;
       const incomingConsent =
         (user_consents as UserConsentsInput | undefined)?.consent_sharing;
-      if (isTeam1 && !userHasConsent && incomingConsent !== true) {
+      if (!userHasConsent && incomingConsent !== true) {
         return NextResponse.json(
           {
             error: {
               message:
-                "Team1 sharing consent is required to register for this event.",
+                "Sharing consent is required to register for this event.",
               field: "user_consent_sharing",
             },
           },

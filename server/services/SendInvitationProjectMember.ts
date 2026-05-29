@@ -14,13 +14,6 @@ export async function sendInvitation(
   lang: EventsLang = "en",
   hackathon?: HackathonContext,
 ) {
-  // Two flavors share this template:
-  //   - Project-page invite (no hackathon context): legacy strings, project
-  //     name in the headline.
-  //   - Registration-time team invite (hackathon context provided): headline
-  //     uses the hackathon title (banner shown when available). The project
-  //     name is intentionally hidden because at registration time it's the
-  //     "Untitled Project" stub.
   const useHackathonCopy = !!hackathon?.title;
   const subject = useHackathonCopy
     ? t(lang, "invitation.email.subjectHackathon", {
