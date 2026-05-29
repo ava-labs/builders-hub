@@ -441,13 +441,24 @@ export async function recordReferralAttribution(input: RecordReferralAttribution
   const manual = attribution.manualReferrer ?? null;
 
   if (referralCode) {
-    if (manual) {
-      console.info("[Referral] URL code overrode manual referrer", {
-        targetType: input.targetType,
-        targetId,
-      });
+    const codeResult = await recordCodeBasedAttribution({ attribution, input, referralCode, targetId });
+    if (codeResult) {
+      if (manual) {
+        console.info("[Referral] URL code took precedence over manual referrer", {
+          targetType: input.targetType,
+          targetId,
+        });
+      }
+      return codeResult;
     }
-    return recordCodeBasedAttribution({ attribution, input, referralCode, targetId });
+    // The code did not resolve to a matching link (unknown/disabled code, or
+    // target mismatch). Fall through so a manual referrer — when present — is
+    // still captured instead of dropping the attribution entirely.
+    console.info("[Referral] URL code did not match a link; falling back", {
+      targetType: input.targetType,
+      targetId,
+      hasManualReferrer: Boolean(manual),
+    });
   }
 
   if (manual) {
