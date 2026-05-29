@@ -221,8 +221,39 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         };
       }
 
-      const existingAnswers: Record<string, StageAnswer> =
-        (existingFormData?.form_data as StageAnswerEnvelope | null)?.answers ?? {};
+      // Seed prior answers from the existing row. New rows store the envelope
+      // ({ answers: {...} }); LEGACY rows are FLAT ({ [fieldId]: value }) with no
+      // `answers` key. For legacy rows, convert each flat entry into an answer
+      // envelope first so resaving does not drop the prior answers.
+      const existingFormDataValue = existingFormData?.form_data as
+        | StageAnswerEnvelope
+        | Record<string, unknown>
+        | null;
+      let existingAnswers: Record<string, StageAnswer>;
+      if (
+        existingFormDataValue &&
+        typeof existingFormDataValue === 'object' &&
+        'answers' in existingFormDataValue
+      ) {
+        existingAnswers = (existingFormDataValue as StageAnswerEnvelope).answers ?? {};
+      } else if (existingFormDataValue && typeof existingFormDataValue === 'object') {
+        existingAnswers = Object.fromEntries(
+          Object.entries(existingFormDataValue as Record<string, unknown>).map(
+            ([key, value]) => [
+              key,
+              {
+                question_id: key,
+                question_label: key,
+                question_type: 'unknown',
+                stage_index: body.stageIndex,
+                answer: value,
+              },
+            ],
+          ),
+        );
+      } else {
+        existingAnswers = {};
+      }
       const envelope: StageAnswerEnvelope = {
         answers: { ...existingAnswers, ...newAnswers },
       };

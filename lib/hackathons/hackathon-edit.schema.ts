@@ -65,11 +65,33 @@ const multiSelectFieldSchema = z.object({
   predefinedField: z.boolean().optional(),
 });
 
+const booleanFieldSchema = z.object({
+  id: z.string().min(1),
+  type: z.literal(SubmitFormFieldType.Boolean),
+  label: z.string().trim().min(1).max(120),
+  description: z.string().max(400).optional(),
+  required: z.boolean(),
+  predefinedField: z.boolean().optional(),
+});
+
+const imageFieldSchema = z.object({
+  id: z.string().min(1),
+  type: z.literal(SubmitFormFieldType.Image),
+  label: z.string().trim().min(1).max(120),
+  description: z.string().max(400).optional(),
+  required: z.boolean(),
+  maxImages: z.number().int().positive().max(20).optional(),
+  maxSizeMb: z.number().int().positive().max(50).optional(),
+  predefinedField: z.boolean().optional(),
+});
+
 const submitFieldSchema = z.discriminatedUnion("type", [
   textFieldSchema,
   linkFieldSchema,
   chipsFieldSchema,
   multiSelectFieldSchema,
+  booleanFieldSchema,
+  imageFieldSchema,
 ]);
 
 const stageSchema = z.object({
@@ -156,6 +178,14 @@ export const hackathonEditSchema = z.object({
       (val) => val === '' || !isNaN(new Date(val).getTime()),
       { message: 'Please enter a valid date and time' }
     ),
+    submission_open: z.string().optional(),
+    team_size_min: z.number().int().optional(),
+    team_size_max: z.number().int().optional(),
+    registration_mode: z.enum(['full', 'simple']).optional(),
+    tech_stack_options: z.array(z.object({ name: z.string() })).optional(),
+    target_countries: z.array(z.string()).optional(),
+    country: z.string().optional(),
+    is_remote: z.boolean().optional(),
     registration_deadline: z.string().max(64).refine(
       (val) => val === '' || !isNaN(new Date(val).getTime()),
       { message: 'Please enter a valid date and time' }
