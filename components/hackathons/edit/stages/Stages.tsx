@@ -24,6 +24,8 @@ import {
   createLinkStagesSubmitFormField,
   createMultiSelectStagesSubmitFormField,
   createTextStagesSubmitFormField,
+  createBooleanStagesSubmitFormField,
+  createImageStagesSubmitFormField,
 } from '@/lib/hackathons/stage-submit-form-fields'
 import {
   HackathonStage,
@@ -127,6 +129,10 @@ const createDefaultSubmitFormField = (
       return createChipsStagesSubmitFormField()
     case SubmitFormFieldType.MultiSelect:
       return createMultiSelectStagesSubmitFormField()
+    case SubmitFormFieldType.Boolean:
+      return createBooleanStagesSubmitFormField()
+    case SubmitFormFieldType.Image:
+      return createImageStagesSubmitFormField()
     case SubmitFormFieldType.Predefined:
       return createTextStagesSubmitFormField()
   }

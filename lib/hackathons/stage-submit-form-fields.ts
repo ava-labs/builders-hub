@@ -2,6 +2,8 @@ import {
   type ChipsStagesSubmitFormField,
   type LinkStagesSubmitFormField,
   type TextStagesSubmitFormField,
+  type BooleanStagesSubmitFormField,
+  type ImageStagesSubmitFormField,
   MultiSelectStagesSubmitFormField,
   SubmitFormFieldType,
 } from '@/types/hackathon-stage';
@@ -50,5 +52,27 @@ export function createMultiSelectStagesSubmitFormField(id?: string): MultiSelect
     required: false,
     options: [],
     maxSelections: null,
+  };
+}
+
+export function createBooleanStagesSubmitFormField(id?: string): BooleanStagesSubmitFormField {
+  return {
+    id: id ?? crypto.randomUUID(),
+    type: SubmitFormFieldType.Boolean,
+    label: '',
+    description: '',
+    required: false,
+  };
+}
+
+export function createImageStagesSubmitFormField(id?: string): ImageStagesSubmitFormField {
+  return {
+    id: id ?? crypto.randomUUID(),
+    type: SubmitFormFieldType.Image,
+    label: '',
+    description: '',
+    required: false,
+    maxImages: 1,
+    maxSizeMb: 2,
   };
 }
