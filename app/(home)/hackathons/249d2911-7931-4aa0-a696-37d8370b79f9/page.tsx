@@ -70,7 +70,7 @@ export default async function HackathonPage({
     isRegistered = !!registration;
   }
 
-  if (!hackathon) redirect("/hackathons");
+  if (!hackathon) redirect("/events");
 
   const bannerSrc = hackathon.banner?.trim().length > 0
     ? hackathon.banner

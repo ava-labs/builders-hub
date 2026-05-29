@@ -1,7 +1,6 @@
 import { getAuthSession } from '@/lib/auth/authSession';
 import ProfilePage from "@/components/profile/shell/ProfilePage";
 import { getProfile } from "@/server/services/profile";
-import UTMPreservationWrapper from "@/components/hackathons/UTMPreservationWrapper";
 import { redirect } from "next/navigation";
 import { formatTeamLabel } from "@/lib/referrals/team-labels";
 
@@ -20,16 +19,14 @@ export default async function ProfileWrapper({
     }
 
     return (
-      <UTMPreservationWrapper>
-        <main className='relative w-full px-4 sm:px-6 lg:px-8 py-2 lg:py-4'>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Loading...</p>
-            </div>
+      <main className='relative w-full px-4 sm:px-6 lg:px-8 py-2 lg:py-4'>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
-        </main>
-      </UTMPreservationWrapper>
+        </div>
+      </main>
     );
   }
 
@@ -37,10 +34,8 @@ export default async function ProfileWrapper({
   const teamLabel = formatTeamLabel(profileData.team_id);
 
   return (
-    <UTMPreservationWrapper>
-      <main className='relative w-full px-4 sm:px-6 lg:px-8 py-2 lg:py-4'>
-        <ProfilePage teamLabel={teamLabel} />
-      </main>
-    </UTMPreservationWrapper>
+    <main className='relative w-full px-4 sm:px-6 lg:px-8 py-2 lg:py-4'>
+      <ProfilePage teamLabel={teamLabel} />
+    </main>
   );
 }
