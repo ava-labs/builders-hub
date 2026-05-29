@@ -78,6 +78,8 @@ export const UpdateExtendedProfileSchema = z
           .max(WALLET_TAG_MAX_LENGTH, `Tag must not exceed ${WALLET_TAG_MAX_LENGTH} characters.`)
           .regex(WALLET_TAG_PATTERN, WALLET_TAG_VALIDATION_MESSAGE)
           .optional(),
+        signature: z.string().optional(),
+        issuedAt: z.string().optional(),
       }),
     ).nullable().optional(),
     additional_social_accounts: z.array(z.string()).optional(),

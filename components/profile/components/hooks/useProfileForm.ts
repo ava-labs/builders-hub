@@ -57,6 +57,8 @@ export const profileSchema = z.object({
         .max(WALLET_TAG_MAX_LENGTH, `Tag must not exceed ${WALLET_TAG_MAX_LENGTH} characters.`)
         .regex(WALLET_TAG_PATTERN, WALLET_TAG_VALIDATION_MESSAGE)
         .optional(),
+      signature: z.string().optional(),
+      issuedAt: z.string().optional(),
     }),
   ).optional().default([]),
   additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
@@ -74,9 +76,13 @@ export type ProfileFormValues = z.infer<typeof profileSchema>;
 interface WalletFormEntry {
   address: string;
   tag?: string;
+  signature?: string;
+  issuedAt?: string;
 }
 
-function hasWalletAddress(value: unknown): value is { address: string; tag?: unknown } {
+function hasWalletAddress(
+  value: unknown,
+): value is { address: string; tag?: unknown; signature?: unknown; issuedAt?: unknown } {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -145,6 +151,10 @@ export function useProfileForm() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialLoadRef = useRef(true);
   const lastSavedDataRef = useRef<string>("");
+  // Ref to gate the auto-save useEffect without adding isAutoSaving to its deps
+  // (adding the state directly would cause the effect to re-run after every save,
+  //  creating an infinite loop when the form is dirty and save completes)
+  const isAutoSavingRef = useRef(false);
   const [githubConnected, setGithubConnected] = useState(false);
 
   // Initialize form with react-hook-form and Zod
@@ -197,7 +207,10 @@ export function useProfileForm() {
         const address = item.address.trim();
         if (!address) return [];
         const tag = normalizeWalletTag(item.tag);
-        return [tag ? { address, tag } : { address }];
+        const entry: WalletFormEntry = tag ? { address, tag } : { address };
+        if (typeof item.signature === "string" && item.signature) entry.signature = item.signature;
+        if (typeof item.issuedAt === "string" && item.issuedAt) entry.issuedAt = item.issuedAt;
+        return [entry];
       }
 
       return [];
@@ -330,7 +343,14 @@ export function useProfileForm() {
       return;
     }
 
+    // Skip auto-save if required fields are invalid (e.g. name is empty).
+    // Uses Zod directly so react-hook-form validation UI is not triggered.
+    if (!profileSchema.safeParse(data).success) {
+      return;
+    }
+
     setIsAutoSaving(true);
+    isAutoSavingRef.current = true;
 
     try {
       // Only handle image upload if explicitly requested (for manual saves)
@@ -377,11 +397,16 @@ export function useProfileForm() {
       } = data;
 
       const cleanedWallets = Array.isArray(wallet)
-        ? normalizeWallets(wallet).reduce<Record<string, { address: string; tag?: string }>>(
+        ? normalizeWallets(wallet).reduce<Record<string, WalletFormEntry>>(
             (acc, item) => {
               const key = item.address.toLowerCase();
               if (!(key in acc)) {
-                acc[key] = item.tag ? { address: item.address, tag: item.tag } : { address: item.address };
+                acc[key] = {
+                  address: item.address,
+                  ...(item.tag ? { tag: item.tag } : {}),
+                  ...(item.signature ? { signature: item.signature } : {}),
+                  ...(item.issuedAt ? { issuedAt: item.issuedAt } : {}),
+                };
               }
               return acc;
             },
@@ -441,13 +466,16 @@ export function useProfileForm() {
       // Silently fail - don't show toast for auto-save errors
     } finally {
       setIsAutoSaving(false);
+      isAutoSavingRef.current = false;
     }
   }, [session?.user?.id, session?.user?.email, form, formState.isDirty]);
 
   // Debounced auto-save effect - watches form values and triggers save after user stops editing
   useEffect(() => {
     // Skip auto-save during initial load
-    if (isInitialLoadRef.current || !formState.isDirty || isLoading || isAutoSaving) {
+    // Note: isAutoSaving is intentionally read via ref (not state) so this effect does
+    // not re-run each time a save completes, which would create an infinite save loop.
+    if (isInitialLoadRef.current || !formState.isDirty || isLoading || isAutoSavingRef.current) {
       return;
     }
 
@@ -474,7 +502,9 @@ export function useProfileForm() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [watchedValues, formState.isDirty, isLoading, isAutoSaving, autoSave, form]);
+  // isAutoSaving is deliberately excluded from deps — see isAutoSavingRef comment above.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedValues, formState.isDirty, isLoading, autoSave, form]);
 
   // Handle form submission
   const onSubmit = async (data: ProfileFormValues) => {
@@ -695,7 +725,7 @@ export function useProfileForm() {
   };
 
   // Wallet handlers
-  const handleAddWallet = (address: string, tag?: string) => {
+  const handleAddWallet = (address: string, tag?: string, signature?: string, issuedAt?: string) => {
     const currentWallets = normalizeWallets(watchedValues.wallet);
     const trimmedAddress = address?.trim() ?? "";
     if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
@@ -710,7 +740,12 @@ export function useProfileForm() {
         "wallet",
         [
           ...currentWallets,
-          { address: trimmedAddress, ...(normalizedTag ? { tag: normalizedTag } : {}) },
+          {
+            address: trimmedAddress,
+            ...(normalizedTag ? { tag: normalizedTag } : {}),
+            ...(signature ? { signature } : {}),
+            ...(issuedAt ? { issuedAt } : {}),
+          },
         ],
         { shouldDirty: true },
       );

@@ -13,7 +13,7 @@ import {
 
 interface Props {
   wallets: ProfileWallet[];
-  onAddWallet: (address: string, tag?: string) => void;
+  onAddWallet: (address: string, tag?: string, signature?: string, issuedAt?: string) => void;
   /** Called once per existing wallet when the user disconnects. */
   onRemove: (address: string) => void;
 }
@@ -28,9 +28,9 @@ export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
   const isConnected = wallets.length > 0;
   const lastAddress = wallets[wallets.length - 1]?.address;
 
-  const handleAddWalletWithTag = (address: string) => {
+  const handleAddWalletWithTag = (address: string, signature: string, issuedAt: string) => {
     const tag = normalizeWalletTag(pendingTag);
-    onAddWallet(address, tag || undefined);
+    onAddWallet(address, tag || undefined, signature, issuedAt);
     setPendingTag("");
   };
 
@@ -52,7 +52,10 @@ export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
           pattern={WALLET_TAG_INPUT_PATTERN}
           title={WALLET_TAG_VALIDATION_MESSAGE}
         />
-        <WalletConnectButton onWalletConnected={handleAddWalletWithTag} />
+        <WalletConnectButton
+          onWalletConnected={handleAddWalletWithTag}
+          existingAddresses={wallets.map((w) => w.address)}
+        />
       </div>
       {!isConnected ? (
         <div />

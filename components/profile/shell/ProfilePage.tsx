@@ -316,8 +316,8 @@ export default function ProfilePage({ teamLabel }: Props) {
     );
   };
 
-  const onAddWalletAndToast = (address: string, tag?: string) => {
-    handleAddWallet(address, tag);
+  const onAddWalletAndToast = (address: string, tag?: string, signature?: string, issuedAt?: string) => {
+    handleAddWallet(address, tag, signature, issuedAt);
     pushToast("Wallet connected");
   };
 
