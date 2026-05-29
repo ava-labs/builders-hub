@@ -1508,8 +1508,6 @@ const HackathonsEdit = () => {
   const step6Ref = useRef<HTMLDivElement | null>(null);
   const step1BasicTabRef = useRef<HTMLButtonElement | null>(null);
   const step1DatesTabRef = useRef<HTMLButtonElement | null>(null);
-  const advancedOptionsRef = useRef<HTMLDivElement | null>(null);
-  const [advancedOptionsOpen, setAdvancedOptionsOpen] = React.useState<string>('');
 
   // Preview error flags and refs to clear any leftover inline styles
   const [bannerPreviewError, setBannerPreviewError] = useState<boolean>(false);
@@ -1956,19 +1954,6 @@ const HackathonsEdit = () => {
 
     if (section === 'Participants & Prizes') {
       collapsedKey = 'about'; targetRef = step4Ref; stepKey = 'step4';
-    } else if (section === 'Advanced Options' || path === 'latest.custom_link' || path === 'content.join_custom_link' || path === 'content.submission_custom_link') {
-      // Advanced Options is an accordion below the Content section — expand it and scroll to it.
-      setAdvancedOptionsOpen('options');
-      requestAnimationFrame(() => {
-        const container = leftPanelRef.current;
-        const el = advancedOptionsRef.current;
-        if (!container || !el) return;
-        const elRect = el.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const scrollPosition = container.scrollTop + (elRect.top - containerRect.top);
-        container.scrollTo({ top: scrollPosition - 16, behavior: 'smooth' });
-      });
-      return;
     } else if (section === 'Basic Info' || path.startsWith('main.') || path === 'cohostsEmails') {
       collapsedKey = 'main'; targetRef = step1Ref; stepKey = 'step1';
     } else if (section === 'Stages' || path.startsWith('content.stages.')) {
@@ -4536,74 +4521,6 @@ const HackathonsEdit = () => {
                       <div className="text-zinc-600 dark:text-zinc-400 italic">{t[language].contentCompleted}</div>
                     )}
                   </div>
-                  <Accordion
-                    type="single"
-                    collapsible
-                    value={advancedOptionsOpen}
-                    onValueChange={setAdvancedOptionsOpen}
-                    className="w-full rounded-md border mt-6 px-4 py-2"
-                  >
-                    <AccordionItem value={'options'}>
-                      <AccordionPrimitive.Header className="flex" ref={advancedOptionsRef}>
-                        <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
-                          <span>Advanced options</span>
-                          <div className="flex items-center gap-2">
-                            <ChevronDown className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
-                          </div>
-                        </AccordionPrimitive.Trigger>
-                      </AccordionPrimitive.Header>
-
-                      <AccordionContent>
-                        <div className='pt-4'>
-                          <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataLatest.custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('latest.custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.custom_link')}</p>
-                          )}
-                          <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="join_custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.join_custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('content.join_custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.join_custom_link')}</p>
-                          )}
-                          <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="submission_custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.submission_custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('content.submission_custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_custom_link')}</p>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
                 </form>
               </>
             )}
