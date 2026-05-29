@@ -10,7 +10,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { RegistrationForm } from "@/types/registrationForm";
 import { sendMail } from "./mail";
-import { recordReferralAttribution } from "./referrals";
+import { recordReferralAttributionFromRequest } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
 
@@ -111,7 +111,8 @@ export const validateRegisterForm = (
   isOnlineHackathon: boolean = false
 ): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon), registerData);
 export async function createRegisterForm(
-  registerData: Partial<RegistrationForm>
+  registerData: Partial<RegistrationForm>,
+  request?: Request
 ): Promise<RegistrationForm> {
   // Get hackathon information to determine if it's online
   const hackathon = await prisma.hackathon.findUnique({
@@ -210,12 +211,18 @@ export async function createRegisterForm(
 
   let referralAttributed = false;
   try {
-    const attribution = await recordReferralAttribution({
-      targetType: "hackathon_registration",
-      targetId: newRegisterFormData.hackathon_id,
-      userEmail: newRegisterFormData.email,
-      attribution: (registerData as any).referral_attribution ?? null,
-    });
+    // Merge the client-supplied attribution with the `ref` cookie so a referral
+    // code still lands even when the form payload omits it (e.g. the code only
+    // ever lived in storage/cookie and not in the submitted URL).
+    const attribution = await recordReferralAttributionFromRequest(
+      request ?? new Request("https://build.avax.network"),
+      {
+        targetType: "hackathon_registration",
+        targetId: newRegisterFormData.hackathon_id,
+        userEmail: newRegisterFormData.email,
+        attribution: (registerData as any).referral_attribution ?? null,
+      }
+    );
     referralAttributed = Boolean(attribution);
   } catch (error) {
     console.error("[Referral] Failed to record hackathon registration attribution:", error);

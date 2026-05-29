@@ -550,7 +550,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       detail: `${getEventStatus(event.start_date, event.end_date)} event`,
       targetType: "hackathon_registration",
       targetId: event.id,
-      destinationUrl: `/events/registration-form?event=${event.id}`,
+      destinationUrl: `/events/${event.id}`,
     };
   });
 

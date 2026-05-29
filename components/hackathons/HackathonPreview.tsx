@@ -55,7 +55,6 @@ export default function HackathonPreview({
             id={hackathon.id}
             isRegistered={isRegistered}
             isAuthenticated={false}
-            utm=""
             isPreview
           />
         ) : (
@@ -64,7 +63,6 @@ export default function HackathonPreview({
             id={hackathon.id}
             isRegistered={isRegistered}
             isAuthenticated={false}
-            utm=""
             isPreview
           />
         ))}

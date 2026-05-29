@@ -26,7 +26,6 @@ interface ModernEventLayoutProps {
   id: string;
   isRegistered: boolean;
   isAuthenticated: boolean;
-  utm: string;
   submissionStatus?: SubmissionStatus;
   submissionProgress?: number;
   submissionProjectId?: string | null;
@@ -39,7 +38,6 @@ export default function ModernEventLayout({
   id,
   isRegistered,
   isAuthenticated,
-  utm,
   submissionStatus = "none",
   submissionProgress = 0,
   submissionProjectId = null,
@@ -165,7 +163,6 @@ export default function ModernEventLayout({
           className="cursor-pointer"
           variant="red"
           showChatWhenRegistered={true}
-          utm={utm}
           lang={lang}
         />
         {isHackathon && hostNavButtons}
@@ -264,7 +261,6 @@ export default function ModernEventLayout({
                 className="w-full sm:w-auto min-w-[200px] cursor-pointer"
                 variant="red"
                 showChatWhenRegistered={true}
-                utm={utm}
                 lang={lang}
               />
               {isRegistered && (
@@ -302,7 +298,6 @@ export default function ModernEventLayout({
                 hackathon={hackathon}
                 isRegistered={isRegistered}
                 isAuthenticated={isAuthenticated}
-                utm={utm}
                 submissionStatus={submissionStatus}
                 submissionProgress={submissionProgress}
                 submissionProjectId={submissionProjectId}

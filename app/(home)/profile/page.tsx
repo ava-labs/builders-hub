@@ -12,7 +12,7 @@ export default async function ProfileWrapper({
   const session = await getAuthSession();
   const resolvedSearchParams = await searchParams;
   const ref = resolvedSearchParams?.ref;
-  
+
   if (!session?.user?.id) {
     if (typeof ref === "string" && ref.trim()) {
       redirect(`/?ref=${encodeURIComponent(ref.trim())}`);
