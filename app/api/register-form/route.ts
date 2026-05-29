@@ -79,7 +79,7 @@ export const POST = withAuth(async (
     if (user_consents && typeof user_consents === "object" && session.user?.email) {
       await persistUserConsents(session.user.email, user_consents as UserConsentsInput);
     }
-    const newHackathon = await createRegisterForm(registerData);
+    const newHackathon = await createRegisterForm(registerData, req);
 
     // Teammate invitations are best-effort and don't block registration, but we
     // surface any that failed so the client can warn the user instead of

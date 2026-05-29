@@ -26,7 +26,6 @@ import { useRouter } from "next/navigation";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
-import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { isTeam1Event } from "@/lib/events/team1";
 import { clearStoredReferralAttribution } from "@/lib/referrals/client";
@@ -140,9 +139,6 @@ export function RegisterForm({
     consentsLoaded && userConsentState.notifications !== true;
   const showSharingConsent =
     consentsLoaded && userConsentState.consent_sharing !== true;
-
-  // Use UTM preservation hook
-  useUTMPreservation();
 
   // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;

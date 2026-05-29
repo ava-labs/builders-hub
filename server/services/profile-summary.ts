@@ -4,6 +4,7 @@ import {
   listReferralLinksForUser,
   getActiveReferralTargets,
   buildReferralUrl,
+  resolveReferralDestination,
 } from "@/server/services/referrals";
 import { getAllBadges } from "@/server/services/badge";
 import { getRewardBoard } from "@/server/services/rewardBoard";
@@ -325,16 +326,23 @@ export async function getUserReferralLinks(
     if (row.referral_link_id) byId.set(row.referral_link_id, row._count._all);
   }
 
-  return links.map((l) => ({
-    id: l.id,
-    code: l.code,
-    targetType: l.target_type,
-    targetId: l.target_id,
-    destinationUrl: l.destination_url,
-    shareUrl: buildReferralUrl(origin, l.destination_url, l.code),
-    signups: byId.get(l.id) ?? 0,
-    createdAt: l.created_at.toISOString(),
-  }));
+  return links.map((l) => {
+    const destination = resolveReferralDestination(
+      l.target_type,
+      l.target_id,
+      l.destination_url,
+    );
+    return {
+      id: l.id,
+      code: l.code,
+      targetType: l.target_type,
+      targetId: l.target_id,
+      destinationUrl: destination,
+      shareUrl: buildReferralUrl(origin, destination, l.code),
+      signups: byId.get(l.id) ?? 0,
+      createdAt: l.created_at.toISOString(),
+    };
+  });
 }
 
 export interface ProfileReferralTarget {

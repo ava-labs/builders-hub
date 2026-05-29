@@ -1,5 +1,4 @@
 import RegistrationFormWrapped from "@/components/hackathons/registration-form/RegistrationFormWrapped";
-import UTMPreservationWrapper from "@/components/hackathons/UTMPreservationWrapper";
 import { getHackathon } from "@/server/services/hackathons";
 import { createMetadata } from "@/utils/metadata";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
@@ -61,10 +60,8 @@ export default async function RegisterPage({
   const resolvedSearchParams = await searchParams;
 
   return (
-    <UTMPreservationWrapper>
-      <main className="container relative max-w-[1400px] rounded-md border border-zinc-800 p-14 mt-8">
-        <RegistrationFormWrapped searchParams={resolvedSearchParams} />
-      </main>
-    </UTMPreservationWrapper>
+    <main className="container relative max-w-[1400px] rounded-md border border-zinc-800 p-14 mt-8">
+      <RegistrationFormWrapped searchParams={resolvedSearchParams} />
+    </main>
   );
 }
