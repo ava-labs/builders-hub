@@ -429,7 +429,11 @@ export function RegisterForm({
       if (typeof window !== "undefined") {
         localStorage.removeItem(`formData_${hackathon_id}`);
       }
-      return response.data as { referralAttributed?: boolean };
+      return response.data as {
+        referralAttributed?: boolean;
+        warning?: string;
+        failedInvites?: string[];
+      };
     } catch (err) {
       console.error("API Error:", err);
       throw err;
@@ -615,6 +619,17 @@ export function RegisterForm({
       const result = await saveProject(finalData);
       if (result.referralAttributed) {
         clearStoredReferralAttribution();
+      }
+      // Registration succeeded, but some teammate invites may not have been
+      // sent. Surface that inline so the user can re-invite from their project
+      // page instead of assuming everyone was notified.
+      if (Array.isArray(result.failedInvites) && result.failedInvites.length > 0) {
+        const failed = result.failedInvites.join(", ");
+        setTeamError(
+          lang === "es"
+            ? `Tu registro se guardó, pero no se pudieron enviar algunas invitaciones (${failed}). Puedes reenviarlas desde la página de tu proyecto.`
+            : `Your registration was saved, but some invites couldn't be sent (${failed}). You can re-invite them from your project page.`,
+        );
       }
       setIsDialogOpen(true);
     }

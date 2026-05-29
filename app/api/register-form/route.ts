@@ -81,11 +81,25 @@ export const POST = withAuth(async (
     }
     const newHackathon = await createRegisterForm(registerData);
 
+    // Teammate invitations are best-effort and don't block registration, but we
+    // surface any that failed so the client can warn the user instead of
+    // leaving them with a silently incomplete team.
+    const failedInvites = Array.isArray((newHackathon as any).failedInvites)
+      ? ((newHackathon as any).failedInvites as string[])
+      : [];
+
     return NextResponse.json(
       {
         message: 'registration form created',
         hackathon: newHackathon,
         referralAttributed: Boolean((newHackathon as any).referralAttributed),
+        ...(failedInvites.length > 0
+          ? {
+              warning:
+                'Your registration was saved, but some teammate invitations could not be sent. You can re-invite them from your project page.',
+              failedInvites,
+            }
+          : {}),
       },
       { status: 201 }
     );

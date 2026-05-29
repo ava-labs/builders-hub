@@ -95,10 +95,16 @@ export const registerValidations: Validation[] = [
   },
 ];
 
-export const createRegisterValidations = (isOnlineHackathon: boolean): Validation[] => {
+export const createRegisterValidations = (
+  isOnlineHackathon: boolean,
+  isSimpleMode: boolean = false
+): Validation[] => {
   const baseValidations = registerValidations.filter(validation => validation.field !== "prohibited_items");
-  
-  if (!isOnlineHackathon) {
+
+  // Simple-mode registrations intentionally omit the prohibited-items consent
+  // (the form only renders the T&C checkbox), so don't require it server-side.
+  // Online hackathons never require it either.
+  if (!isOnlineHackathon && !isSimpleMode) {
     baseValidations.push({
       field: "prohibited_items",
       message: "You must agree not to bring prohibited items to continue.",
@@ -106,14 +112,15 @@ export const createRegisterValidations = (isOnlineHackathon: boolean): Validatio
         registerForm.prohibited_items === true,
     });
   }
-  
+
   return baseValidations;
 };
 
 export const validateRegisterForm = (
   registerData: Partial<RegistrationForm>,
-  isOnlineHackathon: boolean = false
-): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon), registerData);
+  isOnlineHackathon: boolean = false,
+  isSimpleMode: boolean = false
+): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon, isSimpleMode), registerData);
 export async function createRegisterForm(
   registerData: Partial<RegistrationForm> & {
     x_account?: string;
@@ -126,6 +133,10 @@ export async function createRegisterForm(
   });
 
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
+  // Simple-mode events render a single page with only the T&C checkbox and
+  // intentionally omit the prohibited-items consent; mirror that here so the
+  // server doesn't require a field the form never collects.
+  const isSimpleMode = (hackathon?.content as any)?.registration_mode === "simple";
   // Teammate invitations are handled separately (Member rows + invitation
   // emails). Keep them out of the RegisterForm payload itself.
   const rawTeammates = Array.isArray(registerData.teammates) ? registerData.teammates : [];
@@ -212,7 +223,7 @@ export async function createRegisterForm(
     }
   }
 
-  const errors = validateRegisterForm(registerData, isOnlineHackathon);
+  const errors = validateRegisterForm(registerData, isOnlineHackathon, isSimpleMode);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
@@ -224,14 +235,31 @@ export async function createRegisterForm(
     team_size_max: (hackathon?.content as any)?.team_size_max,
   });
   const inviterEmail = (registerData.email ?? "").trim().toLowerCase();
+  const teammateEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const dedupedTeammates: string[] = [];
+  const invalidTeammates: string[] = [];
   for (const raw of rawTeammates) {
     if (typeof raw !== "string") continue;
     const e = raw.trim().toLowerCase();
     if (!e) continue;
+    // Reject malformed addresses server-side (the client validates too, but a
+    // crafted request must not slip an unsendable email into the invite flow).
+    if (!teammateEmailPattern.test(e)) {
+      invalidTeammates.push(e);
+      continue;
+    }
     if (e === inviterEmail) continue;
     if (dedupedTeammates.includes(e)) continue;
     dedupedTeammates.push(e);
+  }
+  if (invalidTeammates.length > 0) {
+    throw new ValidationError("Validation failed", [
+      {
+        field: "teammates",
+        message: `These teammate emails are not valid: ${invalidTeammates.join(", ")}.`,
+        validation: () => false,
+      },
+    ]);
   }
   const teamSize = 1 + dedupedTeammates.length;
   if (teamSize < teamRange.min) {
@@ -334,10 +362,16 @@ export async function createRegisterForm(
   // Members land in "Pending Confirmation" with the existing email + sign-in
   // confirmation mechanic. The shared helper auto-creates the stub Project
   // for this (hackathon, user) and is idempotent across re-registrations.
+  //
+  // We don't block registration on an invite failure (the registrant is
+  // already saved), but we must NOT swallow it silently either: any teammate
+  // whose invite didn't send is returned in `failedInvites` so the route can
+  // warn the user instead of leaving a min-team event with missing members.
+  let failedInvites: string[] = [];
   if (dedupedTeammates.length > 0 && existingUser?.id) {
+    const lang = normalizeEventsLang((hackathon?.content as any)?.language);
     try {
-      const lang = normalizeEventsLang((hackathon?.content as any)?.language);
-      await generateInvitation(
+      const inviteResult = await generateInvitation(
         newRegisterFormData.hackathon_id as string,
         existingUser.id,
         newRegisterFormData.name ?? existingUser.id,
@@ -346,10 +380,23 @@ export async function createRegisterForm(
         undefined,
         lang,
       );
+      // generateInvitation skips self-invites / already-confirmed members
+      // (those never appear in InviteLinks), so only treat links it actually
+      // attempted and reported as failed.
+      failedInvites = (inviteResult.InviteLinks ?? [])
+        .filter((link) => !link.Success)
+        .map((link) => link.User);
     } catch (err) {
-      // Don't block registration on teammate-invitation failure — surface
-      // it via logs and let the registrant retry from the project page.
+      // The whole batch failed before any send completed — surface every
+      // teammate so the user knows none of the invites went out.
       console.error("[Registration] Failed to send teammate invitations:", err);
+      failedInvites = [...dedupedTeammates];
+    }
+    if (failedInvites.length > 0) {
+      console.error(
+        "[Registration] Some teammate invitations did not send:",
+        failedInvites,
+      );
     }
   }
 
@@ -358,7 +405,11 @@ export async function createRegisterForm(
   return {
     ...newRegisterFormData,
     referralAttributed,
-  } as unknown as RegistrationForm & { referralAttributed: boolean };
+    failedInvites,
+  } as unknown as RegistrationForm & {
+    referralAttributed: boolean;
+    failedInvites: string[];
+  };
 }
 export async function getRegisterForm(email: string, hackathon_id: string) {
   const [registeredData, attribution] = await Promise.all([
