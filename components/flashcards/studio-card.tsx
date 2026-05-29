@@ -60,7 +60,7 @@ function renderCloze(front: string, revealed: boolean) {
           return (
             <span
               key={i}
-              className="rounded bg-primary/15 px-1.5 py-0.5 font-medium text-primary"
+              className="rounded bg-red-500/15 px-1.5 py-0.5 font-medium text-red-700 dark:text-red-300"
               aria-label="answer"
             >
               {match[1]}
@@ -75,7 +75,7 @@ function renderCloze(front: string, revealed: boolean) {
 
 function CodeBlock({ code, language }: { code: string; language?: string }) {
   return (
-    <pre className="overflow-x-auto rounded-md bg-zinc-900 px-4 py-3 text-sm text-zinc-100 dark:bg-zinc-950">
+    <pre className="overflow-x-auto rounded-md bg-zinc-900 px-4 py-3 text-xs text-zinc-100 dark:bg-zinc-950 sm:text-sm">
       <code className={language ? `language-${language}` : undefined}>{code}</code>
     </pre>
   );
@@ -174,7 +174,7 @@ export function StudioCard({
         </div>
       )}
 
-      <footer className="flex items-center justify-end gap-2 border-t px-4 py-3">
+      <footer className="flex flex-wrap items-center justify-end gap-2 border-t px-4 py-3">
         {isRejected ? (
           <Button size="sm" variant="outline" onClick={onAccept}>
             <Check className="mr-1.5 h-3.5 w-3.5" />

@@ -249,7 +249,8 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
   };
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
+    <>
+    <div className="grid gap-8 pb-24 lg:grid-cols-[1fr_22rem] lg:pb-0">
       <div className="space-y-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -287,7 +288,7 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
                         <button
                           type="button"
                           onClick={() => toggleCourse(course.slug)}
-                          className="flex flex-1 items-center gap-2 p-3 text-left"
+                          className="flex min-w-0 flex-1 items-center gap-2 p-3 text-left"
                           aria-expanded={expanded}
                         >
                           {expanded ? (
@@ -296,12 +297,12 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
                             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                           )}
                           <BookOpen className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="font-medium">{course.title}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="truncate font-medium">{course.title}</span>
+                          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
                             {course.chapters.length} chapter{course.chapters.length === 1 ? '' : 's'}
                           </span>
                         </button>
-                        <div className="flex items-center gap-3 pr-3">
+                        <div className="flex shrink-0 items-center gap-3 pr-3">
                           {courseSelectedCount > 0 && (
                             <Badge
                               variant="secondary"
@@ -494,5 +495,50 @@ export function DeckPicker({ catalog, initialSources }: DeckPickerProps) {
         )}
       </aside>
     </div>
+
+    {/* Mobile-only sticky CTA. On small screens the in-flow aside (with its
+        Generate button) sits below the entire chapter list, so surface a
+        reachable CTA pinned to the bottom. Hidden at lg where the aside is a
+        sticky sidebar. Reuses handleGenerate + the same auth/disabled states. */}
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+      <div className="mx-auto flex max-w-6xl items-center gap-3">
+        <p
+          className="min-w-0 flex-1 text-sm text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="font-medium text-foreground">{selected.size}</span>{' '}
+          chapter{selected.size === 1 ? '' : 's'} selected
+        </p>
+        <Button
+          onClick={handleGenerate}
+          disabled={isPending || selected.size === 0}
+          variant={
+            status !== 'authenticated' && selected.size > 0
+              ? 'outline'
+              : 'default'
+          }
+          className="shrink-0"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : status !== 'authenticated' && selected.size > 0 ? (
+            <>
+              <LogIn className="mr-2 h-4 w-4" />
+              Sign in to start
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate deck
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+    </>
   );
 }

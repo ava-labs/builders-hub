@@ -219,7 +219,7 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
   };
 
   return (
-    <div className="space-y-6 pb-32">
+    <div className="space-y-6 pb-40 sm:pb-32">
       <header className="space-y-3">
         <Button
           variant="ghost"
@@ -306,7 +306,7 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
       <div className="fixed inset-x-0 bottom-0 border-t bg-background/95 backdrop-blur">
         {showSaveForm && (
           <div className="mx-auto max-w-6xl border-b px-4 py-3 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <label htmlFor="save-deck-name" className="text-xs font-medium text-muted-foreground">
                 Deck name:
               </label>
@@ -315,10 +315,11 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
                 maxLength={120}
-                className="h-9 flex-1 min-w-[16rem]"
+                className="h-9 w-full sm:flex-1 sm:min-w-[16rem]"
                 placeholder="My Avalanche cheatsheet"
                 autoFocus
               />
+              <div className="flex items-center gap-2">
               <Button size="sm" variant="ghost" onClick={() => setShowSaveForm(false)} disabled={saving}>
                 Cancel
               </Button>
@@ -335,6 +336,7 @@ export function StudioPreview({ sessionId }: StudioPreviewProps) {
                   </>
                 )}
               </Button>
+              </div>
             </div>
             {saveError && (
               <p className="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">

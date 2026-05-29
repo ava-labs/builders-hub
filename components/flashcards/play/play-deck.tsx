@@ -448,7 +448,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
             {recentDecks.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -515,7 +515,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <aside className="space-y-4">
+        <aside className="order-last space-y-4 lg:order-none">
           <section className="rounded-xl border bg-card p-4">
             <h3 className="text-sm font-semibold">Session Progress</h3>
             <div className="mt-3 grid grid-cols-2 gap-2 text-center">
@@ -564,7 +564,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                   className={cn(
                     'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors',
                     tab === key
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      ? 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-600/90'
                       : 'hover:bg-muted',
                   )}
                   aria-pressed={tab === key}
@@ -574,7 +574,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                     className={cn(
                       'rounded px-1.5 py-0.5 text-xs',
                       tab === key
-                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                        ? 'bg-white/20 text-white'
                         : 'bg-muted text-muted-foreground',
                     )}
                   >
@@ -749,7 +749,7 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
           </section>
         </aside>
 
-        <section className="space-y-4">
+        <section className="order-first space-y-4 lg:order-none">
           {!hydrated ? (
             <div className="flex h-96 items-center justify-center rounded-xl border bg-card text-sm text-muted-foreground">
               Loading…
@@ -828,6 +828,9 @@ export function PlayDeck({ setId, title, courseTitle, items }: PlayDeckProps) {
                       onClick={() => setRevealed((r) => !r)}
                       variant={revealed ? 'outline' : 'default'}
                       aria-keyshortcuts="Space"
+                      className={cn(
+                        !revealed && 'bg-red-600 text-white hover:bg-red-700',
+                      )}
                     >
                       {revealed ? 'Hide answer' : 'Reveal answer'}
                       <kbd className="ml-2 inline-flex h-5 items-center rounded border bg-background/10 px-1.5 font-mono text-[10px] text-current/80">

@@ -168,6 +168,9 @@ export function MyDecksCard({ onCountChange }: Props) {
                         fontSize: 12,
                         color: "var(--pr-g-650)",
                         marginTop: 2,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {deck.items.length} card{deck.items.length === 1 ? "" : "s"}

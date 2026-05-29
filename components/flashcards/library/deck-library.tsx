@@ -116,12 +116,12 @@ export function DeckLibrary() {
                   >
                     {deck.name}
                   </Link>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {deck.items.length} card{deck.items.length === 1 ? '' : 's'} ·{' '}
                     {shortCoursePath(deck.coursePath)} · saved {timeAgo(deck.updatedAt)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/academy/flashcards/play/user/${encodeURIComponent(deck.id)}`}>
                       <BookOpen className="mr-1.5 h-3.5 w-3.5" />
