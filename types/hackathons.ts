@@ -1,3 +1,5 @@
+import { HackathonStage } from "./hackathon-stage"
+
 export type HackathonStatus = "ENDED" | "ONGOING" | "UPCOMING"
 export type HackathonHeader = {
   id: string
@@ -58,6 +60,7 @@ export type Hackathon = {
   speakers_banner: string
   speakers_text: string
   resources: Resource[]
+  stages: HackathonStage[]
 }
 
 export type ScheduleActivity = {
@@ -72,6 +75,8 @@ export type ScheduleActivity = {
   location: string
   category: string
   url: string
+  isVirtual: boolean
+  infoUrl?: string
   /** Video call URL (Google Meet, Zoom, etc.) - separate from physical location */
   video_call_url?: string
 }
@@ -110,5 +115,3 @@ export type Speaker = {
   icon: string
   category: string
 }
-
-

@@ -145,6 +145,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // form_data_id is required by the schema; find or create a placeholder FormData
+    let resolvedFormDataId: string;
+    const existingFormData = await prisma.formData.findFirst({
+      where: { project_id: projectId! },
+      select: { id: true },
+      orderBy: { timestamp: "desc" },
+    });
+    if (existingFormData) {
+      resolvedFormDataId = existingFormData.id;
+    } else {
+      const placeholderFd = await prisma.formData.create({
+        data: {
+          form_data: {},
+          timestamp: new Date(),
+          origin: "hackathon_judge",
+          project_id: projectId!,
+        },
+      });
+      resolvedFormDataId = placeholderFd.id;
+    }
+
     const evaluation = await prisma.evaluation.upsert({
       where: {
         project_id_evaluator_id: {
@@ -159,6 +180,7 @@ export async function POST(request: NextRequest) {
         scores: scores ?? undefined,
       },
       create: {
+        form_data_id: resolvedFormDataId,
         project_id: projectId!,
         hackathon_id: project.hackaton_id,
         evaluator_id: session.user.id,

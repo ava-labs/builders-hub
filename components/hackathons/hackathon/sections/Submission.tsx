@@ -13,7 +13,7 @@ import { normalizeEventsLang, t } from '@/lib/events/i18n';
 import type { SubmissionStatus } from '@/lib/hackathons/submission-progress';
 import Link from 'next/link';
 
-export default async function Submission({
+export default function Submission({
   hackathon,
   isRegistered = false,
   isAuthenticated = false,
@@ -32,6 +32,12 @@ export default async function Submission({
 }) {
   const lang = normalizeEventsLang(hackathon.content?.language);
   const locale = lang === 'es' ? 'es-ES' : 'en-US';
+  const hasStages = Array.isArray(hackathon.content.stages) && hackathon.content.stages.length > 0;
+
+  const submissionDeadlineDate = hackathon.content?.submission_deadline
+    ? new Date(hackathon.content.submission_deadline)
+    : null;
+  const hasValidDeadline = submissionDeadlineDate !== null && !isNaN(submissionDeadlineDate.getTime());
 
   return (
     <section className='py-16 text-black dark:text-white'>
@@ -136,25 +142,31 @@ export default async function Submission({
           </h3>
           <p className='text-sm'>
             {t(lang, 'section.submission.submissionsCloseOn')}{' '}
-            <b>
-              {new Intl.DateTimeFormat(locale, {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-                timeZone: hackathon.timezone,
-              }).format(new Date(hackathon.content.submission_deadline))}
-            </b>
-            , at{' '}
-            <b>
-              {new Intl.DateTimeFormat(locale, {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: hackathon.timezone,
-              }).format(new Date(hackathon.content.submission_deadline))}{' '}
-              {hackathon.timezone}
-            </b>
-            .
+            {hasValidDeadline ? (
+              <>
+                <b>
+                  {new Intl.DateTimeFormat(locale, {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                    timeZone: hackathon.timezone,
+                  }).format(submissionDeadlineDate!)}
+                </b>
+                , at{' '}
+                <b>
+                  {new Intl.DateTimeFormat(locale, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: hackathon.timezone,
+                  }).format(submissionDeadlineDate!)}{' '}
+                  {hackathon.timezone}
+                </b>
+                .
+              </>
+            ) : (
+              <b>TBD</b>
+            )}
           </p>
         </div>
 
@@ -230,10 +242,11 @@ export default async function Submission({
             </div>
           </DialogContent>
         </Dialog>
-        <SubmitButton
-          hackathonId={hackathon.id}
-          customSubmissionLink={hackathon.content.submission_custom_link}
-          label={
+        {!hasStages && (
+          <SubmitButton
+            hackathonId={hackathon.id}
+            customSubmissionLink={hackathon.content.submission_custom_link}
+            label={
             submissionStatus === 'complete'
               ? t(lang, "section.submission.editProject")
               : submissionStatus === 'draft'
@@ -241,9 +254,10 @@ export default async function Submission({
               : t(lang, "section.submission.submitProject")
           }
           variant={submissionStatus === 'none' ? 'red' : 'default'}
-          isAuthenticated={isAuthenticated}
+            isAuthenticated={isAuthenticated}
           projectId={submissionProjectId}
-        />
+          />
+        )}
       </div>
     </section>
   );
