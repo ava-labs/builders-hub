@@ -18,7 +18,7 @@ import CustomPartners from "./CustomPartners";
 import CustomMentorsJudges from "./CustomMentorsJudges";
 import CustomSubmission from "./CustomSubmission";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 const HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
 
