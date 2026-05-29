@@ -29,9 +29,10 @@ export function ApplyButton({
   companyName,
   children,
 }: Props) {
-  // web3.career's API ToS requires a do-follow backlink for the roles it
-  // supplies (source 'external'); every other source stays nofollow so we
-  // don't pass link equity to arbitrary apply URLs.
+  // web3.career's API ToS requires the apply link to be a follow link
+  // (no rel="nofollow") — failing to do so gets API access suspended. So
+  // web3.career-sourced roles (source 'external') omit nofollow. Every other
+  // source keeps nofollow; we don't vouch for arbitrary employer portals.
   const rel =
     listingSource === 'external'
       ? 'noopener noreferrer'

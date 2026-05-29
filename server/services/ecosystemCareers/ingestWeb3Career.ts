@@ -1,5 +1,4 @@
 import { prisma } from '@/prisma/prisma';
-import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
 import { sanitizeJobHtml } from '@/lib/ecosystem-careers/sanitizeJobHtml';
 import { pruneStaleExternalListings, upsertExternalListing } from './upsertExternalListing';
 
@@ -272,7 +271,9 @@ export async function ingestWeb3Career(
         employment_type: null,
         seniority: null,
         tags: (j.tags ?? []).slice(0, 10),
-        apply_url: cleanApplyUrl(j.apply_url),
+        // web3.career's ToS forbids modifying apply_url — its required tracking
+        // params are already embedded, so store it verbatim (no cleanApplyUrl).
+        apply_url: j.apply_url,
         source_url: null,
         posted_at: postedAt && !Number.isNaN(postedAt.getTime()) ? postedAt : null,
       };
