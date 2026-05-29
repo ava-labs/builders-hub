@@ -20,7 +20,6 @@ interface JoinButtonProps {
   variant?: "red" | "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   showChatWhenRegistered?: boolean;
   allowNavigationWhenRegistered?: boolean;
-  utm?: string;
   isAuthenticated?: boolean;
   /** UI language for predefined labels (defaults to 'en'). */
   lang?: EventsLang;
@@ -35,7 +34,6 @@ export default function JoinButton({
   variant = "red",
   showChatWhenRegistered = false,
   allowNavigationWhenRegistered = false,
-  utm = "",
   isAuthenticated = false,
   lang: langProp,
 }: JoinButtonProps) {
@@ -70,7 +68,7 @@ export default function JoinButton({
           return customLink;
         }
         const baseUrl = `/events/registration-form?event=${hackathonId}`;
-        return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode, utm });
+        return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode });
       }
       return "#";
     }
@@ -78,7 +76,7 @@ export default function JoinButton({
       return customLink;
     }
     const baseUrl = `/events/registration-form?event=${hackathonId}`;
-    return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode, utm });
+    return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode });
   };
 
   const getButtonTarget = () => {
