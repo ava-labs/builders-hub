@@ -20,6 +20,33 @@ const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
+// On dismiss without signing in, send event-registration visitors back to the
+// (public) event page with their referral code, instead of the home page.
+function resolveDismissTarget(callbackUrl: string): string {
+  try {
+    const url = new URL(callbackUrl, window.location.origin);
+    const eventGatedPaths = [
+      "/events/registration-form",
+      "/events/project-submission",
+      "/hackathons/registration-form",
+      "/hackathons/project-submission",
+    ];
+    if (eventGatedPaths.some((path) => url.pathname.startsWith(path))) {
+      const eventId =
+        url.searchParams.get("event") ?? url.searchParams.get("hackathon");
+      if (eventId) {
+        const target = new URL(`/events/${eventId}`, window.location.origin);
+        const ref = url.searchParams.get("ref");
+        if (ref) target.searchParams.set("ref", ref);
+        return `${target.pathname}${target.search}`;
+      }
+    }
+  } catch {
+    // Malformed callbackUrl — fall through to home.
+  }
+  return "/";
+}
+
 export function LoginModal() {
   const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
@@ -34,7 +61,7 @@ export function LoginModal() {
   const handleClose = (open: boolean) => {
     if (!open) {
       closeLoginModal();
-      router.push('/');
+      router.push(resolveDismissTarget(callbackUrl));
     }
   };
 
