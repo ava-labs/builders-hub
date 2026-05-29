@@ -65,6 +65,9 @@ export async function GET(req: NextRequest) {
     const managedOnly = searchParams.get('managed') === 'true';
 
     let isPrivileged = false;
+    let isDevrel = false;
+    let actingEmail: string | undefined;
+    let actingTeam: string | null = null;
 
     if (userId) {
       const user = await getUserById(userId);
@@ -73,21 +76,23 @@ export async function GET(req: NextRequest) {
       }
 
       const customAttributes = user.custom_attributes || [];
-      const isDevrel = customAttributes.includes("devrel");
+      isDevrel = customAttributes.includes("devrel");
       const isTeam1Admin = customAttributes.includes("team1-admin");
       const isHackathonCreator = customAttributes.includes("hackathonCreator");
       isPrivileged = isDevrel || isTeam1Admin;
+      actingEmail = user.email || undefined;
+      actingTeam = user.team_id || null;
 
       if (managedOnly) {
         options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
         if (isDevrel) {
         } else if (isTeam1Admin) {
           options.created_by = userId;
-          options.cohost_email = user.email || undefined;
-          options.organizer_team = user.team_id || null;
+          options.cohost_email = actingEmail;
+          options.organizer_team = actingTeam;
         } else {
           options.created_by = userId;
-          options.cohost_email = user.email || undefined;
+          options.cohost_email = actingEmail;
         }
       } else {
         options.include_private = false;
@@ -99,6 +104,12 @@ export async function GET(req: NextRequest) {
     if (requestedVisibility === 'private' || requestedVisibility === 'all') {
       if (!isPrivileged) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      if (!isDevrel) {
+        options.include_private = true;
+        options.created_by = userId;
+        options.cohost_email = actingEmail;
+        options.organizer_team = actingTeam;
       }
     }
     options.visibility = requestedVisibility;

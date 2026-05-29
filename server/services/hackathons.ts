@@ -558,6 +558,13 @@ export async function updateHackathon(
     if (!canManageHackathon(actingUser, existingHackathon)) {
       throw new ForbiddenError("You can only edit hackathons organized by your team.");
     }
+    if (
+      hackathonData.organizers !== undefined &&
+      actingUser?.team_id &&
+      !actingUser.custom_attributes?.includes("devrel")
+    ) {
+      hackathonData.organizers = actingUser.team_id;
+    }
   }
 
   if (hackathonData.content?.schedule) {
