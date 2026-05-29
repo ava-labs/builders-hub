@@ -18,6 +18,8 @@ import {
   createLinkStagesSubmitFormField,
   createMultiSelectStagesSubmitFormField,
   createTextStagesSubmitFormField,
+  createBooleanStagesSubmitFormField,
+  createImageStagesSubmitFormField,
 } from '@/lib/hackathons/stage-submit-form-fields'
 import {
   ChipsStagesSubmitFormField as ChipsStagesSubmitFormFieldType,
@@ -26,12 +28,16 @@ import {
   SubmitFormField,
   SubmitFormFieldType,
   TextStagesSubmitFormField as TextStagesSubmitFormFieldType,
-  MultiSelectStagesSubmitFormField as MultiSelectStagesSubmitFormFieldType
+  MultiSelectStagesSubmitFormField as MultiSelectStagesSubmitFormFieldType,
+  BooleanStagesSubmitFormField as BooleanStagesSubmitFormFieldType,
+  ImageStagesSubmitFormField as ImageStagesSubmitFormFieldType
 } from '@/types/hackathon-stage'
 import { BASE_SUBMIT_FORM_FIELDS, BaseSubmitFormFieldKey } from './fields/base-fields'
 import { ChevronDownIcon } from 'lucide-react'
 import RemoveButton from '../RemoveButton'
 import MultiSelectStagesSubmitFormField from './fields/MultiSelect'
+import BooleanStagesSubmitFormField from './fields/Boolean'
+import ImageStagesSubmitFormField from './fields/Image'
 
 type StageSubmitFormProps = {
   stageIndex: number
@@ -67,6 +73,10 @@ function replaceSubmitFormFieldType(
       return createChipsStagesSubmitFormField(currentField.id)
     case SubmitFormFieldType.MultiSelect:
       return createMultiSelectStagesSubmitFormField(currentField.id)
+    case SubmitFormFieldType.Boolean:
+      return createBooleanStagesSubmitFormField(currentField.id)
+    case SubmitFormFieldType.Image:
+      return createImageStagesSubmitFormField(currentField.id)
     case SubmitFormFieldType.Predefined:
       return { ...createTextStagesSubmitFormField(currentField.id), predefinedField: true }
   }
@@ -100,6 +110,12 @@ function getFieldDescription(type: SubmitFormFieldType, predefinedField: boolean
       break
     case SubmitFormFieldType.MultiSelect:
       description += 'Multi-select Field'
+      break
+    case SubmitFormFieldType.Boolean:
+      description += 'Yes/No Field'
+      break
+    case SubmitFormFieldType.Image:
+      description += 'Image Field'
       break
   }
   return description
@@ -231,6 +247,8 @@ export default function StageSubmitForm({
                       <option value={SubmitFormFieldType.Link}>Link</option>
                       <option value={SubmitFormFieldType.Chips}>Chips</option>
                       <option value={SubmitFormFieldType.MultiSelect}>Multi-select</option>
+                      <option value={SubmitFormFieldType.Boolean}>Yes / No</option>
+                      <option value={SubmitFormFieldType.Image}>Image upload</option>
                     </select>
                   </div>
                   {
@@ -303,6 +321,22 @@ export default function StageSubmitForm({
                       />
                     )
                   }
+                  {field.type === SubmitFormFieldType.Boolean && (
+                    <BooleanStagesSubmitFormField
+                      field={field as BooleanStagesSubmitFormFieldType}
+                      onChange={(updatedField: BooleanStagesSubmitFormFieldType) =>
+                        onUpdateField(stageIndex, fieldIndex, updatedField)
+                      }
+                    />
+                  )}
+                  {field.type === SubmitFormFieldType.Image && (
+                    <ImageStagesSubmitFormField
+                      field={field as ImageStagesSubmitFormFieldType}
+                      onChange={(updatedField: ImageStagesSubmitFormFieldType) =>
+                        onUpdateField(stageIndex, fieldIndex, updatedField)
+                      }
+                    />
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>

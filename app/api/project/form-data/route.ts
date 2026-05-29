@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 import {
@@ -12,6 +13,16 @@ type StageSubmitValues = Record<
   string | string[] | Array<{ address: string }> | null
 >;
 
+type StageAnswer = {
+  question_id: string;
+  question_label: string;
+  question_type: string;
+  stage_index: number;
+  answer: unknown;
+};
+
+type StageAnswerEnvelope = { answers: Record<string, StageAnswer> };
+
 /** Allows alphanumeric, hyphens and underscores — covers UUID, CUID and nanoid formats. */
 const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,128}$/;
 
@@ -20,11 +31,6 @@ const ETHEREUM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 type SanitizeResult = { ok: true } | { ok: false; error: string };
 
-/**
- * Server-side sanitization of stage form values.
- * Mirrors the client-side checks in utils/input-validator but runs on every
- * request regardless of how the payload was crafted.
- */
 function sanitizeStageValues(values: StageSubmitValues): SanitizeResult {
   for (const [key, value] of Object.entries(values)) {
     if (value === null) continue;
@@ -103,12 +109,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
 
     const sessionUserId: string = session.user.id;
 
-    /**
-     * SECURITY: Resolve the project outside the transaction so we can return
-     * an early 404 without leaking a `NextResponse` through the transaction
-     * return value.  Automatic project creation has been removed to prevent
-     * unbounded resource creation (DoS).
-     */
     let resolvedProject: { id: string; project_name: string } | null = null;
 
     if (incomingProjectId) {
@@ -121,10 +121,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         select: { id: true, project_name: true },
       });
 
-      // SECURITY: If the caller specified a projectId and it was not found (or
-      // does not belong to them), return 404 immediately. Do NOT fall back to
-      // another project — that silent substitution risks overwriting a different
-      // project's FormData with the current user's submission.
       if (!resolvedProject) {
         return NextResponse.json(
           { error: 'Project not found or access denied' },
@@ -143,13 +139,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     }
 
     if (!resolvedProject) {
-      /**
-       * SECURITY: Do NOT create a project automatically.  Previously this
-       * path created an unbounded number of "Draft Project" rows for any
-       * authenticated user, enabling a DoS / resource-exhaustion attack.
-       * Callers must create a project via the dedicated project-creation
-       * endpoint before submitting stage data.
-       */
       return NextResponse.json(
         { error: 'No project found for this hackathon. Please create a project first.' },
         { status: 404 }
@@ -157,10 +146,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // SECURITY: Acquire a row-level lock on the parent Project before reading
-      // FormData. Any concurrent transaction for the same projectId will block
-      // here until this transaction commits, preventing the findFirst→create race
-      // condition that could produce duplicate FormData rows.
       await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${resolvedProject.id} FOR UPDATE`;
 
       const existingFormData = await tx.formData.findFirst({
@@ -176,9 +161,61 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         },
       });
 
-      const mergedFormData: StageSubmitValues = {
-        ...((existingFormData?.form_data as StageSubmitValues | null) ?? {}),
-        ...values,
+      const hackathon = await tx.hackathon.findUnique({
+        where: { id: hackathonId },
+        select: { content: true },
+      });
+      const stageFields: Array<{ id?: string; label?: string; type?: string }> =
+        (hackathon?.content as any)?.stages?.[body.stageIndex]?.submitForm?.fields ?? [];
+      const fieldMeta = new Map<string, { label?: string; type?: string }>(
+        stageFields
+          .filter((f): f is { id: string; label?: string; type?: string } => typeof f?.id === 'string')
+          .map((f) => [f.id, { label: f.label, type: f.type }]),
+      );
+
+      const newAnswers: Record<string, StageAnswer> = {};
+      for (const [fieldId, answer] of Object.entries(values)) {
+        const meta = fieldMeta.get(fieldId);
+        newAnswers[fieldId] = {
+          question_id: fieldId,
+          question_label: meta?.label ?? fieldId,
+          question_type: meta?.type ?? 'unknown',
+          stage_index: body.stageIndex,
+          answer,
+        };
+      }
+
+      const existingFormDataValue = existingFormData?.form_data as
+        | StageAnswerEnvelope
+        | Record<string, unknown>
+        | null;
+      let existingAnswers: Record<string, StageAnswer>;
+      if (
+        existingFormDataValue &&
+        typeof existingFormDataValue === 'object' &&
+        'answers' in existingFormDataValue
+      ) {
+        existingAnswers = (existingFormDataValue as StageAnswerEnvelope).answers ?? {};
+      } else if (existingFormDataValue && typeof existingFormDataValue === 'object') {
+        existingAnswers = Object.fromEntries(
+          Object.entries(existingFormDataValue as Record<string, unknown>).map(
+            ([key, value]) => [
+              key,
+              {
+                question_id: key,
+                question_label: key,
+                question_type: 'unknown',
+                stage_index: body.stageIndex,
+                answer: value,
+              },
+            ],
+          ),
+        );
+      } else {
+        existingAnswers = {};
+      }
+      const envelope: StageAnswerEnvelope = {
+        answers: { ...existingAnswers, ...newAnswers },
       };
 
       const savedFormData = existingFormData
@@ -187,7 +224,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
               id: existingFormData.id,
             },
             data: {
-              form_data: mergedFormData,
+              form_data: envelope as unknown as Prisma.InputJsonValue,
               timestamp: new Date(),
               origin: 'stage-submit',
             },
@@ -199,7 +236,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         : await tx.formData.create({
             data: {
               project_id: resolvedProject.id,
-              form_data: values,
+              form_data: envelope as unknown as Prisma.InputJsonValue,
               timestamp: new Date(),
               origin: 'stage-submit',
             },
@@ -386,10 +423,25 @@ export const GET = withAuth(async (request: Request, _context, session) => {
       },
     });
 
+    const rawFormData = formData?.form_data as
+      | StageAnswerEnvelope
+      | Record<string, unknown>
+      | null;
+    const flatFormData =
+      rawFormData && typeof rawFormData === 'object' && 'answers' in rawFormData
+        ? Object.fromEntries(
+            Object.entries((rawFormData as StageAnswerEnvelope).answers).map(
+              ([fieldId, entry]) => [fieldId, entry.answer],
+            ),
+          )
+        : rawFormData;
+
     return NextResponse.json(
       {
         success: true,
-        formData: formData ?? null,
+        formData: formData
+          ? { ...formData, form_data: flatFormData }
+          : null,
       },
       { status: 200 },
     );

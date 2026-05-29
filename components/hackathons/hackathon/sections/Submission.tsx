@@ -37,6 +37,11 @@ export default function Submission({
     : null;
   const hasValidDeadline = submissionDeadlineDate !== null && !isNaN(submissionDeadlineDate.getTime());
 
+  // Stages own the entire submission experience (each stage renders its own
+  // cards + submit form), so when a hackathon has stages the legacy single
+  // Submission section disappears entirely — not just its button.
+  if (hasStages) return null;
+
   const safeTimeZone = ((): string | undefined => {
     if (!hackathon.timezone) return undefined;
     try {

@@ -116,6 +116,36 @@ function pruneContentPlaceholders(content: any): any {
   return next;
 }
 
+/**
+ * Ensures every stage that collects a submission carries the mandatory
+ * project `consent_sharing` field. The non-staged submission flow already
+ * requires consent; staged submissions must inherit it. Injected server-side
+ * (and forced `required`) so admins cannot drop it — re-applied on every
+ * save, then validated by the stage Zod schema like any other field.
+ */
+function ensureConsentField(stages: any): any {
+  if (!Array.isArray(stages)) return stages;
+  const consentField = {
+    id: 'consent_sharing',
+    type: 'boolean',
+    label: 'I consent to my project being shared publicly',
+    description: 'Required. Authorizes the organizers to showcase this project.',
+    predefinedField: true,
+    required: true,
+  };
+  return stages.map((stage: any) => {
+    if (!stage?.submitForm) return stage;
+    const fields = Array.isArray(stage.submitForm.fields) ? stage.submitForm.fields : [];
+    const hasConsent = fields.some((f: any) => f?.id === 'consent_sharing');
+    const nextFields = hasConsent
+      ? fields.map((f: any) =>
+          f?.id === 'consent_sharing' ? { ...f, required: true } : f
+        )
+      : [...fields, consentField];
+    return { ...stage, submitForm: { ...stage.submitForm, fields: nextFields } };
+  });
+}
+
 export async function getHackathonLite(
   hackathon: any
 ): Promise<HackathonHeader> {
@@ -379,6 +409,7 @@ export async function createHackathon(
    * (which the API layer maps to 400) so callers get actionable feedback.
    */
   if (hackathonData.content?.stages !== undefined) {
+    hackathonData.content.stages = ensureConsentField(hackathonData.content.stages);
     const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
     if (!stagesResult.success) {
       throw new ValidationError(
@@ -463,6 +494,7 @@ export async function updateHackathon(
      * affect rendering or downstream processing.
      */
     if (hackathonData.content?.stages !== undefined) {
+      hackathonData.content.stages = ensureConsentField(hackathonData.content.stages);
       const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
       if (!stagesResult.success) {
         throw new ValidationError(
