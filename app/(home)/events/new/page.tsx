@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { hasHackathonAdminRole } from "@/lib/auth/roles";
-import HackathonForm from "@/components/hackathons/admin-panel/HackathonForm";
 
 export default async function NewHackathonPage() {
   const session = await getAuthSession();
@@ -10,11 +9,10 @@ export default async function NewHackathonPage() {
     redirect("/");
   }
 
-  return (
-    <main className='container relative px-2 py-4 lg:py-16'>
-      <div className='border border-border shadow-sm bg-background rounded-md'>
-        <HackathonForm />
-      </div>
-    </main>
-  );
+  // The standalone HackathonForm create path cannot satisfy the API: it sends a
+  // minimal payload while POST /api/events and createHackathon require tags,
+  // icon, banner, small_banner, total_prizes, participants, timezone, etc.
+  // Route creation through the full-featured editor, which already supports the
+  // create case (POST with the complete payload) and has its own role gate.
+  redirect("/events/edit");
 }

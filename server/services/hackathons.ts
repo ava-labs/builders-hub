@@ -480,6 +480,9 @@ export async function createHackathon(
       content: content,
       event: hackathonData.event ?? 'hackathon',
       new_layout: hackathonData.new_layout ?? false,
+      is_public: hackathonData.is_public ?? false,
+      organizers: hackathonData.organizers,
+      google_calendar_id: hackathonData.google_calendar_id,
     },
   });
   hackathonData.id = newHackathon.id;
@@ -547,7 +550,9 @@ export async function updateHackathon(
   // Build update data object with only provided fields
   const updateData: any = {};
 
-  if (hackathonData.id !== undefined) updateData.id = hackathonData.id;
+  // SECURITY (IDOR): never set/overwrite the row primary key from caller input.
+  // The row to update is located solely by the `id` argument in `where`, so a
+  // caller-supplied `hackathonData.id` must not be written into the update data.
   if (hackathonData.title !== undefined) updateData.title = hackathonData.title;
   if (hackathonData.description !== undefined)
     updateData.description = hackathonData.description;
@@ -607,7 +612,7 @@ export async function updateHackathon(
     where: { id },
     data: updateData,
   });
-  revalidatePath(`/api/events/${hackathonData.id}`);
+  revalidatePath(`/api/events/${id}`);
   revalidatePath("/api/events/");
   return hackathonData as HackathonHeader;
 }

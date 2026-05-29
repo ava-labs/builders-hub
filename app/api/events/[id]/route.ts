@@ -35,7 +35,10 @@ export const PUT = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequ
       return NextResponse.json(updatedHackathon);
     } else {
       const partialEditedHackathon = updateData as Partial<HackathonHeader>;
-      const updatedHackathon = await updateHackathon(partialEditedHackathon.id ?? id, partialEditedHackathon, userId);
+      // SECURITY (IDOR): the update target MUST be the URL `id` param only.
+      // Never trust a caller-supplied body `id` — otherwise PUT /api/events/a
+      // with body { id: "b" } would update a different row.
+      const updatedHackathon = await updateHackathon(id, partialEditedHackathon, userId);
       return NextResponse.json(updatedHackathon);
     }
   } catch (error: any) {
