@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, memo, useCallback, useRef, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, memo, useCallback, useRef, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, ChevronDown, ChevronRight, Database, PlusCircle, FileText, Layers, ImageIcon, Users, AlignLeft, LayoutGrid, X, Save, Eye, EyeOff, ExternalLink, Check } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Trash, ChevronDown, ChevronRight, Database, PlusCircle, FileText, Layers, ImageIcon, Users, AlignLeft, LayoutGrid, X, Save, Eye, EyeOff, ExternalLink, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import TrackDialogContent from '@/components/hackathons/hackathon/TrackDialogContent';
 import type { Track } from '@/types/hackathons';
@@ -13,7 +14,8 @@ import { ICON_OPTIONS } from '@/components/hackathons/edit/icon-registry';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HackathonsList from '@/components/hackathons/edit/HackathonsList';
 import { t } from './translations';
-import { useSession } from "next-auth/react";
+import { useSession, SessionProvider } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import useHackathonsFilters from '@/hooks/useHackathonsFilters';
 import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
@@ -22,6 +24,10 @@ import PartnerItem from '@/components/hackathons/edit/PartnerItem';
 import { EmailListInput } from '@/components/common/EmailListInput';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
+import { REFERRAL_TEAM_LABELS, isReferralTeamId } from '@/lib/referrals/team-labels';
+import { hasHackathonEditorRole } from '@/lib/auth/roles';
+import { COUNTRIES } from '@/components/profile/shell/data';
+import { getDefaultTargetCountries } from '@/lib/hackathons/countryTargetDefaults';
 import HackathonsEditStages from '@/components/hackathons/edit/stages/Stages';
 import HackathonPreviewTabs from '@/components/hackathons/edit/preview/Preview';
 import { zodResolver } from '@/lib/zodResolver';
@@ -42,6 +48,30 @@ import { resolveFieldLabel } from '@/lib/events-field-labels';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import { ThemeToggle } from '@/components/console/theme-toggle';
+
+function hydrateCountryFromLocation(location: string | null | undefined): string | undefined {
+  if (!location) return undefined;
+  const trimmed = location.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.toLowerCase() === 'online') return undefined;
+  if (/^(inperson|in person|hybrid)$/i.test(trimmed)) return undefined;
+  const match = COUNTRIES.find((c) => c.toLowerCase() === trimmed.toLowerCase());
+  return match ?? undefined;
+}
+
+function hydrateRemoteFromLocation(location: string | null | undefined): boolean {
+  if (!location) return false;
+  const t = location.trim().toLowerCase();
+  return t === 'online' || t === 'hybrid';
+}
+
+function composeLocation(country: string | undefined, isRemote: boolean | undefined): string {
+  const hasCountry = !!country?.trim();
+  if (hasCountry && isRemote) return `Hybrid - ${country!.trim()}`;
+  if (hasCountry) return country!.trim();
+  if (isRemote) return 'Online';
+  return '';
+}
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -307,7 +337,6 @@ const IconPicker = ({ value, onChange }: { value: string; onChange: (val: string
   const effective = ICON_OPTIONS.find((o) => o.value === value) ? value : ICON_OPTIONS[0].value;
   const selected = ICON_OPTIONS.find((o) => o.value === effective) ?? ICON_OPTIONS[0];
 
-  // Persist default icon when value is unset (e.g. new record)
   useEffect(() => {
     if (!ICON_OPTIONS.find((o) => o.value === value)) {
       onChange(ICON_OPTIONS[0].value);
@@ -436,7 +465,6 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
             <SubformFieldError fieldError={fieldError} field="partner" />
             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].trackDescription}</div>
             <div className="mb-2 text-zinc-500 text-xs">Type a detailed description with formatting. Use the buttons below or type HTML directly.</div>
-            {/* Formatting Toolbar for Track Description */}
             <div className="flex flex-wrap gap-2 mb-3 p-3 bg-zinc-800/50 border border-zinc-600 rounded-lg">
               <button
                 type="button"
@@ -486,7 +514,6 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
                     const selectedText = rawTrackDescriptions[index]?.substring(start, end) || '';
                     const newText = (rawTrackDescriptions[index] || '').substring(0, start) + `<h1>${selectedText}</h1>` + (rawTrackDescriptions[index] || '').substring(end);
                     setRawTrackDescriptions(prev => ({ ...prev, [index]: newText }));
-                    // Auto-convert to HTML
                     const htmlText = convertToHTML(newText);
                     onChange(index, 'description', htmlText);
                   }
@@ -506,7 +533,6 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
                     const selectedText = rawTrackDescriptions[index]?.substring(start, end) || '';
                     const newText = (rawTrackDescriptions[index] || '').substring(0, start) + `<h2>${selectedText}</h2>` + (rawTrackDescriptions[index] || '').substring(end);
                     setRawTrackDescriptions(prev => ({ ...prev, [index]: newText }));
-                    // Auto-convert to HTML
                     const htmlText = convertToHTML(newText);
                     onChange(index, 'description', htmlText);
                   }
@@ -524,7 +550,6 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
                     const start = textarea.selectionStart;
                     const newText = (rawTrackDescriptions[index] || '').substring(0, start) + '\n<br />\n' + (rawTrackDescriptions[index] || '').substring(start);
                     setRawTrackDescriptions(prev => ({ ...prev, [index]: newText }));
-                    // Auto-convert to HTML
                     const htmlText = convertToHTML(newText);
                     onChange(index, 'description', htmlText);
                   }
@@ -541,7 +566,6 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
               value={rawTrackDescriptions[index] || ''}
               onChange={(e) => {
                 setRawTrackDescriptions(prev => ({ ...prev, [index]: e.target.value }));
-                // Auto-convert to HTML on every change
                 const htmlText = convertToHTML(e.target.value);
                 onChange(index, 'description', htmlText);
               }}
@@ -884,23 +908,6 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, onChange, onDone
               </Select>
             </div>
 
-            {/* <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].speakerIcon}</div>
-          <Select
-            value={speaker.icon || '__none__'}
-            onValueChange={(value: string) =>
-              onChange(index, 'icon', value === '__none__' ? '' : value)
-            }
-          >
-            <SelectTrigger className="mb-3">
-              <SelectValue placeholder="Select Icon" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">No icon</SelectItem>
-              <SelectItem value="code">Code</SelectItem>
-              <SelectItem value="megaphone">Megaphone</SelectItem>
-            </SelectContent>
-          </Select> */}
-
             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].speakerName}</div>
             <Input
               type="text"
@@ -1129,7 +1136,6 @@ const HackathonsEdit = () => {
   const [resourceTemplates, setResourceTemplates] = useState<ResourceTemplate[]>([]);
   const [loadingResourceTemplates, setLoadingResourceTemplates] = useState<boolean>(false);
   const { data: session, status } = useSession();
-  // Fetch all hackathons at once instead of paginating (max 10000)
   const HACKATHONS_PAGE_SIZE = 10000;
   const {
     items: myHackathons,
@@ -1162,8 +1168,8 @@ const HackathonsEdit = () => {
       reValidateMode: 'onChange',
     });
   const formDataMain = useWatch({ control, name: 'main' }) ?? initialData.main;
-  const formDataContent =
-    useWatch({ control, name: 'content' }) ??
+  const formDataContent: IDataContent =
+    (useWatch({ control, name: 'content' }) as IDataContent | undefined) ??
     ({
       ...initialData.content,
       partners: [],
@@ -1287,6 +1293,20 @@ const HackathonsEdit = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, status]);
 
+  const searchParams = useSearchParams();
+  const requestedEventId = searchParams?.get("event") ?? null;
+  const autoSelectedRef = useRef(false);
+  useEffect(() => {
+    if (autoSelectedRef.current) return;
+    if (!requestedEventId) return;
+    if (myHackathons.length === 0) return;
+    const match = myHackathons.find((h) => h.id === requestedEventId);
+    if (match) {
+      autoSelectedRef.current = true;
+      handleSelectHackathon(match);
+    }
+  }, [requestedEventId, myHackathons]);
+
   const handleApplySpeakerTemplate = useCallback(
     (idx: number, template: SpeakerTemplate): void => {
       setFormDataContent((prev: IDataContent) => {
@@ -1295,7 +1315,6 @@ const HackathonsEdit = () => {
           ...newSpeakers[idx],
           name: template.name,
           category: template.category,
-          // icon: template.icon,
           picture: template.picture,
         };
         return { ...prev, speakers: newSpeakers };
@@ -1361,7 +1380,17 @@ const HackathonsEdit = () => {
       submission_custom_link: hackathon.content?.submission_custom_link ?? null,
       judging_guidelines: hackathon.content?.judging_guidelines ?? '',
       submission_deadline: toLocalDatetimeString(hackathon.content?.submission_deadline ?? ''),
+      submission_open: hackathon.content?.submission_open ? toLocalDatetimeString(hackathon.content.submission_open) : '',
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
+      team_size_min: hackathon.content?.team_size_min,
+      team_size_max: hackathon.content?.team_size_max,
+      registration_mode: hackathon.content?.registration_mode ?? 'full',
+      tech_stack_options: hackathon.content?.tech_stack_options ?? [],
+      target_countries: hackathon.content?.target_countries ?? [],
+      country: hackathon.content?.country ?? hydrateCountryFromLocation(hackathon.location),
+      is_remote: typeof hackathon.content?.is_remote === 'boolean'
+        ? hackathon.content.is_remote
+        : hydrateRemoteFromLocation(hackathon.location),
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
     const trackDescriptions: { [key: number]: string } = {};
@@ -1446,17 +1475,13 @@ const HackathonsEdit = () => {
   const step6Ref = useRef<HTMLDivElement | null>(null);
   const step1BasicTabRef = useRef<HTMLButtonElement | null>(null);
   const step1DatesTabRef = useRef<HTMLButtonElement | null>(null);
-  const advancedOptionsRef = useRef<HTMLDivElement | null>(null);
-  const [advancedOptionsOpen, setAdvancedOptionsOpen] = React.useState<string>('');
 
-  // Preview error flags and refs to clear any leftover inline styles
   const [bannerPreviewError, setBannerPreviewError] = useState<boolean>(false);
   const [smallBannerPreviewError, setSmallBannerPreviewError] = useState<boolean>(false);
   const bannerFallbackRef = useRef<HTMLDivElement | null>(null);
   const smallBannerFallbackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // Clear any inline display style that might have been set imperatively
     if (bannerFallbackRef.current) {
       bannerFallbackRef.current.style.display = '';
     }
@@ -1472,7 +1497,7 @@ const HackathonsEdit = () => {
 
   const [activeStep, setActiveStep] = useState<'step1' | 'step2' | 'step3' | 'step4' | 'step5' | 'step6'>('step1');
   const [contentTab, setContentTab] = useState<
-    'tracks' | 'schedule' | 'resources' | 'speakers' | 'partners'
+    'tracks' | 'tech-stack' | 'schedule' | 'resources' | 'speakers' | 'partners'
   >('tracks');
   const [step1Tab, setStep1Tab] = useState<'basicInfo' | 'datesTime'>('basicInfo');
   const [scheduleMode, setScheduleMode] = useState<'calendar' | 'manual'>('calendar');
@@ -1498,19 +1523,13 @@ const HackathonsEdit = () => {
       setHasEditPermission(false);
       return;
     }
-    const customAttributes: string[] = session.user.custom_attributes || [];
-    const isSpecialRole =
-      customAttributes.includes("hackathonCreator") ||
-      customAttributes.includes("team1-admin") ||
-      customAttributes.includes("devrel");
+    const isSpecialRole = hasHackathonEditorRole(session.user.custom_attributes);
 
-    // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
       setHasEditPermission(isSpecialRole);
       return;
     }
 
-    // If hackathon is selected, check if user is creator/updater, special role, or cohost
     const userEmail = session.user.email || "";
     const isCohost =
       !!userEmail && Array.isArray(selectedHackathon.cohosts)
@@ -1603,10 +1622,12 @@ const HackathonsEdit = () => {
   }, [formDataContent.resources.length]);
 
   useEffect(() => {
-    if (formDataLatest.event !== 'hackathon' && contentTab === 'tracks') {
-      setContentTab('schedule');
+    if (formDataLatest.event !== 'hackathon') {
+      if (contentTab === 'tracks' || contentTab === 'tech-stack') {
+        setContentTab('schedule');
+      }
     }
-  }, [formDataLatest.event]);
+  }, [formDataLatest.event, contentTab]);
 
   useEffect(() => {
     if (formDataLatest.google_calendar_id) {
@@ -1640,7 +1661,6 @@ const HackathonsEdit = () => {
         const el = ref.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
-        // Visible overlap = intersection of section rect with container viewport
         const visibleTop = Math.max(rect.top, containerRect.top);
         const visibleBottom = Math.min(rect.bottom, containerRect.bottom);
         const visibleHeight = visibleBottom - visibleTop;
@@ -1801,17 +1821,19 @@ const HackathonsEdit = () => {
   const getDataToSend = () => {
     const content = { ...formDataContent };
     content.submission_deadline = toIso8601(content.submission_deadline);
+    if (content.submission_open) {
+      content.submission_open = toIso8601(content.submission_open);
+    }
     content.registration_deadline = toIso8601(content.registration_deadline);
     content.schedule = content.schedule.map(ev => ({ ...ev, date: toIso8601(ev.date) }));
     const latest = { ...formDataLatest };
     latest.start_date = toIso8601(latest.start_date);
     latest.end_date = toIso8601(latest.end_date);
     latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
-    const { icon, ...latestWithoutIcon } = latest;
     return {
       ...formDataMain,
       content,
-      ...latestWithoutIcon,
+      ...latest,
       cohosts: cohostsEmails,
       custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
@@ -1858,7 +1880,6 @@ const HackathonsEdit = () => {
         return { ...issue, label, section };
       });
 
-      // Also include cross-field date-range error (custom validation) so it shows in the modal
       const dateErr = getDateRangeError(formDataLatest.start_date, formDataLatest.end_date);
       if (dateErr) {
         setDateRangeError(dateErr);
@@ -1892,19 +1913,6 @@ const HackathonsEdit = () => {
 
     if (section === 'Participants & Prizes') {
       collapsedKey = 'about'; targetRef = step4Ref; stepKey = 'step4';
-    } else if (section === 'Advanced Options' || path === 'latest.custom_link' || path === 'content.join_custom_link' || path === 'content.submission_custom_link') {
-      // Advanced Options is an accordion below the Content section — expand it and scroll to it.
-      setAdvancedOptionsOpen('options');
-      requestAnimationFrame(() => {
-        const container = leftPanelRef.current;
-        const el = advancedOptionsRef.current;
-        if (!container || !el) return;
-        const elRect = el.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const scrollPosition = container.scrollTop + (elRect.top - containerRect.top);
-        container.scrollTo({ top: scrollPosition - 16, behavior: 'smooth' });
-      });
-      return;
     } else if (section === 'Basic Info' || path.startsWith('main.') || path === 'cohostsEmails') {
       collapsedKey = 'main'; targetRef = step1Ref; stepKey = 'step1';
     } else if (section === 'Stages' || path.startsWith('content.stages.')) {
@@ -1940,9 +1948,6 @@ const HackathonsEdit = () => {
     if (collapsedKey) setCollapsed(prev => ({ ...prev, [collapsedKey!]: false }));
     setActiveStep(stepKey);
 
-    // Use requestAnimationFrame so the scroll happens after React re-renders the
-    // expanded section. Scroll leftPanelRef directly — never use scrollIntoView
-    // inside a fixed/overflow-hidden layout as it can scroll the body and break layout.
     requestAnimationFrame(() => {
       const container = leftPanelRef.current;
       const el = targetRef?.current;
@@ -1951,7 +1956,6 @@ const HackathonsEdit = () => {
       const containerRect = container.getBoundingClientRect();
       const scrollPosition = container.scrollTop + (elRect.top - containerRect.top);
       container.scrollTo({ top: scrollPosition - 16, behavior: 'smooth' });
-      // Programmatically set the correct Step 1 sub-tab if navigating to step1
       if (stepKey === 'step1') {
         if (/(^|\.)(start_date|end_date|timezone|submission_deadline)$/.test(path)) {
           setStep1Tab('datesTime');
@@ -2062,7 +2066,7 @@ const HackathonsEdit = () => {
 
   const processBase64Images = async (data: any): Promise<any> => {
     const processedData = { ...data };
-    const imageFields = ['banner', 'small_banner'];
+    const imageFields = ['banner', 'small_banner', 'icon'];
     for (const field of imageFields) {
       if (processedData[field] && processedData[field].startsWith('data:image/')) {
         const fileName = `builders-hub/hackathon-images/${processedData.title.toLowerCase().replace(/ /g, '-')}/${processedData.title}-${field}-${Date.now()}.${processedData[field].split(';')[0].split('/')[1]}`;
@@ -2134,8 +2138,6 @@ const HackathonsEdit = () => {
             description: 'Your event has been created successfully.',
             variant: 'success',
           });
-          // No mostrar modal de confirmación de "update" en creación.
-          // El popup solo tiene sentido cuando el usuario edita un evento existente.
           setShowUpdateModal(false);
           setFieldsToUpdate([]);
           if (savedHackathon) {
@@ -2147,9 +2149,12 @@ const HackathonsEdit = () => {
           return true;
         } else {
           const data = await response.json().catch(() => ({}));
+          const details = Array.isArray(data?.details) && data.details.length > 0
+            ? data.details.map((d: any) => `• ${d.field}: ${d.message}`).join('\n')
+            : null;
           toast({
             title: 'Error creating event',
-            description: typeof data?.error === 'string' ? data.error : 'Failed to create event. Please try again.',
+            description: details ?? (typeof data?.error === 'string' ? data.error : 'Failed to create event. Please try again.'),
             variant: 'destructive',
           });
           return false;
@@ -2210,9 +2215,12 @@ const HackathonsEdit = () => {
           return true;
         } else {
           const data = await response.json().catch(() => ({}));
+          const details = Array.isArray(data?.details) && data.details.length > 0
+            ? data.details.map((d: any) => `• ${d.field}: ${d.message}`).join('\n')
+            : null;
           toast({
             title: 'Error updating event',
-            description: typeof data?.error === 'string' ? data.error : 'Failed to update event. Please try again.',
+            description: details ?? (typeof data?.error === 'string' ? data.error : 'Failed to update event. Please try again.'),
             variant: 'destructive',
           });
           return false;
@@ -2287,8 +2295,6 @@ const HackathonsEdit = () => {
   const handleUpdateClick = async () => {
     const isValid = await trigger();
     if (!isValid) {
-      // `errors` from formState may be stale after trigger(); let handleFormSubmit
-      // re-validate to get fresh errors and call onValidationError correctly.
       void submitWithValidation();
       return;
     }
@@ -2321,8 +2327,6 @@ const HackathonsEdit = () => {
 
   const handleConfirmUpdate = async (): Promise<void> => {
     setShowUpdateModal(false);
-    // En caso de que el modal se abra por algún motivo en modo creación,
-    // evitamos re-ejecutar el submit.
     if (!isSelectedHackathon) {
       setPendingCollapseSection(null);
       return;
@@ -2519,7 +2523,6 @@ const HackathonsEdit = () => {
       ],
       speakers: [
         {
-          // icon: "Megaphone",
           name: "Dr. Emin Gün Sirer",
           category: "Keynote Speaker",
           picture: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/2259ff3def815083bf765c53d57327dc-1657109283036.jpg"
@@ -2594,30 +2597,6 @@ const HackathonsEdit = () => {
     });
   };
 
-  // Check if user has required permissions
-  const hasRequiredPermissions = () => {
-    if (!session?.user?.custom_attributes) return false;
-    return session.user.custom_attributes.includes("team1-admin") ||
-      session.user.custom_attributes.includes("hackathonCreator") ||
-      session.user.custom_attributes.includes("devrel");
-  };
-
-  // Redirect unauthenticated users to home; authenticated without roles to home (same as proxy.ts)
-  React.useEffect(() => {
-    if (status === "loading") return;
-
-    if (status === "unauthenticated") {
-      window.location.href = "/";
-      return;
-    }
-
-    if (status === "authenticated" && !hasRequiredPermissions()) {
-      window.location.href = "/";
-      return;
-    }
-  }, [session, status]);
-
-  // Show loading while checking authentication
   if (status === "loading") {
     return (
       <div className="h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
@@ -2625,12 +2604,6 @@ const HackathonsEdit = () => {
       </div>
     );
   }
-
-  // Don't render if user is not authenticated or doesn't have permissions
-  if (status === "unauthenticated" || (status === "authenticated" && !hasRequiredPermissions())) {
-    return null; // Will redirect via useEffect
-  }
-
 
   const renderHackathonPreviewTabs = (): React.JSX.Element => {
     return (
@@ -2650,9 +2623,7 @@ const HackathonsEdit = () => {
       aria-busy={loading}
       aria-hidden={loading}>
       <Toaster />
-      {/* OverlaySpinner */}
       <OverlaySpinner open={loading} message={language === 'es' ? 'Guardando cambios...' : 'Saving Changes...'} />
-      {/* Header */}
       <div className="relative z-10 shrink-0 backdrop-blur-lg bg-fd-background/80 dark:bg-zinc-950/80 border-b border-zinc-200 dark:border-zinc-700 h-14 flex items-center justify-center">
         <div className="w-full px-4 md:px-8 flex justify-between items-center">
           <div className="flex items-center gap-1.5">
@@ -2803,7 +2774,6 @@ const HackathonsEdit = () => {
                 <TooltipContent>{t[language].addNewEvent}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            {/* User, Language, Theme */}
             <div className="flex items-center gap-2.5 ml-5">
               <LanguageButton
                 language={language}
@@ -2817,9 +2787,7 @@ const HackathonsEdit = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-hidden flex">
-        {/* Left Panel - Edit Form */}
         <div
           ref={leftPanelRef}
           className="w-1/2 h-full min-h-0 overflow-y-auto bg-white dark:bg-zinc-950"
@@ -2862,7 +2830,6 @@ const HackathonsEdit = () => {
             {(isSelectedHackathon || showForm) && (
               <div className="mt-2 mb-1 border-b border-zinc-200 dark:border-zinc-800" />
             )}
-            {/* Sticky bar: step navigation (always visible when editing) */}
             {(isSelectedHackathon || (showForm && hasEditPermission)) && (
               <div className="sticky top-0 z-20 bg-white/95 dark:bg-zinc-950/98 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 mb-4">
                 {showForm && hasEditPermission && (
@@ -3029,7 +2996,6 @@ const HackathonsEdit = () => {
 
             {showForm && hasEditPermission && (
               <>
-                {/* Cohosts Section - Always Visible */}
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 mb-6">
                   <h2 className="text-xl font-semibold mb-2 text-blue-700 dark:text-blue-300">{t[language].cohostsTitle}</h2>
                   <p className="text-sm text-blue-700/90 dark:text-blue-200 mb-4">
@@ -3048,7 +3014,6 @@ const HackathonsEdit = () => {
                     <p className="text-red-500 text-sm mt-2">{getInlineError('cohostsEmails')}</p>
                   )}
                 </div>
-                {/* Event Type option */}
                 <div className="rounded-lg p-6 bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
                     <div>
@@ -3069,7 +3034,6 @@ const HackathonsEdit = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    {/* Event Language */}
                     <div>
                       <h2 className='font-medium text-xl mb-2 block'>Event Language</h2>
                       <Select
@@ -3186,6 +3150,50 @@ const HackathonsEdit = () => {
                               <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.location')}</p>
                             )}
 
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Host country &amp; availability</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">
+                              Pick a host country, toggle &quot;Available remotely&quot;, or both for a hybrid event.
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                              <div className="flex-1">
+                                <Select
+                                  value={formDataContent.country ?? '__none__'}
+                                  onValueChange={(value) => {
+                                    const next = value === '__none__' ? undefined : value;
+                                    setFormDataContent((prev) => ({ ...prev, country: next }));
+                                    setFormDataMain((prev) => ({
+                                      ...prev,
+                                      location: composeLocation(next, formDataContent.is_remote),
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Host country (optional)" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">— No host country —</SelectItem>
+                                    {COUNTRIES.map((c) => (
+                                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 cursor-pointer">
+                                <Checkbox
+                                  checked={!!formDataContent.is_remote}
+                                  onCheckedChange={(checked) => {
+                                    const next = checked === true;
+                                    setFormDataContent((prev) => ({ ...prev, is_remote: next }));
+                                    setFormDataMain((prev) => ({
+                                      ...prev,
+                                      location: composeLocation(formDataContent.country, next),
+                                    }));
+                                  }}
+                                />
+                                <span className="text-sm">Available remotely</span>
+                              </label>
+                            </div>
+
                             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">
                               {t[language].address}
                             </div>
@@ -3284,20 +3292,50 @@ const HackathonsEdit = () => {
                                 )}
                               </div>
                               {formDataLatest.event === 'hackathon' && (
-                                <div>
-                                  <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                                  <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
-                                  <Input
-                                    type="datetime-local"
-                                    placeholder="Submission Deadline"
-                                    value={formDataContent.submission_deadline}
-                                    onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
-                                    className="w-full mb-4"
-                                  />
-                                  {getInlineError('content.submission_deadline') && (
-                                    <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_deadline')}</p>
-                                  )}
-                                </div>
+                                <>
+                                  <div>
+                                    <label className="font-medium text-xl mb-2 block">{t[language].submissionOpen}:</label>
+                                    <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionOpenHelp}</div>
+                                    <Input
+                                      type="datetime-local"
+                                      placeholder="Submission Opens At"
+                                      value={formDataContent.submission_open ?? ''}
+                                      onChange={(e) => setFormDataContent({ ...formDataContent, submission_open: e.target.value })}
+                                      className="w-full mb-4"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
+                                    <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
+                                    <Input
+                                      type="datetime-local"
+                                      placeholder="Submission Deadline"
+                                      value={formDataContent.submission_deadline}
+                                      onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
+                                      className="w-full mb-4"
+                                    />
+                                    {getInlineError('content.submission_deadline') && (
+                                      <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_deadline')}</p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <label className="font-medium text-xl mb-2 block">{t[language].registrationMode}:</label>
+                                    <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].registrationModeHelp}</div>
+                                    <select
+                                      value={formDataContent.registration_mode ?? 'full'}
+                                      onChange={(e) =>
+                                        setFormDataContent({
+                                          ...formDataContent,
+                                          registration_mode: e.target.value === 'simple' ? 'simple' : 'full',
+                                        })
+                                      }
+                                      className="w-full mb-4 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-900 dark:text-zinc-100"
+                                    >
+                                      <option value="full">full</option>
+                                      <option value="simple">simple</option>
+                                    </select>
+                                  </div>
+                                </>
                               )}
                               <div>
                                 <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
@@ -3374,7 +3412,6 @@ const HackathonsEdit = () => {
                     )}
                   </div>
 
-                  {/* Step 4: Track Text - Only for Hackathons */}
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step5Ref} className="text-2xl font-bold">{t[language].about}</h2>
@@ -3394,7 +3431,6 @@ const HackathonsEdit = () => {
                         <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].about}</div>
                         <div className="mb-2 text-zinc-500 text-xs">Write a step-by-step schedule outlining what will happen, either hour by hour or week by week. Use the formatting buttons below or type markdown directly.</div>
 
-                        {/* Formatting Toolbar */}
                         <div className="flex flex-wrap gap-2 mb-3 p-3 bg-zinc-800/50 border border-zinc-600 rounded-lg">
                           <button
                             type="button"
@@ -3406,7 +3442,6 @@ const HackathonsEdit = () => {
                                 const selectedText = rawTrackText.substring(start, end);
                                 const newText = rawTrackText.substring(0, start) + `**${selectedText}**` + rawTrackText.substring(end);
                                 setRawTrackText(newText);
-                                // Auto-convert to markdown
                                 const markdownText = convertToMarkdown(newText);
                                 setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
                               }
@@ -3426,7 +3461,6 @@ const HackathonsEdit = () => {
                                 const selectedText = rawTrackText.substring(start, end);
                                 const newText = rawTrackText.substring(0, start) + `*${selectedText}*` + rawTrackText.substring(end);
                                 setRawTrackText(newText);
-                                // Auto-convert to markdown
                                 const markdownText = convertToMarkdown(newText);
                                 setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
                               }
@@ -3446,7 +3480,6 @@ const HackathonsEdit = () => {
                                 const selectedText = rawTrackText.substring(start, end);
                                 const newText = rawTrackText.substring(0, start) + `# ${selectedText}` + rawTrackText.substring(end);
                                 setRawTrackText(newText);
-                                // Auto-convert to markdown
                                 const markdownText = convertToMarkdown(newText);
                                 setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
                               }
@@ -3466,7 +3499,6 @@ const HackathonsEdit = () => {
                                 const selectedText = rawTrackText.substring(start, end);
                                 const newText = rawTrackText.substring(0, start) + `## ${selectedText}` + rawTrackText.substring(end);
                                 setRawTrackText(newText);
-                                // Auto-convert to markdown
                                 const markdownText = convertToMarkdown(newText);
                                 setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
                               }
@@ -3486,7 +3518,6 @@ const HackathonsEdit = () => {
                                 const selectedText = rawTrackText.substring(start, end);
                                 const newText = rawTrackText.substring(0, start) + `### ${selectedText}` + rawTrackText.substring(end);
                                 setRawTrackText(newText);
-                                // Auto-convert to markdown
                                 const markdownText = convertToMarkdown(newText);
                                 setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
                               }
@@ -3504,7 +3535,6 @@ const HackathonsEdit = () => {
                                 const start = textarea.selectionStart;
                                 const newText = rawTrackText.substring(0, start) + '\n---\n' + rawTrackText.substring(start);
                                 setRawTrackText(newText);
-                                // Auto-convert to markdown
                                 const markdownText = convertToMarkdown(newText);
                                 setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
                               }
@@ -3522,7 +3552,6 @@ const HackathonsEdit = () => {
                                 const start = textarea.selectionStart;
                                 const newText = rawTrackText.substring(0, start) + '\n\n' + rawTrackText.substring(start);
                                 setRawTrackText(newText);
-                                // Auto-convert to markdown
                                 const markdownText = convertToMarkdown(newText);
                                 setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
                               }
@@ -3540,13 +3569,11 @@ const HackathonsEdit = () => {
                           value={rawTrackText}
                           onChange={(e) => {
                             setRawTrackText(e.target.value);
-                            // Auto-convert to markdown on every change
                             const markdownText = convertToMarkdown(e.target.value);
                             setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
                             scrollToSection('about');
                           }}
                           onKeyDown={(e) => {
-                            // Keyboard shortcuts
                             if (e.ctrlKey || e.metaKey) {
                               const textarea = e.target as HTMLTextAreaElement;
                               const start = textarea.selectionStart;
@@ -3633,7 +3660,6 @@ const HackathonsEdit = () => {
                     }
                   </div>
 
-                  {/* Step 3: Images & Branding */}
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step3Ref} className="text-2xl font-bold">Images & Branding</h2>
@@ -3650,14 +3676,12 @@ const HackathonsEdit = () => {
                           <p className="text-sm text-purple-800 dark:text-purple-200">Upload your hackathon banner and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
                         </div>
 
-                        {/* Banner Image */}
                         <div className="mb-6">
                           <label className="font-medium text-xl mb-2 block">{t[language].banner}:</label>
                           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].bannerHelp}</div>
 
                           <div className="mb-4">
                             <div className="flex gap-4 items-start">
-                              {/* File Input */}
                               <div className="flex-1">
                                 <input
                                   type="file"
@@ -3685,7 +3709,6 @@ const HackathonsEdit = () => {
                                 />
                               </div>
 
-                              {/* Or URL Input */}
                               <div className="flex-1">
                                 <input
                                   type="text"
@@ -3705,7 +3728,6 @@ const HackathonsEdit = () => {
                               </div>
                             </div>
 
-                            {/* Banner Preview */}
                             {formDataLatest.banner && (
                               <div className="mt-4">
                                 <div className="text-zinc-700 dark:text-zinc-400 text-sm mb-2">Preview (1600 x 909):</div>
@@ -3823,7 +3845,6 @@ const HackathonsEdit = () => {
                     )}
                   </div>
 
-                  {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step4Ref} className="text-2xl font-bold">
@@ -3847,25 +3868,32 @@ const HackathonsEdit = () => {
                         )}
 
                         <>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Organizer Name/Organization</div>
-                          <Input
-                            type="text"
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Organizing team</div>
+                          <select
                             name="organizers"
-                            placeholder="e.g., Avalanche Foundation, DevRel Team"
                             value={formDataMain.organizers || ''}
                             onChange={(e) => {
                               setFormDataMain(prev => ({ ...prev, organizers: e.target.value }));
                               scrollToSection('about');
                             }}
-                            className="w-full mb-4"
+                            className="w-full mb-4 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-900 dark:text-zinc-100"
                             required
-                          />
+                          >
+                            <option value="">Select an organizing team…</option>
+                            {Object.entries(REFERRAL_TEAM_LABELS).map(([slug, label]) => (
+                              <option key={slug} value={slug}>{label}</option>
+                            ))}
+                            {formDataMain.organizers && !isReferralTeamId(formDataMain.organizers) && (
+                              <option value={formDataMain.organizers}>
+                                {formDataMain.organizers} (legacy)
+                              </option>
+                            )}
+                          </select>
                           {getInlineError('main.organizers') && (
                             <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.organizers')}</p>
                           )}
                         </>
 
-                        {/* Step 4: Track Text - Only for Hackathons */}
                         {formDataLatest.event === 'hackathon' && (
                           <>
                             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].totalPrizes}</div>
@@ -3901,6 +3929,101 @@ const HackathonsEdit = () => {
                             {getInlineError('main.participants') && (
                               <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.participants')}</p>
                             )}
+
+                            <div className="mt-6 mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Min team size</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">Smallest allowed team size. Leave empty to allow solo (1).</div>
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="(1 — solo allowed)"
+                              value={formDataContent.team_size_min ?? ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.trim();
+                                const parsed = raw === '' ? undefined : Number(raw);
+                                setFormDataContent({
+                                  ...formDataContent,
+                                  team_size_min: Number.isFinite(parsed) ? parsed : undefined,
+                                });
+                              }}
+                              className="w-full mb-4"
+                            />
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].teamSizeMax}</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">{t[language].teamSizeMaxHelp}</div>
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="(no cap)"
+                              value={formDataContent.team_size_max ?? ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.trim();
+                                const parsed = raw === '' ? undefined : Number(raw);
+                                setFormDataContent({
+                                  ...formDataContent,
+                                  team_size_max: Number.isFinite(parsed) ? parsed : undefined,
+                                });
+                              }}
+                              className="w-full mb-4"
+                            />
+
+                            {(() => {
+                              const localCountries = getDefaultTargetCountries(formDataMain.organizers);
+                              const hasLocalOption = localCountries.length > 0;
+                              const isLocal = (formDataContent.target_countries ?? []).length > 0;
+                              const orgLabel = formDataMain.organizers
+                                ? REFERRAL_TEAM_LABELS[formDataMain.organizers] ?? formDataMain.organizers
+                                : null;
+                              return (
+                                <>
+                                  <div className="mt-6 mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Participation scope</div>
+                                  <div className="mb-3 text-zinc-700 dark:text-zinc-400 text-xs">
+                                    {hasLocalOption
+                                      ? `"Local" restricts registration to participants in the ${orgLabel} region.`
+                                      : 'Select an organizing team above to unlock "Local" scope.'}
+                                  </div>
+                                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setFormDataContent({ ...formDataContent, target_countries: [] })
+                                      }
+                                      className={`flex-1 px-4 py-3 rounded-md border text-left transition-colors ${
+                                        !isLocal
+                                          ? 'bg-red-600 text-white border-red-500'
+                                          : 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                      }`}
+                                    >
+                                      <div className="font-medium">🌍 Global</div>
+                                      <div className="text-xs opacity-80 mt-1">Anyone can register from any country.</div>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={!hasLocalOption}
+                                      onClick={() => {
+                                        if (!hasLocalOption) return;
+                                        setFormDataContent({
+                                          ...formDataContent,
+                                          target_countries: [...localCountries],
+                                        });
+                                      }}
+                                      className={`flex-1 px-4 py-3 rounded-md border text-left transition-colors ${
+                                        isLocal
+                                          ? 'bg-red-600 text-white border-red-500'
+                                          : hasLocalOption
+                                            ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                            : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-600 opacity-60 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      <div className="font-medium">📍 Local{orgLabel ? ` — ${orgLabel}` : ''}</div>
+                                      <div className="text-xs opacity-80 mt-1">
+                                        {hasLocalOption
+                                          ? localCountries.join(', ')
+                                          : 'No regional defaults configured for this team.'}
+                                      </div>
+                                    </button>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </>
                         )}
                         <div className="flex justify-end mt-4">
@@ -3921,7 +4044,6 @@ const HackathonsEdit = () => {
                     )}
                   </div>
 
-                  {/* Step 5: Content - Tracks, Schedule, etc. */}
                   <div ref={step6Ref} className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-2xl font-bold">{t[language].content}</h2>
@@ -3933,7 +4055,6 @@ const HackathonsEdit = () => {
                     </div>
                     {!collapsed.content && (
                       <>
-                        {/* Inner tabs for content sections */}
                         <Tabs
                           value={contentTab}
                           onValueChange={(v) => setContentTab(v as typeof contentTab)}
@@ -3943,6 +4064,11 @@ const HackathonsEdit = () => {
                             {formDataLatest.event === 'hackathon' && (
                               <TabsTrigger value="tracks" className="flex-1">
                                 {t[language].tracks}
+                              </TabsTrigger>
+                            )}
+                            {formDataLatest.event === 'hackathon' && (
+                              <TabsTrigger value="tech-stack" className="flex-1">
+                                Tech Stack
                               </TabsTrigger>
                             )}
                             <TabsTrigger value="schedule" className="flex-1">
@@ -3959,7 +4085,6 @@ const HackathonsEdit = () => {
                             </TabsTrigger>
                           </TabsList>
 
-                          {/* Tracks Section - Only for Hackathons */}
                           {formDataLatest.event === 'hackathon' && (
                             <TabsContent value="tracks">
                               <div className="space-y-4">
@@ -3994,10 +4119,57 @@ const HackathonsEdit = () => {
                             </TabsContent>
                           )}
 
-                          {/* Schedule / Calendar */}
+                          {formDataLatest.event === 'hackathon' && (
+                            <TabsContent value="tech-stack">
+                              <div className="space-y-4">
+                                <label className="font-medium text-xl">Tech Stack Options:</label>
+                                <p className="text-sm text-zinc-700 dark:text-zinc-400">
+                                  These are the options participants pick from in the submission form. Leave empty to use the defaults (Frontend, Backend, Smart Contract, AI/ML, Mobile, Infra, Other).
+                                </p>
+                                {(formDataContent.tech_stack_options ?? []).map((opt, index) => (
+                                  <div key={index} className="flex items-center gap-2">
+                                    <Input
+                                      type="text"
+                                      placeholder="e.g. Smart Contract"
+                                      value={opt.name}
+                                      onChange={(e) => {
+                                        const next = [...(formDataContent.tech_stack_options ?? [])];
+                                        next[index] = { name: e.target.value };
+                                        setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                                      }}
+                                      className="flex-1"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => {
+                                        const next = (formDataContent.tech_stack_options ?? []).filter((_, i) => i !== index);
+                                        setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                                      }}
+                                      aria-label="Remove tech stack option"
+                                    >
+                                      <Trash className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...(formDataContent.tech_stack_options ?? []), { name: '' }];
+                                      setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                                    }}
+                                    className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2"
+                                  >
+                                    <Plus className="w-4 h-4" /> Add Option
+                                  </Button>
+                                </div>
+                              </div>
+                            </TabsContent>
+                          )}
+
                           <TabsContent value="schedule">
                             <div className="space-y-4">
-                              {/* Pill toggles: Calendar vs Manual */}
                               <div className="flex gap-2 mb-4">
                                 <button
                                   type="button"
@@ -4020,7 +4192,6 @@ const HackathonsEdit = () => {
                                         setPendingManualSwitch(true);
                                         return;
                                       }
-                                      // second click confirms
                                       setFormDataLatest(prev => ({ ...prev, google_calendar_id: null }));
                                     }
                                     setPendingManualSwitch(false);
@@ -4035,14 +4206,12 @@ const HackathonsEdit = () => {
                                 </button>
                               </div>
 
-                              {/* Inline warning on pending switch */}
                               {pendingManualSwitch && (
                                 <p className="text-amber-600 dark:text-amber-400 text-sm mb-3">
                                   {t[language].switchToManualWarning}
                                 </p>
                               )}
 
-                              {/* Calendar mode */}
                               {scheduleMode === 'calendar' && (
                                 <>
                                   <div className="rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-4 mb-4">
@@ -4067,7 +4236,6 @@ const HackathonsEdit = () => {
                                 </>
                               )}
 
-                              {/* Manual mode */}
                               {scheduleMode === 'manual' && (
                                 <>
                                   <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
@@ -4103,7 +4271,6 @@ const HackathonsEdit = () => {
                             </div>
                           </TabsContent>
 
-                          {/* Resources */}
                           <TabsContent value="resources">
                             <div className="space-y-4">
                               <label className="font-medium text-xl mb-2 block">{t[language].resources}:</label>
@@ -4135,7 +4302,6 @@ const HackathonsEdit = () => {
                             </div>
                           </TabsContent>
 
-                          {/* Speakers */}
                           <TabsContent value="speakers">
                             <div className="space-y-4">
                               <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
@@ -4225,74 +4391,6 @@ const HackathonsEdit = () => {
                       <div className="text-zinc-600 dark:text-zinc-400 italic">{t[language].contentCompleted}</div>
                     )}
                   </div>
-                  <Accordion
-                    type="single"
-                    collapsible
-                    value={advancedOptionsOpen}
-                    onValueChange={setAdvancedOptionsOpen}
-                    className="w-full rounded-md border mt-6 px-4 py-2"
-                  >
-                    <AccordionItem value={'options'}>
-                      <AccordionPrimitive.Header className="flex" ref={advancedOptionsRef}>
-                        <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
-                          <span>Advanced options</span>
-                          <div className="flex items-center gap-2">
-                            <ChevronDown className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
-                          </div>
-                        </AccordionPrimitive.Trigger>
-                      </AccordionPrimitive.Header>
-
-                      <AccordionContent>
-                        <div className='pt-4'>
-                          <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataLatest.custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('latest.custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.custom_link')}</p>
-                          )}
-                          <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="join_custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.join_custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('content.join_custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.join_custom_link')}</p>
-                          )}
-                          <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="submission_custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.submission_custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('content.submission_custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_custom_link')}</p>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
                 </form>
               </>
             )}
@@ -4329,5 +4427,11 @@ const HackathonsEdit = () => {
 };
 
 export default function Page() {
-  return <HackathonsEdit />;
+  return (
+    <SessionProvider>
+      <Suspense fallback={null}>
+        <HackathonsEdit />
+      </Suspense>
+    </SessionProvider>
+  );
 }

@@ -56,10 +56,14 @@ export default function GeneralSecureComponent({
   const openJoinTeam = projectState.openJoinTeam;
   const openCurrentProject = projectState.openCurrentProject;
   const openInvalidInvitation = projectState.openInvalidInvitation;
-  const { hackathon, project, timeLeft, getProject } = useHackathonProject(
-    hackathonId as string,
-    invitationLink as string
-  );
+  const {
+    hackathon,
+    project,
+    timeLeft,
+    openCountdown,
+    submissionStatus,
+    getProject,
+  } = useHackathonProject(hackathonId as string, invitationLink as string);
   const lang = normalizeEventsLang(hackathon?.content?.language);
   const {
     form,
@@ -464,12 +468,37 @@ export default function GeneralSecureComponent({
         </aside>
 
         <div className="flex-1 flex flex-col gap-4 sm:gap-6">
-          <section className="w-full">
+          {/* Submission-window banner. Pre-open: show countdown + lock form. Post-close: show read-only banner. */}
+          {submissionStatus === "not_yet_open" && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-amber-100">
+              <h3 className="font-semibold mb-1">
+                {lang === "es" ? "Las entregas aún no están abiertas" : "Submissions are not open yet"}
+              </h3>
+              <p className="text-sm">
+                {lang === "es" ? "El formulario se desbloqueará en" : "The form unlocks in"}{" "}
+                <span className="font-mono">{openCountdown}</span>.
+              </p>
+            </div>
+          )}
+          {submissionStatus === "closed" && (
+            <div className="rounded-md border border-zinc-500/40 bg-zinc-500/10 p-4">
+              <h3 className="font-semibold mb-1">
+                {lang === "es" ? "Las entregas están cerradas" : "Submissions are closed"}
+              </h3>
+              <p className="text-sm text-zinc-300">
+                {lang === "es"
+                  ? "Tu última versión guardada es la final. Ya no puedes editarla."
+                  : "Your last saved version is final. Edits are no longer accepted."}
+              </p>
+            </div>
+          )}
+          <section className={`w-full ${submissionStatus !== "open" ? "opacity-60 pointer-events-none" : ""}`}>
             <Form {...form}>
               <form
                 onSubmit={(e) => {
                   console.log('📝 Form onSubmit event triggered');
                   e.preventDefault();
+                  if (submissionStatus !== "open") return;
                   form.handleSubmit(onSubmit)(e);
                 }}
                 className="space-y-4 sm:space-y-6"
@@ -501,7 +530,12 @@ export default function GeneralSecureComponent({
                     lang={lang}
                   />
                 )}
-                {step === 2 && <SubmitStep2 lang={lang} />}
+                {step === 2 && (
+                  <SubmitStep2
+                    lang={lang}
+                    availableTechStack={hackathon?.content?.tech_stack_options ?? []}
+                  />
+                )}
                 {step === 3 && <SubmitStep3 lang={lang} />}
 
                 <Separator />

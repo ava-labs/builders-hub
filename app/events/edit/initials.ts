@@ -67,7 +67,15 @@ export interface IDataContent {
   submission_custom_link: string | null;
   judging_guidelines: string;
   submission_deadline: string;
+  submission_open?: string;
   registration_deadline: string;
+  team_size_min?: number;
+  team_size_max?: number;
+  registration_mode?: "full" | "simple";
+  tech_stack_options?: { name: string }[];
+  target_countries?: string[];
+  country?: string;
+  is_remote?: boolean;
   /**
    * NOTE: Typed as `any` here because this field is used directly with react-hook-form,
    * whose type inference collapses discriminated union fields to `unknown`, breaking
@@ -125,7 +133,15 @@ export const initialData: {
     submission_custom_link: null,
     judging_guidelines: "",
     submission_deadline: "",
+    submission_open: "",
     registration_deadline: "",
+    team_size_min: undefined,
+    team_size_max: undefined,
+    registration_mode: "full",
+    tech_stack_options: [],
+    target_countries: [],
+    country: undefined,
+    is_remote: false,
   },
   latest: {
     start_date: "",

@@ -128,9 +128,9 @@ const BaseFormSchema = z.object({
   full_description: z
     .string()
     .min(1, { message: 'Full description is required' }),
-  tech_stack: z
-    .string()
-    .min(1, { message: 'Tech stack is required' }),
+  tech_stack_tags: z
+    .array(z.string())
+    .min(1, { message: 'Select at least one tech stack type' }),
   github_repository: z.preprocess(
     normalizeLinkArray,
     buildUrlArraySchema({
@@ -244,7 +244,7 @@ export const Step1Schema = BaseFormSchema.pick({
 });
 
 export const Step2Schema = BaseFormSchema.pick({
-  tech_stack: true,
+  tech_stack_tags: true,
   github_repository: true,
   explanation: true,
   demo_link: true,
@@ -321,7 +321,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       project_name: '',
       short_description: '',
       full_description: '',
-      tech_stack: '',
+      tech_stack_tags: [],
       tracks: [],
       categories: [],
       other_category: '',
@@ -333,11 +333,10 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: [],
       explanation: '',
       demo_video_link: '',
-      consent_sharing: false,
+      consent_sharing: true,
     },
   });
 
-  // Allow submission even without hackathon - projects can be standalone
   const canSubmit = state.isEditing;
 
   useEffect(() => {
@@ -351,7 +350,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
     ];
 
     const step2Fields: (keyof SubmissionForm)[] = [
-      "tech_stack",
+      "tech_stack_tags",
       "github_repository",
       "explanation",
       "demo_link",
@@ -710,7 +709,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       project_name: project.project_name ?? '',
       short_description: project.short_description ?? '',
       full_description: project.full_description ?? '',
-      tech_stack: project.tech_stack ?? '',
+      tech_stack_tags: Array.isArray(project.tech_stack_tags) ? project.tech_stack_tags : [],
       github_repository: project.github_repository ? project.github_repository.split(',').filter(Boolean) : [],
       explanation: project.explanation ?? '',
       demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],
@@ -763,7 +762,10 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
-      consent_sharing: !!project.consent_sharing,
+      consent_sharing:
+        typeof project.consent_sharing === 'boolean'
+          ? project.consent_sharing
+          : true,
     });
   }, [form, state.isEditing]);
 

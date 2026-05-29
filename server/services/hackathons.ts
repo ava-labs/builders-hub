@@ -18,6 +18,12 @@ import { hackathonStagesArraySchema } from "@/lib/validations/hackathon-stage.sc
 
 const prisma = new PrismaClient();
 
+const isNonEmptyString = (v: unknown): boolean =>
+  typeof v === "string" && v.trim() !== "";
+
+const isFiniteNumber = (v: unknown): boolean =>
+  typeof v === "number" && Number.isFinite(v);
+
 export const hackathonsValidations: Validation[] = [
   {
     field: "title",
@@ -49,7 +55,39 @@ export const hackathonsValidations: Validation[] = [
   {
     field: "tags",
     message: "Please add at least one category or tag.",
-    validation: (hackathon: Hackathon) => hasAtLeastOne(hackathon, "tags"),
+    validation: (hackathon: any) =>
+      Array.isArray(hackathon?.tags) &&
+      hackathon.tags.some((t: unknown) => isNonEmptyString(t)),
+  },
+  {
+    field: "timezone",
+    message: "Please select a timezone for the hackathon.",
+    validation: (hackathon: any) => isNonEmptyString(hackathon?.timezone),
+  },
+  {
+    field: "icon",
+    message: "Please upload an icon for the hackathon.",
+    validation: (hackathon: any) => isNonEmptyString(hackathon?.icon),
+  },
+  {
+    field: "banner",
+    message: "Please upload a banner image for the hackathon.",
+    validation: (hackathon: any) => isNonEmptyString(hackathon?.banner),
+  },
+  {
+    field: "small_banner",
+    message: "Please upload a small banner image for the hackathon.",
+    validation: (hackathon: any) => isNonEmptyString(hackathon?.small_banner),
+  },
+  {
+    field: "total_prizes",
+    message: "Total prize pool is required (use 0 if no monetary prizes).",
+    validation: (hackathon: any) => isFiniteNumber(hackathon?.total_prizes),
+  },
+  {
+    field: "participants",
+    message: "Expected participants is required (use 0 if unknown).",
+    validation: (hackathon: any) => isFiniteNumber(hackathon?.participants),
   },
 ];
 
@@ -66,6 +104,47 @@ export class ValidationError extends Error {
     this.cause = "ValidationError";
     this.details = details;
   }
+}
+
+export class ForbiddenError extends Error {
+  public cause: string;
+  constructor(message: string) {
+    super(message);
+    this.cause = "Forbidden";
+  }
+}
+
+// devrel manages any hackathon; team1-admin only its own team's events (User.team_id === Hackathon.organizers).
+export function canManageHackathon(
+  user: { custom_attributes?: string[] | null; team_id?: string | null } | null | undefined,
+  hackathon: { organizers?: string | null } | null | undefined,
+): boolean {
+  const attrs = user?.custom_attributes ?? [];
+  if (attrs.includes("devrel")) return true;
+  if (attrs.includes("team1-admin")) {
+    return !!user?.team_id && !!hackathon?.organizers && hackathon.organizers === user.team_id;
+  }
+  return false;
+}
+
+function pruneContentPlaceholders(content: any): any {
+  if (!content || typeof content !== "object") return content;
+  const next: any = { ...content };
+  if (Array.isArray(next.tracks)) {
+    next.tracks = next.tracks.filter((t: any) => isNonEmptyString(t?.name));
+  }
+  if (Array.isArray(next.partners)) {
+    next.partners = next.partners.filter((p: any) => isNonEmptyString(p?.name));
+  }
+  if (Array.isArray(next.resources)) {
+    next.resources = next.resources.filter(
+      (r: any) => isNonEmptyString(r?.title) || isNonEmptyString(r?.link),
+    );
+  }
+  if (Array.isArray(next.speakers)) {
+    next.speakers = next.speakers.filter((s: any) => isNonEmptyString(s?.name));
+  }
+  return next;
 }
 
 export async function getHackathonLite(
@@ -107,6 +186,12 @@ export interface GetHackathonsOptions {
   include_private?: boolean;
   cohost_email?: string | null;
   event?: string | null;
+  /**
+   * Team-scoped ownership: rows whose `organizers` matches this team_id
+   * are included alongside the user's own created/updated hackathons.
+   * Use for org-scoped admin views (e.g. team1-admin).
+   */
+  organizer_team?: string | null;
   visibility?: 'all' | 'public' | 'private';
   sort?: string;
 }
@@ -160,7 +245,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     }
   }
 
-  if (options.created_by || options.cohost_email) {
+  if (options.created_by || options.cohost_email || options.organizer_team) {
     const ownershipConditions: any[] = [];
     if (options.created_by) {
       // Show hackathons where user is either creator OR updater
@@ -175,6 +260,9 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
           has: options.cohost_email,
         },
       });
+    }
+    if (options.organizer_team) {
+      ownershipConditions.push({ organizers: options.organizer_team });
     }
 
     if (ownershipConditions.length > 0) {
@@ -342,17 +430,18 @@ export async function createHackathon(
   }
 
   if (hackathonData.content?.schedule) {
-    const schedule = hackathonData.content.schedule.map(
-      (activity: ScheduleActivity) => {
+    const schedule = hackathonData.content.schedule
+      .filter((activity: ScheduleActivity) => typeof activity?.date === "string" && activity.date.trim() !== "")
+      .map((activity: ScheduleActivity) => {
         activity.date = getDateWithTimezone(
           activity.date,
           hackathonData.timezone ?? ""
         ).toISOString();
         return activity;
-      }
-    );
+      });
     hackathonData.content!.schedule = schedule;
   }
+  hackathonData.content = pruneContentPlaceholders(hackathonData.content);
   const content = { ...hackathonData.content } as Prisma.JsonObject;
   const newHackathon = await prisma.hackathon.create({
     data: {
@@ -381,6 +470,9 @@ export async function createHackathon(
       content: content,
       event: hackathonData.event ?? 'hackathon',
       new_layout: hackathonData.new_layout ?? false,
+      is_public: hackathonData.is_public ?? false,
+      organizers: hackathonData.organizers,
+      google_calendar_id: hackathonData.google_calendar_id,
     },
   });
   hackathonData.id = newHackathon.id;
@@ -429,22 +521,41 @@ export async function updateHackathon(
     throw new Error("Hackathon not found");
   }
 
+  if (userId) {
+    const actingUser = await getUserById(userId);
+    if (!canManageHackathon(actingUser, existingHackathon)) {
+      throw new ForbiddenError("You can only edit hackathons organized by your team.");
+    }
+    if (
+      hackathonData.organizers !== undefined &&
+      actingUser?.team_id &&
+      !actingUser.custom_attributes?.includes("devrel")
+    ) {
+      hackathonData.organizers = actingUser.team_id;
+    }
+  }
+
   if (hackathonData.content?.schedule) {
-    const schedule = hackathonData.content.schedule.map(
-      (activity: ScheduleActivity) => {
+    const schedule = hackathonData.content.schedule
+      .filter((activity: ScheduleActivity) => typeof activity?.date === "string" && activity.date.trim() !== "")
+      .map((activity: ScheduleActivity) => {
         activity.date = getDateWithTimezone(
           activity.date,
           hackathonData.timezone ?? ""
         ).toISOString();
         return activity;
-      }
-    );
+      });
     hackathonData.content!.schedule = schedule;
+  }
+  if (hackathonData.content) {
+    hackathonData.content = pruneContentPlaceholders(hackathonData.content);
   }
   // Build update data object with only provided fields
   const updateData: any = {};
 
-  if (hackathonData.id !== undefined) updateData.id = hackathonData.id;
+  // SECURITY (IDOR): never set/overwrite the row primary key from caller input.
+  // The row to update is located solely by the `id` argument in `where`, so a
+  // caller-supplied `hackathonData.id` must not be written into the update data.
   if (hackathonData.title !== undefined) updateData.title = hackathonData.title;
   if (hackathonData.description !== undefined)
     updateData.description = hackathonData.description;
@@ -504,7 +615,7 @@ export async function updateHackathon(
     where: { id },
     data: updateData,
   });
-  revalidatePath(`/api/events/${hackathonData.id}`);
+  revalidatePath(`/api/events/${id}`);
   revalidatePath("/api/events/");
   return hackathonData as HackathonHeader;
 }

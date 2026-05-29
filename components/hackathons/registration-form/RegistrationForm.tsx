@@ -26,18 +26,19 @@ import { useRouter } from "next/navigation";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
-import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
-import { isTeam1Event } from "@/lib/events/team1";
 import { clearStoredReferralAttribution } from "@/lib/referrals/client";
 import {
   ReferralFormSection,
   buildReferralAttributionPayload,
 } from "@/components/referrals/ReferralFormSection";
 import { EMPTY_REFERRER, type ReferrerPickerValue } from "@/components/referrals/ReferrerPicker";
+import { TeamFormation } from "./TeamFormation";
+import { getTeamSizeRange, hasTeamPicker } from "@/lib/hackathons/teamSizeDefaults";
 import {
   GITHUB_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
 
 const optionalSocial = (pattern: RegExp, message: string) =>
@@ -54,7 +55,6 @@ const requiredSocial = (pattern: RegExp, requiredMessage: string, formatMessage:
     .min(1, requiredMessage)
     .refine((value) => pattern.test(value), { message: formatMessage });
 
-// Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
@@ -77,7 +77,7 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   languages: z.array(z.string()).optional(),
   hackathon_participation: z.string().optional(),
   dietary: z.string().optional().default(""),
-  github_portfolio: optionalSocial(
+  github_account: optionalSocial(
     GITHUB_ACCOUNT_PATTERN,
     "Enter your GitHub username or https://github.com/<username>",
   ),
@@ -86,18 +86,20 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
     "Telegram username is required",
     "Enter a valid Telegram handle (5-32 chars, letters/digits/underscore)",
   ),
+  x_account: optionalSocial(
+    X_ACCOUNT_PATTERN,
+    "Enter your X handle (without @) or https://x.com/<handle>",
+  ),
   terms_event_conditions: z.boolean().optional(),
   newsletter_subscription: z.boolean().default(false).optional(),
   prohibited_items: z.boolean().optional(),
   founder_check: z.boolean().optional(),
   avalanche_ecosystem_member: z.boolean().optional(),
-  // Transient: User-level consents collected here when not already true on the User row.
-  // Stripped before persisting RegisterForm; forwarded as `user_consents` to the API.
   user_notifications: z.boolean().optional(),
   user_consent_sharing: z.boolean().optional(),
 });
 
-export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
+export const registerSchema = createRegisterSchema(false);
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -120,34 +122,25 @@ export function RegisterForm({
   const [isSavingLater, setIsSavingLater] = useState(false);
   const isAdvancingStepRef = useRef(false);
   const [referrer, setReferrer] = useState<ReferrerPickerValue>(EMPTY_REFERRER);
-  // Current value of the User-level consents (notifications + Team1 outreach).
-  // null = never asked. The grouped consent block in Step 3 only renders the
-  // children that are not already `true` on the User record.
+  const [countryLocked, setCountryLocked] = useState(false);
+  const [teamSize, setTeamSize] = useState<number>(1);
+  const [teammateEmails, setTeammateEmails] = useState<string[]>([]);
+  const [teamError, setTeamError] = useState<string | null>(null);
   const [userConsentState, setUserConsentState] = useState<{
     notifications: boolean | null;
     consent_sharing: boolean | null;
   }>({ notifications: null, consent_sharing: null });
-  // Stays false until /api/profile/extended/{id} succeeds. Hide-by-default avoids
-  // double-asking users whose extended profile fetch fails or is slow.
   const [consentsLoaded, setConsentsLoaded] = useState(false);
+
+  const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
   const showNotificationsConsent =
     consentsLoaded && userConsentState.notifications !== true;
-  const showSharingConsent =
-    consentsLoaded && userConsentState.consent_sharing !== true;
-
-  // Use UTM preservation hook
-  useUTMPreservation();
-
-  // Determine if hackathon is online based on location
-  const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
-  // Team1-organized / co-hosted events require the `consent_sharing` opt-in
-  // unless the user has already granted it on their profile.
-  const isTeam1 = hackathon
-    ? isTeam1Event({ organizers: hackathon.organizers, cohosts: hackathon.cohosts })
-    : false;
-  const requireSharingConsent =
-    isTeam1 && consentsLoaded && userConsentState.consent_sharing !== true;
+  const showSharingConsent = consentsLoaded;
+  const requireSharingConsent = consentsLoaded;
   const lang = normalizeEventsLang(hackathon?.content?.language);
+  const registrationMode: "full" | "simple" = hackathon?.content?.registration_mode === "simple" ? "simple" : "full";
+  const isSimpleMode = registrationMode === "simple";
+  const totalSteps = isSimpleMode ? 1 : 2;
   
   const getDefaultValues = () => ({
     
@@ -172,15 +165,16 @@ export function RegisterForm({
     roles: [],
     languages: [],
     hackathon_participation: "",
-    github_portfolio: "",
+    github_account: "",
     telegram_account: "",
+    x_account: "",
     terms_event_conditions: false,
     newsletter_subscription: false,
     prohibited_items: false,
     founder_check: false,
     avalanche_ecosystem_member: false,
-    user_notifications: false,
-    user_consent_sharing: false,
+    user_notifications: true,
+    user_consent_sharing: true,
   });
 
   const form = useForm<RegisterFormValues>({
@@ -211,12 +205,17 @@ export function RegisterForm({
     try {
       const response = await axios.get(`/api/events/${hackathon_id}`);
       setHackathon(response.data);
+      const content = response.data?.content;
+      const range = getTeamSizeRange({
+        team_size_min: content?.team_size_min,
+        team_size_max: content?.team_size_max,
+      });
+      setTeamSize(range.min);
     } catch (err) {
       console.error("API Error:", err);
     }
   }
 
-  /** Prefill step1 from profile (name, email, country, telegram, company, role) when field is empty */
   async function mergeProfileIntoStep1() {
     const userId = (currentUser as { id?: string })?.id;
     if (!userId) return;
@@ -229,6 +228,9 @@ export function RegisterForm({
         consent_sharing: typeof profile.consent_sharing === "boolean" ? profile.consent_sharing : null,
       });
       setConsentsLoaded(true);
+      if (typeof profile.country === "string" && profile.country.trim().length > 0) {
+        setCountryLocked(true);
+      }
       const current = form.getValues();
       const merged = {
         ...current,
@@ -236,6 +238,8 @@ export function RegisterForm({
         email:  profile.email || current.email || "",
         city:  profile.country || current.city || "",
         telegram_account:  profile.telegram_account || current.telegram_account || "",
+        x_account:  profile.x_account || current.x_account || "",
+        github_account:  profile.github_account || current.github_account || "",
         company_name:  profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
         role:  profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
         is_student: profile.user_type?.is_student ?? current.is_student ?? false,
@@ -256,7 +260,6 @@ export function RegisterForm({
     }
   }
 
-  /** Persist step1 fields to profile (name, email, country, telegram, company_name, role) */
   async function saveStep1ToProfile() {
     const userId = (currentUser as { id?: string })?.id;
     if (!userId) return;
@@ -334,6 +337,7 @@ export function RegisterForm({
           city: loadedData.city || "",
           dietary: loadedData.dietary || "",
           telegram_account: loadedData.telegram_account || "",
+          x_account: loadedData.x_account || "",
           interests: loadedData.interests
             ? parseArrayField(loadedData.interests)
             : [],
@@ -344,7 +348,7 @@ export function RegisterForm({
             ? parseArrayField(loadedData.languages)
             : [],
           hackathon_participation: loadedData.hackathon_participation || "",
-          github_portfolio: loadedData.github_portfolio || "",
+          github_account: loadedData.github_portfolio || "",
           terms_event_conditions: loadedData.terms_event_conditions || false,
           newsletter_subscription: loadedData.newsletter_subscription || false,
           prohibited_items: !isOnlineHackathon ? (loadedData.prohibited_items || false) : false,
@@ -390,7 +394,7 @@ export function RegisterForm({
 
   async function saveProject(data: RegisterFormValues) {
     try {
-      const { user_notifications, user_consent_sharing, ...registerData } = data;
+      const { user_notifications, user_consent_sharing, github_account, ...registerData } = data;
       const userConsents: { notifications?: boolean; consent_sharing?: boolean } = {};
       if (showNotificationsConsent && typeof user_notifications === "boolean") {
         userConsents.notifications = user_notifications;
@@ -400,13 +404,18 @@ export function RegisterForm({
       }
       const payload = {
         ...registerData,
+        github_portfolio: github_account ?? "",
         ...(Object.keys(userConsents).length > 0 ? { user_consents: userConsents } : {}),
       };
       const response = await axios.post(`/api/register-form/`, payload);
       if (typeof window !== "undefined") {
         localStorage.removeItem(`formData_${hackathon_id}`);
       }
-      return response.data as { referralAttributed?: boolean };
+      return response.data as {
+        referralAttributed?: boolean;
+        warning?: string;
+        failedInvites?: string[];
+      };
     } catch (err) {
       console.error("API Error:", err);
       throw err;
@@ -437,13 +446,11 @@ export function RegisterForm({
     setDataFromLocalStorage();
   }, [hackathon_id]);
 
-  /** Registration only has steps 1–2; clamp if state ever jumps (e.g. double-click before fix). */
   useEffect(() => {
-    if (step > 2) setStep(2);
+    if (step > totalSteps) setStep(totalSteps);
     if (step < 1) setStep(1);
-  }, [step]);
+  }, [step, totalSteps]);
 
-  // Reinitialize form when hackathon data is loaded to use correct resolver
   useEffect(() => {
     if (hackathon) {
       const currentValues = form.getValues();
@@ -469,10 +476,10 @@ export function RegisterForm({
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
-    
-    if (step < 2) {
+    if (!isSimpleMode && step < 2) {
       setStep((prev) => (prev < 2 ? prev + 1 : prev));
     } else {
+      setTeamError(null);
       const errors: any = {};
 
       if (!data.terms_event_conditions) {
@@ -482,7 +489,7 @@ export function RegisterForm({
         };
       }
 
-      if (!isOnlineHackathon && !data.prohibited_items) {
+      if (!isSimpleMode && !isOnlineHackathon && !data.prohibited_items) {
         errors.prohibited_items = {
           type: "custom",
           message: "You must agree not to bring prohibited items to continue."
@@ -496,14 +503,74 @@ export function RegisterForm({
         };
       }
 
+      const range = getTeamSizeRange({
+        team_size_min: hackathon?.content?.team_size_min,
+        team_size_max: hackathon?.content?.team_size_max,
+      });
+      const maxTeammates =
+        range.max !== undefined ? Math.max(0, range.max - 1) : Infinity;
+      const cleanedTeammates = teammateEmails
+        .map((e) => e.trim())
+        .filter((e) => e.length > 0)
+        .slice(0, Number.isFinite(maxTeammates) ? (maxTeammates as number) : undefined);
+      const effectiveTeamSize = Math.min(
+        range.max ?? Number.MAX_SAFE_INTEGER,
+        Math.max(teamSize, 1 + cleanedTeammates.length),
+      );
+      const expectedTeammates = Math.max(0, teamSize - 1);
+      if (effectiveTeamSize < range.min) {
+        setTeamError(
+          lang === "es"
+            ? `Este evento requiere un equipo de al menos ${range.min} personas.`
+            : `This event requires a team of at least ${range.min}.`,
+        );
+        errors.__team = true;
+      } else if (cleanedTeammates.length < expectedTeammates) {
+        setTeamError(
+          lang === "es"
+            ? "Completa el correo de todos tus compañeros o cambia el tamaño del equipo."
+            : "Fill in every teammate email, or change the team size.",
+        );
+        errors.__team = true;
+      } else {
+        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const badIdx = cleanedTeammates.findIndex((e) => !emailRe.test(e));
+        if (badIdx >= 0) {
+          setTeamError(
+            lang === "es"
+              ? "Uno de los correos de tu equipo no es válido."
+              : "One of the teammate emails is not valid.",
+          );
+          errors.__team = true;
+        }
+        const selfEmail = (currentUser?.email ?? data.email ?? "").trim().toLowerCase();
+        if (selfEmail && cleanedTeammates.some((e) => e.toLowerCase() === selfEmail)) {
+          setTeamError(
+            lang === "es"
+              ? "No puedes invitarte a ti mismo como compañero."
+              : "You can't invite yourself as a teammate.",
+          );
+          errors.__team = true;
+        }
+        const lowercased = cleanedTeammates.map((e) => e.toLowerCase());
+        if (new Set(lowercased).size !== lowercased.length) {
+          setTeamError(
+            lang === "es"
+              ? "Hay correos repetidos en tu equipo."
+              : "Duplicate teammate emails are not allowed.",
+          );
+          errors.__team = true;
+        }
+      }
+
 
       if (Object.keys(errors).length > 0) {
         Object.keys(errors).forEach(field => {
+          if (field === "__team") return;
           form.setError(field as keyof RegisterFormValues, errors[field]);
         });
-        // Bring the first invalid field into view so the user notices the
-        // feedback even when scrolled to the submit button.
-        const firstField = Object.keys(errors)[0];
+        const firstField = Object.keys(errors).find((k) => k !== "__team")
+          ?? "__team";
         if (typeof window !== "undefined") {
           const el = document.querySelector<HTMLElement>(
             `[name="${firstField}"], #${CSS.escape(firstField)}`,
@@ -512,6 +579,7 @@ export function RegisterForm({
         }
         return;
       }
+      setTeamError(null);
       setFormData((prevData) => ({ ...prevData, ...data }));
 
       const finalData = {
@@ -522,13 +590,21 @@ export function RegisterForm({
         languages: data.languages ?? [],
         roles: data.roles ?? [],
         tools: data.tools,
-        // Only include prohibited_items if it's not an online hackathon
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
+        teammates: cleanedTeammates,
       };
 
       const result = await saveProject(finalData);
       if (result.referralAttributed) {
         clearStoredReferralAttribution();
+      }
+      if (Array.isArray(result.failedInvites) && result.failedInvites.length > 0) {
+        const failed = result.failedInvites.join(", ");
+        setTeamError(
+          lang === "es"
+            ? `Tu registro se guardó, pero no se pudieron enviar algunas invitaciones (${failed}). Puedes reenviarlas desde la página de tu proyecto.`
+            : `Your registration was saved, but some invites couldn't be sent (${failed}). You can re-invite them from your project page.`,
+        );
       }
       setIsDialogOpen(true);
     }
@@ -546,7 +622,7 @@ export function RegisterForm({
   };
 
   const handleStepChange = async (newStep: number) => {
-    if (newStep >= 1 && newStep <= 2) {
+    if (newStep >= 1 && newStep <= totalSteps) {
       if (step === 1 && newStep !== 1) {
         await saveStep1ToProfile();
       }
@@ -555,7 +631,7 @@ export function RegisterForm({
   };
 
   const onNextStep = async () => {
-    if (step >= 2 || isAdvancingStepRef.current) return;
+    if (step >= totalSteps || isAdvancingStepRef.current) return;
 
     let fieldsToValidate: (keyof RegisterFormValues)[] = [];
     if (step === 1) {
@@ -677,7 +753,44 @@ export function RegisterForm({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {step === 1 && (
             <>
-              <RegisterFormStep1 user={session?.user} lang={lang} />
+              <RegisterFormStep1
+                user={session?.user}
+                lang={lang}
+                mode={registrationMode}
+                countryLocked={countryLocked}
+                requireSocials={isSimpleMode}
+              />
+              {hackathon_id && hasTeamPicker(
+                getTeamSizeRange({
+                  team_size_min: hackathon?.content?.team_size_min,
+                  team_size_max: hackathon?.content?.team_size_max,
+                })
+              ) && (
+                <div id="__team">
+                  <TeamFormation
+                    hackathonId={hackathon_id}
+                    hackathon={{
+                      team_size_min: hackathon?.content?.team_size_min,
+                      team_size_max: hackathon?.content?.team_size_max,
+                    }}
+                    selectedSize={teamSize}
+                    onSizeChange={(s) => {
+                      setTeamSize(s);
+                      setTeamError(null);
+                    }}
+                    teammates={teammateEmails}
+                    onTeammatesChange={(e) => {
+                      setTeammateEmails(e);
+                      setTeamError(null);
+                    }}
+                    inviterEmail={currentUser?.email ?? undefined}
+                    lang={lang}
+                  />
+                  {teamError && (
+                    <p className="mt-2 text-sm text-red-500">{teamError}</p>
+                  )}
+                </div>
+              )}
               <ReferralFormSection
                 value={referrer}
                 onChange={setReferrer}
@@ -687,7 +800,7 @@ export function RegisterForm({
               />
             </>
           )}
-          {step === 2 && (
+          {!isSimpleMode && step === 2 && (
             <RegisterFormStep3
               isOnlineHackathon={isOnlineHackathon}
               lang={lang}
@@ -696,10 +809,33 @@ export function RegisterForm({
               requireSharingConsent={requireSharingConsent}
             />
           )}
+          {isSimpleMode && step === 1 && (
+            <div className="mt-6 flex items-start gap-3">
+              <input
+                id="terms_event_conditions"
+                type="checkbox"
+                checked={!!form.watch("terms_event_conditions")}
+                onChange={(e) =>
+                  form.setValue("terms_event_conditions", e.target.checked, { shouldDirty: true })
+                }
+                className="mt-1 h-4 w-4"
+              />
+              <label htmlFor="terms_event_conditions" className="text-sm cursor-pointer">
+                {t(lang, "reg.step2.terms.label")}
+              </label>
+            </div>
+          )}
+          {isSimpleMode &&
+            step === 1 &&
+            form.formState.errors.terms_event_conditions && (
+              <p className="text-sm text-red-500 mt-1">
+                {form.formState.errors.terms_event_conditions.message as string}
+              </p>
+            )}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
-              {step === 2 && (
+              {step === totalSteps && (
                 <LoadingButton
                   isLoading={form.formState.isSubmitting}
                   loadingText={t(lang, "reg.form.saving")}
@@ -711,7 +847,7 @@ export function RegisterForm({
                 </LoadingButton>
               )}
 
-              {step !== 2 && (
+              {step !== totalSteps && (
                 <Button
                   variant="red"
                   type="button"
@@ -722,7 +858,7 @@ export function RegisterForm({
                 </Button>
               )}
 
-              {step !== 2 && (
+              {step !== totalSteps && (
                 <LoadingButton
                   isLoading={isSavingLater}
                   loadingText={t(lang, "reg.form.saving")}
@@ -743,39 +879,41 @@ export function RegisterForm({
             </div>
 
             <div className="order-1 md:order-2 mb-4 md:mb-0 flex flex-col md:flex-row items-center justify-center">
-              <div className="flex items-center space-x-1">
-                {step > 1 && (
-                  <PaginationPrevious
-                    className="dark:hover:text-gray-200 cursor-pointer"
-                    label={t(lang, "reg.form.previous")}
-                    onClick={() => setStep(step - 1)}
-                  />
-                )}
-                <Pagination>
-                  <PaginationContent>
-                    {Array.from({ length: 2 }, (_, i) => i + 1).map((page) => (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          isActive={step === page}
-                          className="cursor-pointer"
-                          onClick={() => handleStepChange(page)}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                  </PaginationContent>
-                </Pagination>
-                {step < 2 && (
-                  <PaginationNext
-                    className="dark:hover:text-gray-200 cursor-pointer"
-                    label={t(lang, "reg.form.next")}
-                    onClick={onNextStep}
-                  />
-                )}
-              </div>
+              {totalSteps > 1 && (
+                <div className="flex items-center space-x-1">
+                  {step > 1 && (
+                    <PaginationPrevious
+                      className="dark:hover:text-gray-200 cursor-pointer"
+                      label={t(lang, "reg.form.previous")}
+                      onClick={() => setStep(step - 1)}
+                    />
+                  )}
+                  <Pagination>
+                    <PaginationContent>
+                      {Array.from({ length: totalSteps }, (_, i) => i + 1).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            isActive={step === page}
+                            className="cursor-pointer"
+                            onClick={() => handleStepChange(page)}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                    </PaginationContent>
+                  </Pagination>
+                  {step < totalSteps && (
+                    <PaginationNext
+                      className="dark:hover:text-gray-200 cursor-pointer"
+                      label={t(lang, "reg.form.next")}
+                      onClick={onNextStep}
+                    />
+                  )}
+                </div>
+              )}
               <span className="font-Aeonik text-xs sm:text-sm mt-2 md:mt-0 md:ml-2">
-                Step {step} of 2
+                Step {step} of {totalSteps}
               </span>
             </div>
           </div>

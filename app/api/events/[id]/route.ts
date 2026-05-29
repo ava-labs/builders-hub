@@ -1,7 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getHackathon, updateHackathon } from "@/server/services/hackathons";
+import { getHackathon, updateHackathon, canManageHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
 import { withAuthRole } from "@/lib/protectedRoute";
+import { ROLE_GROUPS } from "@/lib/auth/roles";
+import { getAuthSession } from "@/lib/auth/authSession";
+import { getUserById } from "@/server/services/getUser";
+
+function buildRegistrationProjection(hackathon: HackathonHeader) {
+  const content = hackathon.content ?? ({} as HackathonHeader["content"]);
+  return {
+    id: hackathon.id,
+    title: hackathon.title,
+    start_date: hackathon.start_date,
+    end_date: hackathon.end_date,
+    location: hackathon.location,
+    banner: hackathon.banner,
+    icon: hackathon.icon,
+    timezone: hackathon.timezone,
+    event: hackathon.event,
+    organizers: hackathon.organizers,
+    content: {
+      language: content.language,
+      registration_mode: content.registration_mode,
+      team_size_min: content.team_size_min,
+      team_size_max: content.team_size_max,
+      target_countries: content.target_countries,
+      country: content.country,
+      is_remote: content.is_remote,
+    },
+  };
+}
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -13,6 +41,20 @@ export async function GET(req: NextRequest, context: any) {
     }
 
     const hackathon = await getHackathon(id)
+
+    if (hackathon.is_public !== true) {
+      const session = await getAuthSession();
+      const actingUser = session?.user?.id ? await getUserById(session.user.id) : null;
+      const isOwner = !!session?.user?.id && hackathon.created_by === session.user.id;
+      const isCohost = !!session?.user?.email && (hackathon.cohosts ?? []).includes(session.user.email);
+      if (!canManageHackathon(actingUser, hackathon) && !isOwner && !isCohost) {
+        if (!session?.user?.id) {
+          return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+        }
+        return NextResponse.json(buildRegistrationProjection(hackathon));
+      }
+    }
+
     return NextResponse.json(hackathon);
   } catch (error) {
     console.error("Error in GET /api/events/[id]:");
@@ -23,7 +65,7 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PUT = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
@@ -34,16 +76,25 @@ export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any,
       return NextResponse.json(updatedHackathon);
     } else {
       const partialEditedHackathon = updateData as Partial<HackathonHeader>;
-      const updatedHackathon = await updateHackathon(partialEditedHackathon.id ?? id, partialEditedHackathon, userId);
+      const updatedHackathon = await updateHackathon(id, partialEditedHackathon, userId);
       return NextResponse.json(updatedHackathon);
     }
-  } catch (error) {
-    console.error("Error in PUT /api/events/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error in PUT /api/events/[id]:", error?.message, error?.stack);
+    const isValidation = error?.cause === 'ValidationError';
+    const isForbidden = error?.cause === 'Forbidden';
+    return NextResponse.json(
+      {
+        error: error?.message ?? 'Internal Server Error',
+        details: isValidation ? error?.details : undefined,
+        code: error?.code,
+      },
+      { status: isForbidden ? 403 : isValidation ? 400 : 500 }
+    );
   }
 });
 
-export const PATCH = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PATCH = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
@@ -55,8 +106,17 @@ export const PATCH = withAuthRole('devrel', async (req: NextRequest, context: an
     } else {
       return NextResponse.json({ error: "Only is_public field can be updated via PATCH" }, { status: 400 });
     }
-  } catch (error) {
-    console.error("Error in PATCH /api/events/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error in PATCH /api/events/[id]:", error?.message, error?.stack);
+    const isValidation = error?.cause === 'ValidationError';
+    const isForbidden = error?.cause === 'Forbidden';
+    return NextResponse.json(
+      {
+        error: error?.message ?? 'Internal Server Error',
+        details: isValidation ? error?.details : undefined,
+        code: error?.code,
+      },
+      { status: isForbidden ? 403 : isValidation ? 400 : 500 }
+    );
   }
 });

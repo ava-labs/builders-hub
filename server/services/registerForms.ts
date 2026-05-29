@@ -10,9 +10,13 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { RegistrationForm } from "@/types/registrationForm";
 import { sendMail } from "./mail";
-import { recordReferralAttribution } from "./referrals";
+import { recordReferralAttributionFromRequest } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
+import { COUNTRY_LOCKED_MESSAGE, isCountryChange } from "@/lib/profile/countryLock";
+import { getTeamSizeRange } from "@/lib/hackathons/teamSizeDefaults";
+import { isCountryAllowed } from "@/lib/hackathons/countryTargetDefaults";
+import { generateInvitation } from "./inviteProjectMember";
 
 export const registerValidations: Validation[] = [
   {
@@ -91,10 +95,16 @@ export const registerValidations: Validation[] = [
   },
 ];
 
-export const createRegisterValidations = (isOnlineHackathon: boolean): Validation[] => {
+export const createRegisterValidations = (
+  isOnlineHackathon: boolean,
+  isSimpleMode: boolean = false
+): Validation[] => {
   const baseValidations = registerValidations.filter(validation => validation.field !== "prohibited_items");
-  
-  if (!isOnlineHackathon) {
+
+  // Simple-mode registrations intentionally omit the prohibited-items consent
+  // (the form only renders the T&C checkbox), so don't require it server-side.
+  // Online hackathons never require it either.
+  if (!isOnlineHackathon && !isSimpleMode) {
     baseValidations.push({
       field: "prohibited_items",
       message: "You must agree not to bring prohibited items to continue.",
@@ -102,16 +112,21 @@ export const createRegisterValidations = (isOnlineHackathon: boolean): Validatio
         registerForm.prohibited_items === true,
     });
   }
-  
+
   return baseValidations;
 };
 
 export const validateRegisterForm = (
   registerData: Partial<RegistrationForm>,
-  isOnlineHackathon: boolean = false
-): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon), registerData);
+  isOnlineHackathon: boolean = false,
+  isSimpleMode: boolean = false
+): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon, isSimpleMode), registerData);
 export async function createRegisterForm(
-  registerData: Partial<RegistrationForm>
+  registerData: Partial<RegistrationForm> & {
+    x_account?: string;
+    teammates?: string[];
+  },
+  request?: Request
 ): Promise<RegistrationForm> {
   // Get hackathon information to determine if it's online
   const hackathon = await prisma.hackathon.findUnique({
@@ -119,6 +134,13 @@ export async function createRegisterForm(
   });
 
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
+  // Simple-mode events render a single page with only the T&C checkbox and
+  // intentionally omit the prohibited-items consent; mirror that here so the
+  // server doesn't require a field the form never collects.
+  const isSimpleMode = (hackathon?.content as any)?.registration_mode === "simple";
+  // Teammate invitations are handled separately (Member rows + invitation
+  // emails). Keep them out of the RegisterForm payload itself.
+  const rawTeammates = Array.isArray(registerData.teammates) ? registerData.teammates : [];
 
   // Telegram is mandatory on the User profile (BasicProfileSetup gate),
   // so the registration form no longer asks for it. Pull it from the user
@@ -127,22 +149,137 @@ export async function createRegisterForm(
   // canonical User.notifications value; mirror it here so the column reflects
   // the user's current marketing consent even when the grouped block in
   // Step 3 was hidden (because notifications was already true on the User).
+  let existingUser: {
+    id: string;
+    telegram_account: string | null;
+    notifications: boolean | null;
+    country: string | null;
+    x_account: string | null;
+  } | null = null;
   if (registerData.email) {
-    const user = await prisma.user.findUnique({
+    existingUser = await prisma.user.findUnique({
       where: { email: registerData.email },
-      select: { telegram_account: true, notifications: true },
+      select: {
+        id: true,
+        telegram_account: true,
+        notifications: true,
+        country: true,
+        x_account: true,
+      },
     });
-    if (user?.telegram_account) {
-      registerData.telegram_account = user.telegram_account;
+    if (existingUser?.telegram_account) {
+      registerData.telegram_account = existingUser.telegram_account;
     }
-    if (user && typeof user.notifications === "boolean") {
-      registerData.newsletter_subscription = user.notifications;
+    if (existingUser && typeof existingUser.notifications === "boolean") {
+      registerData.newsletter_subscription = existingUser.notifications;
     }
   }
 
-  const errors = validateRegisterForm(registerData, isOnlineHackathon);
+  // Country target gate: when the hackathon restricts to specific countries,
+  // refuse registrants whose stored country (or the country they're trying
+  // to register with) isn't in the whitelist. Empty/missing list = global.
+  const targetCountries = (hackathon?.content as any)?.target_countries as
+    | string[]
+    | undefined;
+  if (Array.isArray(targetCountries) && targetCountries.length > 0) {
+    const candidateCountry = existingUser?.country?.trim() || registerData.city?.trim();
+    if (!isCountryAllowed(targetCountries, candidateCountry)) {
+      throw new ValidationError(
+        `This event is restricted to participants from: ${targetCountries.join(", ")}.`,
+        [
+          {
+            field: "city",
+            message: `This event is restricted to participants from: ${targetCountries.join(", ")}.`,
+            validation: () => false,
+          },
+        ],
+      );
+    }
+  }
+
+  if (existingUser?.country) {
+    if (isCountryChange(existingUser.country, registerData.city)) {
+      throw new ValidationError(COUNTRY_LOCKED_MESSAGE, [
+        {
+          field: "city",
+          message: COUNTRY_LOCKED_MESSAGE,
+          validation: () => false,
+        },
+      ]);
+    }
+    registerData.city = existingUser.country;
+  }
+
+  if (existingUser && typeof registerData.x_account === "string") {
+    const trimmed = registerData.x_account.trim();
+    if (trimmed.length > 0 && trimmed !== existingUser.x_account) {
+      try {
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { x_account: trimmed },
+        });
+      } catch (err) {
+        console.error("[Registration] Failed to persist x_account:", err);
+      }
+    }
+  }
+
+  const errors = validateRegisterForm(registerData, isOnlineHackathon, isSimpleMode);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
+  }
+
+  // Enforce the admin-configured team-size range, normalize teammate emails,
+  // and reject the registrant inviting themselves or duplicates.
+  const teamRange = getTeamSizeRange({
+    team_size_min: (hackathon?.content as any)?.team_size_min,
+    team_size_max: (hackathon?.content as any)?.team_size_max,
+  });
+  const inviterEmail = (registerData.email ?? "").trim().toLowerCase();
+  const teammateEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const dedupedTeammates: string[] = [];
+  const invalidTeammates: string[] = [];
+  for (const raw of rawTeammates) {
+    if (typeof raw !== "string") continue;
+    const e = raw.trim().toLowerCase();
+    if (!e) continue;
+    // Reject malformed addresses server-side (the client validates too, but a
+    // crafted request must not slip an unsendable email into the invite flow).
+    if (!teammateEmailPattern.test(e)) {
+      invalidTeammates.push(e);
+      continue;
+    }
+    if (e === inviterEmail) continue;
+    if (dedupedTeammates.includes(e)) continue;
+    dedupedTeammates.push(e);
+  }
+  if (invalidTeammates.length > 0) {
+    throw new ValidationError("Validation failed", [
+      {
+        field: "teammates",
+        message: `These teammate emails are not valid: ${invalidTeammates.join(", ")}.`,
+        validation: () => false,
+      },
+    ]);
+  }
+  const teamSize = 1 + dedupedTeammates.length;
+  if (teamSize < teamRange.min) {
+    throw new ValidationError("Validation failed", [
+      {
+        field: "teammates",
+        message: `This event requires a team of at least ${teamRange.min}.`,
+        validation: () => false,
+      },
+    ]);
+  }
+  if (teamRange.max !== undefined && teamSize > teamRange.max) {
+    throw new ValidationError("Validation failed", [
+      {
+        field: "teammates",
+        message: `Team size cannot exceed ${teamRange.max} for this event.`,
+        validation: () => false,
+      },
+    ]);
   }
 
   const isNewRegistration = !(await prisma.registerForm.findUnique({
@@ -156,6 +293,24 @@ export async function createRegisterForm(
   }));
 
   const content = { ...registerData } as Prisma.JsonObject;
+  const commonFields = {
+    city: registerData.city ?? "",
+    telegram_account: registerData.telegram_account ?? "",
+    company_name: registerData.company_name ?? null,
+    dietary: registerData.dietary ?? null,
+    hackathon_participation: registerData.hackathon_participation ?? "",
+    interests: (registerData.interests ?? []).join(","),
+    languages: (registerData.languages ?? []).join(","),
+    roles: (registerData.roles ?? []).join(","),
+    name: registerData.name ?? "",
+    newsletter_subscription: registerData.newsletter_subscription ?? false,
+    prohibited_items: registerData.prohibited_items ?? false,
+    role: registerData.role ?? "",
+    terms_event_conditions: registerData.terms_event_conditions ?? false,
+    tools: (registerData.tools ?? []).join(","),
+    web3_proficiency: registerData.web3_proficiency ?? "",
+    github_portfolio: registerData.github_portfolio ?? "",
+  };
   const newRegisterFormData = await prisma.registerForm.upsert({
     where: {
       hackathon_id_email: {
@@ -163,64 +318,38 @@ export async function createRegisterForm(
         email: registerData.email as string,
       },
     },
-    update: {
-      city: registerData.city ?? "",
-      company_name: registerData.company_name ?? null,
-      dietary: registerData.dietary ?? null,
-      hackathon_participation: registerData.hackathon_participation ?? "",
-      interests: (registerData.interests ?? []).join(","),
-      languages: (registerData.languages ?? []).join(","),
-      roles: (registerData.roles ?? []).join(","),
-      name: registerData.name ?? "",
-      newsletter_subscription: registerData.newsletter_subscription ?? false,
-      prohibited_items: registerData.prohibited_items ?? false,
-      role: registerData.role ?? "",
-      terms_event_conditions: registerData.terms_event_conditions ?? false,
-      tools: (registerData.tools ?? []).join(","),
-      web3_proficiency: registerData.web3_proficiency ?? "",
-      github_portfolio: registerData.github_portfolio ?? "",
-      telegram_account: registerData.telegram_account ?? "",
-    },
+    update: commonFields,
     create: {
+      ...commonFields,
       hackathon: {
         connect: { id: registerData.hackathon_id },
       },
       user: {
         connect: { email: registerData.email },
       },
-      city: registerData.city ?? "",
-      telegram_account: registerData.telegram_account ?? "",
-      company_name: registerData.company_name ?? null,
-      dietary: registerData.dietary ?? null,
-      hackathon_participation: registerData.hackathon_participation ?? "",
-      interests: (registerData.interests ?? []).join(","),
-      languages: (registerData.languages ?? []).join(","),
-      roles: (registerData.roles ?? []).join(","),
-      name: registerData.name ?? "",
-      newsletter_subscription: registerData.newsletter_subscription ?? false,
-      prohibited_items: registerData.prohibited_items ?? false,
-      role: registerData.role ?? "",
-      terms_event_conditions: registerData.terms_event_conditions ?? false,
-      tools: (registerData.tools ?? []).join(","),
-      web3_proficiency: registerData.web3_proficiency ?? "",
-      github_portfolio: registerData.github_portfolio ?? "",
     },
   });
   registerData.id = newRegisterFormData.id;
 
   let referralAttributed = false;
   try {
-    const attribution = await recordReferralAttribution({
-      targetType: "hackathon_registration",
-      targetId: newRegisterFormData.hackathon_id,
-      userEmail: newRegisterFormData.email,
-      attribution: (registerData as any).referral_attribution ?? null,
-    });
+    // Merge the client-supplied attribution with the `ref` cookie so a referral
+    // code still lands even when the form payload omits it (e.g. the code only
+    // ever lived in storage/cookie and not in the submitted URL).
+    const attribution = await recordReferralAttributionFromRequest(
+      request ?? new Request("https://build.avax.network"),
+      {
+        targetType: "hackathon_registration",
+        targetId: newRegisterFormData.hackathon_id,
+        userEmail: newRegisterFormData.email,
+        attribution: (registerData as any).referral_attribution ?? null,
+      }
+    );
     referralAttributed = Boolean(attribution);
   } catch (error) {
     console.error("[Referral] Failed to record hackathon registration attribution:", error);
   }
-  
+
   // Send registration data to HubSpot
   try {
     await sendRegistrationToHubSpot(newRegisterFormData, hackathon);
@@ -235,12 +364,59 @@ export async function createRegisterForm(
       newRegisterFormData.hackathon_id as string
     );
   }
+
+  // Team invitations: reuse the project-member invite flow so teammate
+  // Members land in "Pending Confirmation" with the existing email + sign-in
+  // confirmation mechanic. The shared helper auto-creates the stub Project
+  // for this (hackathon, user) and is idempotent across re-registrations.
+  //
+  // We don't block registration on an invite failure (the registrant is
+  // already saved), but we must NOT swallow it silently either: any teammate
+  // whose invite didn't send is returned in `failedInvites` so the route can
+  // warn the user instead of leaving a min-team event with missing members.
+  let failedInvites: string[] = [];
+  if (dedupedTeammates.length > 0 && existingUser?.id) {
+    const lang = normalizeEventsLang((hackathon?.content as any)?.language);
+    try {
+      const inviteResult = await generateInvitation(
+        newRegisterFormData.hackathon_id as string,
+        existingUser.id,
+        newRegisterFormData.name ?? existingUser.id,
+        dedupedTeammates,
+        undefined,
+        undefined,
+        lang,
+      );
+      // generateInvitation skips self-invites / already-confirmed members
+      // (those never appear in InviteLinks), so only treat links it actually
+      // attempted and reported as failed.
+      failedInvites = (inviteResult.InviteLinks ?? [])
+        .filter((link) => !link.Success)
+        .map((link) => link.User);
+    } catch (err) {
+      // The whole batch failed before any send completed — surface every
+      // teammate so the user knows none of the invites went out.
+      console.error("[Registration] Failed to send teammate invitations:", err);
+      failedInvites = [...dedupedTeammates];
+    }
+    if (failedInvites.length > 0) {
+      console.error(
+        "[Registration] Some teammate invitations did not send:",
+        failedInvites,
+      );
+    }
+  }
+
   revalidatePath("/api/register-form/");
 
   return {
     ...newRegisterFormData,
     referralAttributed,
-  } as unknown as RegistrationForm & { referralAttributed: boolean };
+    failedInvites,
+  } as unknown as RegistrationForm & {
+    referralAttributed: boolean;
+    failedInvites: string[];
+  };
 }
 export async function getRegisterForm(email: string, hackathon_id: string) {
   const [registeredData, attribution] = await Promise.all([

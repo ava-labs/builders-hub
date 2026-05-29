@@ -30,10 +30,20 @@ const hackathonParticipationOptions = [
 interface Step1Props {
   user?: User;
   lang?: EventsLang;
+  mode?: "full" | "simple";
+  countryLocked?: boolean;
+  requireSocials?: boolean;
 }
-export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
+export default function RegisterFormStep1({
+  user,
+  lang = "en",
+  mode = "full",
+  countryLocked = false,
+  requireSocials = false,
+}: Step1Props) {
   const form = useFormContext<RegisterFormValues>();
   const watchedValues = form.watch();
+  const isSimple = mode === "simple";
 
   return (
     <>
@@ -99,9 +109,15 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>{t(lang, "reg.step1.country.label")}</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={countryLocked}
+                >
                   <FormControl>
-                    <SelectTrigger className="text-zinc-600">
+                    <SelectTrigger
+                      className={`text-zinc-600 ${countryLocked ? "cursor-not-allowed opacity-90" : ""}`}
+                    >
                       <SelectValue placeholder={t(lang, "reg.step1.country.placeholder")} />
                     </SelectTrigger>
                   </FormControl>
@@ -114,7 +130,9 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-600">
-                  {t(lang, "reg.step1.country.hint")}
+                  {countryLocked
+                    ? t(lang, "reg.step1.country.locked.hint")
+                    : t(lang, "reg.step1.country.hint")}
                 </FormMessage>
               </FormItem>
             )}
@@ -138,7 +156,62 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
           />
         </div>
 
-        {/* Full width below email & telegram: roles in 2 columns */}
+        {/* X (Twitter) handle and GitHub handle — shown in simple mode (SPEEDRUN-style) and as optional fields in full mode. */}
+        {isSimple && (
+          <>
+            <div className="col-span-12 md:col-span-6">
+              <FormField
+                control={form.control}
+                name="github_account"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t(
+                        lang,
+                        requireSocials ? "reg.step1.github.required.label" : "reg.step1.github.label",
+                      )}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t(lang, "reg.step1.github.placeholder")}
+                        className="bg-transparent placeholder-zinc-600"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-zinc-600" />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="col-span-12 md:col-span-6">
+              <FormField
+                control={form.control}
+                name="x_account"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t(
+                        lang,
+                        requireSocials ? "reg.step1.x.required.label" : "reg.step1.x.label",
+                      )}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t(lang, "reg.step1.x.placeholder")}
+                        className="bg-transparent placeholder-zinc-600"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-zinc-600" />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Full width below email & telegram: roles in 2 columns. Skipped in simple mode. */}
+        {!isSimple && (
         <div className="col-span-12 space-y-4">
           <FormLabel className="text-base font-medium">{t(lang, "reg.step1.roles.label")}</FormLabel>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-x-8">
@@ -385,7 +458,10 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
             </div>
           </div>
         </div>
+        )}
       </div>
+      {!isSimple && (
+      <>
       <div className="mt-8 mb-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">
           {t(lang, "reg.step1.additional.title")}
@@ -468,6 +544,8 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
           )}
         />
       </div>
+      </>
+      )}
     </>
   );
 }
