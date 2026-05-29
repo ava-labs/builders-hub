@@ -29,11 +29,18 @@ export function ApplyButton({
   companyName,
   children,
 }: Props) {
+  // web3.career's API ToS requires a do-follow backlink for the roles it
+  // supplies (source 'external'); every other source stays nofollow so we
+  // don't pass link equity to arbitrary apply URLs.
+  const rel =
+    listingSource === 'external'
+      ? 'noopener noreferrer'
+      : 'noopener noreferrer nofollow';
   return (
     <a
       href={href}
       target="_blank"
-      rel="noopener noreferrer nofollow"
+      rel={rel}
       className={className}
       onClick={() => {
         posthog?.capture?.('careers_apply_clicked', {

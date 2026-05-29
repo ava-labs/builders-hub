@@ -90,7 +90,6 @@ export async function GET(req: NextRequest) {
   }
 
   const redirectUri = `${base}/api/auth/x-link/callback`;
-  console.log('[x-link/callback] exchanging code', { base, redirectUri });
   const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   const tokenRes = await fetch('https://api.twitter.com/2/oauth2/token', {
@@ -112,6 +111,7 @@ export async function GET(req: NextRequest) {
     console.error('[x-link/callback] token exchange failed', {
       status: tokenRes.status,
       body: tokenData,
+      redirectUri,
     });
     return redirectAndClearState(errorRedirect);
   }

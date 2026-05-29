@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import parse from 'html-react-parser';
 import { ArrowLeft, ArrowUpRight, MapPin } from 'lucide-react';
 import { createMetadata } from '@/utils/metadata';
 import { prisma } from '@/prisma/prisma';
@@ -166,10 +167,9 @@ export default async function EcosystemCareerDetailPage({ params }: Params) {
             {access.canViewAll ? (
               <>
                 {job.description ? (
-                  <div
-                    className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-semibold prose-li:my-1 prose-a:text-red-600 dark:prose-a:text-red-400"
-                    dangerouslySetInnerHTML={{ __html: job.description }}
-                  />
+                  <div className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-semibold prose-li:my-1 prose-a:text-red-600 dark:prose-a:text-red-400">
+                    {parse(job.description)}
+                  </div>
                 ) : (
                   <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
                     {job.shortDescription}

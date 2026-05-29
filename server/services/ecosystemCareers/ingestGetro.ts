@@ -1,5 +1,6 @@
 import { prisma } from '@/prisma/prisma';
 import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
+import { sanitizeJobHtml } from '@/lib/ecosystem-careers/sanitizeJobHtml';
 import { pruneStaleExternalListings, upsertExternalListing } from './upsertExternalListing';
 
 export interface IngestResult {
@@ -218,7 +219,7 @@ export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResul
         company_tags: j.company?.industry_tags ?? [],
         title: j.title.trim(),
         short_description: (j.description ?? j.title).replace(/<[^>]*>/g, '').slice(0, 280),
-        description: j.description ?? null,
+        description: sanitizeJobHtml(j.description) || null,
         location: (j.locations ?? []).filter(Boolean).join(' · ') || null,
         remote_type: remoteType,
         employment_type: j.employment_types?.[0] ?? null,
