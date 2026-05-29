@@ -1,3 +1,5 @@
+import { HackathonStage } from "./hackathon-stage"
+
 export type HackathonStatus = "ENDED" | "ONGOING" | "UPCOMING"
 export type HackathonHeader = {
   id: string
@@ -85,6 +87,7 @@ export type Hackathon = {
    * Empty/missing falls back to DEFAULT_TECH_STACK_OPTIONS.
    */
   tech_stack_options?: { name: string }[]
+  stages: HackathonStage[]
 }
 
 export type ScheduleActivity = {
@@ -99,6 +102,8 @@ export type ScheduleActivity = {
   location: string
   category: string
   url: string
+  isVirtual: boolean
+  infoUrl?: string
   /** Video call URL (Google Meet, Zoom, etc.) - separate from physical location */
   video_call_url?: string
 }
@@ -137,5 +142,3 @@ export type Speaker = {
   icon: string
   category: string
 }
-
-

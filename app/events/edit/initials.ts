@@ -4,171 +4,156 @@ export interface IPartner {
 }
 
 export interface IDataMain {
-    title: string;
-    description: string;
-    location: string;
-    total_prizes: number;
-    tags: string[];
-    participants?: number;
-    organizers?: string;
-    is_public?: boolean;
-  }
-  
-  export interface ITrack {
-    icon: string;
-    logo: string;
-    name: string;
-    partner: string;
-    description: string;
-    short_description: string;
-  }
-  
-  export interface ISchedule {
-    url: string | null;
-    date: string;
-    name: string;
-    category: string;
-    location: string;
-    description: string;
-    duration: number;
-  }
-  
-  export interface ISpeaker {
-    icon: string;
-    name: string;
-    category: string;
-    picture: string;
-  }
-  
-  export interface IResource {
-    icon: string;
-    link: string;
-    title: string;
-    description: string;
-  }
-  
-  export interface IDataContent {
-    /** Event content language used by /events UI (default 'en'). */
-    language?: "en" | "es";
-    tracks: ITrack[];
-    address: string;
-    partners: IPartner[];
-    schedule: ISchedule[];
-    speakers: ISpeaker[];
-    resources: IResource[];
-    tracks_text: string;
-    speakers_text: string;
-    speakers_banner: string;
-    join_custom_link: string;
-    join_custom_text: string | null;
-    become_sponsor_link: string;
-    submission_custom_link: string | null;
-    judging_guidelines: string;
-    submission_deadline: string;
-    submission_open?: string;
-    registration_deadline: string;
-    team_size_min?: number;
-    team_size_max?: number;
-    registration_mode?: "full" | "simple";
-    tech_stack_options?: { name: string }[];
-    target_countries?: string[];
-    country?: string;
-    is_remote?: boolean;
-  }
-  
-  export interface IDataLatest {
-    start_date: string;
-    end_date: string;
-    timezone: string;
-    banner: string;
-    icon: string;
-    small_banner: string;
-    custom_link: string | null;
-    top_most: boolean;
-    event: string;
-    new_layout: boolean;
-    google_calendar_id: string | null;
-  }
-  
-  export const initialData: {
-    main: IDataMain;
-    content: IDataContent;
-    latest: IDataLatest;
-  } = {
-      main: {
-          title: '',
-          description: '',
-          location: '',
-          total_prizes: 0,
-          tags: [''],
-          participants: 0,
-          organizers: '',
-          is_public: false,
-      },
-      content: {
-          language: "en",
-          tracks: [
-            {
-              icon: '',
-              logo: '',
-              name: '',
-              partner: '',
-              description: '',
-              short_description: '',
-            },
-          ],
-          address: '',
-          partners: [{ name: '', logo: '' }],
-          schedule: [
-            {
-              url: null,
-              date: '',
-              name: '',
-              category: '',
-              location: '',
-              description: '',
-              duration: 0,
-            },
-          ],
-          speakers: [],
-          resources: [
-            {
-              icon: '',
-              link: '',
-              title: '',
-              description: '',
-            },
-          ],
-          tracks_text: '',
-          speakers_text: '',
-          speakers_banner: '',
-          join_custom_link: '',
-          join_custom_text: null,
-          become_sponsor_link: '',
-          submission_custom_link: null,
-          judging_guidelines: '',
-          submission_deadline: '',
-          submission_open: '',
-          registration_deadline: '',
-          team_size_min: undefined,
-          team_size_max: undefined,
-          registration_mode: 'full',
-          tech_stack_options: [],
-          target_countries: [],
-          country: undefined,
-          is_remote: false,
-      },
-      latest: {
-          start_date: '',
-          end_date: '',
-          timezone: '',
-          banner: '',
-          icon: '',
-          small_banner: '',
-          custom_link: null,
-          top_most: false,
-          event: 'hackathon',
-          new_layout: false,
-          google_calendar_id: null,
-      }
-  }
+  title: string;
+  description: string;
+  location: string;
+  total_prizes: number;
+  tags: string[];
+  participants?: number;
+  organizers?: string;
+  is_public?: boolean;
+}
+
+export interface ITrack {
+  icon: string;
+  logo: string;
+  name: string;
+  partner: string;
+  description: string;
+  short_description: string;
+}
+
+export interface ISchedule {
+  url: string | null;
+  date: string;
+  name: string;
+  category: string;
+  location: string;
+  description: string;
+  duration: number;
+  isVirtual: boolean;
+  infoUrl?: string;
+}
+
+export interface ISpeaker {
+  // icon: string;
+  name: string;
+  category: string;
+  picture: string;
+}
+
+export interface IResource {
+  icon: string;
+  link: string;
+  title: string;
+  description: string;
+}
+
+export interface IDataContent {
+  /** Event content language used by /events UI (default 'en'). */
+  language?: "en" | "es";
+  tracks: ITrack[];
+  address: string;
+  partners: IPartner[];
+  schedule: ISchedule[];
+  speakers: ISpeaker[];
+  resources: IResource[];
+  tracks_text: string;
+  speakers_text: string;
+  speakers_banner: string;
+  join_custom_link: string | null;
+  join_custom_text: string | null;
+  become_sponsor_link: string | null;
+  submission_custom_link: string | null;
+  judging_guidelines: string;
+  submission_deadline: string;
+  submission_open?: string;
+  registration_deadline: string;
+  team_size_min?: number;
+  team_size_max?: number;
+  registration_mode?: "full" | "simple";
+  tech_stack_options?: { name: string }[];
+  target_countries?: string[];
+  country?: string;
+  is_remote?: boolean;
+  /**
+   * NOTE: Typed as `any` here because this field is used directly with react-hook-form,
+   * whose type inference collapses discriminated union fields to `unknown`, breaking
+   * assignments throughout the editor. Server-side Zod validation (hackathons.ts,
+   * hackathonStagesArraySchema) is the authoritative security boundary for this field.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  stages: any;
+}
+
+export interface IDataLatest {
+  start_date: string;
+  end_date: string;
+  timezone: string;
+  banner: string;
+  icon: string;
+  small_banner: string;
+  custom_link: string | null;
+  top_most: boolean;
+  event: string;
+  new_layout: boolean;
+  google_calendar_id: string | null;
+}
+
+export const initialData: {
+  main: IDataMain;
+  content: IDataContent;
+  latest: IDataLatest;
+} = {
+  main: {
+    title: "",
+    description: "",
+    location: "",
+    total_prizes: 0,
+    tags: [""],
+    participants: 0,
+    organizers: "",
+    is_public: false,
+  },
+  content: {
+    stages: [],
+    language: "en",
+    tracks: [],
+    address: "",
+    partners: [],
+    schedule: [],
+    speakers: [],
+    resources: [],
+    tracks_text: "",
+    speakers_text: "",
+    speakers_banner: "",
+    join_custom_link: "",
+    join_custom_text: null,
+    become_sponsor_link: "",
+    submission_custom_link: null,
+    judging_guidelines: "",
+    submission_deadline: "",
+    submission_open: "",
+    registration_deadline: "",
+    team_size_min: undefined,
+    team_size_max: undefined,
+    registration_mode: "full",
+    tech_stack_options: [],
+    target_countries: [],
+    country: undefined,
+    is_remote: false,
+  },
+  latest: {
+    start_date: "",
+    end_date: "",
+    timezone: "",
+    banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
+    icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
+    small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",
+    custom_link: null,
+    top_most: false,
+    event: "hackathon",
+    new_layout: true,
+    google_calendar_id: null,
+  },
+};
