@@ -381,10 +381,6 @@ function MemberApplicationSection({
   );
 }
 
-/**
- * A single staged answer with the snapshot of the question it answers, as
- * persisted server-side by the stage-submit endpoint.
- */
 interface StageAnswerEntry {
   question_id?: string;
   question_label?: string;
@@ -397,12 +393,6 @@ interface StageAnswerEnvelope {
   answers: Record<string, StageAnswerEntry>;
 }
 
-/**
- * Detects the question-linked envelope written for staged submissions
- * (`{ answers: { [fieldId]: { question_label, answer, ... } } }`). Legacy flat
- * rows and the build_games/applicant payloads lack `answers`, so they keep
- * their existing rendering path.
- */
 function isAnswerEnvelope(
   data: Record<string, unknown>
 ): data is Record<string, unknown> & StageAnswerEnvelope {
@@ -414,7 +404,6 @@ function isAnswerEnvelope(
   );
 }
 
-/** Formats a staged answer value for display (arrays joined, booleans Yes/No). */
 function formatStageAnswer(answer: unknown): string {
   if (answer === null || answer === undefined) return "";
   if (typeof answer === "boolean") return answer ? "Yes" : "No";
@@ -432,10 +421,6 @@ function formatStageAnswer(answer: unknown): string {
   return String(answer);
 }
 
-/**
- * Renders staged submissions as question -> answer pairs using the server-side
- * question snapshot, so reviewers see what each answer was responding to.
- */
 function StageAnswerView({ envelope }: { envelope: StageAnswerEnvelope }) {
   const entries = Object.entries(envelope.answers)
     .map(([fieldId, entry]) => ({

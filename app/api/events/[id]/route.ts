@@ -6,20 +6,6 @@ import { ROLE_GROUPS } from "@/lib/auth/roles";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { getUserById } from "@/server/services/getUser";
 
-/**
- * Minimal, non-sensitive view of a private event for authenticated callers
- * who are not managers/owners/cohosts (e.g. invitees loading the registration
- * page). Includes only the fields the registration form and its children read,
- * plus the eligibility/display fields it may surface. Deliberately omits
- * sensitive/admin data: judging_guidelines, cohosts, created_by, evaluation
- * and judge config, stage `submitForm` internals, custom links, etc.
- *
- * `organizers` is intentionally kept: it is a non-sensitive team_id already
- * shown publicly on event cards/layouts, and the registration form uses it to
- * detect Team1 events (mandatory sharing consent). `cohosts` stays excluded
- * because it is a list of admin emails; cohost-only Team1 detection is still
- * enforced server-side on submit in /api/register-form.
- */
 function buildRegistrationProjection(hackathon: HackathonHeader) {
   const content = hackathon.content ?? ({} as HackathonHeader["content"]);
   return {
@@ -56,26 +42,12 @@ export async function GET(req: NextRequest, context: any) {
 
     const hackathon = await getHackathon(id)
 
-    // Private/draft events are only fully readable by managers (devrel or the
-    // organizing team's admin), the creator, or a cohost.
-    //
-    //   public                        -> full event (anyone)
-    //   private + manager/owner/cohost-> full event
-    //   private + authenticated, other-> registration-safe projection
-    //   private + anonymous           -> 404
-    //
-    // Authenticated non-managers (e.g. invitees) still need to load a private
-    // event's registration page, so they get a minimal, non-sensitive
-    // projection instead of the full record. Sensitive/admin fields
-    // (judging_guidelines, cohosts, created_by, stages/submitForm internals,
-    // evaluation/judge config, custom links, etc.) are never included.
     if (hackathon.is_public !== true) {
       const session = await getAuthSession();
       const actingUser = session?.user?.id ? await getUserById(session.user.id) : null;
       const isOwner = !!session?.user?.id && hackathon.created_by === session.user.id;
       const isCohost = !!session?.user?.email && (hackathon.cohosts ?? []).includes(session.user.email);
       if (!canManageHackathon(actingUser, hackathon) && !isOwner && !isCohost) {
-        // Anonymous callers see nothing.
         if (!session?.user?.id) {
           return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
         }
@@ -104,7 +76,6 @@ export const PUT = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequ
       return NextResponse.json(updatedHackathon);
     } else {
       const partialEditedHackathon = updateData as Partial<HackathonHeader>;
-      // Use the URL id only, never a caller-supplied body id.
       const updatedHackathon = await updateHackathon(id, partialEditedHackathon, userId);
       return NextResponse.json(updatedHackathon);
     }
