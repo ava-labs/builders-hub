@@ -43,9 +43,7 @@ export const POST = withAuth(async (
     const body = await req.json();
     const { user_consents, ...registerData } = body ?? {};
 
-    // Team1-organized events require explicit sharing consent unless the user
-    // has already granted it on their profile. Enforce here so a crafted
-    // client request can't bypass the registration form's required check.
+    // Enforce server-side so a crafted client request can't bypass the consent check.
     const hackathonId = registerData?.hackathon_id;
     if (session.user?.email && typeof hackathonId === "string" && hackathonId) {
       const [hackathon, user] = await Promise.all([
@@ -81,9 +79,6 @@ export const POST = withAuth(async (
     }
     const newHackathon = await createRegisterForm(registerData, req);
 
-    // Teammate invitations are best-effort and don't block registration, but we
-    // surface any that failed so the client can warn the user instead of
-    // leaving them with a silently incomplete team.
     const failedInvites = Array.isArray((newHackathon as any).failedInvites)
       ? ((newHackathon as any).failedInvites as string[])
       : [];

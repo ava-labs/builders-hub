@@ -106,6 +106,27 @@ export class ValidationError extends Error {
   }
 }
 
+export class ForbiddenError extends Error {
+  public cause: string;
+  constructor(message: string) {
+    super(message);
+    this.cause = "Forbidden";
+  }
+}
+
+// devrel manages any hackathon; team1-admin only its own team's events (User.team_id === Hackathon.organizers).
+export function canManageHackathon(
+  user: { custom_attributes?: string[] | null; team_id?: string | null } | null | undefined,
+  hackathon: { organizers?: string | null } | null | undefined,
+): boolean {
+  const attrs = user?.custom_attributes ?? [];
+  if (attrs.includes("devrel")) return true;
+  if (attrs.includes("team1-admin")) {
+    return !!user?.team_id && !!hackathon?.organizers && hackathon.organizers === user.team_id;
+  }
+  return false;
+}
+
 function pruneContentPlaceholders(content: any): any {
   if (!content || typeof content !== "object") return content;
   const next: any = { ...content };
@@ -530,6 +551,13 @@ export async function updateHackathon(
   });
   if (!existingHackathon) {
     throw new Error("Hackathon not found");
+  }
+
+  if (userId) {
+    const actingUser = await getUserById(userId);
+    if (!canManageHackathon(actingUser, existingHackathon)) {
+      throw new ForbiddenError("You can only edit hackathons organized by your team.");
+    }
   }
 
   if (hackathonData.content?.schedule) {

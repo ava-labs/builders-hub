@@ -11,37 +11,6 @@ import { getAuthSession } from '@/lib/auth/authSession';
 import { ROLE_GROUPS } from '@/lib/auth/roles';
 import { z } from 'zod';
 
-/**
- * SECURITY: Role assignment audit trail.
- *
- * The custom_attributes values used to gate hackathon creation are assigned
- * server-side by privileged endpoints only:
- *
- * - `devrel`            – assigned via the internal admin panel at
- *                         POST /api/admin/users/[id]/roles, which itself
- *                         requires `withAuthRole('devrel', ...)` (devrel-only).
- *
- * - `team1-admin`       – assigned by the same /api/admin/users/[id]/roles
- *                         endpoint; only a devrel user can grant this attribute.
- *                         It scopes a partner organisation's admin access.
- *
- * - `hackathonCreator`  – assigned via POST /api/admin/users/[id]/roles;
- *                         requires the caller to hold the `devrel` attribute.
- *                         It is intended for trusted external event organisers
- *                         who need the ability to create hackathons without
- *                         full devrel access.
- *
- * None of these attributes can be self-assigned by a regular user.
- */
-
-/**
- * Zod schema for the POST /api/events request body.
- *
- * SECURITY: Unknown keys are stripped (`.strip()` is the Zod default for
- * objects) so that callers cannot inject unexpected fields into the Prisma
- * create call.  Only explicitly allow-listed fields are forwarded to
- * `createHackathon`.
- */
 const createHackathonSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().min(1),
@@ -61,8 +30,6 @@ const createHackathonSchema = z.object({
   new_layout: z.boolean().optional(),
   is_public: z.boolean().optional(),
   google_calendar_id: z.string().nullable().optional(),
-  // `content` is a freeform JSON blob — accept unknown shape but strip at the
-  // top level via the enclosing object schema.
   content: z.unknown().optional(),
 });
 
@@ -74,9 +41,6 @@ export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
 
-    // SECURITY: Parse and validate the visibility param BEFORE acting on it.
-    // An unauthorized caller must never be able to use this param to bypass
-    // the is_public filter — validation and role check happen first.
     const rawVisibility = searchParams.get('visibility') ?? undefined;
     const visibilityParse = visibilitySchema.safeParse(rawVisibility);
     if (!visibilityParse.success) {
@@ -84,7 +48,6 @@ export async function GET(req: NextRequest) {
     }
     const requestedVisibility = visibilityParse.data;
 
-    // Build options WITHOUT visibility — it will be set after the role check.
     let options: GetHackathonsOptions = {
       page: Number(searchParams.get('page') || 1),
       pageSize: Number(searchParams.get('pageSize') || 10),
@@ -100,7 +63,7 @@ export async function GET(req: NextRequest) {
     const userId = session?.user?.id;
     const managedOnly = searchParams.get('managed') === 'true';
 
-    let isPrivileged = false; // devrel or team1-admin — the only roles allowed to see private hackathons
+    let isPrivileged = false;
 
     if (userId) {
       const user = await getUserById(userId);
@@ -117,16 +80,11 @@ export async function GET(req: NextRequest) {
       if (managedOnly) {
         options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
         if (isDevrel) {
-          // Devrel sees every managed hackathon globally.
         } else if (isTeam1Admin) {
-          // team1-admin manages hackathons for their own org: scope by their
-          // team_id matched against Hackathon.organizers. They also keep
-          // visibility into hackathons they personally created or cohost.
           options.created_by = userId;
           options.cohost_email = user.email || undefined;
           options.organizer_team = user.team_id || null;
         } else {
-          // Plain hackathonCreator: their own hackathons only.
           options.created_by = userId;
           options.cohost_email = user.email || undefined;
         }
@@ -137,8 +95,6 @@ export async function GET(req: NextRequest) {
       options.include_private = false;
     }
 
-    // SECURITY: Only devrel/team1-admin may request visibility=private or visibility=all.
-    // All other callers receive only public hackathons regardless of the param.
     if (requestedVisibility === 'private' || requestedVisibility === 'all') {
       if (!isPrivileged) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -172,8 +128,6 @@ export const POST = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextReq
   try {
     const rawBody = await req.json();
 
-    // SECURITY: Validate and strip unknown fields via Zod before forwarding to
-    // the service layer.  This prevents mass-assignment / schema injection.
     const parseResult = createHackathonSchema.safeParse(rawBody);
     if (!parseResult.success) {
       return NextResponse.json(
@@ -184,9 +138,6 @@ export const POST = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextReq
 
     const validatedBody = parseResult.data;
 
-    // SECURITY: Audit log — record who is creating the hackathon and which
-    // role was used to authorise the action.  Do NOT log the full body as it
-    // may contain PII.
     console.warn('[AUDIT] POST /api/events — hackathon creation', {
       userId: session.user.id,
       roleUsed,
@@ -196,7 +147,6 @@ export const POST = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextReq
 
     const newHackathon = await createHackathon({
       ...validatedBody,
-      // `content` is a freeform JSON column; cast to satisfy the Partial<HackathonHeader> type.
       content: validatedBody.content as any,
       created_by: session.user.id,
     });

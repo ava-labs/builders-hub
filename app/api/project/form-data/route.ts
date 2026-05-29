@@ -13,12 +13,6 @@ type StageSubmitValues = Record<
   string | string[] | Array<{ address: string }> | null
 >;
 
-/**
- * A single staged answer paired with a server-side snapshot of the question it
- * answers. Snapshotting the question metadata (label/type) at submit time means
- * reviewers always see the question alongside the answer, even if the hackathon
- * form definition later changes.
- */
 type StageAnswer = {
   question_id: string;
   question_label: string;
@@ -27,7 +21,6 @@ type StageAnswer = {
   answer: unknown;
 };
 
-/** Envelope persisted in FormData.form_data for stage submissions. */
 type StageAnswerEnvelope = { answers: Record<string, StageAnswer> };
 
 /** Allows alphanumeric, hyphens and underscores — covers UUID, CUID and nanoid formats. */
@@ -38,11 +31,6 @@ const ETHEREUM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 type SanitizeResult = { ok: true } | { ok: false; error: string };
 
-/**
- * Server-side sanitization of stage form values.
- * Mirrors the client-side checks in utils/input-validator but runs on every
- * request regardless of how the payload was crafted.
- */
 function sanitizeStageValues(values: StageSubmitValues): SanitizeResult {
   for (const [key, value] of Object.entries(values)) {
     if (value === null) continue;
@@ -121,12 +109,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
 
     const sessionUserId: string = session.user.id;
 
-    /**
-     * SECURITY: Resolve the project outside the transaction so we can return
-     * an early 404 without leaking a `NextResponse` through the transaction
-     * return value.  Automatic project creation has been removed to prevent
-     * unbounded resource creation (DoS).
-     */
     let resolvedProject: { id: string; project_name: string } | null = null;
 
     if (incomingProjectId) {
@@ -139,10 +121,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         select: { id: true, project_name: true },
       });
 
-      // SECURITY: If the caller specified a projectId and it was not found (or
-      // does not belong to them), return 404 immediately. Do NOT fall back to
-      // another project — that silent substitution risks overwriting a different
-      // project's FormData with the current user's submission.
       if (!resolvedProject) {
         return NextResponse.json(
           { error: 'Project not found or access denied' },
@@ -161,13 +139,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     }
 
     if (!resolvedProject) {
-      /**
-       * SECURITY: Do NOT create a project automatically.  Previously this
-       * path created an unbounded number of "Draft Project" rows for any
-       * authenticated user, enabling a DoS / resource-exhaustion attack.
-       * Callers must create a project via the dedicated project-creation
-       * endpoint before submitting stage data.
-       */
       return NextResponse.json(
         { error: 'No project found for this hackathon. Please create a project first.' },
         { status: 404 }
@@ -175,10 +146,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // SECURITY: Acquire a row-level lock on the parent Project before reading
-      // FormData. Any concurrent transaction for the same projectId will block
-      // here until this transaction commits, preventing the findFirst→create race
-      // condition that could produce duplicate FormData rows.
       await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${resolvedProject.id} FOR UPDATE`;
 
       const existingFormData = await tx.formData.findFirst({
@@ -194,9 +161,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         },
       });
 
-      // Snapshot the stage's question metadata so each stored answer carries the
-      // question it answers. Reviewers previously saw answers with no question
-      // (flat { [fieldId]: answer }); the envelope below fixes that.
       const hackathon = await tx.hackathon.findUnique({
         where: { id: hackathonId },
         select: { content: true },
@@ -221,10 +185,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         };
       }
 
-      // Seed prior answers from the existing row. New rows store the envelope
-      // ({ answers: {...} }); LEGACY rows are FLAT ({ [fieldId]: value }) with no
-      // `answers` key. For legacy rows, convert each flat entry into an answer
-      // envelope first so resaving does not drop the prior answers.
       const existingFormDataValue = existingFormData?.form_data as
         | StageAnswerEnvelope
         | Record<string, unknown>
@@ -264,9 +224,6 @@ export const POST = withAuth(async (request: Request, _context, session) => {
               id: existingFormData.id,
             },
             data: {
-              // `answer` is typed `unknown` in the domain type; the values are
-              // always JSON-serializable strings/arrays/booleans, so cast at the
-              // Prisma JSON boundary.
               form_data: envelope as unknown as Prisma.InputJsonValue,
               timestamp: new Date(),
               origin: 'stage-submit',
@@ -466,11 +423,6 @@ export const GET = withAuth(async (request: Request, _context, session) => {
       },
     });
 
-    // The participant's stage form rehydrates from a FLAT { [fieldId]: answer }
-    // map (see useProjectFormData -> StageSubmitPageContent). New rows store the
-    // question-linked envelope { answers: { [fieldId]: { ..., answer } } }, so
-    // unwrap it back to the flat shape here. Legacy flat rows pass through
-    // unchanged.
     const rawFormData = formData?.form_data as
       | StageAnswerEnvelope
       | Record<string, unknown>

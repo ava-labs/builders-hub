@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getHackathon, updateHackathon } from "@/server/services/hackathons";
+import { getHackathon, updateHackathon, canManageHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
 import { withAuthRole } from "@/lib/protectedRoute";
 import { ROLE_GROUPS } from "@/lib/auth/roles";
+import { getAuthSession } from "@/lib/auth/authSession";
+import { getUserById } from "@/server/services/getUser";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -14,6 +16,19 @@ export async function GET(req: NextRequest, context: any) {
     }
 
     const hackathon = await getHackathon(id)
+
+    // Private/draft events are only readable by managers (devrel or the
+    // organizing team's admin), the creator, or a cohost. Others get 404.
+    if (hackathon.is_public !== true) {
+      const session = await getAuthSession();
+      const actingUser = session?.user?.id ? await getUserById(session.user.id) : null;
+      const isOwner = !!session?.user?.id && hackathon.created_by === session.user.id;
+      const isCohost = !!session?.user?.email && (hackathon.cohosts ?? []).includes(session.user.email);
+      if (!canManageHackathon(actingUser, hackathon) && !isOwner && !isCohost) {
+        return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+      }
+    }
+
     return NextResponse.json(hackathon);
   } catch (error) {
     console.error("Error in GET /api/events/[id]:");
@@ -35,22 +50,21 @@ export const PUT = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequ
       return NextResponse.json(updatedHackathon);
     } else {
       const partialEditedHackathon = updateData as Partial<HackathonHeader>;
-      // SECURITY (IDOR): the update target MUST be the URL `id` param only.
-      // Never trust a caller-supplied body `id` — otherwise PUT /api/events/a
-      // with body { id: "b" } would update a different row.
+      // Use the URL id only, never a caller-supplied body id.
       const updatedHackathon = await updateHackathon(id, partialEditedHackathon, userId);
       return NextResponse.json(updatedHackathon);
     }
   } catch (error: any) {
     console.error("Error in PUT /api/events/[id]:", error?.message, error?.stack);
     const isValidation = error?.cause === 'ValidationError';
+    const isForbidden = error?.cause === 'Forbidden';
     return NextResponse.json(
       {
         error: error?.message ?? 'Internal Server Error',
         details: isValidation ? error?.details : undefined,
         code: error?.code,
       },
-      { status: isValidation ? 400 : 500 }
+      { status: isForbidden ? 403 : isValidation ? 400 : 500 }
     );
   }
 });
@@ -70,13 +84,14 @@ export const PATCH = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRe
   } catch (error: any) {
     console.error("Error in PATCH /api/events/[id]:", error?.message, error?.stack);
     const isValidation = error?.cause === 'ValidationError';
+    const isForbidden = error?.cause === 'Forbidden';
     return NextResponse.json(
       {
         error: error?.message ?? 'Internal Server Error',
         details: isValidation ? error?.details : undefined,
         code: error?.code,
       },
-      { status: isValidation ? 400 : 500 }
+      { status: isForbidden ? 403 : isValidation ? 400 : 500 }
     );
   }
 });
