@@ -38,19 +38,34 @@ export function TeamFormation({
   const [linkError, setLinkError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Keep the teammate slot count in sync with the picked size. Trim
-  // shrinking selections, pad growing ones with empty strings.
+  // Keep the teammate slots in sync with the picked size, but never silently
+  // discard a teammate the user already typed. Growing pads with empty slots.
+  // Shrinking only drops trailing EMPTY slots; if a non-empty email would be
+  // cut, we keep it and raise the selected size back up to fit it (capped at
+  // max) so the UI reflects the real team instead of dropping an invite.
   useEffect(() => {
-    const slots = Math.max(0, selectedSize - 1);
+    const cap = Math.max(0, (range.max ?? selectedSize) - 1);
+    const slots = Math.min(cap, Math.max(0, selectedSize - 1));
     if (teammates.length === slots) return;
     if (teammates.length > slots) {
-      onTeammatesChange(teammates.slice(0, slots));
+      // Drop only trailing empty slots; preserve any entered emails.
+      let end = teammates.length;
+      while (end > slots && teammates[end - 1].trim() === "") end--;
+      if (end !== teammates.length) {
+        onTeammatesChange(teammates.slice(0, end));
+      }
+      // A non-empty email survived past the new size — keep the picker in
+      // sync so the kept teammate stays visible and gets submitted.
+      const keptNonEmpty = Math.min(cap, end);
+      if (keptNonEmpty + 1 > selectedSize) {
+        onSizeChange(keptNonEmpty + 1);
+      }
     } else {
       const next = [...teammates];
       while (next.length < slots) next.push("");
       onTeammatesChange(next);
     }
-  }, [selectedSize, teammates, onTeammatesChange]);
+  }, [selectedSize, teammates, onTeammatesChange, onSizeChange, range.max]);
 
   // Pre-fetch the event referral link the first time the user expands beyond
   // solo so it's ready to copy. Re-uses an existing code for this (user,

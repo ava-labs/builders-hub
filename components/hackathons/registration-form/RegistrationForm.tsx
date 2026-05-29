@@ -135,20 +135,23 @@ export function RegisterForm({
     consent_sharing: boolean | null;
   }>({ notifications: null, consent_sharing: null });
   const [consentsLoaded, setConsentsLoaded] = useState(false);
-  const showNotificationsConsent =
-    consentsLoaded && userConsentState.notifications !== true;
-  const showSharingConsent =
-    consentsLoaded && userConsentState.consent_sharing !== true;
 
   // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
-  // Team1-organized / co-hosted events require the `consent_sharing` opt-in
-  // unless the user has already granted it on their profile.
+  // Team1-organized / co-hosted events require the `consent_sharing` opt-in.
+  // Product wants this re-confirmed per Team1 event, so the checkbox is shown
+  // and made mandatory for every Team1 event regardless of any prior consent
+  // already stored on the user's profile.
   const isTeam1 = hackathon
     ? isTeam1Event({ organizers: hackathon.organizers, cohosts: hackathon.cohosts })
     : false;
-  const requireSharingConsent =
-    isTeam1 && consentsLoaded && userConsentState.consent_sharing !== true;
+  const showNotificationsConsent =
+    consentsLoaded && userConsentState.notifications !== true;
+  // Always show the Team1 sharing consent for Team1 events (re-confirm per
+  // event); otherwise only show it when the user hasn't already consented.
+  const showSharingConsent =
+    isTeam1 || (consentsLoaded && userConsentState.consent_sharing !== true);
+  const requireSharingConsent = isTeam1 && consentsLoaded;
   const lang = normalizeEventsLang(hackathon?.content?.language);
   const registrationMode: "full" | "simple" = hackathon?.content?.registration_mode === "simple" ? "simple" : "full";
   const isSimpleMode = registrationMode === "simple";
@@ -525,11 +528,25 @@ export function RegisterForm({
         team_size_min: hackathon?.content?.team_size_min,
         team_size_max: hackathon?.content?.team_size_max,
       });
+      // Any teammate email the user actually entered counts — independent of
+      // the Solo/Duo toggle — so a typed invite is never silently dropped.
+      // Cap at the admin-configured max (max - 1 teammates besides the user).
+      const maxTeammates =
+        range.max !== undefined ? Math.max(0, range.max - 1) : Infinity;
       const cleanedTeammates = teammateEmails
         .map((e) => e.trim())
-        .filter((e) => e.length > 0);
+        .filter((e) => e.length > 0)
+        .slice(0, Number.isFinite(maxTeammates) ? (maxTeammates as number) : undefined);
+      // The team is as large as whichever is bigger: the picked size or the
+      // number of teammates actually entered (so entering an email promotes a
+      // "Solo" pick to a team). Never exceeds the configured max.
+      const effectiveTeamSize = Math.min(
+        range.max ?? Number.MAX_SAFE_INTEGER,
+        Math.max(teamSize, 1 + cleanedTeammates.length),
+      );
+      // Explicitly-opened slots (via the toggle) must still be filled.
       const expectedTeammates = Math.max(0, teamSize - 1);
-      if (teamSize < range.min) {
+      if (effectiveTeamSize < range.min) {
         setTeamError(
           lang === "es"
             ? `Este evento requiere un equipo de al menos ${range.min} personas.`
@@ -606,10 +623,10 @@ export function RegisterForm({
         tools: data.tools,
         // Only include prohibited_items if it's not an online hackathon
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
-        teammates: teammateEmails
-          .map((e) => e.trim())
-          .filter((e) => e.length > 0)
-          .slice(0, Math.max(0, teamSize - 1)),
+        // Submit every entered teammate (already trimmed, de-duplicated by
+        // validation, and capped at max - 1) regardless of the Solo/Duo
+        // toggle, so the invite always fires.
+        teammates: cleanedTeammates,
       };
 
       const result = await saveProject(finalData);

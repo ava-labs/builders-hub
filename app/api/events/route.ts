@@ -30,6 +30,7 @@ const createHackathonSchema = z.object({
   new_layout: z.boolean().optional(),
   is_public: z.boolean().optional(),
   google_calendar_id: z.string().nullable().optional(),
+  organizers: z.string().optional(),
   content: z.unknown().optional(),
 });
 
@@ -138,6 +139,20 @@ export const POST = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextReq
 
     const validatedBody = parseResult.data;
 
+    // Org scoping: devrel can organize for any team; team1-admin is forced to
+    // their own team. Mirrors canManageHackathon on the edit side.
+    let organizers = validatedBody.organizers;
+    if (!customAttributes.includes('devrel')) {
+      const creator = await getUserById(session.user.id);
+      if (!creator?.team_id) {
+        return NextResponse.json(
+          { error: 'Your account is not assigned to a team.' },
+          { status: 400 }
+        );
+      }
+      organizers = creator.team_id;
+    }
+
     console.warn('[AUDIT] POST /api/events — hackathon creation', {
       userId: session.user.id,
       roleUsed,
@@ -147,6 +162,7 @@ export const POST = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextReq
 
     const newHackathon = await createHackathon({
       ...validatedBody,
+      organizers,
       content: validatedBody.content as any,
       created_by: session.user.id,
     });
