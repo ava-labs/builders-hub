@@ -2159,6 +2159,42 @@
   color: var(--pr-g-650);
   font-size: 12.5px;
 }
+.profile .pr-traffic-sources {
+  list-style: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 240px;
+  max-width: 100%;
+}
+.profile .pr-traffic-sources li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+}
+.profile .pr-traffic-sources__name {
+  color: var(--pr-g-800);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+.profile .pr-traffic-sources__count {
+  font-family: var(--pr-mono);
+  font-size: 10.5px;
+  color: var(--pr-g-650);
+  flex-shrink: 0;
+}
+.profile .pr-traffic-sources__empty {
+  font-family: var(--pr-mono);
+  font-size: 10px;
+  color: var(--pr-g-650);
+  text-align: right;
+}
 
 /* Hackathon history — 4-up grid with one wide featured tile. Each card
    shows title + date + status pill + a 2-cell stat row at the bottom. */
