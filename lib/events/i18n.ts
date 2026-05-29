@@ -135,7 +135,7 @@ const dict: Record<EventsLang, Dict> = {
     "events.discovery.campusConnect.description":
       "Discover opportunities for students and educators to explore blockchain technology and join our community of builders.",
     "events.past": "Past",
-    "events.search.placeholder": "Search by name, track or location",
+    "events.search.placeholder": "Search events by name…",
     "events.filter.event.placeholder": "Filter by Event",
     "events.filter.event.all": "All Events",
     "events.filter.location.placeholder": "Filter by Location",
@@ -143,6 +143,41 @@ const dict: Record<EventsLang, Dict> = {
     "events.filter.location.inPerson": "In Person",
     "events.pagination.pageOf": "Page {current} of {total}",
     "events.pagination.pageSize.placeholder": "Select track",
+
+    // Events listing — redesign (PR 1)
+    "events.subtitle":
+      "Hackathons, bootcamps, and workshops shipping on Avalanche — find one to join or look back at what we've built.",
+    "events.subscribeCalendar": "Subscribe to calendar",
+    "events.newEvent": "New event",
+    "events.edit": "Edit",
+    "events.openForRegistration": "Open for registration",
+    "events.pastEvents": "Past events",
+    "events.discoverMoreSub": "Off-platform programs · external",
+    "events.eventLabel": "event",
+    "events.eventsLabel": "events",
+    "events.archivedLabel": "archived",
+    "events.learnMore": "Learn more",
+    "events.recap": "Recap",
+    "events.register": "Register",
+    "events.viewPage": "View page",
+    "events.organizedBy": "Organized by",
+    "events.totalPrizes": "total prizes",
+    "events.registered": "registered",
+    "events.attended": "attended",
+    "events.chip.featured": "Featured",
+    "events.chip.private": "Private",
+    "events.chip.liveNow": "Live now",
+    "events.chip.upcoming": "Upcoming",
+    "events.chip.ended": "Ended",
+    "events.stats.when": "When",
+    "events.stats.where": "Where",
+    "events.stats.prizes": "Prizes",
+    "events.empty.title": "Nothing open right now",
+    "events.empty.body":
+      "Try a different event type, or join our Telegram to hear about pop-up sessions before they're listed here.",
+    "events.discovery.summit.title": "Avalanche Summit",
+    "events.discovery.summit.description":
+      "Avalanche's flagship conferences — keynotes, deep-dive workshops, and the builders shaping the ecosystem, live and in person.",
 
     // Project submission form — header
     "submission.form.title.withHackathon": "Submit Your Project",
@@ -646,7 +681,7 @@ const dict: Record<EventsLang, Dict> = {
     "events.discovery.campusConnect.description":
       "Descubre oportunidades para estudiantes y docentes para explorar blockchain y unirse a nuestra comunidad de builders.",
     "events.past": "Pasados",
-    "events.search.placeholder": "Buscar por nombre, track o ubicación",
+    "events.search.placeholder": "Buscar eventos por nombre…",
     "events.filter.event.placeholder": "Filtrar por evento",
     "events.filter.event.all": "Todos los eventos",
     "events.filter.location.placeholder": "Filtrar por ubicación",
@@ -654,6 +689,41 @@ const dict: Record<EventsLang, Dict> = {
     "events.filter.location.inPerson": "Presencial",
     "events.pagination.pageOf": "Página {current} de {total}",
     "events.pagination.pageSize.placeholder": "Seleccionar track",
+
+    // Events listing — redesign (PR 1)
+    "events.subtitle":
+      "Hackathons, bootcamps y workshops construidos en Avalanche — encuentra uno al que unirte o revisa lo que hemos construido.",
+    "events.subscribeCalendar": "Suscribirse al calendario",
+    "events.newEvent": "Nuevo evento",
+    "events.edit": "Editar",
+    "events.openForRegistration": "Abiertos a inscripción",
+    "events.pastEvents": "Eventos pasados",
+    "events.discoverMoreSub": "Programas externos · fuera de la plataforma",
+    "events.eventLabel": "evento",
+    "events.eventsLabel": "eventos",
+    "events.archivedLabel": "archivados",
+    "events.learnMore": "Saber más",
+    "events.recap": "Resumen",
+    "events.register": "Inscribirse",
+    "events.viewPage": "Ver página",
+    "events.organizedBy": "Organizado por",
+    "events.totalPrizes": "en premios",
+    "events.registered": "inscritos",
+    "events.attended": "asistieron",
+    "events.chip.featured": "Destacado",
+    "events.chip.private": "Privado",
+    "events.chip.liveNow": "En vivo",
+    "events.chip.upcoming": "Próximo",
+    "events.chip.ended": "Finalizado",
+    "events.stats.when": "Cuándo",
+    "events.stats.where": "Dónde",
+    "events.stats.prizes": "Premios",
+    "events.empty.title": "Nada abierto por ahora",
+    "events.empty.body":
+      "Prueba con otro tipo de evento, o únete a nuestro Telegram para enterarte de sesiones improvisadas antes de que se publiquen aquí.",
+    "events.discovery.summit.title": "Avalanche Summit",
+    "events.discovery.summit.description":
+      "Las conferencias insignia de Avalanche — keynotes, workshops a fondo y los builders que dan forma al ecosistema, en vivo y en persona.",
 
     // Project submission form — header
     "submission.form.title.withHackathon": "Envía tu proyecto",

@@ -1,20 +1,17 @@
 "use client";
-import { Search, Building2 } from "lucide-react";
-import { Input } from "../ui/input";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import axios from "axios";
+import { Calendar, Plus } from "lucide-react";
+import { Button } from "../ui/button";
 import {
   Select,
-  SelectItem,
   SelectContent,
+  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import HackathonCard from "./HackathonCard";
-import { HackathonHeader, HackathonsFilters } from "@/types/hackathons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import axios from "axios";
-import { Separator } from "../ui/separator";
-import { useSession } from "next-auth/react";
 import {
   Pagination,
   PaginationContent,
@@ -24,53 +21,78 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "../ui/pagination";
-import OverviewBanner from "./hackathon/sections/OverviewBanner";
-import Link from "next/link";
-import Image from "next/image";
 import DiscoveryCard from "./DiscoveryCard";
-import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
-import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import EventCard from "./events/EventCard";
+import HeroBanner from "./events/HeroBanner";
+import FilterBar from "./events/FilterBar";
+import { EYEBROW, FALLBACK_BANNER, normalizeEventType } from "./events/utils";
+import { HackathonHeader, HackathonsFilters } from "@/types/hackathons";
+import { type EventsLang, normalizeEventsLang, t } from "@/lib/events/i18n";
 
+const AVALANCHE_CALENDAR_URL = "https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4";
+// Avalanche Summit & conferences — reuses the shared Avalanche banner as its cover.
+const SUMMIT_URL = "https://summit.avax.network";
+const SUMMIT_IMAGE = FALLBACK_BANNER;
 
 function buildQueryString(
   filters: HackathonsFilters,
   searchQuery: string,
-  pageSize: number,
-  eventType: string
+  eventType: string,
 ) {
   const params = new URLSearchParams();
 
-  if (filters.location) {
-    params.set("location", filters.location);
-  }
-  if (filters.status) {
-    params.set("status", filters.status);
-  }
-  if (filters.page) {
-    params.set("page", filters.page.toString());
-  }
-  if (filters.recordsByPage) {
-    params.set("pageSize", filters.recordsByPage.toString());
-  }
-  if (searchQuery.trim()) {
-    params.set("search", searchQuery.trim());
-  }
-  if (eventType) {
-    params.set("event", eventType);
-  }
+  if (filters.location) params.set("location", filters.location);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.page) params.set("page", filters.page.toString());
+  if (filters.recordsByPage) params.set("pageSize", filters.recordsByPage.toString());
+  if (searchQuery.trim()) params.set("search", searchQuery.trim());
+  if (eventType) params.set("event", eventType);
 
   return params.toString();
 }
 
-function normalizeEventType(event?: string) {
-  return (event || "hackathon").toLowerCase();
+const sortByStartDateAsc = (a: HackathonHeader, b: HackathonHeader) => {
+  const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
+  const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
+  return aDate - bDate;
+};
+
+function SectionHead({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div className="flex items-end justify-between gap-4 border-b border-zinc-200 pb-3 dark:border-zinc-800">
+      <h2 className="text-xl font-medium tracking-tight text-zinc-900 dark:text-zinc-50">
+        {title}
+      </h2>
+      <span className={EYEBROW}>{sub}</span>
+    </div>
+  );
 }
 
-function labelForEventType(eventType: string) {
-  if (eventType === "hackathon") return "Hackathon";
-  if (eventType === "workshop") return "Workshop";
-  if (eventType === "bootcamp") return "Bootcamp";
-  return eventType.charAt(0).toUpperCase() + eventType.slice(1);
+function EmptyState({ lang }: { lang: EventsLang }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-zinc-300 bg-white/50 py-16 text-center dark:border-zinc-700 dark:bg-zinc-900/30">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
+        <Calendar className="h-6 w-6" />
+      </div>
+      <div className="max-w-sm">
+        <h4 className="text-base font-medium text-zinc-900 dark:text-zinc-50">
+          {t(lang, "events.empty.title")}
+        </h4>
+        <p className="mt-1 text-sm font-light text-zinc-600 dark:text-zinc-400">
+          {t(lang, "events.empty.body")}
+        </p>
+      </div>
+      <Button asChild variant="outline" size="sm">
+        <a
+          href="https://t.me/avalancheacademy"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t(lang, "events.joinTelegram")}
+        </a>
+      </Button>
+    </div>
+  );
 }
 
 type Props = {
@@ -88,116 +110,113 @@ export default function Events({
   initialOngoingEvents,
   initialFilters,
   totalPastEvents,
-  totalUpcomingEvents,
 }: Props) {
-  // Listing language is global (mixed events). Default to English unless you later add a global locale.
+  // Listing language is global (mixed events). Default to English.
   const lang = normalizeEventsLang(undefined);
-  const { data: session, status } = useSession();
-  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
-  
+  const { data: session } = useSession();
+  const isHackathonCreator =
+    session?.user?.custom_attributes?.includes("hackathonCreator") ||
+    session?.user?.custom_attributes?.includes("team1-admin") ||
+    false;
+
   const router = useRouter();
 
-  const [pastEvents, setPastEvents] = useState<HackathonHeader[]>(
-    initialPastEvents
-  );
-  const [upcomingEvents, setUpcomingEvents] = useState<
-    HackathonHeader[]
-  >(initialUpcomingEvents);
-  const [ongoingEvents, setOngoingEvents] = useState<
-    HackathonHeader[]
-  >(initialOngoingEvents);
+  const [pastEvents, setPastEvents] = useState<HackathonHeader[]>(initialPastEvents);
+  const [upcomingEvents] = useState<HackathonHeader[]>(initialUpcomingEvents);
+  const [ongoingEvents] = useState<HackathonHeader[]>(initialOngoingEvents);
 
   const [filters, setFilters] = useState<HackathonsFilters>(initialFilters);
+  const [searchInput, setSearchInput] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [pageSize, setPageSize] = useState<number>(filters.recordsByPage ?? 4);
-  const [totalPages, setTotalPages] = useState<number>(
-    Math.ceil(totalPastEvents / pageSize)
-  );
-  // Ensure currentPage is always >= 1
-  const [currentPage, setCurrentPage] = useState<number>(
-    Math.max(1, filters.page ?? 1)
-  );
-  const [searchValue, setSearchValue] = useState("");
   const [activeEventType, setActiveEventType] = useState<string>("all");
-  const [pastEventType, setPastEventType] = useState<string>("");
+  // Page size is driven by the records-per-page selector (filters.recordsByPage).
+  const pageSize = filters.recordsByPage ?? 4;
+  const [pastTotal, setPastTotal] = useState<number>(totalPastEvents);
+  const [totalPages, setTotalPages] = useState<number>(
+    Math.ceil(totalPastEvents / pageSize),
+  );
+  const [currentPage, setCurrentPage] = useState<number>(
+    Math.max(1, filters.page ?? 1),
+  );
 
-  // Search debounce
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const eventsSectionRef = useRef<HTMLDivElement | null>(null);
 
-  const eventTypes = useMemo(() => {
-    const types = new Set<string>(["hackathon", "workshop", "bootcamp"]);
-    [...upcomingEvents, ...ongoingEvents, ...pastEvents].forEach((e) => {
-      const t = normalizeEventType(e.event);
-      if (t) types.add(t);
-    });
-    return Array.from(types);
-  }, [upcomingEvents, ongoingEvents, pastEvents]);
+  const apiEventType = activeEventType === "all" ? "" : activeEventType;
 
-  const sortByStartDateAsc = (a: HackathonHeader, b: HackathonHeader) => {
-    const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
-    const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
-    return aDate - bDate;
-  };
+  // Featured event — shown only in the hero, excluded from the grid below.
+  const topMostEvent = useMemo(
+    () => [...upcomingEvents, ...ongoingEvents].find((x) => x.top_most),
+    [upcomingEvents, ongoingEvents],
+  );
 
+  // Type counts for the segmented control (over the full open pool, sans featured).
+  const typeCounts = useMemo(() => {
+    const openPool = [...ongoingEvents, ...upcomingEvents].filter((e) => !e.top_most);
+    const count = (type: string) =>
+      type === "all"
+        ? openPool.length
+        : openPool.filter((e) => normalizeEventType(e.event) === type).length;
+    return {
+      all: count("all"),
+      hackathon: count("hackathon"),
+      workshop: count("workshop"),
+      bootcamp: count("bootcamp"),
+    };
+  }, [ongoingEvents, upcomingEvents]);
+
+  // Open-for-registration grid: ongoing + upcoming, filtered client-side.
   const activeEvents = useMemo(() => {
-    const filterByType = (events: HackathonHeader[]) => {
-      if (activeEventType === "all") return events;
-      return events.filter(
-        (e) => normalizeEventType(e.event) === activeEventType
-      );
+    const query = searchQuery.trim().toLowerCase();
+    const loc = filters.location;
+    const matches = (e: HackathonHeader) => {
+      if (activeEventType !== "all" && normalizeEventType(e.event) !== activeEventType)
+        return false;
+      if (loc) {
+        const isOnline = (e.location || "").toLowerCase().includes("online");
+        if (loc === "Online" && !isOnline) return false;
+        if (loc === "InPerson" && isOnline) return false;
+      }
+      if (query) {
+        const haystack =
+          `${e.title} ${e.location} ${(e.tags || []).join(" ")}`.toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
     };
 
     const sortedOngoing = [...ongoingEvents].sort(sortByStartDateAsc);
     const sortedUpcoming = [...upcomingEvents].sort(sortByStartDateAsc);
+    return [...sortedOngoing, ...sortedUpcoming]
+      .filter((e) => !e.top_most)
+      .filter(matches);
+  }, [ongoingEvents, upcomingEvents, activeEventType, searchQuery, filters.location]);
 
-    return [...filterByType(sortedOngoing), ...filterByType(sortedUpcoming)];
-  }, [ongoingEvents, upcomingEvents, activeEventType]);
-
+  // Past events come from the API (search / location / type / pagination).
   useEffect(() => {
     const abortController = new AbortController();
     const signal = abortController.signal;
 
     async function fetchEvents() {
       try {
-        const queryString = buildQueryString(filters, searchQuery, pageSize, pastEventType);
-        const { data } = await axios.get(
-          `/api/events?${queryString}&status=ENDED`,
-          {
-            signal,
-          }
-        );
-
+        const queryString = buildQueryString(filters, searchQuery, apiEventType);
+        const { data } = await axios.get(`/api/events?${queryString}&status=ENDED`, {
+          signal,
+        });
         if (!signal.aborted) {
           setPastEvents(data.hackathons);
+          setPastTotal(data.total);
           setTotalPages(Math.ceil(data.total / pageSize));
         }
       } catch (err: any) {
-        if (!signal.aborted) {
-          console.error("Error fetching events:", err);
-        }
+        if (!signal.aborted) console.error("Error fetching events:", err);
       }
     }
 
     fetchEvents();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [filters, searchQuery, pageSize, pastEventType]);
-
-  useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      console.log("User ID:", session.user.id);
-
-      if (session.user.custom_attributes?.includes("hackathonCreator") || session.user.custom_attributes?.includes("team1-admin")) {
-        console.log("User is hackathonCreator");
-      }
-    }
-  }, [session, status]);
+    return () => abortController.abort();
+  }, [filters, searchQuery, apiEventType, pageSize]);
 
   const handleFilterChange = (type: keyof HackathonsFilters, value: string) => {
-    // Validate page number - must be >= 1
     if (type === "page") {
       const pageNum = Number(value);
       if (isNaN(pageNum) || pageNum < 1) {
@@ -214,253 +233,180 @@ export default function Events({
 
     setFilters(newFilters);
     if (type === "page") setCurrentPage(Number(value));
-    if (type !== "page") setCurrentPage(1);
+    else setCurrentPage(1);
 
-    const queryString = buildQueryString(newFilters, searchQuery, pageSize, pastEventType);
+    const queryString = buildQueryString(newFilters, searchQuery, apiEventType);
     router.replace(`/events?${queryString}`);
   };
 
-  const handleSearchChange = useCallback((query: string) => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInput(value);
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = setTimeout(() => {
+        setSearchQuery(value);
+        const newFilters = { ...filters, page: undefined };
+        setFilters(newFilters);
+        setCurrentPage(1);
+        const queryString = buildQueryString(newFilters, value, apiEventType);
+        router.replace(`/events?${queryString}`);
+      }, 300);
+    },
+    [filters, apiEventType, router],
+  );
 
-    searchTimeoutRef.current = setTimeout(() => {
-      setSearchQuery(query);
-      const newFilters = { ...filters, page: undefined };
-
-      setFilters(newFilters);
-      setCurrentPage(1);
-
-      const queryString = buildQueryString(newFilters, query, pageSize, pastEventType);
-      router.replace(`/events?${queryString}`);
-    }, 300);
-  }, [filters, pageSize, pastEventType, router]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleSearchChange(searchValue);
-    }
-  };
-  const bannerPool = [...upcomingEvents, ...ongoingEvents];
-  const topMostEvent = bannerPool.find((x) => x.top_most);
-
-  const handleActiveEventTypeChange = (value: string) => {
+  const handleTypeChange = (value: string) => {
     setActiveEventType(value);
-    if (eventsSectionRef.current) {
-      eventsSectionRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
+    const apiType = value === "all" ? "" : value;
+    const newFilters = { ...filters, page: undefined };
+    setFilters(newFilters);
+    setCurrentPage(1);
+    const queryString = buildQueryString(newFilters, searchQuery, apiType);
+    router.replace(`/events?${queryString}`);
   };
 
   const addNewHackathon = () => {
-    router.push('/events/edit');
+    router.push("/events/edit");
   };
 
-  const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
-
   return (
-    <section className="px-8 py-6">
-      {topMostEvent && (
-        <div className="w-full flex flex-col gap-8 justify-center">
-          <div className="sm:block relative w-full">
-            <OverviewBanner
-              hackathon={topMostEvent}
-              id={topMostEvent.id}
-              isTopMost={true}
-              isRegistered={false} //To keep showing "Learn More" button
-              hideTextOverlay={topMostEvent.id === BUILD_GAMES_HACKATHON_ID}
-              customRedirectUrl={topMostEvent.id === BUILD_GAMES_HACKATHON_ID ? '/build-games' : undefined}
-            />
-            <Link href={topMostEvent.id === BUILD_GAMES_HACKATHON_ID ? '/build-games' : `/events/${topMostEvent.id}`}>
-              <Image
-                src={
-                  topMostEvent.banner?.trim().trim().length > 0
-                    ? topMostEvent.banner
-                    : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
-                }
-                alt="Event background"
-                width={1270}
-                height={760}
-                className="w-full h-full"
-                priority
-              />
-            </Link>
-          </div>
-          </div>
-        )}
-
-        {isHackathonCreator && (
-          <>
-        <button
-          className={`flex items-center gap-2 font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${topMostEvent ? "mt-12" : ""} px-4 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-red-500 hover:text-white transition-colors duration-200 cursor-pointer`}
-          onClick={addNewHackathon}
-        >
-          <Building2 className="h-6 w-6" />
-          {t(lang, "events.myHackathons")}
-        </button>
-        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        </>)}
-        <div
-          ref={eventsSectionRef}
-          className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${topMostEvent ? "mt-12" : ""}`}
-        >
-          <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
+    <section className="flex flex-col gap-10 py-8">
+      {/* Page head */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-[32px] font-medium leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">
             {t(lang, "events.listing.title")}
-          </h2>
-          <Tabs
-            value={activeEventType}
-            onValueChange={handleActiveEventTypeChange}
-            className="w-full md:w-auto"
-          >
-            <TabsList>
-              <TabsTrigger value="all" className="cursor-pointer">
-                {t(lang, "events.tabs.all")}
-              </TabsTrigger>
-              <TabsTrigger value="hackathon" className="cursor-pointer">
-                {t(lang, "events.tabs.hackathons")}
-              </TabsTrigger>
-              <TabsTrigger value="workshop" className="cursor-pointer">
-                {t(lang, "events.tabs.workshops")}
-              </TabsTrigger>
-              <TabsTrigger value="bootcamp" className="cursor-pointer">
-                {t(lang, "events.tabs.bootcamps")}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm font-light text-zinc-600 dark:text-zinc-400">
+            {t(lang, "events.subtitle")}
+          </p>
         </div>
-        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <a href={AVALANCHE_CALENDAR_URL} target="_blank" rel="noopener noreferrer">
+              <Calendar className="h-4 w-4" />
+              {t(lang, "events.subscribeCalendar")}
+            </a>
+          </Button>
+          {isHackathonCreator && (
+            <Button variant="red" size="sm" onClick={addNewHackathon}>
+              <Plus className="h-4 w-4" />
+              {t(lang, "events.newEvent")}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Featured hero */}
+      {topMostEvent && (
+        <HeroBanner
+          hackathon={topMostEvent}
+          lang={lang}
+          isCreator={isHackathonCreator}
+        />
+      )}
+
+      {/* Global filter bar */}
+      <FilterBar
+        lang={lang}
+        search={searchInput}
+        onSearchChange={handleSearchChange}
+        activeType={activeEventType}
+        onActiveTypeChange={handleTypeChange}
+        typeCounts={typeCounts}
+        location={filters.location}
+        onLocationChange={(value) => handleFilterChange("location", value)}
+      />
+
+      {/* Open for registration */}
+      <div className="flex flex-col gap-5">
+        <SectionHead
+          title={t(lang, "events.openForRegistration")}
+          sub={`${activeEvents.length} ${
+            activeEvents.length === 1
+              ? t(lang, "events.eventLabel")
+              : t(lang, "events.eventsLabel")
+          }`}
+        />
         {activeEvents.length > 0 ? (
-          <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-            {activeEvents.map((event: any) => (
-              <HackathonCard key={event.id} hackathon={event} basePath="/events" />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {activeEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                hackathon={event}
+                lang={lang}
+                isCreator={isHackathonCreator}
+                basePath="/events"
+              />
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="max-w-md">
-              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
-                {t(lang, "events.emptyActive")}
-              </p>
-              <a
-                href="https://t.me/avalancheacademy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors duration-200"
-              >
-                {t(lang, "events.joinTelegram")}
-              </a>
-            </div>
+          <EmptyState lang={lang} />
+        )}
+      </div>
+
+      {/* Discover more */}
+      <div className="flex flex-col gap-5">
+        <SectionHead
+          title={t(lang, "events.discoverMore")}
+          sub={t(lang, "events.discoverMoreSub")}
+        />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <DiscoveryCard
+            meta="lu.ma · external"
+            title={t(lang, "events.discovery.avalancheCalendar.title")}
+            description={t(lang, "events.discovery.avalancheCalendar.description")}
+            image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg"
+            url={AVALANCHE_CALENDAR_URL}
+          />
+          <DiscoveryCard
+            meta="Team1 · external"
+            title={t(lang, "events.discovery.communityEvents.title")}
+            description={t(lang, "events.discovery.communityEvents.description")}
+            image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"
+            url="https://lu.ma/Team1?utm_source=builder_hub"
+          />
+          <DiscoveryCard
+            meta="Universities"
+            title={t(lang, "events.discovery.campusConnect.title")}
+            description={t(lang, "events.discovery.campusConnect.description")}
+            image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/729e397093550313627a7a1717249ef2%20%282%29.jpg"
+            url="/university"
+          />
+          <DiscoveryCard
+            meta="avax.network · external"
+            title={t(lang, "events.discovery.summit.title")}
+            description={t(lang, "events.discovery.summit.description")}
+            image={SUMMIT_IMAGE}
+            url={SUMMIT_URL}
+          />
+        </div>
+      </div>
+
+      {/* Past events */}
+      <div className="flex flex-col gap-5">
+        <SectionHead
+          title={t(lang, "events.pastEvents")}
+          sub={`${pastTotal} ${t(lang, "events.archivedLabel")}`}
+        />
+        {pastEvents.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {pastEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                hackathon={event}
+                lang={lang}
+                isCreator={isHackathonCreator}
+                basePath="/events"
+              />
+            ))}
           </div>
+        ) : (
+          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            {t(lang, "events.empty.title")}
+          </p>
         )}
 
-        {/* Discovery Section */}
-        <div className="mt-12 mb-12">
-          <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mb-4">
-            {t(lang, "events.discoverMore")}
-          </h2>
-          <Separator className="mb-6 bg-zinc-300 dark:bg-zinc-800" />
-          <div className="grid md:grid-cols-3 gap-6">
-            <DiscoveryCard
-              title={t(lang, "events.discovery.avalancheCalendar.title")}
-              description={t(lang, "events.discovery.avalancheCalendar.description")}
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg"
-              url="https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4"
-            />
-            <DiscoveryCard
-              title={t(lang, "events.discovery.communityEvents.title")}
-              description={t(lang, "events.discovery.communityEvents.description")}
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"
-              url="https://lu.ma/Team1?utm_source=builder_hub"
-            />
-            <DiscoveryCard
-              title={t(lang, "events.discovery.campusConnect.title")}
-              description={t(lang, "events.discovery.campusConnect.description")}
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/University-Slideshow/729e397093550313627a7a1717249ef2%20%282%29.jpg"
-              url="/university"
-            />
-          </div>
-        </div>
-
-        <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
-          {t(lang, "events.past")}
-        </h2>
-        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
-          <div className="flex items-stretch gap-4 max-w-sm w-full h-9">
-            {/* Input */}
-            <div className="relative flex-grow h-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400 stroke-zinc-700" />
-              <Input
-                type="text"
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={t(lang, "events.search.placeholder")}
-                className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
-              />
-            </div>
-            {/* Button */}
-            <button
-              onClick={() => handleSearchChange(searchValue)}
-              className="px-[6px] rounded-md bg-red-500 hover:bg-red-600 transition"
-            >
-              <Search size={24} color="white" />
-            </button>
-          </div>
-          <div className="flex flex-row gap-4 items-center">
-            <Select
-              onValueChange={(value: string) => {
-                const normalized = value === "all" ? "" : value;
-                setPastEventType(normalized);
-                const newFilters = { ...filters, page: undefined };
-                setFilters(newFilters);
-                setCurrentPage(1);
-                const queryString = buildQueryString(
-                  newFilters,
-                  searchQuery,
-                  pageSize,
-                  normalized
-                );
-                router.replace(`/events?${queryString}`);
-              }}
-              value={pastEventType}
-            >
-              <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder={t(lang, "events.filter.event.placeholder")} />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-                <SelectItem value="all">{t(lang, "events.filter.event.all")}</SelectItem>
-                {eventTypes.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {labelForEventType(t)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              onValueChange={(value: string) =>
-                handleFilterChange("location", value)
-              }
-              value={filters.location}
-            >
-              <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder={t(lang, "events.filter.location.placeholder")} />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-                <SelectItem value="all">{t(lang, "events.filter.location.all")}</SelectItem>
-                <SelectItem value="Online">Online</SelectItem>
-                <SelectItem value="InPerson">{t(lang, "events.filter.location.inPerson")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
-          {pastEvents.map((event: any) => (
-              <HackathonCard key={event.id} hackathon={event} basePath="/events" />
-            ))}
-        </div>
         <Pagination className="flex justify-end gap-2">
           <PaginationContent className="flex-wrap cursor-pointer">
             {currentPage > 1 && (
@@ -473,33 +419,24 @@ export default function Events({
               </PaginationItem>
             )}
             {Array.from(
-              {
-                length: totalPages > 7 ? 7 : totalPages,
-              },
+              { length: totalPages > 7 ? 7 : totalPages },
               (_, i) => {
-                // Calculate start page for window of 7 pages
                 let startPage = Math.max(1, currentPage - 3);
-                
-                // If we're near the end, adjust startPage to always show 7 pages if available
                 if (totalPages > 7 && startPage + 6 > totalPages) {
                   startPage = Math.max(1, totalPages - 6);
                 }
-                
                 return startPage + i;
-              }
+              },
             ).map((page) => (
               <PaginationItem
                 key={page}
                 onClick={() => {
-                  // Additional safety check before calling handler
                   if (page >= 1 && page <= totalPages) {
                     handleFilterChange("page", page.toString());
                   }
                 }}
               >
-                <PaginationLink isActive={page === currentPage}>
-                  {page}
-                </PaginationLink>
+                <PaginationLink isActive={page === currentPage}>{page}</PaginationLink>
               </PaginationItem>
             ))}
             {totalPages - currentPage > 3 && (
@@ -528,10 +465,12 @@ export default function Events({
               onValueChange={(value: string) =>
                 handleFilterChange("recordsByPage", value)
               }
-              value={String(pageSize) ?? 4}
+              value={String(pageSize)}
             >
               <SelectTrigger className="border border-zinc-300 dark:border-zinc-800">
-                <SelectValue placeholder={t(lang, "events.pagination.pageSize.placeholder")} />
+                <SelectValue
+                  placeholder={t(lang, "events.pagination.pageSize.placeholder")}
+                />
               </SelectTrigger>
               <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
                 {[4, 8, ...Array.from({ length: 5 }, (_, i) => (i + 1) * 12)].map(
@@ -539,12 +478,13 @@ export default function Events({
                     <SelectItem key={option} value={option.toString()}>
                       {option}
                     </SelectItem>
-                  )
+                  ),
                 )}
               </SelectContent>
             </Select>
           </PaginationContent>
         </Pagination>
-      </section>
-    );
+      </div>
+    </section>
+  );
 }

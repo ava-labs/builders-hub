@@ -1,9 +1,13 @@
 import type { HackathonsFilters, HackathonStatus } from "@/types/hackathons";
 import Events from "@/components/hackathons/Events";
+import { HeroBackground } from "@/components/landing/hero";
 import { getFilteredHackathons } from "@/server/services/hackathons";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+
+// Open events fill an auto-flowing grid, so fetch more than the paginated past list.
+const OPEN_EVENTS_PAGE_SIZE = 24;
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -39,16 +43,16 @@ export default async function EventsPage({
 
   const { hackathons: upcomingEvents, total: totalUpcomingEvents } =
     await getFilteredHackathons({
-      page: page ?? 1,
-      pageSize: Number(recordsByPage ?? 4),
+      page: 1,
+      pageSize: OPEN_EVENTS_PAGE_SIZE,
       location: location,
       status: "UPCOMING",
     });
 
   const { hackathons: ongoingEvents, total: totalOngoingEvents } =
     await getFilteredHackathons({
-      page: page ?? 1,
-      pageSize: Number(recordsByPage ?? 4),
+      page: 1,
+      pageSize: OPEN_EVENTS_PAGE_SIZE,
       location: location,
       status: "ONGOING",
     });
@@ -61,8 +65,9 @@ export default async function EventsPage({
 
 
   return (
-    <main className="container relative max-w-[1400px] mx-auto px-4 pt-4 pb-16">
-      <div className="border border-zinc-300 dark:border-transparent shadow-sm dark:bg-zinc-950 bg-zinc-50 rounded-md">
+    <>
+      <HeroBackground />
+      <main className="container relative z-10 mx-auto max-w-[1400px] px-4 pb-16 pt-2">
         <Events
           initialPastEvents={pastEvents}
           initialUpcomingEvents={upcomingEvents}
@@ -71,7 +76,7 @@ export default async function EventsPage({
           totalPastEvents={totalPastEvents}
           totalUpcomingEvents={totalUpcomingEvents}
         />
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
