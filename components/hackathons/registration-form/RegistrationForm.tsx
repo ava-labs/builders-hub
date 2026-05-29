@@ -35,6 +35,7 @@ import {
 import { EMPTY_REFERRER, type ReferrerPickerValue } from "@/components/referrals/ReferrerPicker";
 import { TeamFormation } from "./TeamFormation";
 import { getTeamSizeRange, hasTeamPicker } from "@/lib/hackathons/teamSizeDefaults";
+import { isTeam1Event } from "@/lib/events/team1";
 import {
   GITHUB_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
@@ -135,8 +136,15 @@ export function RegisterForm({
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
   const showNotificationsConsent =
     consentsLoaded && userConsentState.notifications !== true;
-  const showSharingConsent = consentsLoaded;
-  const requireSharingConsent = consentsLoaded;
+  const showSharingConsent =
+    consentsLoaded && userConsentState.consent_sharing !== true;
+  // Team1-organized / co-hosted events require the `consent_sharing` opt-in
+  // unless the user has already granted it on their profile.
+  const isTeam1 = hackathon
+    ? isTeam1Event({ organizers: hackathon.organizers, cohosts: hackathon.cohosts })
+    : false;
+  const requireSharingConsent =
+    isTeam1 && consentsLoaded && userConsentState.consent_sharing !== true;
   const lang = normalizeEventsLang(hackathon?.content?.language);
   const registrationMode: "full" | "simple" = hackathon?.content?.registration_mode === "simple" ? "simple" : "full";
   const isSimpleMode = registrationMode === "simple";

@@ -59,14 +59,10 @@ export async function generateMetadata({
 
 export default async function HackathonPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
-  const utm = resolvedSearchParams?.utm ?? "";
 
   const hackathon = await getHackathon(id);
 
@@ -153,7 +149,7 @@ export default async function HackathonPage({
                 calendarId: hackathon.google_calendar_id,
               } : undefined}
             />
-            <Submission hackathon={hackathon} isRegistered={isRegistered} utm={utm as string} />
+            <Submission hackathon={hackathon} isRegistered={isRegistered} />
             {hackathon.content.speakers && hackathon.content.speakers.length > 0 && (
               <MentorsJudges hackathon={hackathon} />
             )}
