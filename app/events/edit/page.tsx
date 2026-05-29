@@ -2952,36 +2952,25 @@ const HackathonsEdit = () => {
                 <div className="border-l border-zinc-300 dark:border-zinc-600 h-5 mx-0.5" />
               </>
             )}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={loadMockData}
-                    disabled={selectedHackathon !== null}
-                    className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Database className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>{selectedHackathon ? 'Cannot load mock data while editing' : 'Load Mock Data'}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => { setShowForm(true); setSelectedHackathon(null); setIsSelectedHackathon(true); }}
-                    disabled={isSelectedHackathon}
-                    className="shrink-0 p-1.5 rounded-full border transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <PlusCircle className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>{t[language].addNewEvent}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {/* List actions — labeled CTAs, shown when not editing an event */}
+            {!isSelectedHackathon && (
+              <>
+                <button
+                  type="button"
+                  onClick={loadMockData}
+                  className="shrink-0 inline-flex items-center gap-2 h-9 px-3 rounded-lg border text-sm font-medium transition-colors bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                >
+                  <Database className="h-4 w-4" /> Sample data
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(true); setSelectedHackathon(null); setIsSelectedHackathon(true); }}
+                  className="shrink-0 inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-sm font-semibold text-white transition-colors bg-[#D66666] hover:bg-[#c25555]"
+                >
+                  <PlusCircle className="h-4 w-4" /> New event
+                </button>
+              </>
+            )}
             {/* User, Language, Theme */}
             <div className="flex items-center gap-2.5 ml-5">
               <LanguageButton
