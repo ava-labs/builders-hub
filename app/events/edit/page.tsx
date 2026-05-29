@@ -48,6 +48,11 @@ import { resolveFieldLabel } from '@/lib/events-field-labels';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import { ThemeToggle } from '@/components/console/theme-toggle';
+import StepSidebar from '@/components/hackathons/edit/redesign/StepSidebar';
+import SaveBar from '@/components/hackathons/edit/redesign/SaveBar';
+import { StepHeader } from '@/components/hackathons/edit/redesign/StepChrome';
+import { PickCards, RangeDual } from '@/components/hackathons/edit/redesign/controls';
+import { STEPS, computeReadiness, type StepId } from '@/components/hackathons/edit/redesign/step-config';
 
 // --- Location: structured pickers ↔ legacy string ----------------------------
 // The DB still stores a free-text `location` (legacy filter checks use
@@ -1183,7 +1188,7 @@ const HackathonsEdit = () => {
   const [isSelectedHackathon, setIsSelectedHackathon] = useState(false);
   const [selectedHackathon, setSelectedHackathon] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const { control, setValue, getValues, reset, handleSubmit: handleFormSubmit, trigger, formState: { errors } } =
+  const { control, setValue, getValues, reset, handleSubmit: handleFormSubmit, trigger, formState: { errors, isDirty } } =
     useForm<HackathonEditFormValues>({
       resolver: zodResolver(hackathonEditSchema),
       defaultValues: {
@@ -1250,8 +1255,8 @@ const HackathonsEdit = () => {
     setValue('cohostsEmails', nextValue, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
   }, [getValues, setValue]);
   const [activePreviewTab, setActivePreviewTab] = React.useState<
-    'hackathon-preview' | 'stages-submit-form'
-  >('hackathon-preview')
+    'card' | 'hackathon-preview' | 'social' | 'stages-submit-form'
+  >('card')
 
   const [selectedStageForm, setSelectedStageForm] = React.useState<string>('0')
   const { toast } = useToast();
@@ -1338,6 +1343,42 @@ const HackathonsEdit = () => {
       handleSelectHackathon(match);
     }
   }, [requestedEventId, myHackathons]);
+
+  // Deep-link `/events/edit?id=new` opens a blank create form (the listing's
+  // "New event" CTA routes here; the standalone /events/new is just a redirect).
+  const requestedNew = searchParams?.get('id') === 'new';
+  const newHandledRef = useRef(false);
+  useEffect(() => {
+    if (newHandledRef.current || !requestedNew) return;
+    newHandledRef.current = true;
+    setShowForm(true);
+    setSelectedHackathon(null);
+    setIsSelectedHackathon(true);
+  }, [requestedNew]);
+
+  // Redesign: which step the sidebar shows. Readiness drives the dots + publish gate.
+  const [activeRail, setActiveRail] = useState<StepId>('overview');
+  const railSteps = useMemo(
+    () => STEPS.filter((s) => s.id !== 'stages' || formDataLatest.event === 'hackathon'),
+    [formDataLatest.event],
+  );
+  const stepReady = useMemo(
+    () =>
+      computeReadiness({
+        main: formDataMain,
+        content: formDataContent,
+        latest: formDataLatest,
+        cohostsEmails,
+      } as HackathonEditFormValues).ready,
+    [formDataMain, formDataContent, formDataLatest, cohostsEmails],
+  );
+  const railReadyCount = railSteps.filter((s) => stepReady[s.id]).length;
+  const railTotal = railSteps.length;
+  const railPct = railTotal ? Math.round((railReadyCount / railTotal) * 100) : 0;
+  const railAllReady = railReadyCount === railTotal;
+  useEffect(() => {
+    if (!railSteps.some((s) => s.id === activeRail)) setActiveRail('overview');
+  }, [railSteps, activeRail]);
 
   const handleApplySpeakerTemplate = useCallback(
     (idx: number, template: SpeakerTemplate): void => {
@@ -1456,6 +1497,8 @@ const HackathonsEdit = () => {
       google_calendar_id: hackathon.google_calendar_id ?? null,
     });
     setCohostsEmails(hackathon.cohosts ?? []);
+    // Establish a clean dirty baseline so autosave doesn't fire on load.
+    setTimeout(() => reset(getValues()), 0);
     setShowForm(true);
   };
 
@@ -1859,23 +1902,27 @@ const HackathonsEdit = () => {
   };
 
   const getDataToSend = () => {
-    const content = { ...formDataContent };
+    // Read live form state (not the watched snapshots) so an immediately-
+    // preceding setValue — e.g. Publish flipping is_public — is reflected.
+    const values = getValues();
+    const main = values.main as IDataMain;
+    const content = { ...(values.content as IDataContent) };
     content.submission_deadline = toIso8601(content.submission_deadline);
     if (content.submission_open) {
       content.submission_open = toIso8601(content.submission_open);
     }
     content.registration_deadline = toIso8601(content.registration_deadline);
     content.schedule = content.schedule.map(ev => ({ ...ev, date: toIso8601(ev.date) }));
-    const latest = { ...formDataLatest };
+    const latest = { ...(values.latest as IDataLatest) };
     latest.start_date = toIso8601(latest.start_date);
     latest.end_date = toIso8601(latest.end_date);
-    latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
+    latest.google_calendar_id = latest.google_calendar_id?.trim() || null;
     return {
-      ...formDataMain,
+      ...main,
       content,
       ...latest,
-      cohosts: cohostsEmails,
-      custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
+      cohosts: (values.cohostsEmails as string[]) ?? [],
+      custom_link: latest.custom_link ? latest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
     };
   };
@@ -2189,9 +2236,14 @@ const HackathonsEdit = () => {
           setFieldsToUpdate([]);
           if (savedHackathon) {
             setSelectedHackathon(savedHackathon);
+            // Replace the URL with the real id without a re-navigation.
+            if (savedHackathon.id && typeof window !== 'undefined') {
+              window.history.replaceState(null, '', `/events/edit?event=${savedHackathon.id}`);
+            }
           }
           setIsSelectedHackathon(true);
           setShowForm(true);
+          reset(getValues());
           void refreshHackathons();
           return true;
         } else {
@@ -2258,6 +2310,7 @@ const HackathonsEdit = () => {
           }
           setIsSelectedHackathon(true);
           setShowForm(true);
+          reset(getValues());
           void refreshHackathons();
           return true;
         } else {
@@ -2284,6 +2337,77 @@ const HackathonsEdit = () => {
         setLoading(false);
       }
     }
+  };
+
+  // ─── Redesign: autosave + unsaved-changes guard + save bar actions ──
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveInFlight = useRef(false);
+  const [autosaving, setAutosaving] = useState(false);
+
+  const autosave = async (): Promise<void> => {
+    const hackathonId = selectedHackathon?.id;
+    if (!hackathonId) return; // new events POST explicitly first
+    if (autosaveInFlight.current) return;
+    const isValid = await trigger();
+    if (!isValid) return;
+    if (getDateRangeError(formDataLatest.start_date, formDataLatest.end_date)) return;
+    autosaveInFlight.current = true;
+    setAutosaving(true);
+    try {
+      let dataToSend: any = { ...getDataToSend(), updated_by: session?.user?.id };
+      dataToSend = await processBase64Images(dataToSend);
+      const response = await fetch(`/api/events/${hackathonId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSend),
+      });
+      if (response.ok) {
+        const updated = await response.json().catch(() => null);
+        if (updated) {
+          setSelectedHackathon((prev: any) => ({ ...(prev ?? {}), ...updated, id: hackathonId }));
+        }
+        reset(getValues()); // current values become the saved baseline (clears dirty)
+      }
+    } catch (error) {
+      console.error('Autosave failed:', error);
+    } finally {
+      autosaveInFlight.current = false;
+      setAutosaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isDirty || !selectedHackathon?.id) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => { void autosave(); }, 2500);
+    return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty, formDataMain, formDataContent, formDataLatest, cohostsEmails, selectedHackathon?.id]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent): void => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const handleSaveDraft = (): void => {
+    void submitWithValidation();
+  };
+  const handlePublish = (): void => {
+    setFormDataMain((prev) => ({ ...prev, is_public: true }));
+    void submitWithValidation();
+  };
+  const handleDiscardChanges = (): void => {
+    if (selectedHackathon) {
+      handleSelectHackathon(selectedHackathon);
+    } else {
+      handleCancelEdit();
+    }
+    toast({ title: 'Changes discarded', variant: 'success' });
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -2850,10 +2974,34 @@ const HackathonsEdit = () => {
 
       {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-hidden flex">
+        {/* Step sidebar (redesign) — desktop only, while editing */}
+        {showForm && hasEditPermission && (
+          <div className="hidden lg:block lg:w-72 lg:shrink-0">
+            <StepSidebar
+              steps={railSteps}
+              activeStep={activeRail}
+              onSelectStep={(id) => {
+                setActiveRail(id);
+                leftPanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              ready={stepReady}
+              readyCount={railReadyCount}
+              total={railTotal}
+              pct={railPct}
+              title={formDataMain.title}
+              onTitleChange={(v) => setFormDataMain((prev) => ({ ...prev, title: v }))}
+              eventType={formDataLatest.event}
+              format={formDataContent.is_remote ? 'remote' : 'in-person'}
+              isDraft={!formDataMain.is_public}
+              canDelete={!!selectedHackathon}
+              onDelete={() => setShowDeleteModal(true)}
+            />
+          </div>
+        )}
         {/* Left Panel - Edit Form */}
         <div
           ref={leftPanelRef}
-          className="w-1/2 h-full min-h-0 overflow-y-auto bg-white dark:bg-zinc-950"
+          className="w-1/2 lg:flex-1 h-full min-h-0 overflow-y-auto bg-white dark:bg-zinc-950"
         >
           <div className="px-4 pt-2 pb-4 min-h-full flex flex-col">
             <UpdateModal
@@ -2895,7 +3043,7 @@ const HackathonsEdit = () => {
             )}
             {/* Sticky bar: step navigation (always visible when editing) */}
             {(isSelectedHackathon || (showForm && hasEditPermission)) && (
-              <div className="sticky top-0 z-20 bg-white/95 dark:bg-zinc-950/98 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 mb-4">
+              <div className="sticky top-0 z-20 bg-white/95 dark:bg-zinc-950/98 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 mb-4 lg:hidden">
                 {showForm && hasEditPermission && (
                   <div className="flex justify-between gap-1.5 py-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     <TooltipProvider>
@@ -3060,8 +3208,18 @@ const HackathonsEdit = () => {
 
             {showForm && hasEditPermission && (
               <>
-                {/* Cohosts Section - Always Visible */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 mb-6">
+                {/* Active-step header (desktop) — step context + autosave pill */}
+                <div className="hidden lg:block">
+                  <StepHeader
+                    stepIndex={Math.max(0, railSteps.findIndex((s) => s.id === activeRail))}
+                    totalSteps={railTotal}
+                    title={railSteps.find((s) => s.id === activeRail)?.label ?? ''}
+                    dirty={isDirty}
+                    saving={autosaving}
+                  />
+                </div>
+                {/* Cohosts Section */}
+                <div className={`bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 mb-6 ${activeRail === 'overview' ? '' : 'lg:hidden'}`}>
                   <h2 className="text-xl font-semibold mb-2 text-blue-700 dark:text-blue-300">{t[language].cohostsTitle}</h2>
                   <p className="text-sm text-blue-700/90 dark:text-blue-200 mb-4">
                     {t[language].cohostsDescription}
@@ -3080,26 +3238,21 @@ const HackathonsEdit = () => {
                   )}
                 </div>
                 {/* Event Type option */}
-                <div className="rounded-lg p-6 bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700">
+                <div className={`rounded-lg p-6 bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 ${activeRail === 'overview' ? '' : 'lg:hidden'}`}>
+                  <div className="mb-6">
+                    <h2 className='font-medium text-xl mb-3 block'>Event Type</h2>
+                    <PickCards
+                      columns={3}
+                      value={formDataLatest.event}
+                      onChange={(value) => setFormDataLatest(prev => ({ ...prev, event: value }))}
+                      options={[
+                        { value: 'hackathon', title: 'Hackathon', description: 'Multi-day build with tracks and prizes.' },
+                        { value: 'workshop', title: 'Workshop', description: 'Single session, deep dive on a topic.' },
+                        { value: 'bootcamp', title: 'Bootcamp', description: 'Multi-day curriculum, no prizes.' },
+                      ]}
+                    />
+                  </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-                    <div>
-                      <h2 className='font-medium text-xl mb-2 block'>Event Type</h2>
-                      <Select
-                        value={formDataLatest.event}
-                        onValueChange={(value) => {
-                          setFormDataLatest(prev => ({ ...prev, event: value }));
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select event type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="hackathon">Hackathon</SelectItem>
-                          <SelectItem value="workshop">Workshop</SelectItem>
-                          <SelectItem value="bootcamp">Bootcamp</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                     {/* Event Language */}
                     <div>
                       <h2 className='font-medium text-xl mb-2 block'>Event Language</h2>
@@ -3140,7 +3293,7 @@ const HackathonsEdit = () => {
                 </div>
 
                 <form onSubmit={submitWithValidation} noValidate className="space-y-4">
-                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
+                  <div className={`bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6 ${activeRail === 'overview' ? '' : 'lg:hidden'}`}>
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step1Ref} className="text-2xl font-bold">{t[language].mainTopics}</h2>
                       {collapsed.main && (
@@ -3391,19 +3544,20 @@ const HackathonsEdit = () => {
                                   <div>
                                     <label className="font-medium text-xl mb-2 block">{t[language].registrationMode}:</label>
                                     <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].registrationModeHelp}</div>
-                                    <select
+                                    <PickCards
+                                      columns={2}
                                       value={formDataContent.registration_mode ?? 'full'}
-                                      onChange={(e) =>
+                                      onChange={(value) =>
                                         setFormDataContent({
                                           ...formDataContent,
-                                          registration_mode: e.target.value === 'simple' ? 'simple' : 'full',
+                                          registration_mode: value === 'simple' ? 'simple' : 'full',
                                         })
                                       }
-                                      className="w-full mb-4 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-900 dark:text-zinc-100"
-                                    >
-                                      <option value="full">full</option>
-                                      <option value="simple">simple</option>
-                                    </select>
+                                      options={[
+                                        { value: 'full', title: 'Full', description: 'Multi-step form: tech stack, team intent, profile.', meta: '~14 fields' },
+                                        { value: 'simple', title: 'Simple', description: 'One-step opt-in. Best for workshops & bootcamps.', meta: '~3 fields' },
+                                      ]}
+                                    />
                                   </div>
                                 </>
                               )}
@@ -3483,7 +3637,7 @@ const HackathonsEdit = () => {
                   </div>
 
                   {/* Step 4: Track Text - Only for Hackathons */}
-                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
+                  <div className={`bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6 ${activeRail === 'about' ? '' : 'lg:hidden'}`}>
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step5Ref} className="text-2xl font-bold">{t[language].about}</h2>
                       {collapsed.trackText && (
@@ -3698,7 +3852,7 @@ const HackathonsEdit = () => {
                     )}
                   </div>
 
-                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
+                  <div className={`bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6 ${activeRail === 'stages' ? '' : 'lg:hidden'}`}>
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step2Ref} className="text-2xl font-bold">Stages</h2>
                       {collapsed.stages && (
@@ -3742,7 +3896,7 @@ const HackathonsEdit = () => {
                   </div>
 
                   {/* Step 3: Images & Branding */}
-                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
+                  <div className={`bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6 ${activeRail === 'branding' ? '' : 'lg:hidden'}`}>
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step3Ref} className="text-2xl font-bold">Images & Branding</h2>
                       {collapsed.images && (
@@ -3932,7 +4086,7 @@ const HackathonsEdit = () => {
                   </div>
 
                   {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
-                  <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
+                  <div className={`bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6 ${activeRail === 'details' ? '' : 'lg:hidden'}`}>
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step4Ref} className="text-2xl font-bold">
                         {formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}
@@ -4020,39 +4174,18 @@ const HackathonsEdit = () => {
 
                             {/* Team-size range — defines how many participants per team
                                 can register for this event. */}
-                            <div className="mt-6 mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Min team size</div>
-                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">Smallest allowed team size. Leave empty to allow solo (1).</div>
-                            <Input
-                              type="number"
-                              min={1}
-                              placeholder="(1 — solo allowed)"
-                              value={formDataContent.team_size_min ?? ''}
-                              onChange={(e) => {
-                                const raw = e.target.value.trim();
-                                const parsed = raw === '' ? undefined : Number(raw);
+                            <div className="mt-6 mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Team size</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">How many participants per team. Drag the handles or type to set the range.</div>
+                            <RangeDual
+                              valueMin={formDataContent.team_size_min}
+                              valueMax={formDataContent.team_size_max}
+                              onChange={(min, max) =>
                                 setFormDataContent({
                                   ...formDataContent,
-                                  team_size_min: Number.isFinite(parsed) ? parsed : undefined,
-                                });
-                              }}
-                              className="w-full mb-4"
-                            />
-                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].teamSizeMax}</div>
-                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">{t[language].teamSizeMaxHelp}</div>
-                            <Input
-                              type="number"
-                              min={1}
-                              placeholder="(no cap)"
-                              value={formDataContent.team_size_max ?? ''}
-                              onChange={(e) => {
-                                const raw = e.target.value.trim();
-                                const parsed = raw === '' ? undefined : Number(raw);
-                                setFormDataContent({
-                                  ...formDataContent,
-                                  team_size_max: Number.isFinite(parsed) ? parsed : undefined,
-                                });
-                              }}
-                              className="w-full mb-4"
+                                  team_size_min: min,
+                                  team_size_max: max,
+                                })
+                              }
                             />
 
                             {/* Participation scope — Global vs Local. "Local" derives the
@@ -4138,7 +4271,7 @@ const HackathonsEdit = () => {
                   </div>
 
                   {/* Step 5: Content - Tracks, Schedule, etc. */}
-                  <div ref={step6Ref} className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
+                  <div ref={step6Ref} className={`bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6 ${activeRail === 'content' ? '' : 'lg:hidden'}`}>
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-2xl font-bold">{t[language].content}</h2>
                       {collapsed.content && (
@@ -4498,6 +4631,16 @@ const HackathonsEdit = () => {
                     )}
                   </div>
                 </form>
+                <SaveBar
+                  dirty={isDirty}
+                  saving={autosaving || loading}
+                  allReady={railAllReady}
+                  isPublic={!!formDataMain.is_public}
+                  incompleteCount={railTotal - railReadyCount}
+                  onDiscard={handleDiscardChanges}
+                  onSaveDraft={handleSaveDraft}
+                  onPublish={handlePublish}
+                />
               </>
             )}
             {showForm && !hasEditPermission && (

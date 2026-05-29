@@ -14,6 +14,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import HackathonPreview from '../../HackathonPreview';
+import HackathonCard from '../../HackathonCard';
 import StageSubmitPageContent from '../../project-submission/stages/submit-form/page-content';
 import type { HackathonHeader } from '@/types/hackathons';
 import { HackathonStage } from '@/types/hackathon-stage';
@@ -69,7 +70,12 @@ function StageBadge({ status }: { status: StageStatus }): React.JSX.Element {
   );
 }
 
-type PreviewTabValue = 'hackathon-preview' | 'stages-submit-form';
+/**
+ * Preview tab values. `card` and `social` are display-only renditions; the two
+ * legacy values (`hackathon-preview` = full page, `stages-submit-form` = Form)
+ * are kept so existing callers and the stage editor's "jump to form" keep working.
+ */
+export type PreviewTabValue = 'card' | 'hackathon-preview' | 'social' | 'stages-submit-form';
 
 type HackathonPreviewTabsProps = {
   previewHackathon: HackathonHeader;
@@ -79,6 +85,55 @@ type HackathonPreviewTabsProps = {
   onActiveTabChange: (value: PreviewTabValue) => void;
   selectedStageForm: string;
 };
+
+/** OG/social rendition built from live form state (no saved id needed). */
+function SocialPreview({ hackathon }: { hackathon: HackathonHeader }): React.JSX.Element {
+  const banner = hackathon.banner?.trim() || hackathon.small_banner?.trim() || '';
+  const title = hackathon.title?.trim() || 'Untitled event';
+  const description = (hackathon.description ?? '').slice(0, 140);
+  return (
+    <div className="space-y-6 p-1">
+      <div>
+        <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
+          Open Graph card · 1200 × 630
+        </div>
+        <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+          <div className="relative aspect-[1200/630] w-full bg-zinc-100 dark:bg-zinc-800">
+            {banner ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={banner} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full items-center justify-center text-xs text-zinc-400">banner</div>
+            )}
+          </div>
+          <div className="space-y-1 bg-white p-4 dark:bg-zinc-900">
+            <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
+              build.avax.network
+            </div>
+            <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</div>
+            <div className="line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">{description}</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
+          Slack unfurl
+        </div>
+        <div className="flex gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="w-1 shrink-0 rounded-full bg-[#D66666]" />
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</div>
+            <div className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">{description}</div>
+            <div className="mt-1 truncate text-[11px] text-zinc-400">
+              {hackathon.location || 'Location TBD'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function HackathonPreviewTabs({
   previewHackathon,
@@ -109,10 +164,18 @@ export default function HackathonPreviewTabs({
         onValueChange={(value: string): void => onActiveTabChange(value as PreviewTabValue)}
         className="h-full"
       >
-        <TabsList className="mb-4 grid w-full grid-cols-2">
-          <TabsTrigger value="hackathon-preview">Event Preview</TabsTrigger>
-          <TabsTrigger value="stages-submit-form">Stages Submit Form</TabsTrigger>
+        <TabsList className="mb-4 grid w-full grid-cols-4">
+          <TabsTrigger value="card">Card</TabsTrigger>
+          <TabsTrigger value="hackathon-preview">Page</TabsTrigger>
+          <TabsTrigger value="social">Social</TabsTrigger>
+          <TabsTrigger value="stages-submit-form">Form</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="card" className="h-[calc(100%-56px)] overflow-y-auto">
+          <div className="mx-auto max-w-2xl pt-2">
+            <HackathonCard hackathon={previewHackathon} />
+          </div>
+        </TabsContent>
 
         <TabsContent value="hackathon-preview" className="h-[calc(100%-56px)]">
           <div className="h-full">
@@ -122,6 +185,10 @@ export default function HackathonPreviewTabs({
               scrollTarget={scrollTarget}
             />
           </div>
+        </TabsContent>
+
+        <TabsContent value="social" className="h-[calc(100%-56px)] overflow-y-auto">
+          <SocialPreview hackathon={previewHackathon} />
         </TabsContent>
 
         <TabsContent value="stages-submit-form">
