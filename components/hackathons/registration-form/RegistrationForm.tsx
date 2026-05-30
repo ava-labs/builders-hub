@@ -181,8 +181,8 @@ export function RegisterForm({
     prohibited_items: false,
     founder_check: false,
     avalanche_ecosystem_member: false,
-    user_notifications: true,
-    user_consent_sharing: true,
+    user_notifications: false,
+    user_consent_sharing: false,
   });
 
   const form = useForm<RegisterFormValues>({
@@ -818,20 +818,65 @@ export function RegisterForm({
             />
           )}
           {isSimpleMode && step === 1 && (
-            <div className="mt-6 flex items-start gap-3">
-              <input
-                id="terms_event_conditions"
-                type="checkbox"
-                checked={!!form.watch("terms_event_conditions")}
-                onChange={(e) =>
-                  form.setValue("terms_event_conditions", e.target.checked, { shouldDirty: true })
-                }
-                className="mt-1 h-4 w-4"
-              />
-              <label htmlFor="terms_event_conditions" className="text-sm cursor-pointer">
-                {t(lang, "reg.step2.terms.label")}
-              </label>
-            </div>
+            <>
+              <div className="mt-6 flex items-start gap-3">
+                <input
+                  id="terms_event_conditions"
+                  type="checkbox"
+                  checked={!!form.watch("terms_event_conditions")}
+                  onChange={(e) =>
+                    form.setValue("terms_event_conditions", e.target.checked, { shouldDirty: true })
+                  }
+                  className="mt-1 h-4 w-4"
+                />
+                <label htmlFor="terms_event_conditions" className="text-sm cursor-pointer">
+                  {t(lang, "reg.step2.terms.label")}
+                </label>
+              </div>
+              {/* Sharing consent — conscious opt-in. Only shown when the user
+                  hasn't already granted it; required (*) only for Team1 events. */}
+              {showSharingConsent && (
+                <div className="mt-3">
+                  <div className="flex items-start gap-3">
+                    <input
+                      id="user_consent_sharing"
+                      type="checkbox"
+                      checked={!!form.watch("user_consent_sharing")}
+                      onChange={(e) => {
+                        form.setValue("user_consent_sharing", e.target.checked, { shouldDirty: true });
+                        if (e.target.checked) form.clearErrors("user_consent_sharing");
+                      }}
+                      className="mt-1 h-4 w-4"
+                    />
+                    <label htmlFor="user_consent_sharing" className="text-sm cursor-pointer">
+                      {t(lang, "consents.consentSharing.label")}
+                      {requireSharingConsent && <span className="text-red-500"> *</span>}
+                    </label>
+                  </div>
+                  {form.formState.errors.user_consent_sharing && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {form.formState.errors.user_consent_sharing.message as string}
+                    </p>
+                  )}
+                </div>
+              )}
+              {showNotificationsConsent && (
+                <div className="mt-3 flex items-start gap-3">
+                  <input
+                    id="user_notifications"
+                    type="checkbox"
+                    checked={!!form.watch("user_notifications")}
+                    onChange={(e) =>
+                      form.setValue("user_notifications", e.target.checked, { shouldDirty: true })
+                    }
+                    className="mt-1 h-4 w-4"
+                  />
+                  <label htmlFor="user_notifications" className="text-sm cursor-pointer">
+                    {t(lang, "consents.notifications.label")}
+                  </label>
+                </div>
+              )}
+            </>
           )}
           {isSimpleMode &&
             step === 1 &&

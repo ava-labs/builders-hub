@@ -4,6 +4,7 @@ import { Session } from "next-auth";
 import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
+import { isTeam1Event } from "@/lib/events/team1";
 
 type UserConsentsInput = {
   notifications?: unknown;
@@ -44,24 +45,37 @@ export const POST = withAuth(async (
 
     const hackathonId = registerData?.hackathon_id;
     if (session.user?.email && typeof hackathonId === "string" && hackathonId) {
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { consent_sharing: true },
+      // Sharing consent is only MANDATORY for Team1-organized / co-hosted
+      // events. Non-Team1 events must not block registration when the user
+      // declines — they can opt in later from their profile.
+      const hackathon = await prisma.hackathon.findUnique({
+        where: { id: hackathonId },
+        select: { organizers: true, cohosts: true },
       });
-      const userHasConsent = user?.consent_sharing === true;
-      const incomingConsent =
-        (user_consents as UserConsentsInput | undefined)?.consent_sharing;
-      if (!userHasConsent && incomingConsent !== true) {
-        return NextResponse.json(
-          {
-            error: {
-              message:
-                "Sharing consent is required to register for this event.",
-              field: "user_consent_sharing",
+      const requiresSharingConsent = isTeam1Event({
+        organizers: hackathon?.organizers,
+        cohosts: hackathon?.cohosts,
+      });
+      if (requiresSharingConsent) {
+        const user = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { consent_sharing: true },
+        });
+        const userHasConsent = user?.consent_sharing === true;
+        const incomingConsent =
+          (user_consents as UserConsentsInput | undefined)?.consent_sharing;
+        if (!userHasConsent && incomingConsent !== true) {
+          return NextResponse.json(
+            {
+              error: {
+                message:
+                  "Sharing consent is required to register for this event.",
+                field: "user_consent_sharing",
+              },
             },
-          },
-          { status: 400 },
-        );
+            { status: 400 },
+          );
+        }
       }
     }
 
