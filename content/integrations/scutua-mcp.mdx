@@ -1,0 +1,76 @@
+---
+title: Scutua MCP
+category: AI & Automation
+available:
+  - C-Chain
+  - Avalanche L1s
+description: Scutua MCP is a Model Context Protocol server that gives AI assistants real-time access to DeFi data, portfolio analytics, token prices, whale tracking, and on-chain intelligence across the Avalanche ecosystem.
+logo: /images/scutua-mcp.png
+developer: WhaleTrucker / Scutua
+website: https://scutua.io/
+documentation: https://scutua-mcp.onrender.com/mcp
+---
+
+## Overview
+
+Scutua MCP (Model Context Protocol) server connects AI coding assistants and AI agents directly to live Avalanche DeFi data. It exposes over 150 tools — covering token prices, wallet portfolios, yield farming, whale tracking, lending protocols, NFT floors, trading signals, and more — all queryable through natural language via any MCP-compatible AI client such as Claude, Cursor, or VS Code Copilot.
+
+Built on top of the WhaleTrucker ecosystem, Scutua MCP bridges the gap between AI assistants and on-chain Avalanche data without requiring developers to write custom API integrations.
+
+## Features
+
+- **Real-Time Token Prices**: Query live prices for AVAX and any token on Avalanche via CoinGecko and Birdeye.
+- **Portfolio Analytics**: Scan wallet holdings across C-Chain and Avalanche L1s in a single call.
+- **Whale Tracking**: Monitor large on-chain transactions and track smart money wallet flows.
+- **DeFi Yield Discovery**: Fetch best supply/borrow APYs across Aave, Compound, Curve, Pendle, and other protocols deployed on Avalanche.
+- **Trading Signals**: Get RSI, MACD, and unified BUY/SELL/HOLD signals for major tokens.
+- **NFT Floor Prices**: Retrieve floor prices for Avalanche NFT collections via OpenSea.
+- **Cross-Chain Bridge Quotes**: Compare bridge fees and find the cheapest route between chains.
+- **Fear & Greed Index**: Access market sentiment data alongside on-chain signals.
+- **Limit Orders & Stop Losses**: Set price-triggered orders without leaving your AI chat interface.
+- **DCA Automation**: Create and execute Dollar Cost Averaging plans on-chain.
+
+## Getting Started
+
+1. **Add the MCP Server**: Add the Scutua MCP endpoint to your AI client configuration.
+
+   For Claude Desktop (`claude_desktop_config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "scutua-mcp": {
+         "url": "https://scutua-mcp.onrender.com/mcp"
+       }
+     }
+   }
+   ```
+
+   For Claude Code (CLI):
+   ```bash
+   claude mcp add scutua --transport http https://scutua-mcp.onrender.com/mcp
+   ```
+
+2. **Verify the Connection**: Ask your AI assistant to run a quick check:
+   ```
+   What is the current price of AVAX?
+   ```
+
+3. **Explore Available Tools**: Ask your AI assistant to list available tools or browse the [Scutua MCP documentation](https://scutua-mcp.onrender.com/mcp).
+
+4. **Query DeFi Data**: Start querying live Avalanche data through natural language:
+   ```
+   Find the best USDC yield on Avalanche right now.
+   Show me recent whale transactions on Avalanche.
+   Scan my wallet 0x... across all chains.
+   ```
+
+## Documentation
+
+For the full list of tools and API reference, visit the [Scutua MCP endpoint](https://scutua-mcp.onrender.com/mcp) or the [WhaleTrucker ecosystem documentation](https://scutua.io/).
+
+## Use Cases
+
+- **DeFi Developers**: Query live protocol data (TVL, APY, liquidity) directly inside your IDE or AI chat while building Avalanche dApps.
+- **Traders & Portfolio Managers**: Monitor whale movements, track positions, and get trading signals without switching between dashboards.
+- **AI Agent Builders**: Equip autonomous agents with real-time Avalanche on-chain data using a single MCP connection.
+- **Researchers & Analysts**: Combine natural language queries with live on-chain data for fast ecosystem analysis.
