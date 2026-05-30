@@ -1,0 +1,59 @@
+---
+title: The Primary Network
+description: Learn about Avalanche's Primary Network and its role in the multi-chain architecture.
+updated: 2025-02-05
+authors: [ashucoder9]
+icon: BookOpen
+---
+
+The Primary Network is the foundational layer of the Avalanche ecosystem. It serves as the backbone that coordinates and secures all activity across the network, including communication between different Avalanche L1s.
+
+## What is the Primary Network?
+
+The Primary Network consists of three built-in blockchains that work together to provide core functionality:
+
+- **P-Chain (Platform Chain)**: Coordinates validators, tracks active L1s, and manages staking
+- **C-Chain (Contract Chain)**: An EVM-compatible blockchain for smart contracts and DeFi applications
+- **X-Chain (Exchange Chain)**: Optimized for creating and transferring digital assets
+
+These three chains form the Primary Network, which all validators must validate. This requirement ensures a high degree of decentralization and security across the entire Avalanche ecosystem.
+
+## Role in the Avalanche Ecosystem
+
+The Primary Network serves several critical functions:
+
+### Validator Coordination
+All validators on Avalanche must validate the Primary Network. This creates a shared security model where the Primary Network benefits from the collective computational power of all validators in the ecosystem.
+
+### L1 Registration and Management
+When developers want to create an Avalanche L1, they register it on the P-Chain. This registration process includes:
+- Defining validator requirements
+- Setting up economic parameters
+- Establishing the L1's relationship with the Primary Network
+
+### AVAX Token Management
+AVAX, the native token of the Avalanche ecosystem, is managed on the Primary Network. It serves multiple purposes:
+- Paying transaction fees on the C-Chain
+- Staking to become a validator
+- Securing the network through Proof-of-Stake consensus
+- Providing a common unit of account across the ecosystem
+
+### Interoperability Foundation
+The Primary Network provides the foundation for interoperability between different Avalanche L1s through Avalanche Interchain Messaging (ICM). This enables secure cross-chain communication and asset transfers.
+
+## Primary Network vs Avalanche L1s
+
+While Avalanche L1s offer customizability and independence, the Primary Network provides stability and shared security:
+
+| Feature | Primary Network | Avalanche L1s |
+|---------|----------------|---------------|
+| Validator Set | All Avalanche validators | Custom validator set |
+| Consensus Rules | Fixed (Avalanche consensus) | Customizable |
+| Gas Token | AVAX | Custom (can be AVAX or another token) |
+| Virtual Machine | Fixed (AVM, EVM, PlatformVM) | Customizable (EVM, custom VMs) |
+| Security Model | Shared across ecosystem | Independent |
+| Access Control | Permissionless | Permissionless or Permissioned |
+
+The Primary Network's role is to provide a stable, secure foundation that all Avalanche L1s can rely on, while giving L1 creators the flexibility to customize their chains for specific use cases.
+
+<Quiz quizId="1203"/>

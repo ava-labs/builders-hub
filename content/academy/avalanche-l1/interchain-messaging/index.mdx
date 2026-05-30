@@ -1,0 +1,79 @@
+---
+title: Welcome to the course
+description: Learn about Interchain Messaging, the interoperability protocol of Avalanche.
+updated: 2025-05-13
+authors: [martineckardt, nicolasarnedo]
+icon: Smile
+---
+
+In this course, you will learn the fundamentals of Avalanche Interchain Messaging (ICM) and set up cross-chain communication infrastructure using Console tools.
+
+## Why Take This Course?
+
+A significant innovation in blockchain is the development of multi-chain systems, like Avalanche, which provide a significant improvement in scalability, interoperability, and flexibility. At the core of these multi-chain systems is the ability to run multiple blockchains that communicate. Each chain's VM is optimized for specialized use cases, thereby boosting the network's overall performance.
+
+Cross-chain communication is a crucial building block of multi-chain systems. Avalanche Interchain Messaging (ICM) and Avalanche Warp Messaging (AWM) provide a native, trustless way to send messages between any Avalanche L1s.
+
+## Course Content
+
+Below you can find a 30 minute recording of a presentation about Avalanche Warp Messaging and Teleporter. This summarizes the content of the first chapters:
+
+<YouTube id="N6F7D4Hb87c"/>
+
+### Interoperability
+
+In the first section, we cover basic concepts of interoperability in multi-chain systems. You will learn about examples of interoperability between blockchains and the terms "source," "destination," and "message."
+
+### Avalanche Warp Messaging
+
+In this section, we look at the low-level messaging primitive that powers cross-chain communication on Avalanche. You will learn about the warp message format, BLS signatures, validator signing, and how messages flow between chains.
+
+### ICM Protocol
+
+Here we dive into the Interchain Messaging protocol layer built on top of AWM. You'll learn about TeleporterMessenger, message encoding/decoding, sending and receiving messages, and the TeleporterRegistry for version management.
+
+### ICM Infrastructure Setup
+
+In this hands-on section, you'll use Console tools to deploy the full ICM infrastructure on your L1: TeleporterMessenger, TeleporterRegistry, and a relayer.
+
+### Your First Cross-Chain Message
+
+Put it all together by deploying demo contracts and sending your first cross-chain message between Fuji C-Chain and your L1.
+
+### Relayer Deep Dive
+
+Finally, we take a deeper look at relayer configuration, restricting relayers, and the economics of incentivizing message delivery.
+
+## What You'll Need
+
+- **An L1 deployed on Fuji testnet** — If you haven't deployed one yet, see the [L1 Architecture course](/academy/avalanche-l1/l1-architecture)
+- **Core Wallet** connected to both Fuji C-Chain and your L1
+- **Test AVAX** for gas fees (get some from the [Fuji faucet](https://faucet.avax.network/))
+
+## Prerequisites
+
+### Avalanche
+
+This course is meant for people with a solid understanding of the basic concepts of Avalanche. You should be familiar with these concepts:
+
+- **Virtual Machines:** What they are and what VM customization means
+- **Avalanche L1s & Blockchains:** What the difference between a VM, Blockchain, and an Avalanche L1 is
+
+If any of this is unclear, we strongly recommend taking the Avalanche Fundamentals and Multi-Chain Architecture courses first.
+
+### Software Development
+
+- **Solidity:** Familiarity with Solidity concepts. You won't write any contracts in this course, but you'll read contract interfaces and understand how cross-chain contracts work.
+
+## Learning Outcomes
+
+By the end of this course, students will:
+
+- Understand the challenges of cross-chain communication
+- Know what separates Avalanche Warp Messaging from other cross-chain communication protocols
+- Understand the ICM protocol layer and how it builds on AWM
+- Set up ICM infrastructure (TeleporterMessenger, TeleporterRegistry, Relayer) on an L1
+- Send and verify cross-chain messages using Console tools
+- Understand relayer configuration, restrictions, and fee economics
+
+For practical token bridging applications built on ICM, check out the [ERC-20 Bridge](/academy/avalanche-l1/erc20-bridge) and [Native Token Bridge](/academy/avalanche-l1/native-token-bridge) courses.

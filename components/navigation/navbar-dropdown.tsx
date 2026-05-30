@@ -4,15 +4,24 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronDown, CircleUserRound, Moon, Sun } from 'lucide-react';
+import { menuSections, singleItems } from './nav-config';
+import { useSession } from 'next-auth/react';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
  * Replaces fumadocs' default dropdown to ensure all menu items are visible
+ *
+ * IMPORTANT: Navigation items are defined in nav-config.ts (Single Source of Truth)
+ * Do NOT add navigation items here - update nav-config.ts instead.
  */
 export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
+  const isAuthenticated = status === 'authenticated';
 
   // Close on navigation
   useEffect(() => {
@@ -35,65 +44,6 @@ export function NavbarDropdown() {
       document.removeEventListener('mousedown', handleClickOutside, true);
     };
   }, [isOpen]);
-
-  const menuSections = [
-    {
-      title: 'Academy',
-      href: '/academy',
-      items: [
-        { text: 'Avalanche Developer Academy', href: '/academy' },
-        { text: 'Codebase Entrepreneur Academy', href: '/codebase-entrepreneur-academy' },
-        { text: 'Avalanche Fundamentals', href: '/academy/avalanche-fundamentals' },
-      ],
-    },
-    {
-      title: 'Documentation',
-      href: '/docs/quick-start',
-      items: [
-        { text: 'Avalanche Protocol', href: '/docs/quick-start' },
-        { text: 'Avalanche L1s', href: '/docs/avalanche-l1s' },
-        { text: 'Nodes & Validators', href: '/docs/nodes' },
-        { text: 'Interoperability', href: '/docs/cross-chain' },
-      ],
-    },
-    {
-      title: 'Console',
-      href: '/console',
-      items: [
-        { text: 'Console', href: '/console' },
-        { text: 'Interchain Messaging Tools', href: '/console/icm/setup' },
-        { text: 'Interchain Token Transfer Tools', href: '/console/ictt/setup' },
-        { text: 'Testnet Faucet', href: '/console/primary-network/faucet' },
-      ],
-    },
-    {
-      title: 'Events',
-      href: '/hackathons',
-      items: [
-        { text: 'Hackathons', href: '/hackathons' },
-        { text: 'Avalanche Calendar', href: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4', external: true },
-        { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
-      ],
-    },
-    {
-      title: 'Grants',
-      href: '/grants',
-      items: [
-        { text: 'Codebase', href: '/codebase' },
-        { text: 'InfraBUIDL', href: '/grants/infrabuidl' },
-        { text: 'InfraBUIDL (AI)', href: '/grants/infrabuidlai' },
-        { text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
-        { text: 'Blizzard Fund', href: 'https://www.blizzard.fund/', external: true },
-      ],
-    },
-  ];
-
-  const singleItems = [
-    { text: 'University', href: '/university' },
-    { text: 'Integrations', href: '/integrations' },
-    { text: 'Blog', href: '/guides' },
-    { text: 'Stats', href: '/stats/overview' },
-  ];
 
   return (
     <div className="relative" data-navbar-dropdown ref={dropdownRef}>
@@ -136,14 +86,30 @@ export function NavbarDropdown() {
                   <Sun fill="currentColor" className="size-6.5 rounded-full p-1.5 text-muted-foreground" />
                   <Moon fill="currentColor" className="size-6.5 rounded-full p-1.5 text-muted-foreground" />
                 </button>
-                <Link
-                  href="/login"
-                  aria-label="Login"
-                  title="Login"
-                  className="inline-flex items-center justify-center rounded-md p-1.5 hover:bg-accent"
-                >
-                  <CircleUserRound className="size-5" />
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    href="/profile"
+                    aria-label="Profile"
+                    title="Profile"
+                    className="inline-flex items-center justify-center rounded-md p-1.5 hover:bg-accent"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <CircleUserRound className="size-5" />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="Login"
+                    title="Login"
+                    className="inline-flex items-center justify-center rounded-md p-1.5 hover:bg-accent"
+                    onClick={() => {
+                      setIsOpen(false);
+                      openLoginModal(window.location.href);
+                    }}
+                  >
+                    <CircleUserRound className="size-5" />
+                  </button>
+                )}
               </div>
               {/* Menu sections */}
               {menuSections.map((section) => (
@@ -184,5 +150,4 @@ export function NavbarDropdown() {
     </div>
   );
 }
-
 

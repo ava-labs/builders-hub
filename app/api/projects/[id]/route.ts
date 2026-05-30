@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HackathonHeader } from "@/types/hackathons";
 import { getProject, updateProject } from "@/server/services/projects";
+import { isUserProjectMember } from "@/server/services/fileValidation";
+import { withAuth } from '@/lib/protectedRoute';
+import { GetProjectByIdWithMembers } from "@/server/services/memberProject";
 
-export async function GET(req: NextRequest, context: any) {
-
+export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
 
@@ -11,27 +13,49 @@ export async function GET(req: NextRequest, context: any) {
       return NextResponse.json({ error: "ID required" }, { status: 400 });
     }
 
-    const hackathon = await getProject(id)
-    return NextResponse.json(hackathon);
+    // Check if user is a member of the project
+    const isMember = await isUserProjectMember(session.user.id, id);
+    if (!isMember) {
+      return NextResponse.json(
+        { error: "Forbidden: You are not a member of this project" },
+        { status: 403 }
+      );
+    }
+
+    const project = await GetProjectByIdWithMembers(id);
+    return NextResponse.json(project);
   } catch (error) {
-    console.error("Error in GET /api/hackathons/[id]:");
+    console.error("Error in GET /api/projects/[id]:");
     return NextResponse.json(
       { error: (error as Error).message },
       { status: 500 }
     );
   }
-}
+});
 
-export async function PUT(req: NextRequest) {
+export const PUT = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
-    const id = req.nextUrl.searchParams.get('id')!;
-    const partialEditedHackathon = (await req.json()) as Partial<HackathonHeader>;
+    const { id } = await context.params;
+    
+    if (!id) {
+      return NextResponse.json({ error: "ID required" }, { status: 400 });
+    }
 
+    // Check if user is a member of the project
+    const isMember = await isUserProjectMember(session.user.id, id);
+    if (!isMember) {
+      return NextResponse.json(
+        { error: "Forbidden: You are not a member of this project" },
+        { status: 403 }
+      );
+    }
+
+    const partialEditedHackathon = (await req.json()) as Partial<HackathonHeader>;
     const updatedHackathon = await updateProject(id ?? partialEditedHackathon.id, partialEditedHackathon);
 
     return NextResponse.json(updatedHackathon);
   } catch (error) {
-    console.error("Error in PUT /api/hackathons/[id]:", error);
+    console.error("Error in PUT /api/projects/[id]:", error);
     return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
   }
-}
+});

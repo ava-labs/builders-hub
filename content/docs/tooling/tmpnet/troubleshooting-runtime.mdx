@@ -1,0 +1,585 @@
+---
+title: Troubleshooting Runtime Issues
+description: Diagnose and resolve common tmpnet runtime issues for local processes and Kubernetes deployments
+---
+
+This guide helps you diagnose and resolve common issues with tmpnet's different runtime environments. Issues are organized by runtime type for quick reference.
+
+## Local Process Runtime Issues
+
+### Port Conflicts
+
+**Symptom:** Error messages like "address already in use" or "bind: address already in use" when starting a network.
+
+**Cause:** A previous network is still running, or another application is using the ports.
+
+**Solution:**
+
+```bash
+# Check for orphaned avalanchego processes
+ps aux | grep avalanchego
+
+# Kill any orphaned processes
+pkill -f avalanchego
+
+# Verify ports are free
+lsof -i :9650-9660
+```
+
+**Prevention:** Always use dynamic port allocation by setting ports to "0":
+
+```go
+network.DefaultFlags = tmpnet.FlagsMap{
+    "http-port":    "0",  // Let OS assign available port
+    "staking-port": "0",  // Let OS assign available port
+}
+```
+
+<Callout type="warning">
+Avoid hardcoding port numbers unless you have a specific reason. Dynamic ports prevent conflicts when running multiple networks or tests concurrently.
+</Callout>
+
+### Process Not Stopping
+
+**Symptom:** After calling `network.Stop()`, avalanchego processes remain running in the background.
+
+**Cause:** Process termination may fail silently, or cleanup may not complete properly.
+
+**Solution:**
+
+```bash
+# Find all avalanchego processes
+ps aux | grep avalanchego
+
+# Try graceful termination first
+pkill -TERM -f avalanchego
+sleep 5
+
+# If processes still running, force kill as last resort
+pkill -9 -f avalanchego
+
+# Clean up temporary directories if needed
+# First verify which network you want to delete
+ls -lt ~/.tmpnet/networks/
+# Then delete the specific network directory
+rm -rf ~/.tmpnet/networks/20250312-143052.123456
+```
+
+<Callout type="warning">
+Use `pkill -9` (SIGKILL) only as a last resort after graceful termination fails. SIGKILL doesn't allow cleanup and can leave the database in an inconsistent state.
+</Callout>
+
+**Prevention:** Always use context with timeout for Stop operations:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+if err := network.Stop(ctx); err != nil {
+    // Log error but continue cleanup
+    log.Printf("Failed to stop network cleanly: %v", err)
+}
+```
+
+### Binary Not Found
+
+**Symptom:** Error "avalanchego not found" or "executable file not found in $PATH" when starting nodes.
+
+**Cause:** The avalanchego binary path is incorrect or not specified.
+
+**Solution:**
+
+```bash
+# Verify the binary exists
+ls -lh /path/to/avalanchego
+
+# Use absolute path when configuring
+export AVALANCHEGO_PATH="$(pwd)/bin/avalanchego"
+
+# Or specify in code
+runtimeCfg := &tmpnet.ProcessRuntimeConfig{
+    AvalancheGoPath: "/absolute/path/to/avalanchego",
+}
+```
+
+**Verification:**
+
+```bash
+# Test the binary works
+/path/to/avalanchego --version
+
+# Should output version information
+```
+
+<Callout type="info">
+When using relative paths, ensure they resolve correctly from your test working directory. Absolute paths are more reliable for test automation.
+</Callout>
+
+### Logs Location
+
+**Where to find logs:** Node logs are stored in the network directory under each node's subdirectory.
+
+```bash
+# Find the latest network
+ls -lt ~/.tmpnet/networks/
+
+# Use the 'latest' symlink
+tail -f ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+
+# Or specify the timestamp directory
+tail -f ~/.tmpnet/networks/20250312-143052.123456/NodeID-7Xhw2mX5xVHr1ANraYiTgjuB8Jqdbj8/logs/main.log
+```
+
+**Useful log commands:**
+
+```bash
+# View all node logs simultaneously
+tail -f ~/.tmpnet/networks/latest/NodeID-*/logs/main.log
+
+# Search for errors across all nodes
+grep -r "ERROR" ~/.tmpnet/networks/latest/*/logs/
+
+# Monitor a specific node
+export NODE_ID="NodeID-7Xhw2mX5xVHr1ANraYiTgjuB8Jqdbj8"
+tail -f ~/.tmpnet/networks/latest/$NODE_ID/logs/main.log
+```
+
+## Kubernetes Runtime Issues
+
+### Pod Stuck in Pending
+
+**Symptom:** Node pods remain in "Pending" state and never start.
+
+**Common causes:**
+- Insufficient cluster resources (CPU/memory)
+- Node selector constraints not met
+- Storage class unavailable
+- Image pull errors (see below)
+
+**Diagnosis:**
+
+```bash
+# Check pod status details
+kubectl describe pod avalanchego-node-0 -n tmpnet
+
+# Look for events section
+kubectl get events -n tmpnet --sort-by='.lastTimestamp'
+
+# Check node resources
+kubectl top nodes
+```
+
+**Solutions:**
+
+```bash
+# If resource limits are too high, adjust them
+kubectl edit statefulset avalanchego -n tmpnet
+
+# Verify your cluster has available nodes
+kubectl get nodes
+
+# Check for node taints
+kubectl describe nodes | grep -i taint
+```
+
+### Image Pull Errors
+
+**Symptom:** Pod status shows "ImagePullBackOff" or "ErrImagePull".
+
+**Cause:** Cannot pull the Docker image from the registry.
+
+**Diagnosis:**
+
+```bash
+# Check image pull status
+kubectl describe pod avalanchego-node-0 -n tmpnet | grep -A 5 "Events:"
+
+# Verify image name
+kubectl get pod avalanchego-node-0 -n tmpnet -o jsonpath='{.spec.containers[0].image}'
+```
+
+**Solutions:**
+
+```bash
+# Verify image exists in registry
+docker pull avaplatform/avalanchego:latest
+
+# If using private registry, check image pull secrets
+kubectl get secrets -n tmpnet
+
+# Create image pull secret if needed
+kubectl create secret docker-registry regcred \
+  --docker-server=<registry> \
+  --docker-username=<username> \
+  --docker-password=<password> \
+  -n tmpnet
+```
+
+**Alternative:** Use a local image with kind:
+
+```bash
+# Load image into kind cluster
+kind load docker-image avaplatform/avalanchego:latest --name tmpnet-cluster
+```
+
+### Ingress Not Working
+
+**Symptom:** Cannot reach node APIs through ingress endpoints, connection refused or timeouts.
+
+**Cause:** Ingress controller not installed, misconfigured, or ingress rules not applied.
+
+**Diagnosis:**
+
+```bash
+# Check if ingress controller is running
+kubectl get pods -n ingress-nginx
+
+# Verify ingress resource exists
+kubectl get ingress -n tmpnet
+
+# Check ingress details
+kubectl describe ingress avalanchego-ingress -n tmpnet
+
+# Test service directly (bypassing ingress)
+kubectl port-forward svc/avalanchego-node-0 9650:9650 -n tmpnet
+curl http://localhost:9650/ext/health
+```
+
+**Solutions:**
+
+```bash
+# Install ingress controller if missing
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+# Verify ingress host configuration
+kubectl get ingress -n tmpnet -o yaml | grep host:
+
+# Check service endpoints
+kubectl get endpoints -n tmpnet
+```
+
+<Callout type="warning">
+For kind clusters, ensure you created the cluster with `extraPortMappings` to expose ports 80/443. See the [kind ingress documentation](https://kind.sigs.k8s.io/docs/user/ingress/).
+</Callout>
+
+### StatefulSet Not Updating
+
+**Symptom:** After updating the StatefulSet (e.g., changing image version), pods still run the old image.
+
+**Cause:** StatefulSet update strategy is set to `OnDelete` by default, requiring manual pod deletion.
+
+**Solution:**
+
+```bash
+# Check update strategy
+kubectl get statefulset avalanchego -n tmpnet -o jsonpath='{.spec.updateStrategy}'
+
+# Manually delete pods to trigger update
+kubectl delete pod avalanchego-node-0 -n tmpnet
+# StatefulSet will recreate with new image
+
+# Or delete all pods
+kubectl delete pods -l app=avalanchego -n tmpnet
+```
+
+**Change to rolling updates:**
+
+```bash
+kubectl patch statefulset avalanchego -n tmpnet -p '{"spec":{"updateStrategy":{"type":"RollingUpdate"}}}'
+```
+
+### Persistent Volume Issues
+
+**Symptom:** Pod cannot start with error "FailedMount" or "PVC not bound".
+
+**Cause:** Persistent Volume Claims (PVCs) cannot be provisioned or bound.
+
+**Diagnosis:**
+
+```bash
+# Check PVC status
+kubectl get pvc -n tmpnet
+
+# Should show "Bound" status
+# If "Pending", check details
+kubectl describe pvc data-avalanchego-node-0 -n tmpnet
+
+# Verify storage class exists
+kubectl get storageclass
+```
+
+**Solutions:**
+
+```bash
+# If using kind or minikube, ensure default storage class exists
+kubectl get storageclass
+
+# For kind, standard storage class should be available by default
+# For custom clusters, install a storage provisioner
+
+# Delete stuck PVCs if needed (will delete data!)
+kubectl delete pvc data-avalanchego-node-0 -n tmpnet
+```
+
+## General Runtime Issues
+
+### Health Check Failures
+
+**Symptom:** Node reports as unhealthy or `IsHealthy()` returns false in tests.
+
+**Cause:** Node may still be bootstrapping, or there's a configuration issue.
+
+**Health check endpoint:** `GET /ext/health/liveness` on the HTTP port.
+
+**Diagnosis:**
+
+```bash
+# Check health endpoint directly
+curl http://localhost:9650/ext/health/liveness
+
+# Expected healthy response:
+# {"checks":{"network":{"message":{"..."},"timestamp":"...","duration":123,"contiguousFailures":0,"timeOfFirstFailure":null}},"healthy":true}
+
+# Check if node is still bootstrapping
+curl http://localhost:9650/ext/info | jq '.result.isBootstrapped'
+```
+
+**Solutions:**
+
+Wait longer - bootstrapping can take time:
+
+```go
+// Use generous timeout for health checks
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+defer cancel()
+
+err := node.WaitForHealthy(ctx)
+if err != nil {
+    return fmt.Errorf("node failed to become healthy: %w", err)
+}
+```
+
+Check logs for errors:
+
+```bash
+# Look for bootstrap progress
+tail -f ~/.tmpnet/networks/latest/NodeID-*/logs/main.log | grep -i "bootstrap"
+
+# Check for errors
+tail -f ~/.tmpnet/networks/latest/NodeID-*/logs/main.log | grep -i "error"
+```
+
+<Callout type="info">
+The first node in a network typically takes longer to start because it must wait for staking to be enabled. Subsequent nodes bootstrap from the first node.
+</Callout>
+
+### Monitoring Not Working
+
+**Symptom:** No metrics or logs appear in Prometheus/Grafana/Loki dashboards.
+
+**Diagnosis:**
+
+```bash
+# Check if collectors are running
+ps aux | grep prometheus
+ps aux | grep promtail
+
+# Verify environment variables
+echo $PROMETHEUS_URL
+echo $LOKI_URL
+
+# Check service discovery configs exist
+ls -la ~/.tmpnet/prometheus/file_sd_configs/
+ls -la ~/.tmpnet/promtail/file_sd_configs/
+```
+
+**Solutions:**
+
+```bash
+# Start collectors if not running
+tmpnetctl start-metrics-collector
+tmpnetctl start-logs-collector
+
+# Verify binaries are in PATH
+which prometheus
+which promtail
+
+# If using nix, ensure development shell is active
+nix develop
+
+# Check collector logs
+tail -f ~/.tmpnet/prometheus/*.log
+tail -f ~/.tmpnet/promtail/*.log
+```
+
+**Verify metrics are being collected:**
+
+```bash
+# Query Prometheus directly
+curl -s "${PROMETHEUS_URL}/api/v1/query?query=up" \
+  -u "${PROMETHEUS_USERNAME}:${PROMETHEUS_PASSWORD}" \
+  | jq
+```
+
+## Performance Troubleshooting
+
+### Slow Network Bootstrap
+
+**Symptom:** Network takes longer than 5 minutes to bootstrap.
+
+**Common causes:**
+- Network too large (many nodes/subnets)
+- Insufficient system resources
+- Debug logging enabled
+
+**Solutions:**
+
+Reduce network size for testing:
+
+```go
+// Use fewer nodes for faster tests
+network.Nodes = tmpnet.NewNodesOrPanic(3) // Instead of 5+
+```
+
+Reduce logging verbosity:
+
+```go
+network.DefaultFlags = tmpnet.FlagsMap{
+    "log-level": "info", // Instead of "debug" or "trace"
+}
+```
+
+Increase system resources:
+
+```bash
+# Check current resource usage
+top
+df -h ~/.tmpnet/
+
+# Clean up old networks
+rm -rf ~/.tmpnet/networks/202*
+```
+
+### High Memory Usage
+
+**Symptom:** avalanchego processes consume excessive memory, system becomes slow.
+
+**Diagnosis:**
+
+```bash
+# Check memory usage per process
+ps aux | grep avalanchego | awk '{print $2, $4, $11}'
+
+# Monitor over time
+watch -n 5 'ps aux | grep avalanchego'
+```
+
+**Solutions:**
+
+Limit database size:
+
+```go
+network.DefaultFlags = tmpnet.FlagsMap{
+    "db-type":                    "memdb",  // Use in-memory DB for tests
+    "pruning-enabled":            "true",
+    "state-sync-enabled":         "false",  // Disable if not needed
+}
+```
+
+Stop old networks:
+
+```bash
+# Stop all running networks
+for dir in ~/.tmpnet/networks/*/; do
+    export TMPNET_NETWORK_DIR="$dir"
+    tmpnetctl stop-network
+done
+```
+
+## Debugging Techniques
+
+### Enable Verbose Logging
+
+Increase log verbosity to diagnose issues:
+
+```go
+node.Flags = tmpnet.FlagsMap{
+    "log-level":         "trace",  // Most verbose
+    "log-display-level": "trace",
+}
+```
+
+### Capture Process Output
+
+Redirect process output to see initialization errors:
+
+```bash
+# Run avalanchego manually with same config
+/path/to/avalanchego \
+  --config-file=~/.tmpnet/networks/latest/NodeID-*/flags.json \
+  2>&1 | tee avalanchego-debug.log
+```
+
+### Network State Inspection
+
+Inspect the network state directory:
+
+```bash
+# View network configuration
+cat ~/.tmpnet/networks/latest/config.json | jq
+
+# View node flags
+cat ~/.tmpnet/networks/latest/NodeID-*/flags.json | jq
+
+# Check process status
+cat ~/.tmpnet/networks/latest/NodeID-*/process.json | jq
+```
+
+### Test Individual Components
+
+Test components in isolation:
+
+```go
+// Test just node health
+func TestNodeHealth(t *testing.T) {
+    node := network.Nodes[0]
+
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+
+    err := node.WaitForHealthy(ctx)
+    require.NoError(t, err)
+}
+```
+
+## Getting Help
+
+If you're still experiencing issues:
+
+1. **Check logs** - Always check node logs first for error messages
+2. **Search GitHub issues** - Check [avalanchego issues](https://github.com/ava-labs/avalanchego/issues) for similar problems
+3. **Ask the community** - Post in [Avalanche Discord](https://chat.avax.network) #developers channel
+4. **Include details** - Share error messages, logs, and your configuration
+
+**Information to include when asking for help:**
+
+- tmpnet version: `go list -m github.com/ava-labs/avalanchego`
+- Runtime type: Local process or Kubernetes
+- Operating system and version
+- Error messages and relevant log excerpts
+- Network configuration (redact sensitive data)
+- Steps to reproduce the issue
+
+## Next Steps
+
+<Cards>
+  <Card title="Configuration Reference" href="/docs/tooling/tmpnet/reference/configuration">
+    Complete configuration options
+  </Card>
+  <Card title="Monitoring Guide" href="/docs/tooling/tmpnet/guides/monitoring">
+    Set up metrics and logging
+  </Card>
+  <Card title="Getting Started" href="/docs/tooling/tmpnet/guides/getting-started">
+    Start with the basics
+  </Card>
+</Cards>

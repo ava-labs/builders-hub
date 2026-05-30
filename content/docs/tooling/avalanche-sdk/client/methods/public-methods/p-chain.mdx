@@ -80,7 +80,7 @@ console.log("Locked stakeable:", balance.lockedStakeable);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetbalance)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetbalance)
 - [getUTXOs](#getutxos) - Get UTXOs for addresses
 
 ---
@@ -167,7 +167,7 @@ if (utxos.endIndex) {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetutxos)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetutxos)
 - [getBalance](#getbalance) - Get balance summary
 
 ---
@@ -279,7 +279,7 @@ const specificValidators = await client.pChain.getCurrentValidators({
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetcurrentvalidators)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetcurrentvalidators)
 - [getValidatorsAt](#getvalidatorsat) - Get validators at specific height
 - [getAllValidatorsAt](#getallvalidatorsat) - Get all validators at height
 - [sampleValidators](#samplevalidators) - Sample validators
@@ -339,7 +339,7 @@ console.log("Validators at height:", validators.validators);
 
 **Links:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetvalidatorsat)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetvalidatorsat)
 - [Related: getCurrentValidators](#getcurrentvalidators) - Get current validators
 - [Related: getAllValidatorsAt](#getallvalidatorsat) - Get all validators at height
 - [Related: getHeight](#getheight) - Get current height
@@ -419,7 +419,7 @@ Object.entries(validators.validatorSets).forEach(([subnetID, set]) => {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetallvalidatorsat)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetallvalidatorsat)
 - [getCurrentValidators](#getcurrentvalidators) - Get current validators
 - [getValidatorsAt](#getvalidatorsat) - Get validators at height for specific subnet
 
@@ -480,7 +480,7 @@ console.log("Sampled validators:", sampled.validators);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformsamplevalidators)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformsamplevalidators)
 - [getCurrentValidators](#getcurrentvalidators) - Get all current validators
 
 ---
@@ -526,7 +526,7 @@ console.log("Current P-Chain height:", height.height);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetheight)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetheight)
 - [getBlockByHeight](#getblockbyheight) - Get block by height
 - [getProposedHeight](#getproposedheight) - Get proposed height
 
@@ -587,7 +587,7 @@ console.log("Block data:", block.block);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockbyheight)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetblockbyheight)
 - [getBlock](#getblock) - Get block by ID
 - [getHeight](#getheight) - Get current height
 
@@ -646,7 +646,7 @@ console.log("Block:", block.block);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblock)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetblock)
 - [getBlockByHeight](#getblockbyheight) - Get block by height
 
 ---
@@ -704,7 +704,7 @@ console.log("Stake amount:", stake.stakeAmount);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetstake)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetstake)
 - [getTotalStake](#gettotalstake) - Get total subnet stake
 - [getMinStake](#getminstake) - Get minimum stake requirements
 
@@ -763,7 +763,7 @@ console.log("Total weight:", totalStake.weight);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgettotalstake)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgettotalstake)
 - [getStake](#getstake) - Get stake for addresses
 - [getMinStake](#getminstake) - Get minimum stake
 
@@ -822,7 +822,7 @@ console.log("Min delegator stake:", minStake.minDelegatorStake);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetminstake)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetminstake)
 - [getTotalStake](#gettotalstake) - Get total subnet stake
 
 ---
@@ -893,7 +893,7 @@ console.log("Threshold:", subnet.threshold);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetsubnet)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetsubnet)
 - [getSubnets](#getsubnets) - Get multiple subnets
 
 ---
@@ -959,7 +959,7 @@ subnets.subnets.forEach((subnet) => {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetsubnets)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetsubnets)
 - [getSubnet](#getsubnet) - Get single subnet
 
 ---
@@ -1014,7 +1014,7 @@ console.log("Staking asset ID:", stakingAsset.assetID);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetstakingassetid)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetstakingassetid)
 - [getSubnet](#getsubnet) - Get subnet information
 
 ---
@@ -1073,7 +1073,7 @@ blockchains.blockchains.forEach((blockchain) => {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockchains)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetblockchains)
 - [getBlockchainStatus](#getblockchainstatus) - Get blockchain status
 
 ---
@@ -1136,7 +1136,7 @@ console.log("Blockchain status:", status.status);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockchainstatus)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetblockchainstatus)
 - [getBlockchains](#getblockchains) - Get all blockchains
 
 ---
@@ -1196,7 +1196,7 @@ console.log("Transaction:", tx);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgettx)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgettx)
 - [getTxStatus](#gettxstatus) - Get transaction status
 - [issueTx](#issuetx) - Issue a transaction
 
@@ -1264,7 +1264,7 @@ if (txStatus.reason) {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgettxstatus)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgettxstatus)
 - [getTx](#gettx) - Get transaction details
 - [issueTx](#issuetx) - Issue a transaction
 
@@ -1321,7 +1321,7 @@ console.log("Transaction issued:", txID.txID);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformissuetx)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformissuetx)
 - [getTx](#gettx) - Get transaction details
 - [getTxStatus](#gettxstatus) - Get transaction status
 
@@ -1368,7 +1368,7 @@ console.log("Proposed height:", proposedHeight.height);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetproposedheight)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetproposedheight)
 - [getHeight](#getheight) - Get current accepted height
 
 ---
@@ -1412,7 +1412,7 @@ console.log("Current timestamp:", timestamp.timestamp);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgettimestamp)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgettimestamp)
 - [getHeight](#getheight) - Get current height
 
 ---
@@ -1477,7 +1477,7 @@ console.log("Min price:", feeConfig.minPrice);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetfeeconfig)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetfeeconfig)
 - [getFeeState](#getfeestate) - Get current fee state
 
 ---
@@ -1531,7 +1531,7 @@ console.log("Timestamp:", feeState.timestamp);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetfeestate)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetfeestate)
 - [getFeeConfig](#getfeeconfig) - Get fee configuration
 
 ---
@@ -1592,7 +1592,7 @@ console.log("Subnet supply:", subnetSupply.supply);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetcurrentsupply)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetcurrentsupply)
 - [getBalance](#getbalance) - Get address balance
 
 ---
@@ -1657,7 +1657,7 @@ console.log("UTXOs:", rewardUTXOs.utxos);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetrewardutxos)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetrewardutxos)
 - [getUTXOs](#getutxos) - Get UTXOs for addresses
 
 ---
@@ -1743,7 +1743,7 @@ console.log("Start time:", validator.startTime);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformgetl1validator)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformgetl1validator)
 - [getCurrentValidators](#getcurrentvalidators) - Get current validators
 
 ---
@@ -1800,7 +1800,7 @@ console.log("Validated by subnet:", validatedBy.subnetID);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformvalidatedby)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformvalidatedby)
 - [validates](#validates) - Get blockchains validated by subnet
 
 ---
@@ -1856,7 +1856,7 @@ validates.blockchainIDs.forEach((blockchainID) => {
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/p-chain/api#platformvalidates)
+- [API Reference](https://build.avax.network/docs/rpcs/p-chain#platformvalidates)
 - [validatedBy](#validatedby) - Get subnet validating blockchain
 
 ## Next Steps

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
-import quizData from './quizData.json';
+import quizData from './data';
 
 const QuizProgress: React.FC = () => {
   const [progress, setProgress] = useState<{ [quizId: string]: boolean }>({});

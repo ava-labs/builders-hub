@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Session } from 'next-auth';
 import { getProfile, updateProfile } from '@/server/services/profile';
 import { Profile } from '@/types/profile';
-import { withAuth } from '@/lib/protectedRoute';
+import { withAuth, RouteParams } from '@/lib/protectedRoute';
 
-export const GET = withAuth(async (
+export const GET = withAuth<RouteParams<{ id: string }>>(async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-  session: any
+  { params },
+  session: Session
 ) => {
   try {
     const id = (await params).id;
@@ -36,10 +37,10 @@ export const GET = withAuth(async (
   }
 });
 
-export const PUT = withAuth(async (
+export const PUT = withAuth<RouteParams<{ id: string }>>(async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-  session: any
+  { params },
+  session: Session
 ) => {
   try {
     const id = (await params).id;

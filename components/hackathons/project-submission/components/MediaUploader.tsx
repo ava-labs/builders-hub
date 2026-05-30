@@ -28,6 +28,7 @@ import { ImageIcon, BadgeAlert, PlusCircleIcon } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
+import { EventsLang, t } from '@/lib/events/i18n';
 
 type MediaUploaderProps = {
   name: keyof SubmissionForm;
@@ -40,6 +41,7 @@ type MediaUploaderProps = {
   height?: string;
   extraText?: string;
   buttonText?: string;
+  lang?: EventsLang;
 };
 
 export default function MediaUploader({
@@ -53,6 +55,7 @@ export default function MediaUploader({
   height = 'sm:max-h-[128px]',
   extraText = '',
   buttonText = 'Upload',
+  lang = 'en',
 }: MediaUploaderProps) {
   const form = useFormContext<SubmissionForm>();
 
@@ -74,6 +77,16 @@ export default function MediaUploader({
     if (e.target.files && selectedIndex !== null) {
       const newFile = e.target.files[0];
       if (!newFile) return;
+      const maxBytes = maxSizeMB * 1024 * 1024;
+      if (newFile.size > maxBytes) {
+        form.setError(name as any, {
+          type: 'manual',
+          message: t(lang, 'submission.media.fileTooLarge', { size: maxSizeMB }),
+        });
+        e.target.value = '';
+        return;
+      }
+      form.clearErrors(name as any);
       const currentValue = form.getValues(name);
       if (maxItems === 1) {
         form.setValue(name, newFile);
@@ -120,8 +133,11 @@ export default function MediaUploader({
 
         return (
           <FormItem className='space-y-2'>
-            <FormLabel className='text-sm text-foreground font-semibold'>
+            <FormLabel className='text-sm text-foreground font-semibold flex items-center gap-2'>
               {label}
+              <span className='rounded px-1.5 py-0.5 text-[10px] font-medium bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'>
+                {t(lang ?? 'en', 'field.optional')}
+              </span>
             </FormLabel>
 
             <div
@@ -173,13 +189,13 @@ export default function MediaUploader({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => handleView(index)}>
-                          View
+                          {t(lang, "submission.media.view")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleReplace(index)}>
-                          Replace
+                          {t(lang, "submission.media.replace")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDelete(index)}>
-                          Delete
+                          {t(lang, "submission.media.delete")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -212,6 +228,19 @@ export default function MediaUploader({
                   if (!e.target.files) return;
 
                   const files = Array.from(e.target.files);
+                  const maxBytes = maxSizeMB * 1024 * 1024;
+                  const oversized = files.filter(f => f.size > maxBytes);
+
+                  if (oversized.length > 0) {
+                    form.setError(name as any, {
+                      type: 'manual',
+                      message: t(lang, 'submission.media.fileTooLarge', { size: maxSizeMB }),
+                    });
+                    e.target.value = '';
+                    return;
+                  }
+
+                  form.clearErrors(name as any);
 
                   if (maxItems === 1) {
                     field.onChange(files[0]);
@@ -244,10 +273,10 @@ export default function MediaUploader({
                   <br />
                 </>
               )}
-              File requirements: PNG, JPG, SVG <br />
-              {recommendedSize && `Recommended size: ${recommendedSize}`}
+              {t(lang, "submission.media.fileRequirements")} <br />
+              {recommendedSize && t(lang, "submission.media.recommendedSize", { size: recommendedSize })}
               <br />
-              Max file size: {maxSizeMB}MB
+              {t(lang, "submission.media.maxSize", { size: maxSizeMB })}
             </p>
 
             <FormMessage />
@@ -257,7 +286,7 @@ export default function MediaUploader({
               <DialogContent className='bg-zinc-900 border border-zinc-400 max-w-md w-full px-4'>
                 <DialogHeader className='flex flex-col '>
                   <DialogTitle className='text-white text-lg pb-3'>
-                    Delete Image
+                    {t(lang, "submission.media.deleteTitle")}
                   </DialogTitle>
                 </DialogHeader>
                 <Card
@@ -267,13 +296,13 @@ export default function MediaUploader({
                 >
                   <BadgeAlert className='w-9 h-9' color='rgb(239 68 68)' />
                   <DialogDescription className='text-red-500 text-md'>
-                    Are you sure you want to delete this image?
+                    {t(lang, "submission.media.deleteConfirm")}
                   </DialogDescription>
                   <Button
                     onClick={confirmDelete}
                     className=' bg-white hover:bg-zinc-400 text-black w-full max-w-[73px] '
                   >
-                    Delete
+                    {t(lang, "submission.media.delete")}
                   </Button>
                 </Card>
               </DialogContent>
@@ -282,7 +311,7 @@ export default function MediaUploader({
             <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
               <DialogContent className='bg-zinc-900 max-w-[600px] w-full px-4'>
                 <DialogHeader>
-                  <DialogTitle>View Image</DialogTitle>
+                  <DialogTitle>{t(lang, "submission.media.viewTitle")}</DialogTitle>
                 </DialogHeader>
                 {(() => {
                   if (selectedIndex === null) return null;

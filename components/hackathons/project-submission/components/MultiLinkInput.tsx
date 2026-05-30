@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, type FieldValues } from "react-hook-form";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,24 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
+import { isValidHttpUrl, normalizeUrl } from "@/lib/url-validation";
+import { EventsLang } from "@/lib/events/i18n";
 
 interface MultiLinkInputProps {
-  name: keyof SubmissionForm;
+  name: string;
   label: string;
   placeholder: string;
   validationMessage?: string;
+  /** When true, renders a plain FormLabel instead of FormLabelWithCheck. */
+  plainLabel?: boolean;
+  /** Optional description rendered between the label and the input. */
+  description?: string;
+  /** When true, skips domain-origin validation (e.g. allows YouTube/Loom links). */
+  allowAllDomains?: boolean;
+  /** Passed through to FormLabelWithCheck to show required/optional indicator. */
+  required?: boolean;
+  lang?: EventsLang;
 }
 
 export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
@@ -28,49 +38,56 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   label,
   placeholder,
   validationMessage,
+  plainLabel = false,
+  description,
+  allowAllDomains = false,
+  required,
+  lang,
 }) => {
-  const form = useFormContext<SubmissionForm>();
+  const form = useFormContext<FieldValues>();
   const [newLink, setNewLink] = React.useState("");
 
-  const handleAddLink = async () => {
-    if (!newLink) return;
+  const handleAddLink = (): void => {
+    const rawInput = newLink.trim();
+    if (!rawInput) return;
 
-    try {
-      
-      const url = new URL(newLink);
-      
-      
-      if (name === 'demo_link' && (
-        url.hostname.includes('youtube.com') ||
-        url.hostname.includes('youtu.be') ||
-        url.hostname.includes('loom.com')
-      )) {
-        form.setError(name, {
-          type: 'manual',
-          message: 'YouTube and Loom links should be added in the video section'
-        });
-        return;
-      }
+    const formattedLink = normalizeUrl(rawInput);
 
-      const currentLinks = (form.getValues(name) as string[]) || [];
-      
-      
-      if (currentLinks.includes(newLink)) {
-        form.setError(name, {
-          type: 'manual',
-          message: 'This link has already been added'
-        });
-        return;
-      }
-
-      form.setValue(name, [...currentLinks, newLink], { shouldValidate: true });
-      setNewLink("");
-    } catch (error) {
+    if (!isValidHttpUrl(formattedLink)) {
       form.setError(name, {
-        type: 'manual',
-        message: 'Please enter a valid URL'
+        type: "manual",
+        message: "Please enter a valid URL (e.g. https://example.com)",
       });
+      return;
     }
+
+    const url = new URL(formattedLink);
+    if (
+      !allowAllDomains &&
+      name === "demo_link" &&
+      (url.hostname.includes("youtube.com") ||
+        url.hostname.includes("youtu.be") ||
+        url.hostname.includes("loom.com"))
+    ) {
+      form.setError(name, {
+        type: "manual",
+        message: "YouTube and Loom links should be added in the video section",
+      });
+      return;
+    }
+
+    const currentLinks = (form.getValues(name) as string[]) || [];
+    if (currentLinks.includes(formattedLink)) {
+      form.setError(name, {
+        type: "manual",
+        message: "This link has already been added",
+      });
+      return;
+    }
+
+    form.clearErrors(name);
+    form.setValue(name, [...currentLinks, formattedLink], { shouldValidate: true, shouldDirty: true });
+    setNewLink("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -94,16 +111,30 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       name={name}
       render={({ field, fieldState }) => (
         <FormItem>
-          <FormLabelWithCheck
-            label={label}
-            checked={!!field.value && (field.value as string[]).length > 0}
-          />
+          {plainLabel ? (
+            <FormLabel>{label}</FormLabel>
+          ) : (
+            <FormLabelWithCheck
+              label={label}
+              checked={!!field.value && (field.value as string[]).length > 0}
+              required={required ?? false}
+              lang={lang}
+            />
+          )}
+          {description && (
+            <p className="text-zinc-400 text-sm -mt-1">{description}</p>
+          )}
           <FormControl>
             <div className="space-y-2">
               <Input
                 placeholder={placeholder}
                 value={newLink}
-                onChange={(e) => setNewLink(e.target.value)}
+                onChange={(e) => {
+                  setNewLink(e.target.value);
+                  if (form.formState.errors[name]) {
+                    form.clearErrors(name);
+                  }
+                }}
                 onKeyDown={handleKeyDown}
                 onBlur={handleAddLink}
                 className="w-full"

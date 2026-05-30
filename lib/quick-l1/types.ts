@@ -1,0 +1,376 @@
+/**
+ * Shared types for the Basic L1 Setup (one-click deploy) feature.
+ *
+ * The real implementation will live in a separate Railway microservice.
+ * This repo either:
+ *   1. Runs the mock orchestrator locally (when QUICK_L1_SERVICE_URL is unset)
+ *   2. Proxies the same payload/response shape to Railway (when set)
+ *
+ * Keep these types stable — the Railway service must match them exactly.
+ */
+
+export type DeploymentStep =
+  | 'creating-subnet'
+  | 'deploying-validator-manager'
+  | 'reserving-relayer'
+  | 'creating-chain'
+  | 'configuring-erc20-pos'
+  | 'initializing-manager'
+  | 'provisioning-node'
+  | 'attaching-relayer'
+  | 'converting-to-l1'
+  | 'initializing-validator-set'
+  | 'deploying-icm-registry'
+  | 'deploying-token-remote'
+  | 'registering-remote'
+  | 'starting-relayer'
+  | 'bridging-initial-tokens'
+  | 'verifying-l1-bootstrap';
+
+export type DeploymentStatus = 'pending' | 'running' | 'complete' | 'failed';
+
+/**
+ * The ordered list of steps every deployment may walk through. Frontend
+ * progress tracker renders this in order; the orchestrator advances one
+ * at a time. Any reordering must stay in sync with the `quick-l1`
+ * Railway service.
+ *
+ * The last 6 steps only run when the request has
+ * `precompiles.interoperability` enabled — they bootstrap ICM + ICTT
+ * so the user gets a bridged MockUSDC on the new L1 out of the box.
+ * Hide them from progress UI when interop is off.
+ *
+ * `reserving-relayer` runs *before* `creating-chain` because the
+ * relayer's EVM address is baked into L1 genesis alloc.
+ *
+ * Validator Manager is deployed on **C-Chain**, not on the new L1 —
+ * that's why convert-to-L1 happens after the manager's contract
+ * address is known + initialized.
+ *
+ * `attaching-relayer` runs *right after* `provisioning-node` so the
+ * relayer's ~60-90s Warp-quorum boot overlaps convert-to-L1 +
+ * init-validator-set + the three L1-side deploys. By the time
+ * `starting-relayer` polls health, the container is almost always
+ * already up. See the Railway service's `attachRelayer.ts` for the
+ * invariants that make this ordering safe (L1 RPC readiness guard +
+ * WS proxy buffering + late signing).
+ */
+// Visual + canonical order. Mirrors quick-l1's DEPLOYMENT_STEPS, which
+// reflects the orchestrator's actual phase flow so the progress UI's
+// "first incomplete step" advances left-to-right even though Phase A2
+// (deployValidatorManager / provisioning-node / reserving-relayer)
+// runs concurrently. Out-of-order completion within a phase is
+// invisible — completed dots light up and the active marker points
+// at the leftmost not-yet-completed step.
+export const DEPLOYMENT_STEPS: DeploymentStep[] = [
+  'creating-subnet',
+  'deploying-validator-manager',
+  'provisioning-node',
+  'reserving-relayer',
+  'creating-chain',
+  'configuring-erc20-pos',
+  'initializing-manager',
+  'attaching-relayer',
+  'converting-to-l1',
+  'initializing-validator-set',
+  'deploying-icm-registry',
+  'deploying-token-remote',
+  'registering-remote',
+  'starting-relayer',
+  'bridging-initial-tokens',
+  'verifying-l1-bootstrap',
+];
+
+/**
+ * Subset of steps that only run when `enableManagedRelayer` is true.
+ * Warp/ICM precompile in genesis (`precompiles.interoperability`) is
+ * independent — you can enable on-chain messaging without us running
+ * a relayer for you. Only the managed-relayer opt-in spins up the
+ * docker-compose relayer container, deploys TeleporterRegistry +
+ * TokenRemote on L1, and bridges MockUSDC.
+ */
+export const MANAGED_RELAYER_ONLY_STEPS: readonly DeploymentStep[] = [
+  'reserving-relayer',
+  'attaching-relayer',
+  'deploying-icm-registry',
+  'deploying-token-remote',
+  'registering-remote',
+  'starting-relayer',
+  'bridging-initial-tokens',
+];
+
+/** @deprecated Use MANAGED_RELAYER_ONLY_STEPS. Kept as alias for one cycle. */
+export const INTEROP_ONLY_STEPS = MANAGED_RELAYER_ONLY_STEPS;
+
+/**
+ * Subset of steps that only run when `validatorMode.type === 'erc20-pos'`.
+ * The orchestrator drops these from the pipeline otherwise; the
+ * frontend should hide them from the progress UI so PoA deploys don't
+ * pretend they're running steps that never fire.
+ */
+export const ERC20_POS_ONLY_STEPS: readonly DeploymentStep[] = ['configuring-erc20-pos'];
+
+/** Human-readable label for each step (shown in the UI). */
+export const STEP_LABEL: Record<DeploymentStep, string> = {
+  'creating-subnet': 'Creating Subnet',
+  'deploying-validator-manager': 'Deploying Validator Manager (C-Chain)',
+  'initializing-manager': 'Initializing Validator Manager',
+  'reserving-relayer': 'Reserving ICM Relayer',
+  'creating-chain': 'Creating Chain',
+  'configuring-erc20-pos': 'Configuring ERC20 PoS (C-Chain)',
+  'provisioning-node': 'Provisioning Validator Node',
+  'attaching-relayer': 'Booting ICM Relayer (parallel)',
+  'converting-to-l1': 'Converting Subnet to L1',
+  'initializing-validator-set': 'Initializing Validator Set',
+  'deploying-icm-registry': 'Deploying ICM Registry (L1)',
+  'deploying-token-remote': 'Deploying TokenRemote (L1)',
+  'registering-remote': 'Registering TokenRemote with TokenHome',
+  'starting-relayer': 'Starting ICM Relayer',
+  'bridging-initial-tokens': 'Bridging MockUSDC to L1',
+  'verifying-l1-bootstrap': 'Verifying L1 is Ready',
+};
+
+/**
+ * Genesis precompile configuration. All optional — the Railway service
+ * applies sensible defaults when a field is omitted (see DEFAULT_PRECOMPILES
+ * below). Each toggle corresponds to a Subnet-EVM precompile; when enabled
+ * the precompile's admin list is seeded with `ownerEvmAddress`.
+ */
+export interface PrecompileConfig {
+  /** Mint native token at runtime. Admins control who can mint. */
+  nativeMinter?: boolean;
+  /** Adjust dynamic fee config at runtime without a network upgrade. */
+  feeManager?: boolean;
+  /** Redirect base fee to a recipient instead of burning it. */
+  rewardManager?: boolean;
+  /** Warp messaging precompile + Teleporter (ICM) messenger preinstall. */
+  interoperability?: boolean;
+  /** Allow-list gating for `tx.from` — only listed addresses can send txs. */
+  txAllowList?: boolean;
+  /** Allow-list gating for contract deployment. */
+  contractDeployerAllowList?: boolean;
+}
+
+/** Defaults for Basic Setup when the user doesn't override. Keep Warp +
+ * native minter on so the chain can mint and interop out of the box. */
+export const DEFAULT_PRECOMPILES: Required<PrecompileConfig> = {
+  nativeMinter: true,
+  feeManager: false,
+  rewardManager: false,
+  interoperability: true,
+  txAllowList: false,
+  contractDeployerAllowList: false,
+};
+
+/**
+ * Validator management style for the deployed L1.
+ *
+ * - `poa`: Validator Manager is owner-controlled (an allowlist). The
+ *   `ownerEvmAddress` is the sole authority that can add/remove
+ *   validators. Default — smallest setup cliff for first-time builders.
+ * - `erc20-pos`: A Staking Manager wraps the Validator Manager so
+ *   anyone holding the staking token can validate. The orchestrator
+ *   deploys a fresh ExampleERC20 staking token, ExampleRewardCalculator,
+ *   and ERC20TokenStakingManager on Fuji C-Chain — users do *not*
+ *   bring their own ERC20. The deployed addresses come back in
+ *   `DeploymentResult.staking`.
+ *
+ * Native PoS (validators stake the L1's own native token) is *not*
+ * exposed by the Basic Setup flow — it requires a token-economics
+ * conversation that doesn't fit a one-click form. Power users pick it
+ * via Advanced Setup.
+ */
+export interface PoAValidatorMode {
+  type: 'poa';
+}
+
+/**
+ * ERC20-backed PoS configuration. All knobs optional — the Railway
+ * service falls back to the upstream icm-contracts test defaults
+ * (rewardBasisPoints=10, min stake=0.01 token, max stake=10 token,
+ * etc.) when omitted. Stake amounts are base-unit decimal strings to
+ * dodge JSON-number precision loss for very large 18-decimal values.
+ */
+export interface Erc20PoSValidatorMode {
+  type: 'erc20-pos';
+  rewardBasisPoints?: number;
+  minimumStakeAmount?: string;
+  maximumStakeAmount?: string;
+  minimumStakeDurationSeconds?: number;
+  minimumDelegationFeeBips?: number;
+  maximumStakeMultiplier?: number;
+  weightToValueFactor?: string;
+}
+
+export type ValidatorMode = PoAValidatorMode | Erc20PoSValidatorMode;
+
+/**
+ * Input payload from the intake form — POSTed to /api/quick-l1/deploy.
+ */
+export interface DeployRequest {
+  chainName: string;
+  tokenSymbol: string;
+  /** EVM address that will own the Validator Manager + receive genesis alloc. */
+  ownerEvmAddress: `0x${string}`;
+  /** P-Chain address (bech32) that will own the Subnet after handoff. */
+  ownerPChainAddress?: string;
+  /** Network — only 'fuji' supported in MVP. */
+  network: 'fuji';
+  /**
+   * Validator-set control model. Defaults to `{ type: 'poa' }`
+   * server-side when omitted so older clients keep working without
+   * changes.
+   */
+  validatorMode?: ValidatorMode;
+  /** Optional precompile overrides — merged with DEFAULT_PRECOMPILES. */
+  precompiles?: PrecompileConfig;
+  /**
+   * Opt in to the managed ICM relayer + demo MockUSDC bridge. Default
+   * false — baseline deploys finish in ~30s. Setting this to true adds
+   * ~60-120s because we spin up a docker-compose relayer, deploy
+   * TeleporterRegistry + TokenRemote on the new L1, and bridge 10
+   * MockUSDC to the owner. Requires `precompiles.interoperability`
+   * to be true; the Railway orchestrator rejects the request
+   * otherwise. Frontend should enforce the same constraint at form
+   * submit so users don't round-trip to see the error.
+   */
+  enableManagedRelayer?: boolean;
+  /**
+   * Builders Hub userId. Injected server-side by `/api/quick-l1/deploy`
+   * from the authenticated session — clients should not set this.
+   * Required — quick-l1 rejects deploys without it, so every L1 ends up
+   * linked to a real builders-hub account.
+   */
+  userId: string;
+}
+
+/**
+ * The shape the frontend sends to `/api/quick-l1/deploy`. userId is
+ * excluded here because it's injected by the proxy from the session —
+ * clients can't set it. Use this in the `useStartDeployment` hook and
+ * any React component constructing a deploy request.
+ */
+export type ClientDeployRequest = Omit<DeployRequest, 'userId'>;
+
+/**
+ * Response from POST /api/quick-l1/deploy.
+ */
+export interface DeployResponse {
+  jobId: string;
+}
+
+/**
+ * A single on-chain transaction produced by a deployment step.
+ * `provisioning-node` produces none (HTTP call, no tx);
+ * `deploying-validator-manager` produces two (ValidatorMessages lib +
+ * ValidatorManager contract — no proxy).
+ */
+export interface TxRecord {
+  /** P-Chain tx id (base58) or EVM tx hash (0x-prefixed hex). */
+  hash: string;
+  /** Which chain the tx landed on — determines the explorer URL. */
+  chain: 'p-chain' | 'c-chain' | 'l1';
+  network: 'fuji' | 'mainnet';
+  /** Optional short label (e.g. "ValidatorMessages library"). */
+  label?: string;
+  /** ISO-8601 timestamp of submission. */
+  timestamp: string;
+}
+
+/**
+ * Per-step record of what happened — surfaced in the progress UI so
+ * users can follow each tx live. Keep this ordered to match
+ * DEPLOYMENT_STEPS order.
+ */
+export interface StepEvidence {
+  step: DeploymentStep;
+  txs: TxRecord[];
+}
+
+/**
+ * Full job state — returned from GET /api/quick-l1/status/:jobId.
+ * Frontend polls this every ~2s.
+ */
+export interface DeploymentJob {
+  jobId: string;
+  status: DeploymentStatus;
+  /** The step currently running (or the last-completed step if status='complete'). */
+  currentStep: DeploymentStep | null;
+  /** Steps that have finished (in order). */
+  completedSteps: DeploymentStep[];
+  /** Optional human-readable detail (e.g. tx hash, node ID). */
+  statusDetail?: string;
+  /** Per-step tx evidence. Steps without txs (e.g. provisioning-node) still get an entry with an empty txs array once they complete. */
+  evidence: StepEvidence[];
+  /** Final deployment details — populated only when status='complete'. */
+  result?: DeploymentResult;
+  /** Populated only when status='failed'. */
+  error?: string;
+  /** Original request — echoed back for display. */
+  request: DeployRequest;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeploymentResult {
+  subnetId: string;
+  blockchainId: string;
+  evmChainId: number;
+  rpcUrl: string;
+  /** Validator Manager contract address on **C-Chain** (deployed directly, no proxy). */
+  validatorManagerAddress: `0x${string}`;
+  /** NodeID of the provisioned validator (for display). */
+  nodeId: string;
+  /**
+   * ERC20-PoS artifacts on Fuji C-Chain. Populated only when
+   * `request.validatorMode.type === 'erc20-pos'`. All three contracts
+   * are deployed by the orchestrator — users don't bring their own.
+   */
+  staking?: Erc20PoSResult;
+  /**
+   * ICM/ICTT artifacts — only populated when `interoperability` is on.
+   * `undefined` means the feature was disabled for this deploy.
+   */
+  interop?: InteropResult;
+  /**
+   * Per-L1 firn block explorer at `<slug>.firn.gg` — populated when
+   * the managed-testnet-nodes service is reachable and the slot node
+   * accepted the assignment. Same 3-day TTL as the node assignment;
+   * after expiry the URL serves a "tenant not found" page until a
+   * redeploy creates a new (likely identical, since slug is derived
+   * from blockchainID) tenant entry.
+   */
+  explorer?: ExplorerResult;
+}
+
+export interface ExplorerResult {
+  /** Public URL — share this with the team for the 3-day window. */
+  url: string;
+  /** Lowercased first 8 chars of the L1's blockchainID. */
+  slug: string;
+}
+
+export interface Erc20PoSResult {
+  type: 'erc20-pos';
+  /** Example ERC20 staking token deployed on Fuji C-Chain. */
+  stakingTokenAddress: `0x${string}`;
+  /** Example reward calculator deployed on Fuji C-Chain. */
+  rewardCalculatorAddress: `0x${string}`;
+  /** ERC20TokenStakingManager deployed on Fuji C-Chain, wrapping the core ValidatorManager. */
+  stakingManagerAddress: `0x${string}`;
+}
+
+export interface InteropResult {
+  /** EVM address of the managed ICM relayer, pre-funded via L1 genesis. */
+  relayerAddress: `0x${string}`;
+  /** MockUSDC ERC20 deployed on Fuji C-Chain. Mintable by the service. */
+  mockUsdcAddress: `0x${string}`;
+  /** ERC20TokenHome on Fuji C-Chain, pointing at MockUSDC. */
+  tokenHomeAddress: `0x${string}`;
+  /** TeleporterRegistry on the new L1, constructed with messenger v1. */
+  icmRegistryAddress: `0x${string}`;
+  /** ERC20TokenRemote on the new L1, pointing at TokenHome on C-Chain. */
+  tokenRemoteAddress: `0x${string}`;
+  /** Amount of MockUSDC (base units) sent to the owner on L1. */
+  bridgedAmount: string;
+}

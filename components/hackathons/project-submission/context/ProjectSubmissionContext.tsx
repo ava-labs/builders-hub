@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
+import type { SubmitProjectResult } from '@/types/project';
 
 
 export interface ProjectState {
@@ -18,6 +19,9 @@ export interface ProjectState {
   openJoinTeam: boolean;
   openCurrentProject: boolean;
   openInvalidInvitation: boolean;
+  projectData: any | null;
+  showRegistrationModal: boolean;
+  pendingSubmitData: any | null;
 }
 
 export interface ProjectContextType {
@@ -25,7 +29,9 @@ export interface ProjectContextType {
   dispatch: React.Dispatch<ProjectAction>;
   actions: {
     initializeProject: (hackathonId: string, invitationId?: string) => Promise<void>;
-    saveProject: (data: any) => Promise<boolean>;
+    saveProject: (data: any) => Promise<{ success: boolean; projectId?: string; project?: SubmitProjectResult }>;
+    submitWithRegistration: (regData: { terms_event_conditions: boolean; city?: string; telegram_account?: string }) => Promise<{ success: boolean; projectId?: string; project?: SubmitProjectResult }>;
+    cancelRegistrationModal: () => void;
     resetProject: () => void;
     setTeamName: (name: string) => void;
     setOpenJoinTeam: (open: boolean) => void;
@@ -45,7 +51,10 @@ type ProjectAction =
   | { type: 'SET_TEAM_NAME'; payload: string }
   | { type: 'SET_OPEN_JOIN_TEAM'; payload: boolean }
   | { type: 'SET_OPEN_CURRENT_PROJECT'; payload: boolean }
-  | { type: 'SET_OPEN_INVALID_INVITATION'; payload: boolean };
+  | { type: 'SET_OPEN_INVALID_INVITATION'; payload: boolean }
+  | { type: 'SET_PROJECT_DATA'; payload: any }
+  | { type: 'SET_SHOW_REGISTRATION_MODAL'; payload: boolean }
+  | { type: 'SET_PENDING_SUBMIT_DATA'; payload: any | null };
 
 const initialState: ProjectState = {
   id: null,
@@ -58,6 +67,9 @@ const initialState: ProjectState = {
   openJoinTeam: false,
   openCurrentProject: false,
   openInvalidInvitation: false,
+  projectData: null,
+  showRegistrationModal: false,
+  pendingSubmitData: null,
 };
 
 
@@ -83,6 +95,12 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
       return { ...state, openCurrentProject: action.payload };
     case 'SET_OPEN_INVALID_INVITATION':
       return { ...state, openInvalidInvitation: action.payload };
+    case 'SET_PROJECT_DATA':
+      return { ...state, projectData: action.payload };
+    case 'SET_SHOW_REGISTRATION_MODAL':
+      return { ...state, showRegistrationModal: action.payload };
+    case 'SET_PENDING_SUBMIT_DATA':
+      return { ...state, pendingSubmitData: action.payload };
     case 'RESET_STATE':
       return initialState;
     default:
@@ -99,15 +117,54 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const hasInitialized = useRef(false);
+  const loadProjectById = useCallback(async (projectId: string) => {
+    try {
+      dispatch({ type: 'SET_STATUS', payload: 'loading' });
+      const response = await axios.get(`/api/projects/${projectId}`);
+      const projectData = response.data;
+      
+      if (projectData) {
+        dispatch({ type: 'SET_PROJECT_ID', payload: projectData.id });
+        dispatch({ type: 'SET_PROJECT_DATA', payload: projectData });
+        if (projectData.hackaton_id) {
+          dispatch({ type: 'SET_HACKATHON_ID', payload: projectData.hackaton_id });
+        }
+        dispatch({ type: 'SET_EDITING', payload: true });
+        dispatch({ type: 'SET_STATUS', payload: 'editing' });
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: 'Project not found' });
+        dispatch({ type: 'SET_STATUS', payload: 'error' });
+      }
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to load project' });
+      dispatch({ type: 'SET_STATUS', payload: 'error' });
+      toast({
+        title: 'Error loading project',
+        description: error.message || 'Failed to load project',
+        variant: 'destructive',
+      });
+    }
+  }, [session?.user?.id, toast]);
+
   useEffect(() => {
-    const hackathonId = searchParams.get('hackathon');
+    const hackathonId = searchParams.get('event') ?? searchParams.get('hackathon');
     const invitationId = searchParams.get('invitation');
+    const projectId = searchParams.get('project');
     
-    if (hackathonId && !state.hackathonId && session?.user?.id && !hasInitialized.current) {
+    // Priority: project ID > hackathon ID > new project
+    if (projectId && !state.id && session?.user?.id && !hasInitialized.current) {
+      hasInitialized.current = true;
+      loadProjectById(projectId);
+    } else if (hackathonId && !state.hackathonId && session?.user?.id && !hasInitialized.current) {
       hasInitialized.current = true; 
       initializeProject(hackathonId, invitationId || undefined);
+    } else if (!hackathonId && !projectId && !state.hackathonId && session?.user?.id && !hasInitialized.current) {
+      // Allow creating projects without hackathon - set status to editing
+      hasInitialized.current = true;
+      dispatch({ type: 'SET_STATUS', payload: 'editing' });
+      dispatch({ type: 'SET_EDITING', payload: true });
     }
-  }, [searchParams, state.hackathonId, session?.user?.id]); 
+  }, [searchParams, state.hackathonId, state.id, session?.user?.id, loadProjectById]); 
 
   const initializeProject = useCallback(async (hackathonId: string, invitationId?: string) => {
     try {
@@ -149,51 +206,78 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
     }
   }, [session?.user?.id, toast]);
 
-  const saveProject = useCallback(async (data: any): Promise<boolean> => {
+  const saveProject = useCallback(async (data: any): Promise<{ success: boolean; projectId?: string; project?: SubmitProjectResult }> => {
     try {
-      dispatch({ type: 'SET_STATUS', payload: 'saving' });
-      
-  
-      if (!state.hackathonId) {
-        throw new Error('No hackathon selected');
+      // For final submits (not drafts) with a hackathon, check if the user is registered.
+      // If not, surface the registration modal instead of silently auto-registering.
+      if (!data.isDraft && state.hackathonId && session?.user?.email && !data._skipRegistrationCheck) {
+        const regResp = await axios.get('/api/register-form', {
+          params: { hackathonId: state.hackathonId, email: session.user.email },
+        });
+        const isRegistered = !!regResp.data?.id;
+        if (!isRegistered) {
+          dispatch({ type: 'SET_PENDING_SUBMIT_DATA', payload: data });
+          dispatch({ type: 'SET_SHOW_REGISTRATION_MODAL', payload: true });
+          return { success: false };
+        }
       }
-      
-     
+
+      dispatch({ type: 'SET_STATUS', payload: 'saving' });
+
+      const { _skipRegistrationCheck, registrationData, ...cleanData } = data;
       const projectData = {
-        ...data,
-        hackaton_id: state.hackathonId, 
+        ...cleanData,
+        ...(state.hackathonId && { hackaton_id: state.hackathonId }),
         user_id: session?.user?.id,
         id: state.id || undefined,
+        ...(registrationData && { registrationData }),
       };
-      
+
       const response = await axios.post('/api/project', projectData);
-      
+
       if (response.data?.project?.id) {
-        dispatch({ type: 'SET_PROJECT_ID', payload: response.data.project.id });
+        const projectId = response.data.project.id;
+        dispatch({ type: 'SET_PROJECT_ID', payload: projectId });
+        dispatch({ type: 'SET_PROJECT_DATA', payload: response.data.project });
         dispatch({ type: 'SET_STATUS', payload: 'editing' });
-        
+
         toast({
           title: 'Project saved successfully',
           description: 'Your project has been saved.',
         });
-        
-        return true;
+
+        return { success: true, projectId, project: response.data.project };
       }
 
-      return false;
+      return { success: false };
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       dispatch({ type: 'SET_STATUS', payload: 'error' });
-      
+
       toast({
         title: 'Error saving project',
         description: error.message,
         variant: 'destructive',
       });
-      
-      return false;
+
+      return { success: false };
     }
   }, [state.hackathonId, state.id, session?.user?.id, toast]);
+
+  const submitWithRegistration = useCallback(async (
+    regData: { terms_event_conditions: boolean; city?: string; telegram_account?: string }
+  ): Promise<{ success: boolean; projectId?: string; project?: SubmitProjectResult }> => {
+    const pending = state.pendingSubmitData;
+    if (!pending) return { success: false };
+    dispatch({ type: 'SET_SHOW_REGISTRATION_MODAL', payload: false });
+    dispatch({ type: 'SET_PENDING_SUBMIT_DATA', payload: null });
+    return saveProject({ ...pending, registrationData: regData, _skipRegistrationCheck: true });
+  }, [state.pendingSubmitData, saveProject]);
+
+  const cancelRegistrationModal = useCallback(() => {
+    dispatch({ type: 'SET_SHOW_REGISTRATION_MODAL', payload: false });
+    dispatch({ type: 'SET_PENDING_SUBMIT_DATA', payload: null });
+  }, []);
 
   const resetProject = useCallback(() => {
     dispatch({ type: 'RESET_STATE' });
@@ -221,6 +305,8 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
     actions: {
       initializeProject,
       saveProject,
+      submitWithRegistration,
+      cancelRegistrationModal,
       resetProject,
       setTeamName,
       setOpenJoinTeam,

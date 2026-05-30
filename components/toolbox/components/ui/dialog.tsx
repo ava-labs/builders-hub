@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import * as RadixDialog from "@radix-ui/react-dialog";
+import * as RadixDialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -18,7 +18,7 @@ const DialogRoot: React.FC<DialogRootProps> = ({ children, open, onOpenChange })
       const restoreBodyPointerEvents = () => {
         document.body.style.pointerEvents = '';
       };
-      
+
       // Use setTimeout to ensure this runs after Radix Dialog cleanup
       setTimeout(restoreBodyPointerEvents, 0);
     };
@@ -57,17 +57,17 @@ interface DialogContentProps extends React.ComponentProps<typeof RadixDialog.Con
   showCloseButton?: boolean;
 }
 
-export const DialogContent: React.FC<DialogContentProps> = ({ 
-  children, 
+export const DialogContent: React.FC<DialogContentProps> = ({
+  children,
   showCloseButton = true,
   className,
-  ...props 
+  ...props
 }) => {
   return (
-    <Dialog.Content 
+    <Dialog.Content
       className={cn(
-        "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-lg focus:outline-none w-[90vw] max-w-md max-h-[80vh] overflow-y-auto z-[10000]",
-        className
+        'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-lg focus:outline-none w-[90vw] max-w-md max-h-[80vh] overflow-y-auto z-[10000]',
+        className,
       )}
       {...props}
     >
@@ -88,21 +88,12 @@ export const DialogContent: React.FC<DialogContentProps> = ({
 
 export const DialogOverlay: React.FC<React.ComponentProps<typeof RadixDialog.Overlay>> = (props) => {
   return (
-    <Dialog.Overlay 
-      className="fixed inset-0 bg-black/50 data-[state=open]:animate-overlayShow z-[9999]" 
-      {...props} 
-    />
+    <Dialog.Overlay className="fixed inset-0 bg-black/50 data-[state=open]:animate-overlayShow z-[9999]" {...props} />
   );
 };
 
-export const DialogTitle: React.FC<React.ComponentProps<typeof RadixDialog.Title>> = ({ 
-  className, 
-  ...props 
-}) => {
+export const DialogTitle: React.FC<React.ComponentProps<typeof RadixDialog.Title>> = ({ className, ...props }) => {
   return (
-    <Dialog.Title 
-      className={cn("text-xl font-bold mb-6 text-zinc-800 dark:text-zinc-100", className)} 
-      {...props} 
-    />
+    <Dialog.Title className={cn('text-xl font-bold mb-6 text-zinc-800 dark:text-zinc-100', className)} {...props} />
   );
 };

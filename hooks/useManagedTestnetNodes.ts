@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { NodeRegistration, RegisterSubnetResponse } from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/types";
+import { NodeRegistration, RegisterSubnetResponse } from "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/types";
 import posthog from 'posthog-js';
+import { useConsoleBadgeNotificationStore } from '@/stores/consoleBadgeNotificationStore';
 
 export function useManagedTestnetNodes() {
     const [nodes, setNodes] = useState<NodeRegistration[]>([]);
@@ -65,8 +66,26 @@ export function useManagedTestnetNodes() {
                 throw new Error(data.message || data.error || 'Registration failed');
             }
 
+            if (data.awardedBadges?.length > 0) {
+                useConsoleBadgeNotificationStore.getState().addBadges(data.awardedBadges);
+            }
+
             if (data.builder_hub_response) {
-                return data.builder_hub_response as RegisterSubnetResponse;
+                // Optimistically merge the newly-created node into local state so
+                // consumers can render its details immediately — without this,
+                // callers have to re-fetch and find-match, which races with DB
+                // read-consistency and leaves the UI stuck on "no node yet."
+                if (data.node) {
+                    setNodes((prev) => {
+                        const exists = prev.some((n) => n.id === data.node.id);
+                        return exists ? prev : [...prev, data.node as NodeRegistration];
+                    });
+                }
+
+                return {
+                    ...(data.builder_hub_response as RegisterSubnetResponse),
+                    node: data.node as NodeRegistration | undefined,
+                };
             } else {
                 throw new Error('Unexpected response format');
             }

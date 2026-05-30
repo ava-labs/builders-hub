@@ -1,0 +1,49 @@
+{
+  "$schema": "./eerc-deployments.schema.json",
+  "description": "Known Encrypted ERC (eERC) deployments, keyed by EVM chain ID. Populated by scripts/eerc/deploy-fuji.ts for the canonical Fuji deployment; users deploying on their own L1 add entries here (or we persist per-chain to toolboxStore).",
+  "deployments": {
+    "43113": {
+      "chainName": "Avalanche Fuji C-Chain",
+      "standalone": {
+        "label": "Demo Private Token (PRIV)",
+        "encryptedERC": "0x991c87ea50c7c0647a44890988df928d63cfd677",
+        "registrar": "0x7830a1c35da4fded5a2d2e1cb3432ac28a5bb2de",
+        "babyJubJubLibrary": "0x386be94190c91a599852827ef2211676774990fc",
+        "verifiers": {
+          "registration": "0x8c35338fb4eeccf838db93f78d5998168371bcd5",
+          "mint": "0x5dc346acc1cd80dcfafefe4951d74b848a6464ed",
+          "transfer": "0x7e84c9d21eb23d533385a13c07127e7ad1e077ab",
+          "withdraw": "0x87329ec6f2ffa8123c5f7f3bd03edf4634dd8ad7",
+          "burn": "0xe6b66eac11e7a96c5acce4c51d7ff306d235d3ab"
+        },
+        "auditorAddress": "0x0DA967B35CE94A1Cc808Ec4497Bfbf88615ed006",
+        "decimals": 2,
+        "deployedAtBlock": 54383527
+      },
+      "converter": {
+        "label": "Demo Converter (wraps WAVAX)",
+        "encryptedERC": "0xaa1e09ff9ea69128574293340bed9c4e906f24b0",
+        "registrar": "0x7830a1c35da4fded5a2d2e1cb3432ac28a5bb2de",
+        "babyJubJubLibrary": "0x386be94190c91a599852827ef2211676774990fc",
+        "verifiers": {
+          "registration": "0x8c35338fb4eeccf838db93f78d5998168371bcd5",
+          "mint": "0x5dc346acc1cd80dcfafefe4951d74b848a6464ed",
+          "transfer": "0x7e84c9d21eb23d533385a13c07127e7ad1e077ab",
+          "withdraw": "0x87329ec6f2ffa8123c5f7f3bd03edf4634dd8ad7",
+          "burn": "0xe6b66eac11e7a96c5acce4c51d7ff306d235d3ab"
+        },
+        "auditorAddress": "0x0DA967B35CE94A1Cc808Ec4497Bfbf88615ed006",
+        "decimals": 2,
+        "deployedAtBlock": 54383527,
+        "supportedTokens": [
+          {
+            "address": "0xd00ae08403B9bbb9124bB305C09058E32C39A48c",
+            "symbol": "WAVAX",
+            "name": "Wrapped AVAX (Fuji)",
+            "decimals": 18
+          }
+        ]
+      }
+    }
+  }
+}

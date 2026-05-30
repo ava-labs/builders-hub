@@ -1,0 +1,36 @@
+{
+     "categories": [
+        {
+            "id": "1",
+            "name": "Consumer"
+        },
+        {
+            "id": "2",
+            "name": "DeFi"
+        },
+        {
+            "id": "3",
+            "name": "Enterprise"
+        },
+        {
+            "id": "4",
+            "name": "Developer Tooling"
+        },
+        {
+            "id": "5",
+            "name": "RWA"
+        },
+        {
+            "id": "6",
+            "name": "Gaming"
+        },
+        {
+            "id": "7",
+            "name": "Social"
+        },
+        {
+            "id": "8",
+            "name": "Other (Specify)"
+        }
+    ]
+}

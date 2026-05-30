@@ -1,0 +1,368 @@
+---
+title: Firewood Database
+description: Learn about Firewood, the compaction-less database optimized for efficiently storing Merkleized blockchain state.
+---
+
+Firewood is a purpose-built embedded key-value store optimized for storing recent Merkleized blockchain state. Unlike traditional blockchain storage approaches that layer Merkle tries on top of generic databases, Firewood stores trie nodes directly on disk, eliminating compaction overhead and enabling superior performance.
+
+<Callout>
+**Source Code**: [github.com/ava-labs/firewood](https://github.com/ava-labs/firewood)
+</Callout>
+
+## Summary
+
+Firewood reimagines blockchain state storage with several key innovations:
+
+- **Native trie storage**: Stores Merkle trie nodes directly on disk
+- **No compaction**: Eliminates expensive compaction cycles
+- **Recent state focus**: Optimized for storing recent revisions
+- **Disk-offset addressing**: Root addresses are disk offsets, not hashes
+
+<Callout type="warn">
+Firewood is beta-level software. The Firewood API may change with little to no warning.
+</Callout>
+
+## The Problem with Traditional Approaches
+
+Most blockchain clients (including Ethereum's Geth and traditional AvalancheGo) store state using generic key-value databases like LevelDB or RocksDB. This creates a fundamental mismatch:
+
+<Mermaid chart="
+flowchart TB
+    subgraph Traditional [Traditional Approach]
+        App[Application] --> MPT[Merkle Patricia Trie]
+        MPT --> KV[Key-Value Store]
+        KV --> LSM[LSM-Tree / B-Tree]
+        LSM --> Disk[(Disk)]
+    end
+
+    subgraph Firewood [Firewood Approach]
+        App2[Application] --> FW[Firewood]
+        FW --> Trie[Native Trie on Disk]
+        Trie --> Disk2[(Disk)]
+    end
+" />
+
+### Problems with Generic KV Stores
+
+| Issue | Description |
+|-------|-------------|
+| **Double indexing** | Trie structure is flattened into KV pairs, then re-indexed by the database |
+| **Compaction overhead** | LSM-trees require periodic compaction that causes latency spikes |
+| **Write amplification** | Data is rewritten multiple times during compaction |
+| **Hash-based lookup** | Finding a node requires hashing, then database lookup |
+
+## How Firewood Works
+
+Firewood implements a Patricia trie (a specific variant of radix tree) natively on disk, using the trie structure itself as the index.
+
+### Native Trie Storage
+
+<Mermaid chart="
+flowchart TB
+    subgraph Memory
+        Root[Root Node]
+        Branch1[Branch Node]
+        Branch2[Branch Node]
+        Leaf1[Leaf Node]
+        Leaf2[Leaf Node]
+    end
+
+    subgraph Disk [Disk Layout]
+        D1[Offset 0: Root]
+        D2[Offset 64: Branch]
+        D3[Offset 128: Branch]
+        D4[Offset 192: Leaf]
+        D5[Offset 256: Leaf]
+    end
+
+    Root --> Branch1
+    Root --> Branch2
+    Branch1 --> Leaf1
+    Branch2 --> Leaf2
+
+    D1 -.->|points to| D2
+    D1 -.->|points to| D3
+    D2 -.->|points to| D4
+    D3 -.->|points to| D5
+" />
+
+Key design decisions:
+
+- **Disk offset = address**: A node's address is simply its offset in the database file
+- **Direct pointers**: Branch nodes point to disk offsets of child nodes
+- **No hash lookup**: Finding a node doesn't require computing or looking up hashes
+
+### Revision Management
+
+Firewood implements a persistent (immutable) trie structure that supports multiple concurrent versions:
+
+<Mermaid chart="
+flowchart LR
+    subgraph Rev1 [Revision N]
+        R1[Root v1]
+        B1[Branch A]
+        L1[Leaf 1]
+    end
+
+    subgraph Rev2 [Revision N+1]
+        R2[Root v2]
+        B2[Branch A new]
+        L2[Leaf 1 new]
+    end
+
+    R1 --> B1
+    B1 --> L1
+    R2 --> B2
+    R2 -.->|shares| B1
+    B2 --> L2
+" />
+
+When state is updated:
+1. New versions of modified nodes are created
+2. Unchanged subtrees are shared between revisions
+3. Old revisions remain accessible for reads
+
+### Future-Delete Log (FDL)
+
+Firewood tracks which nodes become obsolete:
+
+<Mermaid chart="
+sequenceDiagram
+    participant Writer as Block Executor
+    participant FW as Firewood
+    participant FDL as Future-Delete Log
+    participant Free as Free Space
+
+    Writer->>FW: Update state
+    FW->>FW: Create new nodes
+    FW->>FDL: Log deleted nodes
+    Note over FDL: Nodes marked for future deletion
+
+    Writer->>FW: Revision N+K expires
+    FW->>FDL: Get nodes from revision N
+    FDL-->>FW: Deleted node list
+    FW->>Free: Return space to free list
+" />
+
+This enables:
+- **Predictable cleanup**: No sudden compaction pauses
+- **Inline compaction**: Space is reclaimed as part of normal operation
+- **Configurable history**: Retain as many revisions as needed
+
+## Technical Architecture
+
+### Core Components
+
+```
+firewood/
+├── storage/        # Low-level storage primitives
+├── trie/           # Patricia trie implementation
+├── proposal/       # Transaction staging
+├── revision/       # Version management
+├── proof/          # Merkle proof generation
+└── ffi/            # Foreign function interface
+```
+
+### Free Space Management
+
+Firewood manages free space similarly to heap memory allocation:
+
+<Mermaid chart="
+flowchart TB
+    subgraph FreeList [Free Lists by Size]
+        F1[64 bytes]
+        F2[128 bytes]
+        F3[256 bytes]
+        F4[512+ bytes]
+    end
+
+    subgraph File [Database File]
+        Used1[Used]
+        Free1[Free 128B]
+        Used2[Used]
+        Free2[Free 64B]
+        Used3[Used]
+    end
+
+    Free1 -.-> F2
+    Free2 -.-> F1
+" />
+
+When allocating space for new nodes:
+1. Check free lists for appropriate size
+2. If no suitable free space, allocate from end of file
+3. When revisions expire, return space to free lists
+
+## Key Features
+
+### Concurrent Access
+
+Firewood efficiently synchronizes between:
+
+| Actor | Role |
+|-------|------|
+| **Writer** (Execution) | Single writer commits new state |
+| **Readers** (Consensus, RPC) | Multiple readers access historical state |
+
+The persistent trie structure ensures:
+- Readers always see consistent state
+- Writes are atomic from readers' perspective
+- No locks required for read operations
+
+### Sequential Writes
+
+The persistent data structure enables sequential writes. New nodes are appended to the end of the file, filling free space sequentially:
+
+| State | Slot 1 | Slot 2 | Slot 3 | Slot 4 | Slot 5 |
+|-------|--------|--------|--------|--------|--------|
+| **Before** | Node A | Node B | Node C | *Free* | *Free* |
+| **After** | Node A | Node B | Node C | Node D | Node E |
+
+Benefits for SSDs:
+- Entire blocks are filled before moving to the next
+- Simplified garbage collection
+- Reduced write amplification
+- Increased SSD longevity
+
+### Proofs and State Sync
+
+Firewood natively supports proof generation:
+
+| Proof Type | Description |
+|------------|-------------|
+| **Key Proof** | Proves a key exists in a specific revision |
+| **Range Proof** | Proves a range of keys with all values |
+| **Change Proof** | Proves differences between two revisions |
+
+These proofs enable efficient state sync without trusting the source.
+
+## Ethereum Compatibility
+
+By default, Firewood uses SHA256 hashing (compatible with [MerkleDB](https://github.com/ava-labs/avalanchego/tree/master/x/merkledb)). For Ethereum compatibility, enable the `ethhash` feature:
+
+```bash
+# Build with Ethereum-compatible hashing
+cargo build --features ethhash
+```
+
+This changes:
+- Hashing algorithm: SHA256 → Keccak256
+- Account handling: Understands RLP-encoded accounts
+- Storage trie: Computes account storage roots correctly
+
+<Callout type="info">
+The `ethhash` feature has some performance overhead compared to the default configuration.
+</Callout>
+
+## Performance Characteristics
+
+### Compared to LevelDB/RocksDB
+
+| Metric | Traditional | Firewood |
+|--------|-------------|----------|
+| **Write amplification** | High (compaction) | Low (no compaction) |
+| **Latency spikes** | Periodic (compaction) | Minimal |
+| **Iteration speed** | Fast | Fast (native trie) |
+| **Proof generation** | Requires reconstruction | Native support |
+| **Space efficiency** | Good after compaction | Configurable |
+
+### Optimal Configuration
+
+For best performance:
+
+```bash
+# Run directly on block device (bypass filesystem)
+./firewood --device /dev/nvme0n1
+
+# Or use regular files (easier setup)
+./firewood --path /data/firewood.db
+```
+
+Running on block devices avoids filesystem overhead:
+- No block allocation delays
+- No fragmentation
+- No metadata management
+- Direct I/O to SSD
+
+## Metrics
+
+Firewood provides comprehensive Prometheus metrics:
+
+```text
+# Database size
+firewood_db_size_bytes
+
+# Read/write latency
+firewood_read_latency_seconds
+firewood_write_latency_seconds
+
+# Revision count
+firewood_revision_count
+
+# Free space
+firewood_free_space_bytes
+```
+
+See [METRICS.md](https://github.com/ava-labs/firewood/blob/main/METRICS.md) for the complete metrics reference.
+
+## Command Line Interface
+
+Firewood includes `fwdctl` for database operations:
+
+```bash
+# Create a new database
+fwdctl create --path /data/firewood.db
+
+# Insert key-value pairs
+fwdctl put --path /data/firewood.db key1 value1
+
+# Query data
+fwdctl get --path /data/firewood.db key1
+
+# Generate proofs
+fwdctl prove --path /data/firewood.db key1
+```
+
+## Integration with AvalancheGo
+
+Firewood integrates with AvalancheGo as an alternative to LevelDB/PebbleDB:
+
+<Mermaid chart="
+flowchart TB
+    subgraph AvalancheGo
+        VM[Virtual Machine]
+        State[State Manager]
+    end
+
+    subgraph Storage [Storage Options]
+        LDB[(LevelDB)]
+        PDB[(PebbleDB)]
+        FW[(Firewood)]
+    end
+
+    VM --> State
+    State --> LDB
+    State --> PDB
+    State --> FW
+" />
+
+<Callout type="info">
+Firewood integration with AvalancheGo is under active development. Check the [firewood-go-ethhash](https://github.com/ava-labs/firewood-go-ethhash) repository for Go bindings.
+</Callout>
+
+## Related Resources
+
+<Cards>
+  <Card title="Streaming Async Execution" href="/docs/nodes/architecture/execution/streaming-async-execution">
+    How SAE leverages Firewood for efficient execution
+  </Card>
+  <Card title="Core Components" href="/docs/nodes/architecture/core-components">
+    AvalancheGo's overall architecture
+  </Card>
+</Cards>
+
+### External Links
+
+- [Firewood Repository](https://github.com/ava-labs/firewood)
+- [Firewood Go Bindings](https://github.com/ava-labs/firewood-go-ethhash)
+- [Firewood Metrics Reference](https://github.com/ava-labs/firewood/blob/main/METRICS.md)

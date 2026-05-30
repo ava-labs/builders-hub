@@ -11,7 +11,8 @@ if (typeof window !== 'undefined') {
     posthog.init(posthogKey, {
       api_host: posthogHost || 'https://app.posthog.com',
       persistence: consent === 'yes' ? 'localStorage+cookie' : 'memory',
-      enable_heatmaps: true
+      enable_heatmaps: true,
+      capture_exceptions: true,
     })
   } else {
     console.warn('PostHog key not found in environment variables')

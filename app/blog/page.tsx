@@ -43,21 +43,8 @@ export default function Page(): React.ReactElement {
   return (
     <>
       <HeroBackground />
-      <main className="py-12 sm:py-20">
+      <main className="relative py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          {/* Header */}
-          <section className="mx-auto w-full lg:mx-0 text-center">
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tighter">
-              <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-white">
-                Avalanche Builder Blog
-              </span>
-            </h1>
-            <p className="mt-6 text-base sm:text-lg leading-7 text-muted-foreground">
-              Takeaways and tutorials from building a network of fast,
-              efficient, highly-optimized chains.
-            </p>
-          </section>
-
           {/* Blog List with Search */}
           <BlogList blogs={blogs} />
         </div>

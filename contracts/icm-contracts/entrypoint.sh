@@ -3,16 +3,19 @@
 set -eu -o pipefail
 
 # download source code if not already present
-if [ ! -d "/teleporter_src/contracts" ]; then
-    git clone https://github.com/ava-labs/icm-contracts /teleporter_src 
+if [ ! -d "/teleporter_src/.git" ]; then
+    git clone https://github.com/ava-labs/icm-services /teleporter_src
     cd /teleporter_src
     git submodule update --init --recursive
 fi
 
 cd /teleporter_src
 git config --global --add safe.directory /teleporter_src
+# Ensure remote points to icm-services (may be cached from old icm-contracts clone)
+git remote set-url origin https://github.com/ava-labs/icm-services
 git fetch origin
 git checkout $ICM_COMMIT
+git submodule update --init --recursive
 
 # Add foundry to PATH
 export PATH="/root/.foundry/bin/:${PATH}"
@@ -35,6 +38,7 @@ for file in \
     /teleporter_src/out/TeleporterRegistry.sol/TeleporterRegistry.json \
     /teleporter_src/out/TeleporterMessenger.sol/TeleporterMessenger.json \
     /teleporter_src/out/NativeTokenStakingManager.sol/NativeTokenStakingManager.json \
+    /teleporter_src/out/ERC20TokenStakingManager.sol/ERC20TokenStakingManager.json \
     /teleporter_src/out/ExampleERC20.sol/ExampleERC20.json \
     /teleporter_src/out/ERC20TokenHome.sol/ERC20TokenHome.json \
     /teleporter_src/out/ERC20TokenRemote.sol/ERC20TokenRemote.json \

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
+import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -6,7 +8,10 @@ const RETRO9000_FORM_GUID = process.env.RETRO9000_FORM_GUID;
 
 export async function POST(request: Request) {
   try {
-    if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID || !RETRO9000_FORM_GUID) {
+    const hubspotEnabled = isHubSpotEnabled();
+    if (!hubspotEnabled) {
+      skipHubSpot('POST /api/retro9000');
+    } else if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID || !RETRO9000_FORM_GUID) {
       console.error('Missing environment variables: HUBSPOT_API_KEY, HUBSPOT_PORTAL_ID, or RETRO9000_FORM_GUID');
       return NextResponse.json(
         { success: false, message: 'Server configuration error' },
@@ -226,8 +231,9 @@ export async function POST(request: Request) {
         });
       }
     });
+    const internalOnlyFields = new Set(['referral_attribution']);
     Object.entries(formData).forEach(([name, value]) => {
-      if (!fieldMapping[name] && value !== undefined && value !== null && value !== '') {
+      if (!fieldMapping[name] && !internalOnlyFields.has(name) && value !== undefined && value !== null && value !== '') {
         let formattedValue: string | boolean;
         
         if (Array.isArray(value)) {
@@ -283,46 +289,59 @@ export async function POST(request: Request) {
       };
     }
   
-    const hubspotResponse = await fetch(
-      `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${RETRO9000_FORM_GUID}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HUBSPOT_API_KEY}`
-        },
-        body: JSON.stringify(hubspotPayload)
-      }
-    );
+    if (hubspotEnabled) {
+      const hubspotResponse = await fetch(
+        `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${RETRO9000_FORM_GUID}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${HUBSPOT_API_KEY}`
+          },
+          body: JSON.stringify(hubspotPayload)
+        }
+      );
 
-    const responseStatus = hubspotResponse.status;
-    let hubspotResult;
-    try {
-      const clonedResponse = hubspotResponse.clone();
+      const responseStatus = hubspotResponse.status;
+      let hubspotResult;
       try {
-        hubspotResult = await hubspotResponse.json();
-      } catch (jsonError) {
-        const text = await clonedResponse.text();
-        hubspotResult = { status: 'error', message: text };
+        const clonedResponse = hubspotResponse.clone();
+        try {
+          hubspotResult = await hubspotResponse.json();
+        } catch (jsonError) {
+          const text = await clonedResponse.text();
+          hubspotResult = { status: 'error', message: text };
+        }
+      } catch (error) {
+        hubspotResult = { status: 'error', message: 'Could not read HubSpot response' };
       }
-    } catch (error) {
-      hubspotResult = { status: 'error', message: 'Could not read HubSpot response' };
-    }
-    
-    if (!hubspotResponse.ok) {
-      console.error('HubSpot submission failed:', {
-        status: responseStatus,
-        response: hubspotResult
-      });
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Failed to submit to HubSpot',
+
+      if (!hubspotResponse.ok) {
+        console.error('HubSpot submission failed:', {
           status: responseStatus,
           response: hubspotResult
-        },
-        { status: 400 }
-      );
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Failed to submit to HubSpot',
+            status: responseStatus,
+            response: hubspotResult
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    try {
+      await recordReferralAttributionFromRequest(request, {
+        targetType: 'grant_application',
+        targetId: 'retro9000',
+        userEmail: typeof formData.email === 'string' ? formData.email : null,
+        attribution: (formData.referral_attribution as any) ?? null,
+      });
+    } catch (error) {
+      console.error('[Referral] Failed to record Retro9000 attribution:', error);
     }
 
     return NextResponse.json({ 

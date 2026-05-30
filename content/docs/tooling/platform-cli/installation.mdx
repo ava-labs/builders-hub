@@ -1,0 +1,117 @@
+---
+title: Installation
+description: Install and configure Platform CLI for Avalanche P-Chain operations
+---
+
+## Install Script (Recommended)
+
+The install script downloads the latest release binary for your platform:
+
+```bash
+curl -sSfL https://build.avax.network/install/platform-cli | sh
+```
+
+Options:
+
+```bash
+# Install to a custom directory
+curl -sSfL https://build.avax.network/install/platform-cli | sh -s -- -b ~/.local/bin
+
+# Install a specific version
+curl -sSfL https://build.avax.network/install/platform-cli | sh -s -- -v v0.2.0
+```
+
+The script auto-detects your OS (Linux/macOS) and architecture (amd64/arm64), downloads the release tarball, verifies checksums, and installs the `platform` binary.
+
+Verify the installation:
+
+```bash
+platform --help
+```
+
+## Build from Source
+
+Requires **Go 1.24+** ([install Go](https://go.dev/dl/)).
+
+```bash
+git clone https://github.com/ava-labs/platform-cli.git
+cd platform-cli
+go build -o platform .
+```
+
+### Ledger Support
+
+To build with Ledger hardware wallet support:
+
+```bash
+go build -tags ledger -o platform .
+```
+
+## Global Flags
+
+These flags are available on all commands:
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--network` | `-n` | Network: `fuji` or `mainnet` | `fuji` |
+| `--key-name` | | Name of key to load from keystore | |
+| `--ledger` | | Use Ledger hardware wallet | `false` |
+| `--ledger-index` | | Ledger address index (BIP44 path) | `0` |
+| `--rpc-url` | | Custom RPC URL (overrides `--network`) | |
+| `--network-id` | | Network ID for custom RPC (auto-detected if not set) | |
+| `--allow-insecure-http` | | Allow plain HTTP for non-local endpoints (unsafe) | `false` |
+| `--private-key` | `-k` | Private key (deprecated, prefer `--key-name` or `--ledger`) | |
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `AVALANCHE_PRIVATE_KEY` | Private key (alternative to `--private-key` flag) |
+| `PLATFORM_CLI_KEY_PASSWORD` | Password for encrypted keys (avoids interactive prompts) |
+| `PLATFORM_CLI_TIMEOUT` | Operation timeout duration (e.g., `5m`, `30s`, default: `2m`) |
+
+## Key Loading Priority
+
+When a command needs a private key, Platform CLI checks these sources in order:
+
+1. `--key-name` flag (loads from keystore)
+2. `--private-key` flag (deprecated)
+3. Default key in keystore (if set)
+4. `AVALANCHE_PRIVATE_KEY` environment variable
+
+## Network Configuration
+
+### Standard Networks
+
+```bash
+# Fuji testnet (default)
+platform wallet balance --key-name mykey
+
+# Mainnet
+platform wallet balance --key-name mykey --network mainnet
+```
+
+### Custom RPC
+
+For local networks or custom endpoints:
+
+```bash
+# Local network
+platform wallet balance --key-name mykey --rpc-url http://127.0.0.1:9650
+
+# Custom endpoint with explicit network ID
+platform wallet balance --key-name mykey --rpc-url https://my-node.example.com:9650 --network-id 5
+```
+
+When using `--rpc-url`, the network ID is auto-detected from the node unless `--network-id` is specified.
+
+## Next Steps
+
+<Cards>
+  <Card title="Key Management" href="/docs/tooling/platform-cli/key-management">
+    Set up keys for signing transactions
+  </Card>
+  <Card title="Command Reference" href="/docs/tooling/platform-cli/command-reference">
+    Explore all available commands
+  </Card>
+</Cards>

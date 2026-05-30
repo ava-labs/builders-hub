@@ -6,7 +6,7 @@ import {
 } from 'fumadocs-core/source';
 import { createElement } from 'react';
 import { icons } from 'lucide-react';
-import { meta, docs, blog as blogs, course, courseMeta, integrations, codebaseEntrepreneur, codebaseEntrepreneurMeta } from '@/.source';
+import { meta, docs, blog as blogs, course, courseMeta, integrations } from '@/.source';
 import { openapiPlugin } from 'fumadocs-openapi/server';
 
 export const documentation = loader({
@@ -87,6 +87,37 @@ export function getAcpsTree() {
   });
 }
 
+function filterTreeByPrefix(tree: any, prefix: string): any {
+  if (!Array.isArray(tree)) {
+    if (tree && typeof tree === 'object' && 'children' in tree) {
+      const filteredChildren = filterTreeByPrefix(tree.children, prefix);
+      return {
+        ...tree,
+        children: Array.isArray(filteredChildren) ? filteredChildren : [],
+      };
+    }
+    return tree;
+  }
+
+  return tree
+    .map((node) => {
+      const children = node.children ? filterTreeByPrefix(node.children, prefix) : [];
+      const normalizedChildren = Array.isArray(children) ? children : [];
+      const hasChildren = normalizedChildren.length > 0;
+      const matches = typeof node.url === 'string' && node.url.startsWith(prefix);
+
+      if (matches || hasChildren || !node.url) {
+        return {
+          ...node,
+          children: normalizedChildren,
+        };
+      }
+
+      return null;
+    })
+    .filter((node) => node !== null);
+}
+
 export const academy = loader({
   baseUrl: '/academy',
   icon(icon) {
@@ -96,14 +127,11 @@ export const academy = loader({
   source: createMDXSource(course, courseMeta as any),
 });
 
-export const codebaseEntrepreneurAcademy = loader({
-  baseUrl: '/codebase-entrepreneur-academy',
-  icon(icon) {
-    if (icon && icon in icons)
-      return createElement(icons[icon as keyof typeof icons]);
-  },
-  source: createMDXSource(codebaseEntrepreneur, codebaseEntrepreneurMeta as any),
-});
+export function getAcademyTree(prefix: string) {
+  const fullTree = academy.pageTree;
+  if (!prefix) return fullTree;
+  return filterTreeByPrefix(fullTree, prefix);
+}
 
 export const blog = loader({
   baseUrl: '/blog',

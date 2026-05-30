@@ -26,7 +26,7 @@ const features = [
     description:
       "Find out about upcoming hackathons and events, and learn how to get involved.",
     icon: Ticket,
-    href: "/hackathons"
+    href: "/events"
   },
   {
     id: 3,

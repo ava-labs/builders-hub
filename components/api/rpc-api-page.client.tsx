@@ -9,7 +9,7 @@ export function BodyFieldWithExpandedParams({
   fieldName: 'body'; 
   info: { schema: any; mediaType: string } 
 }) {
-  const { field } = Custom.useController({ name: fieldName });
+  const { field: { value, onChange: setValue } } = Custom.useController({ name: fieldName });
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set(['params']));
   
   const toggleField = (key: string) => {
@@ -75,13 +75,41 @@ export function BodyFieldWithExpandedParams({
                 id={`body.${fieldPath}`}
                 placeholder={propSchema.default || "Enter value"}
                 type={propSchema.type === 'integer' || propSchema.type === 'number' ? 'number' : 'text'}
-                value={(field.value && typeof field.value === 'object' && key in field.value ? (field.value as Record<string, any>)[key] : propSchema.default) || ''}
+                value={(() => {
+                  const pathParts = fieldPath.split('.');
+                  let currentVal = value;
+                  for (const part of pathParts) {
+                    if (currentVal && typeof currentVal === 'object' && part in currentVal) {
+                      currentVal = (currentVal as Record<string, any>)[part];
+                    } else {
+                      return propSchema.default || '';
+                    }
+                  }
+                  return currentVal || '';
+                })()}
                 onChange={(e) => {
-                  const newValue = propSchema.type === 'integer' || propSchema.type === 'number' 
-                    ? Number(e.target.value) 
+                  const newValue = propSchema.type === 'integer' || propSchema.type === 'number'
+                    ? Number(e.target.value)
                     : e.target.value;
-                  const currentValue = (field.value && typeof field.value === 'object') ? field.value as Record<string, any> : {};
-                  field.onChange({ ...currentValue, [key]: newValue });
+                  const currentValue = (value && typeof value === 'object') ? value as Record<string, any> : {};
+
+                  // Handle nested path
+                  const pathParts = fieldPath.split('.');
+                  const updated = { ...currentValue };
+                  let current: any = updated;
+
+                  for (let i = 0; i < pathParts.length - 1; i++) {
+                    const part = pathParts[i];
+                    if (!(part in current) || typeof current[part] !== 'object') {
+                      current[part] = {};
+                    } else {
+                      current[part] = { ...current[part] };
+                    }
+                    current = current[part];
+                  }
+
+                  current[pathParts[pathParts.length - 1]] = newValue;
+                  setValue(updated);
                 }}
                 name={`body.${fieldPath}`}
                 {...(propSchema.type === 'number' || propSchema.type === 'integer' ? { step: propSchema.type === 'integer' ? '1' : 'any' } : {})}

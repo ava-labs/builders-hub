@@ -27,19 +27,11 @@ export const MultisigInfo: React.FC<MultisigInfoProps> = ({ safeInfo, walletAddr
       <div className="bg-gradient-to-r from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 p-4 border-b border-gray-200 dark:border-zinc-700">
         <div className="flex items-center space-x-4">
           <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/30 rounded-lg p-2.5 h-[60px] w-[60px] flex items-center justify-center flex-shrink-0 shadow-sm dark:shadow-zinc-900/50">
-            <img 
-              src="/images/ash.png" 
-              alt="Ash" 
-              className="h-8 w-auto"
-            />
+            <img src="/images/ash.png" alt="Ash" className="h-8 w-auto" />
           </div>
           <div className="flex flex-col justify-center h-[60px]">
-            <h3 className="text-base font-semibold mb-1 mt-0 text-zinc-800 dark:text-zinc-100">
-              Ash Wallet Multisig
-            </h3>
-            <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">
-              Safe multisig wallet information
-            </p>
+            <h3 className="text-base font-semibold mb-1 mt-0 text-zinc-800 dark:text-zinc-100">Ash Wallet Multisig</h3>
+            <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">Safe multisig wallet information</p>
           </div>
         </div>
       </div>
@@ -72,12 +64,8 @@ export const MultisigInfo: React.FC<MultisigInfoProps> = ({ safeInfo, walletAddr
               <Users className="h-4 w-4 text-orange-500" />
               <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">Threshold</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
-              {safeInfo.threshold}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-zinc-400">
-              of {safeInfo.owners.length} owners
-            </div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{safeInfo.threshold}</div>
+            <div className="text-xs text-gray-600 dark:text-zinc-400">of {safeInfo.owners.length} owners</div>
           </div>
 
           <div className="bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 p-4 rounded-lg">
@@ -85,12 +73,8 @@ export const MultisigInfo: React.FC<MultisigInfoProps> = ({ safeInfo, walletAddr
               <Hash className="h-4 w-4 text-orange-500" />
               <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">Nonce</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
-              {safeInfo.nonce}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-zinc-400">
-              Current transaction
-            </div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{safeInfo.nonce}</div>
+            <div className="text-xs text-gray-600 dark:text-zinc-400">Current transaction</div>
           </div>
 
           <div className="bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 p-4 rounded-lg">
@@ -98,12 +82,8 @@ export const MultisigInfo: React.FC<MultisigInfoProps> = ({ safeInfo, walletAddr
               <Shield className="h-4 w-4 text-orange-500" />
               <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">Version</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
-              {safeInfo.version || 'N/A'}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-zinc-400">
-              Safe contract
-            </div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{safeInfo.version || 'N/A'}</div>
+            <div className="text-xs text-gray-600 dark:text-zinc-400">Safe contract</div>
           </div>
         </div>
 
@@ -117,29 +97,29 @@ export const MultisigInfo: React.FC<MultisigInfoProps> = ({ safeInfo, walletAddr
             {safeInfo.owners.map((owner: string, index: number) => {
               const isCurrentUser = owner.toLowerCase() === walletAddress.toLowerCase();
               return (
-                <div 
-                  key={owner} 
+                <div
+                  key={owner}
                   className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                    isCurrentUser 
-                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+                    isCurrentUser
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                       : 'bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-600'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                      isCurrentUser 
-                        ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200' 
-                        : 'bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-zinc-300'
-                    }`}>
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                        isCurrentUser
+                          ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200'
+                          : 'bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-zinc-300'
+                      }`}
+                    >
                       {index + 1}
                     </div>
                     <div>
                       <div className="font-mono text-sm break-all text-gray-900 dark:text-zinc-100">
                         {shortenAddress(owner)}
                       </div>
-                      <div className="font-mono text-xs text-gray-500 dark:text-zinc-400">
-                        {owner}
-                      </div>
+                      <div className="font-mono text-xs text-gray-500 dark:text-zinc-400">{owner}</div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">

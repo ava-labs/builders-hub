@@ -1,63 +1,43 @@
-import { HeroBackground } from '@/components/landing/hero';
-import { AcademyHero } from './academy-hero';
-import { AcademyLearningPath } from './academy-learning-path';
-import { AcademyBlogSection } from './academy-blog-section';
-import type { AcademyLandingPageConfig } from './academy-types';
-import { AcademyBubbleNav } from './academy-bubble.config';
+'use client';
 
-interface BlogPage {
-    url: string;
-    data: {
-        title: string;
-        description: string;
-        topics?: string[];
-        date?: string;
-    };
-    file: {
-        name: string;
-    };
-}
+import { usePathname } from 'next/navigation';
+import { HeroBackground } from '@/components/landing/hero';
+import { AcademyLearningPath } from './academy-learning-path';
+import { AcademyBubbleNav } from './academy-bubble-nav';
+import type { AcademyLandingPageConfig, AcademyPathType } from './academy-types';
+import type { ReactNode } from 'react';
 
 interface AcademyLayoutProps {
     config: AcademyLandingPageConfig;
-    blogs?: BlogPage[];
-    children?: React.ReactNode;
-    afterLearningPath?: React.ReactNode;
+    children?: ReactNode;
+    afterLearningPath?: ReactNode;
 }
 
-export function AcademyLayout({ config, blogs = [], children, afterLearningPath }: AcademyLayoutProps) {
+export function AcademyLayout({
+    config,
+    children,
+    afterLearningPath,
+}: AcademyLayoutProps) {
+    const pathname = usePathname();
+    const pathType: AcademyPathType = config.pathType;
+    
+    // Use pathname to force complete re-render when route changes
+    const componentKey = `${pathType}-${pathname}`;
+
     return (
         <>
             <HeroBackground />
-            <main className="container relative">
-                <AcademyHero
-                    title={config.heroTitle}
-                    accent={config.heroAccent}
-                    description={config.heroDescription}
-                />
-
+            <main className="relative pt-8 w-full">
                 <div className="pb-32 sm:pb-36">
                     <div className="mx-auto max-w-7xl px-6 lg:px-8">
-                        {/* Custom content before learning path */}
                         {children}
 
-                        {/* Learning Tree Section */}
-                        <AcademyLearningPath
-                            defaultPathType={config.pathType}
-                        />
+                        <AcademyLearningPath key={componentKey} pathType={pathType} />
 
-                        {/* Custom content after learning path */}
                         {afterLearningPath}
-
-                        {/* Blog Section - only if enabled */}
-                        {config.showBlogs && blogs.length > 0 && (
-                            <AcademyBlogSection blogs={blogs} />
-                        )}
                     </div>
                 </div>
             </main>
-
-            {/* Bubble Navigation */}
             <AcademyBubbleNav />
         </>
     );

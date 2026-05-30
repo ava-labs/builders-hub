@@ -3,7 +3,7 @@ title: On Production Infra
 description: Learn how to deploy an Avalanche L1 on production infrastructure.
 ---
 
-After architecting your Avalanche L1 environment on the [local machine](/docs/tooling/create-deploy-avalanche-l1s/deploy-locally), proving the design and testing it out on [the Fuji Testnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet), eventually you will need to deploy your Avalanche L1 to production environment.
+After architecting your Avalanche L1 environment on the [local machine](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally), proving the design and testing it out on [the Fuji Testnet](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet), eventually you will need to deploy your Avalanche L1 to production environment.
 
 Running an Avalanche L1 in production is much more involved than local and Testnet deploys, as your Avalanche L1 will have to take care of real world usage, maintaining uptime, upgrades and all of that in a potentially adversarial environment. The purpose of this document is to point out a set of general considerations and propose potential solutions to them.
 
@@ -40,15 +40,15 @@ You can run a node on a physical computer that you own and run, or on a cloud in
 
 If you plan on running nodes on your own hardware, make sure they satisfy the minimum HW specification as outlined earlier. Pay close attention to proper networking setup, making sure the p2p port (9651) is accessible and public IP properly configured on the node. Make sure the node is connected to the network physically (not over Wi-Fi), and that the router is powerful enough to handle a couple of thousands of persistent TCP connections and that network bandwidth can accommodate at least 5Mbps of steady upstream and downstream network traffic.
 
-When installing the AvalancheGo node on the machines, unless you have a dedicated DevOps staff that will take care of node setup and configuration, we recommend using the [installer script](/docs/nodes/using-install-script/installing-avalanche-go) to set up the nodes. It will abstract most of the setup process for you, set up the node as a system service and will enable easy node upgrades.
+When installing the AvalancheGo node on the machines, unless you have a dedicated DevOps staff that will take care of node setup and configuration, we recommend using the [installer script](/docs/nodes/run-a-node/using-install-script/installing-avalanche-go) to set up the nodes. It will abstract most of the setup process for you, set up the node as a system service and will enable easy node upgrades.
 
 #### Cloud Providers[​](#cloud-providers "Direct link to heading")
 
 There are a number of different cloud providers. We have documents that show how to set up a node on the most popular ones:
 
-- [Amazon Web Services](/docs/nodes/on-third-party-services/amazon-web-services)
-- [Azure](/docs/nodes/on-third-party-services/microsoft-azure)
-- [Google Cloud Platform](/docs/nodes/on-third-party-services/google-cloud)
+- [Amazon Web Services](/docs/nodes/run-a-node/on-third-party-services/amazon-web-services)
+- [Azure](/docs/nodes/run-a-node/on-third-party-services/microsoft-azure)
+- [Google Cloud Platform](/docs/nodes/run-a-node/on-third-party-services/google-cloud)
 
 There is a whole range of other cloud providers that may offer lower prices or better deals for your particular needs, so it makes sense to shop around.
 
@@ -70,7 +70,7 @@ Once you set up the server and install AvalancheGo on them, nodes will need to b
 
 #### State Sync[​](#state-sync "Direct link to heading")
 
-If the nodes you will be running as validators don't need to have the full transaction history, then you can use [state sync](/docs/nodes/chain-configs/c-chain#state-sync-enabled). With this flag enabled, instead of replaying the whole history to get to the current state, nodes simply download only the current state from other network peers, shortening the bootstrap process from multiple days to a couple of hours. If the nodes will be used for Avalanche L1 validation exclusively, you can use the state sync without any issues. Currently, state sync is only available for the C-Chain, but since the bulk of the transactions on the platform happen there it still has a significant impact on the speed of bootstrapping.
+If the nodes you will be running as validators don't need to have the full transaction history, then you can use [state sync](/docs/nodes/chain-configs/primary-network/c-chain#state-sync-enabled). With this flag enabled, instead of replaying the whole history to get to the current state, nodes simply download only the current state from other network peers, shortening the bootstrap process from multiple days to a couple of hours. If the nodes will be used for Avalanche L1 validation exclusively, you can use the state sync without any issues. Currently, state sync is only available for the C-Chain, but since the bulk of the transactions on the platform happen there it still has a significant impact on the speed of bootstrapping.
 
 #### Database Copy[​](#database-copy "Direct link to heading")
 
@@ -83,7 +83,7 @@ Avalanche L1 Deploy[​](#avalanche-l1-deploy "Direct link to heading")
 
 Once you have the nodes set up you are ready to deploy the actual Avalanche L1. Right now, the recommended tool to do that is [Avalanche-CLI](https://github.com/ava-labs/avalanche-cli).
 
-Instructions for deployment by Avalanche-CLI can be found [here](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet).
+Instructions for deployment by Avalanche-CLI can be found [here](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-mainnet).
 
 ### Ledger Hardware Wallet[​](#ledger-hw-wallet "Direct link to heading")
 
@@ -95,7 +95,7 @@ General instruction on how to use a Ledger device with Avalanche can be found [h
 
 The structure that defines the most important parameters in an Avalanche L1 is found in the genesis file, which is a `json` formatted, human-readable file. Describing the contents and the options available in the genesis file is beyond the scope of this document, and if you're ready to deploy your Avalanche L1 to production you probably have it mapped out already.
 
-If you want to review, we have a description of the genesis file in our document on [customizing EVM Avalanche L1s](/docs/avalanche-l1s/upgrade/customize-avalanche-l1).
+If you want to review, we have a description of the genesis file in our document on [customizing EVM Avalanche L1s](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1).
 
 Validator Configuration[​](#validator-configuration "Direct link to heading")
 -----------------------------------------------------------------------------
@@ -123,7 +123,7 @@ An example of a node config syncing two Avalanche L1s:
 }
 ```
 
-But that is not all. Besides tracking the SubnetID, the node also needs to have the plugin that contains the VM instance the blockchain in the Avalanche L1 will run. You should have already been through that on Testnet and Fuji, but for a refresher, you can refer to [this tutorial](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet).
+But that is not all. Besides tracking the SubnetID, the node also needs to have the plugin that contains the VM instance the blockchain in the Avalanche L1 will run. You should have already been through that on Testnet and Fuji, but for a refresher, you can refer to [this tutorial](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet).
 
 So, name the VM plugin binary as the `VMID` of the Avalanche L1 chain and place it in the `plugins` directory where the node binary is (for installer-script created nodes that would be `~/avalanche-node/plugins/`).
 
@@ -147,7 +147,7 @@ That means the node has successfully bootstrapped the Avalanche L1 and is now in
 
 ### Monitoring[​](#monitoring "Direct link to heading")
 
-If you want to inspect the process of Avalanche L1 syncing, you can use the RPC call to check for the [blockchain status](/docs/api-reference/p-chain/api#platformgetblockchainstatus).
+If you want to inspect the process of Avalanche L1 syncing, you can use the RPC call to check for the [blockchain status](/docs/rpcs/p-chain#platformgetblockchainstatus).
 
 For a more in-depth look into Avalanche L1 operation, check out the blockchain log. By default, the log can be found in `~/.avalanchego/logs/ChainID.log` where you replace the `ChainID` with the actual ID of the blockchain in your Avalanche L1.
 

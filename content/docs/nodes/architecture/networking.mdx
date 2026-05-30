@@ -1,0 +1,481 @@
+---
+title: Networking Layer
+description: Understanding AvalancheGo's P2P networking, peer management, and message protocols.
+---
+
+AvalancheGo uses a custom peer-to-peer (P2P) networking layer designed for high-throughput consensus messaging. This page covers the network architecture, peer management, and message protocols.
+
+## Network Overview
+
+<Mermaid chart={`
+graph TB
+    subgraph AvalancheGo_Node["AvalancheGo Node"]
+        NM[Network Manager]
+        PM[Peer Manager]
+        Router[Message Router]
+
+        subgraph Connections["Connections"]
+            P1[Peer 1]
+            P2[Peer 2]
+            P3[Peer N]
+        end
+    end
+
+    subgraph Chains["Chains"]
+        PC[P-Chain Handler]
+        CC[C-Chain Handler]
+        XC[X-Chain Handler]
+    end
+
+    P1 & P2 & P3 <--> PM
+    PM <--> NM
+    NM <--> Router
+    Router --> PC & CC & XC
+`} />
+
+## Network Interface
+
+The core network interface ([`network/network.go`](https://github.com/ava-labs/avalanchego/blob/master/network/network.go)) handles all P2P operations:
+
+```go title="network/network.go"
+type Network interface {
+    // Message sending (from consensus)
+    sender.ExternalSender
+
+    // Health monitoring
+    health.Checker
+
+    // Peer management
+    peer.Network
+
+    // Lifecycle
+    StartClose()
+    Dispatch() error
+
+    // Manual peer tracking
+    ManuallyTrack(nodeID ids.NodeID, ip netip.AddrPort)
+
+    // Peer information
+    PeerInfo(nodeIDs []ids.NodeID) []peer.Info
+
+    // Uptime tracking
+    NodeUptime() (UptimeResult, error)
+}
+```
+
+## Peer Discovery
+
+AvalancheGo discovers peers through multiple mechanisms:
+
+### Bootstrap Nodes
+
+Initial connections to known bootstrap nodes are configured per-network (sampled from genesis) and can be overridden with `--bootstrap-ips`/`--bootstrap-ids`. See `config/config.go:getBootstrapConfig`.
+
+### Peer Exchange
+
+Nodes share known peers with each other:
+
+<Mermaid chart={`
+sequenceDiagram
+    participant A as Node A
+    participant B as Node B
+    participant C as Node C
+
+    A->>B: Connect
+    A->>B: PeerList request
+    B-->>A: Node C, Node D, ...
+    A->>C: Connect discovered
+`} />
+
+### IP Tracking
+
+The network maintains IP information for reconnection:
+
+```go title="network/ip_tracker.go"
+type ipTracker struct {
+    // Known peer IPs
+    mostRecentTrackedIPs map[ids.NodeID]*ips.ClaimedIPPort
+
+    // Bloom filter for efficient gossip
+    bloom *bloom.ReadFilter
+}
+```
+
+## Connection Lifecycle
+
+### Establishing Connections
+
+<Mermaid chart={`
+sequenceDiagram
+    participant A as Node A
+    participant B as Node B
+
+    A->>B: TCP Connect
+    A->>B: Mutual TLS with staking cert
+    A->>B: Handshake (network ID, POP, subnets)
+    B-->>A: Handshake + PeerList
+    A-->>B: PeerList (optional pull)
+    Note over A,B: Connection Established
+`} />
+
+### TLS Authentication
+
+All connections use mutual TLS with staking certificates:
+
+```go
+// Each node has a staking keypair
+type Node struct {
+    StakingTLSSigner crypto.Signer
+    StakingTLSCert   *staking.Certificate
+    ID               ids.NodeID  // Derived from certificate
+}
+```
+
+**Node ID Derivation:**
+```go
+// NodeID is derived from the staking certificate
+nodeID := ids.NodeIDFromCert(stakingCert)
+```
+
+### Peer States
+
+<Mermaid chart={`
+stateDiagram-v2
+    [*] --> Connecting: Dial
+    Connecting --> Upgrading: TCP Connected
+    Upgrading --> Handshaking: TLS Complete
+    Handshaking --> Connected: Handshake + PeerList
+    Connected --> Disconnected: Error or Timeout
+    Disconnected --> Connecting: Reconnect
+    Disconnected --> [*]: Manual Remove
+`} />
+
+## Message Protocol
+
+### Message Types
+
+Messages are defined using Protocol Buffers ([`proto/p2p/p2p.proto`](https://github.com/ava-labs/avalanchego/blob/master/proto/p2p/p2p.proto)):
+
+```protobuf title="proto/p2p/p2p.proto"
+message Message {
+  reserved 1;
+  oneof message {
+    // Optional compression for supported message types
+    bytes compressed_zstd = 2;
+
+    // Handshake & peering
+    Ping ping = 11;
+    Pong pong = 12;
+    Handshake handshake = 13;
+    GetPeerList get_peer_list = 35;
+    PeerList peer_list = 14;
+
+    // State sync
+    GetStateSummaryFrontier get_state_summary_frontier = 15;
+    StateSummaryFrontier state_summary_frontier = 16;
+    GetAcceptedStateSummary get_accepted_state_summary = 17;
+    AcceptedStateSummary accepted_state_summary = 18;
+
+    // Bootstrapping
+    GetAcceptedFrontier get_accepted_frontier = 19;
+    AcceptedFrontier accepted_frontier = 20;
+    GetAccepted get_accepted = 21;
+    Accepted accepted = 22;
+    GetAncestors get_ancestors = 23;
+    Ancestors ancestors = 24;
+
+    // Consensus
+    Get get = 25;
+    Put put = 26;
+    PushQuery push_query = 27;
+    PullQuery pull_query = 28;
+    Chits chits = 29;
+
+    // Application-level
+    AppRequest app_request = 30;
+    AppResponse app_response = 31;
+    AppGossip app_gossip = 32;
+    AppError app_error = 34;
+
+    // Streaming
+    Simplex simplex = 36;
+  }
+}
+```
+
+### Consensus Messages
+
+| Message | Purpose |
+|---------|---------|
+| `PushQuery` | Send block and request vote |
+| `PullQuery` | Request vote without sending block |
+| `Chits` | Vote response with preferences |
+| `Get` | Request a specific block |
+| `Put` | Send a requested block |
+| `GetAcceptedFrontier` / `AcceptedFrontier` | Bootstrap frontier exchange |
+| `GetAccepted` / `Accepted` | Request/return accepted containers for heights |
+| `GetAncestors` / `Ancestors` | Fetch a container and its ancestors |
+| `GetStateSummaryFrontier` / `StateSummaryFrontier` | State sync frontier |
+| `GetAcceptedStateSummary` / `AcceptedStateSummary` | State summaries at heights |
+
+### Application Messages
+
+VMs send custom messages through the `common.AppSender` provided at initialization:
+
+```go
+type AppSender interface {
+    SendAppRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID],
+        requestID uint32, appRequestBytes []byte) error
+    SendAppResponse(ctx context.Context, nodeID ids.NodeID,
+        requestID uint32, appResponseBytes []byte) error
+    SendAppError(ctx context.Context, nodeID ids.NodeID,
+        requestID uint32, errorCode int32, errorMessage string) error
+    SendAppGossip(ctx context.Context, config common.SendConfig,
+        appGossipBytes []byte) error
+}
+```
+
+Inbound app traffic is delivered to the VM's `AppRequest`/`AppResponse`/`AppGossip` handlers via `common.AppHandler`.
+
+## Message Routing
+
+The router ([`snow/networking/router`](https://github.com/ava-labs/avalanchego/tree/master/snow/networking/router)) directs messages to appropriate handlers:
+
+```go title="snow/networking/router/router.go"
+type Router interface {
+    // Route messages to chains
+    HandleInbound(ctx context.Context, msg message.InboundMessage)
+
+    // Register chain handlers
+    AddChain(ctx context.Context, chain handler.Handler) error
+
+    // Health checking
+    health.Checker
+}
+```
+
+### Chain Message Handler
+
+```go title="snow/networking/handler/handler.go"
+type Handler interface {
+    // Consensus messages
+    HandleMsg(ctx context.Context, msg Message) error
+
+    // Lifecycle
+    Start(ctx context.Context, recoverPanic bool)
+    Stop(ctx context.Context)
+}
+```
+
+## Throttling & Rate Limiting
+
+### Inbound Throttling
+
+Protects nodes from message floods ([`network/throttling`](https://github.com/ava-labs/avalanchego/tree/master/network/throttling)):
+
+```go title="network/throttling/inbound_msg_throttler.go"
+type InboundMsgThrottler interface {
+    // Check if message should be allowed
+    Acquire(msg message.InboundMessage, nodeID ids.NodeID) ReleaseFunc
+
+    // Release acquired resources
+    ReleaseFunc func()
+}
+```
+
+**Throttling Dimensions:**
+- **Bandwidth**: Bytes per second per peer
+- **Message count**: Messages per second
+- **CPU time**: Processing time limits
+
+### Outbound Throttling
+
+Prevents overwhelming peers:
+
+```go title="network/throttling/outbound_msg_throttler.go"
+type OutboundMsgThrottler interface {
+    // Acquire permission to send
+    Acquire(msg message.OutboundMessage, nodeID ids.NodeID) ReleaseFunc
+}
+```
+
+### Connection Throttling
+
+Limits connection attempts:
+
+```go
+type InboundConnUpgradeThrottler interface {
+    // Check if connection upgrade should proceed
+    ShouldUpgrade(ip netip.AddrPort) bool
+}
+```
+
+## Peer Scoring
+
+Nodes track peer behavior for connection prioritization:
+
+```go
+type PeerInfo struct {
+    IP             netip.AddrPort
+    PublicIP       netip.AddrPort
+    ID             ids.NodeID
+    Version        string
+    LastSent       time.Time
+    LastReceived   time.Time
+    ObservedUptime uint32
+    TrackedSubnets []ids.ID
+}
+```
+
+### Benchlisting
+
+Misbehaving peers are temporarily blacklisted ([`snow/networking/benchlist`](https://github.com/ava-labs/avalanchego/tree/master/snow/networking/benchlist)):
+
+```go title="snow/networking/benchlist/benchlist.go"
+type Benchlist interface {
+    // Add peer to benchlist
+    RegisterFailure(validatorID ids.NodeID)
+
+    // Check if peer is benched
+    IsBenched(validatorID ids.NodeID) bool
+}
+```
+
+**Benchlist Triggers:**
+- Repeated query timeouts
+- Invalid message responses
+- Resource exhaustion
+
+## Health Monitoring
+
+Network health is exposed via the health API:
+
+```go
+type UptimeResult struct {
+    // Percent of stake that sees us as meeting uptime requirement
+    RewardingStakePercentage float64
+
+    // Weighted average of observed uptimes
+    WeightedAveragePercentage float64
+}
+```
+
+### Health Metrics
+
+```go
+const (
+    ConnectedPeersKey          = "connectedPeers"
+    TimeSinceLastMsgReceivedKey = "timeSinceLastMsgReceived"
+    TimeSinceLastMsgSentKey     = "timeSinceLastMsgSent"
+    SendFailRateKey            = "sendFailRate"
+)
+```
+
+**Example Health Response:**
+```json
+{
+  "healthy": true,
+  "checks": {
+    "network": {
+      "message": {
+        "connectedPeers": 45,
+        "timeSinceLastMsgReceived": "1.2s",
+        "timeSinceLastMsgSent": "0.8s",
+        "sendFailRate": 0.001
+      }
+    }
+  }
+}
+```
+
+## Network Configuration
+
+Key configuration options:
+
+```go title="config/config.go"
+type NetworkConfig struct {
+    // Connection limits
+    MaxInboundConnections  int
+    MaxOutboundConnections int
+
+    // Timeouts
+    PingFrequency  time.Duration
+    PongTimeout    time.Duration
+    ReadHandshake  time.Duration
+
+    // Throttling
+    InboundThrottlerAtLargeAllocSize  uint64
+    InboundThrottlerVdrAllocSize      uint64
+    OutboundThrottlerAtLargeAllocSize uint64
+
+    // Peer management
+    PeerListGossipFrequency time.Duration
+    PeerListPullGossipFreq  time.Duration
+}
+```
+
+### Command Line Flags
+
+```bash
+# Connection settings
+--network-max-reconnect-delay=1m
+--network-initial-reconnect-delay=1s
+--network-peer-list-gossip-frequency=1m
+
+# Throttling
+--network-inbound-throttler-at-large-alloc-size=6291456
+--network-outbound-throttler-at-large-alloc-size=6291456
+```
+
+## Subnet Networking
+
+Validators can participate in multiple subnets:
+
+```go
+type SubnetTracker interface {
+    // Track additional subnet
+    TrackedSubnets() set.Set[ids.ID]
+}
+```
+
+**Subnet-Specific Peers:**
+- Handshake carries tracked subnet IDs (and `all_subnets` flag)
+- Nodes connect preferentially to same-subnet validators
+- Gossip is scoped to relevant subnets
+- Cross-subnet communication uses explicit routing
+
+## Debugging Network Issues
+
+### Common Issues
+
+| Symptom | Possible Cause | Solution |
+|---------|---------------|----------|
+| No peers | Firewall blocking 9651 | Open port 9651 |
+| High latency | Geographic distance | Add regional bootstrappers |
+| Disconnections | Rate limiting | Increase throttle limits |
+| Benchmark failures | Peer misbehavior | Check peer logs |
+
+### Useful Endpoints
+
+```bash
+# Get connected peers
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"info.peers"
+}' -H 'content-type:application/json;' localhost:9650/ext/info
+
+# Get network health
+curl localhost:9650/ext/health
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="Run a Node" href="/docs/nodes/run-a-node">
+    Set up and configure your own AvalancheGo node
+  </Card>
+  <Card title="Node Configuration" href="/docs/nodes/configure/configs-flags">
+    Full reference for network configuration options
+  </Card>
+</Cards>

@@ -7,8 +7,15 @@ export class BlobService {
   constructor() {
     this.token = process.env.BLOB_READ_WRITE_TOKEN || "";
     if (!this.token) {
+      console.warn("[BlobService] BLOB_READ_WRITE_TOKEN is not set — blob operations will fail at runtime");
+    }
+  }
+
+  private ensureToken(): string {
+    if (!this.token) {
       throw new Error("BLOB_READ_WRITE_TOKEN is not defined in environment variables");
     }
+    return this.token;
   }
 
 
@@ -17,7 +24,7 @@ export class BlobService {
       const fileId = customId || `${Date.now()}-${file.name}`;
       const blob = await put(fileId, file, {
         access: "public",
-        token: this.token,
+        token: this.ensureToken(),
       });
       return {
         id: fileId,
@@ -53,7 +60,7 @@ export class BlobService {
     try {
       const { blobs } = await list({
         prefix,
-        token: this.token,
+        token: this.ensureToken(),
       });
       return blobs;
     } catch (error) {

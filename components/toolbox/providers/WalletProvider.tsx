@@ -2,16 +2,17 @@
 
 import React from 'react';
 import { AddChainModal } from './modals/AddChainModal';
-import { WalletBootstrap } from '../components/console-header/wallet-bootstrap';
+import { SwitchNetworkModal } from './modals/SwitchNetworkModal';
+import { WalletSync } from '../components/console-header/WalletSync';
+import { Web3Provider } from './Web3Provider';
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-    return (
-        <>
-            {children}
-            {/* Wallet initialization and event handling */}
-            <WalletBootstrap />
-            {/* Wallet-related modals */}
-            <AddChainModal />
-        </>
-    );
+  return (
+    <Web3Provider>
+      {children}
+      <WalletSync />
+      <AddChainModal />
+      <SwitchNetworkModal />
+    </Web3Provider>
+  );
 }

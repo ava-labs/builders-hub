@@ -1,0 +1,605 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@/lib/zodResolver";
+import { z } from "zod";
+import { useSession } from "next-auth/react";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  LINKEDIN_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+  X_ACCOUNT_PATTERN,
+} from "@/lib/profile/socialAccountValidation";
+
+export const profileSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  username: z.string().optional(),
+  bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
+  email: z.email("Invalid email").optional(),
+  image: z.string().optional(),
+  country: z.string().optional(),
+  is_student: z.boolean().optional().default(false),
+  is_founder: z.boolean().optional().default(false),
+  is_employee: z.boolean().optional().default(false),
+  is_developer: z.boolean().optional().default(false),
+  is_enthusiast: z.boolean().optional().default(false),
+  founder_company_name: z.string().optional(),
+  employee_company_name: z.string().optional(),
+  employee_role: z.string().optional(),
+  student_institution: z.string().optional(),
+  company_name: z.string().optional(),
+  role: z.string().optional(),
+  github_account: z
+    .union([z.string().regex(GITHUB_ACCOUNT_PATTERN, "Enter a valid GitHub username or github.com URL"), z.literal("")])
+    .optional()
+    .default(""),
+  x_account: z
+    .union([z.string().regex(X_ACCOUNT_PATTERN, "Enter a URL like https://x.com/yourhandle"), z.literal("")])
+    .optional()
+    .default(""),
+  linkedin_account: z
+    .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, "Enter a LinkedIn URL like https://www.linkedin.com/in/username"), z.literal("")])
+    .optional()
+    .default(""),
+  wallet: z.array(z.string()).optional().default([]),
+  additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
+  skills: z.array(z.string()).default([]),
+  notifications: z.boolean().default(false),
+  profile_privacy: z.string().default("public"),
+  telegram_account: z
+    .union([z.string().regex(TELEGRAM_ACCOUNT_PATTERN, "Enter a valid Telegram username (5-32 chars, starts with a letter)"), z.literal("")])
+    .optional()
+    .default(""),
+});
+
+export type ProfileFormValues = z.infer<typeof profileSchema>;
+
+export function useProfileForm() {
+  const { data: session } = useSession();
+  const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const formData = useRef(new FormData());
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialLoadRef = useRef(true);
+  const lastSavedDataRef = useRef<string>("");
+  const [githubConnected, setGithubConnected] = useState(false);
+
+  // Initialize form with react-hook-form and Zod
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    mode: "onChange",
+    defaultValues: {
+      name: "",
+      username: "",
+      bio: "",
+      email: session?.user?.email || "",
+      image: "",
+      country: "",
+      is_student: false,
+      is_founder: false,
+      is_employee: false,
+      is_developer: false,
+      is_enthusiast: false,
+      founder_company_name: "",
+      employee_company_name: "",
+      employee_role: "",
+      student_institution: "",
+      company_name: "",
+      role: "",
+      github_account: "",
+      x_account: "",
+      linkedin_account: "",
+      wallet: [],
+      additional_social_accounts: [],
+      skills: [],
+      notifications: false,
+      profile_privacy: "public",
+      telegram_account: "",
+    },
+  });
+
+  const { watch, setValue, formState } = form;
+  const watchedValues = watch();
+
+  const loadProfile = useCallback(async () => {
+    if (!session?.user?.id) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/profile/extended/${session.user.id}`);
+
+      if (response.ok) {
+        const profile = await response.json();
+
+        let basicProfileData = null;
+        if (typeof window !== "undefined") {
+          const savedBasicProfile = localStorage.getItem('basicProfileData');
+          if (savedBasicProfile) {
+            try {
+              basicProfileData = JSON.parse(savedBasicProfile);
+              localStorage.removeItem('basicProfileData');
+            } catch (e) {
+              console.error('Error parsing basic profile data:', e);
+            }
+          }
+        }
+
+        const formValues = {
+          name: basicProfileData?.name || profile.name || "",
+          username: profile.username || "",
+          bio: profile.bio || "",
+          email: profile.email || session.user.email || "",
+          notification_email: profile.notification_email || "",
+          image: profile.image || "",
+          country: basicProfileData?.country || profile.country || "",
+          is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
+          is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
+          is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
+          is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
+          is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
+          founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
+          employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
+          employee_role: basicProfileData?.employee_role || profile.user_type?.employee_role || "",
+          student_institution: basicProfileData?.student_institution || profile.user_type?.student_institution || "",
+          company_name: profile.user_type?.company_name || "",
+          role: profile.user_type?.role || "",
+          github_account: profile.github_account || "",
+          x_account: profile.x_account || "",
+          linkedin_account: profile.linkedin_account || "",
+          wallet: Array.isArray(profile.wallet) ? profile.wallet : (profile.wallet ? [profile.wallet] : []),
+          additional_social_accounts: profile.additional_social_accounts || [],
+          skills: profile.skills || [],
+          notifications: profile.notifications || false,
+          profile_privacy: profile.profile_privacy || "public",
+          telegram_account: profile.telegram_account || "",
+        };
+
+        setGithubConnected(Boolean(profile.githubConnected));
+        form.reset(formValues);
+        lastSavedDataRef.current = JSON.stringify(formValues);
+        setTimeout(() => { isInitialLoadRef.current = false; }, 500);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast({
+        title: "Error loading profile",
+        description: "Could not load your profile data. Please refresh the page.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => { isInitialLoadRef.current = false; }, 500);
+    }
+  }, [session?.user?.id, session?.user?.email, form, toast]);
+  
+  useEffect(() => {
+    const gh = searchParams.get('gh');
+    const x = searchParams.get('x');
+    if (!gh && !x) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('gh');
+    params.delete('x');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, []);
+
+  // Load profile data on component mount
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  // Update email when session is available
+  useEffect(() => {
+    if (session?.user?.email && !isLoading) {
+      form.setValue("email", session.user.email);
+    }
+  }, [session?.user?.email, form, isLoading]);
+
+  // Handle file selection for avatar
+  const handleFileSelect = (file: File) => {
+    // Save file in formData to upload later
+    formData.current.set("file", file);
+    
+    // Create temporary URL for preview
+    const imageUrl = URL.createObjectURL(file);
+    form.setValue("image", imageUrl, { shouldDirty: true });
+  };
+
+  // Auto-save function (silent, no toast notifications)
+  const autoSave = useCallback(async (data: ProfileFormValues, skipImageUpload = false) => {
+    if (!session?.user?.id || isInitialLoadRef.current) {
+      return;
+    }
+
+    // Serialize current data for comparison
+    const currentDataString = JSON.stringify(data);
+    
+    // Skip if data hasn't changed (compare serialized data)
+    if (currentDataString === lastSavedDataRef.current) {
+      return;
+    }
+
+    // Skip if form is not dirty (check after data comparison to avoid unnecessary checks)
+    if (!formState.isDirty) {
+      return;
+    }
+
+    setIsAutoSaving(true);
+
+    try {
+      // Only handle image upload if explicitly requested (for manual saves)
+      let imageUrl = data.image;
+
+      if (!skipImageUpload) {
+        const hasImageChanged = formData.current.has("file");
+        if (hasImageChanged) {
+          try {
+            const imageResponse = await fetch("/api/file", {
+              method: "POST",
+              body: formData.current,
+            });
+
+            if (imageResponse.ok) {
+              const imageData = await imageResponse.json();
+              imageUrl = imageData.url;
+              formData.current = new FormData();
+            }
+          } catch (imageError) {
+            console.error("Image upload error during auto-save:", imageError);
+            // Continue with existing image URL if upload fails
+          }
+        }
+      }
+
+      // Build user_type object to send as JSON
+      const {
+        is_student,
+        is_founder,
+        is_employee,
+        is_developer,
+        is_enthusiast,
+        founder_company_name,
+        employee_company_name,
+        employee_role,
+        student_institution,
+        company_name,
+        role,
+        wallet,
+        github_account: _githubAccount,
+        x_account: _xAccount,
+        ...restData
+      } = data;
+
+      // Clean wallet array: remove empty strings and duplicates
+      const cleanedWallets = Array.isArray(wallet)
+        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))]
+        : [];
+
+      const profileData = {
+        ...restData,
+        wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
+        image: imageUrl,
+        user_type: {
+          is_student,
+          is_founder,
+          is_employee,
+          is_developer,
+          is_enthusiast,
+          ...(founder_company_name && { founder_company_name }),
+          ...(employee_company_name && { employee_company_name }),
+          ...(employee_role && { employee_role }),
+          ...(student_institution && { student_institution }),
+          ...(company_name && { company_name }),
+          ...(role && { role }),
+        }
+      };
+
+      const response = await fetch(`/api/profile/extended/${session.user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to auto-save profile');
+      }
+      
+      const updatedProfile = await response.json();
+      
+      // Update last saved data reference with the data we just sent
+      // This ensures we track what was actually saved without resetting the form
+      lastSavedDataRef.current = currentDataString;
+      
+      // DO NOT reset the form during auto-save - this would cause the form to "reload"
+      // and lose the user's current edits (like checkboxes being unchecked)
+      // The form will remain "dirty" but that's okay - it will auto-save again if needed
+    } catch (error) {
+      console.error("Error auto-saving profile:", error);
+      // Silently fail - don't show toast for auto-save errors
+    } finally {
+      setIsAutoSaving(false);
+    }
+  }, [session?.user?.id, session?.user?.email, form, formState.isDirty]);
+
+  // Debounced auto-save effect - watches form values and triggers save after user stops editing
+  useEffect(() => {
+    // Skip auto-save during initial load
+    if (isInitialLoadRef.current || !formState.isDirty || isLoading || isAutoSaving) {
+      return;
+    }
+
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (1.5 seconds after user stops typing)
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      // Get current values at the time of save (not from watchedValues to avoid stale closures)
+      // This ensures we get the latest values without causing re-renders
+      const currentValues = form.getValues();
+      // Run auto-save asynchronously without blocking
+      autoSave(currentValues, true).catch((error) => {
+        // Silently handle errors - don't interrupt user
+        console.error("Auto-save error:", error);
+      });
+    }, 1500);
+
+    // Cleanup timeout on unmount or when values change again
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [watchedValues, formState.isDirty, isLoading, isAutoSaving, autoSave, form]);
+
+  // Handle form submission
+  const onSubmit = async (data: ProfileFormValues) => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to update your profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Only format validations - no required fields
+    let hasErrors = false;
+
+    // Validate wallet format if provided (validate each wallet in the array)
+    if (data.wallet && Array.isArray(data.wallet) && data.wallet.length > 0) {
+      const invalidWallets = data.wallet.filter(
+        (wallet) => wallet && wallet.trim() !== "" && !/^0x[a-fA-F0-9]{40}$/.test(wallet.trim())
+      );
+      
+      if (invalidWallets.length > 0) {
+        form.setError("wallet", {
+          type: "manual",
+          message: `Invalid Ethereum address format: ${invalidWallets.length} wallet(s) are invalid (must be 0x + 40 hex characters)`,
+        });
+        hasErrors = true;
+      }
+    }
+
+    if (hasErrors) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      // Check if there's a new image to upload
+      const hasImageChanged = formData.current.has("file");
+      let imageUrl = data.image;
+
+      // If there's a new image, upload it first
+      if (hasImageChanged) {
+        try {
+          const imageResponse = await fetch("/api/file", {
+            method: "POST",
+            body: formData.current,
+          });
+
+          if (!imageResponse.ok) {
+            throw new Error("Error uploading image");
+          }
+
+          const imageData = await imageResponse.json();
+          imageUrl = imageData.url;
+          
+          // Clear formData after upload
+          formData.current = new FormData();
+        } catch (imageError) {
+          console.error("Image upload error:", imageError);
+          toast({
+            title: "Warning",
+            description: "Profile updated but image upload failed. Please try uploading the image again.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      // Build user_type object to send as JSON
+      const {
+        is_student,
+        is_founder,
+        is_employee,
+        is_developer,
+        is_enthusiast,
+        founder_company_name,
+        employee_company_name,
+        employee_role,
+        student_institution,
+        company_name,
+        role,
+        wallet,
+        github_account: _githubAccount,
+        x_account: _xAccount,
+        ...restData
+      } = data;
+
+      // Clean wallet array: remove empty strings and duplicates
+      const cleanedWallets = Array.isArray(wallet)
+        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))]
+        : [];
+
+      const profileData = {
+        ...restData,
+        wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
+        image: imageUrl, // Use uploaded image or existing one
+        user_type: {
+          is_student,
+          is_founder,
+          is_employee,
+          is_developer,
+          is_enthusiast,
+          ...(founder_company_name && { founder_company_name }),
+          ...(employee_company_name && { employee_company_name }),
+          ...(employee_role && { employee_role }),
+          ...(student_institution && { student_institution }),
+          // Legacy fields for backward compatibility
+          ...(company_name && { company_name }),
+          ...(role && { role }),
+        }
+      };
+
+      console.log("Saving profile data:", profileData);
+      
+      const response = await fetch(`/api/profile/extended/${session.user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+      
+      const updatedProfile = await response.json();
+      console.log('Profile updated successfully:', updatedProfile);
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+      
+      // Rebuild form data from response
+      const newFormData = {
+        name: updatedProfile.name || "",
+        username: updatedProfile.username || "",
+        bio: updatedProfile.bio || "",
+        email: updatedProfile.email || session.user.email || "",
+        notification_email: updatedProfile.notification_email || "",
+        image: updatedProfile.image || "",
+        country: updatedProfile.country || "",
+        is_student: updatedProfile.user_type?.is_student || false,
+        is_founder: updatedProfile.user_type?.is_founder || false,
+        is_employee: updatedProfile.user_type?.is_employee || false,
+        is_developer: updatedProfile.user_type?.is_developer || false,
+        is_enthusiast: updatedProfile.user_type?.is_enthusiast || false,
+        founder_company_name: updatedProfile.user_type?.founder_company_name || "",
+        employee_company_name: updatedProfile.user_type?.employee_company_name || "",
+        employee_role: updatedProfile.user_type?.employee_role || "",
+        student_institution: updatedProfile.user_type?.student_institution || "",
+        company_name: updatedProfile.user_type?.company_name || "",
+        role: updatedProfile.user_type?.role || "",
+        github_account: updatedProfile.github_account || "",
+        x_account: updatedProfile.x_account || "",
+        linkedin_account: updatedProfile.linkedin_account || "",
+        wallet: Array.isArray(updatedProfile.wallet) ? updatedProfile.wallet : (updatedProfile.wallet ? [updatedProfile.wallet] : []),
+        additional_social_accounts: updatedProfile.additional_social_accounts || [],
+        skills: updatedProfile.skills || [],
+        notifications: updatedProfile.notifications || false,
+        profile_privacy: updatedProfile.profile_privacy || "public",
+        telegram_account: updatedProfile.telegram_account || "",
+      };
+
+      form.reset(newFormData);
+      
+      // Update last saved data reference
+      lastSavedDataRef.current = JSON.stringify(newFormData);
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error saving profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Skill handlers
+  const handleAddSkill = (newSkill: string, setNewSkill: (skill: string) => void) => {
+    const currentSkills = watchedValues.skills || [];
+    if (newSkill.trim() && !currentSkills.includes(newSkill.trim())) {
+      setValue("skills", [...currentSkills, newSkill.trim()], { shouldDirty: true });
+      setNewSkill("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    const currentSkills = watchedValues.skills || [];
+    setValue("skills", currentSkills.filter((skill) => skill !== skillToRemove), { shouldDirty: true });
+  };
+
+  // Social handlers
+  const handleAddSocial = () => {
+    const currentSocials = watchedValues.additional_social_accounts || [];
+    setValue("additional_social_accounts", [...currentSocials, ""], { shouldDirty: true });
+  };
+
+  const handleRemoveSocial = (index: number) => {
+    const currentSocials = watchedValues.additional_social_accounts || [];
+    setValue("additional_social_accounts", currentSocials.filter((_, i) => i !== index), { shouldDirty: true });
+  };
+
+  // Wallet handlers
+  const handleAddWallet = (address: string) => {
+    const currentWallets = watchedValues.wallet || [];
+    const trimmedAddress = address?.trim() ?? "";
+    if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
+    // Evitar duplicados (comparación case-insensitive: las direcciones Ethereum son la misma con distinta capitalización)
+    const isDuplicate = currentWallets.some(
+      (w) => w.toLowerCase() === trimmedAddress.toLowerCase()
+    );
+    if (!isDuplicate) {
+      setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
+    }
+  };
+
+  const handleRemoveWallet = (index: number) => {
+    const currentWallets = watchedValues.wallet || [];
+    setValue("wallet", currentWallets.filter((_, i) => i !== index), { shouldDirty: true });
+  };
+
+  return {
+    form,
+    watchedValues,
+    isLoading,
+    isSaving,
+    isAutoSaving,
+    githubConnected,
+    setGithubConnected,
+    handleFileSelect,
+    handleAddSkill,
+    handleRemoveSkill,
+    handleAddSocial,
+    handleRemoveSocial,
+    handleAddWallet,
+    handleRemoveWallet,
+    onSubmit: form.handleSubmit(onSubmit),
+  };
+}

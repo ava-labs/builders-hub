@@ -1,0 +1,8 @@
+{
+  "title": "Permissioned L1 Setup",
+  "icon": "Settings",
+  "pages": [
+    "01-create-l1-speedrun",
+    "02-permissioned-l1-speedrun"
+  ]
+}

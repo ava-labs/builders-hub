@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';   
 import { toast } from '@/hooks/use-toast';
-
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { useRouter } from 'next/navigation';
 interface UseCertificatesReturn {
   isGenerating: boolean;
   certificatePdfUrl: string | null;
@@ -9,10 +9,10 @@ interface UseCertificatesReturn {
 }
 
 export function useCertificates(): UseCertificatesReturn {
-  const router = useRouter();
+  const { openLoginModal } = useLoginModalTrigger();
   const [isGenerating, setIsGenerating] = useState(false);
   const [certificatePdfUrl, setCertificatePdfUrl] = useState<string | null>(null);
-
+const router = useRouter();
   const generateCertificate = async (courseId: string) => {
     setIsGenerating(true);
 
@@ -36,10 +36,10 @@ export function useCertificates(): UseCertificatesReturn {
             variant: "destructive",
           });
           setIsGenerating(false);
-          // Redirect to login after a short delay with callback URL
+          // Show login modal after a short delay with callback URL
           setTimeout(() => {
-            const currentPath = window.location.pathname;
-            router.push(`/login?callbackUrl=${encodeURIComponent(currentPath)}`);
+            const currentUrl = window.location.href;
+            openLoginModal(currentUrl);
           }, 2000);
           return;
         }
@@ -90,8 +90,12 @@ export function useCertificates(): UseCertificatesReturn {
       // Redirect after success
       setTimeout(() => {
         // Redirect to the appropriate academy page
-        if (courseId.startsWith('codebase-entrepreneur-')) {
-          router.push('/codebase-entrepreneur-academy');
+        if (
+          courseId.startsWith('codebase-entrepreneur-') ||
+          courseId.startsWith('avalanche-entrepreneur-') ||
+          courseId.startsWith('entrepreneur-')
+        ) {
+          router.push('/academy/entrepreneur');
         } else {
           router.push('/academy');
         }

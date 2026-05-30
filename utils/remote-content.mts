@@ -7,6 +7,8 @@ import { getPrimaryNetworkConfigs } from './remote-content/primary-network.mts';
 import { getAvalancheL1sConfigs } from './remote-content/avalanche-l1s.mts';
 import { getAcpsConfigs } from './remote-content/acps.mts';
 import { getToolingConfigs } from './remote-content/tooling.mts';
+import { getReleasesConfigs } from './remote-content/releases.mts';
+import { getIcmReleasesConfigs } from './remote-content/icm-releases.mts';
 // import { getSDKSConfigs } from './remote-content/sdks.mts';
 
 /**
@@ -33,6 +35,8 @@ async function main(): Promise<void> {
     { name: 'Avalanche L1s', configs: getAvalancheL1sConfigs() },
     { name: 'Tooling', configs: getToolingConfigs() },
     { name: 'ACPs', configs: await getAcpsConfigs() },
+    { name: 'Releases', configs: await getReleasesConfigs() },
+    { name: 'ICM Releases', configs: await getIcmReleasesConfigs() },
     // { name: 'SDKS', configs: getSDKSConfigs() },
   ];
 

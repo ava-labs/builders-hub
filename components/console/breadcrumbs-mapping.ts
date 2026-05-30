@@ -7,6 +7,7 @@ export const pathToBreadcrumb = {
   "/console/primary-network/faucet": ["Console", "Primary Network", "Testnet Faucet"],
   "/console/primary-network/c-p-bridge": ["Console", "Primary Network", "C/P-Chain Bridge"],
   "/console/primary-network/unit-converter": ["Console", "Primary Network", "AVAX Unit Converter"],
+  "/console/primary-network/validator-alerts": ["Console", "Primary Network", "Validator Alerts"],
 
   // Layer 1
   "/console/layer-1/create": ["Console", "Layer 1", "Create New L1"],
@@ -20,19 +21,23 @@ export const pathToBreadcrumb = {
 
   // Permissioned L1s
   "/console/l1-access-restrictions/deployer-allowlist": ["Console", "Permissioned L1s", "Deployer Allowlist"],
-  "/console/permissioned-l1s/add-validator": ["Console", "Permissioned L1s", "Add Validator"],
-  "/console/permissioned-l1s/remove-validator": ["Console", "Permissioned L1s", "Remove Validator"],
+  "/console/add-validator": ["Console", "Validators", "Add Validator"],
+  "/console/remove-validator": ["Console", "Validators", "Remove Validator"],
   "/console/permissioned-l1s/change-validator-weight": ["Console", "Permissioned L1s", "Change Validator Weight"],
   "/console/l1-access-restrictions/transactor-allowlist": ["Console", "Permissioned L1s", "Transactor Allowlist"],
   "/console/permissioned-l1s/validator-manager-setup": ["Console", "Permissioned L1s", "Validator Manager Setup"],
 
   // ICM (Interchain Messaging)
-  "/console/icm/setup": ["Console", "ICM", "Setup"],
-  "/console/icm/test-connection": ["Console", "ICM", "Test Connection"],
+  "/console/icm": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/messenger": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/registry": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/relayer": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/demo": ["Console", "Interchain Messaging", "ICM Setup"],
+  "/console/icm/live": ["Console", "Interchain Messaging", "ICM Setup"],
 
   // ICTT (Interchain Token Transfer)
-  "/console/ictt/setup": ["Console", "ICTT", "Setup"],
-  "/console/ictt/token-transfer": ["Console", "ICTT", "Token Transfer"],
+  "/console/ictt/setup": ["Console", "Interchain Messaging", "ICTT (Token Transfer) Setup"],
+  "/console/ictt/token-transfer": ["Console", "Interchain Messaging", "Token Transfer Test"],
 
   // Utilities
   "/console/utilities/format-converter": ["Console", "Utilities", "Format Converter"],

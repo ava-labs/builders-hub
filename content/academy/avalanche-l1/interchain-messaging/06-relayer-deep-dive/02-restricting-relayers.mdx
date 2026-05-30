@@ -1,0 +1,79 @@
+---
+title: Restricting Relayers
+description: Learn how to restrict which relayers can deliver your cross-chain messages.
+updated: 2025-05-13
+authors: [martineckardt, nicolasarnedo]
+icon: BookOpen
+---
+
+While the security in AWM and Interchain Messaging doesn't rely at all on the relayer, there might be reasons why you would want to restrict the delivery of a message to certain relayers.
+
+The most common reason is when you run your own relayer and don't want to incentivize others — you can ensure that only your relayer delivers your messages.
+
+## How Allowed Relayers Work
+
+Let's look at the `TeleporterMessageInput` structure used when calling `sendCrossChainMessage`:
+
+```solidity
+struct TeleporterMessageInput {
+    bytes32 destinationBlockchainID;
+    address destinationAddress;
+    TeleporterFeeInfo feeInfo;
+    uint256 requiredGasLimit;
+    address[] allowedRelayerAddresses;
+    bytes message;
+}
+
+interface ITeleporterMessenger {
+    function sendCrossChainMessage(TeleporterMessageInput calldata messageInput)
+        external
+        returns (bytes32);
+}
+```
+
+The `allowedRelayerAddresses` field lets you specify which relayers are permitted to deliver your message.
+
+## Open Delivery (Default)
+
+Setting `allowedRelayerAddresses` to an empty array means **any relayer** can pick up and deliver the message. This is the default and most common approach:
+
+```solidity
+messenger.sendCrossChainMessage(
+    TeleporterMessageInput({
+        destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
+        destinationAddress: destinationAddress,
+        feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
+        requiredGasLimit: 100000,
+        allowedRelayerAddresses: new address[](0), // [!code highlight]
+        message: abi.encode(message)
+    })
+);
+```
+
+## Restricted Delivery
+
+To restrict delivery to a specific relayer, add its reward address to the array. A relayer is identified by the reward address it associates when delivering messages:
+
+```solidity
+messenger.sendCrossChainMessage(
+    TeleporterMessageInput({
+        destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
+        destinationAddress: destinationAddress,
+        feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
+        requiredGasLimit: 100000,
+        allowedRelayerAddresses: [0x321f6B73b6dFdE5C73731C39Fd9C89c7788D5EBc], // [!code highlight]
+        message: abi.encode(message)
+    })
+);
+```
+
+## When to Restrict
+
+| Scenario | Approach |
+|----------|----------|
+| Testing / development | Open (empty array) — any relayer is fine |
+| Running your own relayer | Restrict to your relayer's address |
+| Privacy-sensitive messages | Restrict to trusted relayer(s) |
+| Production with fee incentives | Open — let the fee market decide |
+
+<Quiz quizId="4023"/>

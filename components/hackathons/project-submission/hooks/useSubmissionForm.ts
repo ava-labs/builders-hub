@@ -347,7 +347,7 @@ export const useSubmissionForm = (hackathonId: string) => {
           'Your project has been successfully saved. You will be redirected to the hackathon page.',
       });
       await new Promise((resolve) => setTimeout(resolve, 3000));
-      router.push(`/hackathons/${hackathonId}`);
+      router.push(`/events/${hackathonId}`);
     } catch (error) {
       console.error('Error in handleSave:', error);
       toast({

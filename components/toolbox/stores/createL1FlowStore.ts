@@ -1,0 +1,45 @@
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { localStorageComp, STORE_VERSION } from './utils';
+
+export type StartingPoint = 'new' | 'convert-existing';
+export type VMLocation = 'l1' | 'c-chain';
+export type ValidatorType = 'poa' | 'pos-native' | 'pos-erc20';
+export type HostingOption = 'managed' | 'docker';
+
+export interface QuestionnaireAnswers {
+  startingPoint: StartingPoint;
+  validatorType: ValidatorType;
+  vmLocation: VMLocation;
+  multisig: boolean;
+  hosting: HostingOption;
+  // Controls whether the new L1's genesis bakes in the Warp precompile
+  // and the Teleporter (ICM) messenger. Only meaningful for `startingPoint: 'new'`
+  // (convert-existing flows don't rewrite genesis). Defaults to true — most
+  // users want cross-chain messaging.
+  interoperability: boolean;
+}
+
+interface CreateL1FlowState {
+  answers: QuestionnaireAnswers | null;
+  currentStepIndex: number;
+  setAnswers: (answers: QuestionnaireAnswers) => void;
+  setCurrentStepIndex: (index: number) => void;
+  reset: () => void;
+}
+
+export const useCreateL1FlowStore = create<CreateL1FlowState>()(
+  persist(
+    (set) => ({
+      answers: null,
+      currentStepIndex: 0,
+      setAnswers: (answers: QuestionnaireAnswers) => set({ answers }),
+      setCurrentStepIndex: (index: number) => set({ currentStepIndex: index }),
+      reset: () => set({ answers: null, currentStepIndex: 0 }),
+    }),
+    {
+      name: `${STORE_VERSION}-create-l1-flow`,
+      storage: createJSONStorage(localStorageComp),
+    },
+  ),
+);

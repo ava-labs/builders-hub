@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Relayer, RelayerConfig } from "@/components/toolbox/console/testnet-infra/ManagedTestnetRelayers/types";
+import { Relayer, RelayerConfig } from "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/types";
 import posthog from 'posthog-js';
 
 export function useManagedTestnetRelayers() {

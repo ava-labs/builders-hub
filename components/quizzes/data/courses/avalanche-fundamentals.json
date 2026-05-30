@@ -1,0 +1,552 @@
+{
+  "title": "Avalanche Fundamentals",
+  "quizzes": {
+    "101": {
+      "question": "What is the underlying principle of the Avalanche Consensus family?",
+      "options": [
+        "Repeated Sub-Sampling",
+        "Centralized Election",
+        "Randomly choosing a Validator that decides on the next State",
+        "Proof of Work"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about how Avalanche Consensus achieves consensus.",
+      "explanation": "The underlying principle of the Avalanche Consensus family is Repeated Sub-Sampling. This means that validators repeatedly sample the network to reach consensus.",
+      "chapter": "Primer on Avalanche Consensus",
+      "alternates": [
+        {
+          "question": "What happens during a single round of querying in the Avalanche Consensus protocol?",
+          "options": [
+            "A validator broadcasts its preference to every other validator in the network",
+            "A validator waits for a block producer to propose the next state transition",
+            "A validator uses Repeated Sub-Sampling to poll the entire validator set simultaneously",
+            "A validator randomly selects a small subset of validators and asks for their current preference"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about how each validator gathers opinions in a single query round.",
+          "explanation": "In each round of Avalanche Consensus, a validator randomly selects a small subset (sample) of other validators and queries them for their current preference. This is more efficient than broadcasting to the entire network."
+        },
+        {
+          "question": "Which properties does Avalanche Consensus achieve for transaction finality? (Select all that apply)",
+          "options": [
+            "Probabilistic finality that strengthens with each consecutive round of agreement",
+            "Consensus through Repeated Sub-Sampling of the full validator set",
+            "Finality that depends on a single leader node confirming the transaction",
+            "Low latency finality typically achieved in under two seconds"
+          ],
+          "correctAnswers": [
+            0,
+            3
+          ],
+          "hint": "Consider both the nature of the finality guarantee and how quickly it is reached.",
+          "explanation": "Avalanche Consensus provides probabilistic finality that grows exponentially stronger with each consecutive round of agreement, and it achieves this with low latency, typically under two seconds. It does not rely on a single leader node."
+        }
+      ]
+    },
+    "102": {
+      "question": "What is the role of validators in the event of conflicting transactions?",
+      "options": [
+        "Validators choose the transaction that benefits them the most.",
+        "Validators automatically reject all conflicting transactions.",
+        "Validators collectively decide on which of the two conflicting transactions will be accepted by all validators and determine the next state.",
+        "Validators create a new transaction to resolve the conflict."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about how validators resolve conflicts in a blockchain network.",
+      "explanation": "In the event of conflicting transactions, validators have to collectively decide on which of the two conflicting transactions will be accepted by all validators and determine the next state. They do not act based on personal benefits, they don't reject all conflicting transactions, and they don't create new transactions to resolve conflicts.",
+      "chapter": "Primer on Avalanche Consensus",
+      "alternates": [
+        {
+          "question": "What is the initial step a validator takes when it first encounters a conflicting set of transactions in Avalanche Consensus?",
+          "options": [
+            "The validator collectively decides on the conflict resolution with all other validators immediately",
+            "The validator rejects both transactions and waits for a new proposal",
+            "The validator selects one of the conflicting transactions at random as its initial preference",
+            "The validator forwards the conflict to a designated leader validator for resolution"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about how a validator forms its very first opinion before any querying begins.",
+          "explanation": "When a validator first encounters conflicting transactions, it randomly selects one as its initial preference. It then begins the iterative querying process to converge on a network-wide decision through repeated sub-sampling."
+        },
+        {
+          "question": "Why is the ability to resolve conflicting transactions critical for blockchain consensus mechanisms?",
+          "options": [
+            "It prevents the network from halting when two valid but mutually exclusive transactions are submitted",
+            "It ensures validators collectively decide which conflicting transaction to accept network-wide",
+            "It allows the blockchain to process transactions faster by removing invalid entries",
+            "It enables validators to reverse finalized transactions when conflicts are detected later"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Consider what would happen to the network if conflicts could never be resolved.",
+          "explanation": "Resolving conflicting transactions is critical because without this ability, the network could halt or fork indefinitely when two valid but mutually exclusive transactions reference the same funds. Consensus mechanisms ensure the network continues to make progress."
+        }
+      ]
+    },
+    "103": {
+      "question": "What is a Double Spending Attack in the context of blockchain?",
+      "options": [
+        "It is when a user attempts to spend more cryptocurrency than they own by creating multiple transactions that reference the same funds.",
+        "It is when a user tries to double the amount of cryptocurrency they own through fraudulent transactions.",
+        "It is when a user performs two transactions at the exact same time to exploit the system.",
+        "It is when a validator duplicates transactions to increase their validation rewards."
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about how a user would attempt to spend more funds than they hold.",
+      "explanation": "A Double Spending Attack is when a user attempts to spend more cryptocurrency than they own by creating multiple transactions that reference the same funds. This kind of attack is a threat to the integrity of the blockchain system.",
+      "chapter": "Primer on Avalanche Consensus",
+      "alternates": [
+        {
+          "question": "How does Avalanche Consensus specifically defend against double spending attacks?",
+          "options": [
+            "By requiring a Proof of Work computation before each transaction is accepted",
+            "By having users spend multiple transactions referencing the same funds to trigger detection",
+            "By maintaining a mempool that automatically rejects all duplicate transaction inputs",
+            "By using repeated sub-sampling to quickly converge on accepting only one of the conflicting transactions"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the consensus mechanism Avalanche uses to resolve conflicts between competing transactions.",
+          "explanation": "Avalanche Consensus defends against double spending by using repeated sub-sampling to quickly identify and resolve conflicting transactions. Validators converge on accepting only one of the conflicting transactions, making it practically impossible for an attacker to get both transactions confirmed."
+        },
+        {
+          "question": "Which of the following are necessary conditions for a double spending attack to succeed on a blockchain? (Select all that apply)",
+          "options": [
+            "The attacker must create multiple transactions that reference the same funds before the first is finalized",
+            "The attacker must control a majority of the network's consensus power to override honest validators",
+            "The attacker must spend more cryptocurrency than they own by duplicating their wallet balance",
+            "The consensus mechanism must have a window of vulnerability where conflicting transactions can coexist"
+          ],
+          "correctAnswers": [
+            0,
+            3
+          ],
+          "hint": "Consider both what the attacker must do and what network conditions must exist.",
+          "explanation": "For a double spending attack to succeed, the attacker needs to create conflicting transactions referencing the same funds before the first is finalized, and the consensus mechanism must have a vulnerability window where these conflicting transactions can temporarily coexist. The attacker does not need to duplicate their balance — they attempt to spend the same balance twice."
+        }
+      ]
+    },
+    "104": {
+      "question": "In the Avalanche Consensus protocol, what determines whether a validator changes its preference?",
+      "options": [
+        "A simple majority of sampled validators",
+        "An α-majority of sampled validators",
+        "A unanimous decision from sampled validators",
+        "The validator's initial random choice"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about the concept of 'α-majority' mentioned in the chapter.",
+      "explanation": "Avalanche consensus dictates that a validator changes its preference if an α-majority of the sampled validators agrees on another option. The α-majority is a key concept in the protocol, allowing for flexible decision-making based on the sampled subset of validators.",
+      "chapter": "Primer on Avalanche Consensus",
+      "alternates": [
+        {
+          "question": "What is the purpose of the 'k' parameter in Avalanche Consensus?",
+          "options": [
+            "It defines the number of consecutive rounds needed to finalize a decision",
+            "It determines the total number of validators that can participate in the network",
+            "It sets the threshold for an alpha-majority of sampled validators",
+            "It specifies the size of the validator subset sampled in each query round"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about how many validators are queried in each round of the consensus process.",
+          "explanation": "The 'k' parameter in Avalanche Consensus defines the sample size — the number of validators randomly selected and queried in each round. This is distinct from the alpha threshold (which determines when a preference changes) and beta (which sets the decision threshold for consecutive rounds)."
+        },
+        {
+          "question": "What happens if a validator queries its sample and does NOT find an alpha-majority for any preference?",
+          "options": [
+            "The validator keeps its current preference and queries again in the next round",
+            "The validator switches to the opposite preference automatically",
+            "The validator is removed from the active validator set for that round",
+            "The validator changes its preference based on an alpha-majority of sampled validators"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Consider what a validator does when the query result is inconclusive.",
+          "explanation": "If a validator does not find an alpha-majority for any preference in a query round, it retains its current preference and proceeds to query again in the next round. The preference only changes when a clear alpha-majority is observed among the sampled validators."
+        }
+      ]
+    },
+    "105": {
+      "question": "When does a validator in Avalanche finalize its decision?",
+      "options": [
+        "After a set number of rounds of querying and getting majority consensus.",
+        "After the preference is confirmed by the α-majority for β (Decision Threshold) consecutive rounds.",
+        "As soon as a conflict between transactions arises.",
+        "When all validators in the system have replied with their preference."
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about the process of finalizing a decision in Avalanche Consensus.",
+      "explanation": "In Avalanche, a validator finalizes its decision after its preference is confirmed by the α-majority for β (Decision Threshold) consecutive rounds. It's not a single round process, it doesn't happen immediately when a conflict arises, and it doesn't require replies from all validators in the system.",
+      "chapter": "Primer on Avalanche Consensus",
+      "alternates": [
+        {
+          "question": "What is the role of the beta (Decision Threshold) parameter in Avalanche Consensus?",
+          "options": [
+            "It defines the number of validators that must be sampled in each round",
+            "It specifies how many consecutive rounds of alpha-majority agreement are required before a decision is finalized",
+            "It sets the minimum percentage of validators that must agree for an alpha-majority",
+            "It confirms the preference by the alpha-majority for beta consecutive rounds"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what triggers the transition from an ongoing preference to a finalized decision.",
+          "explanation": "The beta (Decision Threshold) parameter specifies the number of consecutive rounds in which a validator must observe alpha-majority agreement for the same preference before it finalizes that preference as its decision. This consecutive round requirement provides strong probabilistic guarantees of correctness."
+        },
+        {
+          "question": "How does increasing the beta (Decision Threshold) value affect Avalanche Consensus? (Select all that apply)",
+          "options": [
+            "It increases the number of consecutive rounds required before finalization, improving safety",
+            "It reduces the time to finality by requiring fewer confirmation rounds",
+            "It strengthens the probabilistic guarantee that the finalized decision is correct",
+            "It requires the preference to be confirmed by the alpha-majority for more consecutive rounds"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Consider the tradeoff between safety guarantees and time to finality.",
+          "explanation": "Increasing beta requires more consecutive rounds of alpha-majority agreement before finalization, which improves safety by providing a stronger probabilistic guarantee of correctness. However, this comes at the cost of potentially longer finalization times, not shorter ones."
+        }
+      ]
+    },
+    "106": {
+      "question": "What is the primary purpose of an L1 within the Avalanche network?",
+      "options": [
+        "Increasing token value",
+        "Mining cryptocurrency",
+        "Enabling specialized blockchain use cases"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about how L1s are designed to be customizable and optimized for specific use cases.",
+      "explanation": "The primary purpose of an L1 within the Avalanche network is to enable specialized blockchain use cases. Each L1 is designed to be optimized for specific use cases, thereby boosting the network's overall performance.",
+      "chapter": "Multi-Chain Architecture",
+      "alternates": [
+        {
+          "question": "What architectural advantage does Avalanche's multi-chain design provide over single-chain systems?",
+          "options": [
+            "It consolidates all transactions onto a single high-throughput chain for efficiency",
+            "It requires all L1s to share the same validator set for maximum security",
+            "It enables specialized blockchain use cases through independent L1 chains",
+            "Each L1 operates independently, so congestion or issues on one do not affect others"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what happens to other chains when one chain experiences heavy traffic.",
+          "explanation": "A key architectural advantage of Avalanche's multi-chain design is isolation: each L1 operates independently, meaning congestion, high gas fees, or issues on one chain do not impact the performance of other chains. This is unlike single-chain systems where all applications compete for the same resources."
+        },
+        {
+          "question": "Which of the following are true about Avalanche L1s? (Select all that apply)",
+          "options": [
+            "Each L1 can define its own virtual machine, consensus parameters, and fee structure",
+            "L1s are primarily designed for enabling specialized blockchain use cases",
+            "All L1s must use the Ethereum Virtual Machine (EVM) for smart contract execution",
+            "L1s can have their own independent validator sets with custom staking requirements"
+          ],
+          "correctAnswers": [
+            0,
+            3
+          ],
+          "hint": "Consider the customizability that L1s offer to blockchain developers.",
+          "explanation": "Avalanche L1s are highly customizable: each can define its own virtual machine, consensus parameters, fee structure, and have independent validator sets with custom staking requirements. They are not limited to the EVM — developers can choose from multiple VM options or build custom ones."
+        }
+      ]
+    },
+    "107": {
+      "question": "The addition of a new decentralized application (dApp) on a single-chain system causes more competition over the block space of that chain.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about how each new dApp vies for the same block space in a single-chain system.",
+      "explanation": "Each new dApp vies for the same block space in a single-chain system, leading to unnecessary overcrowding of the chain. Multi-chain systems alleviate this issue.",
+      "chapter": "Multi-Chain Architecture",
+      "alternates": [
+        {
+          "question": "Which of the following are problems that Avalanche's multi-chain architecture solves compared to single-chain systems? (Select all that apply)",
+          "options": [
+            "Block space competition where all dApps compete for the same limited transaction capacity",
+            "Performance isolation so that high activity in one application does not increase fees for others",
+            "The need for every dApp to share the same consensus parameters and virtual machine",
+            "New dApps competing for block space on the chain cause overcrowding for all users"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Think about the resource contention and configuration limitations of deploying everything on one chain.",
+          "explanation": "Avalanche's multi-chain architecture solves both block space competition (each app can have its own chain with dedicated capacity) and performance isolation (high activity on one chain does not affect gas fees or throughput on another). Each L1 can also customize its own parameters."
+        },
+        {
+          "question": "In a single-chain system, which of the following occur when a popular NFT mint causes a spike in network activity? (Select all that apply)",
+          "options": [
+            "Only the NFT transactions experience higher fees while other dApps are unaffected",
+            "All applications on the chain experience increased gas fees due to shared block space competition",
+            "Transaction processing slows for every application on the chain, not just the NFT mint",
+            "Each new dApp competing for block space on the chain increases overcrowding for all users"
+          ],
+          "correctAnswers": [
+            1,
+            2
+          ],
+          "hint": "Consider how shared block space affects all users of the chain, not just those involved in the spike.",
+          "explanation": "In a single-chain system, all dApps share the same block space. When one application causes a spike in activity, it increases gas fees AND slows processing for every application on the chain, not just the one causing the spike. This is a key motivation for multi-chain architectures like Avalanche."
+        }
+      ]
+    },
+    "108": {
+      "question": "In case of a security breach on the Ethereum mainnet, all Layer 2 solutions are potentially affected.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about how Layer 2 solutions delegate security to the Ethereum mainnet.",
+      "explanation": "Layer 2 solutions delegate security to the Ethereum mainnet. Hence, a security breach on the mainnet could potentially affect all Layer 2 solutions.",
+      "chapter": "Multi-Chain Architecture",
+      "alternates": [
+        {
+          "question": "Which of the following are true about Avalanche's L1 security model compared to Ethereum's Layer 2 approach? (Select all that apply)",
+          "options": [
+            "Each Avalanche L1 maintains its own security through its own validator set, independent of other L1s",
+            "A security breach on one Avalanche L1 does not affect other L1s due to their independent validator sets",
+            "Layer 2 solutions and Avalanche L1s both delegate security to their respective base layers",
+            "All Layer 2 solutions on Ethereum are potentially affected if the mainnet is compromised"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Think about the independence of each L1's security and what happens when one chain has issues.",
+          "explanation": "Avalanche L1s each maintain independent security through their own validator sets, so a breach on one L1 does not affect others. This contrasts with Ethereum's L2 model where Layer 2 solutions delegate security to the mainnet, but Avalanche L1s do NOT delegate security to a base layer in the same way."
+        },
+        {
+          "question": "What is a key risk of the Layer 2 security model where rollups and sidechains depend on the base layer?",
+          "options": [
+            "Layer 2 solutions become permanently unusable if the base layer experiences temporary downtime",
+            "The base layer cannot process Layer 2 transaction proofs during periods of high congestion",
+            "A fundamental security breach on the base layer could compromise all Layer 2 solutions built on top of it",
+            "Layer 2 solutions that delegate security to the mainnet are immune to base layer vulnerabilities"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Consider the cascading effect when the foundation of a security model is compromised.",
+          "explanation": "Since Layer 2 solutions delegate their security to the base layer (e.g., Ethereum mainnet), a fundamental security breach at the base layer level could potentially compromise all Layer 2 solutions built on top of it. This represents a single point of failure in the security model."
+        }
+      ]
+    },
+    "1201": {
+      "question": "Following the highway analogy, what would one want in a highway/blockchain?",
+      "options": [
+        "Many lanes, meaning multiple cars/transactions can go at the same time, meaning high throughput, and that the highway is the shortest possible, meaning cars/transactions reach faster to their destination, meaning least time to finality",
+        "Many lanes, meaning cars/transactions can go faster, meaning low throughput, and that the highway is the shortest possible, meaning cars/transactions go fast enough to their destination such that they don’t collide, meaning least time to finality.",
+        "Many lanes, meaning cars/transactions can go faster, meaning high throughput, and that the highway is the shortest possible, meaning cars/transactions go fast enough to their destination such that they don’t collide, meaning greatest time to finality",
+        "Few lanes, meaning there will be no bottlenecks between cars/transactions going to the same place, meaning high throughput, and the highway is the longest possible, meaning cars/transactions will have to pay more tolls, meaning more profit."
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "We want as many transactions in the least amount oftime possible.",
+      "explanation": "We build L1s (which function as different lanes) as a way to achieve high throughput, and we use a fast consensus protocol (a short route) to achieve low time to finality.",
+      "chapter": "Avalanche Fundamentals",
+      "alternates": [
+        {
+          "question": "According to the course comparison table, how do Avalanche's throughput and time to finality compare to Bitcoin and Ethereum?",
+          "options": [
+            "Avalanche achieves ~2500 TPS with ~0.8 second finality, compared to Bitcoin's 7 TPS / 60 min and Ethereum's 30 TPS / 6.4 min",
+            "Avalanche has many lanes meaning multiple transactions can go simultaneously for high throughput and the shortest route for fast finality",
+            "All three networks achieve similar throughput, but Avalanche has faster finality due to its consensus protocol",
+            "Avalanche has lower throughput but faster finality than Ethereum, making it optimized for small transaction volumes"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Recall the specific numbers from the comparison table showing TPS and finality times for the three networks.",
+          "explanation": "The course provides specific metrics: Avalanche achieves approximately 2500 TPS with ~0.8 second finality, compared to Bitcoin's 7 TPS with 60-minute finality and Ethereum's 30 TPS with 6.4-minute finality. The highway analogy option references the base question's correct answer about lanes and route length, which is the conceptual metaphor rather than the actual performance data."
+        },
+        {
+          "question": "In the highway analogy, what does the length of the highway represent in blockchain terms?",
+          "options": [
+            "The number of validators participating in the network",
+            "The time to finality -- a shorter highway means transactions reach their destination (become unchangeable) faster",
+            "The number of lanes available for simultaneous transactions, representing throughput",
+            "The total storage capacity of the blockchain network"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "In the analogy, the highway length determines how long it takes a car (transaction) to reach its destination (finality).",
+          "explanation": "In the highway analogy, the length of the highway represents time to finality. A shorter highway means transactions (cars) reach their destination (finality/becoming unchangeable) faster. The number of lanes, not the highway length, represents throughput (the base question focuses on both lanes and highway length together). Understanding these as separate metrics is key to evaluating blockchain performance."
+        }
+      ]
+    },
+    "1202": {
+      "question": "What were the main changes the Avalanche9000 upgrade brought? (Select all that apply)",
+      "options": [
+        "Subnets are now called L1s",
+        "Now each node has to stake more AVAX to become a validator, thus making the network more secure",
+        "Now L1 validators don’t need to validate the Primary Network and they only need to abide by the staking requirements defined by the L1 they wish to validate",
+        "Now the C-Chain, P-Chain and X-Chain no longer exists and all the L1s combined form the Avalanche Primary Network",
+        "Now all L1s are public and permissionless as all blockchains should be",
+        "Now L1s can be private"
+      ],
+      "correctAnswers": [
+        0,
+        2
+      ],
+      "hint": "Think about the changes we talked about and who they benefit.",
+      "explanation": "The Avalanche9000 upgrade brought many changes to the Avalanche network. Subnets are now called L1s, and the main idea was to make L1s more accessible to everyone, so L1s now don't need to validate the Primary Network. Subnets could also be private pre-Avalanche9000.",
+      "chapter": "Avalanche Fundamentals",
+      "alternates": [
+        {
+          "question": "After the Avalanche9000 upgrade, what are the staking requirements for L1 validators?",
+          "options": [
+            "L1 validators must stake more AVAX than before to make the network more secure",
+            "All L1s must use the same staking requirements as the Primary Network",
+            "L1 validators only need to abide by the staking requirements defined by the specific L1 they wish to validate, without needing to validate the Primary Network",
+            "Subnets are now called L1s, which means all validators share a single unified staking pool"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about how Avalanche9000 changed the relationship between L1 validators and the Primary Network.",
+          "explanation": "After Avalanche9000, L1 validators no longer need to validate the Primary Network. They only need to meet the staking requirements defined by the specific L1 they wish to validate. This was a key change that made L1s more accessible. The option about subnets being called L1s is one of the correct answers from the base question but by itself does not describe the staking changes."
+        },
+        {
+          "question": "What were the primary goals behind the Avalanche9000 upgrade's changes to the validator model? (Select all that apply)",
+          "options": [
+            "To make L1s more accessible to everyone by removing the requirement to validate the Primary Network",
+            "To rename Subnets to L1s and make all L1s public and permissionless",
+            "To allow L1 validators to define their own staking requirements independent of the Primary Network",
+            "To increase the amount of AVAX required for staking in order to strengthen network security"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about what barrier was lowered to make it easier for new projects to launch their own chains on Avalanche.",
+          "explanation": "The Avalanche9000 upgrade aimed to make L1s more accessible by removing the requirement for L1 validators to validate the Primary Network, and by allowing L1 validators to define their own staking requirements independent of the Primary Network. The renaming from Subnets to L1s was a naming change, and L1s could already be private before the upgrade."
+        }
+      ]
+    },
+    "1203": {
+      "question": "How does BLS compare to other aggregated signature schemes?",
+      "options": [
+        "Its signature aggregation maintains a small size for the aggregated signature",
+        "Its signature aggregation only uses 64 bytes",
+        "Its signature aggregation enables the aggregation of thousands of signatures",
+        "Its signature aggregation let us aggregate both signatures and public keys"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about the data size efficiency of BLS compared to other aggregated signature schemes.",
+      "explanation": "BLS is more efficient than other aggregated signature schemes because it uses a shorter aggregated signature and a smaller aggregated public key, but its size still varies. The other options are common characteristics for aggregated signature schemes.",
+      "chapter": "Avalanche Fundamentals",
+      "alternates": [
+        {
+          "question": "In the context of Avalanche's interoperability, why is signature aggregation important when validators sign messages for cross-chain communication?",
+          "options": [
+            "Because aggregation encrypts the message content so that only the destination chain can read it",
+            "Because its signature aggregation maintains a small size for the aggregated signature compared to other schemes",
+            "Because validators cannot produce digital signatures without aggregation technology",
+            "Because without aggregation, hundreds or thousands of individual signatures attached to a single message would create a data bottleneck in message transport"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the data size problem when a large number of validators each produce a 96-byte signature for the same message.",
+          "explanation": "When a large portion of Primary Network validators sign a message, the result could be thousands of individual signatures (each 96 bytes), creating a massive data bottleneck. Signature aggregation solves this by combining them into a single compact signature. The option about BLS maintaining a small aggregated signature size is the base question's correct answer about how BLS compares to other schemes, not about why aggregation is needed in the first place."
+        },
+        {
+          "question": "What must be aggregated alongside signatures when using BLS multi-signatures for cross-chain message verification?",
+          "options": [
+            "The transaction hashes of all validators who participated in signing",
+            "The public keys of the signers, so the aggregated public key can be used with the aggregated signature for verification",
+            "The private keys of the signers to enable decryption at the destination chain",
+            "The validator stakes to prove each signer has sufficient AVAX deposited"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what inputs the verification method needs: both the combined signature and the combined identity of the signers.",
+          "explanation": "In BLS multi-signatures, both signatures and public keys must be aggregated. The verification method takes the aggregated public key along with the aggregated signature as inputs. This is necessary because the destination chain needs to verify that the correct set of validators signed the message. Private keys are never shared or aggregated."
+        }
+      ]
+    },
+    "1204": {
+      "question": "What’s the P-Chain’s main purpose?",
+      "options": [
+        "Provide a backup for the C-Chain and X- Chain",
+        "Keep record of all transactions on both the Primary Network and all L1s",
+        "Have a registry of all validators in the Avalanche network",
+        "Manage the validator set of all L1s"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what would one need in a network of networks.",
+      "explanation": "The P-Chain's main purpose is to have a registry of all validators in the Avalanche network, that includes both the Primary Network and all L1s.",
+      "chapter": "Avalanche Fundamentals",
+      "alternates": [
+        {
+          "question": "Which three built-in blockchains compose the Avalanche Primary Network, and what is each optimized for?",
+          "options": [
+            "P-Chain (validator coordination and staking), C-Chain (EVM-compatible smart contracts and DeFi), X-Chain (creating and transferring digital assets)",
+            "The P-Chain has a registry of all validators in the Avalanche network",
+            "A-Chain (asset management), B-Chain (bridging), C-Chain (computation)",
+            "P-Chain (payments), C-Chain (consensus), X-Chain (execution)"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Each of the three chains has a specific role: one for platform coordination, one for smart contracts, and one for asset transfers.",
+          "explanation": "The Primary Network consists of three chains: the P-Chain (Platform Chain) for coordinating validators, tracking L1s, and managing staking; the C-Chain (Contract Chain) for EVM-compatible smart contracts and DeFi; and the X-Chain (Exchange Chain) for creating and transferring digital assets. The option about the P-Chain having a validator registry is the base question's correct answer, which describes only one chain's function."
+        },
+        {
+          "question": "When developers want to create a new Avalanche L1, on which chain do they register it, and what does the registration process include? (Select all that apply)",
+          "options": [
+            "Registration happens on the P-Chain, which tracks active L1s and manages their validator sets",
+            "Registration happens on the C-Chain through a smart contract deployment",
+            "The registration process includes defining validator requirements and setting up economic parameters",
+            "The P-Chain maintains a registry of all validators in the Avalanche network"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about which chain handles platform-level coordination and what information is needed to set up a new L1.",
+          "explanation": "New Avalanche L1s are registered on the P-Chain, which coordinates validators and tracks active L1s. The registration process includes defining validator requirements, setting up economic parameters, and establishing the L1's relationship with the Primary Network. The option about the P-Chain maintaining a validator registry is the base question's correct answer -- it describes the P-Chain's main purpose but not the L1 registration process specifically."
+        }
+      ]
+    }
+  }
+}

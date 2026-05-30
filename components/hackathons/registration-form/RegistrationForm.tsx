@@ -11,12 +11,11 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
-import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useEffect, useState } from "react";
+import { zodResolver } from "@/lib/zodResolver";
+import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { RegisterFormStep3 } from "./RegisterFormStep3";
-import { RegisterFormStep2 } from "./RegisterFormStep2";
 import RegisterFormStep1 from "./RegisterFormStep1";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
@@ -27,15 +26,48 @@ import { useRouter } from "next/navigation";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
-import { useUTMPreservation } from "@/hooks/use-utm-preservation";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { isTeam1Event } from "@/lib/events/team1";
+import { clearStoredReferralAttribution } from "@/lib/referrals/client";
+import {
+  ReferralFormSection,
+  buildReferralAttributionPayload,
+} from "@/components/referrals/ReferralFormSection";
+import { EMPTY_REFERRER, type ReferrerPickerValue } from "@/components/referrals/ReferrerPicker";
+import {
+  GITHUB_ACCOUNT_PATTERN,
+  TELEGRAM_ACCOUNT_PATTERN,
+} from "@/lib/profile/socialAccountValidation";
+
+const optionalSocial = (pattern: RegExp, message: string) =>
+  z
+    .string()
+    .optional()
+    .default("")
+    .refine((value) => !value || pattern.test(value.trim()), { message });
+
+const requiredSocial = (pattern: RegExp, requiredMessage: string, formatMessage: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, requiredMessage)
+    .refine((value) => pattern.test(value), { message: formatMessage });
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().trim().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   company_name: z.string().optional(),
-  telegram_user: z.string().min(1, "Telegram username is required"),
   role: z.string().optional(),
+  is_student: z.boolean().optional().default(false),
+  student_institution: z.string().optional(),
+  is_founder: z.boolean().optional().default(false),
+  founder_company_name: z.string().optional(),
+  is_employee: z.boolean().optional().default(false),
+  employee_company_name: z.string().optional(),
+  employee_role: z.string().optional(),
+  is_developer: z.boolean().optional().default(false),
+  is_enthusiast: z.boolean().optional().default(false),
   city: z.string().min(1, "City is required"),
   interests: z.array(z.string()).optional(),
   web3_proficiency: z.string().optional(),
@@ -44,12 +76,24 @@ const createRegisterSchema = (isOnline: boolean) => z.object({
   languages: z.array(z.string()).optional(),
   hackathon_participation: z.string().optional(),
   dietary: z.string().optional().default(""),
-  github_portfolio: z.string().optional(),
+  github_portfolio: optionalSocial(
+    GITHUB_ACCOUNT_PATTERN,
+    "Enter your GitHub username or https://github.com/<username>",
+  ),
+  telegram_account: requiredSocial(
+    TELEGRAM_ACCOUNT_PATTERN,
+    "Telegram username is required",
+    "Enter a valid Telegram handle (5-32 chars, letters/digits/underscore)",
+  ),
   terms_event_conditions: z.boolean().optional(),
   newsletter_subscription: z.boolean().default(false).optional(),
   prohibited_items: z.boolean().optional(),
   founder_check: z.boolean().optional(),
   avalanche_ecosystem_member: z.boolean().optional(),
+  // Transient: User-level consents collected here when not already true on the User row.
+  // Stripped before persisting RegisterForm; forwarded as `user_consents` to the API.
+  user_notifications: z.boolean().optional(),
+  user_consent_sharing: z.boolean().optional(),
 });
 
 export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
@@ -65,8 +109,7 @@ export function RegisterForm({
   const currentUser: User | undefined = session?.user;
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
-  let hackathon_id = searchParams?.hackathon ?? "";
-  const utm = searchParams?.utm ?? "";
+  let hackathon_id = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
     null
@@ -74,18 +117,49 @@ export function RegisterForm({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const [isSavingLater, setIsSavingLater] = useState(false);
-  
-  // Use UTM preservation hook
-  const { getPreservedUTMs } = useUTMPreservation();
+  const isAdvancingStepRef = useRef(false);
+  const [referrer, setReferrer] = useState<ReferrerPickerValue>(EMPTY_REFERRER);
+  // Current value of the User-level consents (notifications + Team1 outreach).
+  // null = never asked. The grouped consent block in Step 3 only renders the
+  // children that are not already `true` on the User record.
+  const [userConsentState, setUserConsentState] = useState<{
+    notifications: boolean | null;
+    consent_sharing: boolean | null;
+  }>({ notifications: null, consent_sharing: null });
+  // Stays false until /api/profile/extended/{id} succeeds. Hide-by-default avoids
+  // double-asking users whose extended profile fetch fails or is slow.
+  const [consentsLoaded, setConsentsLoaded] = useState(false);
+  const showNotificationsConsent =
+    consentsLoaded && userConsentState.notifications !== true;
+  const showSharingConsent =
+    consentsLoaded && userConsentState.consent_sharing !== true;
 
   // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
+  // Team1-organized / co-hosted events require the `consent_sharing` opt-in
+  // unless the user has already granted it on their profile.
+  const isTeam1 = hackathon
+    ? isTeam1Event({ organizers: hackathon.organizers, cohosts: hackathon.cohosts })
+    : false;
+  const requireSharingConsent =
+    isTeam1 && consentsLoaded && userConsentState.consent_sharing !== true;
+  const lang = normalizeEventsLang(hackathon?.content?.language);
   
   const getDefaultValues = () => ({
+    
     name: currentUser?.name || "",
     email: currentUser?.email || "",
     company_name: "",
     role: "",
+    is_student: false,
+    student_institution: "",
+    is_founder: false,
+    founder_company_name: "",
+    is_employee: false,
+    employee_company_name: "",
+    employee_role: "",
+    is_developer: false,
+    is_enthusiast: false,
     city: "",
     dietary: "",
     interests: [],
@@ -95,12 +169,14 @@ export function RegisterForm({
     languages: [],
     hackathon_participation: "",
     github_portfolio: "",
-    telegram_user: "",
+    telegram_account: "",
     terms_event_conditions: false,
     newsletter_subscription: false,
     prohibited_items: false,
     founder_check: false,
     avalanche_ecosystem_member: false,
+    user_notifications: false,
+    user_consent_sharing: false,
   });
 
   const form = useForm<RegisterFormValues>({
@@ -113,8 +189,7 @@ export function RegisterForm({
       const savedData = localStorage.getItem(`formData_${hackathon_id}`);
 
       if (savedData) {
-        const { utm: utm_local, hackathon_id: hackathon_id_local } =
-          JSON.parse(savedData);
+        const { hackathon_id: hackathon_id_local } = JSON.parse(savedData);
         try {
           const parsedData: RegisterFormValues = JSON.parse(savedData);
 
@@ -130,10 +205,103 @@ export function RegisterForm({
   async function getHackathon() {
     if (!hackathon_id) return;
     try {
-      const response = await axios.get(`/api/hackathons/${hackathon_id}`);
+      const response = await axios.get(`/api/events/${hackathon_id}`);
       setHackathon(response.data);
     } catch (err) {
       console.error("API Error:", err);
+    }
+  }
+
+  /** Prefill step1 from profile (name, email, country, telegram, company, role) when field is empty */
+  async function mergeProfileIntoStep1() {
+    const userId = (currentUser as { id?: string })?.id;
+    if (!userId) return;
+    try {
+      const profileRes = await fetch(`/api/profile/extended/${userId}`);
+      if (!profileRes.ok) return;
+      const profile = await profileRes.json();
+      setUserConsentState({
+        notifications: typeof profile.notifications === "boolean" ? profile.notifications : null,
+        consent_sharing: typeof profile.consent_sharing === "boolean" ? profile.consent_sharing : null,
+      });
+      setConsentsLoaded(true);
+      const current = form.getValues();
+      const merged = {
+        ...current,
+        name:  profile.name || current.name || "",
+        email:  profile.email || current.email || "",
+        city:  profile.country || current.city || "",
+        telegram_account:  profile.telegram_account || current.telegram_account || "",
+        company_name:  profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
+        role:  profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
+        is_student: profile.user_type?.is_student ?? current.is_student ?? false,
+        student_institution: profile.user_type?.student_institution || current.student_institution || "",
+        is_founder: profile.user_type?.is_founder ?? current.is_founder ?? false,
+        founder_company_name: profile.user_type?.founder_company_name || current.founder_company_name || "",
+        is_employee: profile.user_type?.is_employee ?? current.is_employee ?? false,
+        employee_company_name: profile.user_type?.employee_company_name || current.employee_company_name || "",
+        employee_role: profile.user_type?.employee_role || current.employee_role || "",
+        is_developer: profile.user_type?.is_developer ?? current.is_developer ?? false,
+        is_enthusiast: profile.user_type?.is_enthusiast ?? current.is_enthusiast ?? false,
+        founder_check: profile.user_type?.founder_check ?? current.founder_check ?? false,
+        avalanche_ecosystem_member: profile.user_type?.avalanche_ecosystem_member ?? current.avalanche_ecosystem_member ?? false,
+      };
+      form.reset(merged);
+    } catch (err) {
+      console.error("Error merging profile into registration form:", err);
+    }
+  }
+
+  /** Persist step1 fields to profile (name, email, country, telegram, company_name, role) */
+  async function saveStep1ToProfile() {
+    const userId = (currentUser as { id?: string })?.id;
+    if (!userId) return;
+    const step1 = form.getValues();
+    try {
+      const profileRes = await fetch(`/api/profile/extended/${userId}`);
+      if (!profileRes.ok) return;
+      const existing = await profileRes.json();
+      const userType = existing.user_type || {};
+      const roleCompany =
+        (step1.is_founder ? step1.founder_company_name : "") ||
+        (step1.is_employee ? step1.employee_company_name : "") ||
+        (step1.is_student ? step1.student_institution : "") ||
+        step1.company_name ||
+        "";
+      const roleLabel =
+        (step1.is_employee ? step1.employee_role : "") ||
+        step1.role ||
+        "";
+
+      const payload = {
+        name: step1.name ?? existing.name,
+        email: step1.email ?? existing.email,
+        country: (step1.city ?? "").trim() || existing.country,
+        telegram_account: (step1.telegram_account ?? "").trim() || existing.telegram_account,
+        user_type: {
+          ...userType,
+          is_student: Boolean(step1.is_student),
+          is_founder: Boolean(step1.is_founder),
+          is_employee: Boolean(step1.is_employee),
+          is_developer: Boolean(step1.is_developer),
+          is_enthusiast: Boolean(step1.is_enthusiast),
+          student_institution: (step1.student_institution ?? "").trim(),
+          founder_company_name: (step1.founder_company_name ?? "").trim(),
+          employee_company_name: (step1.employee_company_name ?? "").trim(),
+          employee_role: (step1.employee_role ?? "").trim(),
+          company_name: roleCompany.trim() || userType.company_name,
+          role: roleLabel.trim() || userType.role,
+          founder_check: Boolean(step1.founder_check),
+          avalanche_ecosystem_member: Boolean(step1.avalanche_ecosystem_member),
+        },
+      };
+      await fetch(`/api/profile/extended/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      console.error("Error saving step1 to profile:", err);
     }
   }
 
@@ -150,9 +318,18 @@ export function RegisterForm({
           email: loadedData.email || currentUser.email || "",
           company_name: loadedData.company_name || "",
           role: loadedData.role || "",
+          is_student: loadedData.is_student || false,
+          student_institution: loadedData.student_institution || "",
+          is_founder: loadedData.is_founder || false,
+          founder_company_name: loadedData.founder_company_name || "",
+          is_employee: loadedData.is_employee || false,
+          employee_company_name: loadedData.employee_company_name || "",
+          employee_role: loadedData.employee_role || "",
+          is_developer: loadedData.is_developer || false,
+          is_enthusiast: loadedData.is_enthusiast || false,
           city: loadedData.city || "",
           dietary: loadedData.dietary || "",
-          telegram_user: loadedData.telegram_user || "",
+          telegram_account: loadedData.telegram_account || "",
           interests: loadedData.interests
             ? parseArrayField(loadedData.interests)
             : [],
@@ -173,10 +350,22 @@ export function RegisterForm({
         hackathon_id = loadedData.hackathon_id;
         form.reset(parsedData);
         setRegistrationForm(loadedData);
+        if (loadedData.referralAttribution) {
+          const ra = loadedData.referralAttribution;
+          setReferrer({
+            teamId: ra.team_id_referrer ?? null,
+            teamIdOther: ra.team_id_referrer_other ?? null,
+            userId: ra.user_id_referrer ?? null,
+          });
+        }
       }
       setDataFromLocalStorage();
+      await mergeProfileIntoStep1();
     } catch (err) {
       setDataFromLocalStorage();
+      if (status === "authenticated" && currentUser) {
+        await mergeProfileIntoStep1();
+      }
       console.error("API Error:", err);
     }
   }
@@ -197,12 +386,26 @@ export function RegisterForm({
 
   async function saveProject(data: RegisterFormValues) {
     try {
-      await axios.post(`/api/register-form/`, data);
+      const { user_notifications, user_consent_sharing, ...registerData } = data;
+      const userConsents: { notifications?: boolean; consent_sharing?: boolean } = {};
+      if (showNotificationsConsent && typeof user_notifications === "boolean") {
+        userConsents.notifications = user_notifications;
+      }
+      if (showSharingConsent && typeof user_consent_sharing === "boolean") {
+        userConsents.consent_sharing = user_consent_sharing;
+      }
+      const payload = {
+        ...registerData,
+        ...(Object.keys(userConsents).length > 0 ? { user_consents: userConsents } : {}),
+      };
+      const response = await axios.post(`/api/register-form/`, payload);
       if (typeof window !== "undefined") {
         localStorage.removeItem(`formData_${hackathon_id}`);
       }
+      return response.data as { referralAttributed?: boolean };
     } catch (err) {
       console.error("API Error:", err);
+      throw err;
     }
   }
 
@@ -230,6 +433,12 @@ export function RegisterForm({
     setDataFromLocalStorage();
   }, [hackathon_id]);
 
+  /** Registration only has steps 1–2; clamp if state ever jumps (e.g. double-click before fix). */
+  useEffect(() => {
+    if (step > 2) setStep(2);
+    if (step < 1) setStep(1);
+  }, [step]);
+
   // Reinitialize form when hackathon data is loaded to use correct resolver
   useEffect(() => {
     if (hackathon) {
@@ -238,14 +447,13 @@ export function RegisterForm({
     }
   }, [hackathon, form]);
 
-  const onSaveLater = () => {
-    const preservedUTMs = getPreservedUTMs();
-    const effectiveUTM = utm || preservedUTMs.utm || "";
-    
+  const onSaveLater = async () => {
+    if (step === 1) {
+      await saveStep1ToProfile();
+    }
     const formValues = {
       ...form.getValues(),
       hackathon_id: hackathon_id,
-      utm: effectiveUTM,
     };
     if (typeof window !== "undefined") {
       localStorage.setItem(
@@ -253,13 +461,13 @@ export function RegisterForm({
         JSON.stringify(formValues)
       );
     }
-    router.push(`/hackathons/${hackathon_id}`);
+    router.push(`/events/${hackathon_id}`);
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
     
-    if (step < 3) {
-      setStep(step + 1);
+    if (step < 2) {
+      setStep((prev) => (prev < 2 ? prev + 1 : prev));
     } else {
       const errors: any = {};
 
@@ -277,21 +485,35 @@ export function RegisterForm({
         };
       }
 
+      if (requireSharingConsent && data.user_consent_sharing !== true) {
+        errors.user_consent_sharing = {
+          type: "custom",
+          message: t(lang, "consents.consentSharing.required"),
+        };
+      }
+
 
       if (Object.keys(errors).length > 0) {
         Object.keys(errors).forEach(field => {
           form.setError(field as keyof RegisterFormValues, errors[field]);
         });
+        // Bring the first invalid field into view so the user notices the
+        // feedback even when scrolled to the submit button.
+        const firstField = Object.keys(errors)[0];
+        if (typeof window !== "undefined") {
+          const el = document.querySelector<HTMLElement>(
+            `[name="${firstField}"], #${CSS.escape(firstField)}`,
+          );
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
         return;
       }
       setFormData((prevData) => ({ ...prevData, ...data }));
-      const preservedUTMs = getPreservedUTMs();
-      const effectiveUTM = utm || preservedUTMs.utm || "";
-      
+
       const finalData = {
         ...data,
         hackathon_id: hackathon_id,
-        utm: effectiveUTM,
+        ...buildReferralAttributionPayload(referrer),
         interests: data.interests ?? [],
         languages: data.languages ?? [],
         roles: data.roles ?? [],
@@ -300,7 +522,10 @@ export function RegisterForm({
         prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
       };
 
-      await saveProject(finalData);
+      const result = await saveProject(finalData);
+      if (result.referralAttributed) {
+        clearStoredReferralAttribution();
+      }
       setIsDialogOpen(true);
     }
   };
@@ -310,30 +535,33 @@ export function RegisterForm({
       case 1:
         return "left-0";
       case 2:
-        return "left-1/2 transform -translate-x-1/2";
-      case 3:
         return "right-0";
       default:
         return "left-0";
     }
   };
 
-  const handleStepChange = (newStep: number) => {
-    if (newStep >= 1 && newStep <= 3) {
+  const handleStepChange = async (newStep: number) => {
+    if (newStep >= 1 && newStep <= 2) {
+      if (step === 1 && newStep !== 1) {
+        await saveStep1ToProfile();
+      }
       setStep(newStep);
     }
   };
 
   const onNextStep = async () => {
+    if (step >= 2 || isAdvancingStepRef.current) return;
+
     let fieldsToValidate: (keyof RegisterFormValues)[] = [];
     if (step === 1) {
       fieldsToValidate = [
         "name",
         "email",
         "company_name",
-        "telegram_user",
         "role",
         "city",
+        "telegram_account",
       ];
       const formValues = form.getValues();
       const errors: any = {};
@@ -352,17 +580,23 @@ export function RegisterForm({
         };
       }
 
-      if (!formValues.telegram_user || formValues.telegram_user.trim() === "") {
-        errors.telegram_user = {
-          type: "custom",
-          message: "Telegram username is required"
-        };
-      }
-
       if (!formValues.city || formValues.city.trim() === "") {
         errors.city = {
           type: "custom",
           message: "City is required"
+        };
+      }
+
+      const telegramHandle = (formValues.telegram_account ?? "").trim();
+      if (!telegramHandle) {
+        errors.telegram_account = {
+          type: "custom",
+          message: "Telegram username is required",
+        };
+      } else if (!TELEGRAM_ACCOUNT_PATTERN.test(telegramHandle)) {
+        errors.telegram_account = {
+          type: "custom",
+          message: "Enter a valid Telegram handle (5-32 chars, letters/digits/underscore)",
         };
       }
 
@@ -374,26 +608,14 @@ export function RegisterForm({
       }
     } else if (step === 2) {
       fieldsToValidate = [
-        "web3_proficiency",
-        "tools",
-        "roles",
-        "languages",
-        "interests",
-        "hackathon_participation",
-        "github_portfolio",
-      ];
-    } else if (step === 3) {
-      fieldsToValidate = [
         "newsletter_subscription",
         "terms_event_conditions",
       ];
-      // Only validate prohibited_items if it's not an online hackathon
       if (!isOnlineHackathon) {
         fieldsToValidate.push("prohibited_items");
       }
-      // Custom validation for Step 3 required fields
       const formValues = form.getValues();
-      const errors: any = {};
+      const errors: Partial<Record<keyof RegisterFormValues, { type: string; message: string }>> = {};
 
       if (!formValues.terms_event_conditions) {
         errors.terms_event_conditions = {
@@ -402,7 +624,6 @@ export function RegisterForm({
         };
       }
 
-
       if (!isOnlineHackathon && !formValues.prohibited_items) {
         errors.prohibited_items = {
           type: "custom",
@@ -410,82 +631,109 @@ export function RegisterForm({
         };
       }
 
+      if (requireSharingConsent && formValues.user_consent_sharing !== true) {
+        errors.user_consent_sharing = {
+          type: "custom",
+          message: t(lang, "consents.consentSharing.required"),
+        };
+      }
+
       if (Object.keys(errors).length > 0) {
-        Object.keys(errors).forEach(field => {
-          form.setError(field as keyof RegisterFormValues, errors[field]);
+        (Object.keys(errors) as (keyof RegisterFormValues)[]).forEach(field => {
+          form.setError(field, errors[field]!);
         });
         return;
       }
     }
     const isValid = await form.trigger(fieldsToValidate);
-    if (isValid) {
-      setStep((prev) => prev + 1);
+    if (!isValid) return;
+
+    isAdvancingStepRef.current = true;
+    try {
+      if (step === 1) {
+        await saveStep1ToProfile();
+      }
+      setStep((prev) => (prev < 2 ? prev + 1 : prev));
+    } finally {
+      isAdvancingStepRef.current = false;
     }
   };
 
   return (
     <div className="w-full items-center justify-center">
       <h2 className="text-2xl font-bold mb-6 text-foreground">
-        Registration form for{" "}
-        {hackathon
-          ? `${hackathon.title} (Step ${step}/3)`
-          : `... (Step ${step}/3)`}
+        {t(lang, "reg.form.title", { title: hackathon?.title ?? "...", step })}
       </h2>
       <div className="relative w-full h-1 bg-zinc-300 dark:bg-zinc-900 mb-4">
         <div
-          className={`absolute h-full bg-zinc-800 dark:bg-zinc-300 ${progressPosition()} w-1/3 transition-all duration-300`}
+          className={`absolute h-full bg-zinc-800 dark:bg-zinc-300 ${progressPosition()} w-1/2 transition-all duration-300`}
         />
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {step === 1 && <RegisterFormStep1 user={session?.user} />}
-          {step === 2 && <RegisterFormStep2 />}
-          {step === 3 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} />}
+          {step === 1 && (
+            <>
+              <RegisterFormStep1 user={session?.user} lang={lang} />
+              <ReferralFormSection
+                value={referrer}
+                onChange={setReferrer}
+                title={t(lang, "reg.referral.title")}
+                description={t(lang, "reg.referral.description")}
+                lang={lang}
+              />
+            </>
+          )}
+          {step === 2 && (
+            <RegisterFormStep3
+              isOnlineHackathon={isOnlineHackathon}
+              lang={lang}
+              showNotificationsConsent={showNotificationsConsent}
+              showSharingConsent={showSharingConsent}
+              requireSharingConsent={requireSharingConsent}
+            />
+          )}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
-              {step === 3 && (
+              {step === 2 && (
                 <LoadingButton
                   isLoading={form.formState.isSubmitting}
-                  loadingText="Saving..."
+                  loadingText={t(lang, "reg.form.saving")}
                   variant="red"
                   type="submit"
                   className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
-                  Save & Exit
+                  {t(lang, "reg.form.saveExit")}
                 </LoadingButton>
               )}
 
-              {step !== 3 && (
+              {step !== 2 && (
                 <Button
                   variant="red"
                   type="button"
                   onClick={onNextStep}
                   className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
-                  Continue
+                  {t(lang, "reg.form.continue")}
                 </Button>
               )}
 
-              {step !== 3 && (
+              {step !== 2 && (
                 <LoadingButton
                   isLoading={isSavingLater}
-                  loadingText="Saving..."
+                  loadingText={t(lang, "reg.form.saving")}
                   type="button"
                   onClick={() => {
-                    console.log("seteo en true");
-
                     try {
                       setIsSavingLater(true);
                       onSaveLater();
                     } finally {
-                      console.log("seteo en false");
                       setIsSavingLater(false);
                     }
                   }}
                   className="bg-white text-black border cursor-pointer border-gray-300 hover:text-black hover:bg-gray-100"
                 >
-                  Save & Continue Later
+                  {t(lang, "reg.form.saveLater")}
                 </LoadingButton>
               )}
             </div>
@@ -495,12 +743,13 @@ export function RegisterForm({
                 {step > 1 && (
                   <PaginationPrevious
                     className="dark:hover:text-gray-200 cursor-pointer"
+                    label={t(lang, "reg.form.previous")}
                     onClick={() => setStep(step - 1)}
                   />
                 )}
                 <Pagination>
                   <PaginationContent>
-                    {Array.from({ length: 3 }, (_, i) => i + 1).map((page) => (
+                    {Array.from({ length: 2 }, (_, i) => i + 1).map((page) => (
                       <PaginationItem key={page}>
                         <PaginationLink
                           isActive={step === page}
@@ -513,15 +762,16 @@ export function RegisterForm({
                     ))}
                   </PaginationContent>
                 </Pagination>
-                {step < 3 && (
+                {step < 2 && (
                   <PaginationNext
                     className="dark:hover:text-gray-200 cursor-pointer"
+                    label={t(lang, "reg.form.next")}
                     onClick={onNextStep}
                   />
                 )}
               </div>
               <span className="font-Aeonik text-xs sm:text-sm mt-2 md:mt-0 md:ml-2">
-                Step {step} of 3
+                Step {step} of 2
               </span>
             </div>
           </div>
@@ -532,6 +782,8 @@ export function RegisterForm({
         hackathon_id={hackathon_id as string}
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
+        lang={lang}
+        isUpdate={!!formLoaded}
       />
     </div>
   );

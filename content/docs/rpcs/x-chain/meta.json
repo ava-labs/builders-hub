@@ -5,9 +5,8 @@
   "root": true,
   "pages": [
     "index",
+    "txn-format",
     "---RPC Methods---",
-    "...chain",
-    "---Reference---",
-    "txn-format"
+    "...chain"
   ]
 }

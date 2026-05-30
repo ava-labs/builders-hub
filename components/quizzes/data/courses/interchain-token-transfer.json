@@ -1,0 +1,456 @@
+{
+  "title": "Interchain Token Transfer",
+  "quizzes": {
+    "118": {
+      "question": "Which of the following best describes the role of a native token in an EVM-based blockchain?",
+      "options": [
+        "It is used only for staking and governance within the blockchain.",
+        "It serves as both a means of value transfer and as the gas token for executing transactions and smart contracts.",
+        "It is used exclusively for purchasing NFTs on the blockchain.",
+        "It has no functional role other than being a store of value."
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Consider both value transfer and execution costs in the network.",
+      "explanation": "In an EVM-based blockchain, the native token serves as both a means of value transfer within the network and as the gas token for executing transfers or smart contracts. Some blockchains optionally choose to also use the native token as their staking and governance token.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "What happens when a user sends a transaction on an EVM-based blockchain but does not have enough native tokens to cover the gas fee?",
+          "options": [
+            "The transaction is executed but the gas fee is deducted from the recipient's balance",
+            "The transaction is queued until the user deposits sufficient ERC-20 tokens to cover the fee",
+            "The blockchain automatically mints additional native tokens to cover the shortfall",
+            "The native token serves as both value transfer and gas token, so the transaction is rejected before execution"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the mandatory role of the native token in transaction processing.",
+          "explanation": "On EVM-based blockchains, the native token is required to pay gas fees. If a user lacks sufficient native tokens, the transaction is rejected outright — it will not be executed. This is because the native token serves the dual role of value transfer and gas payment."
+        },
+        {
+          "question": "Which of the following are valid uses of a native token on an EVM-based Avalanche L1? (Select all that apply)",
+          "options": [
+            "Paying gas fees for executing smart contract interactions",
+            "Transferring value directly between user accounts",
+            "Serving as the only token type that can be used in DeFi protocols on the chain",
+            "Acting as collateral for validator staking on the L1"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Consider the core functions that every native token must support versus optional roles.",
+          "explanation": "Every native token on an EVM-based chain serves as both a gas token for executing transactions and a means of direct value transfer. While some chains may optionally use their native token for staking, this is not required. DeFi protocols typically support multiple token types, not just the native token."
+        }
+      ]
+    },
+    "119": {
+      "question": "What is the purpose of marking a function as 'payable' in Solidity?",
+      "options": [
+        "It allows the function to receive ERC-20 tokens.",
+        "It enables the function to execute without gas fees.",
+        "It allows the function to receive native blockchain tokens.",
+        "It prevents the function from modifying state variables."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about how functions handle incoming funds.",
+      "explanation": "In Solidity, marking a function as 'payable' allows it to accept native blockchain tokens like ETH or AVAX. Without 'payable', the function cannot receive native tokens.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "What happens if a smart contract function that is NOT marked as 'payable' receives a transaction with a non-zero native token value?",
+          "options": [
+            "The function executes normally but ignores the sent native tokens",
+            "The transaction reverts automatically, preventing the function from executing",
+            "The function allows receiving native blockchain tokens because it is marked as payable",
+            "The native tokens are forwarded to the contract owner's address instead"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the EVM's built-in safety mechanism for functions that should not handle funds.",
+          "explanation": "If a function is not marked as 'payable' in Solidity, the EVM will automatically revert any transaction that attempts to send native tokens to it. This is a safety mechanism that prevents accidental loss of funds by ensuring only explicitly designated functions can receive native tokens."
+        },
+        {
+          "question": "In Solidity, which keyword must be used in conjunction with 'payable' to access the amount of native tokens sent with a function call?",
+          "options": [
+            "msg.value, which returns the amount of native tokens sent with the call",
+            "msg.sender, which identifies who sent the native tokens",
+            "tx.gasPrice, which returns the gas cost of the transaction",
+            "The payable keyword that allows the function to receive native blockchain tokens"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the global variable in Solidity that represents the amount of currency attached to a message.",
+          "explanation": "In Solidity, msg.value is used within a payable function to access the amount of native tokens (e.g., ETH, AVAX) sent along with the function call. This is essential for functions that need to process incoming payments or deposits."
+        }
+      ]
+    },
+    "120": {
+      "question": "What is the purpose of the `approve()` function in the ERC-20 token standard?",
+      "options": [
+        "It allows an address to transfer tokens to another address directly.",
+        "It grants an allowance for another account to spend the balance of an account.",
+        "It returns the total supply of the token.",
+        "It checks the balance of a specific address."
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Consider how a spender gets permission to spend tokens from an owner's account.",
+      "explanation": "The `approve()` function allows an owner to authorize a spender to withdraw tokens from the owner's account, up to a specified limit, enabling the spender to use `transferFrom()` to transfer tokens.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "What is the relationship between the `approve()` and `transferFrom()` functions in the ERC-20 standard?",
+          "options": [
+            "The `approve()` function sets an allowance that `transferFrom()` then spends on behalf of the owner",
+            "Both functions must be called by the token owner to complete a transfer",
+            "The `approve()` function grants an allowance for another account to spend from the owner's balance",
+            "The `transferFrom()` function automatically calls `approve()` before executing the transfer"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the two-step process required for third-party token transfers.",
+          "explanation": "In the ERC-20 standard, approve() and transferFrom() work together in a two-step process: first, the token owner calls approve() to set an allowance for a spender, then the spender calls transferFrom() to transfer tokens from the owner's account up to the approved amount."
+        },
+        {
+          "question": "What does the `allowance()` function return in the ERC-20 token standard?",
+          "options": [
+            "The total supply of tokens currently in circulation",
+            "The remaining number of tokens a spender is permitted to withdraw from an owner's account",
+            "The token balance of a specific address",
+            "The amount set by the approve() function to grant spending permission to another account"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about how you would check how many tokens a third party is still allowed to spend.",
+          "explanation": "The allowance() function returns the remaining number of tokens that a spender is permitted to transfer from an owner's account via transferFrom(). This amount decreases as the spender uses transferFrom() and can be reset by the owner calling approve() again."
+        }
+      ]
+    },
+    "121": {
+      "question": "Why is it necessary to call the `approve()` function before transferring ERC-20 tokens to a smart contract?",
+      "options": [
+        "Because it sets the gas fee for the transaction.",
+        "It is not necessary; tokens can be transferred without approval.",
+        "To check the balance of the smart contract.",
+        "To authorize the smart contract to transfer tokens from your account."
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Consider how a smart contract gets permission to spend tokens from your account.",
+      "explanation": "The `approve()` function allows a user to authorize a smart contract to withdraw tokens from their account up to a specified limit. This enables the smart contract to use `transferFrom()` to transfer tokens on behalf of the user.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "What is the key difference between `transfer()` and `transferFrom()` in the ERC-20 standard?",
+          "options": [
+            "transfer() moves tokens from the caller's own account, while transferFrom() moves tokens from another account that has granted an allowance",
+            "transfer() requires prior approval while transferFrom() does not",
+            "transferFrom() authorizes a smart contract to transfer tokens from your account via approve()",
+            "transfer() can only send tokens to smart contracts while transferFrom() can send to any address"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Consider who initiates the transfer and whose tokens are being moved in each case.",
+          "explanation": "The transfer() function allows a user to send tokens directly from their own account to another address. The transferFrom() function, on the other hand, allows a third party (such as a smart contract) to transfer tokens from someone else's account, provided they have been granted sufficient allowance via approve()."
+        },
+        {
+          "question": "Why can't a smart contract simply use `transfer()` to pull ERC-20 tokens from a user's wallet?",
+          "options": [
+            "Because transfer() can only be called by the token owner, and a smart contract is not the owner of the user's tokens",
+            "Because transfer() is deprecated in the latest ERC-20 standard",
+            "Because the approve() function must be called first to authorize the smart contract to transfer tokens",
+            "Because transfer() only works for native tokens, not ERC-20 tokens"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about who has the authority to call transfer() and move tokens.",
+          "explanation": "The transfer() function can only move tokens from the caller's own account. A smart contract cannot call transfer() on behalf of a user because the contract is not the owner of the user's tokens. Instead, the user must first call approve() to grant the contract an allowance, and then the contract uses transferFrom() to pull the tokens."
+        }
+      ]
+    },
+    "122": {
+      "question": "Why are native tokens wrapped into ERC-20 tokens like wAVAX or wETH?",
+      "options": [
+        "To increase their transaction speed on the blockchain.",
+        "To reduce the supply of the native token.",
+        "To represent native assets as ERC-20 tokens for compatibility with DeFi applications.",
+        "To convert them into stablecoins pegged to fiat currencies."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Consider how wrapping affects interoperability within the EVM ecosystem.",
+      "explanation": "Wrapping native tokens into ERC-20 tokens allows them to conform to the ERC-20 standard, making them compatible with decentralized applications, exchanges, and smart contracts that require ERC-20 tokens. This enhances interoperability and usability within the blockchain ecosystem.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "What is the process of converting wAVAX back to native AVAX called, and how does it work?",
+          "options": [
+            "Bridging — the wAVAX is transferred to another chain where it becomes native AVAX",
+            "Minting — new native AVAX is created to match the wAVAX supply",
+            "Wrapping native tokens into ERC-20 tokens for compatibility with DeFi applications",
+            "Unwrapping — the user sends wAVAX to the wrapper contract, which burns the wAVAX and returns an equal amount of native AVAX"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the reverse process of wrapping and how the 1:1 peg is maintained.",
+          "explanation": "Unwrapping is the process of converting wrapped tokens (like wAVAX) back to native tokens (AVAX). The user sends wAVAX to the wrapper contract, which burns the wAVAX tokens and releases an equivalent amount of native AVAX back to the user, maintaining the 1:1 peg."
+        },
+        {
+          "question": "Why is wAVAX necessary when interacting with many DeFi protocols on Avalanche's C-Chain?",
+          "options": [
+            "Because DeFi smart contracts typically use the ERC-20 interface for token interactions, and native AVAX does not conform to ERC-20",
+            "Because native AVAX cannot be stored in standard wallet addresses on the C-Chain",
+            "Because wrapping represents native assets as ERC-20 tokens for DeFi compatibility",
+            "Because wAVAX transactions have lower gas fees than native AVAX transactions"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Consider the technical interface that DeFi smart contracts expect when handling tokens.",
+          "explanation": "Most DeFi smart contracts are built to interact with tokens using the ERC-20 interface (approve, transferFrom, etc.). Native AVAX does not implement the ERC-20 interface, so it must be wrapped into wAVAX to be compatible with these protocols. This is why wrapping is essential for DeFi participation."
+        }
+      ]
+    },
+    "123": {
+      "question": "Which of the following best describes the 'Lock & Mint' mechanism in asset bridging?",
+      "options": [
+        "Locking assets on the source blockchain and minting equivalent tokens on the target blockchain.",
+        "Burning assets on both the source and target blockchains simultaneously.",
+        "Using custodians to manage and transfer assets between blockchains.",
+        "Releasing assets without the need for smart contracts or locking mechanisms."
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Consider how assets are secured on one chain and represented on another.",
+      "explanation": "In the 'Lock & Mint' mechanism, assets are locked in a smart contract on the source blockchain, and an equivalent amount of wrapped tokens are minted on the target blockchain. This allows the asset's value to be transferred and used on a different blockchain.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "In the Lock & Mint bridging mechanism, what happens on the destination chain when assets are returned (bridged back)?",
+          "options": [
+            "New native tokens are minted on the source chain to replace the returned assets",
+            "The wrapped tokens remain on the destination chain and a copy is created on the source chain",
+            "The wrapped tokens on the destination chain are burned, and the original assets on the source chain are unlocked",
+            "The original assets are locked on the source chain and equivalent wrapped tokens are minted on the destination chain"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the reverse process: what needs to happen to maintain the correct total supply.",
+          "explanation": "When assets are bridged back in a Lock & Mint system, the wrapped tokens on the destination chain are burned (destroyed), and the corresponding locked original assets on the source chain are unlocked and released back to the user. This Burn & Release process ensures the total supply remains consistent."
+        },
+        {
+          "question": "What security risk does the Lock & Mint mechanism introduce compared to native token transfers? (Select all that apply)",
+          "options": [
+            "The smart contract holding locked assets on the source chain becomes a high-value target for attackers",
+            "Assets are locked on the source chain while minted wrapped tokens represent them on the destination chain",
+            "If the bridge contract is exploited, wrapped tokens could be minted without corresponding locked assets",
+            "The wrapped tokens on the destination chain can never be redeemed for the original assets"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Consider what happens if the contract holding the locked funds or the minting mechanism is compromised.",
+          "explanation": "The Lock & Mint mechanism concentrates locked assets in a smart contract, making it a high-value target. If the bridge contract is exploited, attackers could mint wrapped tokens without actually locking corresponding assets, effectively creating unbacked tokens and draining value from the system."
+        }
+      ]
+    },
+    "124": {
+      "question": "Which type of smart contract exploit allows attackers to repeatedly withdraw funds before the contract's state is updated?",
+      "options": [
+        "Reentrancy Attacks",
+        "Arithmetic Errors",
+        "Logic Flaws",
+        "Phishing Attacks"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Consider exploits involving recursive calls to a contract.",
+      "explanation": "Reentrancy attacks exploit a contract's ability to call itself before the initial function call is completed, allowing attackers to repeatedly withdraw funds before the contract's state is updated.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "What is the recommended coding pattern to prevent reentrancy attacks in Solidity smart contracts?",
+          "options": [
+            "Using the 'payable' modifier on all functions that handle token transfers",
+            "Deploying the contract behind a proxy to hide the implementation from potential attackers",
+            "Allowing attackers to repeatedly withdraw funds before the contract state is updated to detect malicious behavior",
+            "Implementing the checks-effects-interactions pattern, where state is updated before external calls are made"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the order of operations: when should you update the contract's state relative to making external calls?",
+          "explanation": "The checks-effects-interactions pattern prevents reentrancy by updating the contract's state (effects) before making any external calls (interactions). This way, if a malicious contract tries to re-enter, the state has already been updated and the repeated withdrawal will fail."
+        },
+        {
+          "question": "Which of the following are common categories of smart contract vulnerabilities? (Select all that apply)",
+          "options": [
+            "Integer overflow and underflow errors in arithmetic operations",
+            "Reentrancy attacks that allow repeated fund withdrawals before state updates",
+            "Access control flaws where unauthorized users can call privileged functions",
+            "Consensus-level attacks that allow validators to rewrite contract bytecode"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about vulnerabilities that exist at the smart contract code level, not at the consensus level.",
+          "explanation": "Common smart contract vulnerabilities include integer overflow/underflow errors (where arithmetic operations exceed variable bounds) and access control flaws (where functions lack proper permission checks). Consensus-level attacks are a separate category and do not allow rewriting deployed contract bytecode."
+        }
+      ]
+    },
+    "125": {
+      "question": "Which statement is true about token transfers in the Avalanche Interchain Token Transfer Design?",
+      "options": [
+        "Only ERC20 tokens can be transferred; native tokens are not supported.",
+        "Transfers must involve the same token type on both home and remote chains.",
+        "Any combination of ERC20 and native tokens can be transferred between home and remote chains.",
+        "Token transfers require approval from network administrators."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Consider the flexibility of token types allowed in transfers.",
+      "explanation": "The Avalanche Interchain Token Transfer Design supports transferring tokens with any combination of ERC20 and native tokens between home and remote chains, including ERC20 to ERC20, ERC20 to Native, Native to ERC20, and Native to Native.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "In the Avalanche Interchain Token Transfer (ICTT) design, what is the role of the 'Home' contract?",
+          "options": [
+            "It exists on the chain where the token is originally deployed and manages the locking or burning of original tokens",
+            "It handles the minting of wrapped tokens on each remote chain",
+            "It supports any combination of ERC20 and native token transfers between chains",
+            "It relays messages between the source and destination chains via Avalanche Warp Messaging"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about where the original token lives and which contract manages it on that chain.",
+          "explanation": "In the ICTT design, the Home contract is deployed on the chain where the token originates. It is responsible for locking (or burning) the original tokens when they are bridged out, and unlocking (or minting) them when they are bridged back. Remote contracts on other chains handle the corresponding mint/burn operations."
+        },
+        {
+          "question": "Which token transfer combinations are supported by the Avalanche Interchain Token Transfer design?",
+          "options": [
+            "ERC20-to-ERC20 only, since the system requires standardized token interfaces",
+            "ERC20-to-ERC20 and Native-to-Native, but not cross-type transfers",
+            "ERC20-to-ERC20, ERC20-to-Native, Native-to-ERC20, and Native-to-Native",
+            "Only Native-to-ERC20 conversions using a combination of wrapping and bridging"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the flexibility that the ICTT design offers for different token representations.",
+          "explanation": "The Avalanche ICTT design supports all four combinations: ERC20-to-ERC20, ERC20-to-Native, Native-to-ERC20, and Native-to-Native. This flexibility allows developers to choose how tokens are represented on each chain, regardless of the token type on the home chain."
+        }
+      ]
+    },
+    "126": {
+      "question": "What is the purpose of the `_tokenMultiplier` in the `TokenRemote` contract when bridging assets between chains with different decimal systems?",
+      "options": [
+        "It adjusts the token amount to match the decimal system of the target chain by multiplying or dividing as necessary.",
+        "It locks the tokens on the source chain before transfer.",
+        "It handles the minting of new tokens on the target chain.",
+        "It calculates the transaction fees for cross-chain transfers."
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Consider how token amounts are scaled between chains with different decimal places.",
+      "explanation": "The `_tokenMultiplier` is used to scale the token amounts when transferring between chains with different decimal systems. It is calculated based on the difference in decimals between the home and remote tokens and ensures that the token value remains consistent across chains.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "When bridging a token with 18 decimals on the home chain to a remote chain that uses 6 decimals, what happens to the precision of the transferred amount?",
+          "options": [
+            "The full 18-decimal precision is preserved on the remote chain through the _tokenMultiplier",
+            "The amount is scaled down, and the least significant 12 digits of precision are lost on the remote chain",
+            "The remote chain automatically upgrades its decimal system to match the home chain",
+            "The _tokenMultiplier adjusts the token amount to match the decimal system of the target chain"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what happens mathematically when you reduce from 18 decimals to 6 decimals.",
+          "explanation": "When bridging from a chain with 18 decimals to one with 6 decimals, the token amount must be scaled down by dividing by 10^12. This means the 12 least significant decimal digits of precision are lost. The _tokenMultiplier handles this conversion, but the precision loss is inherent to the decimal difference."
+        },
+        {
+          "question": "What determines the value of the `_tokenMultiplier` in the TokenRemote contract?",
+          "options": [
+            "The gas price difference between the home and remote chains",
+            "The total supply of the token on the home chain",
+            "The difference in decimal places between the home token and the remote token representation",
+            "The _tokenMultiplier is used to adjust token amounts between chains with different decimal systems"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about what mathematical factor would be needed to convert between different decimal representations.",
+          "explanation": "The _tokenMultiplier is calculated based on the difference in decimal places between the home and remote token representations. For example, if the home token has 18 decimals and the remote representation uses 6, the multiplier is 10^12 to scale amounts appropriately during cross-chain transfers."
+        }
+      ]
+    },
+    "127": {
+      "question": "Can there be multiple TokenRemotes for a single TokenHome?",
+      "hint": "Think about how tokens are transferred between chains and where they originate from.",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "explanation": "Yes, there can be multiple TokenRemotes for a single TokenHome. This allows the same token to be bridged to multiple chains, enabling cross-chain interoperability and use cases across different blockchain networks.",
+      "chapter": "Interchain Token Transfer",
+      "alternates": [
+        {
+          "question": "What constraint applies to the relationship between TokenHome and TokenRemote contracts in the ICTT design?",
+          "options": [
+            "Each token must have exactly one TokenHome and exactly one TokenRemote contract",
+            "Multiple TokenHome contracts can exist for the same token across different chains",
+            "Each token can have only one TokenHome contract but can have multiple TokenRemote contracts on different chains",
+            "TokenRemote contracts can operate independently without any TokenHome contract"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about where the canonical version of the token must live and how it can be represented elsewhere.",
+          "explanation": "In the ICTT design, each token must have exactly one TokenHome contract on its origin chain, which serves as the canonical source. However, there can be multiple TokenRemote contracts deployed on different chains, each representing the token on that respective chain."
+        },
+        {
+          "question": "What happens if a user bridges a token from Chain A (Home) to Chain B (Remote) and then wants to bridge it further to Chain C?",
+          "options": [
+            "The user must bridge back to Chain A first, then bridge from Chain A to Chain C, since multi-hop is not directly supported",
+            "The token can be bridged directly from Chain B to Chain C if a TokenRemote exists on Chain C",
+            "Multiple TokenRemotes for a single TokenHome enable direct transfers between any two remote chains",
+            "Chain C must deploy its own TokenHome contract to receive the token from Chain B"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the hub-and-spoke model where the Home contract is the central point for all transfers.",
+          "explanation": "In the ICTT design, all transfers must route through the TokenHome contract. To move tokens from one remote chain to another, the user must first bridge back to the home chain and then bridge out to the target chain. Direct remote-to-remote transfers are not supported in the base design."
+        }
+      ]
+    }
+  }
+}

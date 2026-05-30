@@ -1,0 +1,9 @@
+{
+  "title": "Avalanche L1s",
+  "defaultOpen": true,
+  "pages": [
+    "subnet-evm",
+    "avalanche-l1-configs"
+  ]
+}
+

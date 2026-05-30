@@ -16,7 +16,7 @@ export function ActiveNavHighlighter() {
 
     // Determine which section is active and find matching nav items
     let activeSection = '';
-    
+
     if (pathname.startsWith('/docs')) {
       activeSection = '/docs';
     } else if (pathname.startsWith('/academy')) {
@@ -27,16 +27,18 @@ export function ActiveNavHighlighter() {
       activeSection = '/guides'; // Blog menu has url '/guides'
     } else if (pathname.startsWith('/integrations')) {
       activeSection = '/integrations';
+    } else if (pathname.startsWith('/explorer')) {
+      activeSection = '/explorer';
     } else if (pathname.startsWith('/stats')) {
       activeSection = '/stats';
-    } else if (pathname.startsWith('/events') || pathname.startsWith('/hackathons')) {
+    } else if (pathname.startsWith('/hackathons') || pathname.startsWith('/events')) {
       activeSection = '/events';
-    } else if (pathname.startsWith('/grants') || pathname.startsWith('/codebase')) {
+    } else if (pathname.startsWith('/grants')) {
       activeSection = '/grants';
     } else if (pathname.startsWith('/university')) {
       activeSection = '/university';
-    } else if (pathname.startsWith('/codebase-entrepreneur-academy')) {
-      activeSection = '/codebase-entrepreneur-academy';
+    } else if (pathname.startsWith('/chat')) {
+      activeSection = '/chat';
     }
 
     if (activeSection) {
@@ -47,13 +49,18 @@ export function ActiveNavHighlighter() {
         if (href) {
           // Check if this link's href matches or starts with the active section
           if (href === activeSection || href.startsWith(activeSection + '/')) {
-            // Special handling for docs (which might have url '/docs/quick-start')
-            if (activeSection === '/docs' && (href === '/docs/quick-start' || href.startsWith('/docs/'))) {
+            // Special handling for docs
+            if (activeSection === '/docs' && href.startsWith('/docs/')) {
               link.setAttribute('data-active', 'true');
               link.setAttribute('aria-current', 'page');
             }
             // Handle stats which has url '/stats/overview'
             else if (activeSection === '/stats' && href.startsWith('/stats')) {
+              link.setAttribute('data-active', 'true');
+              link.setAttribute('aria-current', 'page');
+            }
+            // Handle explorer which has url '/explorer'
+            else if (activeSection === '/explorer' && href.startsWith('/explorer')) {
               link.setAttribute('data-active', 'true');
               link.setAttribute('aria-current', 'page');
             }
@@ -70,4 +77,3 @@ export function ActiveNavHighlighter() {
 
   return null; // This component doesn't render anything
 }
-

@@ -1,0 +1,466 @@
+import React, { useState, useEffect } from 'react';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { Button } from '@/components/toolbox/components/Button';
+import { Input } from '@/components/toolbox/components/Input';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
+import { Check } from 'lucide-react';
+import { extractWarpMessageFromReceipt } from '@avalanche-sdk/interchain/warp';
+import { validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
+import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
+import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { parsePChainError } from '@/components/toolbox/hooks/contracts';
+import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
+import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+
+export interface WeightUpdateEventData {
+  validationID: `0x${string}`;
+  nonce: bigint;
+  weight: bigint;
+  messageID?: `0x${string}`;
+  delegationID?: `0x${string}`;
+}
+
+export interface SubmitPChainTxWeightUpdateProps {
+  subnetIdL1: string;
+  initialEvmTxHash?: string;
+  signingSubnetId: string;
+  /** Label for the transaction hash input */
+  txHashLabel?: string;
+  /** Placeholder for the transaction hash input */
+  txHashPlaceholder?: string;
+  /** Optional additional info to display */
+  additionalInfo?: React.ReactNode;
+  /** Called on successful P-Chain transaction */
+  onSuccess: (pChainTxId: string, eventData?: WeightUpdateEventData) => void;
+  /** Called on error */
+  onError: (message: string) => void;
+}
+
+/**
+ * Generic component for submitting weight update transactions to P-Chain.
+ * Used for:
+ * - Validator weight changes (ChangeWeight flow)
+ * - Delegator registration (Delegation flow)
+ * - Delegator removal
+ * - Validator removal
+ *
+ * All these operations use setL1ValidatorWeight on P-Chain.
+ */
+const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
+  subnetIdL1,
+  initialEvmTxHash,
+  signingSubnetId,
+  txHashLabel = 'EVM Transaction Hash',
+  txHashPlaceholder = 'Enter the transaction hash from the previous step (0x...)',
+  additionalInfo,
+  onSuccess,
+  onError,
+}) => {
+  const { coreWalletClient, pChainAddress, isTestnet } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
+  const walletType = useWalletStore((s) => s.walletType);
+  const isCoreWallet = walletType === 'core';
+  const { aggregateSignature } = useAvalancheSDKChainkit();
+  const { notify } = useConsoleNotifications();
+  const { submitPChainTx } = useSubmitPChainTx();
+
+  const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
+  const [isAggregating, setIsAggregating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setErrorState] = useState<string | null>(null);
+  const [txSuccess, setTxSuccess] = useState<string | null>(null);
+  const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
+  const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
+  const [eventData, setEventData] = useState<WeightUpdateEventData | null>(null);
+  const [_manualPChainTxId, setManualPChainTxId] = useState('');
+
+  // Combined flag for places that don't care which on-chain op is in flight.
+  const isProcessing = isAggregating || isSubmitting;
+
+  // Update evmTxHash when initialEvmTxHash prop changes
+  useEffect(() => {
+    if (initialEvmTxHash && initialEvmTxHash !== evmTxHash) {
+      setEvmTxHash(initialEvmTxHash);
+    }
+  }, [initialEvmTxHash]);
+
+  // Extract warp message and event data when transaction hash changes
+  useEffect(() => {
+    let cancelled = false;
+    const extractWarpMessage = async () => {
+      const validTxHash = validateAndCleanTxHash(evmTxHash);
+      if (!chainPublicClient || !validTxHash) {
+        setUnsignedWarpMessage(null);
+        setEventData(null);
+        setSignedWarpMessage(null);
+        return;
+      }
+
+      try {
+        const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: validTxHash });
+        if (cancelled) return;
+        if (receipt.status !== 'success') {
+          throw new Error('The source transaction reverted. Check the transaction before proceeding.');
+        }
+
+        const extractedWarpMessage = extractWarpMessageFromReceipt(receipt);
+        if (cancelled) return;
+        setUnsignedWarpMessage(extractedWarpMessage);
+
+        // Try to extract event data from different event types
+        // InitiatedValidatorWeightUpdate: 0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3
+        // InitiatedDelegatorRegistration: look for events with delegation ID
+        const weightUpdateEventTopic = '0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3';
+
+        const weightEventLog = receipt.logs.find((log) => {
+          return (
+            log && log.topics && log.topics[0] && log.topics[0].toLowerCase() === weightUpdateEventTopic.toLowerCase()
+          );
+        });
+
+        if (weightEventLog) {
+          // Parse InitiatedValidatorWeightUpdate event
+          const dataWithoutPrefix = weightEventLog.data.slice(2);
+          const nonce = BigInt('0x' + dataWithoutPrefix.slice(0, 64));
+          const messageID = '0x' + dataWithoutPrefix.slice(64, 128);
+          const weight = BigInt('0x' + dataWithoutPrefix.slice(128, 192));
+
+          setEventData({
+            validationID: weightEventLog.topics[1] as `0x${string}`,
+            nonce,
+            messageID: messageID as `0x${string}`,
+            weight,
+          });
+        } else {
+          // Try to find any event with indexed bytes32 topics (generic weight update)
+          const genericEventLog = receipt.logs.find((log) => {
+            return log && log.topics && log.topics.length >= 2 && log.data && log.data.length > 2;
+          });
+
+          if (genericEventLog && genericEventLog.data.length >= 130) {
+            const dataWithoutPrefix = genericEventLog.data.slice(2);
+            const nonce = BigInt('0x' + dataWithoutPrefix.slice(0, 64));
+            const weight = dataWithoutPrefix.length >= 128 ? BigInt('0x' + dataWithoutPrefix.slice(64, 128)) : 0n;
+
+            setEventData({
+              validationID: genericEventLog.topics[1] as `0x${string}`,
+              delegationID: (genericEventLog.topics[2] as `0x${string}`) || undefined,
+              nonce,
+              weight,
+            });
+          }
+        }
+
+        setErrorState(null);
+      } catch (err: any) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : String(err);
+        setErrorState(`Failed to extract warp message: ${message}`);
+        setUnsignedWarpMessage(null);
+        setEventData(null);
+        setSignedWarpMessage(null);
+      }
+    };
+
+    extractWarpMessage();
+    return () => {
+      cancelled = true;
+    };
+  }, [evmTxHash, chainPublicClient]);
+
+  /**
+   * Step 2: aggregate BLS signatures from the warp's signing subnet.
+   * Independent from submission so the user can retry aggregation (e.g. on a
+   * partial-quorum result) without committing to a P-Chain transaction.
+   */
+  const handleAggregateSignatures = async () => {
+    setErrorState(null);
+
+    if (!evmTxHash.trim()) {
+      setErrorState('EVM transaction hash is required.');
+      onError('EVM transaction hash is required.');
+      return;
+    }
+    if (!subnetIdL1) {
+      setErrorState('L1 Subnet ID is required.');
+      onError('L1 Subnet ID is required.');
+      return;
+    }
+    if (!unsignedWarpMessage) {
+      setErrorState('Unsigned warp message not found. Check the transaction hash.');
+      onError('Unsigned warp message not found.');
+      return;
+    }
+    if (!signingSubnetId) {
+      const msg =
+        'Signing subnet ID not available. The validator manager details may still be loading — wait a moment and retry.';
+      setErrorState(msg);
+      onError(msg);
+      return;
+    }
+
+    setIsAggregating(true);
+    try {
+      const aggregateSignaturePromise = aggregateSignature({
+        message: unsignedWarpMessage,
+        signingSubnetId,
+        quorumPercentage: 67,
+      });
+
+      notify({ type: 'local', name: 'Aggregate Signatures' }, aggregateSignaturePromise);
+
+      const { signedMessage } = await aggregateSignaturePromise;
+      setSignedWarpMessage(signedMessage);
+    } catch (err: any) {
+      const message = parsePChainError(err);
+      setErrorState(`Signature aggregation failed: ${message}`);
+      onError(`Signature aggregation failed: ${message}`);
+    } finally {
+      setIsAggregating(false);
+    }
+  };
+
+  /**
+   * Step 3: submit the signed warp to P-Chain via setL1ValidatorWeight.
+   * Only enabled once aggregation has produced a signed message. Core wallets
+   * use this button; non-Core wallets fall back to the CLI panel.
+   */
+  const handleSubmitToPChain = async () => {
+    setErrorState(null);
+    setTxSuccess(null);
+
+    if (!signedWarpMessage) {
+      const msg = 'No signed warp message — aggregate signatures first.';
+      setErrorState(msg);
+      onError(msg);
+      return;
+    }
+    if (isCoreWallet && !coreWalletClient) {
+      setErrorState('Core wallet not found');
+      return;
+    }
+    if (isCoreWallet && !pChainAddress) {
+      setErrorState('P-Chain address is missing. Please connect your wallet.');
+      onError('P-Chain address is missing.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const pChainTxId = await submitPChainTx(async (client) => {
+        const pChainTxIdPromise = client.setL1ValidatorWeight({
+          signedWarpMessage: signedWarpMessage,
+        });
+        notify('setL1ValidatorWeight', pChainTxIdPromise);
+        return pChainTxIdPromise;
+      });
+
+      await waitForPChainConfirmation(pChainTxId, isTestnet);
+
+      setTxSuccess(pChainTxId);
+      onSuccess(pChainTxId, eventData || undefined);
+    } catch (err: any) {
+      const message = parsePChainError(err);
+      setErrorState(`P-Chain submission failed: ${message}`);
+      onError(`P-Chain submission failed: ${message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleTxHashChange = (value: string) => {
+    setEvmTxHash(value);
+    setErrorState(null);
+    setTxSuccess(null);
+    setSignedWarpMessage(null);
+    setManualPChainTxId('');
+  };
+
+  const handleContinueWithManualTxId = (pChainTxId: string) => {
+    setTxSuccess(pChainTxId);
+    onSuccess(pChainTxId, eventData || undefined);
+  };
+
+  const generateCLICommand = () => {
+    if (!signedWarpMessage) return '';
+    const network = isTestnet ? 'fuji' : 'mainnet';
+    return [
+      `platform l1 set-weight \\`,
+      `  --message "${signedWarpMessage}" \\`,
+      `  --network ${network} \\`,
+      `  --key-name <your-key-name>`,
+    ].join('\n');
+  };
+
+  // Don't render if no subnet is selected
+  if (!subnetIdL1) {
+    return <div className="text-sm text-zinc-500 dark:text-zinc-400">Please select an L1 subnet first.</div>;
+  }
+
+  const step1Complete = !!unsignedWarpMessage;
+  const step2Complete = !!signedWarpMessage;
+  const step3Complete = !!txSuccess;
+
+  return (
+    <div className="space-y-3">
+      {error && <Alert variant="error">{error}</Alert>}
+
+      {/* Step 1: Extract Warp Message */}
+      <StepFlowCard
+        step={1}
+        title="Extract Warp Message"
+        description="Enter the EVM transaction hash to extract the unsigned Warp message"
+        isComplete={step1Complete}
+      >
+        <div className="mt-2">
+          <Input
+            label={txHashLabel}
+            value={evmTxHash}
+            onChange={handleTxHashChange}
+            placeholder={txHashPlaceholder}
+            disabled={isProcessing || txSuccess !== null}
+          />
+        </div>
+        {additionalInfo}
+        {step1Complete && eventData && (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
+              <span className="text-green-600 font-sans font-medium">Validation ID:</span>
+              <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">
+                {eventData.validationID}
+              </code>
+            </div>
+            {eventData.weight > 0n && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-green-600 dark:text-green-400 font-medium">New Weight:</span>
+                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                  {eventData.weight.toString()}
+                </code>
+              </div>
+            )}
+            {eventData.delegationID && (
+              <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
+                <span className="text-green-600 font-sans font-medium">Delegation ID:</span>
+                <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">
+                  {eventData.delegationID}
+                </code>
+              </div>
+            )}
+            <details className="mt-1">
+              <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                Show unsigned Warp message ({unsignedWarpMessage ? unsignedWarpMessage.length / 2 : 0} bytes)
+              </summary>
+              <div className="mt-1">
+                <DynamicCodeBlock lang="text" code={unsignedWarpMessage || ''} />
+              </div>
+            </details>
+          </div>
+        )}
+      </StepFlowCard>
+
+      {/* Step 2: Aggregate BLS signatures from the warp's signing subnet. */}
+      <StepFlowCard
+        step={2}
+        title="Aggregate Signatures"
+        description="Collect BLS signatures from the signing subnet's validators (67% quorum required)"
+        isComplete={step2Complete}
+        isActive={step1Complete && !step2Complete}
+      >
+        {step2Complete && (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+              <Check className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">Signatures aggregated</span>
+            </div>
+            <details>
+              <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                Show signed Warp message ({signedWarpMessage ? signedWarpMessage.length / 2 : 0} bytes)
+              </summary>
+              <div className="mt-1">
+                <DynamicCodeBlock lang="text" code={signedWarpMessage || ''} />
+              </div>
+            </details>
+            {!step3Complete && (
+              <button
+                type="button"
+                onClick={handleAggregateSignatures}
+                disabled={isProcessing}
+                className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+              >
+                Re-aggregate signatures
+              </button>
+            )}
+          </div>
+        )}
+        {!step2Complete && step1Complete && !step3Complete && (
+          <div className="mt-2">
+            <Button
+              onClick={handleAggregateSignatures}
+              disabled={isAggregating || !unsignedWarpMessage}
+              loading={isAggregating}
+              className="w-full"
+            >
+              {isAggregating ? 'Aggregating signatures…' : 'Aggregate Signatures'}
+            </Button>
+          </div>
+        )}
+      </StepFlowCard>
+
+      {/* Step 3: Submit the signed warp to P-Chain. Distinct from aggregation
+          so a partial-quorum aggregation can be retried independently without
+          re-prompting the wallet for a P-Chain signature. */}
+      <StepFlowCard
+        step={3}
+        title="Submit to P-Chain"
+        description="Send the signed warp message in a setL1ValidatorWeight transaction"
+        isComplete={step3Complete}
+        isActive={step2Complete && !step3Complete}
+      >
+        {step3Complete && txSuccess && (
+          <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
+            <Check className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">
+              P-Chain tx confirmed:{' '}
+              <code className="font-mono text-[11px] bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
+                {txSuccess}
+              </code>
+            </span>
+          </div>
+        )}
+        {!step3Complete && step2Complete && (
+          <div className="mt-2">
+            {isCoreWallet ? (
+              <CoreWalletTransactionButton
+                onClick={handleSubmitToPChain}
+                loading={isSubmitting}
+                loadingText="Submitting to P-Chain…"
+                disabled={isSubmitting || !signedWarpMessage}
+                className="w-full"
+              >
+                Submit to P-Chain
+              </CoreWalletTransactionButton>
+            ) : (
+              // Non-Core wallets don't sign P-Chain txs directly — the CLI
+              // panel below handles submission and accepts a manual tx ID.
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Submit via the CLI command below, then paste the resulting P-Chain transaction ID.
+              </p>
+            )}
+          </div>
+        )}
+      </StepFlowCard>
+
+      {/* Non-Core: CLI command for manual submission */}
+      {!isCoreWallet && signedWarpMessage && !txSuccess && (
+        <PChainManualSubmit cliCommand={generateCLICommand()} onSubmit={handleContinueWithManualTxId} />
+      )}
+    </div>
+  );
+};
+
+export default SubmitPChainTxWeightUpdate;

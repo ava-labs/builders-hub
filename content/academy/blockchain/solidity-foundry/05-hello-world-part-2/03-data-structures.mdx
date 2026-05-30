@@ -1,0 +1,187 @@
+---
+title: Data Structures
+description: More about Solidity
+updated: 2024-06-28
+authors: [Andrea Vargas, Ash, martineckardt, katherineavalabs]
+icon: BookOpen
+---
+Like with all programming languages, Solidity offers us a way to store multiple values in one location via built-in data structures. In this section, we will look at the following:
+- Mappings
+- Structs
+- Static Arrays
+- Dynamic Arrays
+
+Let's get started!
+
+## Mappings
+
+Mappings in Solidity are similar to data structures like dictionaries found in other programming languages (e.g. Python). At its most basic level, mappings allow us to store key-value pairs. Unlike the types we explored earlier in this course, mappings can only be instantiated as state variables (i.e. we cannot create a new mapping data structure within the body of a function). Furthermore, declaring a mapping and defining key-values of a pair must be done separately. Below is the general syntax for a mapping:
+```solidity
+mapping(<key-type> => (value-type)) <optional-visibility> <mapping-name>;
+```
+
+Below shows an example of how to define a key-value pair within a mapping:
+
+```solidity
+mapping(address => uint) map;
+​
+map[0xc0ffee254729296a45a3885639AC7E10F9d54979] = 5;
+```
+## Nested Mappings
+
+Below are some restrictions regarding mappings:
+- Keys can be any simple type (i.e. types associated with a singular value)
+- Values can be any type
+
+Since values can be any type, and mappings are types by definition, this implies that we can map keys to mappings! Therefore, the following is legal syntax:
+
+```solidity
+mapping(uint => mapping(uint => address)) mapTwo;
+```
+
+To work with inner mappings, the following code snippet gives an idea as to how to access such values:
+
+```solidity
+address addr = mapTwo[5][6];
+```
+
+<Quiz quizId="507"/>
+
+## Structs
+The next type of data structure that we will examine are structs. For those who have worked with C++ or any other similar programming languages, structs in Solidity are the same concept. Structs, or structures, are data structures which allow us to group multiple values. We can think of structs as very basic classes, except that they lack any sort of behavior and are solely used to store information. Like mappings, we first must define the layout of a struct within the body of a smart contract; below is an example of how we would do so:
+
+```solidity
+struct Person {
+    uint256 age;
+    string name;
+}
+```
+To create an instance of a struct as a state variable, we can use the following syntax:
+
+```solidity
+Person person = Person(5, "Rodrigo");
+```
+
+> If you try using the syntax above in the body of a function, you will get an error regarding the location of the person variable. Since structs are a grouping of values, we must explictly state where these values are stored (either in memory or in storage). Therefore, we would want to use the following:
+
+```solidity
+Person memory person = Person(5, "Rodrigo")
+```
+
+### Understanding Memory vs Storage
+
+In Solidity, **storage** and **memory** refer to where data is stored:
+
+- **Storage**: Data stored permanently on the blockchain. This is where state variables live, and any changes to storage persist across function calls. Reading from and writing to storage costs gas, making it more expensive.
+
+- **Memory**: Temporary data that exists only during the execution of a function. Once the function completes, memory is cleared. Using memory is cheaper in terms of gas costs, but the data doesn't persist after the function ends.
+
+When creating structs inside functions, Solidity requires you to specify the location because it needs to know whether you're creating a temporary copy (memory) or modifying persistent data (storage). For most cases where you're just working with data within a function, you'll use `memory`.
+
+<Quiz quizId="508"/>
+
+## Static Arrays
+The majority of programming languages provide some built-in data structures similar to lists. Solidity is no different in that it provides two types of list-like data structures:
+
+- Static arrays
+- Dynamic Arrays
+
+Focusing first on static arrays, these are lists whose **length is fixed at the time of initialization**. This means that once a static array has been initialized, its length will never change. Below is the syntax to declare a static array:
+
+```solidity
+<array-type>[<array-size>] <array-name>;
+```
+Below is an example of declaring a static array:
+```solidity
+uint[5] arr;
+```
+With regards to declaring the value of a static array, we have two options:
+- to declare it in memory, or
+- to declare it in storage
+This will not change the way in which we declare and define them, but we'll see their differences after going through their basic syntax. We'll use a memory array as an example.
+
+For declaring an array we might do the following:
+```solidity
+<array-type>[<array-size>] memory <array-name>;
+```
+Then, we could declare individual values via indexing; an example of this can be found below:
+```solidity
+function test() public {
+        uint[5] memory arr;
+        arr[2] = 4;
+    }
+```
+If we want to both declare and define a static array in memory, we can use the following:
+
+```solidity
+uint8[5] memory arr = [1, 2, 3, 4, 5];
+```
+
+### Key Differences: Memory vs Storage Arrays
+So, if they are declared and defined in the same way, what makes static arrays in memory or storage different from each other? (appart from where they are stored)
+
+The answer is in how they're laid out and accessed:
+
+**Storage Arrays:**
+- **Packed Layout**: Elements are packed efficiently to minimize gas costs. For example, a `uint8[4]` array in storage occupies a single 32-byte slot, with each `uint8` element taking up 1 byte. This packing optimization reduces storage costs significantly.
+- **Reference**: See [Layout of State Variables in Storage](https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html) in the Solidity documentation.
+
+**Memory Arrays:**
+- **Aligned Layout**: Each element occupies a full 32-byte slot, regardless of its actual size. This alignment is designed for efficient EVM access. For example, a `uint8[4]` array in memory consumes 128 bytes (4 elements × 32 bytes each), even though each element only needs 1 byte.
+- **Reference**: See [Layout in Memory](https://docs.soliditylang.org/en/latest/internals/layout_in_memory.html) in the Solidity documentation.
+
+These layout differences mean that:
+- Storage arrays are more gas-efficient for storing data long-term due to packing
+- Memory arrays are optimized for fast read/write access during function execution
+- The same array type can consume vastly different amounts of space depending on its location
+
+## Dynamic Arrays
+
+Dynamic arrays differ from static arrays in a key way: **static arrays have a size that must be known at compile time** (like `uint[5]`), while **dynamic arrays can have a size determined at runtime**. However, the behavior of dynamic arrays depends on whether they're in storage or memory.
+
+### Dynamic Arrays in Storage
+
+When declared as state variables, dynamic arrays are stored in storage and can be resized dynamically throughout the contract's lifetime. Below is an example of how we would declare a dynamic array in storage:
+
+```solidity
+<array-type>[] <array-name>;
+```
+
+By default, a dynamic array in storage will be empty (in contrast with static arrays, which will be filled with the default value of the array type). Therefore, we can use the following associated methods to manipulate the state of a dynamic array:
+- `push`: pushes an element to the end of the dynamic array
+- `pop`: removes the last element of a dynamic array
+
+Below is an example of the methods above in action:
+```solidity
+uint[] arr;
+
+function test() public {
+    arr.push(1);
+    arr.pop();
+}
+```
+
+### Dynamic Arrays in Memory
+
+Dynamic arrays can also be created in memory, but with important restrictions:
+
+1. **Size determined at runtime**: Unlike static arrays (where size is compile-time), dynamic arrays in memory can have their size determined at runtime using the `new` keyword
+2. **Fixed size once created**: Once allocated, the size cannot change (no `push` or `pop` methods)
+3. **Temporary**: Memory arrays only exist during function execution
+
+Here's the key difference:
+
+```solidity
+function example(uint size) public {
+    // Static array: size must be known at compile time
+    uint[5] memory staticArr;  // Size is hardcoded
+    
+    // Dynamic array in memory: size can be determined at runtime
+    uint[] memory dynamicArr = new uint[](size);  // Size comes from parameter
+    // dynamicArr.push(1);  // Error: push/pop not available in memory
+}
+```
+
+The distinction between static and dynamic arrays is about **when the size is determined** (compile-time vs runtime). Dynamic arrays in storage can grow/shrink, while dynamic arrays in memory have a runtime-determined size that becomes fixed once created.
+
+<Quiz quizId="513"/> 

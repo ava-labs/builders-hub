@@ -39,7 +39,7 @@ AvalancheGo, the node client that is running the Avalanche validators is under c
 
 That's why having a node upgrade strategy is absolutely vital, and you should always update to the latest AvalancheGo client immediately when it is made available.
 
-For a general guide on upgrading AvalancheGo check out [this tutorial](/docs/nodes/maintain/upgrade). When upgrading Avalanche L1 nodes and keeping in mind the previous section, make sure to stagger node upgrades and start a new upgrade only once the previous node has successfully upgraded. Use the [Health API](/docs/api-reference/health-api#healthhealth) to check that `healthy` value in the response is `true` on the upgraded node, and on other Avalanche L1 validators check that [platform.getCurrentValidators()](/docs/api-reference/p-chain/api#platformgetcurrentvalidators) has `true` in `connected` attribute for the upgraded node's `nodeID`. Once those two conditions are satisfied, node is confirmed to be online and validating the Avalanche L1 and you can start upgrading another node.
+For a general guide on upgrading AvalancheGo check out [this tutorial](/docs/nodes/maintain/upgrade). When upgrading Avalanche L1 nodes and keeping in mind the previous section, make sure to stagger node upgrades and start a new upgrade only once the previous node has successfully upgraded. Use the [Health API](/docs/rpcs/other/health-rpc#healthhealth) to check that `healthy` value in the response is `true` on the upgraded node, and on other Avalanche L1 validators check that [platform.getCurrentValidators()](/docs/rpcs/p-chain#platformgetcurrentvalidators) has `true` in `connected` attribute for the upgraded node's `nodeID`. Once those two conditions are satisfied, node is confirmed to be online and validating the Avalanche L1 and you can start upgrading another node.
 
 Continue the upgrade cycle until all the Avalanche L1 nodes are upgraded.
 
@@ -74,7 +74,7 @@ cp subnet-evm ~/avalanche-node/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7Fmg
 Make sure you use the correct VM ID, otherwise, your VM will not get updated and your Avalanche L1 may halt.
 </Callout>
 
-After you do that, you can start the node back up (if running as service do `sudo systemctl start avalanchego`). You can monitor the log output on the node to check that everything is OK, or you can use the [info.getNodeVersion()](/docs/api-reference/info-api#infogetnodeversion) API to check the versions. Example output would look like:
+After you do that, you can start the node back up (if running as service do `sudo systemctl start avalanchego`). You can monitor the log output on the node to check that everything is OK, or you can use the [info.getNodeVersion()](/docs/rpcs/other/info-rpc#infogetnodeversion) API to check the versions. Example output would look like:
 
 ```json
 {
@@ -111,7 +111,7 @@ Sometimes you need to do a network upgrade to change the configured rules in the
 - Mint Native Coins
 - Configure Dynamic Fees
 
-Please refer to [Customize an Avalanche L1](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) for a detailed discussion of possible precompile upgrade parameters.
+Please refer to [Customize an Avalanche L1](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) for a detailed discussion of possible precompile upgrade parameters.
 
 Summary[​](#summary "Direct link to heading")
 ---------------------------------------------

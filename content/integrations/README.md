@@ -46,7 +46,7 @@ documentation: https://docs.yourwebsite.com/
 |-------|------|-------------|---------|
 | `title` | string | Display name of your integration | `"Chainlink"` |
 | `category` | string | Category (see list below) | `"Oracles"` |
-| `available` | array | Supported networks | `["C-Chain"]`, `["C-Chain", "All EVM L1s"]` |
+| `available` | array | Supported networks | `["C-Chain"]`, `["C-Chain", "All Avalanche L1s"]` |
 | `description` | string | One-sentence overview | `"Decentralized oracle network providing reliable data feeds."` |
 | `logo` | string | Path to logo in `/public/images/` | `/images/chainlink.png` |
 | `developer` | string | Company or developer name | `"Chainlink Labs"` |
@@ -172,7 +172,7 @@ offering [key differentiators].
 ---
 title: Example Protocol
 category: DeFi
-available: ["C-Chain", "All EVM L1s"]
+available: ["C-Chain", "All Avalanche L1s"]
 description: "Example Protocol provides decentralized lending and borrowing on Avalanche with competitive rates."
 logo: /images/example-protocol.png
 developer: Example Labs

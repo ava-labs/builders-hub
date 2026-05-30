@@ -1,6 +1,5 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
 import { UserButton } from "./UserButton";
 import { useEffect, useState } from "react";
 
@@ -11,12 +10,13 @@ export function UserButtonWrapper() {
     setIsMounted(true);
   }, []);
 
-  // Only render after the component is mounted and SessionProvider is available
   if (!isMounted) {
     return null;
   }
 
-  return <SessionProvider>
-    <UserButton />
-  </SessionProvider>;
+  return (
+    <div className="flex items-center">
+      <UserButton />
+    </div>
+  );
 }

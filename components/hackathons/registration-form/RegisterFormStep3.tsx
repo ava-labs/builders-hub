@@ -7,30 +7,76 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
 import { useFormContext } from "react-hook-form";
-import { RegisterFormValues } from "./RegistrationForm"; 
+import { RegisterFormValues } from "./RegistrationForm";
 import { Checkbox } from "@/components/ui/checkbox";
+import { GroupedUserConsents, type GroupedConsentItem } from "@/components/common/grouped-user-consents";
+import { EventsLang, t } from "@/lib/events/i18n";
 
 interface RegisterFormStep3Props {
   isOnlineHackathon: boolean;
+  lang?: EventsLang;
+  showNotificationsConsent?: boolean;
+  showSharingConsent?: boolean;
+  /** Team1-organized event — sharing consent is mandatory to register. */
+  requireSharingConsent?: boolean;
 }
 
-export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props) {
+export function RegisterFormStep3({
+  isOnlineHackathon,
+  lang = "en",
+  showNotificationsConsent = false,
+  showSharingConsent = false,
+  requireSharingConsent = false,
+}: RegisterFormStep3Props) {
   const form = useFormContext<RegisterFormValues>();
+  const sharingError = form.formState.errors.user_consent_sharing?.message as
+    | string
+    | undefined;
+
+  const consentItems: GroupedConsentItem[] = [];
+  if (showNotificationsConsent) {
+    consentItems.push({
+      key: "user_notifications",
+      label: t(lang, "consents.notifications.label"),
+      hint: t(lang, "consents.notifications.hint"),
+      checked: form.watch("user_notifications") ?? false,
+      onCheckedChange: (next) =>
+        form.setValue("user_notifications", next, { shouldDirty: true }),
+    });
+  }
+  if (showSharingConsent) {
+    consentItems.push({
+      key: "user_consent_sharing",
+      label:
+        t(lang, "consents.consentSharing.label") +
+        (requireSharingConsent ? " *" : ""),
+      hint: t(lang, "consents.consentSharing.hint"),
+      checked: form.watch("user_consent_sharing") ?? false,
+      onCheckedChange: (next) => {
+        form.setValue("user_consent_sharing", next, { shouldDirty: true });
+        if (next && sharingError) {
+          form.clearErrors("user_consent_sharing");
+        }
+      },
+    });
+  }
 
   return (
     <>
-      {/* Step 3: Terms & Agreements */}
+      {/* Step 2: Terms & Agreements */}
    
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground">Step 3: Terms & Agreements</h3>
-        <p className="text-zinc-400">Review and agree to the terms to complete your registration. For information about our privacy practices and commitment to protecting your privacy, please review our <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline"> Avalanche Privacy Policy. </a></p>
-        <div className="w-full h-px bg-zinc-300 mt-2" /> 
+        <h3 className="text-lg font-semibold text-foreground">{t(lang, "reg.step3.title")}</h3>
+        <p className="text-zinc-400">
+          {t(lang, "reg.step3.subtitle")}{" "}
+          <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+            {t(lang, "reg.step3.privacyLink")}
+          </a>
+        </p>
+        <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
       <div className="space-y-6">
-
-
         <FormField
           control={form.control}
           name="terms_event_conditions"
@@ -45,37 +91,35 @@ export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props)
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>
-                  I have read and agree to the Event Participation <a href="https://assets.website-files.com/602e8e4411398ca20cfcafd3/63fe6be7e0d14da8cbdb9984_Avalanche%20Events%20Participation%20Terms%20and%20Conditions%20(Final_28Feb2023).docx.pdf" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Terms and Conditions.</a> *
+                  {t(lang, "reg.step3.terms.label")}{" "}
+                  <a href="https://assets.website-files.com/602e8e4411398ca20cfcafd3/63fe6be7e0d14da8cbdb9984_Avalanche%20Events%20Participation%20Terms%20and%20Conditions%20(Final_28Feb2023).docx.pdf" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                    {t(lang, "reg.step3.terms.link")}
+                  </a>
+                  {t(lang, "reg.step3.terms.connector")}
+                  <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                    {t(lang, "reg.step3.privacyLink")}
+                  </a> *
                 </FormLabel>
-                <FormMessage className="text-zinc-400">
-                  You must agree to participate in any Builder Hub events. Event Terms and Conditions.
-                </FormMessage>
+                <p className="text-zinc-400 text-sm">
+                  {t(lang, "reg.step3.terms.hint")}
+                </p>
+                <FormMessage />
               </div>
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="newsletter_subscription"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-black rounded"
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>I wish to stay informed about Avalanche news and events.</FormLabel>
-                <FormMessage className="text-zinc-400">
-                  Subscribe to newsletters and promotional materials. You can opt out anytime.
-                </FormMessage>
-              </div>
-            </FormItem>
-          )}
-        />
+        {consentItems.length > 0 && (
+          <div className="space-y-2">
+            <GroupedUserConsents
+              groupLabel={t(lang, "consents.group.label")}
+              items={consentItems}
+            />
+            {sharingError ? (
+              <p className="text-sm text-red-500">{sharingError}</p>
+            ) : null}
+          </div>
+        )}
 
         {/* Only show prohibited items for in-person hackathons */}
         {!isOnlineHackathon && (
@@ -92,10 +136,11 @@ export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props)
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel>I agree not to bring any of the following prohibited items. *</FormLabel>
-                  <FormMessage className="text-zinc-400">
-                    Review the list of restricted items before attending in-person events.
-                  </FormMessage>
+                  <FormLabel>{t(lang, "reg.step3.prohibited.label")}</FormLabel>
+                  <p className="text-zinc-400 text-sm">
+                    {t(lang, "reg.step3.prohibited.hint")}
+                  </p>
+                  <FormMessage />
                 </div>
               </FormItem>
             )}

@@ -1,0 +1,180 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for Avalanche Deploy — SSH connectivity, node sync, L1 creation, RPC access, genesis configuration, snapshots, migration, and add-on debugging.
+---
+
+## Connection Issues
+
+### Ansible Cannot Connect to Nodes
+
+**Symptom**: SSH connection timeouts or permission denied errors.
+
+**Solutions**:
+1. Verify the SSH key path in `ansible/inventory/<cloud>_hosts` matches your key
+2. Check that your security group allows SSH (port 22) from your current IP
+3. Confirm the instance is running: `make status`
+
+```bash
+# Test SSH manually
+ssh -i ~/.ssh/avalanche-deploy ubuntu@<node-ip>
+```
+
+<Callout type="info">
+Terraform auto-detects your operator IP for firewall rules. If your IP changes (VPN, new network), re-run `make infra` to update security groups.
+</Callout>
+
+### Nodes Not Syncing
+
+**Symptom**: P-Chain stays at `NOT_BOOTSTRAPPED`.
+
+**Solutions**:
+1. Check node logs for errors: `make logs`
+2. Verify the P2P port (9651) is open in your security group
+3. Ensure nodes can reach Primary Network bootstrap nodes
+
+```bash
+# Check node health
+ssh ubuntu@<node-ip> "curl -s localhost:9650/ext/health"
+```
+
+## L1 Creation Issues
+
+### "Insufficient Funds"
+
+**Symptom**: The `create-l1` tool fails with an insufficient funds error.
+
+**Solution**: Fund your P-Chain address:
+1. Get test AVAX from the [Builder Hub Faucet](https://build.avax.network/tools/faucet)
+2. Use Core Wallet to cross-chain transfer from C-Chain to P-Chain
+
+### "Illegal Name Character"
+
+**Symptom**: Chain creation fails with an illegal name character error.
+
+**Solution**: Chain names must be alphanumeric only — no hyphens, underscores, or special characters:
+
+```bash
+# Incorrect
+--chain-name=my-chain
+
+# Correct
+--chain-name=mychain
+```
+
+## RPC Access Issues
+
+### Cannot Reach RPC Endpoint
+
+**Symptom**: Connection refused when accessing RPC on port 9650.
+
+**Explanation**: Validators do not expose port 9650 publicly for security. Only RPC nodes have this port open.
+
+**Solutions**:
+1. Use RPC node IPs (not validator IPs)
+2. Use the eRPC load balancer at `http://<monitoring-ip>:4000`
+3. For development, use an SSH tunnel:
+
+```bash
+ssh -i ~/.ssh/avalanche-deploy -L 9650:localhost:9650 ubuntu@<validator-ip>
+```
+
+## Genesis Configuration
+
+### "Warp Cannot Be Activated Before Durango"
+
+**Symptom**: Chain fails to start with a warp activation error.
+
+**Solution**: Ensure your genesis file includes the Durango timestamp:
+
+```json
+{
+  "config": {
+    "durangoTimestamp": 0
+  }
+}
+```
+
+## Snapshot Issues
+
+### Checksum Verification Failed
+
+**Symptom**: Snapshot restore fails checksum verification.
+
+**Solutions**:
+1. Re-download the snapshot (may have been corrupted in transit)
+2. Try a different snapshot: `make list-snapshots CLOUD=aws`
+3. Skip verification if needed (not recommended): remove `-e verify_integrity=true`
+
+### Insufficient Disk Space
+
+**Symptom**: Not enough space during snapshot creation or restore.
+
+**Solutions**:
+1. Use a larger instance type with more storage
+2. Clean up temporary files: `sudo rm -rf /tmp/snapshot*`
+3. For verified restore mode, ensure 3x the snapshot size is available (download + extract + verify)
+
+## Migration Issues
+
+### Target Node Not Fully Synced
+
+**Symptom**: Migration fails with a sync check error.
+
+**Solution**: Wait for all chains to complete syncing before migrating:
+
+```bash
+./scripts/primary-network/check-sync.sh <target-ip>
+```
+
+All chains (P, X, C) must report `SYNCED`.
+
+### Both Validators Appear Active After Migration
+
+**Symptom**: Both old and new validators show as active briefly after migration.
+
+**Explanation**: This is expected. The old validator becomes inactive after missing its next validation slot. Verify the migration was successful:
+
+```bash
+curl -s http://<new-ip>:9650/ext/info -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' | jq .result.nodeID
+```
+
+The NodeID should match the original validator.
+
+## Add-On Issues
+
+### Blockscout Not Indexing
+
+**Symptom**: Block explorer shows no transactions.
+
+**Solutions**:
+1. Wait for initial indexing to complete (can take hours for large chains)
+2. Check logs: `docker logs -f blockscout-backend` on the RPC node
+3. Verify the RPC connection in the Blockscout configuration
+
+### Faucet Not Dispensing
+
+**Symptom**: Faucet returns an error or shows 0 balance.
+
+**Solutions**:
+1. Verify the faucet wallet is funded on your L1 chain
+2. Check logs: `docker logs -f faucet`
+3. Confirm the chain ID matches your L1's EVM chain ID
+4. Access the faucet on port `8010` (not the default RPC port)
+
+### eRPC Returning 502/503 Errors
+
+**Symptom**: Load balancer returns 502 or 503 errors.
+
+**Solutions**:
+1. Verify upstream RPC nodes are healthy: `make health-checks`
+2. Check eRPC configuration: `cat /etc/erpc/erpc.yaml` on the monitoring host
+3. Check eRPC logs: `docker logs -f erpc`
+
+## Getting Help
+
+- Run health checks: `make health-checks`
+- Check node logs: `make logs`
+- Review the [Avalanche Discord](https://discord.gg/avalanche) for community support
+- [Open an issue](https://github.com/ava-labs/avalanche-deploy/issues) on the repository

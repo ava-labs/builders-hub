@@ -40,9 +40,9 @@ body[data-layout="academy"] header + div {
 /* Only override what's necessary - let fumadocs handle the rest */
 body[data-layout="academy"] #nd-sidebar,
 body[data-layout="academy"] [data-sidebar="sidebar"] {
-  /* Use default fumadocs positioning - no subnav to account for */
-  top: 4.5rem !important; /* Only navbar height */
-  height: calc(100vh - 3.5rem) !important; /* Full height minus navbar */
+  /* Account for banner + navbar height */
+  top: calc(var(--fd-banner-height, 0px) + 3.5rem) !important; /* Banner + navbar height */
+  height: calc(100vh - var(--fd-banner-height, 0px) - 3.5rem) !important; /* Full height minus banner and navbar */
   padding-left: 0.5rem !important;
   padding-right: 2rem !important; /* Extra right padding to prevent content overlay on resize */
   /* Force sidebar to left edge with padding - override fumadocs dynamic width calculation */
@@ -51,12 +51,6 @@ body[data-layout="academy"] [data-sidebar="sidebar"] {
   /* Remove grey card/background tint in dark mode */
   background: transparent !important;
   border-right: none !important;
-}
-/* When banner exists, adjust academy sidebar position */
-body:has([data-granite-banner])[data-layout="academy"] #nd-sidebar,
-body:has([data-granite-banner])[data-layout="academy"] [data-sidebar="sidebar"] {
-  top: 7.5rem !important; /* Banner (3rem) + navbar (3.5rem) */
-  height: calc(100vh - 3rem - 3.5rem) !important; /* Full height minus banner and navbar */
 }
 
 /* Remove padding-top from sidebar first child - prevents spacing issues on refresh */
@@ -343,17 +337,19 @@ body[data-layout="academy"] #nd-sidebar-mobile button > img:first-child {
   }
 }
 
-body[data-layout="academy"]:has([data-granite-banner]) #nd-docs-layout {
-  padding-top: var(--fd-banner-height) !important;
-}
-
 /* Remove padding-top from layout when banner is visible on academy routes */
 body[data-layout="academy"] #nd-docs-layout {
   padding-top: 0px !important;
+  background: hsl(var(--background)) !important;
 }
 
 /* Set custom padding-top for table of contents on academy routes */
 body[data-layout="academy"] #nd-toc {
   padding-top: calc(var(--spacing) * 12) !important;
+}
+
+/* Ensure body has proper background color for academy */
+body[data-layout="academy"] {
+  background: hsl(var(--background)) !important;
 }
 

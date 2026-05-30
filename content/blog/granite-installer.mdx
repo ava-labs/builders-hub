@@ -157,16 +157,20 @@ For nodes running L1s (formerly Subnets), you need to upgrade both AvalancheGo a
 
 ### Method 1: Docker (Easiest)
 
-Use the Docker image that includes both AvalancheGo v1.14.0 and Subnet-EVM v0.8.0:
+Use the Docker image that bundles AvalancheGo together with the Subnet-EVM plugin:
 
-- **Docker Image**: [`avaplatform/subnet-evm_avalanchego:v0.8.0_v1.14.0`](https://hub.docker.com/r/avaplatform/subnet-evm_avalanchego/tags?name=v0.8.0_v1.14.0)
+- **Docker Image**: [`avaplatform/subnet-evm:v1.14.2`](https://hub.docker.com/r/avaplatform/subnet-evm/tags?name=v1.14.2)
 
 ```bash
-docker pull avaplatform/subnet-evm_avalanchego:v0.8.0_v1.14.0
+docker pull avaplatform/subnet-evm:v1.14.2
 ```
 
 <Callout type="info">
-This Docker image includes the Subnet-EVM v0.8.0 binary pre-installed, so no additional plugin installation is needed.
+This Docker image includes the Subnet-EVM plugin pre-installed in `/avalanchego/build/plugins/`, so no additional plugin installation is needed. The image tag matches the AvalancheGo version it ships with.
+</Callout>
+
+<Callout type="warn">
+The legacy `avaplatform/subnet-evm_avalanchego:<subnet-evm>_<avalanchego>` image (e.g. `v0.8.0_v1.14.0`) is deprecated. New AvalancheGo releases (v1.14.1+) are only published under `avaplatform/subnet-evm:<avalanchego-version>`.
 </Callout>
 
 ### Method 2: Manual Binary Update

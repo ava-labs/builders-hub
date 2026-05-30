@@ -1,0 +1,72 @@
+---
+title: Send Your First Cross-Chain Message
+description: Send a cross-chain message using the ICM demo contracts and verify delivery.
+updated: 2025-05-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import SendICMMessage from "@/components/toolbox/console/icm/test-connection/SendICMMessage";
+
+With all the infrastructure in place, let's send your first cross-chain message!
+
+## End-to-End Message Flow
+
+Here's what happens when you send a message:
+
+```
+┌──────────────┐    ┌────────────────────┐    ┌──────────────────┐
+│  Demo Sender │───►│ TeleporterMessenger │───►│  AWM Precompile  │
+│  (Your L1)   │    │    (Your L1)       │    │  (Warp Log)      │
+└──────────────┘    └────────────────────┘    └──────────────────┘
+                                                       │
+                                                       ▼
+                                              ┌──────────────────┐
+                                              │     Relayer      │
+                                              │ (Aggregates BLS  │
+                                              │   Signatures)    │
+                                              └──────────────────┘
+                                                       │
+                                                       ▼
+┌──────────────┐    ┌────────────────────┐    ┌──────────────────┐
+│ Demo Receiver│◄───│ TeleporterMessenger │◄───│  AWM Precompile  │
+│  (C-Chain)   │    │    (C-Chain)       │    │  (Verification)  │
+└──────────────┘    └────────────────────┘    └──────────────────┘
+```
+
+1. **You call the demo sender** with a string message
+2. **The sender encodes the message** and calls `sendCrossChainMessage` on TeleporterMessenger
+3. **TeleporterMessenger creates a warp log** via the AWM precompile
+4. **The relayer detects the message**, queries validators for BLS signatures
+5. **The relayer delivers the signed message** to TeleporterMessenger on the destination chain
+6. **TeleporterMessenger verifies the signatures** and calls `receiveTeleporterMessage` on the demo receiver
+7. **The receiver decodes and stores the message**
+
+This is the same flow described in the [Avalanche Warp Messaging](/academy/avalanche-l1/interchain-messaging/08-avalanche-warp-messaging/05-dataflow) section — now you're seeing it in action!
+
+## Send a Message
+
+Use the tool below to send a cross-chain message between your L1 and Fuji C-Chain:
+
+<ToolboxMdxWrapper walletMode="l1">
+  <SendICMMessage />
+</ToolboxMdxWrapper>
+
+<Callout type="info">
+The message may take a minute to be delivered — the relayer needs to detect the message, aggregate signatures, and submit the delivery transaction.
+</Callout>
+
+## Congratulations!
+
+You've successfully sent your first cross-chain message using Interchain Messaging! Your ICM infrastructure is fully operational.
+
+**What you've accomplished:**
+- Deployed TeleporterMessenger and TeleporterRegistry on your L1
+- Set up a relayer between Fuji C-Chain and your L1
+- Sent and verified a cross-chain message
+
+**What's next:**
+- Dive deeper into relayer configuration and economics in the next section
+- Explore practical applications with the [ERC-20 Bridge](/academy/avalanche-l1/erc20-bridge) and [Native Token Bridge](/academy/avalanche-l1/native-token-bridge) courses

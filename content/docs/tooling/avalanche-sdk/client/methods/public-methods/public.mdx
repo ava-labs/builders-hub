@@ -46,7 +46,7 @@ console.log("Base fee:", baseFee); // "0x3b9aca00"
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#eth_basefee)
+- [API Reference](https://build.avax.network/docs/rpcs/c-chain#eth_basefee)
 - [maxPriorityFeePerGas](#maxpriorityfeepergas) - Get max priority fee per gas
 
 ---
@@ -88,7 +88,7 @@ const txHash = await walletClient.sendTransaction({
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#eth_maxpriorityfeepergas)
+- [API Reference](https://build.avax.network/docs/rpcs/c-chain#eth_maxpriorityfeepergas)
 - [baseFee](#basefee) - Get base fee
 
 ---
@@ -147,7 +147,7 @@ const blockFeeConfig = await client.feeConfig({ blk: "0x123456" });
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/subnet-evm-api#eth_feeconfig)
+- [API Reference](https://build.avax.network/docs/rpcs/subnet-evm#eth_feeconfig)
 - [baseFee](#basefee) - Get base fee
 
 ---
@@ -228,7 +228,7 @@ console.log("Apricot Phase 1:", chainConfig.apricotPhase1BlockTimestamp);
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/c-chain/api#eth_getchainconfig)
+- [API Reference](https://build.avax.network/docs/rpcs/c-chain#eth_getchainconfig)
 
 ---
 
@@ -296,7 +296,7 @@ const historicalRules = await client.getActiveRulesAt({
 
 **Related:**
 
-- [API Reference](https://build.avax.network/docs/api-reference/subnet-evm-api#eth_getactiverulesat)
+- [API Reference](https://build.avax.network/docs/rpcs/subnet-evm#eth_getactiverulesat)
 
 ---
 

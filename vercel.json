@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/validator-alerts/check",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

@@ -9,7 +9,7 @@ export enum MemberStatus {
 
 export interface Project {
   id: string;
-  hackaton_id: string,
+  hackaton_id?: string,
   project_name: string;
   short_description: string;
   full_description?: string;
@@ -26,10 +26,28 @@ export interface Project {
   demo_video_link?: string;
   screenshots?: string[];
   tracks: string[];
+  categories?: string[];
+  other_category?: string;
+  deployed_addresses?: Array<{ address: string; tag?: string }>;
+  website?: Record<string, string> | null;
+  socials?: Record<string, string> | null;
   members?:Member[]
   user_id?:string
   isDraft?:boolean
+  consent_sharing?: boolean | null;
+  submission_email_sent?: boolean;
+  submittedBy?: string;
 }
+
+export type SubmittedMember = {
+  id: string;
+  role: string;
+  status: string;
+  name: string | null;
+  email: string | null;
+};
+
+export type SubmitProjectResult = Omit<Project, "members"> & { members: SubmittedMember[] };
 
 export type ProjectFilters = {
   event?: string

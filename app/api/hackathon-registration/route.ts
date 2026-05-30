@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
+import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -6,7 +8,10 @@ const HUBSPOT_HACKATHON_FORM_GUID = process.env.HUBSPOT_HACKATHON_FORM_GUID;
 
 export async function POST(request: Request) {
   try {
-    if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID || !HUBSPOT_HACKATHON_FORM_GUID) {
+    const hubspotEnabled = isHubSpotEnabled();
+    if (!hubspotEnabled) {
+      skipHubSpot('POST /api/hackathon-registration');
+    } else if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID || !HUBSPOT_HACKATHON_FORM_GUID) {
       console.error('Missing environment variables: HUBSPOT_API_KEY, HUBSPOT_PORTAL_ID, or HUBSPOT_HACKATHON_FORM_GUID');
       return NextResponse.json(
         { success: false, message: 'Server configuration error' },
@@ -28,9 +33,14 @@ export async function POST(request: Request) {
     
     // Process the form data for HubSpot
     const processedFormData: Record<string, any> = {};
+    const internalOnlyFields = new Set(['referral_attribution']);
     
     // Map standard fields directly
     Object.entries(formData).forEach(([key, value]) => {
+      if (internalOnlyFields.has(key)) {
+        return;
+      }
+
       if (['fullname', 'email', 'gdpr', 'marketing_consent'].includes(key)) {
         processedFormData[key] = value;
       } else {
@@ -44,7 +54,7 @@ export async function POST(request: Request) {
     processedFormData["country_dropdown"] = formData.city || "N/A"; // use as country TODO: Rename city variable in dB
     processedFormData["hs_role"] = formData.role || "N/A";
     processedFormData["name"] = formData.company_name || ""; // To check if "name" is correct in HS form
-    processedFormData["telegram_handle"] = formData.telegram_user || "";
+    processedFormData["telegram_handle"] = formData.telegram_account || "";
     processedFormData["github_url"] = formData.github_portfolio || "";
     processedFormData["hackathon_interests"] = Array.isArray(formData.interests) ? formData.interests.join(";") : formData.interests || "";
     processedFormData["programming_language_familiarity"] = Array.isArray(formData.languages) ? formData.languages.join(";") : formData.languages || "";
@@ -118,39 +128,55 @@ export async function POST(request: Request) {
     }
   
     
-    const hubspotResponse = await fetch(
-      `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${HUBSPOT_HACKATHON_FORM_GUID}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HUBSPOT_API_KEY}`
-        },
-        body: JSON.stringify(hubspotPayload)
-      }
-    );
+    let hubspotResult: unknown;
+    if (hubspotEnabled) {
+      const hubspotResponse = await fetch(
+        `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${HUBSPOT_HACKATHON_FORM_GUID}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${HUBSPOT_API_KEY}`
+          },
+          body: JSON.stringify(hubspotPayload)
+        }
+      );
 
-    const responseStatus = hubspotResponse.status;
-    let hubspotResult;
-    try {
-      hubspotResult = await hubspotResponse.json();
-    } catch (error) {
+      const responseStatus = hubspotResponse.status;
       try {
-        const text = await hubspotResponse.text();
-        hubspotResult = { status: 'error', message: text };
-      } catch (textError) {
-        hubspotResult = { status: 'error', message: 'Could not read HubSpot response' };
+        hubspotResult = await hubspotResponse.json();
+      } catch (error) {
+        try {
+          const text = await hubspotResponse.text();
+          hubspotResult = { status: 'error', message: text };
+        } catch (textError) {
+          hubspotResult = { status: 'error', message: 'Could not read HubSpot response' };
+        }
+      }
+
+      if (!hubspotResponse.ok) {
+        throw new Error(`HubSpot API error: ${responseStatus} - ${JSON.stringify(hubspotResult)}`);
       }
     }
 
-    if (!hubspotResponse.ok) {
-      throw new Error(`HubSpot API error: ${responseStatus} - ${JSON.stringify(hubspotResult)}`);
+    try {
+      await recordReferralAttributionFromRequest(request, {
+        targetType: 'hackathon_registration',
+        targetId: typeof formData.hackathon_id === 'string' ? formData.hackathon_id : null,
+        userEmail: typeof formData.email === 'string' ? formData.email : null,
+        attribution: (formData.referral_attribution as any) ?? null,
+      });
+    } catch (error) {
+      console.error('[Referral] Failed to record hackathon HubSpot attribution:', error);
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Hackathon registration sent to HubSpot successfully',
-      response: hubspotResult
+    return NextResponse.json({
+      success: true,
+      skipped: !hubspotEnabled,
+      message: hubspotEnabled
+        ? 'Hackathon registration sent to HubSpot successfully'
+        : 'HubSpot disabled in this environment; registration not pushed.',
+      response: hubspotResult,
     });
 
   } catch (error) {

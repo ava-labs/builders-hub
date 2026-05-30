@@ -12,15 +12,19 @@ import { useHackathonProject } from "../hooks/useHackathonProject";
 import { useDebounce } from "../hooks/useDebounce";
 import { ProgressBar } from "../components/ProgressBar";
 import { StepNavigation } from "../components/StepNavigation";
-import { Tag, Users, Pickaxe, Image, AlertCircle } from "lucide-react";
+import { Tag, Users, Pickaxe, Image, AlertCircle, PartyPopper, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
 import { useProjectSubmission } from "../context/ProjectSubmissionContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { JoinTeamDialog } from "./JoinTeamDialog";
-import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 import InvalidInvitationComponent from "./InvalidInvitationDialog";
+import { QuickRegistrationModal } from "./QuickRegistrationModal";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { REQUIRED_SUBMISSION_FIELDS, fieldComplete } from "@/lib/hackathons/submission-progress";
+import type { SubmittedMember } from "@/types/project";
+import Link from "next/link";
+import { useLoginCompleteListener, triggerNewUserLogin } from "@/hooks/useLoginModal";
 
 export default function GeneralSecureComponent({
   searchParams,
@@ -29,17 +33,34 @@ export default function GeneralSecureComponent({
 }) {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(0);
+  const [submitted, setSubmitted] = useState<{
+    projectName: string;
+    hackathonTitle: string;
+    members: SubmittedMember[];
+  } | null>(null);
 
   const debouncedProgress = useDebounce(progress, 300); 
 
   const { data: session } = useSession();
   const currentUser = session?.user;
-  const hackathonId = searchParams?.hackathon ?? "";
+  const isPendingUser = !!session?.user?.id?.startsWith("pending_");
+
+  const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
   const invitationLink = searchParams?.invitation;
+  const projectIdParam = searchParams?.project as string | undefined;
   const { toast } = useToast();
   const router = useRouter();
 
-  const { state: projectState, dispatch } = useProjectSubmission();
+  const { state: projectState, dispatch, actions } = useProjectSubmission();
+  const teamName = projectState.teamName;
+  const openJoinTeam = projectState.openJoinTeam;
+  const openCurrentProject = projectState.openCurrentProject;
+  const openInvalidInvitation = projectState.openInvalidInvitation;
+  const { hackathon, project, timeLeft, getProject } = useHackathonProject(
+    hackathonId as string,
+    invitationLink as string
+  );
+  const lang = normalizeEventsLang(hackathon?.content?.language);
   const {
     form,
     projectId,
@@ -51,62 +72,79 @@ export default function GeneralSecureComponent({
     handleSave,
     handleSaveWithoutRoute,
     setFormData,
-  } = useSubmissionFormSecure();
-  const teamName = projectState.teamName;
-  const openJoinTeam = projectState.openJoinTeam;
-  const openCurrentProject = projectState.openCurrentProject;
-  const openInvalidInvitation = projectState.openInvalidInvitation;
-  const { hackathon, project, timeLeft, getProject } = useHackathonProject(
-    hackathonId as string,
-    invitationLink as string
-  );
-  const getAllFields = () => {
+  } = useSubmissionFormSecure(lang);
+  
+  // Load project by ID if projectIdParam exists and project is not already loaded
+  useEffect(() => {
+    const loadProjectById = async () => {
+      if (projectIdParam && !project && isEditing && projectState.status === 'editing') {
+        try {
+          const response = await fetch(`/api/projects/${projectIdParam}`);
+          if (response.ok) {
+            const projectData = await response.json();
+            if (projectData) {
+              setFormData(projectData);
+              dispatch({ type: "SET_PROJECT_ID", payload: projectData.id || "" });
+              if (projectData.hackaton_id) {
+                dispatch({ type: "SET_HACKATHON_ID", payload: projectData.hackaton_id });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error loading project by ID:", error);
+        }
+      }
+    };
+    loadProjectById();
+  }, [projectIdParam, project, isEditing, projectState.status, setFormData, dispatch]);
+  // Fields that enrich the progress bar but are not hard submission requirements.
+  // REQUIRED_SUBMISSION_FIELDS (imported) is the authoritative required list.
+  const FORM_PROGRESS_EXTRA_FIELDS = [
+    "explanation",
+    "logoFile",
+    "coverFile",
+    "screenshots",
+    "demo_video_link",
+  ];
+
+  const getAllFields = (): string[] => {
+    const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
+    if (hackathonId) {
+      return [...REQUIRED_SUBMISSION_FIELDS, ...FORM_PROGRESS_EXTRA_FIELDS];
+    }
+    // Standalone project: tracks is not applicable — replace with categories.
     return [
-      "project_name",
-      "short_description",
-      "full_description",
-      "tech_stack",
-      "github_repository",
-      "explanation",
-      "demo_link",
-      "logoFile",
-      "coverFile",
-      "screenshots",
-      "demo_video_link",
-      "tracks",
+      ...REQUIRED_SUBMISSION_FIELDS.filter((f) => f !== "tracks"),
+      "categories",
+      ...FORM_PROGRESS_EXTRA_FIELDS,
     ];
   };
-  
-  const calculateProgress = () => {
-    const formValues = form.getValues();
-    const allFields = getAllFields();
-    const totalFields = allFields.length;
-    let completedFields = 0;
 
-    allFields.forEach((field) => {
-      const fieldValue = formValues[field as keyof typeof formValues];
-      if (Array.isArray(fieldValue)) {
-        if (fieldValue && fieldValue.length > 0) {
-          completedFields++;
+  // Extends the shared fieldComplete to also handle File objects (form uploads).
+  const formFieldComplete = (value: unknown): boolean => {
+    if (value instanceof File) return true;
+    return fieldComplete(value);
+  };
+
+  const calculateProgress = (): number => {
+    const formValues = form.getValues();
+    const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
+    const allFields = getAllFields();
+    const raw = formValues as Record<string, unknown>;
+
+    const completed = allFields.filter((field) => {
+      if (field === "categories" && !hackathonId) {
+        const cats = Array.isArray(raw.categories) ? raw.categories : [];
+        if (cats.length === 0) return false;
+        if (cats.includes("Other (Specify)")) {
+          return typeof raw.other_category === "string" && raw.other_category.trim().length >= 1;
         }
-      } else if (
-        typeof fieldValue === "string" &&
-        fieldValue.trim() !== ""
-      ) {
-        completedFields++;
-      } else if (typeof fieldValue === "boolean" && fieldValue === true) {
-        completedFields++;
-      } else if (
-        fieldValue !== undefined &&
-        fieldValue !== null &&
-        fieldValue !== "" &&
-        fieldValue !== false
-      ) {
-        completedFields++;
+        return true;
       }
+      return formFieldComplete(raw[field]);
     });
 
-    return Math.round((completedFields / totalFields) * 100);
+    return Math.round((completed.length / allFields.length) * 100);
   };
   
   useEffect(() => {
@@ -129,10 +167,34 @@ export default function GeneralSecureComponent({
   useEffect(() => {
     if (project && isEditing) {
       setFormData(project);
-    
       dispatch({ type: "SET_PROJECT_ID", payload: project.id || "" });
     }
-  }, [project, isEditing, setFormData, dispatch]); 
+  }, [project, isEditing, setFormData, dispatch]);
+  
+  // Load project data from context when loaded by ID
+  useEffect(() => {
+    if (projectState.projectData && isEditing && !project) {
+      setFormData(projectState.projectData);
+    }
+  }, [projectState.projectData, isEditing, project, setFormData]);
+
+  // If the user authenticated via OTP but hasn't accepted platform terms yet,
+  // their session id is "pending_<email>" — no DB User record exists.
+  // Trigger the terms modal directly (not the login form — they're already authenticated).
+  useEffect(() => {
+    if (isPendingUser) {
+      triggerNewUserLogin({ userId: session?.user?.id, email: session?.user?.email, isNewUser: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPendingUser]);
+
+  // After the user completes the full signup flow (terms + profile), reload
+  // so the server refreshes the session and the form loads with a real user id.
+  useLoginCompleteListener(() => {
+    if (isPendingUser) {
+      router.refresh();
+    }
+  });
 
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
@@ -140,27 +202,42 @@ export default function GeneralSecureComponent({
     }
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: any, event?: React.BaseSyntheticEvent) => {
+    console.log('🚀 onSubmit called with data:', data);
+
+    // Explicitly prevent default form submission
+    if (event) {
+      event.preventDefault();
+    }
+
     try {
-      const success = await saveProject(data);
-      if (success) {
-        toast({
-          title: "Project submitted",
-          description:
-            "Your project has been successfully submitted. You will be redirected to the project showcase page.",
+      const result = await saveProject(data);
+
+      if (result.success) {
+        const savedMembers: SubmittedMember[] = result.project?.members ?? [];
+        const fallbackMember: SubmittedMember = {
+          id: "",
+          status: "",
+          name: currentUser?.name ?? null,
+          email: currentUser?.email ?? null,
+          role: "Lead",
+        };
+        setSubmitted({
+          projectName: data.project_name ?? "",
+          hackathonTitle: hackathon?.title ?? "",
+          members: savedMembers.length > 0 ? savedMembers : [fallbackMember],
         });
-        setTimeout(() => {
-          router.push(`/showcase/${projectId}`);
-        }, 3000);
+      } else {
+        console.error('❌ Save failed, result.success is false');
       }
     } catch (error) {
-      console.error("Error submitting project:", error);
+      console.error("❌ Error submitting project:", error);
       toast({
-        title: "Error",
+        title: t(lang, "submission.form.toast.error"),
         description:
           error instanceof Error
             ? error.message
-            : "An error occurred while submitting the project.",
+            : t(lang, "submission.form.toast.errorDesc"),
         variant: "destructive",
       });
     }
@@ -179,10 +256,114 @@ export default function GeneralSecureComponent({
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error ||
-              "An error occurred while initializing the project. Please try again."}
+            {error || t(lang, "submission.form.error.init")}
           </AlertDescription>
         </Alert>
+      </div>
+    );
+  }
+
+  if (isPendingUser) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center p-6">
+        <div className="max-w-sm w-full text-center space-y-4">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {t(lang, "submission.pendingUser.message")}
+          </p>
+          <button
+            type="button"
+            onClick={() => triggerNewUserLogin({ userId: session?.user?.id, email: session?.user?.email, isNewUser: true })}
+            className="rounded-md bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+          >
+            {t(lang, "submission.pendingUser.cta")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="max-w-lg w-full text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="rounded-full bg-emerald-500/15 p-6">
+              <PartyPopper className="size-14 text-emerald-500" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+              {t(lang, "submission.success.congrats")}
+            </h1>
+            <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">
+              {t(lang, "submission.success.headline")}
+            </h2>
+          </div>
+
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">
+            {t(lang, "submission.success.body")}{" "}
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {submitted.projectName}
+            </span>{" "}
+            {t(lang, "submission.success.body2")}{" "}
+            <span className="font-semibold">{submitted.hackathonTitle}</span>.
+          </div>
+
+          {submitted.members.length > 0 && (
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700 text-sm text-left">
+              {submitted.members.map((m, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase">
+                    {(m.name ?? m.email ?? "?")[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {m.name && (
+                      <p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{m.name}</p>
+                    )}
+                    {m.email && (
+                      <p className={`truncate ${m.name ? "text-xs text-zinc-500" : "font-medium text-zinc-900 dark:text-zinc-100"}`}>
+                        {m.email}
+                      </p>
+                    )}
+                    {!m.name && !m.email && (
+                      <p className="text-zinc-400 italic text-xs">—</p>
+                    )}
+                  </div>
+                  {m.role && (
+                    <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">{m.role}</span>
+                  )}
+                  <Mail className="shrink-0 size-4 text-zinc-400" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <Link
+              href="/profile?tab=projects"
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {t(lang, "submission.success.goToProfile")}
+            </Link>
+            {hackathonId && (
+              <Link
+                href={`/events/${hackathonId}`}
+                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                {t(lang, "submission.success.backToEvent")}
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setSubmitted(null)}
+              className="rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+            >
+              {t(lang, "submission.success.editProject")}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -194,15 +375,18 @@ export default function GeneralSecureComponent({
       {/* Header */}
       <div className="mb-4">
         <h2 className="text-lg sm:text-xl font-semibold break-words">
-          Submit Your Project {hackathon?.title ? " - " + hackathon?.title : ""}
+          {hackathon?.title
+            ? `${t(lang, "submission.form.title.withHackathon")} - ${hackathon.title}`
+            : t(lang, "submission.form.title.standalone")}
         </h2>
         <p className="text-xs sm:text-sm text-gray-400">
-          Finalize and submit your project for review before the deadline.
-          Complete all sections to ensure eligibility.
+          {hackathon?.title
+            ? t(lang, "submission.form.subtitle.withHackathon")
+            : t(lang, "submission.form.subtitle.standalone")}
         </p>
       </div>
 
-      <ProgressBar progress={debouncedProgress} timeLeft={timeLeft} />
+      <ProgressBar progress={debouncedProgress} lang={lang} />
 
       <div className="flex flex-col sm:flex-row mt-6 gap-4 sm:gap-4 sm:space-x-12">
         {/* Sidebar para móvil */}
@@ -283,7 +467,11 @@ export default function GeneralSecureComponent({
           <section className="w-full">
             <Form {...form}>
               <form
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={(e) => {
+                  console.log('📝 Form onSubmit event triggered');
+                  e.preventDefault();
+                  form.handleSubmit(onSubmit)(e);
+                }}
                 className="space-y-4 sm:space-y-6"
               >
                 {step === 1 && (
@@ -292,7 +480,9 @@ export default function GeneralSecureComponent({
                     hackaton_id={hackathonId as string}
                     user_id={currentUser?.id}
                     onProjectCreated={getProject}
-                    onHandleSave={handleSaveWithoutRoute}
+                    onHandleSave={async () => {
+                      await handleSaveWithoutRoute();
+                    }}
                     availableTracks={hackathon?.content?.tracks ?? []}
                     openjoinTeamDialog={openJoinTeam}
                     openCurrentProject={openCurrentProject}
@@ -306,11 +496,13 @@ export default function GeneralSecureComponent({
                       dispatch({ type: "SET_OPEN_JOIN_TEAM", payload: open })
                     }
                     currentEmail={currentUser?.email}
+                    currentUserName={currentUser?.name || undefined}
                     teamName={teamName}
+                    lang={lang}
                   />
                 )}
-                {step === 2 && <SubmitStep2 />}
-                {step === 3 && <SubmitStep3 />}
+                {step === 2 && <SubmitStep2 lang={lang} />}
+                {step === 3 && <SubmitStep3 lang={lang} />}
 
                 <Separator />
 
@@ -320,6 +512,7 @@ export default function GeneralSecureComponent({
                   onSave={handleSave}
                   isLastStep={step === 3}
                   onNextStep={onNextStep}
+                  lang={lang}
                 />
               </form>
             </Form>
@@ -334,8 +527,34 @@ export default function GeneralSecureComponent({
         onOpenChange={(open) =>
           dispatch({ type: "SET_OPEN_INVALID_INVITATION", payload: open })
         }
+        lang={lang}
       />
 
+      <QuickRegistrationModal
+        open={projectState.showRegistrationModal}
+        hackathonTitle={hackathon?.title}
+        lang={lang}
+        onConfirm={(regData) => {
+          actions.submitWithRegistration(regData).then((result) => {
+            if (result.success) {
+              const savedMembers: SubmittedMember[] = result.project?.members ?? [];
+              const fallbackMember: SubmittedMember = {
+                id: "",
+                status: "",
+                name: currentUser?.name ?? null,
+                email: currentUser?.email ?? null,
+                role: 'Lead',
+              };
+              setSubmitted({
+                projectName: projectState.pendingSubmitData?.project_name ?? '',
+                hackathonTitle: hackathon?.title ?? '',
+                members: savedMembers.length > 0 ? savedMembers : [fallbackMember],
+              });
+            }
+          });
+        }}
+        onCancel={() => actions.cancelRegistrationModal()}
+      />
       {error && (
         <div className="mt-4">
           <Alert variant="destructive">

@@ -1,0 +1,108 @@
+---
+title: Introduction
+description: Overview of validator operations with multi-sig governance
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Book
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+This chapter covers how to perform validator operations through your new multi-sig governance structure. The core operations (add, change weight, remove) are the same as before, but the flow now involves multi-sig approval.
+
+## Key Difference: Multi-Sig Approval
+
+In the previous chapter on [Validator Manager Operations](/academy/permissioned-l1s/05-validator-manager-operations/01-introduction), you performed operations directly from your EOA:
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant EOA as Your Wallet
+    participant VM as Validator Manager
+    participant PC as P-Chain
+
+    EOA->>VM: initiateValidatorRegistration()
+    VM->>PC: Warp Message
+    PC-->>VM: Confirmation
+    EOA->>VM: completeValidatorRegistration()
+"
+/>
+
+With the multi-sig setup, the flow now includes Safe wallet approval:
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant S1 as Signer 1
+    participant S2 as Signer 2
+    participant Safe as Safe Wallet
+    participant PoA as PoA Manager
+    participant VM as Validator Manager
+    participant PC as P-Chain
+
+    S1->>Safe: Propose operation
+    S2->>Safe: Approve operation
+    Safe->>PoA: Execute approved tx
+    PoA->>VM: initiateValidatorRegistration()
+    VM->>PC: Warp Message
+    PC-->>VM: Confirmation
+    Note over Safe,VM: Complete phase follows same pattern
+"
+/>
+
+## Operations Overview
+
+| Operation | Phases | Multi-Sig Approvals Needed |
+|-----------|--------|---------------------------|
+| **Add Validator** | Initiate + Complete | 2 (one per phase) |
+| **Change Weight** | Initiate + Complete | 2 (one per phase) |
+| **Remove Validator** | Initiate + Complete | 2 (one per phase) |
+
+<Callout type="info">
+Each phase requires a separate multi-sig transaction. Plan accordingly when coordinating with your signers.
+</Callout>
+
+## The Two-Phase Pattern
+
+All validator operations follow the same two-phase pattern:
+
+### Phase 1: Initiation
+
+1. **Propose in Safe**: A signer creates a transaction proposal in the Safe wallet
+2. **Collect Approvals**: Other signers review and approve the transaction
+3. **Execute**: Once threshold is met, execute the transaction
+4. **Warp Message Sent**: The Validator Manager sends a message to P-Chain
+
+### Phase 2: Completion
+
+1. **Wait for P-Chain**: The P-Chain processes the request and signs a response
+2. **Propose Completion**: A signer proposes the completion transaction in Safe
+3. **Collect Approvals**: Other signers approve the completion
+4. **Execute**: Complete the operation on the Validator Manager
+
+## Working with Safe
+
+For each operation in this chapter, you'll:
+
+1. **Access your Safe wallet**: Go to [wallet.ash.center](https://wallet.ash.center/)
+2. **Create a new transaction**: Use the transaction builder or direct contract interaction
+3. **Set the target**: Your PoA Manager address
+4. **Build the calldata**: For the specific operation you want to perform
+5. **Submit and sign**: Initiate the approval process
+6. **Coordinate approvals**: Get other signers to approve
+7. **Execute**: Once threshold is reached, execute the transaction
+
+<Callout type="warning">
+**Coordination Required**: Unlike EOA operations that you can do instantly, multi-sig operations require coordinating with other signers. Plan ahead for validator changes.
+</Callout>
+
+## What You'll Learn
+
+In the following sections, you'll practice:
+
+1. **Adding a Validator**: Propose and execute a validator addition through Safe
+2. **Changing Weight**: Modify a validator's influence via multi-sig
+3. **Removing a Validator**: Safely remove a validator with proper approvals
+
+Each section will guide you through the Safe interface and the specific steps needed for that operation.
+

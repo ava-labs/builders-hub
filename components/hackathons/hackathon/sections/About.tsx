@@ -1,19 +1,25 @@
 import { HackathonHeader } from "@/types/hackathons";
 import React from "react";
 import { Separator } from "@/components/ui/separator";
-import { MDXRemote } from "next-mdx-remote/rsc";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { sanitizeHtml } from "@/utils/sanitizeMarkdown";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 function About({ hackathon }: { hackathon: HackathonHeader }) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
   return (
     <section>
       <h2 className="text-4xl font-bold mb-8" id="about">
-        About
+        {t(lang, "section.about.title")}
       </h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
       <div className="pt-5 pb-5">
         <div className="prose prose-sm max-w-none dark:prose-invert">
           {hackathon.content?.tracks_text && (
-            <MDXRemote source={hackathon.content.tracks_text} />
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {hackathon.content.tracks_text}
+            </ReactMarkdown>
           )}
         </div>
       </div>
@@ -22,6 +28,7 @@ function About({ hackathon }: { hackathon: HackathonHeader }) {
 }
 
 export function AboutPreview({ hackathon }: { hackathon: any }) {
+  const lang = normalizeEventsLang(hackathon?.content?.language);
   const formatMarkdownText = (text: string) => {
     if (!text) return '';
     let formatted = text.replace(/\\n/g, '\n');
@@ -34,13 +41,13 @@ export function AboutPreview({ hackathon }: { hackathon: any }) {
     formatted = formatted.replace(/\n\n/g, '</p><p class="mb-4">');
     formatted = formatted.replace(/\n/g, '<br/>');
     formatted = `<p class="mb-4">${formatted}</p>`;
-    return formatted;
+    return sanitizeHtml(formatted);
   };
 
   return (
     <section>
       <h2 className="text-4xl font-bold mb-8" id="about">
-        About
+        {t(lang, "section.about.title")}
       </h2>
       <div className="my-8 h-px bg-zinc-300 dark:bg-zinc-800"></div>
       <div className="pt-5 pb-5">

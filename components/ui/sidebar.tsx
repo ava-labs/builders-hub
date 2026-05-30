@@ -419,6 +419,10 @@ function SidebarGroupAction({
   asChild = false,
   ...props
 }: React.ComponentProps<"button"> & { asChild?: boolean }) {
+  // Hide the sidebar group action (checkmark) in Academy layout
+  if (typeof document !== "undefined" && document.body?.getAttribute("data-layout") === "academy") {
+    return null
+  }
   const Comp = asChild ? Slot : "button"
 
   return (

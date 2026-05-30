@@ -82,7 +82,7 @@ const instructors: Instructor[] = [
     },
     {
         name: "Michael Martin",
-        title: "Codebase Director",
+        title: "Former Codebase Director",
         image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/instructors/michael-martin.jpeg",
         x: "https://x.com/mmartinxyz",
         linkedin: "https://www.linkedin.com/in/michaeltmartin/",
@@ -90,7 +90,7 @@ const instructors: Instructor[] = [
     },
     {
         name: "Doro Unger-Lee",
-        title: "Senior Developer Relations",
+        title: "Former Senior Developer Relations",
         image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/instructors/doro-unger-lee.jpeg",
         x: "https://x.com/doroungerlee",
         linkedin: "https://www.linkedin.com/in/doro-unger-lee/",
@@ -103,6 +103,14 @@ const instructors: Instructor[] = [
         x: "https://x.com/alejandro99so",
         linkedin: "https://www.linkedin.com/in/alejandro99so/",
         github: "https://github.com/alejandro99so",
+    },
+    {
+        name: "Federico Nardelli",
+        title: "Developer Relations Engineer",
+        image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/instructors/federico-nardelli.jpeg",
+        x: "https://x.com/federico_nardo7",
+        linkedin: "https://www.linkedin.com/in/federico-nardelli-a2969b26a/",
+        github: "https://github.com/federiconardelli7",
     },
     {
         name: "Katherine Sullivan",

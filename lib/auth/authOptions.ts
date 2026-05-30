@@ -2,28 +2,40 @@ import { NextAuthOptions, DefaultSession, Session, User } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import GithubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import TwitterProvider from 'next-auth/providers/twitter';
 import { prisma } from '../../prisma/prisma';
-import { JWT } from 'next-auth/jwt';
+import { encode, JWT } from 'next-auth/jwt';
+import { randomInt } from 'crypto';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
+import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
+import { BadgeCategory } from '@/server/services/badge';
+import type { User as PrismaUser } from '@prisma/client';
+
 
 declare module 'next-auth' {
   export interface Session {
+    jwt_token?: string;
     user: {
       id: string;
       avatar?: string;
-      custom_attributes: string[]
+      custom_attributes: string[];
       role?: string;
       email?: string;
       user_name?: string;
-      is_new_user: boolean
+      is_new_user: boolean;
+      authentication_mode?: string;
     } & DefaultSession['user'];
   }
+}
+
+declare module 'next-auth/jwt' {
   interface JWT {
     id?: string;
-    avatar?: string;
-    custom_attributes: string[]
+    avatar?: string | null;
+    custom_attributes: string[];
+    authentication_mode?: string;
+    is_new_user?: boolean;
+    user_name?: string;
   }
 }
 
@@ -54,9 +66,26 @@ async function verifyOTP(
   return { isValid: true };
 }
 
-export function generate6DigitCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+/**
+ * Generates a cryptographically secure 6-digit code (100000-999999).
+ *
+ * Uses `crypto.randomInt` instead of `Math.random`, which is not suitable for
+ * security-sensitive values such as OTPs / verification codes.
+ */
+export function generate6DigitCode(): string {
+  return randomInt(100000, 1000000).toString();
 }
+
+const authUserSelect = {
+  id: true,
+  email: true,
+  image: true,
+  name: true,
+  custom_attributes: true,
+  authentication_mode: true,
+  notifications: true,
+  user_name: true,
+} as const;
 
 export const AuthOptions: NextAuthOptions = {
   providers: [
@@ -67,10 +96,6 @@ export const AuthOptions: NextAuthOptions = {
     GithubProvider({
       clientId: process.env.GITHUB_ID as string,
       clientSecret: process.env.GITHUB_SECRET as string,
-    }),
-    TwitterProvider({
-      clientId: process.env.TWITTER_CLIENT_ID as string,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET as string,
     }),
     CredentialsProvider({
       credentials: {
@@ -83,7 +108,8 @@ export const AuthOptions: NextAuthOptions = {
         if (!email) throw new Error('Missing email');
         if (!otp) throw new Error('Missing otp');
 
-        const result = await verifyOTP(email, otp);
+        const normalizedEmail = email.toLowerCase().trim();
+        const result = await verifyOTP(normalizedEmail, otp);
 
         if (!result.isValid) {
           if (result.reason === 'EXPIRED') {
@@ -98,17 +124,19 @@ export const AuthOptions: NextAuthOptions = {
           }
         }
 
-        let user = await prisma.user.findUnique({ where: { email } });
+        let user = await prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          select: authUserSelect,
+        });
         if (!user) {
-          // user = await prisma.user.create({
-          //   data: {
-          //     email, notification_email: email, name: '', image: '', last_login: null
-          //   },
-          // }
           user = {
             email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
-            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date()
-          }
+            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null,
+            additional_social_accounts: [], telegram_account: '', github_account: null, x_account: null, linkedin_account: null,
+            user_name: '', created_at: new Date(),
+            country: null, user_type: null, wallet: [], skills: [], team_id: null, noun_avatar_seed: null, noun_avatar_enabled: false,
+            github_access_token: null,
+          } as unknown as PrismaUser;
         }
 
         return user;
@@ -121,8 +149,42 @@ export const AuthOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
+        // For OTP (credentials) login, don't create the user yet if they're new
+        // The user will be created after they accept terms
+        if (account?.provider === 'credentials') {
+          // Check if user already exists in the database
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+            select: { id: true },
+          });
+
+          if (existingUser) {
+            // Existing user - update last_login and set the user id
+            user.id = existingUser.id;
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { last_login: new Date() },
+              select: { id: true },
+            });
+          }
+          // If user doesn't exist, don't create them yet
+          // They will be created after accepting terms
+          // The session will have is_new_user: true but no DB record
+          return true;
+        }
+
+        // For OAuth providers (Google, GitHub, Twitter), create/update user immediately
         const dbUser = await upsertUser(user, account, profile);
         user.id = dbUser.id;
+
+        if (account?.provider == 'github') {
+          await badgeAssignmentService.assignBadge({
+            userId: dbUser.id,
+            requirementId: 'GitHub',
+            category: BadgeCategory.requirement,
+          });
+        }
+
         return true;
       } catch (error) {
         console.error('Error processing user:', error);
@@ -130,17 +192,13 @@ export const AuthOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
-      let dbUser = null;
-
-      if (user?.email) {
-        dbUser = await prisma.user.findUnique({
-          where: { email: user.email },
-        });
-      } else if (token?.email) {
-        dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-        });
-      }
+      const email = user?.email ?? token?.email;
+      const dbUser = email
+        ? await prisma.user.findUnique({
+            where: { email },
+            select: authUserSelect,
+          })
+        : null;
 
       if (dbUser) {
         token.id = dbUser.id;
@@ -149,10 +207,17 @@ export const AuthOptions: NextAuthOptions = {
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';
-        token.is_new_user = dbUser.notifications == null
-      } else if (user?.email) {
-        token.email = user.email;
-        token.name = user.name ?? '';
+        token.is_new_user = dbUser.notifications == null ? true : false;
+        token.authentication_mode = dbUser.authentication_mode ?? '';
+      } else if (user?.email || token?.email) {
+        // New user who hasn't accepted terms yet - no DB record exists
+        // Mark as pending_user so the frontend knows to show terms modal
+        token.email = user?.email || token.email;
+        token.name = user?.name ?? token.name ?? '';
+        token.is_new_user = true;
+        token.custom_attributes = [];
+        // Use a special marker for pending users (no real DB id yet)
+        token.id = `pending_${token.email}`;
       }
 
       return token;
@@ -167,8 +232,9 @@ export const AuthOptions: NextAuthOptions = {
       session.user.image = token.avatar as string;
       session.user.name = token.name ?? '';
       session.user.email = token.email ?? '';
-      session.user.is_new_user = token.is_new_user ? true : false;
-      return session;
+      session.user.is_new_user = !!token.is_new_user;
+      session.user.authentication_mode = token.authentication_mode ?? '';
+      return {...session, jwt_token: await encode({secret: process.env.NEXTAUTH_SECRET ?? '', token: token })}
     },
     async redirect({ url, baseUrl }) {
       // If the URL is relative, convert it to absolute

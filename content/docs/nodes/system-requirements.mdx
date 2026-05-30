@@ -1,37 +1,119 @@
 ---
 title: System Requirements
-description: This document provides information about the system and networking requirements for running an AvalancheGo node.
+description: Hardware, storage, and networking requirements for running Avalanche nodes on the Primary Network and Avalanche L1s.
 ---
 
-## Hardware and Operating Systems
+## Primary Network Validators
 
-Avalanche is an incredibly lightweight protocol, so nodes can run on commodity hardware. Note that as network usage increases, hardware requirements may change.
+Running a Primary Network validator requires careful consideration of your stake weight. Validators with higher stake receive more traffic and must process more data, requiring better hardware.
 
-- **CPU**: Equivalent of 8 AWS vCPU
-- **RAM**: 8 GiB (16 GiB recommended)
-- **Storage**: 1 TiB SSD
-- **OS**: Ubuntu 22.04 or MacOS >= 12
+### Storage Requirements
 
-<Callout title="Warning" type="warn">
-Nodes which choose to use a HDD may get poor and random read/write latencies, therefore reducing performance and reliability. An SSD is strongly suggested.
+<Callout type="error" title="SSD Required - No Cloud Block Storage">
+You **must** use a local NVMe SSD attached directly to your hardware with **minimum 3000 IOPS**. Cloud block storage (AWS EBS, GCP Persistent Disk, Azure Managed Disks) introduces latency that causes poor performance, missed blocks, and potential benching. If running in the cloud, use instance types with local NVMe storage (e.g., AWS i3/i4i instances, GCP N2 with local SSD).
 </Callout>
+
+<Callout title="State Sync Recommended">
+New validators should use **state sync** to bootstrap. While full sync from genesis is still possible, state sync is significantly faster—downloading only the active state (~500 GB) rather than replaying all historical blocks.
+</Callout>
+
+| Storage Type | Initial Size | Description |
+|--------------|--------------|-------------|
+| Active State | ~500 GB | Current state required to validate. Downloaded via state sync. |
+| Full Archive | ~12.5 TB | Complete historical state. Only needed for archive nodes or block explorers. |
+
+<Callout title="Storage Grows Over Time">
+Even with state sync, your node's storage usage will grow over time as new blocks are added and old state accumulates. A node starting at 500 GB can grow to 1 TB+ over months of operation. Plan for this growth when provisioning storage, or schedule periodic maintenance using [state management strategies](/docs/nodes/maintain/chain-state-management).
+</Callout>
+
+### Hardware Requirements
+
+Resource requirements scale with your stake weight. Higher stake means more validator duties and network traffic.
+
+| Component | Low Stake Validators | High Stake Validators |
+|-----------|---------------------|----------------------|
+| **Use Case** | Validators with modest stake delegations who want reliable operation without over-provisioning | Validators with significant stake who handle proportionally more network traffic and validation duties |
+| **CPU** | 4 cores / 8 threads (e.g., AMD Ryzen 5, Intel i5) | 8+ cores / 16 threads (e.g., AMD Ryzen 7/9, Intel i7/i9) |
+| **RAM** | 16 GB | 32 GB |
+| **Storage** | 1 TB NVMe SSD (local, not network-attached) | 2 TB NVMe SSD (local, not network-attached) |
+| **Network** | 100 Mbps symmetric, stable connection | 1 Gbps symmetric, low-latency connection |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 | Ubuntu 22.04 LTS or macOS ≥ 12 |
+
+<Callout>
+If you're unsure which tier applies to you: start with low-stake specs and monitor performance. If you see high CPU usage, memory pressure, or network saturation, upgrade accordingly.
+</Callout>
+
+---
+
+## Avalanche L1 Validators
+
+L1 validators run your own blockchain with custom parameters. Hardware requirements depend on your chain's transaction throughput and state size.
+
+| Component | Low Throughput | Medium Throughput | High Throughput |
+|-----------|----------------|-------------------|-----------------|
+| **Use Case** | Testnets, development chains, or production L1s with minimal traffic (< 10 TPS) | Production L1s with moderate activity (10–100 TPS), gaming chains, or DeFi applications | High-performance L1s with heavy transaction volume (100+ TPS), large state, or complex smart contracts |
+| **CPU** | 2 cores | 4 cores | 8+ cores |
+| **RAM** | 4 GB | 8 GB | 16 GB+ |
+| **Storage** | 100 GB (SSD optional) | 500 GB SSD | 1 TB+ NVMe SSD |
+| **Network** | 25 Mbps | 100 Mbps | 1 Gbps |
+| **OS** | Ubuntu 22.04 LTS or macOS ≥ 12 | Ubuntu 22.04 LTS or macOS ≥ 12 | Ubuntu 22.04 LTS or macOS ≥ 12 |
+
+<Callout>
+L1 validators sync the P-Chain to track validator sets and cross-chain messages. This adds minimal overhead to the requirements above.
+</Callout>
+
+---
 
 ## Networking
 
-To run successfully, AvalancheGo needs to accept connections from the Internet on the network port `9651`. Before you proceed with the installation, you need to determine the networking environment your node will run in.
+AvalancheGo requires inbound connections on port `9651`. Before installation, ensure your networking environment is properly configured.
 
-### On a Cloud Provider
+### IPv4 and IPv6 Support
 
-If your node is running on a cloud provider computer instance, it will have a static IP. Find out what that static IP is, or set it up if you didn't already.
+AvalancheGo supports both IPv4 and IPv6:
+- **IPv4**: Fully supported and most common
+- **IPv6**: Fully supported - your node can operate exclusively on IPv6 or dual-stack
+- **Dual-stack**: You can run both IPv4 and IPv6 simultaneously
 
-### On a Home Connection
+If using IPv6, ensure your firewall and network configuration properly allow inbound IPv6 connections on port `9651`.
 
-If you're running a node on a computer that is on a residential internet connection, you have a dynamic IP; that is, your IP will change periodically. **For the sake of demonstration, you can ignore the following information.** Otherwise, you will need to set up inbound port forwarding of port `9651` from the internet to the computer the node is installed on.
+### Cloud Providers
 
-As there are too many models and router configurations, we cannot provide instructions on what exactly to do, but there are online guides to be found (like [this](https://www.noip.com/support/knowledgebase/general-port-forwarding-guide/), or [this](https://www.howtogeek.com/66214/how-to-forward-ports-on-your-router/) ), and your service provider support might help too.
+Cloud instances have static IPs by default. Ensure your security group or firewall allows:
+- **Inbound**: TCP port 9651 (IPv4 and/or IPv6)
+- **Outbound**: All traffic
 
-<Callout title="Note">
-Please note that a fully connected Avalanche node maintains and communicates over a couple of thousand of live TCP connections.
+### Home Connections
 
-For some under-powered and older home routers, that might be too much to handle. If that is the case, you may experience lagging on other computers connected to the same router, node getting benched, or failing to sync and similar issues.
+Residential connections typically have dynamic IPs. You'll need to:
+1. Configure port forwarding for port `9651` on your router
+2. Consider a dynamic DNS service if your IP changes frequently
+
+<Callout>
+A fully connected Avalanche node maintains thousands of live TCP connections. Under-powered home routers may struggle with this load, causing lag on other devices or node synchronization issues.
 </Callout>
+
+---
+
+## Monitoring Thresholds
+
+Set up monitoring and alerts to catch resource issues before they impact your validator:
+
+| Resource | Warning Threshold | Critical Threshold | Action Required |
+|----------|------------------|-------------------|-----------------|
+| **Disk Usage** | 80% | 90% | Run [offline pruning](/docs/nodes/maintain/reduce-disk-usage) or [state sync](/docs/nodes/maintain/chain-state-management) |
+| **CPU Usage** | 70% sustained | 90% sustained | Upgrade to higher-tier instance or optimize workload |
+| **Memory Usage** | 80% | 90% | Upgrade RAM or investigate memory leaks |
+| **Network Bandwidth** | 80% of capacity | 95% of capacity | Upgrade network tier or reduce other network traffic |
+| **Disk IOPS** | 80% of available | 95% of available | Upgrade to higher IOPS storage |
+
+<Callout>
+**Disk usage** is the most common issue for validators. Consider setting up automated alerts at 80% to give yourself time to plan maintenance before your node runs out of space.
+</Callout>
+
+---
+
+## Next Steps
+
+- Learn about [Active State vs Archive State](/docs/nodes/maintain/chain-state-management) to understand storage requirements
+- Set up [node monitoring](/docs/nodes/maintain/monitoring) to track resource usage and configure alerts

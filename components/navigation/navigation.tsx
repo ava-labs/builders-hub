@@ -6,10 +6,8 @@ import {
   Settings,
   SproutIcon,
   SquareGanttChart,
-  TerminalIcon,
   Webhook,
   SquareIcon,
-  ArrowLeftRight,
   Coins,
   SquareCode,
   SquareStackIcon,
@@ -17,8 +15,6 @@ import {
   ChevronDownIcon,
   Pyramid,
   HandCoins,
-  Server,
-  Code,
   TrendingUp,
   ScanFace,
   Telescope,
@@ -28,7 +24,7 @@ import {
   Podcast,
   Wallet,
 } from "lucide-react";
-import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
+import { RootToggle } from "./root-toggle";
 
 interface Option {
   title: string;
@@ -141,12 +137,6 @@ export function AcademyDropdown() {
       url: "https://academy.avax.network/course/interchain-messaging",
     },
     {
-      title: "Interchain Token Transfer",
-      description: "Transfer assets between Avalanche blockchains.",
-      icon: <ArrowLeftRight className="w-5 h-5" />,
-      url: "https://academy.avax.network/course/interchain-token-transfer",
-    },
-    {
       title: "Customizing the EVM",
       description: "Add custom precompiles to the EVM.",
       icon: <SquareCode className="w-5 h-5" />,
@@ -157,18 +147,6 @@ export function AcademyDropdown() {
       description: "Design tokenomics for your Avalanche L1.",
       icon: <Coins className="w-5 h-5" />,
       url: "https://academy.avax.network/course/l1-tokenomics",
-    },
-    {
-      title: "AvaCloud APIs",
-      description: "Use AvaCloud APIs to build web apps.",
-      icon: <Webhook className="w-5 h-5" />,
-      url: "https://academy.avax.network/course/avacloudapis",
-    },
-    {
-      title: "HyperSDK",
-      description: "Build high-performance blockchains with HyperSDK.",
-      icon: <TerminalIcon className="w-5 h-5" />,
-      url: "https://academy.avax.network/course/hypersdk",
     },
   ];
   return <RootToggle options={options} />;
@@ -188,21 +166,7 @@ export function GrantsDropdown() {
       icon: <HandCoins className="w-5 h-5" />,
       url: "https://www.avax.network/retro9000",
     },
-    {
-      title: "infraBUIDL()",
-      description:
-        "Infrastructure projects that enhance user and developer experience",
-      icon: <Server className="w-5 h-5" />,
-      url: "https://www.avax.network/infrabuidl-program",
-    },
-    {
-      title: "Codebase",
-      description:
-        "Transforming ambitious builders into extraordinary founders",
-      icon: <Code className="w-5 h-5" />,
-      url: "https://codebase.avax.network/",
-    },
-    {
+{
       title: "Blizzard Fund",
       description:
         "VC fund investing in innovative entrepreneurs driving growth on Avalanche",

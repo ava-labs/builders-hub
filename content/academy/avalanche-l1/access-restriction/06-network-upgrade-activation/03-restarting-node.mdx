@@ -1,0 +1,92 @@
+---
+title: Restarting Node
+description: "Hands-on exercise: Restart your Docker validator so the allowlist re-activation upgrades take effect."
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+## Objectives
+
+By the end of this exercise, you will be able to:
+
+- Restart your validator container to load the new upgrade entries.
+- Validate in logs that the node parsed your appended `precompileUpgrades`.
+- Recover from common startup failures (past timestamps / modified old entries).
+
+## Prerequisites
+
+Before starting this exercise, ensure you have:
+
+- Appended the re-activation entries to `upgrade.json` (previous lesson).
+- Access to run Docker commands on the host machine.
+
+## Instructions
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Steps>
+  <Step>
+    ### Step 1: Restart the validator container
+
+    Restart the container:
+
+    ```bash
+    docker restart <YOUR_CONTAINER_NAME_OR_ID>
+    ```
+  </Step>
+
+  <Step>
+    ### Step 2: Follow logs and confirm the upgrade config is present
+
+    Stream logs while it comes up:
+
+    ```bash
+    docker logs -f <YOUR_CONTAINER_NAME_OR_ID>
+    ```
+
+    You’re looking for startup output that includes the `UpgradeConfig` and shows your `precompileUpgrades` list (now containing both disables and enables).
+  </Step>
+
+  <Step>
+    ### Step 3: Wait for activation timestamps to pass
+
+    These upgrades apply when the chain accepts a block after the specified timestamps. If you set the timestamps to “now + 10 minutes”, you may need to wait a few minutes before the precompiles appear active again.
+
+    <Callout type="info">
+    If the node fails to start, the two most common causes are:
+    - a `blockTimestamp` that is in the past, or
+    - modifying/removing previously activated upgrades (not append-only).
+    </Callout>
+  </Step>
+</Steps>
+
+## Expected Output
+
+Your container is running, and logs show the node parsed the upgrade config with your appended enable entries.
+
+```
+... Initialised chain configuration ... UpgradeConfig: {"precompileUpgrades":[ ... ]}
+```
+
+## Verification
+
+To verify you've completed this exercise successfully:
+
+1. The validator container is healthy and producing blocks.
+2. The log output includes your upgrade list with the new enable entries.
+
+## Troubleshooting
+
+### Issue: The node fails on startup
+
+**Problem**: Startup errors after editing `upgrade.json`.
+
+**Solution**:
+- Ensure the newest timestamps are still **in the future** relative to the chain head.
+- Ensure you did not change older entries after they activated (treat the list as append-only).
+
+## Next Steps
+
+Next, you’ll verify re-activation in the Builder Console and test that you can manage the allowlists again.

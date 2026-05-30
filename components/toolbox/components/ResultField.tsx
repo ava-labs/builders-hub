@@ -1,12 +1,12 @@
-"use client"
+'use client';
 
-import { Check } from "lucide-react"
-import { cn } from "../lib/utils"
+import { Check } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 interface ResultFieldProps {
-  label: string
-  value: string
-  showCheck?: boolean
+  label: string;
+  value: string;
+  showCheck?: boolean;
 }
 
 export function ResultField({ label, value, showCheck = false }: ResultFieldProps) {
@@ -19,16 +19,15 @@ export function ResultField({ label, value, showCheck = false }: ResultFieldProp
       </div>
       <div
         className={cn(
-          "w-full rounded-lg p-3.5 font-mono text-sm shadow-sm whitespace-pre-wrap break-words",
-          "text-zinc-900 dark:text-zinc-100",
+          'w-full rounded-lg p-3.5 font-mono text-sm shadow-sm whitespace-pre-wrap break-words',
+          'text-zinc-900 dark:text-zinc-100',
           showCheck
-            ? "bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30"
-            : "bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30",
+            ? 'bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30'
+            : 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30',
         )}
       >
         {value}
       </div>
     </div>
-  )
+  );
 }
-

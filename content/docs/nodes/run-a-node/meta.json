@@ -1,0 +1,14 @@
+{
+  "title": "Set up a Node",
+  "pages": [
+    "index",
+    "---Primary Network---",
+    "using-docker",
+    "using-install-script",
+    "using-binary",
+    "from-source",
+    "on-third-party-services",
+    "---Avalanche L1s---",
+    "avalanche-l1-nodes"
+  ]
+}

@@ -1,0 +1,255 @@
+---
+title: Deploy an L1 with Terraform and Ansible
+description: Launch a production-ready Avalanche L1 with validators, RPC nodes, and monitoring on AWS, GCP, or Azure using Terraform and Ansible.
+---
+
+This guide walks through deploying a complete Avalanche L1 blockchain on cloud VMs. By the end, you will have a running L1 with validators, archive and pruned RPC nodes, monitoring, and an eRPC load balancer.
+
+**Supported clouds**: AWS (full feature set), GCP, Azure. **Time to deploy**: ~30 minutes (plus sync time). **Cost**: ~$651/month on AWS.
+
+## Architecture
+
+<Mermaid chart={`
+flowchart TB
+    subgraph Internet
+        Users([Users / dApps])
+        PrimaryNetwork([Avalanche Primary Network])
+    end
+
+    subgraph VPC["Cloud VPC"]
+        subgraph ValidatorsSG["Validators"]
+            V1[Validator 1]
+            V2[Validator 2]
+            V3[Validator 3+]
+        end
+
+        subgraph RPCSG["RPC Nodes"]
+            ArchiveRPC[Archive RPC Full history + debug APIs]
+            PrunedRPC[Pruned RPC State-sync + latest state]
+        end
+
+        subgraph MonitoringSG["Monitoring"]
+            eRPC[eRPC Load Balancer]
+            Prometheus[Prometheus]
+            Grafana[Grafana]
+        end
+    end
+
+    PrimaryNetwork <-->|P2P :9651| V1
+    PrimaryNetwork <-->|P2P :9651| V2
+    PrimaryNetwork <-->|P2P :9651| ArchiveRPC
+    PrimaryNetwork <-->|P2P :9651| PrunedRPC
+
+    Users -->|RPC| eRPC
+    eRPC -->|debug/trace| ArchiveRPC
+    eRPC -->|eth/net/web3| PrunedRPC
+    Users -->|Dashboard :3000| Grafana
+
+    V1 -.->|metrics| Prometheus
+    V2 -.->|metrics| Prometheus
+    ArchiveRPC -.->|metrics| Prometheus
+    PrunedRPC -.->|metrics| Prometheus
+    Prometheus -.-> Grafana
+`} />
+
+## Infrastructure Sizing (AWS)
+
+| Component | Instance | Disk | Purpose |
+|-----------|----------|------|---------|
+| Validators (default: 3, production: 5) | c6a.xlarge | 500GB EBS gp3 | Block production, consensus |
+| Archive RPC | c6a.xlarge | 1TB EBS gp3 | Full history, debug/trace APIs, block explorer |
+| Pruned RPC | c6a.large | 500GB EBS gp3 | State-sync, transaction workloads |
+| Monitoring | t3.small | 50GB EBS gp3 | Prometheus, Grafana, eRPC |
+
+### RPC Node Types
+
+| Type | APIs | Pruning | State-Sync | Use Case |
+|------|------|---------|------------|----------|
+| Archive | Full (incl. `debug_*`, `trace_*`) | Disabled | Disabled | Block explorer, debugging, historical queries |
+| Pruned | Standard (`eth`, `net`, `web3`) | Enabled | Enabled | Transaction submission, latest state queries |
+
+<Callout type="info">
+GCP and Azure use a single generic `rpc` pool instead of the archive/pruned split. The archive/pruned separation is AWS-only.
+</Callout>
+
+## Step-by-Step Deployment
+
+<Steps>
+<Step>
+
+### Configure Cloud Credentials and SSH
+
+```bash
+# AWS
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# Generate an SSH key for node access
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/avalanche-deploy -N ""
+```
+
+For GCP, authenticate with `gcloud auth application-default login`. For Azure, use `az login`.
+
+</Step>
+<Step>
+
+### Configure Terraform Variables
+
+```bash
+cd terraform/l1/aws    # or terraform/l1/gcp, terraform/l1/azure
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit `terraform.tfvars`:
+
+```hcl
+name_prefix              = "my-l1"
+environment              = "fuji"        # or "mainnet"
+validator_count          = 5
+rpc_archive_count        = 1
+rpc_pruned_count         = 1
+ssh_public_key           = "ssh-rsa AAAA..."
+ssh_private_key_file     = "~/.ssh/avalanche-deploy"
+enable_staking_key_backup = true
+```
+
+</Step>
+<Step>
+
+### Provision Cloud Infrastructure
+
+```bash
+make infra    # Runs terraform init && terraform apply
+```
+
+This creates all VMs, networking (VPC, subnets, security groups), and storage (S3 bucket for staking keys if enabled). Terraform auto-generates the Ansible inventory at `ansible/inventory/aws_hosts`.
+
+</Step>
+<Step>
+
+### Deploy AvalancheGo
+
+```bash
+make deploy
+make status    # Wait for "P:OK" on all nodes
+```
+
+This runs playbook `l1/deploy-nodes.yml`, which:
+- Installs AvalancheGo on all nodes
+- Starts syncing with the Primary Network using `partial-sync-primary-network: true` (syncs only P-Chain headers — much faster than a full sync)
+- Collects NodeIDs and saves them to `ansible/node_ids.txt`
+- Backs up initial staking keys to S3 (if configured)
+
+</Step>
+<Step>
+
+### Configure Your Genesis
+
+Before creating the L1, prepare your genesis file at `configs/l1/genesis/genesis.json`.
+
+Use the [Genesis Builder](https://build.avax.network/tools/l1-toolbox/create-chain) to generate this visually, or edit the included template.
+
+Key settings:
+- **`chainId`** — Unique EVM chain ID ([check availability](https://chainlist.org/))
+- **`feeConfig`** — Gas limits and base fees
+- **`warpConfig`** — Cross-chain messaging with `quorumNumerator: 67`
+- **`alloc`** — Pre-funded addresses and pre-deployed contracts
+
+</Step>
+<Step>
+
+### Create Your L1
+
+```bash
+# Import or create a deployer key
+platform keys import --name l1-deployer
+platform keys default --name l1-deployer
+
+# Build and run the create-l1 tool
+make create-l1
+./tools/create-l1/create-l1 \
+  --network=fuji \
+  --key-name=l1-deployer \
+  --validators=$(cd terraform/l1/aws && terraform output -json validator_ips | jq -r 'join(",")') \
+  --chain-name=mychain \
+  --output=l1.env
+```
+
+The `create-l1` tool executes three P-Chain transactions:
+1. **`CreateSubnetTx`** — Creates a new Subnet (returns `SUBNET_ID`)
+2. **`CreateChainTx`** — Creates the EVM chain with your genesis (returns `CHAIN_ID`)
+3. **`ConvertSubnetToL1Tx`** — Converts the Subnet to an L1, registering all validators with their BLS keys
+
+The output `l1.env` file contains `SUBNET_ID`, `CHAIN_ID`, `CONVERSION_TX`, and `EVM_CHAIN_ID`.
+
+<Callout type="warn">
+Your deployer key must be funded on the P-Chain. On Fuji, get test AVAX from the [Builder Hub Faucet](https://build.avax.network/tools/faucet) and cross-chain transfer to P-Chain via Core Wallet.
+</Callout>
+
+</Step>
+<Step>
+
+### Configure Nodes for Your L1
+
+```bash
+source l1.env
+make configure-l1 SUBNET_ID=$SUBNET_ID CHAIN_ID=$CHAIN_ID
+make status
+```
+
+This runs playbook `l1/configure.yml`, which:
+- Adds `track-subnets: <SUBNET_ID>` to each node's config
+- Copies the appropriate chain config (archive, pruned, or validator)
+- Restarts AvalancheGo on all nodes
+- Automatically deploys **eRPC** as a load balancer (auto-detects EVM chain ID from genesis)
+
+</Step>
+</Steps>
+
+Your L1 is now running. Access it at:
+
+| Endpoint | URL | Notes |
+|----------|-----|-------|
+| eRPC (recommended) | `http://<monitoring-ip>:4000` | Load balanced, cached, automatic failover |
+| Direct Archive RPC | `http://<archive-rpc-ip>:9650/ext/bc/<CHAIN_ID>/rpc` | Full debug/trace APIs |
+| Direct Pruned RPC | `http://<pruned-rpc-ip>:9650/ext/bc/<CHAIN_ID>/rpc` | Standard APIs only |
+| Grafana | `http://<monitoring-ip>:3000` | Default credentials: admin/admin |
+
+## Optional: Initialize ValidatorManager
+
+If your genesis includes a pre-deployed ValidatorManager proxy contract, initialize it to enable on-chain validator management:
+
+```bash
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash && foundryup
+
+# Set ICM contracts path
+export ICM_CONTRACTS_PATH=~/code/icm-contracts
+
+# Initialize
+source l1.env
+make initialize-validator-manager \
+  SUBNET_ID=$SUBNET_ID \
+  CHAIN_ID=$CHAIN_ID \
+  CONVERSION_TX=$CONVERSION_TX \
+  PROXY_ADDRESS=0xfacade01... \
+  EVM_CHAIN_ID=$EVM_CHAIN_ID
+```
+
+## Cost Estimate (AWS us-east-1)
+
+| Component | Count | Monthly Estimate |
+|-----------|-------|-----------------|
+| Validators (c6a.xlarge) | 5 | ~$450 |
+| Archive RPC (c6a.xlarge) | 1 | ~$120 |
+| Pruned RPC (c6a.large) | 1 | ~$65 |
+| Monitoring (t3.small) | 1 | ~$15 |
+| S3 + KMS | — | ~$1 |
+| **Total** | | **~$651/mo** |
+
+## Next Steps
+
+- [Deploy on Kubernetes instead](/docs/tooling/avalanche-deploy/deploy-l1-kubernetes) — Container-native alternative using Helm charts
+- [Deploy add-ons](/docs/tooling/avalanche-deploy/add-ons) — Blockscout, faucet, The Graph, ICM Relayer, Safe multisig
+- [Operations guide](/docs/tooling/avalanche-deploy/operations) — Upgrades, monitoring, health checks, backups
+- [Troubleshooting](/docs/tooling/avalanche-deploy/troubleshooting) — Common issues and solutions

@@ -3,8 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield } from "lucide-react";
+import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock, Monitor, Terminal, MessageSquare, Hammer, Settings, Network, Code, Hexagon, Users, Wallet, Lock, Check } from "lucide-react";
+import { getCourseDurations, getCourseTools } from "@/content/courses";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCourseCompletion } from "@/hooks/useCourseCompletion";
+import { useCourseBadges } from "@/hooks/useCourseBadges";
 
 // CourseNode interface definition
 export interface CourseNode {
@@ -19,20 +22,113 @@ export interface CourseNode {
 }
 
 // Import configs
-import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche-developer.config';
-import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/codebase-entrepreneur.config';
+import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche.config';
+import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/entrepreneur.config';
+import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-path-configs/blockchain.config';
 
 interface LearningTreeProps {
-  pathType?: 'avalanche' | 'entrepreneur';
+  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  externalHoveredCategory?: string | null;
+  onCategoryHover?: (category: string | null) => void;
 }
 
-export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
+// Get course durations and tools once
+const courseDurations = getCourseDurations();
+const courseTools = getCourseTools();
+
+// Tool icon mapping
+const toolIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  "Console": Monitor,
+  "Avalanche CLI": Terminal,
+  "ICM": MessageSquare,
+  "Foundry": Hammer,
+  "Starter-Kit": Code,
+  "Validator Manager": Settings,
+  "P-Chain": Network,
+  "AvaCloudSDK": Code,
+  "AvaCloud API": Code,
+  "HyperSDK": Terminal,
+  "Chainlink VRF": Hexagon,
+  "Entrepreneur": Users,
+  "Thirdweb x402": Wallet,
+};
+
+// Helper to extract course slug from full path (e.g., "avalanche-l1/avalanche-fundamentals" -> "avalanche-fundamentals")
+const getCourseSlug = (fullSlug: string): string => {
+  const parts = fullSlug.split('/');
+  return parts[parts.length - 1];
+};
+
+export default function LearningTree({ 
+  pathType = 'avalanche',
+  externalHoveredCategory,
+  onCategoryHover
+}: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
+  const [internalHoveredCategory, setInternalHoveredCategory] = React.useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
   const isMobile = useIsMobile();
+  
+  // Use external category if provided, otherwise use internal state
+  const hoveredCategory = externalHoveredCategory ?? internalHoveredCategory;
+  
+  // Sync internal state with external hover state changes
+  React.useEffect(() => {
+    setInternalHoveredCategory(externalHoveredCategory ?? null);
+  }, [externalHoveredCategory]);
+  
+  const setHoveredCategory = (category: string | null) => {
+    setInternalHoveredCategory(category);
+    onCategoryHover?.(category);
+  };
+
+  // Detect dark mode
+  React.useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
 
   // Select the appropriate learning paths and styles based on pathType
-  const learningPaths = pathType === 'avalanche' ? avalancheLearningPaths : entrepreneurLearningPaths;
-  const categoryStyles = pathType === 'avalanche' ? avalancheCategoryStyles : entrepreneurCategoryStyles;
+  const learningPaths = pathType === 'avalanche' 
+    ? avalancheLearningPaths 
+    : pathType === 'blockchain' 
+    ? blockchainLearningPaths 
+    : entrepreneurLearningPaths;
+  const categoryStyles = pathType === 'avalanche' 
+    ? avalancheCategoryStyles 
+    : pathType === 'blockchain' 
+    ? blockchainCategoryStyles 
+    : entrepreneurCategoryStyles;
+
+  // Course completion tracking
+  const courseEntries = React.useMemo(() =>
+    learningPaths.map(node => ({
+      nodeId: node.id,
+      courseSlug: getCourseSlug(node.slug),
+    })), [learningPaths]
+  );
+  const { completionMap } = useCourseCompletion(courseEntries);
+  const { badgeImageMap } = useCourseBadges(completionMap, courseEntries);
+
+  const resolveSlug = (slug: string) => {
+    if (pathType === 'entrepreneur') {
+      const cleanSlug = slug.replace(/^entrepreneur\//, '');
+      return `/academy/entrepreneur/${cleanSlug}`;
+    }
+    return `/academy/${slug}`;
+  };
 
   // Function to get all ancestor nodes (dependencies) of a given node
   const getAncestors = (nodeId: string, ancestors: Set<string> = new Set()): Set<string> => {
@@ -62,33 +158,51 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   }, [hoveredNode]);
 
   // Calculate SVG dimensions based on node positions
-  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 250;
+  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 200;
 
   // Legend component
-  const Legend = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className={isMobile ? "mt-8 grid grid-cols-2 gap-3" : "flex flex-wrap gap-6 justify-center"}>
+  const Legend = ({ isMobile = false, vertical = false }: { isMobile?: boolean; vertical?: boolean }) => (
+    <div className={
+      isMobile 
+        ? "mt-8 grid grid-cols-2 gap-3" 
+        : vertical 
+        ? "flex flex-col gap-10" 
+        : "flex flex-wrap gap-6 justify-center"
+    }>
       {Object.entries(categoryStyles).map(([category, style]) => {
         const Icon = style.icon;
+        const isHovered = hoveredCategory === category;
         return (
-          <div key={category} className="flex items-center gap-2">
+          <div 
+            key={category} 
+            className={cn(
+              "flex items-center gap-2 cursor-pointer transition-all duration-200",
+              isHovered && "scale-110"
+            )}
+            onMouseEnter={() => setHoveredCategory(category)}
+            onMouseLeave={() => setHoveredCategory(null)}
+          >
             <div className={cn(
               isMobile ? "w-6 h-6" : "w-8 h-8",
-              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm",
+              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm transition-all duration-200",
               isMobile && "flex-shrink-0",
-              style.gradient
+              style.gradient,
+              isHovered && "shadow-lg scale-110"
             )}>
               <Icon className={isMobile ? "w-3 h-3 text-white" : "w-4 h-4 text-white"} />
             </div>
             <span className={cn(
               isMobile ? "text-xs" : "text-sm",
-              "font-medium text-zinc-600 dark:text-zinc-400"
-            )}>{category}</span>
+              "font-medium text-zinc-600 dark:text-zinc-400 transition-colors duration-200",
+              isHovered && "text-zinc-900 dark:text-zinc-100"
+            )}>{style.label || category}</span>
           </div>
         );
       })}
     </div>
   );
 
+  // Draw connections using SVG curved paths
   const drawConnections = () => {
     const connections: React.JSX.Element[] = [];
 
@@ -99,13 +213,14 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
           if (parentNode) {
             // Check if this connection should be highlighted
             const isActive = highlightedNodes.has(node.id) && highlightedNodes.has(depId);
+            const isCompleted = completionMap.get(node.id) === true;
 
             // Calculate the center points of the nodes
             const parentCenterX = parentNode.position.x;
             const childCenterX = node.position.x;
 
             // Card dimensions
-            const cardHeight = 110;
+            const cardHeight = 95;
 
             // Lines should connect from bottom of parent to top of child
             const parentBottomY = parentNode.position.y + cardHeight;
@@ -115,23 +230,26 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
             const midY = (parentBottomY + childTopY) / 2;
 
             // Adjust the end point to account for arrow marker
-            const adjustedChildTopY = childTopY + (isActive ? 6 : 5); // Account for marker size
+            const adjustedChildTopY = childTopY + (isActive ? 6 : 5);
 
             // Create a curved path
             const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
-
+            
+            const inactiveMarker = isDarkMode ? "url(#arrow-inactive-dark)" : "url(#arrow-inactive-light)";
+            const activeMarker = isDarkMode ? "url(#arrow-active-dark)" : "url(#arrow-active-light)";
+            
             connections.push(
               <path
                 key={`${depId}-${node.id}`}
                 d={pathData}
                 fill="none"
-                stroke={isActive ? "rgb(99, 102, 241)" : "rgb(226, 232, 240)"}
-                strokeWidth={isActive ? "1.5" : "1"}
-                opacity={isActive ? "1" : "0.5"}
+                stroke={isActive ? (isDarkMode ? "rgb(212, 212, 216)" : "rgb(161, 161, 170)") : isCompleted ? (isDarkMode ? "rgb(52, 211, 153)" : "rgb(16, 185, 129)") : isDarkMode ? "rgb(113, 113, 122)" : "rgb(226, 232, 240)"}
+                strokeWidth={isActive ? "1.5" : isCompleted ? "1.5" : "1"}
+                opacity={isActive ? "1" : isCompleted ? "0.85" : isDarkMode ? "0.6" : "0.5"}
                 className="transition-all duration-700 ease-in-out"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                markerEnd={isActive ? "url(#arrow-active)" : "url(#arrow-inactive)"}
+                markerEnd={isActive ? activeMarker : isCompleted ? (isDarkMode ? "url(#arrow-completed-dark)" : "url(#arrow-completed-light)") : inactiveMarker}
               />
             );
           }
@@ -152,13 +270,14 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
           {sortedPaths.map((node, index) => {
             const style = categoryStyles[node.category as keyof typeof categoryStyles];
             const Icon = style?.icon || BookOpen;
+            const isCategoryHovered = hoveredCategory === node.category;
 
             return (
               <div key={node.id} className="relative">
                 {/* Connection line from previous course */}
                 {index > 0 && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <svg width="16" height="16" viewBox="0 0 16 16" className="text-zinc-400 dark:text-zinc-600">
+                    <svg width="16" height="16" viewBox="0 0 16 16" className={completionMap.get(node.id) === true ? "text-emerald-500 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-600"}>
                       <path
                         d="M8 2 L8 10"
                         stroke="currentColor"
@@ -178,43 +297,123 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 )}
 
                 <Link
-                  href={pathType === 'entrepreneur' ? `/codebase-entrepreneur-academy/${node.slug}` : `/academy/${node.slug}`}
+                  href={resolveSlug(node.slug)}
                   className="block relative group"
                 >
                   <div
                     className={cn(
-                      "relative w-full p-4 rounded-xl transition-all duration-300",
+                      "relative w-full p-3 rounded-lg transition-all duration-300",
                       "bg-white dark:bg-zinc-900",
-                      "border border-zinc-200 dark:border-zinc-800",
+                      "border-2 dark:border-zinc-800",
                       "shadow-sm active:shadow-lg",
-                      "active:scale-[0.98]",
+                      isCategoryHovered
+                        ? "shadow-2xl scale-[1.075]"
+                        : "border-zinc-200 active:scale-[0.98]",
                       style?.lightBg,
                       style?.darkBg
                     )}
+                    style={
+                      isCategoryHovered
+                        ? {
+                            boxShadow: `0 25px 50px -12px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.4)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.4)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.4)' : 'rgba(99, 102, 241, 0.4)'}, 0 0 0 4px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.15)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.15)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.15)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.15)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.15)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(99, 102, 241, 0.15)'}`
+                          }
+                        : undefined
+                    }
                   >
                     {/* Category icon */}
                     <div className={cn(
-                      "absolute -top-2 -right-2 w-8 h-8 rounded-full",
+                      "absolute -top-2 -right-2 w-7 h-7 rounded-full",
                       "bg-gradient-to-br shadow-md",
                       "flex items-center justify-center",
                       "text-white",
                       style?.gradient
                     )}>
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
 
+                    {/* Completion badge */}
+                    {completionMap.has(node.id) && (
+                      <div className={cn(
+                        "absolute rounded-full overflow-hidden",
+                        "flex items-center justify-center",
+                        "border-2 transition-all duration-300",
+                        (completionMap.get(node.id) && badgeImageMap.has(node.id))
+                          ? "w-9 h-9 -top-3 -left-3"
+                          : "w-7 h-7 -top-2 -left-2",
+                        completionMap.get(node.id)
+                          ? badgeImageMap.has(node.id)
+                            ? "border-transparent shadow-md"
+                            : cn("bg-gradient-to-br shadow-md text-white border-transparent", style?.gradient)
+                          : "bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                      )}>
+                        {completionMap.get(node.id) && badgeImageMap.has(node.id) ? (
+                          <img src={badgeImageMap.get(node.id)} alt="Badge" className="w-full h-full object-cover" />
+                        ) : completionMap.get(node.id) ? (
+                          <Check className="w-3.5 h-3.5" />
+                        ) : null}
+                      </div>
+                    )}
+
                     {/* Content */}
-                    <h4 className="font-semibold text-base mb-1 text-zinc-900 dark:text-white leading-tight pr-8">
+                    <h4 className="font-semibold text-sm mb-1 text-zinc-900 dark:text-white leading-tight pr-6">
                       {node.name}
                     </h4>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                       {node.description}
                     </p>
 
-                    {/* Mobile tap indicator */}
-                    <div className="absolute bottom-3 right-3">
-                      <ArrowRight className="w-4 h-4 text-zinc-400" />
-                    </div>
+                    {/* Mobile duration and tool indicator - below description */}
+                    {(() => {
+                      const courseSlug = getCourseSlug(node.slug);
+                      const duration = courseDurations[courseSlug];
+                      const tool = courseTools[courseSlug];
+                      const ToolIcon = tool ? toolIconMap[tool] || Monitor : null;
+                      
+                      // Category-based background colors (lighter versions)
+                      const categoryBgColors: Record<string, string> = {
+                        // Avalanche categories
+                        "Fundamentals": "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
+                        "Interoperability": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                        "L1 Development": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                        "L1 Tokenomics": "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+                        "VM Customization": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                        // Entrepreneur categories
+                        "Community": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                        "Business Strategy": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                        "Finance": "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300",
+                        // Blockchain categories
+                        "Development": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                        "Privacy": "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300",
+                      };
+                      const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
+                      
+                      return (duration || tool) ? (
+                        <div className="mt-1.5 flex items-center justify-between">
+                          {tool && ToolIcon ? (
+                            <div className={cn(
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded-full",
+                              bgColorClass
+                            )}>
+                              <ToolIcon className="w-2.5 h-2.5" />
+                              <span className="text-[10px] font-medium">{tool}</span>
+                            </div>
+                          ) : <div />}
+                          {duration && (
+                            <div className={cn(
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded-full",
+                              bgColorClass
+                            )}>
+                              <Clock className="w-2.5 h-2.5" />
+                              <span className="text-[10px] font-medium">{duration}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="absolute bottom-2 right-2">
+                          <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
+                        </div>
+                      );
+                    })()}
                   </div>
                 </Link>
               </div>
@@ -225,7 +424,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
     );
   };
 
-  // Desktop layout component (existing code)
+  // Desktop layout component
   const DesktopLayout = () => (
     <>
       <div className="relative p-8 lg:p-12" style={{ minHeight: `${maxY}px` }}>
@@ -238,8 +437,9 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
         >
           {/* Define arrow markers */}
           <defs>
+            {/* Light mode inactive arrow */}
             <marker
-              id="arrow-inactive"
+              id="arrow-inactive-light"
               viewBox="0 0 10 10"
               refX="5"
               refY="5"
@@ -250,11 +450,28 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               <path
                 d="M 0 0 L 10 5 L 0 10 z"
                 fill="rgb(226, 232, 240)"
-                opacity="0.5"
+                opacity="0.3"
               />
             </marker>
+            {/* Dark mode inactive arrow */}
             <marker
-              id="arrow-active"
+              id="arrow-inactive-dark"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(113, 113, 122)"
+                opacity="0.6"
+              />
+            </marker>
+            {/* Active arrow for light mode */}
+            <marker
+              id="arrow-active-light"
               viewBox="0 0 10 10"
               refX="5"
               refY="5"
@@ -264,7 +481,54 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
             >
               <path
                 d="M 0 0 L 10 5 L 0 10 z"
-                fill="rgb(99, 102, 241)"
+                fill="rgb(161, 161, 170)"
+              />
+            </marker>
+            {/* Active arrow for dark mode */}
+            <marker
+              id="arrow-active-dark"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(212, 212, 216)"
+              />
+            </marker>
+            {/* Completed arrow for light mode */}
+            <marker
+              id="arrow-completed-light"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(16, 185, 129)"
+                opacity="0.85"
+              />
+            </marker>
+            {/* Completed arrow for dark mode */}
+            <marker
+              id="arrow-completed-dark"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(52, 211, 153)"
+                opacity="0.85"
               />
             </marker>
           </defs>
@@ -276,6 +540,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
           const style = categoryStyles[node.category as keyof typeof categoryStyles];
           const Icon = style?.icon || BookOpen;
           const isHighlighted = highlightedNodes.has(node.id);
+          const isCategoryHovered = hoveredCategory === node.category;
 
           return (
             <div
@@ -285,52 +550,135 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 left: `${node.position.x}%`,
                 top: `${node.position.y}px`,
                 transform: 'translateX(-50%)',
-                width: '280px',
-                zIndex: isHighlighted ? 20 : 10
+                width: '238px',
+                zIndex: isHighlighted || isCategoryHovered ? 20 : 10
               }}
-              onMouseEnter={() => setHoveredNode(node.id)}
-              onMouseLeave={() => setHoveredNode(null)}
+              onMouseEnter={() => {
+                setHoveredNode(node.id);
+                setHoveredCategory(node.category);
+              }}
+              onMouseLeave={() => {
+                setHoveredNode(null);
+                setHoveredCategory(null);
+              }}
             >
               <Link
-                href={pathType === 'entrepreneur' ? `/codebase-entrepreneur-academy/${node.slug}` : `/academy/${node.slug}`}
+                href={resolveSlug(node.slug)}
                 className="block relative group w-full"
               >
                 <div
                   className={cn(
-                    "relative w-full p-5 rounded-2xl transition-all duration-300 min-height-[110px]",
+                    "relative w-full p-4 rounded-xl transition-all duration-300",
                     "bg-white dark:bg-zinc-900",
-                    "border dark:border-zinc-800",
+                    "border-2 dark:border-zinc-800",
                     "shadow-sm",
-                    isHighlighted
-                      ? "border-indigo-500 shadow-lg scale-[1.02]"
+                    isHighlighted || isCategoryHovered
+                      ? "shadow-2xl scale-[1.025]"
                       : "border-zinc-200 hover:shadow-lg hover:scale-[1.02] hover:border-zinc-300 dark:hover:border-zinc-700",
                     style?.lightBg,
                     style?.darkBg
                   )}
+                  style={
+                    isHighlighted || isCategoryHovered
+                      ? {
+                          boxShadow: `0 25px 50px -12px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.4)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.4)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.4)' : 'rgba(99, 102, 241, 0.4)'}, 0 0 0 4px ${style?.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.15)' : style?.gradient.includes('purple') ? 'rgba(168, 85, 247, 0.15)' : style?.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.15)' : style?.gradient.includes('red') ? 'rgba(239, 68, 68, 0.15)' : style?.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.15)' : style?.gradient.includes('yellow') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(99, 102, 241, 0.15)'}`
+                        }
+                      : undefined
+                  }
                 >
                   {/* Category icon */}
                   <div className={cn(
-                    "absolute -top-3 -right-3 w-10 h-10 rounded-full",
+                    "absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full",
                     "bg-gradient-to-br shadow-md",
                     "flex items-center justify-center",
                     "text-white",
                     style?.gradient
                   )}>
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   </div>
 
+                  {/* Completion badge */}
+                  {completionMap.has(node.id) && (
+                    <div className={cn(
+                      "absolute rounded-full overflow-hidden",
+                      "flex items-center justify-center",
+                      "border-2 transition-all duration-300",
+                      (completionMap.get(node.id) && badgeImageMap.has(node.id))
+                        ? "w-10 h-10 -top-3.5 -left-3.5"
+                        : "w-8 h-8 -top-2.5 -left-2.5",
+                      completionMap.get(node.id)
+                        ? badgeImageMap.has(node.id)
+                          ? "border-transparent shadow-md"
+                          : cn("bg-gradient-to-br shadow-md text-white border-transparent", style?.gradient)
+                        : "bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                    )}>
+                      {completionMap.get(node.id) && badgeImageMap.has(node.id) ? (
+                        <img src={badgeImageMap.get(node.id)} alt="Badge" className="w-full h-full object-cover" />
+                      ) : completionMap.get(node.id) ? (
+                        <Check className="w-4 h-4" />
+                      ) : null}
+                    </div>
+                  )}
+
                   {/* Content */}
-                  <h4 className="font-semibold text-base mb-2 text-zinc-900 dark:text-white leading-tight pr-8">
+                  <h4 className="font-semibold text-sm mb-1.5 text-zinc-900 dark:text-white leading-tight pr-6">
                     {node.name}
                   </h4>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
                     {node.description}
                   </p>
 
-                  {/* Hover indicator */}
-                  <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ArrowRight className="w-5 h-5 text-zinc-400" />
-                  </div>
+                  {/* Duration and Tool indicator - appears below description on hover */}
+                  {(() => {
+                    const courseSlug = getCourseSlug(node.slug);
+                    const duration = courseDurations[courseSlug];
+                    const tool = courseTools[courseSlug];
+                    const ToolIcon = tool ? toolIconMap[tool] || Monitor : null;
+                    
+                    // Category-based background colors (lighter versions)
+                    const categoryBgColors: Record<string, string> = {
+                      // Avalanche categories
+                      "Fundamentals": "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
+                      "Interoperability": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                      "L1 Development": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                      "L1 Tokenomics": "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+                      "VM Customization": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                      // Entrepreneur categories
+                      "Community": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                      "Business Strategy": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                      "Finance": "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300",
+                      // Blockchain categories
+                      "Development": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                      "Privacy": "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300",
+                    };
+                    const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
+                    
+                    return (duration || tool) ? (
+                      <div className={cn(
+                        "mt-2 flex items-center justify-between overflow-hidden transition-all duration-300 ease-out",
+                        "max-h-0 opacity-0 group-hover:max-h-8 group-hover:opacity-100"
+                      )}>
+                        {tool && ToolIcon ? (
+                          <div className={cn(
+                            "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                            bgColorClass
+                          )}>
+                            <ToolIcon className="w-3 h-3" />
+                            <span className="text-[10px] font-medium whitespace-nowrap">{tool}</span>
+                          </div>
+                        ) : <div />}
+                        {duration && (
+                          <div className={cn(
+                            "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                            bgColorClass
+                          )}>
+                            <Clock className="w-3 h-3" />
+                            <span className="text-[10px] font-medium whitespace-nowrap">{duration}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </Link>
             </div>
@@ -342,11 +690,6 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
 
   return (
     <div className="relative w-full">
-      {/* Legend at top for all learning trees */}
-      <div className="mb-8">
-        <Legend isMobile={false} />
-      </div>
-
       {/* Mobile Layout - visible on small screens, hidden on lg and up */}
       <div className="block lg:hidden">
         <MobileLayout />
@@ -357,6 +700,89 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
         <DesktopLayout />
       </div>
     </div>
+  );
+}
 
+// Export Legend component for use in academy-learning-path
+export function LearningTreeLegend({ 
+  pathType = 'avalanche',
+  isMobile = false,
+  activeCategory = null,
+  onCategoryHover
+}: { 
+  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  isMobile?: boolean;
+  activeCategory?: string | null;
+  onCategoryHover?: (category: string | null) => void;
+}) {
+  const [localHoveredCategory, setLocalHoveredCategory] = React.useState<string | null>(null);
+  
+  // Use external activeCategory if provided, otherwise use local state
+  const hoveredCategory = activeCategory ?? localHoveredCategory;
+  
+  const handleMouseEnter = (category: string) => {
+    setLocalHoveredCategory(category);
+    onCategoryHover?.(category);
+  };
+  
+  const handleMouseLeave = () => {
+    setLocalHoveredCategory(null);
+    onCategoryHover?.(null);
+  };
+  
+  const categoryStyles = pathType === 'avalanche' 
+    ? avalancheCategoryStyles 
+    : pathType === 'blockchain' 
+    ? blockchainCategoryStyles 
+    : entrepreneurCategoryStyles;
+
+  return (
+    <div className={
+      isMobile 
+        ? "flex flex-wrap gap-3 justify-center" 
+        : "flex flex-wrap gap-2 justify-center"
+    }>
+      {Object.entries(categoryStyles).map(([category, style]) => {
+        const Icon = style.icon;
+        const isActive = hoveredCategory === category;
+        return (
+          <div 
+            key={category} 
+            className={cn(
+              "flex items-center cursor-pointer transition-all duration-300 ease-out",
+              "rounded-full",
+              isActive 
+                ? "gap-2 sm:gap-3 bg-zinc-100 dark:bg-zinc-800 px-2 py-1.5" 
+                : "gap-0 px-1 py-1.5"
+            )}
+            onMouseEnter={() => handleMouseEnter(category)}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className={cn(
+              isMobile ? "w-8 h-8" : "w-9 h-9",
+              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm transition-all duration-200",
+              "flex-shrink-0",
+              style.gradient,
+              isActive && "shadow-md scale-110"
+            )}>
+              <Icon className={isMobile ? "w-4 h-4 text-white" : "w-[18px] h-[18px] text-white"} />
+            </div>
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300 ease-out",
+                isActive
+                  ? "max-w-[120px] opacity-100"
+                  : "max-w-0 opacity-0"
+              )}
+            >
+              <span className={cn(
+                isMobile ? "text-xs" : "text-sm",
+                "font-medium text-zinc-700 dark:text-zinc-200 whitespace-nowrap pr-1"
+              )}>{style.label || category}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 } 

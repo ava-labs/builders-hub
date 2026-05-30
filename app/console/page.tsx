@@ -2,9 +2,24 @@
 
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, Suspense } from "react";
-import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets } from "lucide-react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import {
+  ChevronRight,
+  Bell,
+  Users,
+  Settings,
+  MessagesSquare,
+  ArrowUpDown,
+  Terminal,
+  Copy,
+  Check,
+  ExternalLink,
+} from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { EcosystemMarquee } from "@/components/console/ecosystem-marquee";
+import { AlphaSequence } from "@/components/console/alpha-sequence";
+import { boardContainer, boardItem } from "@/components/console/motion";
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -13,17 +28,30 @@ function RedirectLogic() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (
-      status === "authenticated" &&
-      session.user.is_new_user &&
-      pathname !== "/profile"
-    ) {
-      // Store the original URL with search params (including UTM) in localStorage
-      const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("redirectAfterProfile", originalUrl);
+    // Note: PostHog tracking is handled by the layout's TrackNewUser component
+    // This component only handles the redirect logic to avoid duplicate tracking
+    //
+    // IMPORTANT: Don't redirect if user is a "pending" user (hasn't accepted terms yet)
+    // The LoginModalWrapper will handle showing Terms and BasicProfile modals
+    // Only redirect after they've completed the full registration flow
+    if (status === "authenticated" && session?.user?.is_new_user) {
+      // Check if this is a pending user who hasn't accepted terms yet
+      const isPendingUser = session.user.id?.startsWith("pending_");
+      if (isPendingUser) {
+        // Let LoginModalWrapper handle the Terms/BasicProfile flow
+        // Don't redirect - the modals will appear
+        return;
       }
-      router.replace("/profile");
+
+      // Redirect existing new users (who have accepted terms but notifications is null) to profile page
+      if (pathname !== "/profile") {
+        // Store the original URL with search params in localStorage
+        const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("redirectAfterProfile", originalUrl);
+        }
+        router.replace("/profile");
+      }
     }
   }, [session, status, pathname, router, searchParams]);
 
@@ -38,238 +66,481 @@ function RedirectIfNewUser() {
   );
 }
 
-function ConsoleDashboard() {
-  // Primary tier - Most important partnerships (larger display)
-  const primaryNetworks = [
-    {
-      name: "FIFA Blockchain",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/27QiWdtdwCaIeFbYhA47KG/5b4245767fc39d68b566f215e06c8f3a/FIFA_logo.png",
-      link: "https://collect.fifa.com/",
-      type: "Gaming"
-    },
-    {
-      name: "MapleStory Henesys",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png",
-      link: "https://nexon.com",
-      type: "Gaming"
-    },
-    {
-      name: "Dexalot Exchange",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
-      link: "https://dexalot.com/",
-      type: "DeFi"
-    },
-    {
-      name: "DeFi Kingdoms",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/6ee8eu4VdSJNo93Rcw6hku/2c6c5691e8a7c3b68654e5a4f219b2a2/chain-logo.png",
-      link: "https://defikingdoms.com/",
-      type: "Gaming"
-    },
-    {
-      name: "Lamina1",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",
-      link: "https://lamina1.com/",
-      type: "Creative"
-    },
-    {
-      name: "Green Dot Deloitte",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/zDgUqvR4J10suTQcNZ3dU/842b9f276bef338e68cb5d9f119cf387/green-dot.png",
-      link: "https://www2.deloitte.com/us/en/pages/about-deloitte/solutions/future-forward-blockchain-alliances.html",
-      type: "Enterprise"
-    }
-  ];
-
-  // Secondary tier - Important but smaller display
-  const secondaryNetworks = [
-    {
-      name: "Beam Gaming",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",
-      link: "https://onbeam.com/",
-      type: "Gaming"
-    },
-    {
-      name: "KOROSHI Gaming",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/1cZxf8usDbuJng9iB3fkFd/1bc34bc28a2c825612eb697a4b72d29d/2025-03-30_07.28.32.jpg",
-      link: "https://www.thekoroshi.com/",
-      type: "Gaming"
-    },
-    {
-      name: "Gunzilla Games",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",
-      link: "https://gunzillagames.com/en/",
-      type: "Gaming"
-    },
-    {
-      name: "PLAYA3ULL Games",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",
-      link: "https://playa3ull.games/",
-      type: "Gaming"
-    },
-    {
-      name: "StraitsX",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",
-      link: "https://www.straitsx.com/",
-      type: "DeFi"
-    },
-    {
-      name: "CX Chain",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/3wVuWA4oz9iMadkIpywUMM/377249d5b8243e4dfa3a426a1af5eaa5/14.png",
-      link: "https://node.cxchain.xyz/",
-      type: "Gaming"
-    }
-  ];
-
-  // Combine primary and secondary networks, limiting to 12 for display
-  const ecosystemChains = [...primaryNetworks, ...secondaryNetworks].slice(0, 12);
+function BentoCard({
+  href,
+  className = "",
+  pulseDelay,
+  children,
+}: {
+  href: string;
+  className?: string;
+  pulseDelay?: number;
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to Builder Console</h2>
-        <p className="text-muted-foreground">
-          Manage your Avalanche L1s, validators, and deployments from one central location.
-        </p>
+    <motion.div variants={boardItem}>
+      <div
+        onClick={() => router.push(href)}
+        className="block h-full cursor-pointer"
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(href); }}
+      >
+        <motion.div
+          whileHover={{ y: -2 }}
+          transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
+          className={`group relative h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-4 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 ${className}`}
+          style={{
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)",
+            ...(pulseDelay !== undefined && {
+              outline: "2px solid transparent",
+              animation: `cardPulse 1.0s ease-in-out ${pulseDelay}s 1`,
+            }),
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)"; }}
+        >
+          {children}
+        </motion.div>
       </div>
+    </motion.div>
+  );
+}
 
-      {/* Call to Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {/* Primary Network Actions */}
-        <Link href="/console/primary-network/node-setup" className="group block">
-          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 rounded-lg bg-muted">
-                <Settings className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </div>
-            <h3 className="font-semibold text-foreground mb-2">Setup Primary Network Node</h3>
-            <p className="text-sm text-muted-foreground mb-4">Configure and deploy your Avalanche Primary Network node infrastructure</p>
-            <div className="text-xs text-muted-foreground font-medium">Get Started →</div>
-          </div>
-        </Link>
+function SubLink({
+  href,
+  icon: Icon,
+  label,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 text-sm rounded-md px-2 py-1.5 -mx-2 transition-colors text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-700 dark:hover:text-zinc-200"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      <span>{label}</span>
+    </Link>
+  );
+}
 
-        {/* Layer 1 Creation */}
-        <Link href="/console/layer-1/create" className="group block">
-          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 rounded-lg bg-muted">
-                <Layers className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </div>
-            <h3 className="font-semibold text-foreground mb-2">Create New L1</h3>
-            <p className="text-sm text-muted-foreground mb-4">Launch your custom Layer 1 blockchain with custom configurations</p>
-            <div className="text-xs text-muted-foreground font-medium">Create L1 →</div>
-          </div>
-        </Link>
-
-        {/* Validator Management */}
-        <Link href="/console/permissioned-l1s/add-validator" className="group block">
-          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 rounded-lg bg-muted">
-                <Users className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </div>
-            <h3 className="font-semibold text-foreground mb-2">Manage Validators</h3>
-            <p className="text-sm text-muted-foreground mb-4">Add, remove, and configure validators for your L1 networks</p>
-            <div className="text-xs text-muted-foreground font-medium">Manage →</div>
-          </div>
-        </Link>
-
-        {/* Interchain Messaging */}
-        <Link href="/console/icm/setup" className="group block">
-          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 rounded-lg bg-muted">
-                <MessagesSquare className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </div>
-            <h3 className="font-semibold text-foreground mb-2">Setup Cross-Chain Messaging</h3>
-            <p className="text-sm text-muted-foreground mb-4">Enable communication between your L1s with Interchain Messaging</p>
-            <div className="text-xs text-muted-foreground font-medium">Setup ICM →</div>
-          </div>
-        </Link>
-
-        {/* Token Transfer */}
-        <Link href="/console/ictt/setup" className="group block">
-          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 rounded-lg bg-muted">
-                <ArrowUpDown className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </div>
-            <h3 className="font-semibold text-foreground mb-2">Bridge Setup</h3>
-            <p className="text-sm text-muted-foreground mb-4">Configure token bridges for seamless cross-chain transfers</p>
-            <div className="text-xs text-muted-foreground font-medium">Setup Bridge →</div>
-          </div>
-        </Link>
-
-        {/* Testnet Faucet */}
-        <Link href="/console/primary-network/faucet" className="group block">
-          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 rounded-lg bg-muted">
-                <Droplets className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </div>
-            <h3 className="font-semibold text-foreground mb-2">Get Test Tokens</h3>
-            <p className="text-sm text-muted-foreground mb-4">Access the testnet faucet to get AVAX for development and testing</p>
-            <div className="text-xs text-muted-foreground font-medium">Get Tokens →</div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Ecosystem Section */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
-          Explore Avalanche L1s
-        </h2>
-        <div className="flex flex-wrap justify-center gap-3">
-          {ecosystemChains.map((chain, index) => (
-            <a
-              key={index}
-              href={chain.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-3 px-4 py-2.5 rounded-full bg-card border border-border hover:bg-accent hover:border-accent-foreground/20 transition-all duration-300 hover:scale-105"
-              title={`${chain.name}${chain.type ? ` - ${chain.type}` : ''}`}
-            >
-              <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-                <img 
-                  src={chain.image} 
-                  alt={chain.name}
-                  className="w-full h-full object-contain filter dark:brightness-90 group-hover:scale-110 transition-transform duration-300 rounded-full"
-                  onError={(e) => {
-                    // Fallback to a placeholder if image fails to load
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.parentElement!.innerHTML = `<div class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">${chain.name.substring(0, 2).toUpperCase()}</div>`;
-                  }}
-                />
-              </div>
-              <span className="text-sm font-medium text-foreground group-hover:text-accent-foreground transition-colors duration-200 whitespace-nowrap">
-                {chain.name}
-              </span>
-            </a>
-          ))}
+function CrossChainCard() {
+  const router = useRouter();
+  return (
+    <div
+      onClick={() => router.push("/console/icm/setup")}
+      className="block h-full cursor-pointer"
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push("/console/icm/setup"); }}
+    >
+      <motion.div
+        whileHover={{ y: -2 }}
+        transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
+        className="group relative h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-5 overflow-hidden transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-lg"
+      >
+        {/* avax.network alpha_webm sequence — replaces the cross-chain
+            SVG animation. Original preserved at
+            components/console/cross-chain-animation-svg.tsx for revert. */}
+        <div className="absolute right-4 top-4 bottom-4 w-[50%] pointer-events-none">
+          <AlphaSequence className="h-full w-full" />
         </div>
-        <div className="text-center mt-6">
-          <a
-            href="https://subnets.avax.network/subnets/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
-          >
-            View all ecosystem projects
-            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+
+        <div className="relative">
+          <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3 overflow-hidden transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+            <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400 arrows-zip overflow-visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <g className="arrow-zip-left">
+                <path d="M8 3 4 7 8 11"/>
+                <path d="M4 7h16"/>
+              </g>
+              <g className="arrow-zip-right">
+                <path d="M16 21l4-4-4-4"/>
+                <path d="M20 17H4"/>
+              </g>
             </svg>
-          </a>
+          </div>
+          <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Cross-Chain</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">ICM & ICTT bridges</p>
+          {/* Width-capped so SubLink hover backgrounds don't bleed behind
+              the alpha video on the right half of the card. */}
+          <div className="space-y-1 max-w-[50%]">
+            <SubLink href="/console/icm/setup" icon={MessagesSquare} label="ICM Setup" />
+            <SubLink href="/console/ictt/setup" icon={ArrowUpDown} label="ICTT Bridge" />
+          </div>
         </div>
+      </motion.div>
+    </div>
+  );
+}
+
+const INSTALL_CMD = "curl -sSfL https://build.avax.network/install/platform-cli | sh";
+
+function CliCopyBlock() {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(INSTALL_CMD);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
+  return (
+    <button
+      onClick={handleCopy}
+      aria-label="Copy install command"
+      className="group w-full rounded-lg bg-zinc-100 dark:bg-zinc-950 px-3.5 py-2.5 flex items-center gap-2.5 overflow-x-auto cursor-pointer transition-colors hover:bg-zinc-200/70 dark:hover:bg-black"
+    >
+      <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none font-mono shrink-0">$</span>
+      <code className="text-xs font-mono whitespace-nowrap text-zinc-700 dark:text-zinc-200 text-left">
+        curl -sSfL build.avax.network/install/platform-cli | sh
+      </code>
+      <span className="ml-auto p-1 rounded text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors shrink-0">
+        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+      </span>
+    </button>
+  );
+}
+
+function ConsoleDashboard() {
+  const ecosystemChains = [
+    // Gaming
+    { name: "FIFA", image: "https://images.ctfassets.net/gcj8jwzm6086/27QiWdtdwCaIeFbYhA47KG/5b4245767fc39d68b566f215e06c8f3a/FIFA_logo.png", link: "https://collect.fifa.com/" },
+    { name: "MapleStory", image: "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png", link: "https://maplestoryuniverse.com/" },
+    { name: "Beam", image: "https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png", link: "https://onbeam.com/" },
+    { name: "DeFi Kingdoms", image: "https://images.ctfassets.net/gcj8jwzm6086/6ee8eu4VdSJNo93Rcw6hku/2c6c5691e8a7c3b68654e5a4f219b2a2/chain-logo.png", link: "https://defikingdoms.com/" },
+    { name: "Gunzilla", image: "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png", link: "https://gunzillagames.com/" },
+    { name: "PLAYA3ULL", image: "https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png", link: "https://playa3ull.games/" },
+    { name: "Blitz", image: "https://images.ctfassets.net/gcj8jwzm6086/5ZhwQeXUwtVZPIRoWXhgrw/03d0ed1c133e59f69bcef52e27d1bdeb/image__2___2_.png", link: "https://blitz.gg/" },
+    { name: "Shrapnel", image: "https://images.ctfassets.net/gcj8jwzm6086/3vru4toe9KAyUXpn5XQthq/714286de3f35ee92426853037e985f77/chain-logo.png", link: "https://shrapnel.com/" },
+    { name: "PLYR", image: "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg", link: "https://plyr.network/" },
+    { name: "Tiltyard", image: "https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png", link: "https://tiltyard.gg/" },
+    { name: "Artery", image: "https://images.ctfassets.net/gcj8jwzm6086/7plQHTCA1MePklfF2lDgaE/1f4d00bf534a1ae180b3ea1de76308c8/SLIR8rz7_400x400.jpg", link: "https://studioartery.com/" },
+    { name: "Hatchyverse", image: "https://dashboard-assets.dappradar.com/document/8825/hatchyverse-project-games-8825-logo_aaafc4cafbea89ae57991f888d963abb.png", link: "https://hatchyverse.com/" },
+    // DeFi & Finance
+    { name: "Dexalot", image: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png", link: "https://dexalot.com/" },
+    { name: "StraitsX", image: "https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png", link: "https://straitsx.com/" },
+    { name: "Blaze", image: "https://images.ctfassets.net/gcj8jwzm6086/6Whg7jeebEhQfwGAXEsGVh/ecbb11c6c54af7ff3766b58433580721/2025-04-10_16.28.46.jpg", link: "https://blaze.stream/" },
+    // Infrastructure & Enterprise
+    { name: "Lamina1", image: "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png", link: "https://lamina1.com/" },
+    { name: "UPTN", image: "https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png", link: "https://uptn.io/" },
+    { name: "Innovo", image: "https://images.ctfassets.net/gcj8jwzm6086/5wd9o1kxI1nG0Kb2LrEooJ/9e14075a20dc67c4ba5ab0ca404192b8/1675173474597.png", link: "https://innovomarkets.com/" },
+    { name: "Coqnet", image: "https://images.ctfassets.net/gcj8jwzm6086/1r0LuDAKrZv9jgKqaeEBN3/9a7efac3099b861366f9e776e6131617/Isotipo_coq.png", link: "https://coq.fi/" },
+    { name: "Intersect", image: "https://images.ctfassets.net/gcj8jwzm6086/4mDZ5q3a5lxHJcBLTORuMr/b47935fa6007cb3430acabef7e13e9ca/explorer.png", link: "https://intersect.io/" },
+    { name: "Watr", image: "https://f005.backblazeb2.com/file/tracehawk-prod/logo/watr/Light.svg", link: "https://watr.org/" },
+    { name: "Hashfire", image: "https://images.ctfassets.net/gcj8jwzm6086/4TCWxdtzvtZ8iD4255nAgU/e4d12af0a594bcf38b53a27e6beb07a3/FlatIcon_Large_.png", link: "https://hashfire.xyz/" },
+    { name: "Space", image: "https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg", link: "https://space.id/" },
+    { name: "Numi", image: "https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png", link: "https://numine.io/" },
+    { name: "Feature", image: "https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png", link: "https://feature.io/" },
+    { name: "Kali Chain", image: "https://images.ctfassets.net/gcj8jwzm6086/r9EB5XcOIS39mZlXrFAsO/9bb66b54f61d0566588056782865aed2/logoKalichain.png", link: "https://kalichain.com/" },
+    { name: "Orange", image: "https://images.ctfassets.net/gcj8jwzm6086/4jmmb8oMQwW5My8YYcEmAx/ee1f1cef8766cc934e9190c5c1c7fa21/Orange_Logo_Mark_Slightly_Padded.png", link: "https://orangeweb3.com/" },
+    { name: "Zeroone", image: "https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/9729fd9e4e75009f38a0e2c564259ead/icon-512.png", link: "https://zeroone.art/" },
+    { name: "Titan", image: "https://images.ctfassets.net/gcj8jwzm6086/5m6pgoG1znzD3CA0HEh7D0/6850391f9ba90d9a97e37790b32f89ba/TITAN_mainnet_logo.png", link: "https://www.avax.network/about/blog/titan-content-launches-2gathr-on-avalanche" },
+    { name: "Turf Network", image: "https://images.ctfassets.net/gcj8jwzm6086/2OGwSmo36iWhvmPfgUUnEb/0812275eac56a8d82907fb96d96002bc/with_green_background.png", link: "https://turf.network/" },
+    { name: "Quboid", image: "https://images.ctfassets.net/gcj8jwzm6086/5jRNt6keCaCe0Z35ZQbwtL/94f81aa95f9d9229111693aa6a705437/Quboid_Logo.jpg", link: "https://qubo.id/" },
+  ];
+
+  return (
+    <div className="relative -m-4 md:-m-8 p-4 md:p-8" style={{ minHeight: "calc(100vh - var(--header-height, 3rem))" }}>
+      <style jsx global>{`
+        @keyframes cardPulse {
+          0%, 100% { outline-color: transparent; }
+          50% { outline-color: rgba(161, 161, 170, 0.3); }
+        }
+        /* ── Bell jingle ── */
+        @keyframes bellJingle {
+          0% { transform: rotate(0deg); }
+          10% { transform: rotate(14deg); }
+          20% { transform: rotate(-12deg); }
+          30% { transform: rotate(10deg); }
+          40% { transform: rotate(-8deg); }
+          50% { transform: rotate(6deg); }
+          60% { transform: rotate(-4deg); }
+          70% { transform: rotate(2deg); }
+          80% { transform: rotate(-1deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .bell-jingle { transform-origin: top center; }
+        .group:hover .bell-jingle {
+          animation: bellJingle 0.6s ease-in-out;
+        }
+
+        /* ── Create L1: layers fan apart ── */
+        .layers-fan path {
+          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                      opacity 0.3s ease;
+        }
+        .group:hover .layers-fan .layer-top {
+          transform: translateY(-3px);
+          opacity: 1;
+        }
+        .group:hover .layers-fan .layer-mid {
+          transform: translateY(0px);
+        }
+        .group:hover .layers-fan .layer-bot {
+          transform: translateY(3px);
+          opacity: 1;
+        }
+
+        /* ── Faucet: gleam sweep up the AVAX mark ── */
+        .faucet-gleam {
+          clip-path: inset(100% 0 0 0);
+          transition: clip-path 0.45s ease-out;
+        }
+        .group:hover .faucet-gleam {
+          clip-path: inset(0 0 0 0);
+        }
+
+        /* ── Primary Network: AVAX mark splits apart + turns red ── */
+        .avax-split path {
+          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                      fill 0.3s ease;
+        }
+        .group:hover .avax-split .avax-slash {
+          transform: translateX(-2px);
+        }
+        .group:hover .avax-split .avax-tri {
+          transform: translateX(2px);
+        }
+        .group:hover .avax-split path {
+          fill: #E84142;
+        }
+
+        /* ── Your L1: dashboard panels explode outward ── */
+        .dash-panels rect {
+          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .group:hover .dash-panels .panel-tl { transform: translate(-1.5px, -1.5px); }
+        .group:hover .dash-panels .panel-tr { transform: translate(1.5px, -1.5px); }
+        .group:hover .dash-panels .panel-br { transform: translate(1.5px, 1.5px); }
+        .group:hover .dash-panels .panel-bl { transform: translate(-1.5px, 1.5px); }
+
+        /* ── Cross-Chain: arrows zip apart ── */
+        .arrows-zip g {
+          transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .group:hover .arrows-zip .arrow-zip-left {
+          transform: translateX(-3px);
+        }
+        .group:hover .arrows-zip .arrow-zip-right {
+          transform: translateX(3px);
+        }
+
+        /* ── Create L1: chevron bounce-right ── */
+        @keyframes chevronBounce {
+          0%, 100% { transform: translateX(0); }
+          30% { transform: translateX(6px); }
+          50% { transform: translateX(2px); }
+          70% { transform: translateX(5px); }
+        }
+        .group:hover .chevron-bounce {
+          animation: chevronBounce 0.7s ease-in-out;
+        }
+
+        /* OS-level reduce-motion preference. Framer-motion variants respect
+           this automatically — these raw CSS keyframes/transitions don't
+           unless we silence them explicitly. */
+        @media (prefers-reduced-motion: reduce) {
+          .group:hover .bell-jingle,
+          .group:hover .chevron-bounce {
+            animation: none !important;
+          }
+          /* Inline cardPulse styles on bento cards — substring match is the
+             only stable hook since those are set per-element via style={}. */
+          [style*="cardPulse"] {
+            animation: none !important;
+          }
+          .layers-fan path,
+          .faucet-gleam,
+          .avax-split path,
+          .dash-panels rect,
+          .arrows-zip g {
+            transition: none !important;
+          }
+        }
+
+      `}</style>
+      {/* Grid background */}
+      <div
+        className="absolute inset-0 opacity-[0.4] dark:opacity-[0.15]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgb(148 163 184 / 0.3) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(148 163 184 / 0.3) 1px, transparent 1px)
+          `,
+          backgroundSize: '24px 24px',
+        }}
+      />
+
+      <div className="relative max-w-6xl mx-auto">
+        {/* Ecosystem Marquee */}
+        <motion.div
+          className="mb-6 pt-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="text-sm font-medium text-zinc-400 dark:text-zinc-500">
+              Built on Avalanche
+            </h3>
+            <Link
+              href="/stats/overview"
+              className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+            >
+              View all →
+            </Link>
+          </div>
+          <EcosystemMarquee chains={ecosystemChains} rows={2} />
+        </motion.div>
+
+        {/* Bento Grid */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-6"
+          variants={boardContainer}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Row 1: Create L1 (4) + Faucet (2) */}
+          <motion.div className="md:col-span-4 p-px" variants={boardItem}>
+            <Link href="/console/create-l1" className="block h-full">
+              <motion.div
+                whileHover={{ y: -2 }}
+                transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
+                className="group h-full rounded-2xl border border-zinc-700 dark:border-zinc-700 bg-zinc-800 dark:bg-zinc-800 p-5 transition-all duration-200 hover:border-zinc-600 dark:hover:border-zinc-600"
+                style={{
+                  boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)",
+                  outline: "2px solid transparent",
+                  animation: "cardPulse 1.0s ease-in-out 1.0s 2",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.15)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)"; }}
+              >
+                <div className="flex items-start justify-between h-full">
+                  <div>
+                    <div className="w-9 h-9 rounded-xl bg-white/[0.08] flex items-center justify-center mb-3 transition-colors group-hover:bg-white/[0.14]">
+                      <svg className="layers-fan w-5 h-5 text-zinc-300 group-hover:text-white transition-colors overflow-visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path className="layer-top" opacity="0.55" d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.84Z"/>
+                        <path className="layer-mid" d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>
+                        <path className="layer-bot" opacity="0.7" d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>
+                      </svg>
+                    </div>
+                    <h2 className="text-xl font-semibold text-white dark:text-white mb-1.5">
+                      Create L1
+                    </h2>
+                    <p className="text-zinc-400 dark:text-zinc-400 text-sm max-w-sm leading-relaxed">
+                      Launch a new Layer 1 blockchain with custom validators, tokenomics, and governance
+                    </p>
+
+                  </div>
+                  <div className="flex items-center self-center ml-4">
+                    <ChevronRight className="w-5 h-5 text-zinc-600 transition-colors duration-200 group-hover:text-zinc-400 chevron-bounce" />
+                  </div>
+                </div>
+              </motion.div>
+            </Link>
+          </motion.div>
+
+          {/* Row 1 right: Faucet + API Keys stacked */}
+          <div className="md:col-span-2 flex flex-col gap-3">
+            <BentoCard href="/console/primary-network/faucet" pulseDelay={3.8}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                  <svg viewBox="38 28 158 142" className="w-5 h-5">
+                    <path fill="#eab308" d="M95.2 163.4h-43c-4.5 0-6.7 0-8-1a5.7 5.7 0 0 1-2.2-4.6c.1-1.6 1.3-3.5 3.5-7.3l62.7-110c2.3-3.9 3.4-5.8 4.8-6.5a5.7 5.7 0 0 1 5 0c1.4.7 2.6 2.6 4.9 6.5l12.9 22.5.1.1c2.5 4.3 3.7 6.5 4.3 8.8a19 19 0 0 1 0 9.3c-.6 2.3-1.8 4.5-4.3 9l-33 57.8-.1.2c-2.4 4.3-3.7 6.5-5.4 8.2a19 19 0 0 1-8 4.8c-2.2.8-4.7.8-9.7.8Zm62.4 0h31.2c4.5 0 6.7 0 8-1a5.7 5.7 0 0 0 2.2-4.6c-.1-1.6-1.2-3.5-3.5-7.2l-15.7-27.2c-2.2-3.8-3.4-5.7-4.8-6.4a5.7 5.7 0 0 0-5 0c-1.3.7-2.5 2.6-4.8 6.4L149.6 151l-.1.2c-2.3 3.8-3.4 5.7-3.4 7.3a5.7 5.7 0 0 0 2.2 4.5c1.3 1 3.6 1 8 1Z"/>
+                    <path fill="white" opacity="0.45" className="faucet-gleam" d="M95.2 163.4h-43c-4.5 0-6.7 0-8-1a5.7 5.7 0 0 1-2.2-4.6c.1-1.6 1.3-3.5 3.5-7.3l62.7-110c2.3-3.9 3.4-5.8 4.8-6.5a5.7 5.7 0 0 1 5 0c1.4.7 2.6 2.6 4.9 6.5l12.9 22.5.1.1c2.5 4.3 3.7 6.5 4.3 8.8a19 19 0 0 1 0 9.3c-.6 2.3-1.8 4.5-4.3 9l-33 57.8-.1.2c-2.4 4.3-3.7 6.5-5.4 8.2a19 19 0 0 1-8 4.8c-2.2.8-4.7.8-9.7.8Zm62.4 0h31.2c4.5 0 6.7 0 8-1a5.7 5.7 0 0 0 2.2-4.6c-.1-1.6-1.2-3.5-3.5-7.2l-15.7-27.2c-2.2-3.8-3.4-5.7-4.8-6.4a5.7 5.7 0 0 0-5 0c-1.3.7-2.5 2.6-4.8 6.4L149.6 151l-.1.2c-2.3 3.8-3.4 5.7-3.4 7.3a5.7 5.7 0 0 0 2.2 4.5c1.3 1 3.6 1 8 1Z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">Testnet Faucet</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Get test AVAX</p>
+                </div>
+              </div>
+            </BentoCard>
+            <BentoCard href="/console/primary-network/validator-alerts" pulseDelay={4.7}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                  <Bell className="w-4 h-4 text-red-500 bell-jingle" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">Validator Alerts</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Monitor uptime</p>
+                </div>
+              </div>
+            </BentoCard>
+          </div>
+
+          {/* Row 2: Primary Network + Your L1 */}
+          <div className="md:col-span-3">
+            <BentoCard href="/console/primary-network/node-setup" pulseDelay={5.6}>
+              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                <svg className="w-4 h-4 text-zinc-600 dark:text-zinc-400 avax-split" viewBox="38 28 158 142">
+                  <path className="avax-slash" fill="currentColor" d="M95.2 163.4h-43c-4.5 0-6.7 0-8-1a5.7 5.7 0 0 1-2.2-4.6c.1-1.6 1.3-3.5 3.5-7.3l62.7-110c2.3-3.9 3.4-5.8 4.8-6.5a5.7 5.7 0 0 1 5 0c1.4.7 2.6 2.6 4.9 6.5l12.9 22.5.1.1c2.5 4.3 3.7 6.5 4.3 8.8a19 19 0 0 1 0 9.3c-.6 2.3-1.8 4.5-4.3 9l-33 57.8-.1.2c-2.4 4.3-3.7 6.5-5.4 8.2a19 19 0 0 1-8 4.8c-2.2.8-4.7.8-9.7.8Z"/>
+                  <path className="avax-tri" fill="currentColor" d="M157.6 163.4h31.2c4.5 0 6.7 0 8-1a5.7 5.7 0 0 0 2.2-4.6c-.1-1.6-1.2-3.5-3.5-7.2l-15.7-27.2c-2.2-3.8-3.4-5.7-4.8-6.4a5.7 5.7 0 0 0-5 0c-1.3.7-2.5 2.6-4.8 6.4L149.6 151l-.1.2c-2.3 3.8-3.4 5.7-3.4 7.3a5.7 5.7 0 0 0 2.2 4.5c1.3 1 3.6 1 8 1Z"/>
+                </svg>
+              </div>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Primary Network</h3>
+              <div className="space-y-0 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <SubLink href="/console/primary-network/node-setup" icon={Settings} label="Node Setup" />
+                <SubLink href="/console/primary-network/c-p-bridge" icon={ArrowUpDown} label="C/P Bridge" />
+                <SubLink href="/console/primary-network/stake" icon={Users} label="Stake AVAX" />
+              </div>
+            </BentoCard>
+          </div>
+
+          <div className="md:col-span-3">
+            <BentoCard href="/console/layer-1/validator-set" pulseDelay={6.5}>
+              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                <svg className="w-4 h-4 text-zinc-600 dark:text-zinc-400 dash-panels" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect className="panel-tl" width="7" height="9" x="3" y="3" rx="1"/>
+                  <rect className="panel-tr" width="7" height="5" x="14" y="3" rx="1"/>
+                  <rect className="panel-br" width="7" height="9" x="14" y="12" rx="1"/>
+                  <rect className="panel-bl" width="7" height="5" x="3" y="16" rx="1"/>
+                </svg>
+              </div>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Your L1</h3>
+              <div className="space-y-0 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <SubLink href="/console/layer-1/validator-set" icon={Users} label="Validators" />
+                <SubLink href="/console/l1-tokenomics/fee-manager" icon={Settings} label="Tokenomics" />
+                <SubLink href="/console/layer-1/performance-monitor" icon={ChevronRight} label="Performance" />
+              </div>
+            </BentoCard>
+          </div>
+
+          {/* Row 3: Platform CLI (4) + Cross-Chain (2) */}
+          <motion.div variants={boardItem} className="md:col-span-4">
+            <div className="h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col justify-center gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                  <Terminal className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">Platform CLI</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                    Manage L1s, validators, and P-Chain operations from the terminal
+                  </p>
+                </div>
+                <a
+                  href="https://github.com/ava-labs/platform-cli"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  GitHub <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+              <CliCopyBlock />
+            </div>
+          </motion.div>
+          <motion.div variants={boardItem} className="md:col-span-2">
+            <CrossChainCard />
+          </motion.div>
+        </motion.div>
+
+
       </div>
     </div>
   );

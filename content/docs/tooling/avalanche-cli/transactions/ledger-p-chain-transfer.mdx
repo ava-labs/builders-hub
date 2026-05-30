@@ -8,7 +8,7 @@ Transferring funds between P-Chain wallets becomes necessary in certain situatio
 1.  Funds need to be sent to the Avalanche L1 control key, which might have a zero balance due to fee payments. The Avalanche L1 control key requires funding to ensure proper support for Avalanche L1 operations.
 2.  Funds need to be moved from one Ledger address index to another. A Ledger manages an infinite sequence of addresses all derived from a master private key and can sign for any of those addresses. Each one is referred to by an index, or the associated address. Avalanche-CLI usually expects to use index 0, but sometimes, the funds are in a different index. Occasionally, a transfer made to a ledger can be made to an address different from the default one used by the CLI.
 
-To enable direct transfers between P-Chain addresses, use the command `avalanche key transfer`. This operation involves a series of import/export actions with the P-Chain and X-Chain. The fee for this operation is four times the typical import operation fee, which comes out to 0.004 AVAX. You can find more information about fees [here](/docs/api-reference/standards/guides/txn-fees).
+To enable direct transfers between P-Chain addresses, use the command `avalanche key transfer`. This operation involves a series of import/export actions with the P-Chain and X-Chain. The fee for this operation is four times the typical import operation fee, which comes out to 0.004 AVAX. You can find more information about fees [here](/docs/rpcs/other/guides/txn-fees).
 
 <Callout title="Note">
 The `key transfer` command can also be applied to the stored keys managed by the CLI. It enables moving funds from one stored key to another, and from a ledger to a stored key or the other way.
@@ -18,8 +18,8 @@ This how-to guide focuses on transferring funds between ledger accounts.
 
 ## Prerequisites
 
-- [`Avalanche-CLI`](/docs/tooling/get-avalanche-cli) installed
-- Multiple Ledger devices [configured for Avalanche](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet#setting-up-your-ledger)
+- [`Avalanche-CLI`](/docs/tooling/avalanche-cli) installed
+- Multiple Ledger devices [configured for Avalanche](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-mainnet#setting-up-your-ledger)
 
 Example: Sending All Funds From One Ledger to Another[​](#example-sending-all-funds-from-one-ledger-to-another "Direct link to heading")
 ----------------------------------------------------------------------------------------------------------------------------------------

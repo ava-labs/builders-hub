@@ -1,4 +1,9 @@
 {
-  "title": "Chain Specific Configs",
-  "pages": ["subnet-evm", "p-chain", "c-chain", "x-chain"]
+  "title": "Chain Configs",
+  "defaultOpen": true,
+  "pages": [
+    "primary-network",
+    "avalanche-l1s"
+  ]
 }
+

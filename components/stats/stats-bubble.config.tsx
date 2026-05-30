@@ -1,31 +1,55 @@
 "use client";
 
-import BubbleNavigation from '@/components/navigation/BubbleNavigation';
-import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navigation.types';
+import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import type { BubbleNavigationConfig } from "@/components/navigation/bubble-navigation.types";
+import { Globe, List, ChartArea, Command, MessageCircleMore, AppWindow, LayoutGrid } from "lucide-react";
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
-    items: [
-        { id: "avalanche-l1s", label: "Avalanche L1s", href: "/stats/overview" },
-        { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
-        { id: "validators", label: "Validators", href: "/stats/validators" },
-    ],
-    activeColor: "bg-blue-600",
-    darkActiveColor: "dark:bg-blue-500",
-    focusRingColor: "focus:ring-blue-500",
-    pulseColor: "bg-blue-200/40",
-    darkPulseColor: "dark:bg-blue-400/40",
+  items: [
+    { id: "overview", label: "Overview", href: "/stats/overview", icon: Globe },
+    { id: "chain-list", label: "Chain List", href: "/stats/chain-list", icon: List },
+    { id: "dapps", label: "DApps", href: "/stats/dapps", icon: AppWindow },
+    { id: "gas-stats", label: "Gas Stats", href: "/stats/dapps/treemap", icon: LayoutGrid },
+    { id: "stats", label: "Stats", href: "/stats/network-metrics", icon: ChartArea },
+    { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
+    { id: "icm", label: "ICM", href: "/stats/interchain-messaging", icon: MessageCircleMore },
+  ],
+  activeColor: "bg-red-100 dark:bg-red-500/20",
+  darkActiveColor: "",
+  activeTextColor: "text-red-600 dark:text-red-400",
+  focusRingColor: "focus:ring-red-500",
+  pulseColor: "bg-red-200/40",
+  darkPulseColor: "dark:bg-red-400/40",
+};
+
+const getActiveItem = (
+  pathname: string,
+  items: typeof statsBubbleConfig.items
+) => {
+  const currentItem = items.find((item) => pathname === item.href);
+  if (currentItem) {
+    return currentItem.id;
+  } else if (pathname.startsWith("/stats/chain-list")) {
+    return "chain-list";
+  } else if (pathname.startsWith("/stats/dapps/treemap")) {
+    return "gas-stats";
+  } else if (pathname.startsWith("/stats/dapps")) {
+    return "dapps";
+  } else if (pathname.startsWith("/stats/network-metrics")) {
+    return "stats"; // All chains stats page
+  } else if (pathname.startsWith("/stats/interchain-messaging")) {
+    return "icm";
+  } else if (pathname.startsWith("/stats/playground")) {
+    return "playground";
+  }
+  return "overview";
 };
 
 export function StatsBubbleNav() {
-    const getActiveItem = (pathname: string, items: typeof statsBubbleConfig.items) => {
-        const currentItem = items.find((item) => pathname === item.href);
-        if (currentItem) {
-            return currentItem.id;
-        } else if (pathname.startsWith("/stats/l1/")) {
-            return "";
-        }
-        return "overview";
-    };
-
-    return <BubbleNavigation config={statsBubbleConfig} getActiveItem={getActiveItem} />;
+  return (
+    <BubbleNavigation
+      config={statsBubbleConfig}
+      getActiveItem={getActiveItem}
+    />
+  );
 }

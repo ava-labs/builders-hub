@@ -1,0 +1,128 @@
+---
+title: X-PAYMENT-RESPONSE
+description: How servers communicate payment settlement results with transaction hashes and error details.
+updated: 2025-11-14
+authors: [Federico Nardelli]
+icon: Code
+---
+
+## X-PAYMENT-RESPONSE Header
+
+After verifying and settling a payment from an X-PAYMENT header, the server communicates the settlement result back to the client through the `X-PAYMENT-RESPONSE` header. This header contains critical information about the blockchain transaction, including the transaction hash for on-chain verification.
+
+Like the `X-PAYMENT` header, the `X-PAYMENT-RESPONSE` is **base64-encoded JSON** that provides cryptographic proof of payment settlement. 
+
+### Header Structure
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-PAYMENT-RESPONSE: <base64-encoded-settlement-response>
+```
+
+### Settlement Response Structure (before base64 encoding)
+
+```json
+{
+  "success": true,
+  "transaction": "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+  "network": "avalanche-fuji",
+  "payer": "0x1234567890abcdef1234567890abcdef12345678",
+  "errorReason": null
+}
+```
+
+### Field Definitions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `success` | boolean | Yes | Whether settlement was successful |
+| `transaction` | string | Yes (if success) | Transaction hash on blockchain |
+| `network` | string | Yes | Network where transaction was settled |
+| `payer` | string | Yes | Address of the payer |
+| `errorReason` | string | Yes (if failed) | Error message if settlement failed |
+
+### Success Response
+
+When payment is successfully verified and settled:
+
+```json
+{
+  "success": true,
+  "transaction": "0x8f3d1a2b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+  "network": "avalanche-fuji",
+  "payer": "0x1234567890abcdef1234567890abcdef12345678",
+  "errorReason": null
+}
+```
+
+The transaction hash can be used to:
+- Verify the transaction on a block explorer
+- Check transaction details (amount, timestamp, block number)
+- Provide proof of payment to users
+- Audit payment history
+
+### Payment Failure Response
+
+When payment verification or settlement fails, the server returns **HTTP 402 Payment Required** with both a JSON body containing payment requirements and an `X-PAYMENT-RESPONSE` header with failure details:
+
+```http
+HTTP/1.1 402 Payment Required
+Content-Type: application/json
+X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjpmYWxzZSwidHJhbnNhY3Rpb24iOm51bGwsIm5ldHdvcmsiOiJhdmFsYW5jaGUtZnVqaSIsInBheWVyIjoiMHgxMjM0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4IiwiZXJyb3JSZWFzb24iOiJJbnN1ZmZpY2llbnQgYXV0aG9yaXphdGlvbiBhbW91bnQifQ==
+
+{
+  "x402Version": 1,
+  "accepts": [{
+    "scheme": "exact",
+    "network": "avalanche-fuji",
+    "maxAmountRequired": "10000",
+    "payTo": "0x742d35...",
+    "asset": "0x5425890...",
+    "resource": "/api/data"
+  }],
+  "error": "Insufficient payment: required 10000, received 5000"
+}
+```
+
+The `X-PAYMENT-RESPONSE` header (when decoded) contains:
+
+```json
+{
+  "success": false,
+  "transaction": null,
+  "network": "avalanche-fuji",
+  "payer": "0x1234567890abcdef1234567890abcdef12345678",
+  "errorReason": "Insufficient authorization amount"
+}
+```
+
+**Common error reasons**:
+- `"Insufficient authorization amount"` - Payment amount too low
+- `"Authorization expired"` - validBefore timestamp passed
+- `"Invalid signature"` - Signature verification failed
+- `"Nonce already used"` - Replay attack detected
+- `"Insufficient balance"` - Payer doesn't have enough tokens
+
+**Why both body and header?**
+- **JSON body**: Provides new payment requirements so the client can retry
+- **X-PAYMENT-RESPONSE header**: Communicates what went wrong with the settlement attempt
+
+## Server Best Practices
+
+When implementing X-PAYMENT-RESPONSE headers, servers should follow these guidelines:
+
+1. **Support multiple networks**: Include options for different blockchains in `accepts` array when returning 402 failures
+2. **Set reasonable timeouts**: Use `maxTimeoutSeconds` to prevent stale payments
+3. **Use base units consistently**: Always specify amounts in smallest token denomination
+4. **Validate signatures carefully**: Use EIP-712 verification libraries
+5. **Implement replay protection**: Track used nonces to prevent double-spending
+6. **Return transaction hashes**: Always include the on-chain transaction hash in success responses
+7. **Provide clear error messages**: Use descriptive `errorReason` values for failure cases
+8. **Store transaction receipts**: Keep settlement records for audit and dispute resolution
+
+For comprehensive security considerations including signature validation and nonce-based replay prevention, see [Security Considerations](./07-security-considerations).
+
+## Summary
+
+The `X-PAYMENT-RESPONSE` header provides settlement confirmation with blockchain transaction details. Success responses include the transaction hash for on-chain verification, while failure responses explain what went wrong and are accompanied by new payment requirements in the HTTP 402 body.

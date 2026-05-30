@@ -13,25 +13,72 @@ import { LoadingButton } from "../ui/loading-button";
 import SocialLogin from "./social-login/SocialLogin";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import { useLoginModalState } from '@/hooks/useLoginModal';
+import { EmbeddedBrowserWarning } from './EmbeddedBrowserWarning';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
+// Resolve an event-context target from a URL: a gated registration/submission
+// page maps to its public event page (with ref); an event/hackathon page is
+// kept as-is. Returns null when there's no event context.
+function eventDismissTarget(rawUrl: string | null | undefined): string | null {
+  if (!rawUrl) return null;
+  try {
+    const url = new URL(rawUrl, window.location.origin);
+    const path = url.pathname;
+    const ref = url.searchParams.get("ref");
+    const gatedPaths = [
+      "/events/registration-form",
+      "/events/project-submission",
+      "/hackathons/registration-form",
+      "/hackathons/project-submission",
+    ];
+    if (gatedPaths.some((p) => path.startsWith(p))) {
+      const eventId =
+        url.searchParams.get("event") ?? url.searchParams.get("hackathon");
+      if (!eventId) return null;
+      const target = new URL(`/events/${eventId}`, window.location.origin);
+      if (ref) target.searchParams.set("ref", ref);
+      return `${target.pathname}${target.search}`;
+    }
+    if (/^\/(events|hackathons)(\/|$)/.test(path)) {
+      return `${path}${url.search}`;
+    }
+  } catch {
+    // ignore malformed URLs
+  }
+  return null;
+}
+
+// On dismiss without signing in, keep the user in the event context — their
+// current page or the event behind a gated form — instead of the home page.
+function resolveDismissTarget(callbackUrl: string): string {
+  const current =
+    typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}`
+      : null;
+  return eventDismissTarget(callbackUrl) ?? eventDismissTarget(current) ?? "/";
+}
+
 export function LoginModal() {
-  const { isOpen, callbackUrl = "/", closeLoginModal, subscribeToChanges } = useLoginModalState();
+  const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
+  const router = useRouter();
 
   const { control, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: "" },
   });
 
-  // Subscribe to modal state changes
-  useEffect(() => {
-    return subscribeToChanges();
-  }, [subscribeToChanges]);
+  const handleClose = (open: boolean) => {
+    if (!open) {
+      closeLoginModal();
+      router.push(resolveDismissTarget(callbackUrl));
+    }
+  };
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -58,16 +105,16 @@ export function LoginModal() {
   if (!isOpen) return null;
 
   return (
-    <Dialog.Root open={true} onOpenChange={closeLoginModal}>
+    <Dialog.Root open={true} onOpenChange={handleClose}>
       <Dialog.Portal>
         <DialogOverlay />
         <DialogContent 
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-[10000] p-0"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl focus:outline-none w-[90vw] max-w-[400px] max-h-[90vh] overflow-hidden z-10000 p-0"
           showCloseButton={true}
         >
           {/* Compact Header - Full Width */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent"></div>
+          <div className="relative overflow-hidden bg-linear-to-br from-zinc-900 via-zinc-900 to-zinc-950">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent"></div>
             <div className="flex py-5 items-center justify-center relative">
               <Image
                 src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/avalancheLoginLogo-LUyz1IYs0fZrQ3tE0CUjst07LPVAv8.svg"
@@ -96,10 +143,13 @@ export function LoginModal() {
                   <DialogTitle className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-1">
                     Sign in to your account
                   </DialogTitle>
-                  <p className="text-zinc-500 dark:text-zinc-400 text-xs">
+                  <Dialog.Description className="text-zinc-500 dark:text-zinc-400 text-xs">
                     Enter your email to receive a sign-in code
-                  </p>
+                  </Dialog.Description>
                 </div>
+
+                {/* Embedded Browser Warning */}
+                <EmbeddedBrowserWarning />
 
                 {/* Form */}
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
@@ -165,4 +215,3 @@ export function LoginModal() {
     </Dialog.Root>
   );
 }
-

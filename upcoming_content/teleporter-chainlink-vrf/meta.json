@@ -1,8 +1,0 @@
-{
-  "title": "avalanche-fundamentals",
-  "root": true,
-  "pages": [
-    "index",
-    "---Chainlink VRF with ---"
-  ]
-}

@@ -1,16 +1,7 @@
 {
   "pages": [
-    "blockchain-fundamentals",
-    "solidity-foundry",
-    "avalanche-fundamentals",
-    "permissioned-l1s",
-    "l1-native-tokenomics",
-    "interchain-messaging",
-    "customizing-evm",
-    "permissionless-l1s",
-    "interchain-token-transfer",
-    "icm-chainlink",
-    "avacloudapis",
-    "encrypted-erc"
+    "avalanche-l1",
+    "blockchain",
+    "entrepreneur"
   ]
 }

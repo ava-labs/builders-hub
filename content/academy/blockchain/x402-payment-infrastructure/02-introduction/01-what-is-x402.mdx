@@ -1,0 +1,113 @@
+---
+title: What is x402?
+description: Understanding the x402 protocol and HTTP 402 activation for internet-native payments.
+updated: 2025-11-03
+authors: [Federico Nardelli]
+icon: BookOpen
+---
+
+## Introduction
+
+The x402 protocol is an open standard that activates the HTTP 402 "Payment Required" status code, enabling instant, permissionless payments directly through HTTP requests. This revolutionary approach makes payments a native part of internet communication, eliminating the friction associated with traditional payment systems.
+
+## HTTP 402: A Long-Awaited Activation
+
+The HTTP 402 status code has existed since the early days of the internet but was never fully implemented. It was reserved for "future use" as a way to require payment before accessing content or services. The x402 protocol finally brings this vision to life by:
+
+- **Activating HTTP 402**: Making payment a standard HTTP response code
+- **Blockchain Settlement**: Using blockchain technology for instant, permissionless transactions
+- **Open Protocol**: Anyone can implement or extend the standard
+
+## How x402 Works
+
+At its core, x402 transforms how payments are requested and fulfilled on the web:
+
+1. **Client Requests Resource**: A user or AI agent sends an HTTP request to access content or an API endpoint
+2. **Server Returns 402**: Instead of returning the content, the server responds with HTTP 402 "Payment Required"
+3. **Payment Submitted**: The client automatically pays using stablecoins (like USDC) on the blockchain
+4. **Access Granted**: Once payment is confirmed, the server releases the requested content
+
+This entire process happens in approximately 2 seconds, creating a seamless payment experience.
+
+![The x402 payment cycle](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/x402-payment-infrastructure/x402PaymentCycle.png)
+
+## Key Characteristics
+
+### Open and Permissionless
+
+Unlike traditional payment systems that require:
+- Creating accounts
+- Completing KYC verification
+- Managing API keys
+- Setting up merchant accounts
+
+x402 requires **none of these**. Anyone can start accepting payments immediately by implementing the protocol.
+
+### Instant Settlement
+
+Traditional payment systems can take days to settle transactions. x402 settles payments in approximately 2 seconds, enabled by blockchain technology and Avalanche's fast finality.
+
+### Zero Protocol Fees
+
+There are no protocol-level fees with x402. The cost structure is:
+
+**For Users (Payers)**:
+- **\$0 gas fees** - completely gasless for end users
+- No subscription fees
+- No processing fees
+- Only pay the actual payment amount
+
+**For Facilitators**:
+- Minimal blockchain gas fees (~\$0.001 per transaction on Avalanche with current network conditions)
+- Facilitators sponsor gas on behalf of users using EIP-3009 gasless payments
+
+This gasless model means users don't need to hold AVAX or any native blockchain tokens - they only need the payment token (like USDC).
+
+### HTTP-Native
+
+x402 integrates directly with HTTP, making it compatible with existing web infrastructure. Developers can add payment requirements to their APIs with minimal code changes, often just one line of middleware.
+
+## Why x402 Matters
+
+The x402 protocol enables entirely new business models and use cases:
+
+- **AI-to-AI Payments**: AI agents can autonomously pay for services without human intervention
+- **Micropayments**: Charge fractions of a cent per API request or piece of content
+- **Pay-Per-Use**: Users only pay for what they consume, no subscriptions required
+- **Instant Monetization**: Developers can monetize APIs and services immediately
+
+## x402 vs Traditional Payments
+
+| Feature | Traditional Payments | x402 Protocol |
+|---------|---------------------|---------------|
+| Setup Time | Days to weeks | Minutes |
+| Settlement | 2-7 days | ~2 seconds |
+| Protocol Fees | 2-3% + fixed fees | ~\$0.001 gas |
+| KYC Required | Yes | No |
+| Account Required | Yes | No |
+| API Keys | Required | Optional |
+| Micropayments | Not feasible | Optimized |
+| Autonomous Payments | Not possible | Native support |
+
+## The Protocol Ecosystem
+
+x402 is supported by an ecosystem of **facilitators**—services that handle payment verification and submission on behalf of merchants. These facilitators:
+
+- Verify payment authenticity
+- Submit transactions to the blockchain
+- Handle settlement with merchants
+- Provide developer tools and SDKs
+
+Popular facilitators on Avalanche include Thirdweb x402, PayAI, Ultravioleta DAO, and x402-rs. [You can explore all available facilitators](/integrations#x402). We'll explore these in detail in later lessons.
+
+## Summary
+
+The x402 protocol activates HTTP 402 to enable instant, permissionless, HTTP-native payments. By leveraging blockchain technology, x402 eliminates the friction of traditional payment systems while enabling new use cases like AI agent payments and micropayments. With approximately 2-second settlement, zero protocol fees, and no account requirements, x402 is revolutionizing how we think about internet payments.
+
+## Additional Resources
+
+- [x402.org](https://www.x402.org/) - Official x402 protocol website
+- [x402 Whitepaper](https://www.x402.org/x402-whitepaper.pdf) - Technical specification
+- [GitHub Repository](https://github.com/coinbase/x402) - Open source implementation
+
+<Quiz quizId="5001"/>

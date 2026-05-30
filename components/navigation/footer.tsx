@@ -39,64 +39,58 @@ export function Footer() {
   };
 
   return (
-    <footer className="mt-auto border-t bg-card py-12 text-secondary-foreground">
+    <footer className="mt-auto border-t border-border/40 bg-slate-50/50 dark:bg-zinc-950/50 backdrop-blur-xl py-12 lg:py-16 text-secondary-foreground">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 w-full max-w-6xl mx-auto">
-          <FooterSection title="Avalanche" className="md:justify-self-start">
-            <div className="flex flex-col space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 w-full max-w-7xl mx-auto">
+          <FooterSection title="Avalanche">
+            <ul className="flex flex-col space-y-3">
+              <FooterLink href="https://github.com/ava-labs/audits" external>Audits</FooterLink>
               <FooterLink href="https://subnets.avax.network/" external>Explorer</FooterLink>
-              <FooterLink href="https://www.avax.network/get-started" external>Get Started</FooterLink>
               <FooterLink href="https://github.com/ava-labs" external>GitHub</FooterLink>
+              <FooterLink href="https://status.avax.network/" external>Network Status</FooterLink>
               <FooterLink href="https://avalabs.org/whitepapers" external>Whitepapers</FooterLink>
-              <FooterLink href="https://stats.avax.network/dashboard/overview/" external>Statistics</FooterLink>
-            </div>
+            </ul>
           </FooterSection>
           
-          <FooterSection title="Community" className="md:justify-self-center md:text-center">
-            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+          <FooterSection title="Community">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              <FooterLink href="https://www.avax.network/blog" external>Blog</FooterLink>
+              <FooterLink href="https://discord.gg/avax" external>Discord</FooterLink>
               <FooterLink href="https://www.facebook.com/avalancheavax" external>Facebook</FooterLink>
               <FooterLink href="https://forum.avax.network" external>Forum</FooterLink>
-              <FooterLink href="https://discord.gg/avax" external>Discord</FooterLink>
-              <FooterLink href="https://support.avax.network/en/" external>Support</FooterLink>
+              <FooterLink href="https://www.linkedin.com/company/avalancheavax" external>LinkedIn</FooterLink>
               <FooterLink href="https://medium.com/@avaxdevelopers" external>Medium</FooterLink>
-              <FooterLink href="https://www.youtube.com/@Avalancheavax" external>Youtube</FooterLink>
               <FooterLink href="https://t.me/+KDajA4iToKY2ZjBk" external>Telegram</FooterLink>
               <FooterLink href="https://x.com/AvaxDevelopers" external>X</FooterLink>
-              <FooterLink href="https://www.avax.network/blog" external>Blog</FooterLink>
-              <FooterLink href="https://www.linkedin.com/company/avalancheavax" external>LinkedIn</FooterLink>
+              <FooterLink href="https://www.youtube.com/@Avalancheavax" external>Youtube</FooterLink>
             </div>
           </FooterSection>
           
-          <FooterSection title="More Links" className="md:justify-self-center md:text-center">
-            <div className="flex flex-col space-y-3">
-              <FooterLink href="https://avacloud.io/" external>Enterprise Solutions</FooterLink>
-              <FooterLink href="https://github.com/ava-labs/audits" external>Audits</FooterLink>
-              <FooterLink href="https://core.app/" external>Core Wallet</FooterLink>
+          <FooterSection title="More Links">
+            <ul className="flex flex-col space-y-3">
               <FooterLink href="https://www.avax.network/legal" external>Legal</FooterLink>
-              <FooterLink href="https://status.avax.network/" external>Network Status</FooterLink>
-              <FooterLink href="/llms-full.txt">LLMs</FooterLink>
-
-            </div>
+              <FooterLink href="/llms-full.txt" external>LLMs</FooterLink>
+            </ul>
           </FooterSection>
 
-          <FooterSection title="Stay In Touch" className="md:justify-self-end">
-            <p className="text-sm mb-4">Don't miss new grant opportunities, tools and resource launches, event announcements, and more.</p>
+          <FooterSection title="Stay In Touch">
+            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">Don't miss new grant opportunities, tools and resource launches, event announcements, and more.</p>
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="flex flex-col space-y-2">
+              <div className="flex flex-col space-y-3">
                 <Input
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-background border-border"
+                  className="bg-background/50 border-border/50 focus:bg-background transition-colors h-10"
                 />
-                <Button type="submit" disabled={isSubmitting} variant="default" className="dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90">
+                <Button type="submit" disabled={isSubmitting} variant="default" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium h-10 shadow-sm">
                   {isSubmitting ? "Subscribing..." : "Subscribe"}
-                  <ArrowUpRight className="h-4 w-4" />
+                  <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>
                 {isSuccess && (
-                  <div className="mt-2 text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                  <div className="mt-2 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-100 dark:border-green-900/50">
                     Pure signal, zero spam → straight to your inbox!
                   </div>
                 )}
@@ -104,8 +98,10 @@ export function Footer() {
             </form>
           </FooterSection>
         </div>
-        <div className="mt-12 text-xs text-center text-secondary-foreground/70">
-          Crafted with ❤️ by Ava Labs DevRel team.
+        
+        <div className="mt-16 pt-8 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+          <p>Crafted with ❤️ by Ava Labs DevRel team.</p>
+          <p>© {new Date().getFullYear()} Ava Labs, Inc.</p>
         </div>
       </div>
     </footer>
@@ -121,7 +117,7 @@ interface FooterSectionProps {
 function FooterSection({ title, children, className = "" }: FooterSectionProps) {
   return (
     <div className={`flex flex-col ${className}`}>
-      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <h3 className="text-lg font-semibold mb-4 text-foreground tracking-tight">{title}</h3>
       {children}
     </div>
   )
@@ -137,11 +133,12 @@ function FooterLink({ href, children, external = false }: FooterLinkProps) {
   return (
     <Link
       href={href}
-      className="text-sm text-secondary-foreground hover:text-primary transition-colors duration-200 inline-flex items-center"
+      prefetch={false}
+      className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 inline-flex items-center w-fit group"
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
-      {children}
-      {external && <ExternalLink className="ml-1 h-3 w-3" />}
+      <span className="border-b border-transparent group-hover:border-primary/30">{children}</span>
+      {external && <ExternalLink className="ml-1 h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity" />}
     </Link>
   )
 }

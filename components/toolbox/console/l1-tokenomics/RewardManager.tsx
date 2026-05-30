@@ -1,375 +1,350 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { Button } from "@/components/toolbox/components/Button";
-import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
-import rewardManagerAbi from "@/contracts/precompiles/RewardManager.json";
-import { CheckCircle, Edit, Users, Wallet } from "lucide-react";
-import { cn } from "@/components/toolbox/lib/utils";
-import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
-import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useEffect, useState } from 'react';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { Button } from '@/components/toolbox/components/Button';
+import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
+import { AllowlistComponent } from '@/components/toolbox/components/AllowListComponents';
+import { ResultField } from '@/components/toolbox/components/ResultField';
+import rewardManagerAbi from '@/contracts/precompiles/RewardManager.json';
+import { CheckPrecompile } from '@/components/toolbox/components/CheckPrecompile';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '../../components/WithConsoleToolMetadata';
+import { useContractActions } from '@/components/toolbox/hooks/contracts/useContractActions';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { PrecompileCodeViewer } from '@/components/console/precompile-code-viewer';
+import { PrecompileCard, StateRow, StateGroup } from '@/components/toolbox/components/PrecompileCard';
+import type { PrecompileRole } from '@/components/toolbox/components/PrecompileRoleBadge';
+import { Gift, Users, MapPin, XCircle, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
 
-// Default Reward Manager address
-const DEFAULT_REWARD_MANAGER_ADDRESS =
-  "0x0200000000000000000000000000000000000004";
+const DEFAULT_REWARD_MANAGER_ADDRESS = '0x0200000000000000000000000000000000000004';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-interface StatusBadgeProps {
-  status: boolean | null;
-  loadingText?: string;
-  isLoading?: boolean;
-}
+const TABS = [
+  { id: 'view', label: 'Status', icon: Eye, function: 'currentRewardAddress' },
+  { id: 'allow', label: 'Allow Recipients', icon: Users, function: 'allowFeeRecipients' },
+  { id: 'set', label: 'Set Address', icon: MapPin, function: 'setRewardAddress' },
+  { id: 'disable', label: 'Disable Rewards', icon: XCircle, function: 'disableRewards' },
+] as const;
 
-const StatusBadge = ({ status, loadingText, isLoading }: StatusBadgeProps) => {
-  if (isLoading)
-    return (
-      <span className="text-sm text-muted-foreground">
-        {loadingText || "Loading..."}
-      </span>
-    );
-  if (status === null) return null;
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        status ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-      )}
-    >
-      {status ? "Enabled" : "Disabled"}
-    </span>
-  );
-};
+type TabId = (typeof TABS)[number]['id'];
 
 const metadata: ConsoleToolMetadata = {
-  title: "Reward Manager",
-  description: "Manage reward settings for the network including fee recipients and reward addresses",
-  toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance
-  ],
-  githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: 'Reward Manager',
+  description: 'Manage reward settings for the network including fee recipients and reward addresses',
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
 
-  // Fee config state
-  const [isAllowingFeeRecipients, setIsAllowingFeeRecipients] = useState(false);
-  const [isDisablingRewards, setIsDisablingRewards] = useState(false);
-  const [isSettingRewardAddress, setIsSettingRewardAddress] = useState(false);
-  const [isCheckingFeeRecipients, setIsCheckingFeeRecipients] = useState(false);
-  const [isCheckingRewardAddress, setIsCheckingRewardAddress] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('view');
+
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isReadingState, setIsReadingState] = useState(false);
+
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [activeTransaction, setActiveTransaction] = useState<string | null>(null);
-  const [rewardAddress, setRewardAddress] = useState<string>("");
+  const [txError, setTxError] = useState<string | null>(null);
+  const [rewardAddress, setRewardAddress] = useState<string>('');
   const [isFeeRecipientsAllowed, setIsFeeRecipientsAllowed] = useState<boolean | null>(null);
   const [currentRewardAddress, setCurrentRewardAddress] = useState<string | null>(null);
 
-  const handleAllowFeeRecipients = async () => {
-    if (!coreWalletClient.account) {
-      throw new Error("Please connect your wallet first");
-    }
+  const [role, setRole] = useState<PrecompileRole | null>(null);
+  const [roleRefreshKey, setRoleRefreshKey] = useState(0);
 
-    setIsAllowingFeeRecipients(true);
-    setActiveTransaction("allow-fee-recipients");
+  // Routes every Reward Manager write (allowFeeRecipients, disableRewards,
+  // setRewardAddress) through the canonical write path. Each tab's
+  // notification name is set when calling `actions.write` below so the
+  // toast / history row reflects the specific action.
+  const actions = useContractActions(DEFAULT_REWARD_MANAGER_ADDRESS, rewardManagerAbi.abi);
+
+  const refreshState = async () => {
+    setIsReadingState(true);
+    setTxError(null);
+    try {
+      const [allowed, addr] = await Promise.all([
+        publicClient.readContract({
+          address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
+          abi: rewardManagerAbi.abi,
+          functionName: 'areFeeRecipientsAllowed',
+        }) as Promise<boolean>,
+        publicClient.readContract({
+          address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
+          abi: rewardManagerAbi.abi,
+          functionName: 'currentRewardAddress',
+        }) as Promise<string>,
+      ]);
+      setIsFeeRecipientsAllowed(allowed);
+      setCurrentRewardAddress(addr);
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : 'Failed to read state');
+    } finally {
+      setIsReadingState(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshState();
+  }, []);
+
+  // Per-action notification labels. Keyed by function name so each
+  // call to `runWrite` carries a human-readable description into the
+  // console toast + tx history.
+  const NOTIFICATION_LABELS: Record<string, string> = {
+    allowFeeRecipients: 'Allow fee recipients',
+    disableRewards: 'Disable rewards',
+    setRewardAddress: 'Set reward address',
+  };
+
+  const runWrite = async (functionName: string, args?: readonly unknown[]) => {
+    setIsProcessing(true);
+    setTxError(null);
+    setTxHash(null);
 
     try {
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "allowFeeRecipients",
-        account: coreWalletClient.account,
-        chain: viemChain,
-      });
+      const hash = await actions.write(
+        functionName,
+        args ?? [],
+        NOTIFICATION_LABELS[functionName] ?? `Reward Manager: ${functionName}`,
+      );
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
-      if (receipt.status === "success") {
+      if (receipt.status === 'success') {
         setTxHash(hash);
-        await checkFeeRecipientsAllowed();
+        setRoleRefreshKey((k) => k + 1);
+        await refreshState();
+        onSuccess?.();
       } else {
-        throw new Error("Transaction failed");
+        setTxError(
+          'Transaction reverted on-chain. The wallet likely lacks Enabled role on the Reward Manager allowlist.',
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Transaction failed';
+      if (msg.toLowerCase().includes('revert') || msg.toLowerCase().includes('not allowed')) {
+        setTxError(`${msg}\n\nMake sure your wallet has Enabled/Manager/Admin role on the Reward Manager allowlist.`);
+      } else {
+        setTxError(msg);
       }
     } finally {
-      setIsAllowingFeeRecipients(false);
+      setIsProcessing(false);
     }
   };
 
-  const checkFeeRecipientsAllowed = async () => {
-    setIsCheckingFeeRecipients(true);
-
-    const result = await publicClient.readContract({
-      address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-      abi: rewardManagerAbi.abi,
-      functionName: "areFeeRecipientsAllowed",
-    });
-
-    setIsFeeRecipientsAllowed(result as boolean);
-    setIsCheckingFeeRecipients(false);
+  const handleAllowFeeRecipients = () => runWrite('allowFeeRecipients');
+  const handleDisableRewards = () => runWrite('disableRewards');
+  const handleSetRewardAddress = () => {
+    if (!rewardAddress) return;
+    runWrite('setRewardAddress', [rewardAddress as `0x${string}`]);
   };
 
-  const handleDisableRewards = async () => {
-    if (!coreWalletClient.account) {
-      throw new Error("Please connect your wallet first");
-    }
+  const hasPermission = role !== null && role >= 1;
 
-    setIsDisablingRewards(true);
-    setActiveTransaction("disable-rewards");
+  const isFeeRecipientMode =
+    isFeeRecipientsAllowed === true ||
+    (currentRewardAddress && currentRewardAddress.toLowerCase() === ZERO_ADDRESS.toLowerCase());
 
-    try {
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "disableRewards",
-        account: coreWalletClient.account,
-        chain: viemChain,
-      });
-
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-      if (receipt.status === "success") {
-        setTxHash(hash);
-        await checkCurrentRewardAddress();
-      } else {
-        throw new Error("Transaction failed");
-      }
-    } finally {
-      setIsDisablingRewards(false);
-    }
-  };
-
-  const checkCurrentRewardAddress = async () => {
-    setIsCheckingRewardAddress(true);
-
-    const result = await publicClient.readContract({
-      address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-      abi: rewardManagerAbi.abi,
-      functionName: "currentRewardAddress",
-    });
-
-    setCurrentRewardAddress(result as string);
-    setIsCheckingRewardAddress(false);
-  };
-
-  const handleSetRewardAddress = async () => {
-    if (!coreWalletClient.account) {
-      throw new Error("Please connect your wallet first");
-    }
-
-    if (!rewardAddress) {
-      throw new Error("Reward address is required");
-    }
-
-    setIsSettingRewardAddress(true);
-    setActiveTransaction("set-reward-address");
-
-    try {
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "setRewardAddress",
-        args: [rewardAddress],
-        account: coreWalletClient.account,
-        chain: viemChain,
-      });
-
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-      if (receipt.status === "success") {
-        setTxHash(hash);
-        await checkCurrentRewardAddress();
-      } else {
-        throw new Error("Transaction failed");
-      }
-    } finally {
-      setIsSettingRewardAddress(false);
-    }
-  };
-
-  const isAnyOperationInProgress =
-    isAllowingFeeRecipients ||
-    isDisablingRewards ||
-    isSettingRewardAddress ||
-    isCheckingFeeRecipients ||
-    isCheckingRewardAddress;
-
-  const canSetRewardAddress = Boolean(
-    rewardAddress &&
-    walletEVMAddress &&
-    coreWalletClient &&
-    !isSettingRewardAddress &&
-    !isDisablingRewards &&
-    !isCheckingRewardAddress
-  );
+  const currentTab = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
   return (
-    <CheckPrecompile
-        configKey="rewardManagerConfig"
-        precompileName="Reward Manager"
+    <CheckPrecompile configKey="rewardManagerConfig" precompileName="Reward Manager">
+      <PrecompileCodeViewer
+        precompileName="RewardManager"
+        highlightFunction={currentTab.function}
+        collapsibleSections={[
+          {
+            title: 'Manage Allowlist Roles',
+            defaultOpen: false,
+            children: (
+              <AllowlistComponent
+                precompileAddress={DEFAULT_REWARD_MANAGER_ADDRESS}
+                precompileType="Reward Manager"
+                onSuccess={() => {
+                  setRoleRefreshKey((k) => k + 1);
+                  onSuccess?.();
+                }}
+              />
+            ),
+          },
+        ]}
       >
-        <>
-          <div className="space-y-4">
-            <div className="space-y-4 p-4">
-              {/* Fee Recipients Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Fee Recipients</span>
-                  {isFeeRecipientsAllowed !== null && (
-                    <StatusBadge status={isFeeRecipientsAllowed} />
-                  )}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    variant="primary"
-                    onClick={handleAllowFeeRecipients}
-                    disabled={!walletEVMAddress || isAnyOperationInProgress}
-                  >
-                    {isAllowingFeeRecipients
-                      ? "Processing..."
-                      : "Allow Fee Recipients"}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={checkFeeRecipientsAllowed}
-                    disabled={!walletEVMAddress || isAnyOperationInProgress}
-                  >
-                    {isCheckingFeeRecipients ? "Checking..." : "Check Status"}
-                  </Button>
-                </div>
-
-                {activeTransaction === "allow-fee-recipients" && txHash && (
-                  <div className="bg-green-50 border border-green-100 rounded-md p-3">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-green-800">
-                          Transaction Successful
-                        </p>
-                        <p className="text-xs font-mono text-green-700 break-all">
-                          {txHash}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Rewards Management Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Rewards Management</span>
-                  {currentRewardAddress && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                      Active
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    variant="primary"
-                    onClick={handleDisableRewards}
-                    disabled={!walletEVMAddress || isAnyOperationInProgress}
-                  >
-                    {isDisablingRewards ? "Processing..." : "Disable Rewards"}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={checkCurrentRewardAddress}
-                    disabled={!walletEVMAddress || isAnyOperationInProgress}
-                  >
-                    {isCheckingRewardAddress
-                      ? "Checking..."
-                      : "Check Current Address"}
-                  </Button>
-                </div>
-
-                {currentRewardAddress && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-md p-3">
-                    <p className="text-sm font-medium text-slate-700">
-                      Current Reward Address
-                    </p>
-                    <p className="text-xs font-mono break-all">
-                      {currentRewardAddress}
-                    </p>
-                  </div>
-                )}
-
-                {activeTransaction === "disable-rewards" && txHash && (
-                  <div className="bg-green-50 border border-green-100 rounded-md p-3">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-green-800">
-                          Transaction Successful
-                        </p>
-                        <p className="text-xs font-mono text-green-700 break-all">
-                          {txHash}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Set Reward Address Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Edit className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Set Reward Address</span>
-                </div>
-                <div className="space-y-2">
-                  <EVMAddressInput
-                    value={rewardAddress}
-                    onChange={setRewardAddress}
-                    disabled={isSettingRewardAddress}
-                  />
-                </div>
-
-                <Button
-                  variant="primary"
-                  onClick={handleSetRewardAddress}
-                  disabled={!canSetRewardAddress}
-                  loading={isSettingRewardAddress}
-                >
-                  {isSettingRewardAddress
-                    ? "Processing..."
-                    : "Set Reward Address"}
-                </Button>
-
-                {activeTransaction === "set-reward-address" && txHash && (
-                  <div className="bg-green-50 border border-green-100 rounded-md p-3">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-green-800">
-                          Transaction Successful
-                        </p>
-                        <p className="text-xs font-mono text-green-700 break-all">
-                          {txHash}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        <PrecompileCard
+          icon={Gift}
+          iconWrapperClass="bg-emerald-100 dark:bg-emerald-900/30"
+          iconClass="text-emerald-600 dark:text-emerald-400"
+          title="Reward Configuration"
+          subtitle="Choose how transaction fees are distributed on this L1"
+          precompileAddress={DEFAULT_REWARD_MANAGER_ADDRESS}
+          minimumRole={1}
+          roleRefreshKey={roleRefreshKey}
+          onRoleChange={setRole}
+          tabs={TABS.map((t) => ({ id: t.id, label: t.label, icon: t.icon }))}
+          activeTab={activeTab}
+          onTabChange={(id) => {
+            setActiveTab(id as TabId);
+            setTxHash(null);
+            setTxError(null);
+          }}
+        >
+          {role === 0 && activeTab !== 'view' && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50">
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-red-700 dark:text-red-300">
+                Your wallet has no role on the Reward Manager allowlist — the transaction will revert.
               </div>
             </div>
-          </div>
-        </>
+          )}
 
-        <AllowlistComponent
-          precompileAddress={DEFAULT_REWARD_MANAGER_ADDRESS}
-          precompileType="Reward Manager"
-        />
-      </CheckPrecompile>
+          {activeTab === 'view' && (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Live values from <code className="font-mono">currentRewardAddress()</code> +{' '}
+                  <code className="font-mono">areFeeRecipientsAllowed()</code>
+                </p>
+                <button
+                  onClick={refreshState}
+                  disabled={isReadingState}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[11px] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isReadingState ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              <StateGroup title="Active mode">
+                <StateRow
+                  label="Fee Recipients allowed"
+                  value={isFeeRecipientsAllowed === null ? '—' : isFeeRecipientsAllowed ? 'Yes' : 'No'}
+                  status={isFeeRecipientsAllowed ? 'active' : 'inactive'}
+                />
+                <StateRow
+                  label="Reward Address"
+                  value={
+                    !currentRewardAddress
+                      ? '—'
+                      : currentRewardAddress.toLowerCase() === ZERO_ADDRESS.toLowerCase()
+                        ? 'Burned (no recipient set)'
+                        : currentRewardAddress
+                  }
+                  status={
+                    !currentRewardAddress
+                      ? 'inactive'
+                      : currentRewardAddress.toLowerCase() === ZERO_ADDRESS.toLowerCase()
+                        ? 'warning'
+                        : 'active'
+                  }
+                />
+              </StateGroup>
+
+              <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                {isFeeRecipientMode
+                  ? 'Each validator may direct their share of fees to a recipient they specify.'
+                  : currentRewardAddress
+                    ? 'All transaction fees flow to the configured reward address.'
+                    : 'Fees are currently being burned.'}
+              </div>
+
+              {txError && (
+                <div className="p-3 text-xs text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800">
+                  {txError}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'allow' && (
+            <>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Allow validators to specify their own fee recipient address. When enabled, each validator can direct
+                transaction fees to their preferred address.
+              </p>
+              {txError && (
+                <div className="p-3 text-xs text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800 whitespace-pre-line">
+                  {txError}
+                </div>
+              )}
+              {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
+              <Button
+                variant="primary"
+                onClick={handleAllowFeeRecipients}
+                disabled={!walletEVMAddress || isProcessing || !hasPermission}
+                loading={isProcessing}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                {!hasPermission ? 'Insufficient Role' : 'Allow Fee Recipients'}
+              </Button>
+            </>
+          )}
+
+          {activeTab === 'set' && (
+            <>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Set a specific address to receive all block rewards. This address will receive all transaction fees from
+                the network.
+              </p>
+              <EVMAddressInput
+                label="Reward Address"
+                value={rewardAddress}
+                onChange={setRewardAddress}
+                disabled={isProcessing}
+              />
+              {txError && (
+                <div className="p-3 text-xs text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800 whitespace-pre-line">
+                  {txError}
+                </div>
+              )}
+              {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
+              <Button
+                variant="primary"
+                onClick={handleSetRewardAddress}
+                disabled={!rewardAddress || !walletEVMAddress || isProcessing || !hasPermission}
+                loading={isProcessing}
+              >
+                <MapPin className="w-4 h-4 mr-2" />
+                {!hasPermission ? 'Insufficient Role' : 'Set Reward Address'}
+              </Button>
+            </>
+          )}
+
+          {activeTab === 'disable' && (
+            <>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Disable reward distribution entirely. Transaction fees will be burned instead of being distributed to
+                validators or a reward address.
+              </p>
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  This will prevent any rewards from being distributed.
+                </p>
+              </div>
+              {txError && (
+                <div className="p-3 text-xs text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800 whitespace-pre-line">
+                  {txError}
+                </div>
+              )}
+              {txHash && <ResultField label="Transaction Successful" value={txHash} showCheck={true} />}
+              <Button
+                variant="secondary"
+                onClick={handleDisableRewards}
+                disabled={!walletEVMAddress || isProcessing || !hasPermission}
+                loading={isProcessing}
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                {!hasPermission ? 'Insufficient Role' : 'Disable Rewards'}
+              </Button>
+            </>
+          )}
+        </PrecompileCard>
+      </PrecompileCodeViewer>
+    </CheckPrecompile>
   );
 }
 

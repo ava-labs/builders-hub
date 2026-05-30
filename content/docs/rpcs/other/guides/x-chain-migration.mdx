@@ -9,9 +9,9 @@ This document summarizes all of the changes made to the X-Chain API to support A
 Transaction Broadcast and Confirmation[​](#transaction-broadcast-and-confirmation "Direct link to heading")
 -----------------------------------------------------------------------------------------------------------
 
-The transaction format on the X-Chain does not change in Cortina. This means that wallets that have already integrated with the X-Chain don't need to change how they sign transactions. Additionally, there is no change to the format of the [avm.issueTx](/docs/api-reference/x-chain/api#avmissuetx) or the [avm.getTx](/docs/api-reference/x-chain/api#avmgettx) API.
+The transaction format on the X-Chain does not change in Cortina. This means that wallets that have already integrated with the X-Chain don't need to change how they sign transactions. Additionally, there is no change to the format of the [avm.issueTx](/docs/rpcs/x-chain#avmissuetx) or the [avm.getTx](/docs/rpcs/x-chain#avmgettx) API.
 
-However, the [avm.getTxStatus](/docs/api-reference/x-chain/api#avmgettxstatus) endpoint is now deprecated and its usage should be replaced with [avm.getTx](/docs/api-reference/x-chain/api#avmgettx) (which only returns accepted transactions for AvalancheGo >= v1.9.12). [avm.getTxStatus](/docs/api-reference/x-chain/api#avmgettxstatus) will still work up to and after the Cortina activation if you wish to migrate after the network upgrade has occurred.
+However, the [avm.getTxStatus](/docs/rpcs/x-chain#avmgettxstatus) endpoint is now deprecated and its usage should be replaced with [avm.getTx](/docs/rpcs/x-chain#avmgettx) (which only returns accepted transactions for AvalancheGo >= v1.9.12). [avm.getTxStatus](/docs/rpcs/x-chain#avmgettxstatus) will still work up to and after the Cortina activation if you wish to migrate after the network upgrade has occurred.
 
 Vertex -> Block Indexing[​](#vertex---block-indexing "Direct link to heading")
 ------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ Before Cortina, indexing the X-Chain required polling the `/ext/index/X/vtx` end
 The index for the X-chain tx and vtx endpoints will never increase again. The index for the X-chain blocks will increase as new blocks are added.
 </Callout>
 
-After Cortina activation, you will need to migrate to using the new _ext/index/X/block_ endpoint (shares the same semantics as [/ext/index/P/block](/docs/api-reference/index-api#p-chain-blocks)) to continue indexing X-Chain activity. Because X-Chain ordering is deterministic in Cortina, this means that X-Chain blocks across all heights will be consistent across all nodes and will include a timestamp. Here is an example of iterating over these blocks in Golang:
+After Cortina activation, you will need to migrate to using the new _ext/index/X/block_ endpoint (shares the same semantics as [/ext/index/P/block](/docs/rpcs/other/index-rpc#p-chain-blocks)) to continue indexing X-Chain activity. Because X-Chain ordering is deterministic in Cortina, this means that X-Chain blocks across all heights will be consistent across all nodes and will include a timestamp. Here is an example of iterating over these blocks in Golang:
 
 ```
 package main
@@ -78,7 +78,7 @@ func main() {
 }
 ```
 
-After Cortina activation, it will also be possible to fetch X-Chain blocks directly without enabling the Index API. You can use the [avm.getBlock](/docs/api-reference/x-chain/api#avmgetblock), [avm.getBlockByHeight](/docs/api-reference/x-chain/api#avmgetblockbyheight), and [avm.getHeight](/docs/api-reference/x-chain/api#avmgetheight) endpoints to do so. This, again, will be similar to the [P-Chain semantics](/docs/api-reference/p-chain/api#platformgetblock).
+After Cortina activation, it will also be possible to fetch X-Chain blocks directly without enabling the Index API. You can use the [avm.getBlock](/docs/rpcs/x-chain#avmgetblock), [avm.getBlockByHeight](/docs/rpcs/x-chain#avmgetblockbyheight), and [avm.getHeight](/docs/rpcs/x-chain#avmgetheight) endpoints to do so. This, again, will be similar to the [P-Chain semantics](/docs/rpcs/p-chain#platformgetblock).
 
 Deprecated API Calls[​](#deprecated-api-calls "Direct link to heading")
 -----------------------------------------------------------------------
@@ -155,7 +155,7 @@ No.
 
 ### Will Updating Decrease my Validator's Uptime?[​](#will-updating-decrease-my-validators-uptime "Direct link to heading")
 
-No. As a reminder, you can check your validator's estimated uptime using the [`info.uptime` API call](/docs/api-reference/info-api#infouptime).
+No. As a reminder, you can check your validator's estimated uptime using the [`info.uptime` API call](/docs/rpcs/other/info-rpc#infouptime).
 
 ### I Think Something Is Wrong. What Should I Do?[​](#i-think-something-is-wrong-what-should-i-do "Direct link to heading")
 

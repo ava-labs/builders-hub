@@ -14,141 +14,95 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import React, { useState } from "react";
+import React from "react";
 import { RegisterFormValues } from "./RegistrationForm";
 import { useFormContext } from "react-hook-form";
 import { User } from "next-auth";
 import { countries } from "@/constants/countries";
 import { hsEmploymentRoles } from "@/constants/hs_employment_role";
+import { EventsLang, t } from "@/lib/events/i18n";
+
+const hackathonParticipationOptions = [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+];
 
 interface Step1Props {
-  user?: User; // Optional User prop
+  user?: User;
+  lang?: EventsLang;
 }
-export default function RegisterFormStep1({ user }: Step1Props) {
+export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
   const form = useFormContext<RegisterFormValues>();
-  const [open, setOpen] = useState<boolean>(false);
+  const watchedValues = form.watch();
 
   return (
     <>
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-foreground">
-          Step 1: Personal Information
+          {t(lang, "reg.step1.title")}
         </h3>
         <p className="text-zinc-600">
-          Provide your personal details to create your Builder Hub profile.
+          {t(lang, "reg.step1.subtitle")}
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Columna izquierda */}
-        <div className="space-y-6">
-          {/* Full Name or Nickname */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Row 1–2: name | country, email | telegram */}
+        <div className="col-span-12 md:col-span-6 space-y-6">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name or Nickname *</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.name.label")}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter your full name or preferred display name"
+                    placeholder={t(lang, "reg.step1.name.placeholder")}
                     className="bg-transparent placeholder-zinc-600"
                     {...field}
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  This name will be used for your profile and communications.
+                  {t(lang, "reg.step1.name.hint")}
                 </FormMessage>
               </FormItem>
             )}
           />
-
-          {/* Email */}
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address *</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.email.label")}</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
                     placeholder="your@email.com"
                     {...field}
-                    className="bg-transparent placeholder-zinc-600"
+                    readOnly
+                    className="bg-transparent placeholder-zinc-600 cursor-default opacity-90"
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  This email will be used for login and communications.
-                </FormMessage>
-              </FormItem>
-            )}
-          />
-
-          {/* NameCompany (opcional) */}
-          <FormField
-            control={form.control}
-            name="company_name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Company/University (if applicable)</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter your company/University name"
-                    {...field}
-                    className="bg-transparent placeholder-zinc-600"
-                  />
-                </FormControl>
-                <FormMessage className="text-zinc-600">
-                  If you are part of a company or affiliated with a university, mention it here. Otherwise,
-                  leave blank.
+                  {t(lang, "reg.step1.email.hint")}
                 </FormMessage>
               </FormItem>
             )}
           />
         </div>
 
-        <div className="space-y-6">
-          {/* Rol */}
-          <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Role at Company</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md max-h-60 overflow-y-auto">
-                    {hsEmploymentRoles.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.label}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-zinc-600">
-                  Select the option that best matches your role.
-                </FormMessage>
-              </FormItem>
-            )}
-          />
-
-          {/* Country */}
+        <div className="col-span-12 md:col-span-6 space-y-6">
           <FormField
             control={form.control}
             name="city"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Country of Residence *</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.country.label")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder="Select your country" />
+                      <SelectValue placeholder={t(lang, "reg.step1.country.placeholder")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md max-h-60 overflow-y-auto">
@@ -160,36 +114,281 @@ export default function RegisterFormStep1({ user }: Step1Props) {
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-zinc-600">
-                  This will help us bring in-person events closer to you.
+                  {t(lang, "reg.step1.country.hint")}
                 </FormMessage>
               </FormItem>
             )}
           />
-
-          {/* Telegram User */}
           <FormField
             control={form.control}
-            name="telegram_user"
+            name="telegram_account"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Telegram Username *</FormLabel>
+                <FormLabel>{t(lang, "reg.step1.telegram.label")}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter your Telegram username (without @)"
+                    placeholder={t(lang, "reg.step1.telegram.placeholder")}
                     className="bg-transparent placeholder-zinc-600"
                     {...field}
                   />
                 </FormControl>
-                <FormMessage className="text-zinc-600">
-                </FormMessage>
+                <FormMessage className="text-zinc-600" />
               </FormItem>
             )}
           />
         </div>
+
+        {/* Full width below email & telegram: roles in 2 columns */}
+        <div className="col-span-12 space-y-4">
+          <FormLabel className="text-base font-medium">{t(lang, "reg.step1.roles.label")}</FormLabel>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-x-8">
+            {/* Column A */}
+            <div className="space-y-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <div className="flex items-center gap-3">
+                  <FormField
+                    control={form.control}
+                    name="is_student"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            className="dark:border-white rounded-md"
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              if (!checked) {
+                                form.setValue("student_institution", "", { shouldDirty: true });
+                              }
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormLabel
+                    className="text-sm font-normal cursor-pointer"
+                    onClick={() => {
+                      const currentValue = watchedValues.is_student;
+                      form.setValue("is_student", !currentValue, { shouldDirty: true });
+                      if (currentValue) {
+                        form.setValue("student_institution", "", { shouldDirty: true });
+                      }
+                    }}
+                  >
+                    {t(lang, "reg.step1.roles.university")}
+                  </FormLabel>
+                </div>
+                {watchedValues.is_student && (
+                  <FormField
+                    control={form.control}
+                    name="student_institution"
+                    render={({ field }) => (
+                      <FormItem className="w-full sm:flex-1 sm:min-w-0">
+                        <FormControl>
+                          <Input
+                            placeholder={t(lang, "reg.step1.roles.university.placeholder")}
+                            className="bg-transparent placeholder-zinc-600"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <FormField
+                  control={form.control}
+                  name="is_developer"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          className="dark:border-white rounded-md"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormLabel
+                  className="text-sm font-normal cursor-pointer"
+                  onClick={() => {
+                    form.setValue("is_developer", !watchedValues.is_developer, { shouldDirty: true });
+                  }}
+                >
+                  {t(lang, "reg.step1.roles.developer")}
+                </FormLabel>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <FormField
+                  control={form.control}
+                  name="is_enthusiast"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          className="dark:border-white rounded-md"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormLabel
+                  className="text-sm font-normal cursor-pointer"
+                  onClick={() => {
+                    form.setValue("is_enthusiast", !watchedValues.is_enthusiast, { shouldDirty: true });
+                  }}
+                >
+                  {t(lang, "reg.step1.roles.enthusiast")}
+                </FormLabel>
+              </div>
+            </div>
+
+            {/* Column B */}
+            <div className="space-y-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <div className="flex items-center gap-3">
+                  <FormField
+                    control={form.control}
+                    name="is_founder"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            className="dark:border-white rounded-md"
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              if (!checked) {
+                                form.setValue("founder_company_name", "", { shouldDirty: true });
+                              }
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormLabel
+                    className="text-sm font-normal cursor-pointer"
+                    onClick={() => {
+                      const currentValue = watchedValues.is_founder;
+                      form.setValue("is_founder", !currentValue, { shouldDirty: true });
+                      if (currentValue) {
+                        form.setValue("founder_company_name", "", { shouldDirty: true });
+                      }
+                    }}
+                  >
+                    {t(lang, "reg.step1.roles.founder")}
+                  </FormLabel>
+                </div>
+                {watchedValues.is_founder && (
+                  <FormField
+                    control={form.control}
+                    name="founder_company_name"
+                    render={({ field }) => (
+                      <FormItem className="w-full sm:flex-1 sm:min-w-0">
+                        <FormControl>
+                          <Input placeholder={t(lang, "reg.step1.roles.companyName.placeholder")} className="bg-transparent placeholder-zinc-600" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <div className="flex items-center gap-3">
+                  <FormField
+                    control={form.control}
+                    name="is_employee"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            className="dark:border-white rounded-md"
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              if (!checked) {
+                                form.setValue("employee_company_name", "", { shouldDirty: true });
+                                form.setValue("employee_role", "", { shouldDirty: true });
+                              }
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormLabel
+                    className="text-sm font-normal cursor-pointer"
+                    onClick={() => {
+                      const currentValue = watchedValues.is_employee;
+                      form.setValue("is_employee", !currentValue, { shouldDirty: true });
+                      if (currentValue) {
+                        form.setValue("employee_company_name", "", { shouldDirty: true });
+                        form.setValue("employee_role", "", { shouldDirty: true });
+                      }
+                    }}
+                  >
+                    {t(lang, "reg.step1.roles.employee")}
+                  </FormLabel>
+                </div>
+                {watchedValues.is_employee && (
+                  <div className="flex w-full flex-col gap-3 sm:flex-1 sm:min-w-0 sm:flex-row sm:items-start">
+                    <FormField
+                      control={form.control}
+                      name="employee_company_name"
+                      render={({ field }) => (
+                        <FormItem className="flex-1 w-full min-w-0">
+                          <FormControl>
+                            <Input placeholder={t(lang, "reg.step1.roles.companyName.placeholder")} className="bg-transparent placeholder-zinc-600" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="employee_role"
+                      render={({ field }) => (
+                        <FormItem className="flex-1 w-full min-w-0">
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t(lang, "reg.step1.roles.employeeRole.placeholder")} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {hsEmploymentRoles.map((roleOption) => (
+                                <SelectItem key={roleOption.value} value={roleOption.label}>
+                                  {roleOption.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div className="mt-8 mb-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">
-          Additional Information
+          {t(lang, "reg.step1.additional.title")}
         </h3>
         <div className="w-full h-px bg-zinc-300 mb-6" />
       </div>
@@ -210,7 +409,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
               </FormControl>
               <div className="flex-1">
                 <FormLabel className="text-base font-medium cursor-pointer">
-                  Are you a founder or co-founder of a blockchain project?
+                  {t(lang, "reg.step1.founder.label")}
                 </FormLabel>
               </div>
             </FormItem>
@@ -232,9 +431,39 @@ export default function RegisterFormStep1({ user }: Step1Props) {
               </FormControl>
               <div className="flex-1">
                 <FormLabel className="text-base font-medium cursor-pointer">
-                  Consider yourself an Avalanche ecosystem member?
+                  {t(lang, "reg.step1.ecosystem.label")}
                 </FormLabel>
               </div>
+            </FormItem>
+          )}
+        />
+
+        {/* Hackathon participation history (moved from Step 3) */}
+        <FormField
+          control={form.control}
+          name="hackathon_participation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                {t(lang, "reg.step2.hackathon.label")}
+              </FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="text-zinc-600">
+                    <SelectValue placeholder={t(lang, "reg.step2.hackathon.placeholder")} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-black dark:text-zinc-600 rounded-md shadow-md">
+                  {hackathonParticipationOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage className="text-zinc-600">
+                {t(lang, "reg.step2.hackathon.hint")}
+              </FormMessage>
             </FormItem>
           )}
         />

@@ -3,16 +3,149 @@ title: Common Errors
 description: Common errors while running a node and their solutions.
 ---
 
-If you experience any issues building your node, here are some common errors and possible solutions.
+If you experience any issues running your node, here are common errors and their solutions.
 
-### Failed to Connect to Bootstrap Nodes[​](#failed-to-connect-to-bootstrap-nodes "Direct link to heading")
+## Bootstrap and Initialization Errors
 
-Error: `WARN node/node.go:291 failed to connect to bootstrap nodes`
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `failed to connect to bootstrap nodes` | • No internet access<br/>• NodeID already in use<br/>• Old instance still running<br/>• Firewall blocking outbound connections | • Check internet connection<br/>• Ensure only one node instance is running<br/>• Verify firewall allows outbound connections<br/>• Confirm staking port (9651) is configured |
+| `subnets not bootstrapped` | • Node still syncing with network<br/>• Health checks called too early<br/>• Network connectivity issues | • Wait for bootstrap to complete (can take hours)<br/>• Monitor `/api/health` endpoint<br/>• Ensure stable network connection<br/>• Check logs for progress |
+| `db contains invalid genesis hash` | • Database from different network<br/>• Database corruption<br/>• Incompatible database | • Delete database and resync from scratch<br/>• Verify correct network connection<br/>• Check `--network-id` flag matches database |
 
-This error can occur when the node doesn't have access to the Internet or if the NodeID is already being used by a different node in the network. This can occur when an old instance is running and not terminated.
+## Network and Connectivity Errors
 
-### Cannot Query Unfinalized Data[​](#cannot-query-unfinalized-data "Direct link to heading")
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `cannot query unfinalized data` | • Not connected to other validators<br/>• Wrong public IP configured<br/>• Port 9651 closed/blocked<br/>• Insufficient validator connections | • Configure public IP with `--public-ip`<br/>• Open port 9651 to internet<br/>• Allow inbound connections in firewall<br/>• Set up port forwarding if behind NAT<br/>• Verify peers: `curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.peers"}' -H 'content-type:application/json;' http://127.0.0.1:9650/ext/info` |
+| `primary network validator has no inbound connections` | • Firewall blocking inbound traffic<br/>• NAT/router not configured<br/>• Wrong public IP advertised<br/>• ISP blocking connections | • Configure port forwarding for 9651<br/>• Verify firewall allows inbound<br/>• Check public IP: `curl ifconfig.me`<br/>• Test port with online checkers<br/>• Use VPS if ISP blocks ports |
+| `not connected to enough stake` | • Insufficient validator connections<br/>• Network partitioning<br/>• Node isolated from network<br/>• Bootstrap incomplete | • Check network connectivity<br/>• Verify firewall rules<br/>• Wait for more connections<br/>• Synchronize system time (NTP) |
+| `throttled` (Code: -4) | • Too many connection attempts<br/>• Rate limiting by peers<br/>• Network congestion | • Wait before retrying<br/>• Check for connection loops<br/>• Reduce connection rate |
 
-Error: `err="cannot query unfinalized data"`
+## Database and Storage Errors
 
-There may be a number of reasons for this issue, but it is likely that the node is not connected properly to other validators, which is usually caused by networking misconfiguration (wrong public IP, closed p2p port 9651).
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `closed` | • Database accessed after shutdown<br/>• Ungraceful termination<br/>• Connection lost | • Restart the node<br/>• Check for disk errors or full disk<br/>• Verify database files not corrupted |
+| `blockdb: unrecoverable corruption detected` | • Ungraceful shutdown (power loss, kill -9)<br/>• Disk errors during writes<br/>• Hardware failure | • Delete database and resync<br/>• Run SMART diagnostics on disk<br/>• Ensure 10+ GiB free space<br/>• Use UPS for power protection<br/>• Maintain regular backups |
+| Disk space warnings | • Usage exceeds threshold<br/>• Database growth without cleanup<br/>• Log accumulation | • Keep at least 10 GiB free (20+ GiB recommended)<br/>• Monitor disk usage regularly<br/>• Clean up old logs<br/>• Set up low-space alerts |
+| `blockdb: invalid block height` | • Database corruption<br/>• Querying non-existent block<br/>• Index corruption | • Verify block height is valid<br/>• Resync if corrupted<br/>• Check database integrity |
+
+## Configuration Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `invalid TLS key` | • TLS key without certificate<br/>• Certificate without key<br/>• Invalid key format<br/>• Corrupted certificate files | • Provide both key and certificate together<br/>• Regenerate credentials if corrupted<br/>• Verify file permissions<br/>• Check certificate format |
+| `minimum validator stake can't be greater than maximum` | • Invalid stake configuration<br/>• Conflicting parameters<br/>• Configuration typos | • Review configuration file<br/>• Ensure min < max stake<br/>• Check for typos |
+| `uptime requirement must be in the range [0, 1]` | • Out-of-range uptime value | • Set uptime requirement between 0 and 1 |
+| `delegation fee must be in the range [0, 1,000,000]` | • Invalid delegation fee | • Set fee between 0 and 1,000,000 |
+| `min stake duration must be > 0` | • Invalid stake duration<br/>• Min > max duration | • Set min duration > 0 and < max |
+| `sybil protection disabled on public network` | • Disabling protection on mainnet/testnet<br/>• Security misconfiguration | • Only disable on private networks<br/>• Verify network configuration<br/>• Remove override for public networks |
+| `plugin dir is not a directory` | • Path points to file not directory<br/>• Directory doesn't exist<br/>• Permission issues | • Create plugin directory<br/>• Verify path points to directory<br/>• Check read/execute permissions |
+
+## Resource and Capacity Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `insufficient funds` | • Insufficient balance for fees<br/>• Transaction exceeds balance<br/>• Gas estimation too low | • Ensure sufficient balance<br/>• Account for transaction fees<br/>• Verify balance before submitting |
+| `insufficient gas capacity to build block` | • Mempool exceeds block gas limit<br/>• Complex transactions<br/>• Network congestion | • Wait for congestion to clear<br/>• Break into smaller transactions<br/>• Increase gas limits if possible |
+| `insufficient history to generate proof` | • Partial sync mode<br/>• Pruned historical data<br/>• Incomplete state sync | • Use full sync for complete history<br/>• Wait for state sync to finish<br/>• Use archival node for historical data |
+
+## Validator and Consensus Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `not a validator` (Code: -3) | • Validator-only operation on non-validator<br/>• Stake expired or not active<br/>• Not registered as validator | • Verify registration status<br/>• Check stake is active<br/>• Wait for validation period<br/>• Use correct API for node type |
+| `unknown validator` | • Not in current validator set<br/>• NodeID mismatch<br/>• Validator expired/removed | • Verify validator is active<br/>• Check end time hasn't passed<br/>• Confirm correct NodeID<br/>• Query validator set |
+
+## Version and Upgrade Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `unknown network upgrade detected` | • Outdated node version<br/>• Network upgrade scheduled/active<br/>• Incompatible protocol | • **Update immediately** to latest version<br/>• Monitor upgrade announcements<br/>• Enable automatic updates<br/>• Check version: `avalanchego --version` |
+| `unknown network upgrade - update as soon as possible` | • Network upgrade approaching<br/>• Node version outdated | • Update within the day<br/>• Check GitHub releases<br/>• Plan for maintenance window |
+| `imminent network upgrade - update immediately` | • Network upgrade imminent (within hour) | • **Critical: Update immediately**<br/>• Risk of network disconnection |
+| `invalid upgrade configuration` | • Upgrade times not chronological<br/>• Conflicting schedules<br/>• Invalid precompile config | • Review upgrade config files<br/>• Ensure sequential timing<br/>• Validate precompile settings<br/>• Consult upgrade documentation |
+
+## API and RPC Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| Health check: `not yet run` | • Node still initializing<br/>• Bootstrap incomplete<br/>• Subnet sync in progress<br/>• Network issues | • Wait for initialization<br/>• Monitor `/api/health` for updates<br/>• Check individual health checks<br/>• Ensure subnets are synced |
+| `timed out` (Code: -1) | • Request exceeded timeout<br/>• Node overloaded<br/>• Network latency | • Increase timeout settings<br/>• Check resource usage (CPU/memory/disk)<br/>• Reduce request complexity<br/>• Use retry with exponential backoff |
+| Invalid content-type | • Wrong Content-Type header<br/>• Missing header | • Add `Content-Type: application/json`<br/>• Verify API client config<br/>• Example: `curl -H 'content-type:application/json;' ...` |
+
+## State Sync Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `proof obtained an invalid root ID` | • State changed during sync<br/>• Corrupted merkle proof<br/>• Network issues | • Restart state sync<br/>• Ensure stable connection<br/>• Wait for state to stabilize |
+| `vm does not implement StateSyncableVM interface` | • Unsupported VM<br/>• Outdated VM version | • Update VM to support state sync<br/>• Use full bootstrap instead<br/>• Check VM compatibility docs |
+
+---
+
+## Monitoring and Prevention
+
+### Key Metrics to Monitor
+
+| Metric | Threshold | How to Check |
+|--------|-----------|--------------|
+| **Disk Space** | Keep 10+ GiB free (20+ GiB recommended) | `df -h` |
+| **Network Connectivity** | Inbound/outbound connections active | Check firewall, use port scanners |
+| **Bootstrap Status** | Should be `bootstrapped` | `/api/health` |
+| **Validator Connections** | Connected to sufficient stake | `/ext/info` API, check peer count |
+| **Database Health** | No corruption warnings in logs | Monitor `~/.avalanchego/logs/` |
+| **Node Version** | Current with latest release | `avalanchego --version` |
+
+### Best Practices
+
+| Practice | Benefit |
+|----------|---------|
+| Use UPS (uninterruptible power supply) | Prevents database corruption from power loss |
+| Enable automatic updates | Stay current with security patches |
+| Monitor logs regularly | Early detection of issues |
+| Keep adequate disk space | Prevent database write failures |
+| Configure port forwarding properly | Ensure validator connectivity |
+| Synchronize system time with NTP | Prevent consensus issues |
+| Backup critical files | Quick recovery from failures |
+| Test changes on testnet first | Avoid production issues |
+
+### Health Check Endpoints
+
+| Endpoint | Purpose | What It Checks |
+|----------|---------|----------------|
+| `/ext/health/liveness` | Basic process health | Is the node process running? |
+| `/ext/health/readiness` | Ready to serve traffic | Is bootstrapping complete? |
+| `/ext/health` | Comprehensive status | All health checks and details |
+
+### Getting Help
+
+If you encounter errors not listed here:
+
+1. **Check Logs**: Review `~/.avalanchego/logs/` for detailed error messages
+2. **Search Forum**: [Avalanche Forum](https://forum.avax.network/)
+3. **Join Discord**: [Avalanche Discord](https://chat.avax.network/)
+4. **GitHub Issues**: [Review existing issues](https://github.com/ava-labs/avalanchego/issues)
+5. **Provide Context**: Include specific error messages, logs, and configuration when asking for help
+
+### Quick Diagnostic Commands
+
+```bash
+# Check node version
+avalanchego --version
+
+# Check disk space
+df -h
+
+# Check if port 9651 is open
+nc -zv <your-public-ip> 9651
+
+# Check node health
+curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"health.health"}' -H 'content-type:application/json;' http://127.0.0.1:9650/ext/health
+
+# Check peers
+curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.peers"}' -H 'content-type:application/json;' http://127.0.0.1:9650/ext/info
+
+# Check bootstrap status
+curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.isBootstrapped","params":{"chain":"X"}}' -H 'content-type:application/json;' http://127.0.0.1:9650/ext/info
+```

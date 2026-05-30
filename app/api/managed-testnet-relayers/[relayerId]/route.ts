@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserId, jsonOk, jsonError, extractServiceErrorMessage } from '../utils';
+import { getUserId, jsonOk, jsonError } from '../utils';
 import { RelayerServiceURLs } from '../constants';
 
 /**
@@ -17,12 +17,50 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
   }
 
   try {
+    // First verify the relayer belongs to the user by fetching the list
+    const listResponse = await fetch(RelayerServiceURLs.list(password), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!listResponse.ok) {
+      console.error(`[Relayers] Failed to verify relayer ownership (status: ${listResponse.status})`);
+      return jsonError(502, 'Failed to verify relayer ownership');
+    }
+
+    const listData = await listResponse.json();
+    let allRelayers: any[] = [];
+    if (Array.isArray(listData)) {
+      allRelayers = listData;
+    } else if (listData && Array.isArray(listData.relayers)) {
+      allRelayers = listData.relayers;
+    } else if (listData && typeof listData === 'object') {
+      allRelayers = Object.values(listData);
+    }
+
+    // Find the relayer and verify it belongs to the user
+    const relayer = allRelayers.find((r: any) => {
+      const rId = r.relayerId || r.address || r.id || r.relayer_id || '';
+      return rId === relayerId || rId.toLowerCase() === relayerId.toLowerCase();
+    });
+
+    if (!relayer) {
+      return jsonError(404, 'Relayer not found');
+    }
+
+    // Verify ownership by checking the label matches userId
+    const relayerLabel = relayer.label || '';
+    if (relayerLabel.toLowerCase() !== auth.userId.toLowerCase()) {
+      return jsonError(403, 'Forbidden: You do not have permission to delete this relayer');
+    }
+
     // URL encode the relayerId to handle special characters
     const encodedRelayerId = encodeURIComponent(relayerId);
     const deleteUrl = RelayerServiceURLs.delete(encodedRelayerId, password);
     
-    console.log(`[Relayers] Deleting relayer ${relayerId} (encoded: ${encodedRelayerId})`);
-    console.log(`[Relayers] Request URL: ${deleteUrl}`);
+    console.log(`[Relayers] Deleting relayer ${encodedRelayerId}`);
     
     const response = await fetch(deleteUrl, {
       method: 'DELETE',
@@ -42,12 +80,12 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
       });
     }
 
-    const message = await extractServiceErrorMessage(response) || 'Failed to delete relayer from Builder Hub.';
-    return jsonError(502, message);
+    console.error(`[Relayers] Delete failed (status: ${response.status})`);
+    return jsonError(502, 'Failed to delete relayer from Builder Hub.');
 
   } catch (hubError) {
-    console.error('Builder Hub request failed:', hubError);
-    return jsonError(503, 'Builder Hub was unreachable.', hubError);
+    console.error('[Relayers] Builder Hub request failed');
+    return jsonError(503, 'Builder Hub was unreachable.');
   }
 }
 

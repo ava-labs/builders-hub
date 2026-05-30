@@ -5,29 +5,31 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { DynamicIcon } from 'lucide-react/dynamic';
 import Link from 'next/link';
+import { normalizeEventsLang, t } from '@/lib/events/i18n';
 
 const communityResources = [
   {
-    title: 'Join the Telegram chat',
+    titleKey: 'community.telegram.title',
     icon: 'send',
     link: 'https://t.me/avalancheacademy',
   },
   {
-    title: 'Avalanche Team1 X',
+    titleKey: 'community.team1x.title',
     icon: 'bird',
     link: 'https://x.com/AvaxTeam1',
   },
-];
+] as const;
 
 function Community({ hackathon }: { hackathon: HackathonHeader }) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
   return (
     <section className='text-black dark:text-white py-12'>
-      <h2 className='text-4xl font-bold mb-6'>Community</h2>
+      <h2 className='text-4xl font-bold mb-6'>
+        {t(lang, 'section.community.title')}
+      </h2>
       <Separator className='my-8 bg-zinc-300 dark:bg-zinc-800' />
       <p className='text-lg text-gray-600 dark:text-gray-400 mb-6'>
-        Connect with fellow hackers, mentors, and experts. Get real-time
-        support, network with industry leaders, and make the most of your
-        hackathon experience.
+        {t(lang, 'section.community.subtitle')}
       </p>
 
       <div className='flex flex-col gap-8'>
@@ -50,7 +52,7 @@ function Community({ hackathon }: { hackathon: HackathonHeader }) {
                     />
                   </div>
                   <span className='text-black dark:text-white sm:text-lg font-semibold'>
-                    {item.title}
+                    {t(lang, item.titleKey)}
                   </span>
                 </CardContent>
               </Card>

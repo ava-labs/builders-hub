@@ -5,7 +5,12 @@ SCRIPT_DIR=$(dirname "$0")
 # Convert to absolute path
 SCRIPT_DIR=$(cd "$SCRIPT_DIR" && pwd)
 
-ICM_COMMIT="4d0f16e"
+VERSIONS_PATH=$(cd "$SCRIPT_DIR/../../../../scripts" && pwd)/versions.json
+ICM_COMMIT=$(jq -r '."ava-labs/icm-services" // empty' "$VERSIONS_PATH")
+if [ -z "$ICM_COMMIT" ] || [ "$ICM_COMMIT" = "null" ]; then
+    echo "ERROR: Missing 'ava-labs/icm-services' commit in versions.json" >&2
+    exit 1
+fi
 SUBNET_EVM_VERSION="v0.7.0"
 
 # Get current user and group IDs

@@ -22,7 +22,10 @@ export default async function Page(props: {
     : "Update Integration Information";
 
   const { body: MDX } = await page.data.load();
-  const path = `content/integrations${page.url.replace('/integrations/', '/')}.mdx`;
+  // Use page.path which contains the actual file path relative to collection root
+  // (e.g., "integration-name/index.mdx" for an index file)
+  // This correctly handles both regular .mdx files and index.mdx files
+  const path = `content/integrations/${page.path}`;
 
   return (
     <div className="integration-detail-page">

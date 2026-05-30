@@ -92,9 +92,9 @@ ws://127.0.0.1:9650/ext/bc/C/ws
 
 
 <Callout title="Note">
-When using the [Public API](/docs/tooling/rpc-providers) or another host that supports HTTPS, use `https://` or `wss://` instead of `http://` or `ws://`.
+When using the [Public API](/docs/rpcs) or another host that supports HTTPS, use `https://` or `wss://` instead of `http://` or `ws://`.
 
-Also, note that the [public API](/docs/tooling/rpc-providers#using-the-public-api-nodes) only supports C-Chain websocket API calls for API methods that don't exist on the C-Chain's HTTP API.
+Also, note that the [public API](/docs/rpcs#using-the-public-api-nodes) only supports C-Chain websocket API calls for API methods that don't exist on the C-Chain's HTTP API.
 </Callout>
 
 
@@ -103,7 +103,7 @@ Making a JSON RPC Request[​](#making-a-json-rpc-request "Direct link to headin
 
 Most of the built-in APIs use the [JSON RPC 2.0](https://www.jsonrpc.org/specification) format to describe their requests and responses. Such APIs include the Platform API and the X-Chain API.
 
-Suppose we want to call the `getTxStatus` method of the [X-Chain API](/docs/api-reference/x-chain/api). The X-Chain API documentation tells us that the endpoint for this API is `/ext/bc/X`.
+Suppose we want to call the `getTxStatus` method of the [X-Chain API](/docs/rpcs/x-chain). The X-Chain API documentation tells us that the endpoint for this API is `/ext/bc/X`.
 
 That means that the endpoint we send our API call to is:
 
@@ -111,7 +111,7 @@ That means that the endpoint we send our API call to is:
 
 The X-Chain API documentation tells us that the signature of `getTxStatus` is:
 
-[`avm.getTxStatus`](/docs/api-reference/x-chain/api#avmgettxstatus)`(txID:bytes) -> (status:string)`
+[`avm.getTxStatus`](/docs/rpcs/x-chain#avmgettxstatus)`(txID:bytes) -> (status:string)`
 
 where:
 

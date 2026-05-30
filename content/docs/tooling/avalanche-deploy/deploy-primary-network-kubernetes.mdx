@@ -1,0 +1,154 @@
+---
+title: Deploy Primary Network on Kubernetes
+description: Run Avalanche Primary Network validators and RPC nodes on Kubernetes using Helm charts with Prometheus and Grafana monitoring.
+---
+
+This guide covers deploying Primary Network validators and RPC nodes on Kubernetes. Use this when you already have a Kubernetes cluster and want a container-native deployment.
+
+**Requirements**: `kubectl`, `helm` v3+, cluster with 500GB+ storage per validator. **Bootstrap time**: 2–4 hours via state-sync.
+
+<Callout type="info">
+Advanced operational workflows (staking key backup to S3, database snapshots, zero-downtime validator migration) are only available in the [Terraform + Ansible path](/docs/tooling/avalanche-deploy/deploy-primary-network). The Kubernetes path covers deployment and sync monitoring.
+</Callout>
+
+## Prerequisites
+
+- `kubectl` connected to your cluster
+- `helm` v3+
+- Sufficient cluster resources (Primary Network nodes require significant storage for full P/X/C chain data)
+
+## Helm Charts
+
+| Chart | Path | Purpose |
+|-------|------|---------|
+| `primary-network-validator` | `helm/primary-network-validator` | Primary Network validators |
+| `primary-network-rpc` | `helm/primary-network-rpc` | Primary Network RPC nodes |
+| `monitoring` | `helm/monitoring` | Prometheus + Grafana |
+
+## Quick Start
+
+<Steps>
+<Step>
+
+### Deploy Primary Network Validators
+
+```bash
+cd kubernetes
+
+helm install primary-validators ./helm/primary-network-validator \
+  --set primary_validator_replicas=2 \
+  --set network=fuji
+```
+
+</Step>
+<Step>
+
+### Deploy Primary Network RPC Nodes
+
+```bash
+helm install primary-rpc ./helm/primary-network-rpc \
+  --set primary_rpc_replicas=2 \
+  --set network=fuji
+```
+
+</Step>
+<Step>
+
+### Wait for Sync
+
+```bash
+./scripts/wait-for-sync.sh --release=primary-validators
+```
+
+All three chains (P, X, C) must complete bootstrapping. This typically takes 2-4 hours via state-sync.
+
+</Step>
+<Step>
+
+### Verify Status
+
+```bash
+./scripts/status.sh --release=primary-validators
+```
+
+</Step>
+<Step>
+
+### Register Your Validator
+
+After sync completes, register your validator on the P-Chain using [Core Wallet](https://core.app/) or the Avalanche CLI. You need the NodeID displayed by the status script.
+
+Staking requirements:
+- **Fuji testnet**: 1 AVAX minimum
+- **Mainnet**: 2,000 AVAX minimum
+
+</Step>
+</Steps>
+
+## Accessing RPC
+
+```bash
+# Primary Network RPC
+kubectl port-forward svc/primary-rpc 9650:9650
+
+# Query C-Chain
+curl -X POST http://localhost:9650/ext/bc/C/rpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+```
+
+## Monitoring
+
+```bash
+helm install monitoring ./helm/monitoring
+
+kubectl port-forward svc/monitoring-grafana 3000:3000
+# http://localhost:3000 (admin/admin)
+```
+
+## Make Wrappers
+
+From the repo root:
+
+| Command | Description |
+|---------|-------------|
+| `make k8s-primary-deploy` | Deploy Primary Network validators + RPC |
+| `make k8s-primary-wait` | Wait for chain sync |
+| `make k8s-primary-status` | Check Primary Network status |
+| `make k8s-monitoring` | Deploy monitoring stack |
+| `make k8s-cleanup` | Remove releases and optional PVC cleanup |
+
+## Troubleshooting
+
+### Insufficient Storage
+
+Primary Network nodes require significant disk space for full chain data. Ensure your PersistentVolumeClaims have adequate storage provisioned. For mainnet, plan for at least 500GB per validator.
+
+### Pods Stuck in Pending
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Check for resource constraints (`Insufficient cpu`, `Insufficient memory`) and adjust replica counts or node pool sizes.
+
+### Node Not Syncing
+
+```bash
+kubectl logs <pod-name> -f
+```
+
+Verify the pod can reach the Avalanche P2P network on port 9651. Check that your cluster's network policies and load balancer allow inbound/outbound traffic on this port.
+
+## Cleanup
+
+```bash
+cd kubernetes
+./scripts/cleanup.sh
+```
+
+## Next Steps
+
+- [Deploy with Terraform + Ansible instead](/docs/tooling/avalanche-deploy/deploy-primary-network) — Full-featured deployment with staking key backup, snapshots, and zero-downtime migration
+- [Operations guide](/docs/tooling/avalanche-deploy/operations) — Upgrades, monitoring, health checks
+- [Troubleshooting](/docs/tooling/avalanche-deploy/troubleshooting) — Common issues and solutions

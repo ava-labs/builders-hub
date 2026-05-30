@@ -1,0 +1,157 @@
+---
+title: Creating a Safe/Ash Wallet
+description: Set up a multi-signature wallet using Safe or Ash for secure validator management
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Before deploying the PoA Manager, you need a multi-signature wallet that will own and control it. We recommend using **Ash Wallet** (built on Safe infrastructure) for the best Avalanche integration.
+
+## Why Multi-Sig?
+
+A multi-signature wallet requires multiple parties to approve transactions before execution. This is crucial for validator management because:
+
+- **No Single Point of Failure**: No single key can add/remove validators
+- **Governance by Committee**: Multiple stakeholders must agree on validator changes
+- **Audit Trail**: All operations are transparent and require explicit approval
+- **Recovery Options**: If one key is compromised, the system remains secure
+
+## Multi-Sig Options
+
+### Option 1: Ash Wallet (Recommended)
+
+[Ash Wallet](https://wallet.ash.center/) is a Safe-based multi-sig specifically designed for Avalanche. It provides:
+
+- Native Avalanche L1 support
+- Easy network configuration for custom L1s
+- Familiar Safe interface
+- Better tooling integration with Builder Hub
+
+### Option 2: Safe Global
+
+[Safe](https://safe.global/) is the industry-standard multi-sig solution. You can use it on Avalanche C-Chain directly.
+
+<Callout type="info">
+For this course, we'll use **Ash Wallet** as it's specifically built for Avalanche and has the best support for L1 operations.
+</Callout>
+
+## Creating Your Ash Wallet
+
+<Steps>
+<Step>
+
+### Navigate to Ash Wallet
+
+Go to [https://wallet.ash.center/](https://wallet.ash.center/) and connect your wallet.
+
+<Callout type="warning">
+Make sure you're on the **Avalanche Fuji Testnet** for this tutorial.
+</Callout>
+
+</Step>
+<Step>
+
+### Create New Safe
+
+Click **"Create new Account"** and follow the prompts:
+
+1. **Name**: Give your Safe a descriptive name (e.g., "MyL1 Validator Management")
+2. **Network**: Select the network where your VMC is deployed (C-Chain for this setup)
+3. **Signers**: Add the addresses that will be part of the multi-sig
+
+</Step>
+<Step>
+
+### Configure Signers
+
+Add the wallet addresses that will control validator operations:
+
+**Example Configuration:**
+- **Signer 1**: Your main operational wallet
+- **Signer 2**: A hardware wallet for security
+- **Signer 3**: A trusted partner or team member
+
+</Step>
+<Step>
+
+### Set Threshold
+
+The threshold determines how many signatures are required to execute a transaction:
+
+| Threshold | Signers | Security Level | Use Case |
+|-----------|---------|----------------|----------|
+| 1 of 2 | 2 | Low | Testing/Development |
+| 2 of 3 | 3 | Medium | Small teams |
+| 3 of 5 | 5 | High | Production/Enterprise |
+
+<Callout type="info">
+**Recommended**: Start with a **2 of 3** configuration. This balances security with operational convenience.
+</Callout>
+
+</Step>
+<Step>
+
+### Deploy the Safe
+
+Click **"Create"** to deploy your Safe wallet. This will:
+
+1. Submit a transaction to deploy the Safe contract
+2. Register your signers
+3. Set the approval threshold
+
+**Wait for the transaction to confirm** before proceeding.
+
+</Step>
+<Step>
+
+### Verify Your Safe
+
+Once deployed, you should see:
+
+- ✅ Your Safe address (copy this - you'll need it!)
+- ✅ List of signers
+- ✅ Current threshold
+- ✅ Transaction history (empty for now)
+
+</Step>
+</Steps>
+
+## Important Details to Note
+
+After creating your Safe, record these details:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| **Safe Address** | The multi-sig contract address | `0x1234...abcd` |
+| **Threshold** | Required signatures | `2 of 3` |
+| **Signers** | Owner addresses | `0xOwner1, 0xOwner2, 0xOwner3` |
+| **Network** | Where the Safe is deployed | `Avalanche Fuji C-Chain` |
+
+## Best Practices
+
+### Signer Selection
+
+- **Use different wallet types**: Mix browser wallets, hardware wallets, and mobile wallets
+- **Geographic distribution**: Signers in different locations for disaster recovery
+- **Operational availability**: Ensure signers are available when needed
+
+### Security Considerations
+
+- **Test first**: Create a test Safe and practice with small transactions
+- **Document procedures**: Create runbooks for common operations
+- **Regular reviews**: Periodically review signer access and threshold settings
+
+## Next Steps
+
+With your Safe wallet created, you're ready to:
+
+1. Deploy the PoA Manager with the Safe as owner
+2. Transfer Validator Manager ownership to the PoA Manager
+3. Begin multi-sig validator operations
+
+In the next section, we'll deploy the PoA Manager contract.
+

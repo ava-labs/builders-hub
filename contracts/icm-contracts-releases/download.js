@@ -91,7 +91,7 @@ async function downloadFile(url, destPath) {
 
 async function downloadReleases() {
     try {
-        const releases = await getJsonFromURL('https://api.github.com/repos/ava-labs/icm-contracts/releases');
+        const releases = await getJsonFromURL('https://api.github.com/repos/ava-labs/icm-services/releases');
 
         // Get only the DOWNLOAD_LATEST_RELEASES latest releases
         const latestReleases = releases.slice(0, DOWNLOAD_LATEST_RELEASES);

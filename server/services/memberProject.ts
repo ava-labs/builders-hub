@@ -21,7 +21,8 @@ export async function UpdateStatusMember(
         { id: user_id },
         { email: email }
       ]
-    }
+    },
+    select: { id: true, email: true, name: true, image: true }
   }) : null;
  
   const member = await prisma.member.findFirst({
@@ -155,4 +156,72 @@ export async function UpdateRoleMember(member_id: string, role: string) {
     data: { role },
   });
   return updatedMember;
+}
+
+export async function GetProjectsByUserId(user_id: string) {
+  const projects = await prisma.project.findMany({
+    where: { members: { some: { user_id: user_id } } },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              bio: true,
+              additional_social_accounts: true,
+              telegram_account: true,
+              image: true,
+              user_name: true,
+            },
+          },
+        },
+      },
+      hackathon: true,
+      badges: {
+        where: {
+          status: 1, // BadgeAwardStatus.approved
+        },
+        include: {
+          badge: true,
+        },
+      },
+    },
+  });
+
+  // Transform badges to match the expected format
+  return projects.map((project) => ({
+    ...project,
+    badges: project.badges?.map((projectBadge: any) => ({
+      ...projectBadge,
+      name: projectBadge.badge.name,
+      image_path: projectBadge.badge.image_path,
+    })),
+  }));
+}
+
+export async function GetProjectByIdWithMembers(project_id: string) {
+  const project = await prisma.project.findUnique({
+    where: { id: project_id },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              bio: true,
+              additional_social_accounts: true,
+              telegram_account: true,
+              image: true,
+              user_name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  return project;
 }

@@ -1,0 +1,436 @@
+import { type StepDefinition } from "@/components/console/step-flow";
+
+/**
+ * Represents a suggested next step after completing a flow
+ */
+export type FlowNextStep = {
+  path: string;
+  title: string;
+  description: string;
+  priority: "recommended" | "optional";
+};
+
+/**
+ * Metadata for a console flow including completion summary and next steps
+ */
+export type FlowMetadata = {
+  title: string;
+  completionSummary: string;
+  /** Optional custom accomplishments. If omitted, auto-generated from step titles */
+  accomplishments?: string[];
+  nextSteps: FlowNextStep[];
+};
+
+/**
+ * Central registry of all console flows with their metadata.
+ * Key is derived from basePath: "/console/layer-1/create" → "layer-1/create"
+ */
+export const consoleFlows: Record<string, FlowMetadata> = {
+  "encrypted-erc/deposit": {
+    title: "Deposit into Encrypted ERC",
+    completionSummary: "You've wrapped AVAX into its encrypted form. The contract holds a Poseidon ciphertext of your balance — only you and the auditor can decrypt it.",
+    accomplishments: [
+      "Wrapped native AVAX into WAVAX (ERC20)",
+      "Approved + deposited WAVAX into the EncryptedERC converter",
+    ],
+    nextSteps: [
+      {
+        path: "/console/encrypted-erc/balance",
+        title: "Decrypt your balance",
+        description: "View the plaintext amount and toggle the raw ciphertext",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/transfer",
+        title: "Make a private transfer",
+        description: "Send encrypted amounts to any registered address",
+        priority: "recommended",
+      },
+    ],
+  },
+
+  "encrypted-erc/deploy": {
+    title: "Deploy Your Own Encrypted ERC",
+    completionSummary: "You've deployed a complete Encrypted ERC protocol — library, five verifiers, Registrar, and the main contract — and registered yourself as both an eERC user and the auditor.",
+    accomplishments: [
+      "Deployed BabyJubJub curve-ops library",
+      "Deployed five Groth16 verifiers (registration, mint, transfer, withdraw, burn)",
+      "Deployed Registrar and EncryptedERC",
+      "Registered your BabyJubJub identity",
+      "Appointed yourself as the deployment's auditor",
+    ],
+    nextSteps: [
+      {
+        path: "/console/encrypted-erc/deposit",
+        title: "Deposit into your converter",
+        description: "Wrap an ERC20 into its encrypted form (converter mode only)",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/transfer",
+        title: "Make a private transfer",
+        description: "Try the full ZK-proof transfer flow on your new deployment",
+        priority: "recommended",
+      },
+      {
+        path: "/console/encrypted-erc/auditor",
+        title: "Open the auditor dashboard",
+        description: "Decrypt every transaction on your deployment as the auditor",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "toolbox": {
+    title: "Console Toolbox",
+    completionSummary: "Browse all available console tools.",
+    nextSteps: [
+      {
+        path: "/console/layer-1/create",
+        title: "Create L1",
+        description: "Launch a new Avalanche L1 with a guided wizard",
+        priority: "recommended",
+      },
+      {
+        path: "/console/primary-network/faucet",
+        title: "Get Testnet AVAX",
+        description: "Request free testnet tokens for development",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable communication between your L1 and other chains",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "layer-1/create": {
+    title: "Create New L1",
+    completionSummary: "You've successfully created and launched your Avalanche L1!",
+    nextSteps: [
+      {
+        path: "/console/permissioned-l1s/validator-manager-setup",
+        title: "Deploy Validator Manager",
+        description: "Set up on-chain validator management for your L1",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable communication between your L1 and other chains",
+        priority: "recommended",
+      },
+      {
+        path: "/console/ictt/setup",
+        title: "Setup Token Bridge",
+        description: "Deploy a bridge to transfer tokens to/from your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "create-l1": {
+    title: "Create L1 Flow",
+    completionSummary: "Your Avalanche L1 is fully deployed and configured.",
+    nextSteps: [
+      {
+        path: "/console/my-l1",
+        title: "View My L1 Dashboard",
+        description: "Inspect validators, balances, and configuration for your new L1",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable interchain communication with other Avalanche chains",
+        priority: "recommended",
+      },
+      {
+        path: "/console/ictt/setup",
+        title: "Setup Token Bridge",
+        description: "Deploy a bridge to transfer tokens to and from your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissioned-l1s/validator-manager-setup": {
+    title: "Validator Manager Setup",
+    completionSummary: "You've successfully deployed and configured your Validator Manager!",
+    nextSteps: [
+      {
+        path: "/console/permissioned-l1s/multisig-setup",
+        title: "Setup Multisig Governance",
+        description: "Add multi-signature security to your validator management",
+        priority: "recommended",
+      },
+      {
+        path: "/console/add-validator",
+        title: "Add Validators",
+        description: "Register additional validators for your L1 network",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable interchain communication for your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissioned-l1s/multisig-setup": {
+    title: "Multisig Setup",
+    completionSummary: "You've successfully configured multisig governance for your L1!",
+    nextSteps: [
+      {
+        path: "/console/add-validator",
+        title: "Add Validators",
+        description: "Register validators using your new multisig setup",
+        priority: "recommended",
+      },
+      {
+        path: "/console/permissioned-l1s/change-validator-weight",
+        title: "Manage Validator Weights",
+        description: "Adjust voting power of your validators",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "icm/setup": {
+    title: "ICM Setup",
+    completionSummary: "You've successfully set up Interchain Messaging for your L1!",
+    nextSteps: [
+      {
+        path: "/console/icm/demo",
+        title: "Test ICM Connection",
+        description: "Verify your cross-chain messaging setup works correctly",
+        priority: "recommended",
+      },
+      {
+        path: "/console/ictt/setup",
+        title: "Setup Token Bridge",
+        description: "Enable cross-chain token transfers using ICM",
+        priority: "recommended",
+      },
+    ],
+  },
+
+  "icm/test-connection": {
+    title: "ICM Test Connection",
+    completionSummary: "You've successfully tested your Interchain Messaging connection!",
+    nextSteps: [
+      {
+        path: "/console/ictt/setup",
+        title: "Setup Token Bridge",
+        description: "Deploy cross-chain token transfer infrastructure",
+        priority: "recommended",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "ictt/setup": {
+    title: "ICTT Setup",
+    completionSummary: "You've successfully deployed your Interchain Token Transfer bridge!",
+    nextSteps: [
+      {
+        path: "/console/ictt/token-transfer",
+        title: "Transfer Tokens",
+        description: "Test your bridge by transferring tokens across chains",
+        priority: "recommended",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "ictt/token-transfer": {
+    title: "Token Transfer",
+    completionSummary: "You've successfully transferred tokens across chains!",
+    nextSteps: [
+      {
+        path: "/console/ictt/setup",
+        title: "Setup Another Bridge",
+        description: "Deploy additional token bridges for other assets",
+        priority: "optional",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "utilities/vmcMigrateFromV1": {
+    title: "VMC Migration",
+    completionSummary: "You've successfully migrated your Validator Manager Contract!",
+    nextSteps: [
+      {
+        path: "/console/permissioned-l1s/validator-manager-setup/read-contract",
+        title: "Verify Migration",
+        description: "Read the migrated contract state to confirm success",
+        priority: "recommended",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/native-staking-manager-setup": {
+    title: "Native Staking Manager Setup",
+    completionSummary: "You've successfully deployed and configured your Native Token Staking Manager!",
+    nextSteps: [
+      {
+        path: "/console/add-validator",
+        title: "Stake a Validator",
+        description: "Register and stake a validator with native tokens",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable interchain communication for your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/erc20-staking-manager-setup": {
+    title: "ERC20 Staking Manager Setup",
+    completionSummary: "You've successfully deployed and configured your ERC20 Token Staking Manager!",
+    nextSteps: [
+      {
+        path: "/console/add-validator",
+        title: "Stake a Validator",
+        description: "Register and stake a validator with ERC20 tokens",
+        priority: "recommended",
+      },
+      {
+        path: "/console/icm/setup",
+        title: "Setup Cross-Chain Messaging",
+        description: "Enable interchain communication for your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "add-validator": {
+    title: "Add Validator",
+    completionSummary:
+      "You've successfully added a new validator to your L1!",
+    nextSteps: [
+      {
+        path: "/console/permissioned-l1s/change-validator-weight",
+        title: "Change Validator Weight",
+        description: "Adjust voting power of your validators",
+        priority: "optional",
+      },
+      {
+        path: "/console/remove-validator",
+        title: "Remove Validator",
+        description: "Remove a validator from your L1",
+        priority: "optional",
+      },
+      {
+        path: "/console/permissionless-l1s/delegate",
+        title: "Delegate Tokens",
+        description: "Delegate tokens to an active validator (PoS L1s only)",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "remove-validator": {
+    title: "Remove Validator",
+    completionSummary:
+      "You've successfully removed a validator from your L1!",
+    nextSteps: [
+      {
+        path: "/console/add-validator",
+        title: "Add Validator",
+        description: "Register a new validator for your L1",
+        priority: "optional",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissioned-l1s/change-validator-weight": {
+    title: "Change Validator Weight",
+    completionSummary:
+      "You've successfully changed the validator's consensus weight!",
+    nextSteps: [
+      {
+        path: "/console/add-validator",
+        title: "Add Validator",
+        description: "Register a new validator for your L1",
+        priority: "optional",
+      },
+      {
+        path: "/console/remove-validator",
+        title: "Remove Validator",
+        description: "Remove a validator from your L1",
+        priority: "optional",
+      },
+    ],
+  },
+};
+
+/**
+ * Extract flow key from basePath
+ * @example getFlowKey("/console/layer-1/create") → "layer-1/create"
+ */
+export function getFlowKey(basePath: string): string {
+  return basePath.replace("/console/", "");
+}
+
+/**
+ * Generate accomplishments list from step definitions
+ * Auto-generates "Completed: {title}" for each step
+ */
+export function generateAccomplishments(steps: StepDefinition[]): string[] {
+  return steps.map((step) => `Completed: ${step.title}`);
+}
+
+/**
+ * Get flow metadata with auto-generated accomplishments if not specified
+ * @returns FlowMetadata or null if flow not found in registry
+ */
+export function getFlowMetadata(
+  basePath: string,
+  steps: StepDefinition[]
+): (FlowMetadata & { accomplishments: string[] }) | null {
+  const key = getFlowKey(basePath);
+  const metadata = consoleFlows[key];
+
+  if (!metadata) return null;
+
+  return {
+    ...metadata,
+    accomplishments: metadata.accomplishments ?? generateAccomplishments(steps),
+  };
+}

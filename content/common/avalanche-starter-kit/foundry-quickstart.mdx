@@ -1,3 +1,5 @@
+import { Callout } from "fumadocs-ui/components/callout";
+
 Foundry serves as a comprehensive toolchain for smart contract development. It handles dependency management, project compilation, testing, deployment, and facilitates interaction with the blockchain through both command-line interface and Solidity scripts. 
 
 In this course we will mainly use three commands:
@@ -94,9 +96,12 @@ Let's look at the different parameters:
 We need to pay for the fees of transactions that manipulate the state (deploying a contract, sending tokens or calling a non-view function of a smart contract). The ewoq address is an address where the private key is commonly known:
 
 **Address:** 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+
 **Private Key:** 56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027
 
-> Do not send any funds on any public blockchain to the ewoq address. The funds will most likely be lost immediately.
+<Callout type="warn">
+Do not send any funds on any public blockchain to the ewoq address. The funds will most likely be lost immediately.
+</Callout>
 
 When you create an Avalanche L1 you will be offered an option to configure the initial token allocation. The second option will allocate 1m tokens to that address so you can easily deploy all contracts and pay for the transactions from that address:
 
@@ -128,12 +133,17 @@ To issue our transactions, we need to send them to an RPC server. You can put th
 These aliases are defined in the foundry.toml file in the root of the Avalanche Starter Kit.
 
 ```toml
+[profile.default]
+evm_version = "cancun"  # Required for Avalanche (Pectra not yet supported)
+
 [rpc_endpoints]
 local-c = "http://localhost:9650/ext/bc/C/rpc"
 myblockchain = "http://localhost:9650/ext/bc/myblockchain/rpc"
 fuji-c = "https://api.avax-test.network/ext/bc/C/rpc"
 dispatch = "https://subnets.avax.network/dispatch/testnet/rpc"
 ```
+
+> **EVM Version Required**: The `evm_version = "cancun"` setting is required when deploying to Avalanche. Solidity v0.8.30+ defaults to Pectra, which uses opcodes not yet supported on Avalanche. Without this setting, your contracts may fail to deploy or behave unexpectedly.
 
 The RPC URLs defined by default are the following:
 - **local-c:** The C-Chain of your local Avalanche network

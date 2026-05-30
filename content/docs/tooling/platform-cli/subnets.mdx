@@ -1,0 +1,80 @@
+---
+title: Subnets
+description: Create subnets, transfer ownership, and convert to L1 blockchains
+---
+
+Platform CLI supports creating subnets, transferring ownership, and converting them to L1 blockchains.
+
+## Create a Subnet
+
+```bash
+platform subnet create --key-name mykey --network fuji
+```
+
+```
+Creating new subnet...
+Owner: P-fuji1abc123...
+Submitting transaction...
+Subnet created successfully!
+Subnet ID: 2QYfFcfZ9...
+```
+
+The subnet owner is the wallet address used to create it. You need P-Chain AVAX balance to create subnets.
+
+## Transfer Subnet Ownership
+
+Transfer ownership to a new P-Chain address:
+
+```bash
+platform subnet transfer-ownership \
+  --subnet-id 2QYfFcfZ9... \
+  --new-owner P-fuji1xyz789... \
+  --key-name mykey
+```
+
+## Convert Subnet to L1
+
+Convert a permissioned subnet to an L1 blockchain. This operation is **irreversible**.
+
+### Auto-Discovery Mode
+
+Provide validator node addresses and let the CLI fetch NodeID and BLS credentials:
+
+```bash
+platform subnet convert-l1 \
+  --subnet-id 2QYfFcfZ9... \
+  --chain-id 3RZgGdaH1... \
+  --manager 0x1234567890abcdef1234567890abcdef12345678 \
+  --validators 127.0.0.1:9650,127.0.0.1:9652 \
+  --validator-balance 1.0 \
+  --key-name mykey
+```
+
+### Manual Mode
+
+Provide validator data explicitly (all lists must be comma-separated and aligned by index):
+
+```bash
+platform subnet convert-l1 \
+  --subnet-id 2QYfFcfZ9... \
+  --chain-id 3RZgGdaH1... \
+  --manager 0x1234... \
+  --validator-node-ids NodeID-A...,NodeID-B... \
+  --validator-bls-public-keys 0xabc...,0xdef... \
+  --validator-bls-pops 0x111...,0x222... \
+  --validator-balance 1.0 \
+  --key-name mykey
+```
+
+### Mock Validator (Testing)
+
+For local testing, generate a mock validator with random BLS credentials:
+
+```bash
+platform subnet convert-l1 \
+  --subnet-id 2QYfFcfZ9... \
+  --chain-id 3RZgGdaH1... \
+  --mock-validator \
+  --key-name mykey \
+  --rpc-url http://127.0.0.1:9650
+```

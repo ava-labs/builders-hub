@@ -10,6 +10,7 @@ import { useFormContext } from "react-hook-form";
 import { useState } from "react";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { SubmissionForm, Step1Schema, Step2Schema } from "../hooks/useSubmissionFormSecure";
+import { EventsLang, t } from "@/lib/events/i18n";
 
 interface StepNavigationProps {
   currentStep: number;
@@ -17,6 +18,7 @@ interface StepNavigationProps {
   onSave: () => Promise<void>;
   isLastStep: boolean;
   onNextStep: () => void;
+  lang?: EventsLang;
 }
 
 export const StepNavigation = ({
@@ -25,6 +27,7 @@ export const StepNavigation = ({
   onSave,
   isLastStep,
   onNextStep,
+  lang = "en",
 }: StepNavigationProps) => {
   const form = useFormContext<SubmissionForm>();
   const toPath = (p: (string | number)[]) => p.join('.');
@@ -61,25 +64,28 @@ export const StepNavigation = ({
       <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
         <LoadingButton
           isLoading={form.formState.isSubmitting}
-          loadingText="Saving..."
+          loadingText={t(lang, "submission.nav.saving")}
           type={isLastStep ? 'submit' : 'button'}
           variant="red"
           className="px-4 py-2 cursor-pointer"
           onClick={(e) => {
-            if (!isLastStep) {
+            if (isLastStep) {
+              console.log('🔘 Final Submit button clicked');
+            } else {
               e.preventDefault();
               handleNext();
             }
           }}
         >
-          {isLastStep ? 'Final Submit' : 'Continue'}
+          {isLastStep ? t(lang, "submission.nav.finalSubmit") : t(lang, "submission.nav.continue")}
         </LoadingButton>
 
         <LoadingButton
           isLoading={isSavingLater}
-          loadingText="Saving..."
+          loadingText={t(lang, "submission.nav.saving")}
           type="button"
           onClick={async () => {
+            console.log('💾 Save & Continue Later button clicked');
             try {
               setIsSavingLater(true);
               await onSave();
@@ -89,7 +95,7 @@ export const StepNavigation = ({
           }}
           className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
         >
-          Save & Continue Later
+          {t(lang, "submission.nav.saveLater")}
         </LoadingButton>
       </div>
 
@@ -98,6 +104,7 @@ export const StepNavigation = ({
           {currentStep > 1 && (
             <PaginationPrevious
               className="dark:hover:text-gray-200 cursor-pointer"
+              label={t(lang, "submission.nav.previous")}
               onClick={() => onStepChange(currentStep - 1)}
             />
           )}
@@ -119,13 +126,14 @@ export const StepNavigation = ({
           {currentStep < 3 && (
             <PaginationNext
               className="dark:hover:text-gray-200 cursor-pointer"
+              label={t(lang, "submission.nav.next")}
               onClick={handleNext}
             />
           )}
         </div>
         <div className="mt-2 md:mt-0 md:ml-4">
           <span className="font-Aeonik text-xs sm:text-sm">
-            Step {currentStep} of 3
+            {t(lang, "submission.nav.stepOf", { current: currentStep, total: 3 })}
           </span>
         </div>
       </div>

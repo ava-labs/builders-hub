@@ -1,0 +1,38 @@
+---
+title: AI & LLM Integration
+description: Access Avalanche documentation programmatically for AI applications
+icon: Bot
+---
+
+The Builder Hub provides AI-friendly access to documentation through standardized formats. Whether you're building a chatbot, using Claude/ChatGPT, or integrating with AI development tools, we offer multiple ways to access our docs.
+
+## Endpoints Overview
+
+| Endpoint | Purpose | Best For |
+| :------- | :------ | :------- |
+| [`/llms.txt`](/docs/tooling/ai-llm/llms-txt#llmstxt) | Structured index of all docs | Content discovery |
+| [`/llms-full.txt`](/docs/tooling/ai-llm/llms-txt#llms-fulltxt) | Complete docs in one file | Full context loading |
+| [`/{path}.md`](/docs/tooling/ai-llm/llms-txt#individual-pages) | Markdown for any page | Single page retrieval |
+| [`/api/mcp`](/docs/tooling/ai-llm/mcp-server) | MCP server for search & retrieval | Dynamic AI tool access |
+
+## Quick Start
+
+The fastest way to get started depends on your use case:
+
+<Cards>
+  <Card title="llms.txt Endpoints" href="/docs/tooling/ai-llm/llms-txt">
+    Static endpoints for sitemap, full docs, and individual pages
+  </Card>
+  <Card title="MCP Server" href="/docs/tooling/ai-llm/mcp-server">
+    Dynamic search and retrieval via Model Context Protocol
+  </Card>
+  <Card title="Security & Limits" href="/docs/tooling/ai-llm/security">
+    Rate limits, CORS policy, and privacy information
+  </Card>
+</Cards>
+
+## Standards
+
+- [llms.txt](https://llmstxt.org/) - AI sitemap standard
+- [Model Context Protocol](https://modelcontextprotocol.io/) - Anthropic's standard for AI tool access
+- [JSON-RPC 2.0](https://www.jsonrpc.org/specification) - MCP server protocol

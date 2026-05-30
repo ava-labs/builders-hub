@@ -1,0 +1,533 @@
+---
+title: Getting Started with tmpnet Testing
+description: Set up your first Ginkgo test suite with tmpnet for testing Avalanche L1s
+---
+
+This guide shows you how to set up a Ginkgo test suite with tmpnet for testing Avalanche L1s. All testing with tmpnet should use Ginkgo for consistency and best practices.
+
+## Prerequisites
+
+Install required packages:
+
+```bash
+go get github.com/onsi/ginkgo/v2
+go get github.com/onsi/gomega
+go get github.com/ava-labs/avalanchego/tests/fixture/tmpnet
+go get github.com/ava-labs/avalanchego/tests/fixture/e2e
+```
+
+## Basic Test Suite Structure
+
+### 1. Create Test Suite File
+
+Create a test file with the standard Ginkgo setup:
+
+```go title="my_test.go"
+package mypackage_test
+
+import (
+    "context"
+    "flag"
+    "os"
+    "testing"
+    "time"
+
+    "github.com/ava-labs/avalanchego/tests/fixture/e2e"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/utils/logging"
+    "github.com/onsi/ginkgo/v2"
+    . "github.com/onsi/gomega"
+)
+
+var (
+    network  *tmpnet.Network
+    e2eFlags *e2e.FlagVars
+)
+
+// TestMain registers flags and runs tests
+func TestMain(m *testing.M) {
+    e2eFlags = e2e.RegisterFlags()
+    flag.Parse()
+    os.Exit(m.Run())
+}
+
+// Test entry point
+func TestE2E(t *testing.T) {
+    if os.Getenv("RUN_E2E") == "" {
+        t.Skip("Environment variable RUN_E2E not set; skipping E2E tests")
+    }
+
+    RegisterFailHandler(ginkgo.Fail)
+    ginkgo.RunSpecs(t, "My E2E Test Suite")
+}
+```
+
+**Key Components:**
+
+- `TestMain`: Registers e2e flags for network reuse
+- `RUN_E2E` check: Gates tests so they only run when explicitly requested
+- `RegisterFailHandler`: Integrates Gomega assertions with Ginkgo
+- `RunSpecs`: Ginkgo test entry point
+
+### 2. Network Lifecycle with BeforeSuite/AfterSuite
+
+Create a network once for all tests:
+
+```go
+var _ = ginkgo.BeforeSuite(func() {
+    // Create network context with timeout
+    ctx, cancel := context.WithTimeout(
+        context.Background(),
+        5*time.Minute,
+    )
+    defer cancel()
+
+    runtimeCfg, err := e2eFlags.NodeRuntimeConfig() // validates AVALANCHEGO_PATH/AVAGO_PLUGIN_DIR or CLI flags
+    Expect(err).NotTo(HaveOccurred())
+
+    // Create network configuration
+    network = &tmpnet.Network{
+        Owner: "my-test-network",
+        Nodes: tmpnet.NewNodesOrPanic(5),
+        DefaultRuntimeConfig: *runtimeCfg,
+        DefaultFlags: tmpnet.FlagsMap{
+            "log-level": "info",
+            "network-max-reconnect-delay": "1s",
+        },
+    }
+
+    // Bootstrap network
+    err = tmpnet.BootstrapNewNetwork(
+        ctx,
+        logging.NoLog{},
+        network,
+        e2eFlags.RootNetworkDir(), // empty string uses default ~/.tmpnet/networks
+    )
+    Expect(err).NotTo(HaveOccurred())
+})
+
+var _ = ginkgo.AfterSuite(func() {
+    if network != nil {
+        Expect(network.Stop(context.Background())).To(Succeed())
+    }
+})
+```
+
+**Important Notes:**
+
+- `BeforeSuite` runs once before all tests in the suite
+- `AfterSuite` ensures cleanup even if tests fail
+- Use generous timeouts for network bootstrap (5+ minutes)
+- `e2eFlags` enables network reuse (explained below)
+
+### 3. Write Your First Test
+
+```go
+var _ = ginkgo.Describe("[Basic Tests]", func() {
+    ginkgo.It("should have healthy nodes",
+        ginkgo.Label("smoke"),
+        func() {
+            Expect(network).NotTo(BeNil())
+            Expect(network.Nodes).To(HaveLen(5))
+
+            for _, node := range network.Nodes {
+                Expect(node.IsHealthy()).To(BeTrue())
+            }
+        })
+
+    ginkgo.It("should have valid URIs",
+        ginkgo.Label("smoke"),
+        func() {
+            for _, node := range network.Nodes {
+                Expect(node.URI).NotTo(BeEmpty())
+            }
+        })
+})
+```
+
+## Running Tests
+
+### Basic Execution
+
+```bash
+# Run E2E tests
+RUN_E2E=1 go test -v
+
+# Run with Ginkgo directly
+RUN_E2E=1 ginkgo -v
+
+# Run specific test suite
+RUN_E2E=1 ginkgo -v ./tests/my-suite/
+```
+
+### Filter by Label
+
+```bash
+# Run only smoke tests
+RUN_E2E=1 ginkgo --label-filter="smoke" ./...
+
+# Run all except slow tests
+RUN_E2E=1 ginkgo --label-filter="!slow" ./...
+```
+
+### Filter by Name
+
+```bash
+# Run specific test
+RUN_E2E=1 ginkgo --focus="should have healthy nodes" ./...
+
+# Skip specific test
+RUN_E2E=1 ginkgo --skip="flaky test" ./...
+```
+
+## Network Reuse for Faster Iteration
+
+Network bootstrap is slow (2-5 minutes). Reuse networks across test runs:
+
+### First Run: Create Network
+
+```bash
+RUN_E2E=1 ginkgo -v
+# Creates network in ~/.tmpnet/networks/[timestamp]
+```
+
+The network directory will be printed:
+
+```
+Network created at: /home/user/.tmpnet/networks/20250312-143052.123456
+```
+
+### Subsequent Runs: Reuse Network
+
+```bash
+# Reuse existing network (skips bootstrap)
+RUN_E2E=1 ginkgo -v -- --reuse-network --network-dir=/home/user/.tmpnet/networks/20250312-143052.123456
+
+# Or export TMPNET_NETWORK_DIR and pass --reuse-network
+export TMPNET_NETWORK_DIR=/home/user/.tmpnet/networks/20250312-143052.123456
+RUN_E2E=1 ginkgo -v -- --reuse-network
+```
+
+### Stop Existing Networks
+
+```bash
+tmpnetctl stop-network --network-dir=/home/user/.tmpnet/networks/20250312-143052.123456
+```
+
+## Testing with Multiple L1s
+
+Most tests need multiple L1s (chains) for cross-chain scenarios. Here's the standard two-L1 setup:
+
+### Complete Example
+
+```go title="two_l1s_test.go"
+package mypackage_test
+
+import (
+    "context"
+    "flag"
+    "math/big"
+    "os"
+    "testing"
+    "time"
+
+    "github.com/ava-labs/avalanchego/ids"
+    "github.com/ava-labs/avalanchego/tests/fixture/e2e"
+    "github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+    "github.com/ava-labs/avalanchego/utils/logging"
+    "github.com/ethereum/go-ethereum/crypto"
+    "github.com/ethereum/go-ethereum/ethclient"
+    "github.com/onsi/ginkgo/v2"
+    . "github.com/onsi/gomega"
+)
+
+// L1TestInfo holds information about an L1
+type L1TestInfo struct {
+    SubnetID     ids.ID
+    BlockchainID ids.ID
+    NodeURIs     []string
+    RPCClient    *ethclient.Client
+    EVMChainID   *big.Int
+    Name         string
+}
+
+var (
+    network  *tmpnet.Network
+    e2eFlags *e2e.FlagVars
+    l1A      L1TestInfo
+    l1B      L1TestInfo
+)
+
+func TestMain(m *testing.M) {
+    e2eFlags = e2e.RegisterFlags()
+    flag.Parse()
+    os.Exit(m.Run())
+}
+
+func TestTwoL1s(t *testing.T) {
+    if os.Getenv("RUN_E2E") == "" {
+        t.Skip("RUN_E2E not set")
+    }
+
+    RegisterFailHandler(ginkgo.Fail)
+    ginkgo.RunSpecs(t, "Two L1s Test Suite")
+}
+
+var _ = ginkgo.BeforeSuite(func() {
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+    defer cancel()
+
+    runtimeCfg, err := e2eFlags.NodeRuntimeConfig()
+    Expect(err).NotTo(HaveOccurred())
+
+    nodes := tmpnet.NewNodesOrPanic(4)
+
+    // Create network with 2 subnets (helpers like utils.NewTmpnetSubnet set genesis/config)
+    network = &tmpnet.Network{
+        Owner: "two-l1s-test",
+        Nodes: nodes,
+        Subnets: []*tmpnet.Subnet{
+            {
+                Name: "L1-A",
+                ValidatorIDs: tmpnet.NodesToIDs(nodes[:2]),
+                Chains: []*tmpnet.Chain{{
+                    VMID:   constants.EVMID,
+                    Config: `{"log-level": "info"}`,
+                }},
+            },
+            {
+                Name: "L1-B",
+                ValidatorIDs: tmpnet.NodesToIDs(nodes[2:]),
+                Chains: []*tmpnet.Chain{{
+                    VMID:   constants.EVMID,
+                    Config: `{"log-level": "info"}`,
+                }},
+            },
+        },
+        DefaultRuntimeConfig: *runtimeCfg,
+    }
+
+    err = tmpnet.BootstrapNewNetwork(
+        ctx,
+        logging.NoLog{},
+        network,
+        e2eFlags.RootNetworkDir(),
+    )
+    Expect(err).NotTo(HaveOccurred())
+
+    // Set up L1 info
+    l1A = getL1Info(network.Subnets[0], "L1-A")
+    l1B = getL1Info(network.Subnets[1], "L1-B")
+})
+
+var _ = ginkgo.AfterSuite(func() {
+    if network != nil {
+        network.Stop(context.Background())
+    }
+})
+
+> For runnable code, supply real genesis bytes/config for each chain (see `tests/contracts/lib/icm-contracts/lib/subnet-evm/tests/utils/tmpnet.go` in icm-services for a working helper).
+
+// Helper to extract L1 info
+func getL1Info(subnet *tmpnet.Subnet, name string) L1TestInfo {
+    chain := subnet.Chains[0]
+
+    rpcClient, err := ethclient.Dial(chain.Nodes[0].URI + "/ext/bc/" + chain.ChainID.String() + "/rpc")
+    Expect(err).NotTo(HaveOccurred())
+
+    evmChainID, err := rpcClient.ChainID(context.Background())
+    Expect(err).NotTo(HaveOccurred())
+
+    var nodeURIs []string
+    for _, node := range chain.Nodes {
+        nodeURIs = append(nodeURIs, node.URI)
+    }
+
+    return L1TestInfo{
+        SubnetID:     subnet.SubnetID,
+        BlockchainID: chain.ChainID,
+        NodeURIs:     nodeURIs,
+        RPCClient:    rpcClient,
+        EVMChainID:   evmChainID,
+        Name:         name,
+    }
+}
+
+var _ = ginkgo.Describe("[Two L1 Tests]", func() {
+    ginkgo.It("should have two L1s configured", func() {
+        Expect(l1A.Name).To(Equal("L1-A"))
+        Expect(l1B.Name).To(Equal("L1-B"))
+        Expect(l1A.EVMChainID.Uint64()).To(Equal(uint64(12345)))
+        Expect(l1B.EVMChainID.Uint64()).To(Equal(uint64(54321)))
+    })
+})
+```
+
+## Using Pre-funded Keys
+
+Every tmpnet network has pre-funded keys for transactions:
+
+```go
+var _ = ginkgo.Describe("[Funded Keys]", func() {
+    ginkgo.It("should have pre-funded key", func() {
+        // Get first pre-funded key
+        key := network.PreFundedKeys[0]
+        ecdsaKey := key.ToECDSA()
+
+        // Get address
+        address := crypto.PubkeyToAddress(ecdsaKey.PublicKey)
+
+        // Check balance on C-Chain
+        balance, err := l1A.RPCClient.BalanceAt(
+            context.Background(),
+            address,
+            nil,
+        )
+        Expect(err).NotTo(HaveOccurred())
+        Expect(balance.Uint64()).To(BeNumerically(">", 0))
+    })
+})
+```
+
+## Best Practices
+
+### 1. Use BeforeSuite for Expensive Setup
+
+```go
+// Good: Share network across tests
+var _ = ginkgo.BeforeSuite(func() {
+    network = createNetwork()
+})
+
+// Avoid: Creating network per test (very slow)
+var _ = ginkgo.BeforeEach(func() {
+    network = createNetwork() // Don't do this!
+})
+```
+
+### 2. Use Appropriate Timeouts
+
+```go
+// Network bootstrap: 5-10 minutes
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+
+// Individual operations: 30-60 seconds
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+```
+
+### 3. Always Clean Up
+
+```go
+var _ = ginkgo.AfterSuite(func() {
+    if network != nil {
+        Expect(network.Stop(context.Background())).To(Succeed())
+    }
+})
+```
+
+### 4. Use Labels for Organization
+
+```go
+ginkgo.It("test name",
+    ginkgo.Label("smoke", "fast"),
+    func() {
+        // Test code
+    })
+```
+
+### 5. Use Eventually for Async Operations
+
+```go
+// Good: Poll with Eventually
+Eventually(func() bool {
+    return node.IsHealthy()
+}, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
+
+// Avoid: Fixed sleep
+time.Sleep(10 * time.Second) // Don't do this!
+```
+
+## Debugging Tests
+
+### Enable Verbose Logging
+
+```bash
+RUN_E2E=1 ginkgo -v -trace ./...
+```
+
+### Print Network Directory
+
+Add to your BeforeSuite:
+
+```go
+var _ = ginkgo.BeforeSuite(func() {
+    // ... create network ...
+
+    ginkgo.GinkgoWriter.Printf("Network directory: %s\n", network.Dir)
+})
+```
+
+### Keep Network After Failure
+
+Manually stop the network if a test fails to inspect logs:
+
+```bash
+# Run test
+RUN_E2E=1 ginkgo -v
+
+# If test fails, network stays running
+# Inspect logs in network directory
+
+# Stop when done debugging
+tmpnet stop --dir=/path/to/network
+```
+
+## Common Patterns
+
+### Get Node URIs
+
+```go
+uris := network.GetNodeURIs()
+for _, uri := range uris {
+    ginkgo.GinkgoWriter.Printf("Node: %s\n", uri)
+}
+```
+
+### Check All Nodes Healthy
+
+```go
+for _, node := range network.Nodes {
+    Expect(node.IsHealthy()).To(BeTrue())
+}
+```
+
+### Wait for Node Health
+
+```go
+err := node.WaitForHealthy(context.Background())
+Expect(err).NotTo(HaveOccurred())
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="L1 Conversion" href="/docs/tooling/tmpnet/guides/l1-conversion">
+    Convert subnets to L1s with validator managers
+  </Card>
+  <Card title="Cross-Chain Messaging" href="/docs/tooling/tmpnet/guides/cross-chain-messaging">
+    Test Teleporter message flows between L1s
+  </Card>
+  <Card title="Validator Management" href="/docs/tooling/tmpnet/guides/validator-management-native-staking">
+    Test validator registration and delegation
+  </Card>
+  <Card title="Warp Messages" href="/docs/tooling/tmpnet/guides/warp-messages">
+    Test Warp message construction and verification
+  </Card>
+</Cards>
+
+## Additional Resources
+
+- [Ginkgo Documentation](https://onsi.github.io/ginkgo/)
+- [Gomega Matchers](https://onsi.github.io/gomega/)
+- [ICM Services Tests](https://github.com/ava-labs/icm-services/tree/main/tests)
+- [tmpnet Package Docs](https://pkg.go.dev/github.com/ava-labs/avalanchego/tests/fixture/tmpnet)

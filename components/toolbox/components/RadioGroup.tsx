@@ -1,10 +1,10 @@
-"use client"
+'use client';
 
-import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
-import { CircleIcon } from "lucide-react"
-import { Label } from "@radix-ui/react-label"
-import { cn } from "../lib/utils"
-import { ReactNode } from "react"
+import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
+import { CircleIcon } from 'lucide-react';
+import { Label } from '@radix-ui/react-label';
+import { cn } from '../lib/utils';
+import { ReactNode } from 'react';
 
 type RadioItem = {
   value: string;
@@ -21,17 +21,11 @@ type RadioGroupProps = {
   idPrefix?: string;
 };
 
-function RadioGroup({
-  items,
-  value,
-  onChange,
-  className,
-  idPrefix = "",
-}: RadioGroupProps) {
+function RadioGroup({ items, value, onChange, className, idPrefix = '' }: RadioGroupProps) {
   return (
     <RadioGroupPrimitive.Root
       data-slot="radio-group"
-      className={cn("grid gap-3", className)}
+      className={cn('grid gap-3', className)}
       value={value}
       onValueChange={onChange}
     >
@@ -42,7 +36,7 @@ function RadioGroup({
             id={`${idPrefix}${item.value}`}
             disabled={item.isDisabled}
             className={cn(
-              "border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 aspect-square size-4 shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:border-dashed disabled:border-gray-400 disabled:bg-gray-100 dark:disabled:bg-gray-800 dark:disabled:border-gray-700 mt-1"
+              'border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 aspect-square size-4 shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:border-dashed disabled:border-gray-400 disabled:bg-gray-100 dark:disabled:bg-gray-800 dark:disabled:border-gray-700 mt-1',
             )}
           >
             <RadioGroupPrimitive.Indicator
@@ -53,19 +47,15 @@ function RadioGroup({
             </RadioGroupPrimitive.Indicator>
           </RadioGroupPrimitive.Item>
           <div className="flex-1">
-            <Label htmlFor={`${idPrefix}${item.value}`} className={item.isDisabled ? "text-gray-500" : ""}>
+            <Label htmlFor={`${idPrefix}${item.value}`} className={item.isDisabled ? 'text-gray-500' : ''}>
               {item.label}
             </Label>
-            {item.details && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {item.details}
-              </div>
-            )}
+            {item.details && <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.details}</div>}
           </div>
         </div>
       ))}
     </RadioGroupPrimitive.Root>
-  )
+  );
 }
 
-export { RadioGroup }
+export { RadioGroup };

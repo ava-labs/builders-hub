@@ -1,0 +1,145 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Avalanche } from "@avalanche-sdk/chainkit";
+import type { Erc20TokenBalance } from "@avalanche-sdk/chainkit/models/components";
+
+// Glacier requires the SDK to be instantiated with a `network` *before*
+// it'll return ERC20 balances for that network's chains. Our chainId
+// path-param tells us which side of the network split we're on, so we
+// pick the right SDK on a per-request basis. 43113 = Fuji C-Chain;
+// every other Avalanche-side chain we currently expose is mainnet.
+//
+// (We hold both instances at module scope so cold-starts only build them
+// once. They're stateless and safe to share across concurrent requests.)
+const mainnetSdk = new Avalanche({ network: "mainnet" });
+const fujiSdk = new Avalanche({ network: "fuji" });
+
+const FUJI_C_CHAIN_ID = '43113';
+
+// EVM chain IDs are unsigned ints; Avalanche's largest known IDs are
+// 5–10 digits. Cap at 12 so a malformed param can't waste cycles on a
+// 200-char "number" string before we reject it.
+const CHAIN_ID_RE = /^[0-9]{1,12}$/;
+// Glacier page tokens are opaque base64-ish strings. We don't crack the
+// shape; we just bound length and character class so a path-traversal-y
+// or huge value can't tunnel through the SDK call.
+const PAGE_TOKEN_RE = /^[A-Za-z0-9+/=_\-:.]{1,512}$/;
+
+function sdkForChain(chainId: string): Avalanche {
+  return chainId === FUJI_C_CHAIN_ID ? fujiSdk : mainnetSdk;
+}
+
+interface Erc20Balance {
+  contractAddress: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  balance: string;
+  balanceFormatted: string;
+  price?: number;
+  valueUsd?: number;
+  logoUri?: string;
+}
+
+interface Erc20BalancesResponse {
+  balances: Erc20Balance[];
+  nextPageToken?: string;
+  pageValueUsd: number;
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ chainId: string; address: string }> }
+) {
+  const startTime = performance.now();
+  
+  try {
+    const { chainId, address } = await params;
+    const { searchParams } = new URL(request.url);
+    const pageToken = searchParams.get('pageToken') || undefined;
+
+    // Validate address format
+    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
+    }
+    // Validate chainId — digits only, sane length. Anything else can't
+    // be a real chain and we don't want to forward it to Glacier.
+    if (!CHAIN_ID_RE.test(chainId)) {
+      return NextResponse.json({ error: 'Invalid chainId format' }, { status: 400 });
+    }
+    // Validate pageToken — opaque to us, but bound length + charset so
+    // a malformed/oversized value short-circuits before the upstream call.
+    if (pageToken !== undefined && !PAGE_TOKEN_RE.test(pageToken)) {
+      return NextResponse.json({ error: 'Invalid pageToken format' }, { status: 400 });
+    }
+
+    // Fetch ERC20 balances - returns a PageIterator. Switches between
+    // the mainnet and Fuji SDK based on chainId so testnet flows (e.g.
+    // the Quick L1 Basic Setup PoS picker) get real balance data.
+    const avalanche = sdkForChain(chainId);
+    const iterator = await avalanche.data.evm.address.balances.listErc20({
+      address: address,
+      chainId: chainId,
+      currency: 'usd',
+      filterSpamTokens: true,
+      pageSize: 200,
+      pageToken: pageToken,
+    });
+
+    // Get first page from the async iterator
+    const { value: page, done } = await iterator[Symbol.asyncIterator]().next();
+    
+    if (done || !page) {
+      return NextResponse.json({
+        balances: [],
+        nextPageToken: undefined,
+        pageValueUsd: 0,
+      } as Erc20BalancesResponse);
+    }
+
+    // Extract data from the page result
+    const pageResult = page.result;
+    const erc20Tokens: Erc20TokenBalance[] = pageResult.erc20TokenBalances || [];
+    const nextPageToken = pageResult.nextPageToken;
+
+    // Map tokens to our format
+    const balances: Erc20Balance[] = erc20Tokens.map((token) => {
+      const decimals = token.decimals;
+      const balance = token.balance;
+      const balanceFormatted = (Number(balance) / Math.pow(10, decimals)).toFixed(6);
+      const priceValue = token.price?.value;
+      const price = priceValue ? (typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue) : undefined;
+      const valueUsd = price ? parseFloat(balanceFormatted) * price : undefined;
+
+      return {
+        contractAddress: token.address,
+        name: token.name,
+        symbol: token.symbol,
+        decimals,
+        balance,
+        balanceFormatted,
+        price,
+        valueUsd,
+        logoUri: token.logoUri,
+      };
+    });
+
+    // Calculate total USD value for this page
+    const pageValueUsd = balances.reduce((sum, token) => sum + (token.valueUsd || 0), 0);
+
+    // Sort by value (highest first) within this page
+    balances.sort((a, b) => (b.valueUsd || 0) - (a.valueUsd || 0));
+    
+    const duration = performance.now() - startTime;
+    console.log(`[ERC20 Balances API] ${address} on chain ${chainId} - ${duration.toFixed(0)}ms, ${balances.length} tokens${nextPageToken ? ', has more pages' : ''}`);
+
+    return NextResponse.json({
+      balances,
+      nextPageToken,
+      pageValueUsd,
+    } as Erc20BalancesResponse);
+  } catch (error) {
+    const duration = performance.now() - startTime;
+    console.error(`[ERC20 Balances API] Error after ${duration.toFixed(0)}ms:`, error);
+    return NextResponse.json({ error: 'Failed to fetch ERC20 balances' }, { status: 500 });
+  }
+}

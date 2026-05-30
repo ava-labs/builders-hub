@@ -1,5 +1,5 @@
-import { Project } from "@/types/showcase";
-import { Hackathon, PrismaClient, User } from "@prisma/client";
+import { Project, ProjectHackathonInfo, ProjectMemberUser } from "@/types/showcase";
+import { PrismaClient } from "@prisma/client";
 import { validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 
@@ -36,6 +36,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
+
   if (options.event) {
     filters.hackaton_id = options.event;
   }
@@ -44,9 +45,9 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       has: options.track,
     };
   }
-  // if (options.winningProjects) {
-  //   filters.winningProjects = true
-  // }
+  if (options.winningProjects) {
+    filters.is_winner = true
+  }
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -87,7 +88,14 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     include: {
       members: true,
       hackathon: true,
-      prizes: true,
+      badges: {
+        where: {
+          status: 1, // BadgeAwardStatus.approved
+        },
+        include: {
+          badge: true,
+        },
+      },
     },
     where: filters,
     skip: offset,
@@ -102,10 +110,15 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     projects: projects.map((project) => ({
       ...project,
       members: [],
-      hackathon: {
+      hackathon: project.hackathon ? {
         ...project.hackathon,
         content: project.hackathon.content as any,
-      },
+      } : null,
+      badges: project.badges?.map((projectBadge: any) => ({
+        ...projectBadge,
+        name: projectBadge.badge.name,
+        image_path: projectBadge.badge.image_path,
+      })),
     })),
     total: totalProjects,
     page,
@@ -113,40 +126,67 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   };
 };
 
-export async function getProject(id: string) {
-  let project = await prisma.project.findUnique({
+export async function getProject(id: string): Promise<Project> {
+  const row = await prisma.project.findUnique({
     include: {
       members: {
         include: {
           user: true,
         },
       },
-
       hackathon: true,
-      prizes: true,
     },
     where: { id },
   });
-  if (!project) throw new Error("Project not found", { cause: "BadRequest" });
+  if (!row) throw new Error("Project not found", { cause: "BadRequest" });
 
-  project = {
-    ...project,
-    members: project.members.map((member) => ({
-      ...member,
-      user: {
-        user_name: member.user?.name || "",
-        image: member.user?.image,
-      } as User,
-    })),
-    hackathon: {
-      title: project.hackathon.title,
-      location: project.hackathon.location,
-      start_date: project.hackathon.start_date,
-    } as Hackathon,
+  const hackathon: ProjectHackathonInfo | null = row.hackathon
+    ? {
+        title: row.hackathon.title,
+        location: row.hackathon.location,
+        start_date: row.hackathon.start_date.toISOString(),
+      }
+    : null;
+
+  const members = row.members.map((member) => ({
+    id: member.id,
+    user_id: member.user_id ?? "",
+    project_id: member.project_id,
+    role: member.role,
+    status: member.status,
+    user: {
+      user_name: member.user?.name ?? "",
+      image: member.user?.image ?? null,
+    } satisfies ProjectMemberUser,
+  }));
+
+  const project: Project = {
+    id: row.id,
+    hackaton_id: row.hackaton_id ?? "",
+    project_name: row.project_name,
+    short_description: row.short_description,
+    full_description: row.full_description ?? undefined,
+    tech_stack: row.tech_stack ?? undefined,
+    github_repository: row.github_repository ?? undefined,
+    demo_link: row.demo_link ?? undefined,
+    // open_source no existe en Prisma schema, omitido (es opcional en Project)
+    logo_url: row.logo_url ?? undefined,
+    cover_url: row.cover_url ?? undefined,
+    demo_video_link: row.demo_video_link ?? undefined,
+    screenshots: row.screenshots,
+    tracks: row.tracks,
+    categories: row.categories?.length ? row.categories : undefined,
+    other_category: row.other_category ?? undefined,
+    tags: row.tags,
+    created_at: row.created_at.toISOString(),
+    updated_at: row.updated_at.toISOString(),
+    is_winner: row.is_winner ?? undefined,
+    members,
+    hackathon,
+    origin: row.origin,
   };
 
-  console.log("GET project:", project);
-
+  console.log("GET project:", project.project_name);
   return project;
 }
 
@@ -171,14 +211,7 @@ export async function createProject(
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
-      hackaton_id: projectData.hackaton_id ?? "",
-      // prizes: {
-      //   create: projectData.prizes?.map((prize) => ({
-      //     icon: prize.icon,
-      //     prize: prize.prize,
-      //     track: prize.track,
-      //   })),
-      // },
+      hackaton_id: projectData.hackaton_id ?? null,
       members: {
         create: projectData.members?.map((member) => ({
           user_id: member.user_id,
@@ -188,6 +221,7 @@ export async function createProject(
       },
       created_at: new Date(),
       updated_at: new Date(),
+      origin: projectData.origin ?? "",
     },
   });
   projectData.id = newProject.id;
@@ -233,13 +267,6 @@ export async function updateProject(
           status: member.status,
         })),
       },
-      // prizes: {
-      //   create: projectData.prizes?.map((prize) => ({
-      //     icon: prize.icon,
-      //     prize: prize.prize,
-      //     track: prize.track,
-      //   })),
-      // },
       updated_at: new Date(),
     },
   });
@@ -251,6 +278,7 @@ export async function updateProject(
 export async function CheckInvitation(invitationId: string, user_id: string) {
   const user = await prisma.user.findUnique({
     where: { id: user_id },
+    select: { id: true, email: true },
   });
   const member = await prisma.member.findFirst({
     where: {
@@ -301,6 +329,7 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
       project_name:
         existingConfirmedProject?.project_name ?? member?.project?.project_name,
       confirmed_project_name: existingConfirmedProject?.project_name ?? "",
+      hackathon_id: member?.project?.hackaton_id ?? "",
     },
   };
 }
@@ -317,6 +346,10 @@ export async function GetProjectByHackathonAndUser(
   const user = await prisma.user.findFirst({
     where: {
       OR: [{ id: user_id }, { email: user_id }],
+    },
+    select: {
+      id: true,
+      email: true,
     },
   });
 
@@ -354,8 +387,9 @@ export async function GetProjectByHackathonAndUser(
   });
 
   if (!project) {
-    throw new ValidationError("project not found", []);
+    console.log(`No project found for hackathon ${hackaton_id} and user ${user_id} - valid for new project creation`);
   }
+
   return project;
 }
 

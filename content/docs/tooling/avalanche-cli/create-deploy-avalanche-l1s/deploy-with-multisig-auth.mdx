@@ -14,8 +14,8 @@ Avalanche-CLI requires Ledgers for Mainnet deployments. This how-to guide assume
 ## Prerequisites
 
 - [`Avalanche-CLI`](https://github.com/ava-labs/avalanche-cli) installed
-- Familiarity with process of [Deploying an Avalanche L1 on Testnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet) and [Deploying a Permissioned Avalanche L1 on Mainnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet)
-- Multiple Ledger devices [configured for Avalanche](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet#setting-up-your-ledger)
+- Familiarity with process of [Deploying an Avalanche L1 on Testnet](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet) and [Deploying a Permissioned Avalanche L1 on Mainnet](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-mainnet)
+- Multiple Ledger devices [configured for Avalanche](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-mainnet#setting-up-your-ledger)
 - an Avalanche L1 configuration ready to deploy to either Fuji Testnet or Mainnet
 
 Getting Started[​](#getting-started "Direct link to heading")
@@ -341,7 +341,7 @@ Your subnet auth keys for add validator TX creation: [P-avax1kdzq569g2c9urm9887c
 
 ### Finish Assembling the TX[​](#finish-assembling-the-tx "Direct link to heading")
 
-Take a look at [Add a Validator](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet#add-a-validator) for additional help issuing this transaction.
+Take a look at [Add a Validator](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-mainnet#add-a-validator) for additional help issuing this transaction.
 
 <Callout title="Note">
 If setting up a multisig, don't select your validator start time to be in one minute. Finishing the signing process takes significantly longer when using a multisig.
@@ -350,7 +350,7 @@ If setting up a multisig, don't select your validator start time to be in one mi
 ```bash
 Next, we need the NodeID of the validator you want to whitelist.
 
-Check https://build.avax.network/docs/api-reference/info-api#info-getnodeid for instructions about how to query the NodeID from your node
+Check https://build.avax.network/docs/rpcs/other/info-rpc#info-getnodeid for instructions about how to query the NodeID from your node
 (Edit host IP address and port to match your deployment, if needed).
 What is the NodeID of the validator you'd like to whitelist?: NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg
 ✔ Default (20)

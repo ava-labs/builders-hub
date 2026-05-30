@@ -3,16 +3,20 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import React from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
+import { EventsLang, t } from "@/lib/events/i18n";
 
 interface ProcessCompletedDialogProps {
   hackathon_id: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  lang?: EventsLang;
+  isUpdate?: boolean;
 }
 export default function ProcessCompletedDialog(
   params: ProcessCompletedDialogProps
 ) {
   const router = useRouter();
+  const lang = params.lang ?? "en";
   const content = (
     <Card
       className="my-4 w-[95%] sm:w-[85%] md:w-full max-h-[190px]
@@ -21,17 +25,26 @@ export default function ProcessCompletedDialog(
                         border border-red-500"
     >
       <CardContent className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4">
-        Your application has been Approved. Join the <a href="https://t.me/avalancheacademy" target="_blank" className="text-blue-500">Telegram group</a> to get all the support you need.
-      
+        {params.isUpdate ? (
+          t(lang, "reg.dialog.updateBody")
+        ) : (
+          <>
+            {t(lang, "reg.dialog.body")}{" "}
+            <a href="https://t.me/avalancheacademy" target="_blank" className="text-blue-500">
+              {t(lang, "reg.dialog.telegramLink")}
+            </a>{" "}
+            {t(lang, "reg.dialog.bodyEnd")}
+          </>
+        )}
         <CardFooter className="flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center">
-        <Button
-          onClick={() => {
-            router.push(`/hackathons/${params.hackathon_id}`);
-          }}
-          className="mt-4"
-        >
-          OK
-        </Button>
+          <Button
+            onClick={() => {
+              router.push(`/events/${params.hackathon_id}`);
+            }}
+            className="mt-4"
+          >
+            OK
+          </Button>
         </CardFooter>
       </CardContent>
     </Card>
@@ -40,7 +53,7 @@ export default function ProcessCompletedDialog(
     <Modal
       isOpen={params.isOpen}
       onOpenChange={params.onOpenChange}
-      title="Application Submitted"
+      title={params.isUpdate ? t(lang, "reg.dialog.updateTitle") : t(lang, "reg.dialog.title")}
       content={content}
       className="border border-red-500"
     />

@@ -59,7 +59,7 @@ export default async function HackathonsPage({
   };
 
   return (
-    <main className="container relative max-w-[1400px] pt-4 pb-16">
+    <main className="container relative max-w-[1400px] mx-auto px-4 pt-4 pb-16">
       <div className="border border-zinc-300 dark:border-transparent shadow-sm dark:bg-zinc-950 bg-zinc-50 rounded-md">
         <Hackathons
           initialPastHackathons={pastHackathons}

@@ -14,6 +14,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getDateWithTimezone } from "./date-parser";
 import { getUserById } from "./getUser";
+import { hackathonStagesArraySchema } from "@/lib/validations/hackathon-stage.schema";
 
 const prisma = new PrismaClient();
 
@@ -67,15 +68,17 @@ export class ValidationError extends Error {
   }
 }
 
-export async function getHackathonLite(hackathon: any): Promise<HackathonHeader> {
+export async function getHackathonLite(
+  hackathon: any
+): Promise<HackathonHeader> {
   // Get user information if created_by exists
   if (hackathon.created_by) {
     try {
       const user = await getUserById(hackathon.created_by);
-      hackathon.created_by_name = user?.name || user?.email || 'Unknown User';
+      hackathon.created_by_name = user?.name || user?.email || "Unknown User";
     } catch (error) {
-      console.error('Error fetching user info:', error);
-      hackathon.created_by_name = 'Unknown User';
+      console.error("Error fetching user info:", error);
+      hackathon.created_by_name = "Unknown User";
     }
   }
 
@@ -83,13 +86,13 @@ export async function getHackathonLite(hackathon: any): Promise<HackathonHeader>
   if (hackathon.updated_by) {
     try {
       const user = await getUserById(hackathon.updated_by);
-      hackathon.updated_by_name = user?.name || user?.email || 'Unknown User';
+      hackathon.updated_by_name = user?.name || user?.email || "Unknown User";
     } catch (error) {
-      console.error('Error fetching updated_by user info:', error);
-      hackathon.updated_by_name = 'Unknown User';
+      console.error("Error fetching updated_by user info:", error);
+      hackathon.updated_by_name = "Unknown User";
     }
   }
-  
+
   return hackathon;
 }
 
@@ -102,6 +105,10 @@ export interface GetHackathonsOptions {
   search?: string;
   created_by?: string | null;
   include_private?: boolean;
+  cohost_email?: string | null;
+  event?: string | null;
+  visibility?: 'all' | 'public' | 'private';
+  sort?: string;
 }
 
 export async function getHackathon(id: string) {
@@ -135,16 +142,16 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   )
     throw new Error("Pagination params invalid", { cause: "BadRequest" });
 
-  console.log("GET hackathons with options:", options);
+  console.warn("GET hackathons:", { page: options.page, pageSize: options.pageSize });
   const page = options.page ?? 1;
   const pageSize = options.pageSize ?? 10;
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
-  
+
   // Build all conditions
   const conditions: any[] = [];
-  
+
   if (options.location) {
     if (options.location == "InPerson") {
       conditions.push({ NOT: { location: "Online" } });
@@ -152,32 +159,55 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
       conditions.push({ location: options.location });
     }
   }
-  
-  if (options.created_by) {
-    // Show hackathons where user is either creator OR updater
-    conditions.push({
-      OR: [
+
+  if (options.created_by || options.cohost_email) {
+    const ownershipConditions: any[] = [];
+    if (options.created_by) {
+      // Show hackathons where user is either creator OR updater
+      ownershipConditions.push(
         { created_by: options.created_by },
         { updated_by: options.created_by }
-      ]
-    });
+      );
+    }
+    if (options.cohost_email) {
+      ownershipConditions.push({
+        cohosts: {
+          has: options.cohost_email,
+        },
+      });
+    }
+
+    if (ownershipConditions.length > 0) {
+      conditions.push({
+        OR: ownershipConditions,
+      });
+    }
   }
-  
+
   if (options.date) {
     conditions.push({ date: options.date });
   }
-  
-  // Filter by visibility: only show public hackathons unless include_private is true
-  // Treat null/undefined as public for backwards compatibility
-  if (!options.include_private) {
-    conditions.push({
-      OR: [
-        { is_public: true },
-        { is_public: null },
-      ]
-    });
+
+  // Filter by visibility explicitly if provided, otherwise fall back to include_private behavior
+  // Client-side logic: if is_public is truthy (true), show GREEN dot (public)
+  //                    if is_public is falsy (false, null, undefined), show ZINC dot (private)
+  // Server-side logic must match this display logic for consistency
+  if (options.visibility) {
+    if (options.visibility === 'public') {
+      // Public: is_public is explicitly true
+      conditions.push({ is_public: true });
+    } else if (options.visibility === 'private') {
+      // Private: is_public is falsy (false or null) - matches client display logic
+      conditions.push({ OR: [{ is_public: false }, { is_public: null }] });
+    }
+    // If visibility === 'all', don't add any visibility condition - show all
+  } else {
+    // If visibility is not explicitly provided, apply default visibility rules
+    if (!options.include_private) {
+      conditions.push({ OR: [{ is_public: true }, { is_public: null }] });
+    }
   }
-  
+
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -215,85 +245,59 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
 
     conditions.push({ OR: searchFilters });
   }
-  
+
+  if (options.status) {
+    switch (options.status) {
+      case "ENDED":
+        conditions.push({ end_date: { lt: new Date() } });
+        break;
+      case "ONGOING":
+        conditions.push({
+          start_date: { lte: new Date() },
+          end_date: { gte: new Date() },
+        });
+        break;
+      case "UPCOMING":
+        conditions.push({ start_date: { gt: new Date() } });
+        break;
+    }
+  }
+
+  if (options.event) {
+    const eventTypes = options.event.split(',').map((e: string) => e.trim());
+    if (eventTypes.length === 1) {
+      conditions.push({ event: eventTypes[0] });
+    } else {
+      conditions.push({ event: { in: eventTypes } });
+    }
+  }
+
   // Combine all conditions with AND
   if (conditions.length === 1) {
     filters = conditions[0];
   } else if (conditions.length > 1) {
     filters = { AND: conditions };
   }
-  
-  console.log("Filters: ", filters);
+
+  const hackathonCount = await prisma.hackathon.count({ where: filters });
+
+  // Determine ordering
+  let orderBy: any = { start_date: 'desc' };
+  if (options.sort) {
+    // Only support sorting by start_date for Hackathon model
+    if (options.sort === 'start_date_asc') orderBy = { start_date: 'asc' };
+    else if (options.sort === 'start_date_desc') orderBy = { start_date: 'desc' };
+  }
 
   const hackathonList = await prisma.hackathon.findMany({
     where: filters,
     skip: offset,
     take: pageSize,
-    orderBy: {
-      start_date: "desc",
-    },
+    orderBy,
   });
 
   const hackathons = await Promise.all(hackathonList.map(getHackathonLite));
   let hackathonsLite = hackathons;
-
-  if (options.status) {
-    switch (options.status) {
-      case "ENDED":
-        hackathonsLite = hackathons.filter(
-          (hackathon) => new Date(hackathon.end_date).getTime() < Date.now()
-        );
-        break;
-      case "ONGOING":
-        hackathonsLite = hackathons.filter(
-          (hackathon) =>
-            new Date(hackathon.start_date).getTime() <= Date.now() &&
-            new Date(hackathon.end_date).getTime() >= Date.now()
-        );
-        break;
-      case "UPCOMING":
-        hackathonsLite = hackathons.filter(
-          (hackathon) => new Date(hackathon.start_date).getTime() > Date.now()
-        );
-        break;
-    }
-  }
-
-  // If status is filtered, we need to count all matching hackathons, not just the page
-  let totalHackathons;
-  if (options.status) {
-    // Fetch all hackathons matching the filters to count by status
-    const allHackathons = await prisma.hackathon.findMany({
-      where: filters,
-    });
-    const allHackathonsLite = await Promise.all(allHackathons.map(getHackathonLite));
-    let filteredByStatus: any[] = [];
-    
-    switch (options.status) {
-      case "ENDED":
-        filteredByStatus = allHackathonsLite.filter(
-          (hackathon) => new Date(hackathon.end_date).getTime() < Date.now()
-        );
-        break;
-      case "ONGOING":
-        filteredByStatus = allHackathonsLite.filter(
-          (hackathon) =>
-            new Date(hackathon.start_date).getTime() <= Date.now() &&
-            new Date(hackathon.end_date).getTime() >= Date.now()
-        );
-        break;
-      case "UPCOMING":
-        filteredByStatus = allHackathonsLite.filter(
-          (hackathon) => new Date(hackathon.start_date).getTime() > Date.now()
-        );
-        break;
-    }
-    totalHackathons = filteredByStatus.length;
-  } else {
-    totalHackathons = await prisma.hackathon.count({
-      where: filters,
-    });
-  }
 
   return {
     hackathons: hackathonsLite.map(
@@ -306,7 +310,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
           ),
         } as HackathonHeader)
     ),
-    total: totalHackathons,
+    total: hackathonCount,
     page,
     pageSize,
   };
@@ -316,10 +320,27 @@ export async function createHackathon(
   hackathonData: Partial<HackathonHeader>
 ): Promise<HackathonHeader> {
   const errors = validateHackathon(hackathonData);
-  console.log(errors);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
+
+  /**
+   * SECURITY: Validate `content.stages` with the Zod schema before persisting.
+   * The `stages` field is a JSON column; without this check arbitrary nested
+   * structures could be written to the database.  Return a ValidationError
+   * (which the API layer maps to 400) so callers get actionable feedback.
+   */
+  if (hackathonData.content?.stages !== undefined) {
+    const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
+    if (!stagesResult.success) {
+      throw new ValidationError(
+        "Invalid stages data",
+        [{ field: "content.stages", message: JSON.stringify(stagesResult.error.flatten()), validation: () => false }]
+      );
+    }
+    hackathonData.content.stages = stagesResult.data;
+  }
+
   if (hackathonData.content?.schedule) {
     const schedule = hackathonData.content.schedule.map(
       (activity: ScheduleActivity) => {
@@ -352,15 +373,18 @@ export async function createHackathon(
       participants: hackathonData.participants!,
       tags: hackathonData.tags!,
       timezone: hackathonData.timezone!,
+      cohosts: hackathonData.cohosts ?? [],
       icon: hackathonData.icon!,
       banner: hackathonData.banner!,
       small_banner: hackathonData.small_banner!,
       top_most: hackathonData.top_most ?? false,
       content: content,
+      event: hackathonData.event ?? 'hackathon',
+      new_layout: hackathonData.new_layout ?? false,
     },
   });
   hackathonData.id = newHackathon.id;
-  revalidatePath("/api/hackathons/");
+  revalidatePath("/api/events/");
   return hackathonData as HackathonHeader;
 }
 
@@ -370,13 +394,31 @@ export async function updateHackathon(
   userId?: string
 ): Promise<HackathonHeader> {
   // Skip validation if we're only updating is_public field
-  const isOnlyPublicUpdate = Object.keys(hackathonData).length === 1 && hackathonData.hasOwnProperty('is_public');
-  
+  const isOnlyPublicUpdate =
+    Object.keys(hackathonData).length === 1 &&
+    hackathonData.hasOwnProperty("is_public");
+
   if (!isOnlyPublicUpdate) {
     const errors = validateHackathon(hackathonData);
-    console.log(errors);
     if (errors.length > 0) {
       throw new ValidationError("Validation failed", errors);
+    }
+
+    /**
+     * SECURITY: Validate `content.stages` with the Zod schema before
+     * persisting to the database.  Unvalidated JSON columns are a schema-
+     * injection risk; an attacker could store arbitrary structures that
+     * affect rendering or downstream processing.
+     */
+    if (hackathonData.content?.stages !== undefined) {
+      const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
+      if (!stagesResult.success) {
+        throw new ValidationError(
+          "Invalid stages data",
+          [{ field: "content.stages", message: JSON.stringify(stagesResult.error.flatten()), validation: () => false }]
+        );
+      }
+      hackathonData.content.stages = stagesResult.data;
     }
   }
 
@@ -401,10 +443,11 @@ export async function updateHackathon(
   }
   // Build update data object with only provided fields
   const updateData: any = {};
-  
+
   if (hackathonData.id !== undefined) updateData.id = hackathonData.id;
   if (hackathonData.title !== undefined) updateData.title = hackathonData.title;
-  if (hackathonData.description !== undefined) updateData.description = hackathonData.description;
+  if (hackathonData.description !== undefined)
+    updateData.description = hackathonData.description;
   if (hackathonData.start_date !== undefined) {
     updateData.start_date = getDateWithTimezone(
       hackathonData.start_date,
@@ -417,22 +460,43 @@ export async function updateHackathon(
       hackathonData.timezone ?? existingHackathon.timezone
     );
   }
-  if (hackathonData.location !== undefined) updateData.location = hackathonData.location;
-  if (hackathonData.total_prizes !== undefined) updateData.total_prizes = hackathonData.total_prizes;
+  if (hackathonData.location !== undefined)
+    updateData.location = hackathonData.location;
+  if (hackathonData.total_prizes !== undefined)
+    updateData.total_prizes = hackathonData.total_prizes;
   if (hackathonData.tags !== undefined) updateData.tags = hackathonData.tags;
-  if (hackathonData.timezone !== undefined) updateData.timezone = hackathonData.timezone;
+  if (hackathonData.timezone !== undefined)
+    updateData.timezone = hackathonData.timezone;
   if (hackathonData.icon !== undefined) updateData.icon = hackathonData.icon;
-  if (hackathonData.banner !== undefined) updateData.banner = hackathonData.banner;
-  if (hackathonData.small_banner !== undefined) updateData.small_banner = hackathonData.small_banner;
-  if (hackathonData.participants !== undefined) updateData.participants = hackathonData.participants;
-  if (hackathonData.top_most !== undefined) updateData.top_most = hackathonData.top_most;
-  if (hackathonData.organizers !== undefined) updateData.organizers = hackathonData.organizers;
-  if (hackathonData.custom_link !== undefined) updateData.custom_link = hackathonData.custom_link;
-  if (hackathonData.created_by !== undefined) updateData.created_by = hackathonData.created_by;
-  if (hackathonData.is_public !== undefined) updateData.is_public = hackathonData.is_public;
+  if (hackathonData.banner !== undefined)
+    updateData.banner = hackathonData.banner;
+  if (hackathonData.small_banner !== undefined)
+    updateData.small_banner = hackathonData.small_banner;
+  if (hackathonData.participants !== undefined)
+    updateData.participants = hackathonData.participants;
+  if (hackathonData.top_most !== undefined)
+    updateData.top_most = hackathonData.top_most;
+  if (hackathonData.organizers !== undefined)
+    updateData.organizers = hackathonData.organizers;
+  if (hackathonData.cohosts !== undefined)
+    updateData.cohosts = hackathonData.cohosts;
+  if (hackathonData.custom_link !== undefined)
+    updateData.custom_link = hackathonData.custom_link;
+  if (hackathonData.created_by !== undefined)
+    updateData.created_by = hackathonData.created_by;
+  if (hackathonData.is_public !== undefined)
+    updateData.is_public = hackathonData.is_public;
+  if (hackathonData.event !== undefined)
+    updateData.event = hackathonData.event;
+  if (hackathonData.new_layout !== undefined)
+    updateData.new_layout = hackathonData.new_layout;
   if (userId) updateData.updated_by = userId;
+  if (hackathonData.google_calendar_id !== undefined)
+    updateData.google_calendar_id = hackathonData.google_calendar_id;
   if (hackathonData.content !== undefined) {
-    const content = { ...hackathonData.content } as unknown as Prisma.JsonObject;
+    const content = {
+      ...hackathonData.content,
+    } as unknown as Prisma.JsonObject;
     updateData.content = content;
   }
 
@@ -440,7 +504,7 @@ export async function updateHackathon(
     where: { id },
     data: updateData,
   });
-  revalidatePath(`/api/hackathons/${hackathonData.id}`);
-  revalidatePath("/api/hackathons/");
+  revalidatePath(`/api/events/${hackathonData.id}`);
+  revalidatePath("/api/events/");
   return hackathonData as HackathonHeader;
 }

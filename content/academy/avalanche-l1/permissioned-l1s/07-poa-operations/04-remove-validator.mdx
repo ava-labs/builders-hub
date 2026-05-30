@@ -1,0 +1,222 @@
+---
+title: Remove Validator via Multi-Sig
+description: Remove a validator using Safe wallet multi-sig approval
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Removing a validator is a significant operation that permanently removes them from your L1's validator set. This guide covers the multi-sig process for safely removing validators.
+
+## When to Remove a Validator
+
+Common reasons for validator removal:
+
+- **Decommissioning**: The validator is being permanently shut down
+- **Performance Issues**: Persistent poor performance or downtime
+- **Security Concerns**: Potential compromise or suspicious behavior
+- **Governance Decisions**: Consortium membership changes
+- **Resource Optimization**: Reducing the validator set size
+
+<Callout type="warning">
+**Important**: Validator removal is permanent. The removed validator's node will no longer participate in consensus once the process completes.
+</Callout>
+
+## Prerequisites
+
+- ✅ The validator must be in **Active** status
+- ✅ Access to your Safe wallet with required signers
+- ✅ The validator's **Validation ID**
+- ✅ Consider the impact on your validator set's total weight
+
+## Phase 1: Initiate Validator Removal
+
+<Steps>
+<Step>
+
+### Identify the Validator
+
+Get the **Validation ID** of the validator you want to remove:
+
+- Use the [Query Validator Set tool](/academy/permissioned-l1s/05-validator-manager-operations/02-query-validator-set)
+- Check your validator management records
+- Reference previous transaction history
+
+</Step>
+<Step>
+
+### Access Your Safe Wallet
+
+1. Navigate to [wallet.ash.center](https://wallet.ash.center/)
+2. Connect your wallet
+3. Select your Safe
+4. Go to **"New Transaction"** → **"Transaction Builder"**
+
+</Step>
+<Step>
+
+### Configure the Transaction
+
+| Field | Value |
+|-------|-------|
+| **To Address** | Your PoA Manager address |
+| **Value** | 0 |
+| **Contract Method** | `removeValidator` |
+
+**Parameters:**
+- **Validation ID**: The unique identifier of the validator to remove
+
+</Step>
+<Step>
+
+### Review Carefully
+
+Before submitting:
+
+- ✅ Confirm the correct Validation ID
+- ✅ Ensure you're not removing a critical validator
+- ✅ Verify the remaining validator set has sufficient weight
+- ✅ Communicate with stakeholders about the removal
+
+</Step>
+<Step>
+
+### Submit and Collect Approvals
+
+1. Submit the transaction
+2. Share details with other signers
+3. Wait for required approvals
+4. Verify each signer understands what's being removed
+
+</Step>
+<Step>
+
+### Execute the Transaction
+
+Once threshold is reached:
+
+1. Execute the transaction
+2. Wait for confirmation
+3. The validator status changes to **PendingRemoved**
+4. A Warp message (weight = 0) is sent to P-Chain
+
+</Step>
+</Steps>
+
+## Phase 2: Complete Validator Removal
+
+<Steps>
+<Step>
+
+### Wait for P-Chain Processing
+
+The P-Chain processes the removal and returns a signed confirmation with `valid = false`.
+
+</Step>
+<Step>
+
+### Prepare Completion Transaction
+
+In your Safe wallet:
+
+1. Create a new transaction
+2. Target your PoA Manager
+3. Call `completeValidatorRemoval`
+4. Provide the message index
+
+</Step>
+<Step>
+
+### Collect Approvals and Execute
+
+1. Submit the completion transaction
+2. Collect signer approvals
+3. Execute when threshold is reached
+
+**Result**: The validator is permanently removed from the validator set.
+
+</Step>
+</Steps>
+
+## Post-Removal Verification
+
+After completing the removal:
+
+1. **Query Validator Set**: Confirm the validator no longer appears
+2. **Check Total Weight**: Verify the remaining weight is sufficient
+3. **Monitor Network**: Ensure consensus continues smoothly
+4. **Update Documentation**: Record the removal for audit purposes
+
+## Impact Considerations
+
+Before removing a validator, consider:
+
+### Total Weight Threshold
+
+Your validator set needs minimum weight for churn operations. Removing too much weight can impact:
+- Future validator additions
+- Weight changes for remaining validators
+
+### Network Resilience
+
+- **Small validator sets**: Removing validators may reduce fault tolerance
+- **Large sets**: Impact is typically minimal
+
+### Validator Balance Recovery
+
+The removed validator's remaining P-Chain balance will be returned to the **Remaining Balance Owner** addresses specified during the original registration.
+
+## Emergency Removal
+
+In emergency situations where you can't wait for multi-sig approval, remember the [P-Chain Disable option](/academy/permissioned-l1s/05-validator-manager-operations/10-pchain-disable-validator):
+
+- The **Disable Owner** can directly disable a validator on P-Chain
+- This doesn't require multi-sig approval
+- Weight still counts, but the validator is inactive
+- Full removal still requires the multi-sig flow later
+
+## Complete Removal Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant S1 as Signer 1
+    participant S2 as Signer 2
+    participant Safe as Safe Wallet
+    participant PoA as PoA Manager
+    participant VM as Validator Manager
+    participant PC as P-Chain
+
+    Note over S1,PC: Phase 1: Initiate Removal
+    S1->>Safe: Propose removal
+    S2->>Safe: Approve
+    Safe->>PoA: Execute removeValidator()
+    PoA->>VM: initiateValidatorRemoval()
+    VM->>VM: Status = PendingRemoved
+    VM->>PC: Warp Message (weight=0)
+
+    Note over S1,PC: Phase 2: Complete Removal
+    PC-->>VM: Signed L1ValidatorRegistration(valid=false)
+    S1->>Safe: Propose completion
+    S2->>Safe: Approve
+    Safe->>PoA: Execute completeRemoval()
+    PoA->>VM: completeValidatorRemoval()
+    VM->>VM: Status = Completed, Remove from set
+"
+/>
+
+## Chapter Summary
+
+Congratulations! You've completed the multi-sig governance course. You now know how to:
+
+- ✅ Deploy a Validator Manager on C-Chain
+- ✅ Create and configure a Safe/Ash multi-sig wallet
+- ✅ Deploy and configure a PoA Manager
+- ✅ Transfer ownership through the governance chain
+- ✅ Perform all validator operations with multi-sig approval
+
+This multi-sig setup provides secure, auditable governance for your permissioned L1's validator set.
+

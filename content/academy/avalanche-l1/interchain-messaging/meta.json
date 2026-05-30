@@ -1,0 +1,22 @@
+{
+  "title": "Interchain Messaging",
+  "icon": "SendHorizontal",
+  "root": true,
+  "pages": [
+    "index",
+    "---Interoperability---",
+    "...02-interoperability",
+    "---Avalanche Warp Messaging---",
+    "...08-avalanche-warp-messaging",
+    "---ICM Protocol---",
+    "...03-icm-protocol",
+    "---ICM Infrastructure Setup---",
+    "...04-icm-setup",
+    "---Your First Cross-Chain Message---",
+    "...05-testing-icm",
+    "---Relayer Deep Dive---",
+    "...06-relayer-deep-dive",
+    "---Course Completion---",
+    "certificate"
+  ]
+}

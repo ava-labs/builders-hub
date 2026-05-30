@@ -1,0 +1,55 @@
+---
+title: Deploy ICM Demo Contracts
+description: Deploy demo sender and receiver contracts to test your ICM infrastructure.
+updated: 2025-05-13
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployICMDemo from "@/components/toolbox/console/icm/test-connection/DeployICMDemo";
+
+Now that TeleporterMessenger, TeleporterRegistry, and a relayer are set up, let's test that everything works by deploying simple demo contracts.
+
+## What the Demo Contracts Do
+
+The ICM demo consists of a **sender** and **receiver** pair:
+
+- **Sender contract:** Encodes a string message and calls `sendCrossChainMessage` on TeleporterMessenger
+- **Receiver contract:** Implements `ITeleporterReceiver`, decodes the incoming message, and stores it
+
+Here's a simplified view of the receiver's implementation:
+
+```solidity
+contract ICMDemoReceiver is ITeleporterReceiver {
+    string public lastMessage;
+
+    function receiveTeleporterMessage(
+        bytes32 originChainID,
+        address originSenderAddress,
+        bytes calldata message
+    ) external {
+        // Only TeleporterMessenger can call this
+        lastMessage = abi.decode(message, (string));
+    }
+}
+```
+
+This is the same `ITeleporterReceiver` pattern we covered in the ICM Protocol section — the demo contracts are just a minimal working example.
+
+## Pre-deployed on C-Chain
+
+Fuji C-Chain already has a pre-deployed ICM demo contract at `0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289`. You only need to deploy the demo contract on your L1.
+
+## Deploy on Your L1
+
+Use the tool below to deploy the ICM demo contract on your L1:
+
+<ToolboxMdxWrapper walletMode="l1">
+  <DeployICMDemo />
+</ToolboxMdxWrapper>
+
+<Callout type="info">
+After deployment, you'll have demo contracts on both chains ready to exchange messages.
+</Callout>

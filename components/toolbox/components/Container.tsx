@@ -1,8 +1,10 @@
-"use client";
+'use client';
 
-import type { ReactNode } from "react";
-import { ReportIssueButton } from "@/components/console/report-issue-button";
-import { EditOnGitHubButton } from "@/components/console/edit-on-github-button";
+import type { ReactNode } from 'react';
+import { motion } from 'framer-motion';
+import { ReportIssueButton } from '@/components/console/report-issue-button';
+import { EditOnGitHubButton } from '@/components/console/edit-on-github-button';
+import { sectionContainer, sectionItem } from '@/components/console/motion';
 
 interface ContainerProps {
   title: string;
@@ -11,35 +13,42 @@ interface ContainerProps {
   githubUrl?: string;
 }
 
-// simplified container does not use color themes currently
-
-export function Container({
-  title,
-  children,
-  description,
-  githubUrl,
-}: ContainerProps) {
+/**
+ * Shared tool chrome for every console tool. Intentionally quiet:
+ *   - no `prose` (fumadocs docs-site typography) — this is a tool, not an article
+ *   - title at a measured 2xl with tight leading
+ *   - GitHub / Report buttons rendered as subtle ghost-style links, not prominent outlined buttons
+ *   - 8-space gap between chrome and body for breathing room without feeling cavernous
+ */
+export function Container({ title, children, description, githubUrl }: ContainerProps) {
   return (
-    <>
-      <div className="space-y-3 prose">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-0">
-            <h3 className="text-xl md:text-2xl mt-0 font-semibold leading-tight text-foreground">
+    <motion.div variants={sectionContainer} initial="hidden" animate="visible">
+      <motion.div variants={sectionItem}>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-6 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <h1 className="text-2xl font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100">
               {title}
-            </h3>
+            </h1>
             {description && (
-              <div className="text-sm text-muted-foreground leading-relaxed">
-                {description}
-              </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-2xl">{description}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <EditOnGitHubButton githubUrl={githubUrl} toolTitle={title} />
-            <ReportIssueButton toolTitle={title} />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <EditOnGitHubButton
+              githubUrl={githubUrl}
+              toolTitle={title}
+              className="h-8 text-xs text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            />
+            <ReportIssueButton
+              toolTitle={title}
+              className="h-8 text-xs text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            />
           </div>
         </div>
-      </div>
-      <div className="space-y-8 text-foreground prose">{children}</div>
-    </>
+      </motion.div>
+      <motion.div className="space-y-6 mt-6" variants={sectionItem}>
+        {children}
+      </motion.div>
+    </motion.div>
   );
 }

@@ -85,7 +85,7 @@ A new node needs to catch up to the latest network state before it can participa
 
 ### Check Bootstrapping Progress[​](#check-bootstrapping-progress "Direct link to heading")
 
-To check if a given chain is done bootstrapping, in another terminal window call [`info.isBootstrapped`](/docs/api-reference/info-api#infoisbootstrapped) by copying and pasting the following command:
+To check if a given chain is done bootstrapping, in another terminal window call [`info.isBootstrapped`](/docs/rpcs/other/info-rpc#infoisbootstrapped) by copying and pasting the following command:
 
 ```bash
 curl -X POST --data '{
@@ -126,11 +126,11 @@ XXX.XX.XX.XXX:9650/ext/bc/C/rpc
 
 if run on a cloud provider. The “XXX.XX.XX.XXX" should be replaced with the public IP of your EC2 instance.
 
-For more information on the requests available at these endpoints, please see the [AvalancheGo API Reference](/docs/api-reference/p-chain/api) documentation.
+For more information on the requests available at these endpoints, please see the [AvalancheGo API Reference](/docs/rpcs/p-chain) documentation.
 
 ## Going Further
 
-Your Avalanche node will perform consensus on its own, but it is not yet a validator on the network. This means that the rest of the network will not query your node when sampling the network during consensus. If you want to add your node as a validator, check out [Add a Validator](/docs/nodes/validate/node-validator) to take it a step further.
+Your Avalanche node will perform consensus on its own, but it is not yet a validator on the network. This means that the rest of the network will not query your node when sampling the network during consensus. If you want to add your node as a validator, check out [Add a Validator](/docs/primary-network/validate/node-validator) to take it a step further.
 
 Also check out the [Maintain](/docs/nodes/maintain/bootstrapping) section to learn about how to maintain and customize your node to fit your needs.
 

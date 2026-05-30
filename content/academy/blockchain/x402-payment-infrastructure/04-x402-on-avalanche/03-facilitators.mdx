@@ -1,0 +1,416 @@
+---
+title: x402 Facilitators on Avalanche
+description: Overview of available x402 facilitators on Avalanche and how to choose the right one.
+updated: 2025-11-03
+authors: [Federico Nardelli]
+icon: Network
+---
+
+## Available Facilitators
+
+Avalanche supports multiple x402 facilitators, each with different strengths and use cases. All are available at [build.avax.network/integrations](https://build.avax.network/integrations).
+
+## Thirdweb x402
+
+**Best For**: Enterprise applications, multi-chain support, gasless transactions
+
+### Overview
+
+Thirdweb provides enterprise-grade x402 infrastructure with comprehensive SDKs and built-in support for gasless transactions using EIP-7702.
+
+**Official Documentation**: [portal.thirdweb.com/payments/x402/facilitator](https://portal.thirdweb.com/payments/x402/facilitator)
+
+### Key Features
+
+- **Multi-Chain Support**: Works on EVM chains including Avalanche C-Chain
+- **Gasless Transactions**: EIP-7702 protocol for cost-free user submissions
+- **Framework Integration**: x402-hono, x402-next, x402-express middlewares
+- **Dashboard Tracking**: Monitor transactions through thirdweb project dashboard
+- **Payment Verification**: Automatic signature validation and on-chain settlement
+- **Token Support**: ERC-2612 permit and ERC-3009 authorization (USDC)
+
+### Installation
+
+```bash
+npm install thirdweb
+```
+
+### Quick Start
+
+```typescript
+import { facilitator } from "thirdweb/x402";
+import { createThirdwebClient } from "thirdweb";
+
+const client = createThirdwebClient({
+  secretKey: "your-secret-key",
+});
+
+const thirdwebFacilitator = facilitator({
+  client: client,
+  serverWalletAddress: "0x1234567890123456789012345678901234567890",
+});
+```
+
+**Integration with Hono:**
+
+```javascript
+import { Hono } from "hono";
+import { paymentMiddleware } from "x402-hono";
+
+const app = new Hono();
+
+app.use(paymentMiddleware(
+  "0xYourWalletAddress",
+  {
+    "/api/service": {
+      price: "$0.01",
+      network: "avalanche-c-chain",
+      config: {
+        description: "Access to your API service"
+      }
+    }
+  },
+  {
+    facilitator: thirdwebFacilitator
+  }
+));
+```
+
+### Avalanche Configuration
+
+- **Mainnet**: Use network string `"avalanche"` (Chain ID: 43114)
+- **Fuji Testnet**: Use network string `"avalanche-fuji"` (Chain ID: 43113)
+
+### Links
+
+- Integration: [build.avax.network/integrations/thirdweb-x402](https://build.avax.network/integrations/thirdweb-x402)
+- Documentation: [portal.thirdweb.com/payments/x402/facilitator](https://portal.thirdweb.com/payments/x402/facilitator)
+
+### Pricing
+
+See [thirdweb.com/pricing](https://thirdweb.com/pricing) for current pricing information.
+
+---
+
+## PayAI
+
+**Best For**: AI agents, autonomous payments, low-latency verification
+
+### Overview
+
+PayAI specializes in AI agent payments with optimized APIs for machine-to-machine commerce. Built natively for Avalanche's fast finality and low transaction costs.
+
+**Official Documentation**: [docs.payai.network/introduction](https://docs.payai.network/introduction)
+
+### Key Features
+
+- **AI-First Design**: Specifically built for agent monetization
+- **Avalanche Native**: Leverages Avalanche's sub-second finality
+- **Simple Integration**: TypeScript and Python SDKs
+- **Product Suite**:
+  - x402 protocol implementation
+  - Freelance AI marketplace
+  - CT Agent Monetization
+  - Token Gateway
+
+### Installation
+
+```bash
+npm install x402-express  # For Express servers
+npm install x402-client   # For clients
+```
+
+### Quick Start (Server)
+
+```javascript
+import express from 'express';
+import { paymentMiddleware } from 'x402-express';
+
+const app = express();
+
+app.use(paymentMiddleware(
+  "0xYourWalletAddress",
+  {
+    "/api/service": {
+      price: "$0.01",
+      network: "avalanche",
+      config: {
+        description: "Access to AI service"
+      }
+    }
+  }
+));
+```
+
+### Quick Start (Client)
+
+```javascript
+import { X402Client } from 'x402-client';
+
+const client = new X402Client({
+  privateKey: process.env.CLIENT_PRIVATE_KEY,
+  facilitatorUrl: 'https://api.payai.network',
+  network: 'avalanche'
+});
+
+const response = await client.post('https://api.example.com/service', {
+  data: { query: 'your request' }
+});
+```
+
+### Avalanche Configuration
+
+- **Mainnet**: Use network string `"avalanche"`
+- **Fuji Testnet**: Use network string `"avalanche-fuji"`
+- **Payment Tokens**: AVAX and USDC
+
+### Links
+
+- Integration: [build.avax.network/integrations/payai](https://build.avax.network/integrations/payai)
+- Documentation: [docs.payai.network/introduction](https://docs.payai.network/introduction)
+- Website: [payai.network](https://payai.network/)
+
+### Pricing
+
+Contact PayAI for pricing information. Developer tier available for testing.
+
+---
+
+## Ultravioleta DAO
+
+**Best For**: Decentralized applications, gasless payments, community governance
+
+### Overview
+
+Ultravioleta is a community-governed facilitator focused on gasless payments and decentralization. Users don't need AVAX tokens for transaction fees—the facilitator covers all costs.
+
+**Official Documentation**: [facilitator.ultravioletadao.xyz](https://facilitator.ultravioletadao.xyz)
+
+### Key Features
+
+- **Gasless Payments**: 100% gas coverage—users pay $0 in transaction fees
+- **Stablecoin Settlement**: Transactions use USDC for predictable pricing
+- **Sub-second Processing**: ~2-3 second end-to-end settlement on Avalanche
+- **Cryptographic Security**: EIP-712 signatures prevent unauthorized transactions
+- **Stateless Verification**: On-chain validation eliminates database dependencies
+- **Auto-scalable Infrastructure**: High availability and reliability
+- **Multi-Network Support**: Avalanche, Base, Celo, Polygon, Solana, and more
+- **Community Governance**: Fully decentralized operation
+
+### Installation
+
+```bash
+npm install x402-hono    # For Hono servers
+npm install x402-client  # For clients
+```
+
+### Quick Start (Server)
+
+```javascript
+import { Hono } from "hono";
+import { paymentMiddleware } from "x402-hono";
+
+const app = new Hono();
+
+app.use(paymentMiddleware(
+  "0xYourWalletAddress",
+  {
+    "/api/service": {
+      price: "$0.01",
+      network: "avalanche-c-chain",
+      config: {
+        description: "Access to your API service"
+      }
+    }
+  },
+  {
+    url: 'https://facilitator.ultravioletadao.xyz'
+  }
+));
+```
+
+### Quick Start (Client)
+
+```javascript
+import { X402Client } from "x402-client";
+
+const client = new X402Client({
+  privateKey: process.env.CLIENT_PRIVATE_KEY,
+  facilitatorUrl: 'https://facilitator.ultravioletadao.xyz',
+  network: 'avalanche-c-chain'
+});
+
+const response = await client.post('https://api.example.com/service', {
+  data: { query: 'your request' }
+});
+```
+
+### Avalanche Configuration
+
+- **Mainnet**: Chain ID 43114, USDC settlement, sub-second finality
+- **Fuji Testnet**: Chain ID 43113, sandbox environment
+
+### API Endpoints
+
+- `GET /health` - Facilitator health verification
+- `GET /supported` - Lists compatible payment schemes and networks
+- `POST /verify` - Validates payment signatures and requirements
+- `POST /settle` - Executes on-chain transfers via EIP-3009
+
+### Links
+
+- Integration: [build.avax.network/integrations/ultravioletadao](https://build.avax.network/integrations/ultravioletadao)
+- Facilitator: [facilitator.ultravioletadao.xyz](https://facilitator.ultravioletadao.xyz)
+- Website: [ultravioletadao.xyz](https://ultravioletadao.xyz)
+
+### Pricing
+
+- **Gas Fees**: $0 for users (100% covered by facilitator)
+- **Facilitator Fees**: See official documentation for current fee structure
+
+---
+
+## x402-rs
+
+**Best For**: High-performance applications, self-hosted infrastructure, Rust developers
+
+### Overview
+
+x402-rs is a high-performance Rust implementation perfect for latency-sensitive applications. Offers complete control with self-hosted deployment and zero facilitator fees.
+
+**Official Documentation**: [github.com/x402-rs/x402-rs](https://github.com/x402-rs/x402-rs)
+
+### Key Features
+
+- **High Performance**: < 50ms verification time
+- **Low Resource Usage**: Minimal CPU/memory footprint
+- **Self-Hosted**: Full control over infrastructure
+- **Rust Implementation**: Memory-safe and fast
+- **Zero Facilitator Fees**: Only blockchain gas costs
+- **Stateless Design**: Never holds user funds
+- **OpenTelemetry Support**: Integrates with Honeycomb, Prometheus, Grafana
+- **Multi-Network**: EVM chains (Avalanche, Base, Polygon) and Solana
+
+### Docker Quick Start
+
+```bash
+docker run --env-file .env -p 8080:8080 ukstv/x402-facilitator
+```
+
+**Required Environment Variables:**
+```bash
+HOST=0.0.0.0
+PORT=8080
+RPC_URL_AVALANCHE_FUJI=https://api.avax-test.network/ext/bc/C/rpc
+RPC_URL_AVALANCHE=https://api.avax.network/ext/bc/C/rpc
+SIGNER_TYPE=private-key
+EVM_PRIVATE_KEY=0x...
+RUST_LOG=info
+```
+
+### Installation (Rust)
+
+```bash
+cargo add x402-rs
+```
+
+Requirements: Rust 1.80+
+
+### Quick Start (Axum Server)
+
+```rust
+use x402_axum::X402Middleware;
+use x402_rs::{USDCDeployment, Network};
+use axum::{Router, routing::get};
+
+let x402 = X402Middleware::try_from("https://x402.org/facilitator/").unwrap();
+let usdc = USDCDeployment::by_network(Network::AvalancheFuji);
+
+let app = Router::new().route("/paid-content",
+    get(handler).layer(
+        x402.with_price_tag(
+            usdc.amount("0.025").pay_to("0xYourAddress").unwrap()
+        )
+    )
+);
+```
+
+### Quick Start (Client)
+
+```rust
+use x402_reqwest::X402ClientExt;
+use ethers::signers::PrivateKeySigner;
+
+let signer: PrivateKeySigner = "0x...".parse()?;
+let client = reqwest::Client::new()
+    .with_payments(signer)
+    .prefer(USDCDeployment::by_network(Network::Avalanche))
+    .build();
+
+let res = client.get("https://example.com/protected").send().await?;
+```
+
+### Key Components
+
+1. **x402-rs core**: Protocol types, facilitator traits, payment verification/settlement
+2. **Facilitator binary**: Production HTTP server for verifying and settling payments
+3. **x402-axum**: Axum middleware for protecting routes
+4. **x402-reqwest**: Wrapper for transparent client-side payment handling
+
+### Avalanche Configuration
+
+- **Fuji Testnet**: Set `RPC_URL_AVALANCHE_FUJI` for development
+- **C-Chain Mainnet**: Set `RPC_URL_AVALANCHE` for production
+- Networks are dynamically enabled based on provided RPC URLs
+
+### Links
+
+- Integration: [build.avax.network/integrations/x402-rs](https://build.avax.network/integrations/x402-rs)
+- GitHub: [github.com/x402-rs/x402-rs](https://github.com/x402-rs/x402-rs)
+- Docker Hub: [hub.docker.com/r/ukstv/x402-facilitator](https://hub.docker.com/r/ukstv/x402-facilitator)
+
+### Pricing
+
+- **Open Source**: Free (Apache-2.0 license)
+- **Self-Hosted**: Only gas costs (~$0.001/tx on Avalanche)
+- **Support**: Community-driven
+
+---
+
+## Facilitator Comparison
+
+> **Note**: All x402 facilitators enable gasless payments for end users. Users sign payment authorizations; facilitators submit transactions and pay gas. Some facilitators absorb gas costs completely (e.g., Ultravioleta), while others pass costs to merchants.
+
+| Feature | Thirdweb | PayAI | Ultravioleta | x402-rs |
+|---------|----------|-------|--------------|---------|
+| **Deployment** | Hosted | Hosted | Hosted | Self-Hosted |
+| **Multi-Chain** | ✅ | ✅ | ✅ | ✅ |
+| **AI Optimized** | ❌ | ✅ | ❌ | ❌ |
+| **DAO Governed** | ❌ | ❌ | ✅ | ❌ |
+| **Primary Language** | TypeScript | TypeScript | TypeScript | Rust |
+| **Verification Speed** | Fast | Fast | Medium | Very Fast |
+| **Dashboard** | ✅ | ✅ | ✅ | ❌ |
+| **Best For** | Enterprise | AI Agents | Decentralization | Performance |
+
+*Check official documentation for latest features, pricing, and capabilities.*
+
+---
+
+## Getting Started
+
+1. **Choose a Facilitator**: Based on your use case and requirements
+2. **Visit Integration Page**: [build.avax.network/integrations](https://build.avax.network/integrations)
+3. **Read Official Docs**: Each facilitator has comprehensive documentation
+4. **Install SDK**: Follow the installation instructions above
+5. **Test on Fuji**: Use Avalanche Fuji testnet for development
+6. **Deploy to Mainnet**: Go live on Avalanche C-Chain
+
+---
+
+## Summary
+
+Avalanche supports four major x402 facilitators: **Thirdweb x402** (enterprise), **PayAI** (AI agents), **Ultravioleta DAO** (gasless payments), and **x402-rs** (high-performance). Each offers different deployment models, features, and optimizations. Choose based on your specific needs—or use multiple facilitators to give users flexibility.
+
+**All facilitators leverage Avalanche's sub-second finality and low fees (~$0.001) to make micropayments economically viable.**
+
+For the latest information, pricing, and features, always consult the official documentation linked above.

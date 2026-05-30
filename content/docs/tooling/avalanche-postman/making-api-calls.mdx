@@ -7,8 +7,8 @@ After [installing Postman Collection](/docs/tooling/avalanche-postman/index) and
 
 You should also make sure the URL is the correct one for the call. This URL consists of the base URL and the endpoint:
 
-- The base URL is set by an environment variable called `baseURL`, and it is by default Avalanche's [public API](/docs/tooling/rpc-providers#mainnet-rpc---public-api-server). If you need to make a local API call, simply change the URL to localhost. This can be done by changing the value of the `baseURL` variable or changing the URL directly on the call tab. Check out the [RPC providers](/docs/tooling/rpc-providers) to see all public URLs.  
-- The API endpoint depends on which API is used. Please check out [our APIs](/docs/api-reference/c-chain/api) to find the proper endpoint.
+- The base URL is set by an environment variable called `baseURL`, and it is by default Avalanche's [public API](/docs/rpcs#mainnet-rpc---public-api-server). If you need to make a local API call, simply change the URL to localhost. This can be done by changing the value of the `baseURL` variable or changing the URL directly on the call tab. Check out the [RPC providers](/docs/rpcs) to see all public URLs.  
+- The API endpoint depends on which API is used. Please check out [our APIs](/docs/rpcs/c-chain) to find the proper endpoint.
     
 The last step is to add the needed parameters for the call. For example, if a user wants to fetch data about a certain transaction, the transaction hash is needed. For fetching data about a block, depending on the call used, the block hash or number will be required.
 

@@ -10,7 +10,6 @@ import rehypeKatex from 'rehype-katex';
 import { z } from 'zod';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { transformerTwoslash } from 'fumadocs-twoslash';
-import { createFileSystemTypesCache } from 'fumadocs-twoslash/cache-fs';
 
 export const { docs, meta } = defineDocs({
   docs: {
@@ -33,6 +32,9 @@ export const { docs, meta } = defineDocs({
 export const course = defineCollections({
   type: 'doc',
   dir: 'content/academy',
+  postprocess: {
+    includeProcessedMarkdown: true,
+  },
   schema: frontmatterSchema.extend({
     preview: z.string().optional(),
     index: z.boolean().default(false),
@@ -57,33 +59,6 @@ export const courseMeta = defineCollections({
   }),
 });
 
-export const codebaseEntrepreneur = defineCollections({
-  type: 'doc',
-  dir: 'content/codebase-entrepreneur',
-  schema: frontmatterSchema.extend({
-    preview: z.string().optional(),
-    index: z.boolean().default(false),
-    updated: z.string().or(z.date()).transform((value, context) => {
-      try {
-        return new Date(value);
-      } catch {
-        context.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
-        return z.NEVER;
-      }
-    }).optional(),
-    authors: z.array(z.string()).optional(),
-    comments: z.boolean().default(false),
-  }),
-});
-
-export const codebaseEntrepreneurMeta = defineCollections({
-  type: 'meta',
-  dir: 'content/codebase-entrepreneur',
-  schema: metaSchema.extend({
-    description: z.string().optional(),
-  }),
-});
-
 export const integrations = defineCollections({
   type: 'doc',
   async: true,
@@ -103,10 +78,13 @@ export const integrations = defineCollections({
 export const blog = defineCollections({
   type: 'doc',
   dir: 'content/blog',
+  postprocess: {
+    includeProcessedMarkdown: true,
+  },
   schema: frontmatterSchema.extend({
     authors: z.array(z.string()).optional(),
     topics: z.array(z.string()).optional(),
-    date: z.string().date().or(z.date()).optional(),
+    date: z.union([z.iso.date(), z.date()]).optional(),
     comments: z.boolean().default(false),
   }),
 });
@@ -114,6 +92,12 @@ export const blog = defineCollections({
 export default defineConfig({
   lastModifiedTime: 'git',
   mdxOptions: {
+    // When the build host can't reach a remote image (DNS / VPN / offline),
+    // skip dimension probing instead of failing the whole MDX compile. Next.js
+    // <Image> may warn about missing dimensions in dev but won't break the page.
+    remarkImageOptions: {
+      onError: 'ignore',
+    },
     rehypeCodeOptions: {
       lazy: true,
       langs: ['ts', 'js', 'html', 'tsx', 'mdx'],
@@ -124,9 +108,7 @@ export default defineConfig({
       },
       transformers: [
         ...(rehypeCodeDefaultOptions.transformers ?? []),
-        transformerTwoslash({
-          typesCache: createFileSystemTypesCache(),
-        }),
+        transformerTwoslash(),
         {
           name: 'transformers:remove-notation-escape',
           code(hast) {

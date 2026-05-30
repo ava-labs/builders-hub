@@ -1,0 +1,9 @@
+{
+  "title": "Rust VMs",
+  "pages": [
+    "intro-avalanche-rs",
+    "setting-up-environment",
+    "installing-vm"
+  ]
+}
+
