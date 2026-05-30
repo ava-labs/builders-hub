@@ -19,8 +19,7 @@ type SponsorsProps = {
   isPreview?: boolean;
 };
 
-const stripSurfaceClass =
-  "border-y border-zinc-200 bg-white dark:border-zinc-300/25 dark:bg-zinc-100";
+const stripSurfaceClass = "[background-color:#1b1b1b] dark:[background-color:#e4e4e4]";
 
 function Sponsors({ hackathon, isPreview = false }: SponsorsProps) {
   const lang = normalizeEventsLang(hackathon.content?.language);
@@ -68,7 +67,7 @@ function Sponsors({ hackathon, isPreview = false }: SponsorsProps) {
                   src={partner.logo}
                   alt={partner.name}
                   frameClassName="h-[100px] w-[160px] sm:w-[180px] max-w-full"
-                  imageClassName="object-contain opacity-90 grayscale transition hover:opacity-100 hover:grayscale-0 dark:opacity-90 dark:hover:opacity-100"
+                  imageClassName="object-contain filter grayscale invert dark:invert-0"
                   fallbackIcon="image"
                 />
               </div>
@@ -97,7 +96,7 @@ function Sponsors({ hackathon, isPreview = false }: SponsorsProps) {
                     src={partner.logo}
                     alt={partner.name}
                     frameClassName="h-[100px] w-[140px] max-w-full sm:h-[120px] sm:w-[200px]"
-                    imageClassName="object-contain opacity-90 grayscale transition hover:opacity-100 hover:grayscale-0 dark:opacity-90 dark:hover:opacity-100"
+                    imageClassName="object-contain filter grayscale invert dark:invert-0"
                     fallbackIcon="image"
                   />
                 </CarouselItem>
