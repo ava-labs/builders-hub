@@ -164,6 +164,7 @@ export const AuthOptions: NextAuthOptions = {
             await prisma.user.update({
               where: { id: existingUser.id },
               data: { last_login: new Date() },
+              select: { id: true },
             });
           }
           // If user doesn't exist, don't create them yet

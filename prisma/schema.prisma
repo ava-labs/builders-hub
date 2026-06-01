@@ -167,7 +167,9 @@ model Project {
   is_preexisting_idea Boolean             @default(false)
   small_cover_url     String?             @default("")
   tags                String[]            @default([])
-  is_winner           Boolean?            @default(false)
+  is_winner                Boolean?            @default(false)
+  is_rejected              Boolean             @default(false)
+  submission_email_sent    Boolean             @default(false)
   categories          String[]            @default([])
   origin              String              @default("unknown")
   other_category      String?
@@ -412,12 +414,11 @@ model FormData {
 }
 
 model Evaluation {
-  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
   form_data_id  String?
   project_id    String?
   hackathon_id  String?
   evaluator_id  String
-  verdict       String?
   comment       String?
   score_overall Float?
   scores        Json?
@@ -425,8 +426,9 @@ model Evaluation {
   updated_at    DateTime  @updatedAt @db.Timestamptz(3)
   stage         Int       @default(0)
   evaluator     User      @relation("Evaluations", fields: [evaluator_id], references: [id], onDelete: Cascade)
-  formData      FormData? @relation(fields: [form_data_id], references: [id], onDelete: Cascade)
   project       Project?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  verdict       String?
+  formData      FormData? @relation(fields: [form_data_id], references: [id], onDelete: Cascade)
 
   @@unique([form_data_id, evaluator_id, stage])
   @@unique([project_id, evaluator_id])
@@ -620,9 +622,17 @@ model Repository {
 }
 
 model Speaker {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name     String
-  icon     String?
   category String
   picture  String
-  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  icon     String? 
+}
+
+model Resource {
+  id          String @id @default(uuid())
+  title       String
+  description String
+  link        String
+  icon        String
 }

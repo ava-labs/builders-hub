@@ -46,6 +46,11 @@ export const POST = withAuth(async (
       referral_attribution = null,
     } = body;
 
+    if (!email) {
+      console.error('[create-after-terms] No email in session — session:', JSON.stringify({ id: session.user.id, email }));
+      return NextResponse.json({ error: 'No email in session' }, { status: 400 });
+    }
+
     // Check if user already exists (shouldn't happen, but safety check)
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -80,6 +85,10 @@ export const POST = withAuth(async (
         last_login: new Date(),
         notifications: notifications,
         consent_sharing: consent_sharing,
+        custom_attributes: [],
+        additional_social_accounts: [],
+        wallet: [],
+        skills: [],
       }
     });
 
@@ -107,10 +116,10 @@ export const POST = withAuth(async (
       created: true,
       referralAttributed,
     });
-  } catch (error) {
-    console.error('Error creating user after terms:', error);
+  } catch (error: any) {
+    console.error('[create-after-terms] Failed — code:', error?.code, '| message:', error?.message, '| meta:', JSON.stringify(error?.meta));
     return NextResponse.json(
-      { error: 'Failed to create user' },
+      { error: 'Failed to create user', code: error?.code },
       { status: 500 }
     );
   }

@@ -10,7 +10,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { RegistrationForm } from "@/types/registrationForm";
 import { sendMail } from "./mail";
-import { recordReferralAttribution } from "./referrals";
+import { recordReferralAttributionFromRequest } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
 import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
 
@@ -111,7 +111,8 @@ export const validateRegisterForm = (
   isOnlineHackathon: boolean = false
 ): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon), registerData);
 export async function createRegisterForm(
-  registerData: Partial<RegistrationForm>
+  registerData: Partial<RegistrationForm>,
+  request?: Request
 ): Promise<RegistrationForm> {
   // Get hackathon information to determine if it's online
   const hackathon = await prisma.hackathon.findUnique({
@@ -210,12 +211,18 @@ export async function createRegisterForm(
 
   let referralAttributed = false;
   try {
-    const attribution = await recordReferralAttribution({
-      targetType: "hackathon_registration",
-      targetId: newRegisterFormData.hackathon_id,
-      userEmail: newRegisterFormData.email,
-      attribution: (registerData as any).referral_attribution ?? null,
-    });
+    // Merge the client-supplied attribution with the `ref` cookie so a referral
+    // code still lands even when the form payload omits it (e.g. the code only
+    // ever lived in storage/cookie and not in the submitted URL).
+    const attribution = await recordReferralAttributionFromRequest(
+      request ?? new Request("https://build.avax.network"),
+      {
+        targetType: "hackathon_registration",
+        targetId: newRegisterFormData.hackathon_id,
+        userEmail: newRegisterFormData.email,
+        attribution: (registerData as any).referral_attribution ?? null,
+      }
+    );
     referralAttributed = Boolean(attribution);
   } catch (error) {
     console.error("[Referral] Failed to record hackathon registration attribution:", error);
@@ -297,6 +304,46 @@ export async function sendConfirmationMail(
     await sendMail(email, html, subject, text);
   } catch (error) {
     console.error("Error sending confirmation email:", error);
+  }
+}
+
+export async function sendSubmissionConfirmationMail(
+  email: string,
+  projectName: string,
+  hackathonId: string,
+) {
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { title: true, content: true },
+  });
+  const lang = normalizeEventsLang((hackathon?.content as any)?.language);
+  const subject = t(lang, "submission.email.subject", { projectName });
+  const text = `${t(lang, "submission.email.congrats")} ${t(lang, "submission.email.body")} "${projectName}" ${t(lang, "submission.email.body2")} ${hackathon?.title}. ${t(lang, "submission.email.body3")}`;
+  const html = `
+    <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">
+      <h2 style="color: white; font-size: 20px; margin-bottom: 16px;">${t(lang, "submission.email.h2")}</h2>
+
+      <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <p style="font-size: 22px; font-weight: bold; color: #EF4444; margin: 8px 0;">${t(lang, "submission.email.congrats")}</p>
+        <p style="font-size: 16px; color: #ffffff; margin: 8px 0;">
+          ${t(lang, "submission.email.body")} <strong style="color: #EF4444;">${projectName}</strong> ${t(lang, "submission.email.body2")} <strong>${hackathon?.title ?? ""}</strong>.
+        </p>
+        <p style="font-size: 14px; color: #A1A1AA; margin: 12px 0;">${t(lang, "submission.email.body3")}</p>
+        <p style="font-size: 10px; font-weight: bold; color: #A1A1AA; margin: 8px 0;">${t(lang, "submission.email.automated")}</p>
+      </div>
+
+      <p style="font-size: 12px; color: #A1A1AA;">${t(lang, "submission.email.ignore")}</p>
+
+      <div style="margin-top: 20px;">
+        <img src="https://build.avax.network/logo-white.png" alt="Company Logo" style="max-width: 120px; margin-bottom: 10px;">
+        <p style="font-size: 12px; color: #A1A1AA;">${t(lang, "submission.email.footer")}</p>
+      </div>
+    </div>
+  `;
+  try {
+    await sendMail(email, html, subject, text);
+  } catch (error) {
+    console.error("Error sending submission confirmation email:", error);
   }
 }
 

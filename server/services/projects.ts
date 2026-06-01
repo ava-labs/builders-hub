@@ -278,6 +278,7 @@ export async function updateProject(
 export async function CheckInvitation(invitationId: string, user_id: string) {
   const user = await prisma.user.findUnique({
     where: { id: user_id },
+    select: { id: true, email: true },
   });
   const member = await prisma.member.findFirst({
     where: {
@@ -345,6 +346,10 @@ export async function GetProjectByHackathonAndUser(
   const user = await prisma.user.findFirst({
     where: {
       OR: [{ id: user_id }, { email: user_id }],
+    },
+    select: {
+      id: true,
+      email: true,
     },
   });
 

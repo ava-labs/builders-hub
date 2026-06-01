@@ -43,7 +43,7 @@ export function EmailListInput({
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-sm font-medium text-zinc-200">
+        <label className="block text-sm font-medium text-zinc-500">
           {label}
         </label>
       )}
@@ -51,7 +51,7 @@ export function EmailListInput({
         <p className="text-xs text-zinc-400">{description}</p>
       )}
       <div
-        className="flex flex-wrap items-center gap-2 bg-zinc-950 px-3 py-2 rounded-md min-h-[42px] focus-within:ring-2 focus-within:ring-zinc-600 border border-zinc-700"
+        className="flex flex-wrap items-center gap-2 bg-[#00000000] px-3 py-2 rounded-md min-h-[42px] focus-within:ring-2 focus-within:ring-zinc-600 border border-zinc-700"
         onClick={() => {
           const input = document.getElementById("email-list-input") as HTMLInputElement | null;
           input?.focus();
