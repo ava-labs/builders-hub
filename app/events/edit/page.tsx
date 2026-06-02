@@ -3334,23 +3334,6 @@ const HackathonsEdit = () => {
                                       <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_deadline')}</p>
                                     )}
                                   </div>
-                                  <div>
-                                    <label className="font-medium text-xl mb-2 block">{t[language].registrationMode}:</label>
-                                    <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].registrationModeHelp}</div>
-                                    <select
-                                      value={formDataContent.registration_mode ?? 'full'}
-                                      onChange={(e) =>
-                                        setFormDataContent({
-                                          ...formDataContent,
-                                          registration_mode: e.target.value === 'simple' ? 'simple' : 'full',
-                                        })
-                                      }
-                                      className="w-full mb-4 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-900 dark:text-zinc-100"
-                                    >
-                                      <option value="full">full</option>
-                                      <option value="simple">simple</option>
-                                    </select>
-                                  </div>
                                 </>
                               )}
                               <div>

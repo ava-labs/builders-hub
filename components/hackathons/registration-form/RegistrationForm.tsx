@@ -146,9 +146,7 @@ export function RegisterForm({
   const requireSharingConsent =
     isTeam1 && consentsLoaded && userConsentState.consent_sharing !== true;
   const lang = normalizeEventsLang(hackathon?.content?.language);
-  const registrationMode: "full" | "simple" = hackathon?.content?.registration_mode === "simple" ? "simple" : "full";
-  const isSimpleMode = registrationMode === "simple";
-  const totalSteps = isSimpleMode ? 1 : 2;
+  const totalSteps = 2;
   
   const getDefaultValues = () => ({
     
@@ -484,7 +482,7 @@ export function RegisterForm({
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
-    if (!isSimpleMode && step < 2) {
+    if (step < 2) {
       setStep((prev) => (prev < 2 ? prev + 1 : prev));
     } else {
       setTeamError(null);
@@ -497,7 +495,7 @@ export function RegisterForm({
         };
       }
 
-      if (!isSimpleMode && !isOnlineHackathon && !data.prohibited_items) {
+      if (!isOnlineHackathon && !data.prohibited_items) {
         errors.prohibited_items = {
           type: "custom",
           message: "You must agree not to bring prohibited items to continue."
@@ -764,9 +762,9 @@ export function RegisterForm({
               <RegisterFormStep1
                 user={session?.user}
                 lang={lang}
-                mode={registrationMode}
+                mode="full"
                 countryLocked={countryLocked}
-                requireSocials={isSimpleMode}
+                requireSocials={false}
               />
               {hackathon_id && hasTeamPicker(
                 getTeamSizeRange({
@@ -808,7 +806,7 @@ export function RegisterForm({
               />
             </>
           )}
-          {!isSimpleMode && step === 2 && (
+          {step === 2 && (
             <RegisterFormStep3
               isOnlineHackathon={isOnlineHackathon}
               lang={lang}
@@ -817,50 +815,6 @@ export function RegisterForm({
               requireSharingConsent={requireSharingConsent}
             />
           )}
-          {isSimpleMode && step === 1 && (
-            <>
-              <div className="mt-6 flex items-start gap-3">
-                <input
-                  id="terms_event_conditions"
-                  type="checkbox"
-                  checked={!!form.watch("terms_event_conditions")}
-                  onChange={(e) =>
-                    form.setValue("terms_event_conditions", e.target.checked, { shouldDirty: true })
-                  }
-                  className="mt-1 h-4 w-4"
-                />
-                <label htmlFor="terms_event_conditions" className="text-sm cursor-pointer">
-                  {t(lang, "reg.step3.terms.label")}{" "}
-                  <a
-                    href="https://assets.website-files.com/602e8e4411398ca20cfcafd3/63fe6be7e0d14da8cbdb9984_Avalanche%20Events%20Participation%20Terms%20and%20Conditions%20(Final_28Feb2023).docx.pdf"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {t(lang, "reg.step3.terms.link")}
-                  </a>
-                  {t(lang, "reg.step3.terms.connector")}
-                  <a
-                    href="https://www.avax.network/privacy-policy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {t(lang, "reg.step3.privacyLink")}
-                  </a> *
-                </label>
-              </div>
-            </>
-          )}
-          {isSimpleMode &&
-            step === 1 &&
-            form.formState.errors.terms_event_conditions && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.terms_event_conditions.message as string}
-              </p>
-            )}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
