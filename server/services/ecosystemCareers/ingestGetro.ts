@@ -1,5 +1,6 @@
 import { prisma } from '@/prisma/prisma';
 import { cleanApplyUrl } from '@/lib/ecosystem-careers/cleanApplyUrl';
+import { isHttpUrl } from '@/lib/ecosystem-careers/isHttpUrl';
 import { sanitizeJobHtml } from '@/lib/ecosystem-careers/sanitizeJobHtml';
 import { pruneStaleExternalListings, upsertExternalListing } from './upsertExternalListing';
 
@@ -192,7 +193,7 @@ export async function ingestGetro(opts: IngestOptions = {}): Promise<IngestResul
 
   for (const j of allJobs) {
     const externalId = j.id?.toString();
-    if (!externalId || !j.title || !j.url) {
+    if (!externalId || !j.title || !isHttpUrl(j.url)) {
       skipped += 1;
       continue;
     }

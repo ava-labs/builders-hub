@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isHttpUrl } from '@/lib/ecosystem-careers/isHttpUrl';
 
 export const REMOTE_TYPES = ['remote', 'onsite', 'hybrid'] as const;
 export const EMPLOYMENT_TYPES = ['full_time', 'contract', 'part_time'] as const;
@@ -13,7 +14,10 @@ export const listingBodySchema = z.object({
   employment_type: z.enum(EMPLOYMENT_TYPES).optional().nullable(),
   seniority: z.string().max(40).optional().nullable(),
   tags: z.array(z.string().min(1).max(40)).max(6).optional(),
-  apply_url: z.string().url(),
+  apply_url: z
+    .string()
+    .url()
+    .refine(isHttpUrl, { message: 'apply_url must be an http(s) URL' }),
 });
 
 export type ListingBody = z.infer<typeof listingBodySchema>;

@@ -1,4 +1,5 @@
 import { prisma } from '@/prisma/prisma';
+import { isHttpUrl } from '@/lib/ecosystem-careers/isHttpUrl';
 import { sanitizeJobHtml } from '@/lib/ecosystem-careers/sanitizeJobHtml';
 import { pruneStaleExternalListings, upsertExternalListing } from './upsertExternalListing';
 
@@ -232,7 +233,7 @@ export async function ingestWeb3Career(
 
   for (const j of relevant) {
     const externalId = j.id?.toString();
-    if (!externalId || !j.title || !j.apply_url) {
+    if (!externalId || !j.title || !isHttpUrl(j.apply_url)) {
       skipped += 1;
       continue;
     }

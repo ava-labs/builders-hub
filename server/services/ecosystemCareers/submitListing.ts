@@ -122,6 +122,7 @@ export async function updateListing(
       source: true,
       project_id: true,
       posted_by_user_id: true,
+      is_active: true,
     },
   });
   if (!existing) throw new AuthorizationError('Listing not found');
@@ -138,8 +139,6 @@ export async function updateListing(
   if (input.project_id !== projectId) {
     throw new AuthorizationError('Cannot move listing between projects');
   }
-
-  const approved = await loadProjectCareersApproved(projectId);
 
   const sanitizedDescription = sanitizeJobHtml(input.description) || null;
   const shortDescription = (input.short_description?.trim() ||
@@ -159,7 +158,10 @@ export async function updateListing(
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 6),
       apply_url: cleanApplyUrl(input.apply_url.trim()),
       last_seen_at: new Date(),
-      is_active: approved,
+      // Editing must not change visibility: a deactivated listing under an
+      // approved project would otherwise silently republish on every save.
+      // Activation happens only on create or admin approveProjectForCareers.
+      is_active: existing.is_active,
     },
   });
 }
