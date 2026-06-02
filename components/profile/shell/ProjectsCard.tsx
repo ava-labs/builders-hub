@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Trophy } from "lucide-react";
+import { Briefcase, ExternalLink, Trophy } from "lucide-react";
 import { PuzzleIcon, GitHubIcon } from "./icons";
 
 const BUILD_GAMES_HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
@@ -51,11 +52,11 @@ export function ProjectsCard({ projects, loading = false }: Props) {
   const router = useRouter();
   return (
     <div className="pr-card">
-      <div className="pr-head">
+      <div className="pr-head" style={{ alignItems: "flex-start" }}>
         <div className="pr-ico">
           <PuzzleIcon size={18} />
         </div>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h3>Projects</h3>
           <div className="pr-desc">
             {loading
@@ -64,6 +65,48 @@ export function ProjectsCard({ projects, loading = false }: Props) {
                 ? "No projects yet — submit one via Hackathons or the Showcase."
                 : "Things you've built or shipped."}
           </div>
+        </div>
+        {/* Discoverability for Ecosystem Careers from the Projects card. */}
+        <div
+          style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}
+        >
+          <Link
+            href="/ecosystem-careers/my-listings"
+            className="pr-btn pr-btn-ghost"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+              padding: "6px 10px",
+              borderRadius: 8,
+              border: "1px solid var(--pr-g-300)",
+              color: "inherit",
+              textDecoration: "none",
+            }}
+          >
+            <Briefcase size={14} />
+            My job listings
+          </Link>
+          <Link
+            href="/ecosystem-careers/submit"
+            className="pr-btn pr-btn-primary"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              padding: "6px 12px",
+              borderRadius: 8,
+              background:
+                "linear-gradient(90deg,#dc2626,#ef4444)",
+              color: "#fff",
+              textDecoration: "none",
+            }}
+          >
+            Post a role
+          </Link>
         </div>
       </div>
       <div className="pr-body" style={{ gap: 12 }}>

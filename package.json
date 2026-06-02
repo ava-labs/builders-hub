@@ -128,6 +128,7 @@
     "fumadocs-ui": "16.0.15",
     "geist": "^1.5.1",
     "hast-util-to-jsx-runtime": "^2.3.6",
+    "html-react-parser": "^6.1.2",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "idb": "^8.0.3",
