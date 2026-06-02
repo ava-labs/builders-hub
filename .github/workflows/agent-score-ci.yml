@@ -1,14 +1,20 @@
 name: Agent Score CI
 
-# Deterministic, in-repo guardrail for AI-readiness (Fern Agent Score).
+# Regression guardrail for the AI-readiness infrastructure (Fern Agent Score).
 #
-# The live Agent Score is noisy: it samples ~10 random pages per run and its
-# check suite evolves, so the headline number drifts a few points run-to-run
-# regardless of our changes. This job instead asserts the structural invariants
-# we actually control, so a refactor that would quietly degrade the score fails
-# *here* — at the source — instead of on the next external audit.
+# PR #4065 ("fern agent score") got the audit to 100% by adding a set of
+# load-bearing, easy-to-break-by-accident pieces: the /llms.txt <link> in the
+# root <head>, the .md rewrites, the proxy.ts content-negotiation matcher, the
+# /api/raw markdown route, and includeProcessedMarkdown for HTML↔markdown
+# parity. None of those are obviously "SEO" when you're editing them for some
+# other reason (e.g. adding an auth route to proxy.ts's matcher), so they can
+# silently regress.
 #
-# The live score itself is tracked separately by agent-score-monitor.yml.
+# This job re-asserts each of those invariants whenever a relevant file is
+# touched, so the regression fails *here* — at the source, on the PR — instead
+# of weeks later on the next external audit. It deliberately does NOT call the
+# live afdocs score: that number is noisy (samples ~10 random pages per run, the
+# check suite evolves) and is better watched out-of-band, not gated in CI.
 
 on:
   pull_request:
@@ -27,6 +33,8 @@ on:
       - 'app/blog/[...slug]/page.tsx'
       - 'app/integrations/[...slug]/page.tsx'
       - 'next.config.mjs'
+      - 'proxy.ts'
+      - 'source.config.ts'
       - 'tests/unit/seo/**'
       - '.github/workflows/agent-score-ci.yml'
 
@@ -124,3 +132,44 @@ jobs:
             fi
           done
           [ $errors -eq 0 ] && echo "✓ .md rewrites present for docs, academy, blog, integrations" || exit 1
+
+      # proxy.ts serves markdown on `Accept: text/markdown` by rewriting to
+      # /api/raw, gated by its config.matcher. It also carries unrelated auth
+      # routing, so an edit there (the events routes were added this way) can
+      # silently drop the content paths and kill content negotiation.
+      - name: Markdown content negotiation intact (proxy.ts)
+        run: |
+          errors=0
+          if ! grep -q "text/markdown" proxy.ts; then
+            echo "::error file=proxy.ts::content negotiation removed — must serve markdown on 'Accept: text/markdown'"
+            errors=$((errors + 1))
+          fi
+          if ! grep -q "/api/raw" proxy.ts; then
+            echo "::error file=proxy.ts::markdown requests must be rewritten to /api/raw"
+            errors=$((errors + 1))
+          fi
+          # Every doc section must stay in both the negotiation list and the matcher.
+          for prefix in "/docs/" "/academy/" "/blog/" "/integrations/"; do
+            if ! grep -q "'${prefix}'" proxy.ts; then
+              echo "::error file=proxy.ts::content prefix '${prefix}' dropped from contentPrefixes"
+              errors=$((errors + 1))
+            fi
+          done
+          for m in "/docs/:path\*" "/blog/:path\*" "/integrations/:path\*"; do
+            if ! grep -q "\"${m}\"" proxy.ts; then
+              echo "::error file=proxy.ts::config.matcher missing content path \"${m}\" — proxy won't run for markdown negotiation"
+              errors=$((errors + 1))
+            fi
+          done
+          [ $errors -eq 0 ] && echo "✓ proxy.ts markdown content negotiation + matcher intact" || exit 1
+
+      # getText('processed') (used by getLLMText) only returns rendered-equivalent
+      # markdown when includeProcessedMarkdown is enabled; without it the .md
+      # output diverges from the HTML (markdown-content-parity).
+      - name: Processed markdown enabled (content parity)
+        run: |
+          if ! grep -q "includeProcessedMarkdown" source.config.ts; then
+            echo "::error file=source.config.ts::includeProcessedMarkdown must stay enabled so .md mirrors the rendered HTML (markdown-content-parity)"
+            exit 1
+          fi
+          echo "✓ includeProcessedMarkdown enabled — markdown mirrors rendered content"
