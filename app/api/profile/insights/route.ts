@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 
 import { withAuth } from "@/lib/protectedRoute";
-import { canAccessBuilderInsights } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/roles";
 import { getBuilderInsightsData } from "@/server/services/builderInsights";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!canAccessBuilderInsights(session.user?.custom_attributes)) {
+  if (!hasPermission(session.user?.custom_attributes, { resource: "builder_insights", action: "read" })) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

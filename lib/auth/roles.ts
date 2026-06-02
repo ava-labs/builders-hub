@@ -20,31 +20,12 @@ import {
   Permission,
   getPermissionsFromRoles,
   checkPermission,
+  hasPermission,
 } from "./rolePermissions";
 import { prisma } from "@/prisma/prisma";
 
 export type { Permission };
-
-// ---------------------------------------------------------------------------
-// Core helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns true when the user's roles grant the required { resource, action }.
- *
- * This is the preferred authorization primitive for new code.
- *
- * @example
- * hasPermission(session.user.custom_attributes, { resource: "badge", action: "write" })
- */
-export function hasPermission(
-  customAttributes: readonly string[] | null | undefined,
-  required: Permission,
-): boolean {
-  if (!customAttributes || customAttributes.length === 0) return false;
-  const permissions = getPermissionsFromRoles([...customAttributes]);
-  return checkPermission(permissions, required);
-}
+export { hasPermission };
 
 // ---------------------------------------------------------------------------
 // Backward-compatible shortcuts (kept so existing call-sites compile)

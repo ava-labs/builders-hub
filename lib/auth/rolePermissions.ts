@@ -179,3 +179,20 @@ export function checkPermission(
     return resourceMatch && actionMatch;
   });
 }
+
+/**
+ * Returns true when the user's roles grant the required { resource, action }.
+ *
+ * Safe to import in both server and client components — this module has no
+ * server-only dependencies (no prisma, no next/headers, etc.).
+ *
+ * For async checks (e.g. judge rows in DB) use `canEvaluateHackathon` from
+ * `@/lib/auth/roles` in server components / route handlers only.
+ */
+export function hasPermission(
+  customAttributes: readonly string[] | null | undefined,
+  required: Permission,
+): boolean {
+  if (!customAttributes || customAttributes.length === 0) return false;
+  return checkPermission(getPermissionsFromRoles([...customAttributes]), required);
+}

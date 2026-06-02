@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
-import { hasShowcaseRole } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import ProjectOverview from "./ProjectOverview";
 import { Project } from "@/types/showcase";
 import { UserBadge } from "@/types/badge";
@@ -34,7 +34,7 @@ export function ShowcaseProjectAuthWrapper({
       return;
     }
 
-    if (!hasShowcaseRole(session.user.custom_attributes)) {
+    if (!hasPermission(session.user.custom_attributes, { resource: "showcase", action: "read" })) {
       router.push("/showcase?error=unauthorized");
       return;
     }
@@ -58,7 +58,7 @@ export function ShowcaseProjectAuthWrapper({
     );
   }
 
-  if (!hasShowcaseRole(session.user.custom_attributes)) {
+  if (!hasPermission(session.user.custom_attributes, { resource: "showcase", action: "read" })) {
     return null;
   }
 

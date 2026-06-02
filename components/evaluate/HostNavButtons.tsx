@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { canEvaluateHackathon, hasPermission } from "@/lib/auth/roles";
+import { canEvaluateHackathon } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { Gavel, ClipboardCheck } from "lucide-react";
 
 type Props = {

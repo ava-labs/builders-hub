@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { withAuthRole, type RouteParams } from '@/lib/protectedRoute';
+import { withAuthPermission, type RouteParams } from '@/lib/protectedRoute';
 import { approveProjectForCareers } from '@/server/services/ecosystemCareers/submitListing';
 
-export const POST = withAuthRole<RouteParams<{ id: string }>>(
-  'devrel',
+export const POST = withAuthPermission<RouteParams<{ id: string }>>(
+  { resource: 'platform', action: 'admin' },
   async (_req, ctx) => {
     const { id } = await ctx.params;
     try {

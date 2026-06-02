@@ -1,6 +1,6 @@
 "use client";
 import { Search, Building2 } from "lucide-react";
-import { hasPermission } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { Input } from "../ui/input";
 import {
   Select,

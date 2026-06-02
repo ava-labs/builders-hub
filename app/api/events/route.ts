@@ -177,7 +177,6 @@ export const POST = withAuthPermission({ resource: "event", action: "write" }, a
     // may contain PII.
     console.warn('[AUDIT] POST /api/events — hackathon creation', {
       userId: session.user.id,
-      roleUsed,
       title: validatedBody.title,
       timestamp: new Date().toISOString(),
     });

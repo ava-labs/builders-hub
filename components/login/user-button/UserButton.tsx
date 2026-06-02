@@ -18,7 +18,7 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
-import { hasPermission } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 const AVATAR_PX = 36;
 

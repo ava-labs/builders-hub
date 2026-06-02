@@ -34,7 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
 import NotFound from '@/app/not-found';
 import { useLoginCompleteListener } from '@/hooks/useLoginModal';
-import { hasPermission } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 type Props = {
   projects: Project[];

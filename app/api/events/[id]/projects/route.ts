@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
-import {
-  canEvaluateHackathon,
-  verifyHackathonProjectsApiKey,
-} from "@/lib/auth/permissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import { canEvaluateHackathon } from "@/lib/auth/roles";
 import { timingSafeEqual } from "node:crypto";
