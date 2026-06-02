@@ -20,8 +20,6 @@ interface RegisterFormStep3Props {
   showSharingConsent?: boolean;
   /** Team1-organized event — sharing consent is mandatory to register. */
   requireSharingConsent?: boolean;
-  /** Team1-organized event — marketing/notifications consent is mandatory too. */
-  requireNotificationsConsent?: boolean;
 }
 
 export function RegisterFormStep3({
@@ -30,13 +28,9 @@ export function RegisterFormStep3({
   showNotificationsConsent = false,
   showSharingConsent = false,
   requireSharingConsent = false,
-  requireNotificationsConsent = false,
 }: RegisterFormStep3Props) {
   const form = useFormContext<RegisterFormValues>();
   const sharingError = form.formState.errors.user_consent_sharing?.message as
-    | string
-    | undefined;
-  const notificationsError = form.formState.errors.user_notifications?.message as
     | string
     | undefined;
 
@@ -44,17 +38,11 @@ export function RegisterFormStep3({
   if (showNotificationsConsent) {
     consentItems.push({
       key: "user_notifications",
-      label:
-        t(lang, "consents.notifications.label") +
-        (requireNotificationsConsent ? " *" : ""),
+      label: t(lang, "consents.notifications.label"),
       hint: t(lang, "consents.notifications.hint"),
       checked: form.watch("user_notifications") ?? false,
-      onCheckedChange: (next) => {
-        form.setValue("user_notifications", next, { shouldDirty: true });
-        if (next && notificationsError) {
-          form.clearErrors("user_notifications");
-        }
-      },
+      onCheckedChange: (next) =>
+        form.setValue("user_notifications", next, { shouldDirty: true }),
     });
   }
   if (showSharingConsent) {
@@ -129,9 +117,6 @@ export function RegisterFormStep3({
             />
             {sharingError ? (
               <p className="text-sm text-red-500">{sharingError}</p>
-            ) : null}
-            {notificationsError ? (
-              <p className="text-sm text-red-500">{notificationsError}</p>
             ) : null}
           </div>
         )}

@@ -431,8 +431,6 @@ const dict: Record<EventsLang, Dict> = {
       "Team1 may contact you about local events, mentorship opportunities, or regional ecosystem programs.",
     "consents.consentSharing.required":
       "You must consent to share your contact information with Avalanche Team1 to register for this event.",
-    "consents.notifications.required":
-      "You must opt in to marketing communications to register for this event.",
 
     // Completed dialog
     "reg.dialog.title": "Application Submitted",
@@ -962,8 +960,6 @@ const dict: Record<EventsLang, Dict> = {
       "Team1 podría contactarte sobre eventos locales, oportunidades de mentoría o programas regionales del ecosistema.",
     "consents.consentSharing.required":
       "Debes aceptar compartir tu información de contacto con Avalanche Team1 para registrarte en este evento.",
-    "consents.notifications.required":
-      "Debes aceptar las comunicaciones de marketing para registrarte en este evento.",
 
     // Completed dialog
     "reg.dialog.title": "Solicitud enviada",
