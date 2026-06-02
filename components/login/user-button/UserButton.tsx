@@ -3,7 +3,6 @@
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import {
@@ -46,7 +45,6 @@ function initialsFromName(name?: string | null): string {
 
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
-  const router = useRouter();
   const [localSeed, setLocalSeed] = useState<AvatarSeed | null>(null);
   const [localEnabled, setLocalEnabled] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -111,7 +109,7 @@ export function UserButton() {
       });
     }
     await signOut({ redirect: false });
-    router.push('/');
+    window.location.href = '/';
   };
 
   const renderAvatar = () => {
