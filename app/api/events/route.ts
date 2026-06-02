@@ -79,14 +79,14 @@ export async function GET(req: NextRequest) {
       isDevrel = customAttributes.includes("devrel");
       const isTeam1Admin = customAttributes.includes("team1-admin");
       const isHackathonCreator = customAttributes.includes("hackathonCreator");
-      isPrivileged = isDevrel || isTeam1Admin;
+      isPrivileged = isDevrel || isTeam1Admin || isHackathonCreator;
       actingEmail = user.email || undefined;
       actingTeam = user.team_id || null;
 
       if (managedOnly) {
         options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
         if (isDevrel) {
-        } else if (isTeam1Admin) {
+        } else if (isTeam1Admin || isHackathonCreator) {
           options.created_by = userId;
           options.cohost_email = actingEmail;
           options.organizer_team = actingTeam;
@@ -129,12 +129,14 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequest, context: any, session: any) => {
+export const POST = withAuthRole(ROLE_GROUPS.hackathonEditor, async (req: NextRequest, context: any, session: any) => {
   const customAttributes: string[] = session?.user?.custom_attributes || [];
   const roleUsed = customAttributes.includes('devrel')
     ? 'devrel'
     : customAttributes.includes('team1-admin')
     ? 'team1-admin'
+    : customAttributes.includes('hackathonCreator')
+    ? 'hackathonCreator'
     : null;
 
   try {

@@ -115,7 +115,7 @@ export function canManageHackathon(
 ): boolean {
   const attrs = user?.custom_attributes ?? [];
   if (attrs.includes("devrel")) return true;
-  if (attrs.includes("team1-admin")) {
+  if (attrs.includes("team1-admin") || attrs.includes("hackathonCreator")) {
     return !!user?.team_id && !!hackathon?.organizers && hackathon.organizers === user.team_id;
   }
   return false;

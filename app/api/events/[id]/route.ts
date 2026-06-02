@@ -63,7 +63,7 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export const PUT = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequest, context: any, session: any) => {
+export const PUT = withAuthRole(ROLE_GROUPS.hackathonEditor, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
@@ -92,7 +92,7 @@ export const PUT = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequ
   }
 });
 
-export const PATCH = withAuthRole(ROLE_GROUPS.hackathonAdmin, async (req: NextRequest, context: any, session: any) => {
+export const PATCH = withAuthRole(ROLE_GROUPS.hackathonEditor, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();

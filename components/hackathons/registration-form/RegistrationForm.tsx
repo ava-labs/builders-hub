@@ -830,7 +830,26 @@ export function RegisterForm({
                   className="mt-1 h-4 w-4"
                 />
                 <label htmlFor="terms_event_conditions" className="text-sm cursor-pointer">
-                  {t(lang, "reg.step2.terms.label")}
+                  {t(lang, "reg.step3.terms.label")}{" "}
+                  <a
+                    href="https://assets.website-files.com/602e8e4411398ca20cfcafd3/63fe6be7e0d14da8cbdb9984_Avalanche%20Events%20Participation%20Terms%20and%20Conditions%20(Final_28Feb2023).docx.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t(lang, "reg.step3.terms.link")}
+                  </a>
+                  {t(lang, "reg.step3.terms.connector")}
+                  <a
+                    href="https://www.avax.network/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t(lang, "reg.step3.privacyLink")}
+                  </a> *
                 </label>
               </div>
             </>
