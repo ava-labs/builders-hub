@@ -338,7 +338,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: [],
       explanation: '',
       demo_video_link: '',
-      consent_sharing: true,
+      consent_sharing: false,
     },
   });
 
@@ -769,10 +769,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
-      consent_sharing:
-        typeof project.consent_sharing === 'boolean'
-          ? project.consent_sharing
-          : true,
+      consent_sharing: !!project.consent_sharing,
     });
   }, [form, state.isEditing]);
 

@@ -59,36 +59,36 @@ export const POST = withAuth(async (
     }
     registerData.email = sessionEmail;
 
+    // Team1-organized events require explicit sharing consent unless the user
+    // has already granted it on their profile. Enforce here so a crafted
+    // client request can't bypass the registration form's required check.
     const hackathonId = registerData?.hackathon_id;
     if (session.user?.email && typeof hackathonId === "string" && hackathonId) {
-      const hackathon = await prisma.hackathon.findUnique({
-        where: { id: hackathonId },
-        select: { organizers: true, cohosts: true },
-      });
-      const requiresSharingConsent = isTeam1Event({
-        organizers: hackathon?.organizers,
-        cohosts: hackathon?.cohosts,
-      });
-      if (requiresSharingConsent) {
-        const user = await prisma.user.findUnique({
+      const [hackathon, user] = await Promise.all([
+        prisma.hackathon.findUnique({
+          where: { id: hackathonId },
+          select: { organizers: true, cohosts: true },
+        }),
+        prisma.user.findUnique({
           where: { email: session.user.email },
           select: { consent_sharing: true },
-        });
-        const userHasConsent = user?.consent_sharing === true;
-        const incomingConsent =
-          (user_consents as UserConsentsInput | undefined)?.consent_sharing;
-        if (!userHasConsent && incomingConsent !== true) {
-          return NextResponse.json(
-            {
-              error: {
-                message:
-                  "Sharing consent is required to register for this event.",
-                field: "user_consent_sharing",
-              },
+        }),
+      ]);
+      const isTeam1 = hackathon ? isTeam1Event(hackathon) : false;
+      const userHasConsent = user?.consent_sharing === true;
+      const incomingConsent =
+        (user_consents as UserConsentsInput | undefined)?.consent_sharing;
+      if (isTeam1 && !userHasConsent && incomingConsent !== true) {
+        return NextResponse.json(
+          {
+            error: {
+              message:
+                "Team1 sharing consent is required to register for this event.",
+              field: "user_consent_sharing",
             },
-            { status: 400 },
-          );
-        }
+          },
+          { status: 400 },
+        );
       }
     }
 
