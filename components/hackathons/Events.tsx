@@ -94,7 +94,7 @@ export default function Events({
   // Listing language is global (mixed events). Default to English unless you later add a global locale.
   const lang = normalizeEventsLang(undefined);
   const { data: session, status } = useSession();
-  const isHackathonCreator = hasPermission(session?.user?.custom_attributes, { resource: "hackathon", action: "write" });
+  const isHackathonCreator = hasPermission(session?.user?.custom_attributes, { resource: "event", action: "write" });
   
   const router = useRouter();
 
@@ -188,7 +188,7 @@ export default function Events({
     if (status === "authenticated" && session?.user) {
       console.log("User ID:", session.user.id);
 
-      if (hasPermission(session.user.custom_attributes, { resource: "hackathon", action: "write" })) {
+      if (hasPermission(session.user.custom_attributes, { resource: "event", action: "write" })) {
         console.log("User is hackathonCreator");
       }
     }

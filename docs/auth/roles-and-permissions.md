@@ -18,6 +18,7 @@
 9. [Data Flow](#data-flow)
 10. [Limitations & Disclaimers](#limitations--disclaimers)
 11. [What Changed](#what-changed)
+12. [How to Extend the System](#how-to-extend-the-system)
 
 ---
 
@@ -419,3 +420,94 @@ or `devrel` user.
 | `components/hackathons/Hackathons.tsx` | **Migrated.** `isHackathonCreator` uses `hackathon:write`. |
 | `components/hackathons/Events.tsx` | **Migrated.** Same. |
 | `components/notification/send-notifications-form.tsx` | **Migrated.** "All" audience tab uses `platform:admin`. |
+
+---
+
+## How to Extend the System
+
+All RBAC logic lives in **`lib/auth/rolePermissions.ts`**. That is the single file you need to start from for any extension.
+
+### Adding a new Role
+
+1. Open `lib/auth/rolePermissions.ts`.
+2. Add a new key to `ROLE_PERMISSIONS` with its permission array:
+
+   ```ts
+   my_new_role: [
+     { resource: "some_resource", action: "read" },
+   ],
+   ```
+
+3. The `assignSchema` in `app/api/admin/roles/route.ts` uses `Object.keys(ROLE_PERMISSIONS)` to validate role names — no further change needed.
+4. If the role should appear in the admin UI dropdown, it will automatically since that list is derived from `ROLE_PERMISSIONS`.
+5. Assign the role to a user via the admin API (`POST /api/admin/roles`) or directly in the DB `UserRole` table.
+
+> **Naming convention:** use `snake_case` for new roles (e.g. `notify_all`, `badge_admin`). Avoid uppercase-only or camelCase to keep the style consistent.
+
+---
+
+### Adding a new Resource
+
+A *resource* is a string literal in the `Resource` union type in `lib/auth/rolePermissions.ts`.
+
+1. Add the new value to the union:
+
+   ```ts
+   export type Resource =
+     | "event"
+     | "showcase"
+     | "my_new_resource"   // ← add here
+     | ...
+   ```
+
+2. Use it in one or more role permission entries (see above).
+3. If the resource needs **route-level protection** (middleware blocks unauthenticated/unauthorized requests before the handler runs), add it to `lib/auth/routeManifest.ts`:
+
+   ```ts
+   "/api/my-new-resource":   { resource: "my_new_resource" },
+   "/api/my-new-resource/*": { resource: "my_new_resource" },
+   ```
+
+   The middleware will then require the user to have *any* permission on `my_new_resource` to access those paths.
+
+4. Inside the route handler, add fine-grained checks with `withAuthPermission` or `hasPermission`:
+
+   ```ts
+   export const POST = withAuthPermission(
+     { resource: "my_new_resource", action: "write" },
+     async (req, context, session) => { ... }
+   );
+
+   // or inline:
+   const canManage = hasPermission(attrs, { resource: "my_new_resource", action: "manage" });
+   ```
+
+> **Note:** The `Resource` type is enforced at compile time. TypeScript will error if you use a string that is not in the union.
+
+---
+
+### Adding a new Permission (action)
+
+An *action* is a value from the `Action` union in `lib/auth/rolePermissions.ts`.
+
+Current actions: `"read"` | `"write"` | `"manage"` | `"export"` | `"admin"` | `"assign"`.
+
+- **`manage`** is automatically treated as a superset of all other actions by `checkPermission()`. A role with `manage` on a resource passes any action check for that resource.
+- **`admin`** is reserved for platform-wide super-capabilities (e.g. `platform:admin`).
+
+To add a brand-new action (e.g. `"approve"`):
+
+1. Extend the `Action` union:
+
+   ```ts
+   export type Action = "read" | "write" | "manage" | "export" | "admin" | "assign" | "approve";
+   ```
+
+2. Add it to the relevant role(s) permission arrays.
+3. Use it in handler checks:
+
+   ```ts
+   hasPermission(attrs, { resource: "event", action: "approve" })
+   ```
+
+> **Wildcard note:** `superadmin` has `[{ resource: "*", action: "*" }]`. Adding a new resource or action is automatically covered by `superadmin` — no update needed for that role.

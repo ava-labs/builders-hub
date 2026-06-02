@@ -214,7 +214,7 @@ export default function SendNotificationsForm() {
                       className="w-full flex items-center my-2"
                     >
                       <TabsList>
-                        <TabsTrigger disabled={!hasPermission(sessionPayload?.custom_attributes, { resource: "platform", action: "admin" })} value="all">All</TabsTrigger>
+                        <TabsTrigger disabled={!hasPermission(sessionPayload?.custom_attributes, { resource: "notification", action: "manage" }) && !hasPermission(sessionPayload?.custom_attributes, { resource: "platform", action: "admin" })} value="all">All</TabsTrigger>
                         <TabsTrigger value="hackathons">Hackathons</TabsTrigger>
                         <TabsTrigger value="custom">Custom</TabsTrigger>
                       </TabsList>

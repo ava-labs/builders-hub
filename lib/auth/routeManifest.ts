@@ -51,10 +51,10 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/showcase":                             { resource: "showcase" },
   "/showcase/*":                           { resource: "showcase" },
   "/send-notifications":                   { resource: "notification" },
-  "/hackathons/edit":                      { resource: "hackathon" },
-  "/hackathons/edit/*":                    { resource: "hackathon" },
-  "/events/edit":                          { resource: "hackathon" },
-  "/events/edit/*":                        { resource: "hackathon" },
+  "/hackathons/edit":                      { resource: "event" },
+  "/hackathons/edit/*":                    { resource: "event" },
+  "/events/edit":                          { resource: "event" },
+  "/events/edit/*":                        { resource: "event" },
 
   // ── UI – academy certificates (auth-only) ────────────────────────────────
   "/academy/*/get-certificate":            { authOnly: true },
@@ -66,7 +66,7 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   // operations (POST, PUT, PATCH, DELETE) are protected directly in the route
   // handlers via withAuthPermission. The entries below cover sub-resources that
   // are always fully protected regardless of method.
-  "/api/hackathons/*":                     { resource: "hackathon" },
+  "/api/hackathons/*":                     { resource: "event" },
   "/api/events/*/judges":                  { resource: "judge" },
   "/api/events/*/judges/*":                { resource: "judge" },
 
@@ -92,7 +92,7 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   // ── API – showcase / projects ─────────────────────────────────────────────
   "/api/showcase":                         { resource: "showcase" },
   "/api/showcase/*":                       { resource: "showcase" },
-  "/api/projects/export":                  { resource: "hackathon" },
+  "/api/projects/export":                  { resource: "showcase" },
 
   // ── API – judge ───────────────────────────────────────────────────────────
   "/api/judge":                            { resource: "judge" },

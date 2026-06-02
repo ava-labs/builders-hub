@@ -40,8 +40,8 @@ export async function GET(req: NextRequest) {
 
       // Determine visibility using the new permission model
       const attrs = user.custom_attributes || [];
-      const canManageHackathons = hasPermission(attrs, { resource: "hackathon", action: "manage" });
-      const canWriteHackathons  = hasPermission(attrs, { resource: "hackathon", action: "write" });
+      const canManageHackathons = hasPermission(attrs, { resource: "event", action: "manage" });
+      const canWriteHackathons  = hasPermission(attrs, { resource: "event", action: "write" });
       const hasHackathonAccess  = canManageHackathons || canWriteHackathons;
 
       if (managedOnly) {
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuthPermission({ resource: "hackathon", action: "write" }, async (req: NextRequest, context: any, session: any) => {
+export const POST = withAuthPermission({ resource: "event", action: "write" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const body = await req.json();
     const newHackathon = await createHackathon(body);

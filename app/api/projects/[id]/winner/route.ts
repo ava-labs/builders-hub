@@ -7,7 +7,7 @@ type Params = RouteParams<{ id: string }>;
 type Body = { is_winner?: boolean };
 
 export const POST = withAuthPermission<Params>(
-  { resource: "hackathon", action: "manage" },
+  { resource: "event", action: "manage" },
   async (request: NextRequest, context: Params) => {
     const { id: projectId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as Body;

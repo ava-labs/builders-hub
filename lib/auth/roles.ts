@@ -55,10 +55,10 @@ export const hasShowcaseRole = (
   customAttributes: readonly string[] | null | undefined,
 ): boolean => hasPermission(customAttributes, { resource: "showcase", action: "read" });
 
-/** @deprecated Use `hasPermission(attrs, { resource: "hackathon", action: "write" })` directly. */
+/** @deprecated Use `hasPermission(attrs, { resource: "event", action: "write" })` directly. */
 export const hasHackathonEditorRole = (
   customAttributes: readonly string[] | null | undefined,
-): boolean => hasPermission(customAttributes, { resource: "hackathon", action: "write" });
+): boolean => hasPermission(customAttributes, { resource: "event", action: "write" });
 
 /** @deprecated Use `hasPermission(attrs, { resource: "judge", action: "read" })` directly. */
 export const hasJudgeRole = (

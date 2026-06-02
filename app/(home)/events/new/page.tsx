@@ -6,7 +6,7 @@ import HackathonForm from "@/components/hackathons/admin-panel/HackathonForm";
 export default async function NewHackathonPage() {
   const session = await getAuthSession();
 
-  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "hackathon", action: "write" })) {
+  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "event", action: "write" })) {
     redirect("/");
   }
 

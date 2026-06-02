@@ -10,7 +10,7 @@ export default async function HackathonAdminPanel({
   params: Promise<{ id: string }>;
 }) {
   const session = await getAuthSession();
-  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "hackathon", action: "write" })) {
+  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "event", action: "write" })) {
     redirect("/");
   }
 
@@ -19,9 +19,9 @@ export default async function HackathonAdminPanel({
 
   if (!hackathon) redirect("/events");
 
-  // Ownership check: hackathon:manage bypasses this (devrel / superadmin / team1-admin).
+  // Ownership check: hackathon:manage bypasses this (devrel / superadmin).
   // Otherwise the actor must be the creator or a cohost.
-  const canManage = hasPermission(session.user?.custom_attributes, { resource: "hackathon", action: "manage" });
+  const canManage = hasPermission(session.user?.custom_attributes, { resource: "event", action: "manage" });
   if (!canManage && hackathon.created_by !== session.user?.id && !hackathon.cohosts?.includes(session.user?.email ?? "")) {
     redirect("/");
   }

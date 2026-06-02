@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export const PUT = withAuthPermission({ resource: "hackathon", action: "write" }, async (req: NextRequest, context: any, session: any) => {
+export const PUT = withAuthPermission({ resource: "event", action: "write" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
@@ -35,7 +35,7 @@ export const PUT = withAuthPermission({ resource: "hackathon", action: "write" }
       return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
     }
     const attrs: string[] = session.user.custom_attributes ?? [];
-    const canManage = hasPermission(attrs, { resource: "hackathon", action: "manage" });
+    const canManage = hasPermission(attrs, { resource: "event", action: "manage" });
     if (!canManage && existing.created_by !== userId && !existing.cohosts?.includes(session.user.email)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -54,7 +54,7 @@ export const PUT = withAuthPermission({ resource: "hackathon", action: "write" }
   }
 });
 
-export const PATCH = withAuthPermission({ resource: "hackathon", action: "write" }, async (req: NextRequest, context: any, session: any) => {
+export const PATCH = withAuthPermission({ resource: "event", action: "write" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
@@ -65,7 +65,7 @@ export const PATCH = withAuthPermission({ resource: "hackathon", action: "write"
       return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
     }
     const attrs: string[] = session.user.custom_attributes ?? [];
-    const canManage = hasPermission(attrs, { resource: "hackathon", action: "manage" });
+    const canManage = hasPermission(attrs, { resource: "event", action: "manage" });
     if (!canManage && existing.created_by !== userId && !existing.cohosts?.includes(session.user.email)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

@@ -24,7 +24,7 @@
  */
 
 export type Resource =
-  | "hackathon"
+  | "event"
   | "showcase"
   | "badge"
   | "resource"
@@ -52,19 +52,10 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   superadmin: [{ resource: "*", action: "manage" }, { resource: "platform", action: "admin" }, { resource: "judge", action: "assign" }],
   devrel: [{ resource: "*", action: "manage" }, { resource: "platform", action: "admin" }, { resource: "judge", action: "assign" }],
 
-  // ── Team admin ────────────────────────────────────────────────────────────
-  "team1-admin": [
-    { resource: "hackathon", action: "manage" },
-    { resource: "resource", action: "manage" },
-    { resource: "speaker", action: "manage" },
-    { resource: "showcase", action: "read" },
-    { resource: "judge", action: "assign" },
-  ],
-
   // ── Hackathon creator ─────────────────────────────────────────────────────
   hackathonCreator: [
-    { resource: "hackathon", action: "write" },
-    { resource: "hackathon", action: "read" },
+    { resource: "event", action: "write" },
+    { resource: "event", action: "read" },
     { resource: "resource", action: "read" },
     { resource: "speaker", action: "read" },
     { resource: "showcase", action: "read" },
@@ -79,7 +70,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
   // ── Judge ─────────────────────────────────────────────────────────────────
   // Note: judge:assign is intentionally NOT granted here.
-  // Assigning/removing judges is reserved for devrel, superadmin, and team1-admin.
+  // Assigning/removing judges is reserved for devrel and superadmin only.
   judge: [
     { resource: "judge", action: "read" },
     { resource: "badge", action: "write" },
@@ -89,6 +80,9 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   badge_admin: [{ resource: "badge", action: "manage" }],
 
   // ── Notifications ─────────────────────────────────────────────────────────
+  // notify_all  → can send to ALL users (notification:manage covers :write too)
+  // notify_event → can send only to specific hackathons (notification:write)
+  notify_all: [{ resource: "notification", action: "manage" }],
   notify_event: [{ resource: "notification", action: "write" }],
 
   // ── Builder insights ─────────────────────────────────────────────────────

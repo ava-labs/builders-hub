@@ -927,7 +927,7 @@ const HackathonsEdit = () => {
       return;
     }
     const attrs: string[] = session.user.custom_attributes ?? [];
-    const isSpecialRole = hasPermission(attrs, { resource: "hackathon", action: "write" });
+    const isSpecialRole = hasPermission(attrs, { resource: "event", action: "write" });
     
     // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
@@ -1755,7 +1755,7 @@ const HackathonsEdit = () => {
   // Check if user has required permissions
   const hasRequiredPermissions = () => {
     if (!session?.user?.custom_attributes) return false;
-    return hasPermission(session.user.custom_attributes, { resource: "hackathon", action: "write" });
+    return hasPermission(session.user.custom_attributes, { resource: "event", action: "write" });
   };
 
   // Redirect unauthorized users
