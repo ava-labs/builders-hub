@@ -60,7 +60,6 @@ export type Hackathon = {
   resources: Resource[]
   team_size_min?: number
   team_size_max?: number
-  registration_mode?: "full" | "simple"
   country?: string
   is_remote?: boolean
   target_countries?: string[]

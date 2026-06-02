@@ -145,6 +145,9 @@ export function RegisterForm({
     : false;
   const requireSharingConsent =
     isTeam1 && consentsLoaded && userConsentState.consent_sharing !== true;
+  // Team1 events also make the marketing/notifications opt-in mandatory.
+  const requireNotificationsConsent =
+    isTeam1 && consentsLoaded && userConsentState.notifications !== true;
   const lang = normalizeEventsLang(hackathon?.content?.language);
   const totalSteps = 2;
   
@@ -509,6 +512,13 @@ export function RegisterForm({
         };
       }
 
+      if (requireNotificationsConsent && data.user_notifications !== true) {
+        errors.user_notifications = {
+          type: "custom",
+          message: t(lang, "consents.notifications.required"),
+        };
+      }
+
       const range = getTeamSizeRange({
         team_size_min: hackathon?.content?.team_size_min,
         team_size_max: hackathon?.content?.team_size_max,
@@ -724,6 +734,13 @@ export function RegisterForm({
         };
       }
 
+      if (requireNotificationsConsent && formValues.user_notifications !== true) {
+        errors.user_notifications = {
+          type: "custom",
+          message: t(lang, "consents.notifications.required"),
+        };
+      }
+
       if (Object.keys(errors).length > 0) {
         (Object.keys(errors) as (keyof RegisterFormValues)[]).forEach(field => {
           form.setError(field, errors[field]!);
@@ -813,6 +830,7 @@ export function RegisterForm({
               showNotificationsConsent={showNotificationsConsent}
               showSharingConsent={showSharingConsent}
               requireSharingConsent={requireSharingConsent}
+              requireNotificationsConsent={requireNotificationsConsent}
             />
           )}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />

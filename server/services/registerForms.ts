@@ -134,10 +134,6 @@ export async function createRegisterForm(
   });
 
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
-  // Simple-mode events render a single page with only the T&C checkbox and
-  // intentionally omit the prohibited-items consent; mirror that here so the
-  // server doesn't require a field the form never collects.
-  const isSimpleMode = (hackathon?.content as any)?.registration_mode === "simple";
   // Teammate invitations are handled separately (Member rows + invitation
   // emails). Keep them out of the RegisterForm payload itself.
   const rawTeammates = Array.isArray(registerData.teammates) ? registerData.teammates : [];
@@ -224,7 +220,7 @@ export async function createRegisterForm(
     }
   }
 
-  const errors = validateRegisterForm(registerData, isOnlineHackathon, isSimpleMode);
+  const errors = validateRegisterForm(registerData, isOnlineHackathon);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }

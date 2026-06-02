@@ -159,7 +159,6 @@ export const hackathonEditSchema = z.object({
     submission_open: z.string().optional(),
     team_size_min: z.number().int().optional(),
     team_size_max: z.number().int().optional(),
-    registration_mode: z.enum(['full', 'simple']).optional(),
     tech_stack_options: z.array(z.object({ name: z.string() })).optional(),
     target_countries: z.array(z.string()).optional(),
     country: z.string().optional(),

@@ -1400,7 +1400,6 @@ const HackathonsEdit = () => {
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
       team_size_min: hackathon.content?.team_size_min,
       team_size_max: hackathon.content?.team_size_max,
-      registration_mode: hackathon.content?.registration_mode ?? 'full',
       tech_stack_options: hackathon.content?.tech_stack_options ?? [],
       target_countries: hackathon.content?.target_countries ?? [],
       country: hackathon.content?.country ?? hydrateCountryFromLocation(hackathon.location),

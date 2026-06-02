@@ -21,7 +21,6 @@ function buildRegistrationProjection(hackathon: HackathonHeader) {
     organizers: hackathon.organizers,
     content: {
       language: content.language,
-      registration_mode: content.registration_mode,
       team_size_min: content.team_size_min,
       team_size_max: content.team_size_max,
       target_countries: content.target_countries,

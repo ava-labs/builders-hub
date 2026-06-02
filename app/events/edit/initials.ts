@@ -71,7 +71,6 @@ export interface IDataContent {
   registration_deadline: string;
   team_size_min?: number;
   team_size_max?: number;
-  registration_mode?: "full" | "simple";
   tech_stack_options?: { name: string }[];
   target_countries?: string[];
   country?: string;
@@ -137,7 +136,6 @@ export const initialData: {
     registration_deadline: "",
     team_size_min: undefined,
     team_size_max: undefined,
-    registration_mode: "full",
     tech_stack_options: [],
     target_countries: [],
     country: undefined,
