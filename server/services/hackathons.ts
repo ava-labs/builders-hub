@@ -14,6 +14,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getDateWithTimezone } from "./date-parser";
 import { getUserById } from "./getUser";
+import { hackathonStagesArraySchema } from "@/lib/validations/hackathon-stage.schema";
 
 const prisma = new PrismaClient();
 
@@ -106,6 +107,8 @@ export interface GetHackathonsOptions {
   include_private?: boolean;
   cohost_email?: string | null;
   event?: string | null;
+  visibility?: 'all' | 'public' | 'private';
+  sort?: string;
 }
 
 export async function getHackathon(id: string) {
@@ -139,7 +142,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
   )
     throw new Error("Pagination params invalid", { cause: "BadRequest" });
 
-  console.log("GET hackathons with options:", options);
+  console.warn("GET hackathons:", { page: options.page, pageSize: options.pageSize });
   const page = options.page ?? 1;
   const pageSize = options.pageSize ?? 10;
   const offset = (page - 1) * pageSize;
@@ -185,12 +188,24 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     conditions.push({ date: options.date });
   }
 
-  // Filter by visibility: only show public hackathons unless include_private is true
-  // Treat null/undefined as public for backwards compatibility
-  if (!options.include_private) {
-    conditions.push({
-      OR: [{ is_public: true }, { is_public: null }],
-    });
+  // Filter by visibility explicitly if provided, otherwise fall back to include_private behavior
+  // Client-side logic: if is_public is truthy (true), show GREEN dot (public)
+  //                    if is_public is falsy (false, null, undefined), show ZINC dot (private)
+  // Server-side logic must match this display logic for consistency
+  if (options.visibility) {
+    if (options.visibility === 'public') {
+      // Public: is_public is explicitly true
+      conditions.push({ is_public: true });
+    } else if (options.visibility === 'private') {
+      // Private: is_public is falsy (false or null) - matches client display logic
+      conditions.push({ OR: [{ is_public: false }, { is_public: null }] });
+    }
+    // If visibility === 'all', don't add any visibility condition - show all
+  } else {
+    // If visibility is not explicitly provided, apply default visibility rules
+    if (!options.include_private) {
+      conditions.push({ OR: [{ is_public: true }, { is_public: null }] });
+    }
   }
 
   if (options.search) {
@@ -264,16 +279,21 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     filters = { AND: conditions };
   }
 
-  console.log("Filters: ", filters);
   const hackathonCount = await prisma.hackathon.count({ where: filters });
+
+  // Determine ordering
+  let orderBy: any = { start_date: 'desc' };
+  if (options.sort) {
+    // Only support sorting by start_date for Hackathon model
+    if (options.sort === 'start_date_asc') orderBy = { start_date: 'asc' };
+    else if (options.sort === 'start_date_desc') orderBy = { start_date: 'desc' };
+  }
 
   const hackathonList = await prisma.hackathon.findMany({
     where: filters,
     skip: offset,
     take: pageSize,
-    orderBy: {
-      start_date: "desc",
-    },
+    orderBy,
   });
 
   const hackathons = await Promise.all(hackathonList.map(getHackathonLite));
@@ -300,10 +320,27 @@ export async function createHackathon(
   hackathonData: Partial<HackathonHeader>
 ): Promise<HackathonHeader> {
   const errors = validateHackathon(hackathonData);
-  console.log(errors);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
+
+  /**
+   * SECURITY: Validate `content.stages` with the Zod schema before persisting.
+   * The `stages` field is a JSON column; without this check arbitrary nested
+   * structures could be written to the database.  Return a ValidationError
+   * (which the API layer maps to 400) so callers get actionable feedback.
+   */
+  if (hackathonData.content?.stages !== undefined) {
+    const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
+    if (!stagesResult.success) {
+      throw new ValidationError(
+        "Invalid stages data",
+        [{ field: "content.stages", message: JSON.stringify(stagesResult.error.flatten()), validation: () => false }]
+      );
+    }
+    hackathonData.content.stages = stagesResult.data;
+  }
+
   if (hackathonData.content?.schedule) {
     const schedule = hackathonData.content.schedule.map(
       (activity: ScheduleActivity) => {
@@ -363,9 +400,25 @@ export async function updateHackathon(
 
   if (!isOnlyPublicUpdate) {
     const errors = validateHackathon(hackathonData);
-    console.log(errors);
     if (errors.length > 0) {
       throw new ValidationError("Validation failed", errors);
+    }
+
+    /**
+     * SECURITY: Validate `content.stages` with the Zod schema before
+     * persisting to the database.  Unvalidated JSON columns are a schema-
+     * injection risk; an attacker could store arbitrary structures that
+     * affect rendering or downstream processing.
+     */
+    if (hackathonData.content?.stages !== undefined) {
+      const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
+      if (!stagesResult.success) {
+        throw new ValidationError(
+          "Invalid stages data",
+          [{ field: "content.stages", message: JSON.stringify(stagesResult.error.flatten()), validation: () => false }]
+        );
+      }
+      hackathonData.content.stages = stagesResult.data;
     }
   }
 
@@ -438,6 +491,8 @@ export async function updateHackathon(
   if (hackathonData.new_layout !== undefined)
     updateData.new_layout = hackathonData.new_layout;
   if (userId) updateData.updated_by = userId;
+  if (hackathonData.google_calendar_id !== undefined)
+    updateData.google_calendar_id = hackathonData.google_calendar_id;
   if (hackathonData.content !== undefined) {
     const content = {
       ...hackathonData.content,

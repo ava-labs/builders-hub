@@ -79,7 +79,7 @@ export const POST = withAuth(async (
     if (user_consents && typeof user_consents === "object" && session.user?.email) {
       await persistUserConsents(session.user.email, user_consents as UserConsentsInput);
     }
-    const newHackathon = await createRegisterForm(registerData);
+    const newHackathon = await createRegisterForm(registerData, req);
 
     return NextResponse.json(
       {

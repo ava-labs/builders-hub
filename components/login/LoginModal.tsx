@@ -20,6 +20,48 @@ const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
+// Resolve an event-context target from a URL: a gated registration/submission
+// page maps to its public event page (with ref); an event/hackathon page is
+// kept as-is. Returns null when there's no event context.
+function eventDismissTarget(rawUrl: string | null | undefined): string | null {
+  if (!rawUrl) return null;
+  try {
+    const url = new URL(rawUrl, window.location.origin);
+    const path = url.pathname;
+    const ref = url.searchParams.get("ref");
+    const gatedPaths = [
+      "/events/registration-form",
+      "/events/project-submission",
+      "/hackathons/registration-form",
+      "/hackathons/project-submission",
+    ];
+    if (gatedPaths.some((p) => path.startsWith(p))) {
+      const eventId =
+        url.searchParams.get("event") ?? url.searchParams.get("hackathon");
+      if (!eventId) return null;
+      const target = new URL(`/events/${eventId}`, window.location.origin);
+      if (ref) target.searchParams.set("ref", ref);
+      return `${target.pathname}${target.search}`;
+    }
+    if (/^\/(events|hackathons)(\/|$)/.test(path)) {
+      return `${path}${url.search}`;
+    }
+  } catch {
+    // ignore malformed URLs
+  }
+  return null;
+}
+
+// On dismiss without signing in, keep the user in the event context — their
+// current page or the event behind a gated form — instead of the home page.
+function resolveDismissTarget(callbackUrl: string): string {
+  const current =
+    typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}`
+      : null;
+  return eventDismissTarget(callbackUrl) ?? eventDismissTarget(current) ?? "/";
+}
+
 export function LoginModal() {
   const { isOpen, callbackUrl = "/", authError, closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
@@ -34,7 +76,7 @@ export function LoginModal() {
   const handleClose = (open: boolean) => {
     if (!open) {
       closeLoginModal();
-      router.push('/');
+      router.push(resolveDismissTarget(callbackUrl));
     }
   };
 

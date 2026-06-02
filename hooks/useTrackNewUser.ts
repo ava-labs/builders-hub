@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import {
   captureReferralAttributionFromUrl,
@@ -13,15 +12,15 @@ import {
 /**
  * Hook to track new user creation in PostHog.
  *
- * This hook identifies new users and captures a "user_created" event with
- * attribution data (UTM parameters, referrer). Deduplication is handled via
- * localStorage to ensure each user is only tracked once.
+ * Identifies new users and captures a "user_created" event with signup
+ * attribution (referral code + browser referrer). UTM lives on $pageview
+ * events via PostHog auto-capture; signup-by-UTM is not tracked here on
+ * purpose. Deduplication is handled via localStorage.
  *
  * @returns void - This hook only performs side effects
  */
 export function useTrackNewUser(): void {
   const { data: session, status } = useSession();
-  const searchParams = useSearchParams();
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -59,14 +58,8 @@ export function useTrackNewUser(): void {
           name: session.user.name,
         });
 
-        // Capture the user_created event with attribution data
         posthog.capture("user_created", {
           auth_provider: session.user.authentication_mode,
-          utm_source: searchParams.get("utm_source") || undefined,
-          utm_medium: searchParams.get("utm_medium") || undefined,
-          utm_campaign: searchParams.get("utm_campaign") || undefined,
-          utm_content: searchParams.get("utm_content") || undefined,
-          utm_term: searchParams.get("utm_term") || undefined,
           referral_code: getStoredReferralAttribution()?.referralCode || undefined,
           referrer: document.referrer || undefined,
         });
@@ -98,5 +91,5 @@ export function useTrackNewUser(): void {
     return () => {
       isMountedRef.current = false;
     };
-  }, [session, status, searchParams]);
+  }, [session, status]);
 }
