@@ -1136,6 +1136,11 @@ const HackathonsEdit = () => {
   const [resourceTemplates, setResourceTemplates] = useState<ResourceTemplate[]>([]);
   const [loadingResourceTemplates, setLoadingResourceTemplates] = useState<boolean>(false);
   const { data: session, status } = useSession();
+  // Org scoping: devrel may organize for any team (free picker); everyone else
+  // (team1-admin) has the organizing team derived from their own team_id — the
+  // server enforces organizers = team_id, so the UI must reflect that.
+  const isDevrel = !!session?.user?.custom_attributes?.includes("devrel");
+  const userTeamId = session?.user?.team_id ?? null;
   const HACKATHONS_PAGE_SIZE = 10000;
   const {
     items: myHackathons,
@@ -1292,6 +1297,17 @@ const HackathonsEdit = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, status]);
+
+  // Non-devrel organizers can only organize for their own team, so derive the
+  // organizing team from the logged-in user's team_id (the server enforces the
+  // same). Devrel keeps the free picker.
+  useEffect(() => {
+    if (status === 'authenticated' && !isDevrel && userTeamId) {
+      setFormDataMain(prev =>
+        prev.organizers === userTeamId ? prev : { ...prev, organizers: userTeamId }
+      );
+    }
+  }, [status, isDevrel, userTeamId]);
 
   const searchParams = useSearchParams();
   const requestedEventId = searchParams?.get("event") ?? null;
@@ -2423,7 +2439,7 @@ const HackathonsEdit = () => {
       location: "Virtual & In-Person Events Worldwide",
       total_prizes: 10000,
       tags: ["Blockchain", "Web3", "DeFi", "NFT", "Avalanche"],
-      participants: 100,
+      participants: 0,
       organizers: "Avalanche Foundation & Partners",
       is_public: false
     });
@@ -3848,7 +3864,7 @@ const HackathonsEdit = () => {
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step4Ref} className="text-2xl font-bold">
-                        {formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}
+                        {formDataLatest.event === 'hackathon' ? 'Team & Prizes' : 'Organizer'}
                       </h2>
                       {collapsed.about && (
                         <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
@@ -3861,34 +3877,42 @@ const HackathonsEdit = () => {
                         {formDataLatest.event === 'hackathon' && (
                           <>
                             <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-lg">
-                              <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Participants &amp; Prize Information</h3>
-                              <p className="text-sm text-purple-800 dark:text-purple-200">Now let's add details about participants and the prize pool.</p>
+                              <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Team &amp; Prize Information</h3>
+                              <p className="text-sm text-purple-800 dark:text-purple-200">Now let's add details about the organizing team and prize pool.</p>
                             </div>
                           </>
                         )}
 
                         <>
                           <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Organizing team</div>
-                          <select
-                            name="organizers"
-                            value={formDataMain.organizers || ''}
-                            onChange={(e) => {
-                              setFormDataMain(prev => ({ ...prev, organizers: e.target.value }));
-                              scrollToSection('about');
-                            }}
-                            className="w-full mb-4 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-900 dark:text-zinc-100"
-                            required
-                          >
-                            <option value="">Select an organizing team…</option>
-                            {Object.entries(REFERRAL_TEAM_LABELS).map(([slug, label]) => (
-                              <option key={slug} value={slug}>{label}</option>
-                            ))}
-                            {formDataMain.organizers && !isReferralTeamId(formDataMain.organizers) && (
-                              <option value={formDataMain.organizers}>
-                                {formDataMain.organizers} (legacy)
-                              </option>
-                            )}
-                          </select>
+                          {isDevrel ? (
+                            <select
+                              name="organizers"
+                              value={formDataMain.organizers || ''}
+                              onChange={(e) => {
+                                setFormDataMain(prev => ({ ...prev, organizers: e.target.value }));
+                                scrollToSection('about');
+                              }}
+                              className="w-full mb-4 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-900 dark:text-zinc-100"
+                              required
+                            >
+                              <option value="">Select an organizing team…</option>
+                              {Object.entries(REFERRAL_TEAM_LABELS).map(([slug, label]) => (
+                                <option key={slug} value={slug}>{label}</option>
+                              ))}
+                              {formDataMain.organizers && !isReferralTeamId(formDataMain.organizers) && (
+                                <option value={formDataMain.organizers}>
+                                  {formDataMain.organizers} (legacy)
+                                </option>
+                              )}
+                            </select>
+                          ) : (
+                            <div className="w-full mb-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-700 dark:text-zinc-300">
+                              {userTeamId
+                                ? (REFERRAL_TEAM_LABELS[userTeamId] ?? userTeamId)
+                                : 'Your account is not assigned to a team — contact DevRel.'}
+                            </div>
+                          )}
                           {getInlineError('main.organizers') && (
                             <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.organizers')}</p>
                           )}
@@ -3913,22 +3937,6 @@ const HackathonsEdit = () => {
                               <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.total_prizes')}</p>
                             )}
 
-                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].participants}</div>
-                            <Input
-                              type="number"
-                              name="participants"
-                              placeholder="e.g., 100, 500, 1000"
-                              value={formDataMain.participants?.toString() || ''}
-                              onChange={(e) => {
-                                setFormDataMain(prev => ({ ...prev, participants: Number(e.target.value) || 0 }));
-                                scrollToSection('about');
-                              }}
-                              className="w-full mb-4"
-                              required
-                            />
-                            {getInlineError('main.participants') && (
-                              <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.participants')}</p>
-                            )}
 
                             <div className="mt-6 mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Min team size</div>
                             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">Smallest allowed team size. Leave empty to allow solo (1).</div>

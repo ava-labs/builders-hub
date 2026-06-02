@@ -84,11 +84,6 @@ export const hackathonsValidations: Validation[] = [
     message: "Total prize pool is required (use 0 if no monetary prizes).",
     validation: (hackathon: any) => isFiniteNumber(hackathon?.total_prizes),
   },
-  {
-    field: "participants",
-    message: "Expected participants is required (use 0 if unknown).",
-    validation: (hackathon: any) => isFiniteNumber(hackathon?.participants),
-  },
 ];
 
 export const validateHackathon = (
@@ -475,7 +470,7 @@ export async function createHackathon(
       ),
       location: hackathonData.location!,
       total_prizes: hackathonData.total_prizes!,
-      participants: hackathonData.participants!,
+      participants: hackathonData.participants ?? 0,
       tags: hackathonData.tags!,
       timezone: hackathonData.timezone!,
       cohosts: hackathonData.cohosts ?? [],
