@@ -96,15 +96,12 @@ export const registerValidations: Validation[] = [
 ];
 
 export const createRegisterValidations = (
-  isOnlineHackathon: boolean,
-  isSimpleMode: boolean = false
+  isOnlineHackathon: boolean
 ): Validation[] => {
   const baseValidations = registerValidations.filter(validation => validation.field !== "prohibited_items");
 
-  // Simple-mode registrations intentionally omit the prohibited-items consent
-  // (the form only renders the T&C checkbox), so don't require it server-side.
-  // Online hackathons never require it either.
-  if (!isOnlineHackathon && !isSimpleMode) {
+  // Online hackathons don't require the prohibited-items consent.
+  if (!isOnlineHackathon) {
     baseValidations.push({
       field: "prohibited_items",
       message: "You must agree not to bring prohibited items to continue.",
@@ -118,9 +115,8 @@ export const createRegisterValidations = (
 
 export const validateRegisterForm = (
   registerData: Partial<RegistrationForm>,
-  isOnlineHackathon: boolean = false,
-  isSimpleMode: boolean = false
-): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon, isSimpleMode), registerData);
+  isOnlineHackathon: boolean = false
+): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon), registerData);
 export async function createRegisterForm(
   registerData: Partial<RegistrationForm> & {
     x_account?: string;
