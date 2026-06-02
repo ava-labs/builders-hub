@@ -1,4 +1,6 @@
-import { getToken, encode } from "next-auth/jwt";
+import { getServerSession } from "next-auth";
+import { AuthOptions } from "@/lib/auth/authOptions";
+import { getUserById } from "@/server/services/getUser";
 import { NextResponse } from "next/server";
 import { hasPermission } from "@/lib/auth/roles";
 
@@ -12,21 +14,18 @@ function stripMdxExpressions(content: string): string {
 
 export async function POST(req: any): Promise<Response> {
   try {
-    const token = await getToken({
-      req,
-      secret: process.env.NEXTAUTH_SECRET ?? "",
-    });
-    const attrs = (token?.custom_attributes as string[] | undefined) ?? [];
+    const session = await getServerSession(AuthOptions);
+    if (!session) return new Response("Unauthorized", { status: 401 });
+
+    const user = await getUserById(session.user.id);
+    if (!user) return new Response("Unauthorized", { status: 401 });
+
+    const customAttributes: string[] = user.custom_attributes || [];
+
+    const attrs = customAttributes  
     if (!hasPermission(attrs, { resource: "notification", action: "write" })) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!token) return new Response("Unauthorized", { status: 401 });
-    const encodedToken = await encode({
-      token: token,
-      secret: process.env.NEXTAUTH_SECRET ?? "",
-    });
-    if (!encodedToken)
-      return new Response("Error at get notifications", { status: 500 });
 
     const baseUrl: string | undefined =
       process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
@@ -58,7 +57,7 @@ export async function POST(req: any): Promise<Response> {
       },
       body: JSON.stringify({
         notifications: body.notifications,
-        authUser: token.id,
+        authUser: session.user.id,
       }),
     });
 

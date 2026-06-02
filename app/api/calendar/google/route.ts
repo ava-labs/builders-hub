@@ -50,8 +50,11 @@ export async function GET(request: NextRequest) {
         maxResults: '250', // Max allowed per request
         singleEvents: 'true',
         orderBy: 'startTime',
-        // Include conference data (Google Meet links, etc.)
+        // Required for conferenceData / Meet entry points in the response
         conferenceDataVersion: '1',
+        // Explicitly request Meet-related fields (hangoutLink + conferenceData)
+        fields:
+          'items(id,summary,description,location,start,end,htmlLink,hangoutLink,conferenceData,extendedProperties),nextPageToken',
       });
 
       if (timeMin) {

@@ -5,7 +5,7 @@ export interface EvaluationData {
   formDataId: string;
   evaluatorId: string;
   evaluatorName: string;
-  verdict: Verdict;
+  verdict: Verdict | null;
   comment: string | null;
   scoreOverall: number | null;
   scores: Record<string, number> | null;

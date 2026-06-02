@@ -62,7 +62,6 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         consent_sharing: user.consent_sharing ?? null,
         profile_privacy: user.profile_privacy,
         telegram_account: user.telegram_account || null,
-        notification_means: user.notification_means || null,
     } as ExtendedProfile;
 }
 
@@ -95,7 +94,6 @@ function buildUserUpdateData(
     if (profileData.notification_email !== undefined) updateData.notification_email = profileData.notification_email;
     if (profileData.image !== undefined) updateData.image = profileData.image;
     if (profileData.country !== undefined) updateData.country = profileData.country;
-    if (profileData.x_account !== undefined) updateData.x_account = nullableTrimmedString(profileData.x_account);
     if (profileData.linkedin_account !== undefined) updateData.linkedin_account = nullableTrimmedString(profileData.linkedin_account);
     if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
     if (profileData.skills !== undefined) updateData.skills = profileData.skills;
@@ -113,13 +111,6 @@ function buildUserUpdateData(
     if (profileData.user_type !== undefined) {
         updateData.user_type = profileData.user_type as Prisma.InputJsonValue;
     }
-    if (profileData.notification_means !== undefined) {
-        updateData.notification_means =
-            profileData.notification_means === null
-                ? Prisma.JsonNull
-                : (profileData.notification_means as Prisma.InputJsonValue);
-    }
-
     return updateData;
 }
 

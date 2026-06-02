@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
+import {
+  canEvaluateHackathon,
+  verifyHackathonProjectsApiKey,
+} from "@/lib/auth/permissions";
+import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import { canEvaluateHackathon } from "@/lib/auth/roles";
 import { timingSafeEqual } from "node:crypto";
 import type { RouteParams } from "@/lib/protectedRoute";
@@ -63,13 +68,16 @@ export async function GET(request: NextRequest, context: Params) {
 
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathonId },
-    select: { id: true, title: true },
+    select: { id: true, title: true, evaluation_phase: true },
   });
   if (!hackathon) {
     return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
   }
 
   if (internalAuthorized) {
+    const session = await getAuthSession();
+    const viewerId = session?.user?.id ?? null;
+
     const projects = await prisma.project.findMany({
       where: { hackaton_id: hackathonId },
       orderBy: { created_at: "asc" },
@@ -91,6 +99,8 @@ export async function GET(request: NextRequest, context: Params) {
             id: true,
             evaluator_id: true,
             score_overall: true,
+            scores: true,
+            verdict: true,
             comment: true,
             created_at: true,
             updated_at: true,
@@ -101,7 +111,19 @@ export async function GET(request: NextRequest, context: Params) {
         },
       },
     });
-    return NextResponse.json({ hackathon, projects, scope: "internal" });
+
+    const projectsForViewer = stripEvaluationsForViewer(
+      projects,
+      hackathon.evaluation_phase,
+      viewerId,
+    );
+
+    return NextResponse.json({
+      hackathon,
+      projects: projectsForViewer,
+      scope: "internal",
+      evaluation_phase: hackathon.evaluation_phase,
+    });
   }
 
   const projects = await prisma.project.findMany({

@@ -26,8 +26,8 @@ import { useRouter } from "next/navigation";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
-import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { isTeam1Event } from "@/lib/events/team1";
 import { clearStoredReferralAttribution } from "@/lib/referrals/client";
 import {
   ReferralFormSection,
@@ -134,11 +134,15 @@ export function RegisterForm({
   const showSharingConsent =
     consentsLoaded && userConsentState.consent_sharing !== true;
 
-  // Use UTM preservation hook
-  useUTMPreservation();
-
   // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
+  // Team1-organized / co-hosted events require the `consent_sharing` opt-in
+  // unless the user has already granted it on their profile.
+  const isTeam1 = hackathon
+    ? isTeam1Event({ organizers: hackathon.organizers, cohosts: hackathon.cohosts })
+    : false;
+  const requireSharingConsent =
+    isTeam1 && consentsLoaded && userConsentState.consent_sharing !== true;
   const lang = normalizeEventsLang(hackathon?.content?.language);
   
   const getDefaultValues = () => ({
@@ -481,11 +485,27 @@ export function RegisterForm({
         };
       }
 
+      if (requireSharingConsent && data.user_consent_sharing !== true) {
+        errors.user_consent_sharing = {
+          type: "custom",
+          message: t(lang, "consents.consentSharing.required"),
+        };
+      }
+
 
       if (Object.keys(errors).length > 0) {
         Object.keys(errors).forEach(field => {
           form.setError(field as keyof RegisterFormValues, errors[field]);
         });
+        // Bring the first invalid field into view so the user notices the
+        // feedback even when scrolled to the submit button.
+        const firstField = Object.keys(errors)[0];
+        if (typeof window !== "undefined") {
+          const el = document.querySelector<HTMLElement>(
+            `[name="${firstField}"], #${CSS.escape(firstField)}`,
+          );
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
         return;
       }
       setFormData((prevData) => ({ ...prevData, ...data }));
@@ -611,6 +631,13 @@ export function RegisterForm({
         };
       }
 
+      if (requireSharingConsent && formValues.user_consent_sharing !== true) {
+        errors.user_consent_sharing = {
+          type: "custom",
+          message: t(lang, "consents.consentSharing.required"),
+        };
+      }
+
       if (Object.keys(errors).length > 0) {
         (Object.keys(errors) as (keyof RegisterFormValues)[]).forEach(field => {
           form.setError(field, errors[field]!);
@@ -662,6 +689,7 @@ export function RegisterForm({
               lang={lang}
               showNotificationsConsent={showNotificationsConsent}
               showSharingConsent={showSharingConsent}
+              requireSharingConsent={requireSharingConsent}
             />
           )}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />

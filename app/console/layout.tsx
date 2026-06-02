@@ -14,12 +14,14 @@ import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
 import { OnboardingTour } from "@/components/console/onboarding-tour";
 import { WelcomeModal } from "@/components/console/onboarding-tour/welcome-modal";
 import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotification";
+import { ProfileCompletionNudge } from "@/components/console/ProfileCompletionNudge";
 import { ConsoleViewport } from "@/components/console/console-viewport";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { baseOptions } from "@/app/layout.config";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { StepErrorBoundary } from "@/components/toolbox/components/StepErrorBoundary";
 import { CommandPalette } from "@/components/console/command-palette";
+import { ConsoleFooter } from "@/components/console/console-footer";
 
 function ConsolePageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -73,6 +75,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
                 <StepErrorBoundary fallbackMessage="Something went wrong rendering this page. The console sidebar is still available — try navigating to a different tool.">
                   <ConsolePageTransition>{children}</ConsolePageTransition>
                 </StepErrorBoundary>
+                <ConsoleFooter />
               </div>
             </SidebarInset>
             <CommandPalette />
@@ -82,6 +85,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
       <ConsoleBadgeNotification />
       <OnboardingTour />
       <WelcomeModal />
+      <ProfileCompletionNudge />
     </WalletProvider>
   );
 }

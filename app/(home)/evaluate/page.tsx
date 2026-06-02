@@ -69,7 +69,7 @@ export default async function EvaluatePage({
             },
           },
           evaluations: {
-            where: { form_data_id: { not: null }, verdict: { not: null } },
+            where: { verdict: { not: '' } },
             include: {
               evaluator: { select: { id: true, name: true } },
             },

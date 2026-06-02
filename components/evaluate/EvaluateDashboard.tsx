@@ -52,7 +52,7 @@ const SCORE_TO_VERDICT: Record<number, Verdict> = {
 function computeConsensusVerdict(evaluations: EvaluationData[]): Verdict | null {
   if (evaluations.length === 0) return null;
   const avg =
-    evaluations.reduce((sum, e) => sum + (VERDICT_SCORES[e.verdict] ?? 0), 0) /
+    evaluations.reduce((sum, e) => sum + (e.verdict ? VERDICT_SCORES[e.verdict] ?? 0 : 0), 0) /
     evaluations.length;
   return SCORE_TO_VERDICT[Math.round(avg)] ?? "maybe";
 }

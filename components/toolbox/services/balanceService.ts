@@ -2,6 +2,19 @@ import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/
 import { avalancheFuji, avalanche } from 'viem/chains';
 import { createPublicClient, http } from 'viem';
 
+// One-time warnings per chain — prevents the previous silent-zero failure mode
+// for L1s that haven't had their RPC registered before the first balance read.
+// Reset across hot-reload by the module re-init; persistent across renders.
+const warnedMissingRpc = new Set<number>();
+function warnMissingRpc(chainId: number) {
+  if (warnedMissingRpc.has(chainId)) return;
+  warnedMissingRpc.add(chainId);
+  console.warn(
+    `[balanceService] No RPC URL registered for chainId ${chainId}; falling back to wallet's public client. ` +
+      `Call balanceService.registerRpcUrls([{ evmChainId, rpcUrl }]) before reading the balance.`,
+  );
+}
+
 // Local debounce function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
@@ -172,7 +185,21 @@ class BalanceService {
       } else {
         // Use a chain-specific client (via registered rpcUrl) so we query
         // the correct RPC, not the currently-connected chain's transport.
-        const chainClient = this.getOrCreateClient(walletChainId.toString()) || publicClient;
+        const chainClient = this.getOrCreateClient(walletChainId.toString());
+        if (!chainClient) {
+          // No registered RPC for this chain — the fallback to the wallet's
+          // active publicClient yields the *current chain's* balance, which
+          // is wrong for the requested chain. Warn once per chain so the
+          // upstream code path (HeroCard / DashboardBody) can call
+          // `registerRpcUrls` before reading. Returns 0 so the UI doesn't
+          // crash, but the dev surface now points at the real cause instead
+          // of a silent zero.
+          warnMissingRpc(walletChainId);
+          const fallbackBalance = await publicClient.getBalance({
+            address: walletEVMAddress as `0x${string}`,
+          });
+          return Number(fallbackBalance) / 1e18;
+        }
         const balance = await chainClient.getBalance({
           address: walletEVMAddress as `0x${string}`,
         });

@@ -2,6 +2,7 @@ import { Session } from 'next-auth';
 import { withAuth, RouteParams } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { isUserProjectMember } from "@/server/services/fileValidation";
+import { z } from 'zod';
 import {
   GetMembersByProjectId,
   UpdateRoleMember,
@@ -43,16 +44,17 @@ export const GET = withAuth<RouteParams<{ project_id: string }>>(async (request,
 export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (request: Request, { params }, session: Session) => {
   try {
     const body = await request.json();
-    const { member_id, role } = body;
     const { project_id } = await params;
-    
-    console.log("body", member_id);
-    if (!member_id || !role) {
-      return NextResponse.json(
-        { error: "member_id and role are required" },
-        { status: 400 }
-      );
+
+    const patchSchema = z.object({
+      member_id: z.string().uuid(),
+      role: z.enum(['member', 'admin', 'lead']),
+    });
+    const parsed = patchSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
+    const { member_id, role } = parsed.data;
 
     if (!project_id) {
       return NextResponse.json(
@@ -68,6 +70,14 @@ export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (reques
         { error: "Forbidden: You are not a member of this project" },
         { status: 403 }
       );
+    }
+
+    const callerMembership = await prisma.member.findFirst({
+      where: { project_id, user_id: session.user.id },
+      select: { role: true },
+    });
+    if (!callerMembership || !['admin', 'lead'].includes(callerMembership.role)) {
+      return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
     }
 
     const updatedMember = await UpdateRoleMember(member_id, role);

@@ -134,7 +134,6 @@ export const AuthOptions: NextAuthOptions = {
             additional_social_accounts: [], telegram_account: '', github_account: null, x_account: null, linkedin_account: null,
             user_name: '', created_at: new Date(),
             country: null, user_type: null, wallet: [], skills: [], team_id: null, noun_avatar_seed: null, noun_avatar_enabled: false,
-            notification_means: null,
             github_access_token: null,
           } as unknown as PrismaUser;
         }
@@ -164,6 +163,7 @@ export const AuthOptions: NextAuthOptions = {
             await prisma.user.update({
               where: { id: existingUser.id },
               data: { last_login: new Date() },
+              select: { id: true },
             });
           }
           // If user doesn't exist, don't create them yet

@@ -114,7 +114,10 @@ export default function Events({
   const [totalPages, setTotalPages] = useState<number>(
     Math.ceil(totalPastEvents / pageSize)
   );
-  const [currentPage, setCurrentPage] = useState<number>(filters.page ?? 1);
+  // Ensure currentPage is always >= 1
+  const [currentPage, setCurrentPage] = useState<number>(
+    Math.max(1, filters.page ?? 1)
+  );
   const [searchValue, setSearchValue] = useState("");
   const [activeEventType, setActiveEventType] = useState<string>("all");
   const [pastEventType, setPastEventType] = useState<string>("");
@@ -195,6 +198,15 @@ export default function Events({
   }, [session, status]);
 
   const handleFilterChange = (type: keyof HackathonsFilters, value: string) => {
+    // Validate page number - must be >= 1
+    if (type === "page") {
+      const pageNum = Number(value);
+      if (isNaN(pageNum) || pageNum < 1) {
+        console.warn(`Invalid page number: ${value}`);
+        return;
+      }
+    }
+
     const newFilters = {
       ...filters,
       [type]: value === "all" ? "" : value,
@@ -465,18 +477,26 @@ export default function Events({
               {
                 length: totalPages > 7 ? 7 : totalPages,
               },
-              (_, i) =>
-                1 +
-                i -
-                (currentPage > 3
-                  ? totalPages - currentPage > 3
-                    ? 3
-                    : totalPages - 1 - (totalPages - currentPage)
-                  : currentPage - 1)
+              (_, i) => {
+                // Calculate start page for window of 7 pages
+                let startPage = Math.max(1, currentPage - 3);
+                
+                // If we're near the end, adjust startPage to always show 7 pages if available
+                if (totalPages > 7 && startPage + 6 > totalPages) {
+                  startPage = Math.max(1, totalPages - 6);
+                }
+                
+                return startPage + i;
+              }
             ).map((page) => (
               <PaginationItem
                 key={page}
-                onClick={() => handleFilterChange("page", page.toString())}
+                onClick={() => {
+                  // Additional safety check before calling handler
+                  if (page >= 1 && page <= totalPages) {
+                    handleFilterChange("page", page.toString());
+                  }
+                }}
               >
                 <PaginationLink isActive={page === currentPage}>
                   {page}
