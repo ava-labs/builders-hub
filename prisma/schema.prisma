@@ -109,6 +109,7 @@ model User {
   referralLinks              ReferralLink[]            @relation("ReferralLinkOwner")
   referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
   referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
+  posted_job_listings        JobListing[]              @relation("UserPostedJobListings")
 }
 
 model VerificationToken {
@@ -177,12 +178,19 @@ model Project {
   website             Json?
   socials             Json?
   consent_sharing     Boolean?
+  // One-shot devrel approval for the Ecosystem Careers feature. Every project
+  // starts unapproved regardless of origin (community form, hackathon submission,
+  // grant application). A devrel flips this at /admin/ecosystem-careers, which
+  // also activates every queued listing under the project in one action.
+  careers_approved    Boolean             @default(false)
+  careers_rejected_at DateTime?           @db.Timestamptz(3)
   formData            FormData[]
   members             Member[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
   badges              ProjectBadge[]
   ProjectRepository   ProjectRepository[]
   evaluations         Evaluation[]
+  jobListings         JobListing[]
 }
 
 model Member {
@@ -635,4 +643,46 @@ model Resource {
   description String
   link        String
   icon        String
+}
+
+model JobListing {
+  id                       String    @id @default(uuid())
+  // 'community' | 'external' | 'legacy'
+  //   community → user-submitted via a Builders Hub Project (project_id set)
+  //   external  → ingested from web3.career on the cron (company_* set)
+  //   legacy    → the original Getro seed, frozen (company_* set)
+  source                   String
+  external_id              String?
+  // Set for source = 'community' (NULL for external/legacy)
+  project_id               String?
+  posted_by_user_id        String?
+  // Set for source = 'external' | 'legacy' (NULL for community)
+  company_name             String?
+  company_logo             String?
+  company_website          String?
+  company_tags             String[]  @default([])
+  // Shared
+  title                    String
+  short_description        String
+  description              String?
+  location                 String?
+  remote_type              String?
+  employment_type          String?
+  seniority                String?
+  tags                     String[]  @default([])
+  apply_url                String
+  source_url               String?
+  posted_at                DateTime? @db.Timestamptz(3)
+  last_seen_at             DateTime  @default(now()) @db.Timestamptz(3)
+  is_active                Boolean   @default(true)
+  rejected_at              DateTime? @db.Timestamptz(3)
+  created_at               DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at               DateTime  @updatedAt @db.Timestamptz(3)
+
+  project                  Project?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  posted_by_user           User?     @relation("UserPostedJobListings", fields: [posted_by_user_id], references: [id], onDelete: SetNull)
+
+  @@unique([source, external_id])
+  @@index([source, is_active, posted_at])
+  @@index([project_id])
 }
