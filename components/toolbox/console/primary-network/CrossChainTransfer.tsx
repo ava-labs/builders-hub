@@ -6,6 +6,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs';
 import { avaxToNanoAvax } from '@avalanche-sdk/client/utils';
 import { getRPCEndpoint } from '@/components/toolbox/coreViem/utils/rpc';
+import { useAvalancheContext } from '@/components/toolbox/hooks/useAvalancheContext';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { AmountInput } from '@/components/toolbox/components/AmountInput';
 import { StepIndicator } from '@/components/toolbox/components/StepCard';
@@ -98,6 +99,10 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   const pChainAddress = useWalletStore((s) => s.pChainAddress);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const coreEthAddress = useWalletStore((s) => s.coreEthAddress);
+  // Resolve the network Context server-side and pass it into the SDK so it never
+  // fetches the AVAX assetID via a direct browser call to the public X-Chain
+  // (which bypasses the wallet transport and fails from non-production origins).
+  const { context: avalancheContext, error: contextError } = useAvalancheContext(Boolean(isTestnet));
 
   // Calculate total AVAX in UTXOs
   const totalCToPUtxoAmount = cToP_UTXOs.reduce((sum, utxo) => {
@@ -247,6 +252,14 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       );
       return;
     }
+    if (!avalancheContext) {
+      setError(
+        contextError
+          ? `Could not load network parameters: ${contextError}`
+          : 'Network parameters are still loading — please try again in a moment.',
+      );
+      return;
+    }
 
     setExportLoading(true);
     setError(null);
@@ -271,6 +284,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
             amount: amountNAvax,
           },
           fromAddress: walletEVMAddress as `0x${string}`,
+          context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
         await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
@@ -284,6 +298,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
             },
           ],
           destinationChain: 'C',
+          context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
         await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
@@ -323,6 +338,14 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
       setImportError('Cross-chain transfers require Core Wallet for P-Chain signing.');
       return;
     }
+    if (!avalancheContext) {
+      setImportError(
+        contextError
+          ? `Could not load network parameters: ${contextError}`
+          : 'Network parameters are still loading — please try again in a moment.',
+      );
+      return;
+    }
     // Guard against importing before the exported UTXOs have arrived — otherwise
     // the SDK rejects with a raw "insufficient funds" (the bulk of importCross errors).
     const utxosReady = destinationChain === 'p-chain' ? cToP_UTXOs : pToC_UTXOs;
@@ -342,6 +365,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           importedOutput: {
             addresses: [pChainAddress],
           },
+          context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
         await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
@@ -350,6 +374,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
         const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
           sourceChain: 'P',
           toAddress: walletEVMAddress as `0x${string}`,
+          context: avalancheContext,
         });
         const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
         await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
