@@ -58,7 +58,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   const [error, setErrorState] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-
   const handleInitiateRemoval = async () => {
     setErrorState(null);
     setTxHash(null);

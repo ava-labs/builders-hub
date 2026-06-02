@@ -7,6 +7,10 @@ import {
 } from "@/lib/referrals/targets";
 import { runHogQL } from "@/lib/posthog-query";
 import { REFERRAL_TEAM_LABELS } from "@/lib/referrals/team-labels";
+import {
+  getTopHackathonTrafficSourcesBatch,
+  type HackathonTrafficSource,
+} from "./hackathonTrafficSources";
 
 export interface MonthlySignupPoint {
   month: string;
@@ -30,6 +34,10 @@ export interface EventParticipantPoint {
   event: string;
   participants: number;
   projects: number;
+  registrations: number;
+  startDate: string | null;
+  endDate: string | null;
+  topTrafficSources: HackathonTrafficSource[];
 }
 
 export interface TopReferrerRow {
@@ -65,10 +73,15 @@ export interface BuilderInsightsData {
   previous30DayVisits: number;
   rollingVisitsDeltaPercent: number;
   consoleUsers30d: number;
+  previousConsoleUsers30d: number;
   consoleUsersDeltaPercent: number;
   totalHackathonSubmissions: number;
+  totalHackathonsHosted: number;
+  totalHackathonParticipants: number;
+  totalHackathonProjects: number;
   topCountry30d: { country: string; countryCode: string | null; sharePct: number } | null;
   returningVisitorPct30d: number;
+  previousReturningVisitorPct30d: number;
   returningVisitorDeltaPercent: number;
   monthlySignups: MonthlySignupPoint[];
   monthlyVisits: MonthlyVisitPoint[];
@@ -179,39 +192,25 @@ const TOP_COUNTRY_30D_HOGQL = `
 
 const RETURNING_VISITORS_HOGQL = `
   SELECT
-    countDistinctIf(distinct_id, timestamp >= now() - INTERVAL 30 DAY) AS total_current,
-    countDistinctIf(
+    countIf(seen_current) AS total_current,
+    countIf(seen_previous) AS total_previous,
+    countIf(seen_current AND first_seen < now() - INTERVAL 30 DAY) AS returning_current,
+    countIf(seen_previous AND first_seen < now() - INTERVAL 60 DAY) AS returning_previous
+  FROM (
+    SELECT
       distinct_id,
-      timestamp >= now() - INTERVAL 60 DAY
-        AND timestamp < now() - INTERVAL 30 DAY
-    ) AS total_previous,
-    countDistinctIf(
-      distinct_id,
-      timestamp >= now() - INTERVAL 30 DAY
-        AND distinct_id IN (
-          SELECT DISTINCT distinct_id
-          FROM events
-          WHERE event = '$pageview'
-            AND ${HOGQL_HOST_FILTER}
-            AND timestamp < now() - INTERVAL 30 DAY
-        )
-    ) AS returning_current,
-    countDistinctIf(
-      distinct_id,
-      timestamp >= now() - INTERVAL 60 DAY
-        AND timestamp < now() - INTERVAL 30 DAY
-        AND distinct_id IN (
-          SELECT DISTINCT distinct_id
-          FROM events
-          WHERE event = '$pageview'
-            AND ${HOGQL_HOST_FILTER}
-            AND timestamp < now() - INTERVAL 60 DAY
-        )
-    ) AS returning_previous
-  FROM events
-  WHERE event = '$pageview'
-    AND ${HOGQL_HOST_FILTER}
-    AND timestamp >= now() - INTERVAL 60 DAY
+      min(timestamp) AS first_seen,
+      countIf(timestamp >= now() - INTERVAL 30 DAY) > 0 AS seen_current,
+      countIf(
+        timestamp >= now() - INTERVAL 60 DAY
+          AND timestamp < now() - INTERVAL 30 DAY
+      ) > 0 AS seen_previous
+    FROM events
+    WHERE event = '$pageview'
+      AND ${HOGQL_HOST_FILTER}
+      AND timestamp < now()
+    GROUP BY distinct_id
+  )
 `.trim();
 
 export async function getBuilderInsightsData(currentUserId: string): Promise<BuilderInsightsData> {
@@ -263,31 +262,62 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       LIMIT 20
     `,
     prisma.$queryRaw<
-      Array<{ eventId: string; event: string; participants: bigint; projects: bigint }>
+      Array<{
+        eventId: string;
+        event: string;
+        participants: bigint;
+        projects: bigint;
+        registrations: bigint;
+        startDate: Date | null;
+        endDate: Date | null;
+      }>
     >`
       WITH event_participants AS (
         SELECT h."id" AS "eventId",
                h."title" AS "event",
                h."start_date" AS "startDate",
+               h."end_date" AS "endDate",
                COUNT(DISTINCT u."id")::bigint AS "participants",
                COUNT(DISTINCT p."id")::bigint AS "projects"
         FROM "Hackathon" h
-        INNER JOIN "Project" p ON p."hackaton_id" = h."id"
-        INNER JOIN "Member" m ON m."project_id" = p."id"
-        INNER JOIN "User" u ON u."id" = m."user_id"
+        LEFT JOIN "Project" p ON p."hackaton_id" = h."id"
+        LEFT JOIN "Member" m ON m."project_id" = p."id"
+        LEFT JOIN "User" u ON u."id" = m."user_id"
           OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
-        GROUP BY h."id", h."title", h."start_date"
-        HAVING COUNT(DISTINCT u."id") > 0
+        WHERE COALESCE(h."event", 'hackathon') = 'hackathon'
+          AND (h."is_public" IS TRUE OR h."is_public" IS NULL)
+        GROUP BY h."id", h."title", h."start_date", h."end_date"
       ),
-      latest_events AS (
-        SELECT *
-        FROM event_participants
-        ORDER BY "startDate" DESC
-        LIMIT 25
+      -- RegisterForm covers most hackathons, but Build Games applications
+      -- live in their own table (BuildGamesApplication) with no
+      -- hackathon_id link. UNION them in so Build Games shows the full
+      -- applicant count instead of the handful of users who happened to
+      -- submit a generic RegisterForm.
+      event_registrations AS (
+        SELECT "eventId", SUM("registrations")::bigint AS "registrations"
+        FROM (
+          SELECT "hackathon_id" AS "eventId",
+                 COUNT(*)::bigint AS "registrations"
+          FROM "RegisterForm"
+          GROUP BY "hackathon_id"
+          UNION ALL
+          SELECT '249d2911-7931-4aa0-a696-37d8370b79f9' AS "eventId",
+                 COUNT(*)::bigint AS "registrations"
+          FROM "BuildGamesApplication"
+        ) combined
+        GROUP BY "eventId"
       )
-      SELECT "eventId", "event", "participants", "projects"
-      FROM latest_events
-      ORDER BY "startDate" ASC
+      SELECT ep."eventId",
+             ep."event",
+             ep."participants",
+             ep."projects",
+             COALESCE(er."registrations", 0)::bigint AS "registrations",
+             ep."startDate",
+             ep."endDate"
+      FROM event_participants ep
+      LEFT JOIN event_registrations er ON er."eventId" = ep."eventId"
+      ORDER BY ep."startDate" DESC
+      LIMIT 25
     `,
     prisma.$queryRaw<Array<{ referrals: bigint }>>`
       SELECT COUNT(*)::bigint AS "referrals"
@@ -421,12 +451,30 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     };
   });
 
-  const eventParticipants = eventParticipantRows.map((row) => ({
+  const trafficSourcesByEvent = await getTopHackathonTrafficSourcesBatch(
+    eventParticipantRows.map((row) => row.eventId),
+  );
+
+  const eventParticipants: EventParticipantPoint[] = eventParticipantRows.map((row) => ({
     eventId: row.eventId,
     event: row.event,
     participants: toNumber(row.participants),
     projects: toNumber(row.projects),
+    registrations: toNumber(row.registrations),
+    startDate: row.startDate ? row.startDate.toISOString() : null,
+    endDate: row.endDate ? row.endDate.toISOString() : null,
+    topTrafficSources: trafficSourcesByEvent.get(row.eventId) ?? [],
   }));
+
+  const totalHackathonsHosted = eventParticipants.length;
+  const totalHackathonParticipants = eventParticipants.reduce(
+    (sum, row) => sum + row.participants,
+    0,
+  );
+  const totalHackathonProjects = eventParticipants.reduce(
+    (sum, row) => sum + row.projects,
+    0,
+  );
 
   const userGeneratedReferralImpact = toNumber(userGeneratedRows[0]?.referrals);
   const latest30DaySignups = toNumber(rollingSignupRows[0]?.latest30Days);
@@ -502,7 +550,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       detail: `${getEventStatus(event.start_date, event.end_date)} event`,
       targetType: "hackathon_registration",
       targetId: event.id,
-      destinationUrl: `/events/registration-form?event=${event.id}`,
+      destinationUrl: `/events/${event.id}`,
     };
   });
 
@@ -516,10 +564,15 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     previous30DayVisits,
     rollingVisitsDeltaPercent,
     consoleUsers30d,
+    previousConsoleUsers30d,
     consoleUsersDeltaPercent,
     totalHackathonSubmissions,
+    totalHackathonsHosted,
+    totalHackathonParticipants,
+    totalHackathonProjects,
     topCountry30d,
     returningVisitorPct30d,
+    previousReturningVisitorPct30d: returningVisitorPctPrevious30d,
     returningVisitorDeltaPercent,
     monthlySignups,
     monthlyVisits,

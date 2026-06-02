@@ -194,7 +194,8 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Remove Validator',
-    description: 'Remove a validator from your L1. Auto-detects PoA / PoS-Native / PoS-ERC20 and the right initiate path.',
+    description:
+      'Remove a validator from your L1. Auto-detects PoA / PoS-Native / PoS-ERC20 and the right initiate path.',
     path: '/console/remove-validator',
     category: 'Permissioned L1s',
     icon: SquareMinus,
@@ -266,7 +267,8 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Remove Validator (PoS)',
-    description: 'End validation and withdraw staked tokens. Same flow as Remove Validator — uptime-proof first, force-remove fallback.',
+    description:
+      'End validation and withdraw staked tokens. Same flow as Remove Validator — uptime-proof first, force-remove fallback.',
     path: '/console/remove-validator',
     category: 'Permissionless L1s',
     icon: SquareMinus,
@@ -636,7 +638,7 @@ const FLOW_SUBSTEPS: Record<string, Array<{ name: string; path: string }>> = {
   '/console/icm/setup': [
     { name: 'Deploy Teleporter Messenger', path: '/console/icm/setup/icm-messenger' },
     { name: 'Deploy Teleporter Registry', path: '/console/icm/setup/icm-registry' },
-    { name: 'Setup ICM Relayer', path: '/console/icm/setup/icm-relayer-type' },
+    { name: 'Setup ICM Relayer', path: '/console/icm/setup/self-hosted-relayer' },
     { name: 'Deploy ICM Demo', path: '/console/icm/setup/deploy-icm-demo' },
     { name: 'Send ICM Message', path: '/console/icm/setup/send-icm-demo-message' },
   ],

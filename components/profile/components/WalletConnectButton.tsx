@@ -113,9 +113,12 @@ const KNOWN_WALLETS: Record<string, { name: string; icon: string; rdns?: string 
 export function WalletConnectButton({
   onWalletConnected,
   currentAddress,
+  trigger,
 }: {
   onWalletConnected: (address: string) => void;
   currentAddress?: string;
+  /** Optional custom trigger element. Falls back to a default shadcn button. */
+  trigger?: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -616,10 +619,12 @@ export function WalletConnectButton({
       }
     }}>
       <DialogTrigger asChild>
-        <Button type="button" variant="default" size="default">
-          <Wallet className="h-4 w-4 mr-2" />
-          Connect Wallet
-        </Button>
+        {trigger ?? (
+          <Button type="button" variant="default" size="default">
+            <Wallet className="h-4 w-4 mr-2" />
+            Connect Wallet
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

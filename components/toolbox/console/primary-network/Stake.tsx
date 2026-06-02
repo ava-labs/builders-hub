@@ -13,6 +13,7 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { prepareAddPermissionlessValidatorTxn } from '@avalanche-sdk/client/methods/wallet/pChain';
 import { sendXPTransaction } from '@avalanche-sdk/client/methods/wallet';
+import { avaxToNanoAvax } from '@avalanche-sdk/client/utils';
 import { networkIDs } from '@avalabs/avalanchejs';
 import { AddValidatorControls } from '@/components/toolbox/components/ValidatorListInput/AddValidatorControls';
 import type { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
@@ -222,13 +223,13 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       const endUnix = Math.floor(new Date(endTime).getTime() / 1000);
       const { tx } = await prepareAddPermissionlessValidatorTxn(avalancheWalletClient.pChain, {
         nodeId: validator!.nodeID,
-        stakeInAvax: Number(stakeInAvax),
-        end: endUnix,
+        stakeInNanoAvax: avaxToNanoAvax(Number(stakeInAvax)),
+        end: BigInt(endUnix),
         rewardAddresses: [pChainAddress!],
         delegatorRewardAddresses: [pChainAddress!],
         delegatorRewardPercentage: Number(delegationFee),
         threshold: 1,
-        locktime: 0,
+        locktime: 0n,
         publicKey: validator!.nodePOP.publicKey,
         signature: validator!.nodePOP.proofOfPossession,
       });

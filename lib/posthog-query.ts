@@ -42,6 +42,8 @@ export async function runHogQL<TRow>({ projectId, query }: HogQLRunOptions): Pro
       body: JSON.stringify({
         query: { kind: "HogQLQuery", query },
       }),
+      // Rolling-window queries shift every day; never serve a cached response.
+      cache: "no-store",
     });
 
     if (!response.ok) {

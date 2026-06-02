@@ -47,17 +47,36 @@ const dict: Record<EventsLang, Dict> = {
     "section.submission.viewFullGuidelines": "View full guidelines",
     "section.submission.guidelinesTitle": "Guidelines",
     "section.submission.submitProject": "Submit project",
+    "section.submission.editProject": "Edit project",
+    "section.submission.continueProject": "Continue submission",
 
     // Schedule
     "section.schedule.title": "Schedule",
     "schedule.noDatesAvailable": "No dates available",
     "schedule.noValidDatesAvailable": "No valid dates available",
     "schedule.invalidDateRange": "Invalid date range",
+    "schedule.loadingCalendar": "Loading calendar events…",
+    "schedule.calendarError": "Could not load calendar events. Make sure the Google Calendar ID is correct and the calendar is public.",
     "schedule.liveNow": "Live now",
-    "schedule.zoom": "Zoom",
+    "schedule.join": "Join",
     "schedule.untitledActivity": "Untitled Activity",
     "schedule.joinVideoCall": "Join video call",
     "schedule.tbd": "TBD",
+    "schedule.timezoneSelector.label": "Time zone",
+    "schedule.timezoneSelector.none": "No time zone selected",
+    "schedule.timezoneSelector.button": "Change",
+    "schedule.timezoneSelector.modalTitle": "Select time zone",
+    "schedule.timezoneSelector.modalDescription": "Search and select the time zone used to display the schedule.",
+    "schedule.timezoneSelector.searchPlaceholder": "Search by city or region",
+    "schedule.timezoneSelector.city": "City",
+    "schedule.timezoneSelector.utc": "UTC",
+    "schedule.timezoneSelector.diff": "Diff",
+    "schedule.timezoneSelector.localTime": "Local time",
+    "schedule.timezoneSelector.same": "same",
+    "schedule.timezoneSelector.empty": "No time zones found",
+    "event.moreInfo": "More Info",
+    "event.online": "Online",
+    "event.addToCalendar": "Add to Calendar",
 
     // Mentors & judges
     "section.mentorsJudges.title": "Mentors & Judges",
@@ -162,7 +181,19 @@ const dict: Record<EventsLang, Dict> = {
     "submission.step1.otherCategory.placeholder": "Enter your custom category",
     "submission.step1.deployedAddresses.label": "Deployed Addresses",
     "submission.step1.deployedAddresses.addButton": "+ new address",
+    "submission.step1.website.label": "Website",
+    "submission.step1.website.tagPlaceholder": "Tag",
+    "submission.step1.website.urlPlaceholder": "https://example.com",
+    "submission.step1.website.addButton": "+ new website",
+    "submission.step1.socials.label": "Socials",
+    "submission.step1.socials.tagPlaceholder": "Tag",
+    "submission.step1.socials.urlPlaceholder": "https://example.com",
+    "submission.step1.socials.addButton": "+ new social",
     "submission.step1.team.title": "Team & Collaboration",
+    "submission.step1.consentSharing.label":
+      "I consent to share this project's information with Avalanche Team1 so they can reach out to offer local support.",
+    "submission.step1.consentSharing.hint":
+      "Team1 may contact your team about local programs, partnerships, or mentorship opportunities.",
 
     // Step 2 — Technical Details
     "submission.step2.technical.title": "Technical Details",
@@ -274,6 +305,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.media.deleteTitle": "Delete Image",
     "submission.media.deleteConfirm": "Are you sure you want to delete this image?",
     "submission.media.viewTitle": "View Image",
+    "submission.media.fileTooLarge": "File exceeds the {size}MB limit and was not added.",
 
     // Save toasts
     "submission.save.savedTitle": "Project saved",
@@ -364,16 +396,30 @@ const dict: Record<EventsLang, Dict> = {
     "reg.referral.membersError": "Couldn't load team members",
 
     // Step 3
-    "reg.step3.title": "Step 3: Terms & Agreements",
+    "reg.step3.title": "Step 2: Terms & Agreements",
     "reg.step3.subtitle": "Review and agree to the terms to complete your registration. For information about our privacy practices and commitment to protecting your privacy, please review our",
     "reg.step3.privacyLink": "Avalanche Privacy Policy.",
     "reg.step3.terms.label": "I have read and agree to the Event Participation",
-    "reg.step3.terms.link": "Terms and Conditions.",
+    "reg.step3.terms.link": "Terms and Conditions",
+    "reg.step3.terms.connector": " and the ",
     "reg.step3.terms.hint": "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
     "reg.step3.newsletter.label": "I wish to stay informed about Avalanche news and events.",
-    "reg.step3.newsletter.hint": "Subscribe to newsletters and promotional materials. You can opt out anytime.",
+    "reg.step3.newsletter.hint": "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
     "reg.step3.prohibited.label": "I agree not to bring any of the following prohibited items. *",
     "reg.step3.prohibited.hint": "Review the list of restricted items before attending in-person events.",
+
+    // Grouped User-level consents (used in account creation and event registration)
+    "consents.group.label": "Stay connected with Avalanche",
+    "consents.notifications.label":
+      "I wish to stay informed about Avalanche news and events.",
+    "consents.notifications.hint":
+      "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
+    "consents.consentSharing.label":
+      "I consent to share my contact information with Avalanche Team1.",
+    "consents.consentSharing.hint":
+      "Team1 may contact you about local events, mentorship opportunities, or regional ecosystem programs.",
+    "consents.consentSharing.required":
+      "You must consent to share your contact information with Avalanche Team1 to register for this event.",
 
     // Completed dialog
     "reg.dialog.title": "Application Submitted",
@@ -404,6 +450,44 @@ const dict: Record<EventsLang, Dict> = {
     "reg.email.automated": "This is an automated message — please do not reply.",
     "reg.email.ignore": "If you did not expect this invitation, you can safely ignore this email.",
     "reg.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission success screen
+    "submission.success.congrats": "Congratulations!",
+    "submission.success.headline": "Your project has been submitted!",
+    "submission.success.body": "Your project",
+    "submission.success.body2": "has been successfully submitted to",
+    "submission.success.teamNote": "Team members will receive an email invitation to confirm their participation.",
+    "submission.success.goToProfile": "View my projects",
+    "submission.success.backToEvent": "Back to event",
+    "submission.success.editProject": "Edit submission",
+
+    // Pending user gate (terms not yet accepted)
+    "submission.pendingUser.message": "Complete your account setup to submit a project.",
+    "submission.pendingUser.cta": "Complete setup",
+
+    // Form field indicators
+    "field.required": "Required",
+    "field.optional": "Optional",
+
+    // Submission confirmation email
+    "submission.email.subject": "Your project \"{projectName}\" has been submitted!",
+    "submission.email.h2": "Project submission confirmed",
+    "submission.email.congrats": "Congratulations!",
+    "submission.email.body": "Your project",
+    "submission.email.body2": "has been successfully submitted to",
+    "submission.email.body3": "Good luck — we're excited to see what you've built!",
+    "submission.email.automated": "This is an automated message — please do not reply.",
+    "submission.email.ignore": "If you did not submit a project, you can safely ignore this email.",
+    "submission.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission status card (event page)
+    "submission.status.notStarted": "You haven't started your submission yet.",
+    "submission.status.notStartedCta": "Start now",
+    "submission.status.inProgress": "Your submission is in progress",
+    "submission.status.inProgressCta": "Continue editing",
+    "submission.status.complete": "Your project is submitted!",
+    "submission.status.completeSub": "All required fields are complete. You can still edit before the deadline.",
+    "submission.status.editCta": "Edit submission",
 
     // Invitation email
     "invitation.email.subject": "You're invited to collaborate on \"{projectName}\"",
@@ -473,17 +557,36 @@ const dict: Record<EventsLang, Dict> = {
     "section.submission.viewFullGuidelines": "Ver pautas completas",
     "section.submission.guidelinesTitle": "Pautas",
     "section.submission.submitProject": "Enviar proyecto",
+    "section.submission.editProject": "Editar proyecto",
+    "section.submission.continueProject": "Continuar envío",
 
     // Schedule
     "section.schedule.title": "Agenda",
     "schedule.noDatesAvailable": "No hay fechas disponibles",
     "schedule.noValidDatesAvailable": "No hay fechas válidas disponibles",
     "schedule.invalidDateRange": "Rango de fechas inválido",
+    "schedule.loadingCalendar": "Cargando eventos del calendario…",
+    "schedule.calendarError": "No se pudieron cargar los eventos del calendario. Verifica que el Google Calendar ID sea correcto y que el calendario sea público.",
     "schedule.liveNow": "En vivo",
-    "schedule.zoom": "Zoom",
+    "schedule.join": "Unirse",
     "schedule.untitledActivity": "Actividad sin título",
     "schedule.joinVideoCall": "Unirse a videollamada",
     "schedule.tbd": "Por confirmar",
+    "schedule.timezoneSelector.label": "Zona horaria",
+    "schedule.timezoneSelector.none": "Sin zona horaria seleccionada",
+    "schedule.timezoneSelector.button": "Cambiar",
+    "schedule.timezoneSelector.modalTitle": "Seleccionar zona horaria",
+    "schedule.timezoneSelector.modalDescription": "Busca y selecciona la zona horaria usada para mostrar la agenda.",
+    "schedule.timezoneSelector.searchPlaceholder": "Buscar por ciudad o región",
+    "schedule.timezoneSelector.city": "Ciudad",
+    "schedule.timezoneSelector.utc": "UTC",
+    "schedule.timezoneSelector.diff": "Dif.",
+    "schedule.timezoneSelector.localTime": "Hora local",
+    "schedule.timezoneSelector.same": "igual",
+    "schedule.timezoneSelector.empty": "No se encontraron zonas horarias",
+    "event.moreInfo": "Más información",
+    "event.online": "En línea",
+    "event.addToCalendar": "Añadir al calendario",
 
     // Mentors & judges
     "section.mentorsJudges.title": "Mentores y jurado",
@@ -592,7 +695,19 @@ const dict: Record<EventsLang, Dict> = {
       "Ingresa tu categoría personalizada",
     "submission.step1.deployedAddresses.label": "Direcciones desplegadas",
     "submission.step1.deployedAddresses.addButton": "+ nueva dirección",
+    "submission.step1.website.label": "Sitio web",
+    "submission.step1.website.tagPlaceholder": "Etiqueta",
+    "submission.step1.website.urlPlaceholder": "https://ejemplo.com",
+    "submission.step1.website.addButton": "+ nuevo sitio web",
+    "submission.step1.socials.label": "Redes sociales",
+    "submission.step1.socials.tagPlaceholder": "Etiqueta",
+    "submission.step1.socials.urlPlaceholder": "https://ejemplo.com",
+    "submission.step1.socials.addButton": "+ nueva red social",
     "submission.step1.team.title": "Equipo y colaboración",
+    "submission.step1.consentSharing.label":
+      "Acepto compartir la información de este proyecto con Avalanche Team1 para que puedan contactarme y ofrecer apoyo local.",
+    "submission.step1.consentSharing.hint":
+      "Team1 podría contactar a tu equipo sobre programas locales, alianzas u oportunidades de mentoría.",
 
     // Step 2 — Technical Details
     "submission.step2.technical.title": "Detalles técnicos",
@@ -704,6 +819,7 @@ const dict: Record<EventsLang, Dict> = {
     "submission.media.deleteTitle": "Eliminar imagen",
     "submission.media.deleteConfirm": "¿Estás seguro de que quieres eliminar esta imagen?",
     "submission.media.viewTitle": "Ver imagen",
+    "submission.media.fileTooLarge": "El archivo supera el límite de {size}MB y no fue agregado.",
 
     // Save toasts
     "submission.save.savedTitle": "Proyecto guardado",
@@ -798,12 +914,26 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step3.subtitle": "Revisa y acepta los términos para completar tu registro. Para más información sobre nuestras prácticas de privacidad, consulta nuestra",
     "reg.step3.privacyLink": "Política de privacidad de Avalanche.",
     "reg.step3.terms.label": "He leído y acepto los",
-    "reg.step3.terms.link": "Términos y condiciones de participación en el evento.",
+    "reg.step3.terms.link": "Términos y condiciones de participación en el evento",
+    "reg.step3.terms.connector": " y la ",
     "reg.step3.terms.hint": "Debes aceptar los términos para participar en eventos de Builder Hub.",
     "reg.step3.newsletter.label": "Deseo mantenerme informado sobre noticias y eventos de Avalanche.",
     "reg.step3.newsletter.hint": "Suscríbete a boletines y materiales promocionales. Puedes cancelar en cualquier momento.",
     "reg.step3.prohibited.label": "Acepto no traer ninguno de los artículos prohibidos. *",
     "reg.step3.prohibited.hint": "Revisa la lista de artículos restringidos antes de asistir a eventos presenciales.",
+
+    // Consentimientos a nivel usuario (creación de cuenta y registro a eventos)
+    "consents.group.label": "Mantente conectado con Avalanche",
+    "consents.notifications.label":
+      "Deseo mantenerme informado sobre noticias y eventos de Avalanche.",
+    "consents.notifications.hint":
+      "Suscríbete a boletines y materiales promocionales. Puedes cancelar en cualquier momento.",
+    "consents.consentSharing.label":
+      "Acepto compartir mi información de contacto con Avalanche Team1 para que puedan contactarme para apoyo local o invitarme a iniciativas regionales.",
+    "consents.consentSharing.hint":
+      "Team1 podría contactarte sobre eventos locales, oportunidades de mentoría o programas regionales del ecosistema.",
+    "consents.consentSharing.required":
+      "Debes aceptar compartir tu información de contacto con Avalanche Team1 para registrarte en este evento.",
 
     // Completed dialog
     "reg.dialog.title": "Solicitud enviada",
@@ -834,6 +964,44 @@ const dict: Record<EventsLang, Dict> = {
     "reg.email.automated": "Este es un mensaje automático — por favor no respondas.",
     "reg.email.ignore": "Si no esperabas esta invitación, puedes ignorar este correo con seguridad.",
     "reg.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission success screen
+    "submission.success.congrats": "¡Felicidades!",
+    "submission.success.headline": "¡Tu proyecto ha sido entregado!",
+    "submission.success.body": "Tu proyecto",
+    "submission.success.body2": "ha sido entregado exitosamente en",
+    "submission.success.teamNote": "Los miembros del equipo recibirán un correo de invitación para confirmar su participación.",
+    "submission.success.goToProfile": "Ver mis proyectos",
+    "submission.success.backToEvent": "Volver al evento",
+    "submission.success.editProject": "Editar envío",
+
+    // Pending user gate (terms not yet accepted)
+    "submission.pendingUser.message": "Completa la configuración de tu cuenta para enviar un proyecto.",
+    "submission.pendingUser.cta": "Completar configuración",
+
+    // Form field indicators
+    "field.required": "Obligatorio",
+    "field.optional": "Opcional",
+
+    // Submission confirmation email
+    "submission.email.subject": "¡Tu proyecto \"{projectName}\" ha sido enviado!",
+    "submission.email.h2": "Envío de proyecto confirmado",
+    "submission.email.congrats": "¡Felicidades!",
+    "submission.email.body": "Tu proyecto",
+    "submission.email.body2": "ha sido enviado exitosamente a",
+    "submission.email.body3": "¡Mucha suerte — estamos emocionados de ver lo que construiste!",
+    "submission.email.automated": "Este es un mensaje automático — por favor no respondas.",
+    "submission.email.ignore": "Si no enviaste un proyecto, puedes ignorar este correo con seguridad.",
+    "submission.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Submission status card (event page)
+    "submission.status.notStarted": "Aún no has comenzado tu envío.",
+    "submission.status.notStartedCta": "Comenzar ahora",
+    "submission.status.inProgress": "Tu envío está en progreso",
+    "submission.status.inProgressCta": "Continuar editando",
+    "submission.status.complete": "¡Tu proyecto está enviado!",
+    "submission.status.completeSub": "Todos los campos obligatorios están completos. Aún puedes editar antes de la fecha límite.",
+    "submission.status.editCta": "Editar envío",
 
     // Invitation email
     "invitation.email.subject": "Te invitaron a colaborar en \"{projectName}\"",
@@ -873,4 +1041,3 @@ export function t(
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
 }
-

@@ -1,5 +1,3 @@
-import { NotificationMeans } from '@/lib/notificationDefaults';
-
 /**
  * Structure of the user_type field (stored as JSON in the database)
  */
@@ -29,15 +27,17 @@ export type ExtendedProfile = {
     image: string | null;
     country?: string | null;
     user_type: UserType;
-    github?: string | null;
+    github_account?: string | null;
+    x_account: string | null;
+    linkedin_account: string | null;
     githubConnected?: boolean;
     wallet?: string[] | null;
-    socials: string[];
+    additional_social_accounts: string[];
     skills: string[];
     notifications: boolean | null;
+    consent_sharing: boolean | null;
     profile_privacy: string | null;
-    telegram_user?: string | null;
-    notification_means?: NotificationMeans | null;
+    telegram_account?: string | null;
 }
 
 /**

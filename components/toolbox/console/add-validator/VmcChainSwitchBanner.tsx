@@ -48,10 +48,7 @@ export function VmcChainSwitchBanner({ mismatch }: VmcChainSwitchBannerProps) {
   };
 
   return (
-    <div
-      className="rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 p-4"
-      role="alert"
-    >
+    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 p-4" role="alert">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />

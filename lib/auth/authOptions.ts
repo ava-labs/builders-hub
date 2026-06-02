@@ -2,7 +2,6 @@ import { NextAuthOptions, DefaultSession, Session, User } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import GithubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import TwitterProvider from 'next-auth/providers/twitter';
 import { prisma } from '../../prisma/prisma';
 import { encode, JWT } from 'next-auth/jwt';
 import { randomInt } from 'crypto';
@@ -77,6 +76,17 @@ export function generate6DigitCode(): string {
   return randomInt(100000, 1000000).toString();
 }
 
+const authUserSelect = {
+  id: true,
+  email: true,
+  image: true,
+  name: true,
+  custom_attributes: true,
+  authentication_mode: true,
+  notifications: true,
+  user_name: true,
+} as const;
+
 export const AuthOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -86,10 +96,6 @@ export const AuthOptions: NextAuthOptions = {
     GithubProvider({
       clientId: process.env.GITHUB_ID as string,
       clientSecret: process.env.GITHUB_SECRET as string,
-    }),
-    TwitterProvider({
-      clientId: process.env.TWITTER_CLIENT_ID as string,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET as string,
     }),
     CredentialsProvider({
       credentials: {
@@ -102,7 +108,8 @@ export const AuthOptions: NextAuthOptions = {
         if (!email) throw new Error('Missing email');
         if (!otp) throw new Error('Missing otp');
 
-        const result = await verifyOTP(email, otp);
+        const normalizedEmail = email.toLowerCase().trim();
+        const result = await verifyOTP(normalizedEmail, otp);
 
         if (!result.isValid) {
           if (result.reason === 'EXPIRED') {
@@ -117,19 +124,19 @@ export const AuthOptions: NextAuthOptions = {
           }
         }
 
-        let user = await prisma.user.findUnique({ where: { email } });
+        let user = await prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          select: authUserSelect,
+        });
         if (!user) {
           user = {
             email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
-            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date(),
-            country: null, user_type: null, github: null, wallet: [], skills: [], team_id: null, noun_avatar_seed: null, noun_avatar_enabled: false,
-            notification_means: null,
-            chatConversations: [], consoleLog: [], faucetClaims: [], hackathons: [], updated_hackathons: [], memberships: [],
-            managedTestnetNodes: [], Notification: [], registrations: [], Repository: [], statsPlaygrounds: [], statsPlaygroundFavorites: [], badges: [],
+            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null,
+            additional_social_accounts: [], telegram_account: '', github_account: null, x_account: null, linkedin_account: null,
+            user_name: '', created_at: new Date(),
+            country: null, user_type: null, wallet: [], skills: [], team_id: null, noun_avatar_seed: null, noun_avatar_enabled: false,
             github_access_token: null,
-            linkedin_url: null,
-            x_handle: null,
-          } as PrismaUser
+          } as unknown as PrismaUser;
         }
 
         return user;
@@ -148,6 +155,7 @@ export const AuthOptions: NextAuthOptions = {
           // Check if user already exists in the database
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
+            select: { id: true },
           });
 
           if (existingUser) {
@@ -156,6 +164,7 @@ export const AuthOptions: NextAuthOptions = {
             await prisma.user.update({
               where: { id: existingUser.id },
               data: { last_login: new Date() },
+              select: { id: true },
             });
           }
           // If user doesn't exist, don't create them yet
@@ -183,17 +192,13 @@ export const AuthOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
-      let dbUser = null;
-
-      if (user?.email) {
-        dbUser = await prisma.user.findUnique({
-          where: { email: user.email },
-        });
-      } else if (token?.email) {
-        dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-        });
-      }
+      const email = user?.email ?? token?.email;
+      const dbUser = email
+        ? await prisma.user.findUnique({
+            where: { email },
+            select: authUserSelect,
+          })
+        : null;
 
       if (dbUser) {
         token.id = dbUser.id;

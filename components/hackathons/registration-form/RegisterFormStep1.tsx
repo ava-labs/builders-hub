@@ -22,6 +22,11 @@ import { countries } from "@/constants/countries";
 import { hsEmploymentRoles } from "@/constants/hs_employment_role";
 import { EventsLang, t } from "@/lib/events/i18n";
 
+const hackathonParticipationOptions = [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+];
+
 interface Step1Props {
   user?: User;
   lang?: EventsLang;
@@ -116,7 +121,7 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
           />
           <FormField
             control={form.control}
-            name="telegram_user"
+            name="telegram_account"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t(lang, "reg.step1.telegram.label")}</FormLabel>
@@ -429,6 +434,36 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                   {t(lang, "reg.step1.ecosystem.label")}
                 </FormLabel>
               </div>
+            </FormItem>
+          )}
+        />
+
+        {/* Hackathon participation history (moved from Step 3) */}
+        <FormField
+          control={form.control}
+          name="hackathon_participation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                {t(lang, "reg.step2.hackathon.label")}
+              </FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="text-zinc-600">
+                    <SelectValue placeholder={t(lang, "reg.step2.hackathon.placeholder")} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-black dark:text-zinc-600 rounded-md shadow-md">
+                  {hackathonParticipationOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage className="text-zinc-600">
+                {t(lang, "reg.step2.hackathon.hint")}
+              </FormMessage>
             </FormItem>
           )}
         />

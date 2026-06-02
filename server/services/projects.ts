@@ -1,9 +1,18 @@
 import { Project, ProjectHackathonInfo, ProjectMemberUser } from "@/types/showcase";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 
 const prisma = new PrismaClient();
+
+// website/socials are Json? columns the careers flow sends but the showcase
+// Project type doesn't model; read them off the raw payload and only persist
+// when present so we never overwrite them with an empty value.
+const isNonEmptyObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.keys(value).length > 0;
 
 export const projectValidations: Validation[] = [
   // { field: "project_name", message: "Please provide a name for the project.", validation: (project: Project) => requiredField(project, "title") },
@@ -88,7 +97,6 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     include: {
       members: true,
       hackathon: true,
-      prizes: true,
       badges: {
         where: {
           status: 1, // BadgeAwardStatus.approved
@@ -136,7 +144,6 @@ export async function getProject(id: string): Promise<Project> {
         },
       },
       hackathon: true,
-      prizes: true,
     },
     where: { id },
   });
@@ -184,11 +191,6 @@ export async function getProject(id: string): Promise<Project> {
     updated_at: row.updated_at.toISOString(),
     is_winner: row.is_winner ?? undefined,
     members,
-    prizes: row.prizes.map((p) => ({
-      icon: p.icon,
-      prize: p.prize,
-      track: p.track,
-    })),
     hackathon,
     origin: row.origin,
   };
@@ -205,6 +207,7 @@ export async function createProject(
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
+  const extra = projectData as { website?: unknown; socials?: unknown };
   const newProject = await prisma.project.create({
     data: {
       project_name: projectData.project_name ?? "",
@@ -218,14 +221,14 @@ export async function createProject(
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
+      tags: projectData.tags ?? [],
+      website: isNonEmptyObject(extra.website)
+        ? (extra.website as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
+      socials: isNonEmptyObject(extra.socials)
+        ? (extra.socials as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
       hackaton_id: projectData.hackaton_id ?? null,
-      // prizes: {
-      //   create: projectData.prizes?.map((prize) => ({
-      //     icon: prize.icon,
-      //     prize: prize.prize,
-      //     track: prize.track,
-      //   })),
-      // },
       members: {
         create: projectData.members?.map((member) => ({
           user_id: member.user_id,
@@ -281,13 +284,6 @@ export async function updateProject(
           status: member.status,
         })),
       },
-      // prizes: {
-      //   create: projectData.prizes?.map((prize) => ({
-      //     icon: prize.icon,
-      //     prize: prize.prize,
-      //     track: prize.track,
-      //   })),
-      // },
       updated_at: new Date(),
     },
   });
@@ -299,6 +295,7 @@ export async function updateProject(
 export async function CheckInvitation(invitationId: string, user_id: string) {
   const user = await prisma.user.findUnique({
     where: { id: user_id },
+    select: { id: true, email: true },
   });
   const member = await prisma.member.findFirst({
     where: {
@@ -366,6 +363,10 @@ export async function GetProjectByHackathonAndUser(
   const user = await prisma.user.findFirst({
     where: {
       OR: [{ id: user_id }, { email: user_id }],
+    },
+    select: {
+      id: true,
+      email: true,
     },
   });
 

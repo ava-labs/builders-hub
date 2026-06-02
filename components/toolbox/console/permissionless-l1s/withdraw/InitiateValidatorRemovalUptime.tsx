@@ -16,7 +16,7 @@ import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPr
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type TokenType = 'native' | 'erc20';
@@ -75,7 +75,6 @@ const InitiateValidatorRemovalUptime: React.FC<InitiateValidatorRemovalUptimePro
   const [uptimeInfo, setUptimeInfo] = useState<{ seconds: number; signed: boolean } | null>(null);
   const [customValidatorsUrl, setCustomValidatorsUrl] = useState<string>('');
   const [showCustomUrl, setShowCustomUrl] = useState(false);
-
 
   const handleInitiateRemoval = async () => {
     if (isProcessing) return;

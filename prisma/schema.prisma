@@ -8,84 +8,108 @@ datasource db {
 }
 
 model Hackathon {
-  id                 String         @id @default(uuid())
+  id                 String                   @id @default(uuid())
   title              String
   description        String
   location           String
   total_prizes       Int
   tags               String[]
-  content            Json           @default("{}")
-  end_date           DateTime       @default(now()) @db.Timestamptz(3)
-  start_date         DateTime       @default(now()) @db.Timestamptz(3)
-  timezone           String         @default("UTC")
-  banner             String         @default("")
-  icon               String         @default("")
-  small_banner       String         @default("")
+  content            Json                     @default("{}")
+  end_date           DateTime                 @default(now()) @db.Timestamptz(3)
+  start_date         DateTime                 @default(now()) @db.Timestamptz(3)
+  timezone           String                   @default("UTC")
+  banner             String                   @default("")
+  icon               String                   @default("")
+  small_banner       String                   @default("")
   participants       Int
   organizers         String?
-  top_most           Boolean?       @default(false)
+  top_most           Boolean?                 @default(false)
   custom_link        String?
   created_by         String?
   is_public          Boolean?
   updated_by         String?
-  event              String?        @default("hackathon")
-  cohosts            String[]       @default([])
-  new_layout         Boolean?       @default(false)
+  event              String?                  @default("hackathon")
+  cohosts            String[]                 @default([])
+  new_layout         Boolean?                 @default(false)
   google_calendar_id String?
-  created_by_user    User?          @relation(fields: [created_by], references: [id])
-  updated_by_user    User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
+  evaluation_phase   HackathonEvaluationPhase @default(EVALUATION)
+  created_by_user    User?                    @relation(fields: [created_by], references: [id])
+  updated_by_user    User?                    @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects           Project[]
   registrations      RegisterForm[]
+  judges             HackathonJudge[]
+}
+
+enum HackathonEvaluationPhase {
+  EVALUATION
+  PICKING
+}
+
+model HackathonJudge {
+  id           String    @id @default(uuid())
+  hackathon_id String
+  user_id      String
+  assigned_by  String
+  assigned_at  DateTime  @default(now()) @db.Timestamptz(3)
+  hackathon    Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([hackathon_id, user_id])
+  @@index([hackathon_id])
+  @@index([user_id])
 }
 
 model User {
-  id                       String                    @id @default(cuid())
-  name                     String?
-  email                    String                    @unique
-  image                    String?
-  authentication_mode      String?
-  integration              String?
-  last_login               DateTime?
-  user_name                String?
-  bio                      String?
-  notification_email       String?
-  notifications            Boolean?
-  profile_privacy          String?                   @default("public")
-  social_media             String[]
-  custom_attributes        String[]
-  team_id                  String?
-  telegram_user            String?
-  created_at               DateTime                  @default(now()) @db.Timestamptz(3)
-  country                  String?
-  github                   String?
-  linkedin_url             String?
-  x_handle                 String?
-  noun_avatar_enabled      Boolean                   @default(false)
-  noun_avatar_seed         Json?
-  skills                   String[]                  @default([])
-  user_type                Json?
-  wallet                   String[]                  @default([])
-  notification_means       Json?                     @default("{}")
-  github_access_token      String?
-  chatConversations        ChatConversation[]
-  consoleLog               ConsoleLog[]
-  evaluations              Evaluation[]              @relation("Evaluations")
-  faucetClaims             FaucetClaim[]
-  hackathons               Hackathon[]
-  updated_hackathons       Hackathon[]               @relation("HackathonUpdatedBy")
-  memberships              Member[]
-  managedTestnetNodes      NodeRegistration[]
-  Notification             Notification[]
-  oauthCodes               OAuthCode[]
-  registrations            RegisterForm[]
-  Repository               Repository[]
-  statsPlaygrounds         StatsPlayground[]
-  statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
-  badges                   UserBadge[]
-  validatorAlerts          ValidatorAlert[]
-  referralLinks            ReferralLink[]            @relation("ReferralLinkOwner")
-  referralAttributionsMade ReferralAttribution[]     @relation("ReferralAttributionReferrer")
-  referralAttributions     ReferralAttribution[]     @relation("ReferralAttributionUser")
+  id                         String                    @id @default(cuid())
+  name                       String?
+  email                      String                    @unique
+  image                      String?
+  authentication_mode        String?
+  integration                String?
+  last_login                 DateTime?
+  user_name                  String?
+  bio                        String?
+  notification_email         String?
+  telegram_account           String?
+  github_account             String?
+  x_account                  String?
+  linkedin_account           String?
+  additional_social_accounts String[]                  @default([])
+  notifications              Boolean?
+  consent_sharing            Boolean?
+  profile_privacy            String?                   @default("public")
+  custom_attributes          String[]
+  team_id                    String?
+  created_at                 DateTime                  @default(now()) @db.Timestamptz(3)
+  country                    String?
+  noun_avatar_enabled        Boolean                   @default(false)
+  noun_avatar_seed           Json?
+  skills                     String[]                  @default([])
+  user_type                  Json?
+  wallet                     String[]                  @default([])
+  notification_means         Json?                     @default("{}")
+  github_access_token        String?
+  chatConversations          ChatConversation[]
+  consoleLog                 ConsoleLog[]
+  evaluations                Evaluation[]              @relation("Evaluations")
+  faucetClaims               FaucetClaim[]
+  hackathons                 Hackathon[]
+  hackathon_judge_roles      HackathonJudge[]
+  updated_hackathons         Hackathon[]               @relation("HackathonUpdatedBy")
+  memberships                Member[]
+  managedTestnetNodes        NodeRegistration[]
+  Notification               Notification[]
+  oauthCodes                 OAuthCode[]
+  registrations              RegisterForm[]
+  Repository                 Repository[]
+  statsPlaygrounds           StatsPlayground[]
+  statsPlaygroundFavorites   StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
+  badges                     UserBadge[]
+  validatorAlerts            ValidatorAlert[]
+  referralLinks              ReferralLink[]            @relation("ReferralLinkOwner")
+  referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
+  referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
+  posted_job_listings        JobListing[]              @relation("UserPostedJobListings")
 }
 
 model VerificationToken {
@@ -117,7 +141,7 @@ model RegisterForm {
   terms_event_conditions  Boolean   @default(false)
   updated_at              DateTime  @updatedAt @db.Timestamptz(3)
   web3_proficiency        String
-  telegram_user           String?
+  telegram_account        String?
   user                    User      @relation(fields: [email], references: [email], onDelete: Cascade)
   hackathon               Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
 
@@ -144,28 +168,29 @@ model Project {
   is_preexisting_idea Boolean             @default(false)
   small_cover_url     String?             @default("")
   tags                String[]            @default([])
-  is_winner           Boolean?            @default(false)
+  is_winner                Boolean?            @default(false)
+  is_rejected              Boolean             @default(false)
+  submission_email_sent    Boolean             @default(false)
   categories          String[]            @default([])
   origin              String              @default("unknown")
   other_category      String?
   deployed_addresses  Json[]              @default([])
   website             Json?
   socials             Json?
+  consent_sharing     Boolean?
+  // One-shot devrel approval for the Ecosystem Careers feature. Every project
+  // starts unapproved regardless of origin (community form, hackathon submission,
+  // grant application). A devrel flips this at /admin/ecosystem-careers, which
+  // also activates every queued listing under the project in one action.
+  careers_approved    Boolean             @default(false)
+  careers_rejected_at DateTime?           @db.Timestamptz(3)
   formData            FormData[]
   members             Member[]
-  prizes              Prize[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
   badges              ProjectBadge[]
   ProjectRepository   ProjectRepository[]
-}
-
-model Prize {
-  id         String  @id @default(uuid())
-  icon       String
-  prize      Int
-  track      String
-  project_id String
-  Project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  evaluations         Evaluation[]
+  jobListings         JobListing[]
 }
 
 model Member {
@@ -391,24 +416,33 @@ model FormData {
   current_stage Int          @default(0)
   evaluations   Evaluation[]
   project       Project      @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([project_id, origin])
+  @@index([origin, current_stage])
 }
 
 model Evaluation {
   id            String   @id @default(dbgenerated("gen_random_uuid()"))
-  form_data_id  String
+  form_data_id  String?
+  project_id    String?
+  hackathon_id  String?
   evaluator_id  String
-  verdict       String
   comment       String?
   score_overall Float?
   scores        Json?
-  created_at    DateTime @default(now()) @db.Timestamptz(3)
-  updated_at    DateTime @updatedAt @db.Timestamptz(3)
-  stage         Int      @default(0)
-  evaluator     User     @relation("Evaluations", fields: [evaluator_id], references: [id], onDelete: Cascade)
-  formData      FormData @relation(fields: [form_data_id], references: [id], onDelete: Cascade)
+  created_at    DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime  @updatedAt @db.Timestamptz(3)
+  stage         Int       @default(0)
+  evaluator     User      @relation("Evaluations", fields: [evaluator_id], references: [id], onDelete: Cascade)
+  project       Project?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  verdict       String?
+  formData      FormData? @relation(fields: [form_data_id], references: [id], onDelete: Cascade)
 
   @@unique([form_data_id, evaluator_id, stage])
+  @@unique([project_id, evaluator_id])
   @@index([form_data_id])
+  @@index([project_id])
+  @@index([hackathon_id])
   @@index([evaluator_id])
 }
 
@@ -451,46 +485,6 @@ model OAuthCode {
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([expires_at])
-}
-
-model Retro9000ReturningApplication {
-  id                                  String   @id @default(uuid())
-  email                               String   @unique
-  project_name                        String
-  project_type                        String
-  project_vertical                    String
-  project_website                     String?
-  project_x_handle                    String?
-  project_github                      String
-  project_hq                          String
-  project_continent                   String
-  media_kit                           String
-  previous_retro9000_snapshot_funding String?
-  requested_funding_range             String
-  eligibility_and_metrics             String
-  requested_grant_size_budget         String
-  changes_since_last_snapshot         String
-  first_name                          String
-  last_name                           String
-  pseudonym                           String?
-  role                                String
-  x_account                           String
-  telegram                            String
-  linkedin                            String?
-  github                              String?
-  country                             String?
-  other_url                           String?
-  bio                                 String
-  kyb_willing                         String
-  gdpr                                Boolean  @default(false)
-  marketing_consent                   Boolean  @default(false)
-  created_at                          DateTime @default(now()) @db.Timestamptz(3)
-  updated_at                          DateTime @updatedAt @db.Timestamptz(3)
-
-  @@index([created_at])
-  @@index([project_name])
-  @@index([project_vertical])
-  @@index([requested_funding_range])
 }
 
 model ResearchProposalApplication {
@@ -636,9 +630,59 @@ model Repository {
 }
 
 model Speaker {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name     String
-  icon     String?
   category String
   picture  String
-  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  icon     String? 
+}
+
+model Resource {
+  id          String @id @default(uuid())
+  title       String
+  description String
+  link        String
+  icon        String
+}
+
+model JobListing {
+  id                       String    @id @default(uuid())
+  // 'community' | 'external' | 'legacy'
+  //   community → user-submitted via a Builders Hub Project (project_id set)
+  //   external  → ingested from web3.career on the cron (company_* set)
+  //   legacy    → the original Getro seed, frozen (company_* set)
+  source                   String
+  external_id              String?
+  // Set for source = 'community' (NULL for external/legacy)
+  project_id               String?
+  posted_by_user_id        String?
+  // Set for source = 'external' | 'legacy' (NULL for community)
+  company_name             String?
+  company_logo             String?
+  company_website          String?
+  company_tags             String[]  @default([])
+  // Shared
+  title                    String
+  short_description        String
+  description              String?
+  location                 String?
+  remote_type              String?
+  employment_type          String?
+  seniority                String?
+  tags                     String[]  @default([])
+  apply_url                String
+  source_url               String?
+  posted_at                DateTime? @db.Timestamptz(3)
+  last_seen_at             DateTime  @default(now()) @db.Timestamptz(3)
+  is_active                Boolean   @default(true)
+  rejected_at              DateTime? @db.Timestamptz(3)
+  created_at               DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at               DateTime  @updatedAt @db.Timestamptz(3)
+
+  project                  Project?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  posted_by_user           User?     @relation("UserPostedJobListings", fields: [posted_by_user_id], references: [id], onDelete: SetNull)
+
+  @@unique([source, external_id])
+  @@index([source, is_active, posted_at])
+  @@index([project_id])
 }

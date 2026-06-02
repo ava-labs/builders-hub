@@ -27,6 +27,7 @@ import {
   clearStoredReferralAttribution,
   getStoredReferralAttribution,
 } from "@/lib/referrals/client";
+import { GroupedUserConsents } from "@/components/common/grouped-user-consents";
 
 // Form schema with validation
 const termsFormSchema = z.object({
@@ -34,6 +35,7 @@ const termsFormSchema = z.object({
     message: "You must accept the Terms and Conditions to continue.",
   }),
   notifications: z.boolean().default(false),
+  consent_sharing: z.boolean().default(false),
 });
 
 type TermsFormValues = z.infer<typeof termsFormSchema>;
@@ -62,6 +64,7 @@ export const Terms = ({
     defaultValues: {
       accepted_terms: false,
       notifications: false,
+      consent_sharing: false,
     },
   });
 
@@ -82,6 +85,7 @@ export const Terms = ({
         // Create the user in the database first
         const createResponse = await axios.post("/api/user/create-after-terms", {
           notifications: data.notifications,
+          consent_sharing: data.consent_sharing,
           referral_attribution: referralAttribution,
         });
 
@@ -198,30 +202,35 @@ export const Terms = ({
                 )}
               />
 
-              {/* Second checkbox - Email Notifications */}
-              <FormField
-                control={form.control}
-                name="notifications"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-start space-x-3">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="flex-1">
-                        <FormLabel className="text-sm text-foreground cursor-pointer">
-                          I wish to stay informed about Avalanche news and events.
-                        </FormLabel>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Subscribe to newsletters and promotional materials. You can opt out anytime.
-                        </p>
-                      </div>
-                    </div>
-                  </FormItem>
-                )}
+              {/* Grouped User-level consents (newsletter + Team1 outreach) */}
+              <GroupedUserConsents
+                groupLabel="Stay connected with Avalanche"
+                items={[
+                  {
+                    key: "notifications",
+                    label:
+                      "I wish to stay informed about Avalanche news and events.",
+                    hint:
+                      "Subscribe to Avalanche Foundation newsletters and promotional materials. You can opt out anytime.",
+                    checked: form.watch("notifications") ?? false,
+                    onCheckedChange: (next) =>
+                      form.setValue("notifications", next, {
+                        shouldDirty: true,
+                      }),
+                  },
+                  {
+                    key: "consent_sharing",
+                    label:
+                      "I consent to share my contact information with Avalanche Team1.",
+                    hint:
+                      "Team1 may contact you about local events, mentorship opportunities, or regional ecosystem programs.",
+                    checked: form.watch("consent_sharing") ?? false,
+                    onCheckedChange: (next) =>
+                      form.setValue("consent_sharing", next, {
+                        shouldDirty: true,
+                      }),
+                  },
+                ]}
               />
             </div>
 

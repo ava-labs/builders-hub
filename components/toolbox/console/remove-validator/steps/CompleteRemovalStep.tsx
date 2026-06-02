@@ -29,15 +29,14 @@ export default function CompleteRemovalStep() {
   const vmcCtx = useValidatorManagerContext();
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
 
-  const flavor = useMemo(() => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType), [
-    vmcCtx.ownerType,
-    vmcCtx.staking.stakingType,
-  ]);
+  const flavor = useMemo(
+    () => flavorFor(vmcCtx.ownerType, vmcCtx.staking.stakingType),
+    [vmcCtx.ownerType, vmcCtx.staking.stakingType],
+  );
   const stepConfig = useMemo(() => buildStepConfig(flavor), [flavor]);
   const isStaking = flavor !== 'PoA';
   const stakingManagerAddress = vmcCtx.staking.stakingManagerAddress || vmcCtx.validatorManagerAddress || '';
-  const tokenType: 'native' | 'erc20' =
-    vmcCtx.staking.stakingType === 'erc20' ? 'erc20' : 'native';
+  const tokenType: 'native' | 'erc20' = vmcCtx.staking.stakingType === 'erc20' ? 'erc20' : 'native';
 
   // PoA derives ownership from the wallet check we already did in step 1.
   const isContractOwner =
@@ -48,11 +47,7 @@ export default function CompleteRemovalStep() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">Complete Removal</h2>
-          <ManagerTypeBadge
-            ownerType={vmcCtx.ownerType}
-            stakingType={vmcCtx.staking.stakingType}
-            isDetecting={false}
-          />
+          <ManagerTypeBadge ownerType={vmcCtx.ownerType} stakingType={vmcCtx.staking.stakingType} isDetecting={false} />
         </div>
         {vmcCtx.chainMismatch && <VmcChainSwitchBanner mismatch={vmcCtx.chainMismatch} />}
         {isStaking && !coreWalletClient && (

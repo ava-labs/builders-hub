@@ -21,7 +21,8 @@ export async function UpdateStatusMember(
         { id: user_id },
         { email: email }
       ]
-    }
+    },
+    select: { id: true, email: true, name: true, image: true }
   }) : null;
  
   const member = await prisma.member.findFirst({
@@ -169,8 +170,8 @@ export async function GetProjectsByUserId(user_id: string) {
               name: true,
               email: true,
               bio: true,
-              social_media: true,
-              telegram_user: true,
+              additional_social_accounts: true,
+              telegram_account: true,
               image: true,
               user_name: true,
             },
@@ -212,8 +213,8 @@ export async function GetProjectByIdWithMembers(project_id: string) {
               name: true,
               email: true,
               bio: true,
-              social_media: true,
-              telegram_user: true,
+              additional_social_accounts: true,
+              telegram_account: true,
               image: true,
               user_name: true,
             },

@@ -19,7 +19,10 @@ import {
   Eye,
   Twitter,
   Linkedin,
+  Clock,
 } from "lucide-react";
+
+const REQUEST_INDEXING_FORM_URL = "https://forms.gle/N4QkRo9UR45xeTTp9";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
@@ -56,8 +59,10 @@ export default function ChainListPage() {
   // Load custom chains from localStorage
   const [customChains, setCustomChains] = useState<L1Chain[]>([]);
   
-  // Track Glacier support for each chain
-  const [glacierSupportMap, setGlacierSupportMap] = useState<Map<string, boolean>>(new Map());
+  // Track whether the Stats page is available for each chain (i.e. Glacier supports it)
+  const [statsSupportMap, setStatsSupportMap] = useState<Map<string, boolean>>(new Map());
+  // Track whether each chain has any indexed metrics activity. Undefined while loading.
+  const [isIndexedMap, setIsIndexedMap] = useState<Map<string, boolean>>(new Map());
 
   useEffect(() => {
     setIsMounted(true);
@@ -125,18 +130,19 @@ export default function ChainListPage() {
     return { total: allChains.length, mainnet, testnet, console };
   }, [allChains]);
 
-  // Fetch Glacier support for all chains
+  // Fetch Glacier support + indexing status for all chains
   useEffect(() => {
-    const fetchGlacierSupport = async () => {
+    const fetchChainStatus = async () => {
       const supportMap = new Map<string, boolean>();
-      
-      // Fetch support for all chains in parallel (with batching to avoid overwhelming the API)
+      const indexedMap = new Map<string, boolean>();
+
+      // Fetch status for all chains in parallel (with batching to avoid overwhelming the API)
       const chainsToCheck = allChains.filter(chain => chain.chainId);
       const batchSize = 10;
-      
+
       for (let i = 0; i < chainsToCheck.length; i += batchSize) {
         const batch = chainsToCheck.slice(i, i + batchSize);
-        
+
         await Promise.all(
           batch.map(async (chain) => {
             try {
@@ -144,22 +150,26 @@ export default function ChainListPage() {
               if (response.ok) {
                 const data = await response.json();
                 supportMap.set(chain.chainId, data.glacierSupported === true);
+                indexedMap.set(chain.chainId, data.isIndexed === true);
               } else {
                 supportMap.set(chain.chainId, false);
+                indexedMap.set(chain.chainId, false);
               }
             } catch (error) {
-              console.warn(`Failed to check Glacier support for chain ${chain.chainId}:`, error);
+              console.warn(`Failed to check chain status for ${chain.chainId}:`, error);
               supportMap.set(chain.chainId, false);
+              indexedMap.set(chain.chainId, false);
             }
           })
         );
       }
-      
-      setGlacierSupportMap(supportMap);
+
+      setStatsSupportMap(supportMap);
+      setIsIndexedMap(indexedMap);
     };
 
     if (allChains.length > 0) {
-      fetchGlacierSupport();
+      fetchChainStatus();
     }
   }, [allChains]);
 
@@ -222,12 +232,17 @@ export default function ChainListPage() {
         chain.networkToken?.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         chain.slug.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // RPC URL filter
-      const matchesRpcFilter = !hideWithoutRpc || !!chain.rpcUrl;
+      // RPC URL filter — never hide chains we've confirmed are not indexed,
+      // since their card itself acts as a "request indexing" CTA. The
+      // chain.isIndexed === false manual override also forces visibility.
+      const isManuallyNotIndexed = chain.isIndexed === false;
+      const isConfirmedNotIndexed = isManuallyNotIndexed
+        || (isIndexedMap.has(chain.chainId) && !isIndexedMap.get(chain.chainId));
+      const matchesRpcFilter = !hideWithoutRpc || !!chain.rpcUrl || isConfirmedNotIndexed;
 
       return matchesNetwork && matchesCategory && matchesSearch && matchesRpcFilter;
     });
-  }, [allChains, selectedNetwork, selectedCategory, searchTerm, hideWithoutRpc]);
+  }, [allChains, selectedNetwork, selectedCategory, searchTerm, hideWithoutRpc, isIndexedMap]);
 
   const getThemedLogoUrl = (logoUrl: string): string => {
     if (!isMounted || !logoUrl) return logoUrl;
@@ -477,7 +492,11 @@ export default function ChainListPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredChains.map((chain) => {
               const chainIdHex = formatChainIdHex(chain.chainId);
-              
+              // Manual override from l1-chains.json wins; otherwise wait for the live probe
+              // so we don't briefly show the banner during initial load.
+              const isNotIndexed = chain.isIndexed === false
+                || (isIndexedMap.has(chain.chainId) && !isIndexedMap.get(chain.chainId));
+
               return (
                 <Card
                   key={`${chain.chainId}-${chain.slug}`}
@@ -628,50 +647,74 @@ export default function ChainListPage() {
                       </div>
                     </div>
 
-                    {/* Action Buttons - pushed to bottom */}
-                    <div className="space-y-2.5 mt-auto">
-                      {/* Connect Wallet Button */}
-                      {chain.rpcUrl ? (
-                        <AddToWalletButton
-                          rpcUrl={chain.rpcUrl}
-                          chainName={chain.chainName}
-                          chainId={parseInt(chain.chainId)}
-                          tokenSymbol={chain.networkToken?.symbol}
-                          variant="default"
-                          className="w-full h-10 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
-                        />
-                      ) : (
-                        <div className="w-full h-10 flex items-center justify-center text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-md">
-                          No RPC URL available
+                    {/* Bottom slot — for not-indexed chains, replace action buttons with a CTA card */}
+                    {isNotIndexed ? (
+                      <div className="mt-auto rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/40 px-4 py-4 flex flex-col items-center justify-center text-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                            Not indexed yet
+                          </span>
                         </div>
-                      )}
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug">
+                          Activity, stats, and explorer data will be available once this chain is indexed.
+                        </p>
+                        <a
+                          href={REQUEST_INDEXING_FORM_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-1 inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors shadow-sm"
+                        >
+                          Request indexing
+                          <ChevronRight className="w-3 h-3" />
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5 mt-auto">
+                        {/* Connect Wallet Button */}
+                        {chain.rpcUrl ? (
+                          <AddToWalletButton
+                            rpcUrl={chain.rpcUrl}
+                            chainName={chain.chainName}
+                            chainId={parseInt(chain.chainId)}
+                            tokenSymbol={chain.networkToken?.symbol}
+                            variant="default"
+                            className="w-full h-10 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
+                          />
+                        ) : (
+                          <div className="w-full h-10 flex items-center justify-center text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-md">
+                            No RPC URL available
+                          </div>
+                        )}
 
-                      {/* Stats and Explorer Buttons */}
-                      {chain.slug && (
-                        <div className="grid grid-cols-2 gap-2.5">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => glacierSupportMap.get(chain.chainId) && (window.location.href = `/stats/l1/${chain.slug}`)}
-                            disabled={glacierSupportMap.size > 0 && !glacierSupportMap.get(chain.chainId)}
-                            className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
-                          >
-                            <BarChart3 className="w-4 h-4" />
-                            <span className="text-sm">Stats</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => chain.rpcUrl && (window.location.href = `/explorer/${chain.slug}`)}
-                            disabled={!chain.rpcUrl}
-                            className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
-                          >
-                            <Eye className="w-4 h-4" />
-                            <span className="text-sm">Explorer</span>
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                        {/* Stats and Explorer Buttons */}
+                        {chain.slug && (
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => statsSupportMap.get(chain.chainId) && (window.location.href = `/stats/l1/${chain.slug}`)}
+                              disabled={statsSupportMap.size > 0 && !statsSupportMap.get(chain.chainId)}
+                              className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
+                            >
+                              <BarChart3 className="w-4 h-4" />
+                              <span className="text-sm">Stats</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => chain.rpcUrl && (window.location.href = `/explorer/${chain.slug}`)}
+                              disabled={!chain.rpcUrl}
+                              className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span className="text-sm">Explorer</span>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     </div>
                   </div>
                 </Card>

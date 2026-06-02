@@ -21,12 +21,29 @@ interface GitHubUserResponse {
 function redirectAndClearState(target: string): NextResponse {
   const response = NextResponse.redirect(target);
   response.cookies.delete('gh_link_state');
+  response.cookies.delete('gh_link_return_to');
   return response;
 }
 
+function buildReturnTarget(req: NextRequest, base: string, status: 'linked' | 'already_linked' | 'error'): string {
+  const fallback =
+    status === 'linked'
+      ? `${base}/profile?tab=personal&gh=linked`
+      : `${base}/profile?gh=${status}`;
+
+  const returnTo = req.cookies.get('gh_link_return_to')?.value;
+  if (!returnTo || !returnTo.startsWith('/') || returnTo.startsWith('//')) {
+    return fallback;
+  }
+
+  const target = new URL(returnTo, base);
+  target.searchParams.set('gh', status);
+  return target.toString();
+}
+
 export async function GET(req: NextRequest) {
-  const base = process.env.NEXTAUTH_URL ?? '';
-  const errorRedirect = `${base}/profile?gh=error`;
+  const base = process.env.NEXTAUTH_URL ?? req.nextUrl.origin;
+  const errorRedirect = buildReturnTarget(req, base, 'error');
 
   const session = await getAuthSession();
   if (!session) {
@@ -42,8 +59,13 @@ export async function GET(req: NextRequest) {
     return redirectAndClearState(errorRedirect);
   }
 
-  const clientId = process.env.GITHUB_LINK_ID!;
-  const clientSecret = process.env.GITHUB_LINK_SECRET!;
+  const clientId = process.env.GITHUB_LINK_ID;
+  const clientSecret = process.env.GITHUB_LINK_SECRET;
+  if (!clientId || !clientSecret) {
+    console.error('Missing GITHUB_LINK_ID or GITHUB_LINK_SECRET for GitHub account linking');
+    return redirectAndClearState(errorRedirect);
+  }
+
   const redirectUri = `${base}/api/auth/github-link/callback`;
 
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
@@ -75,23 +97,23 @@ export async function GET(req: NextRequest) {
 
   const alreadyLinkedUser = await prisma.user.findFirst({
     where: {
-      github: githubUrl,
+      github_account: githubUrl,
       NOT: { id: session.user.id },
     },
     select: { id: true },
   });
 
   if (alreadyLinkedUser) {
-    return redirectAndClearState(`${base}/profile?gh=already_linked`);
+    return redirectAndClearState(buildReturnTarget(req, base, 'already_linked'));
   }
 
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      github: githubUrl,
+      github_account: githubUrl,
       github_access_token: encryptToken(tokenData.access_token),
     },
   });
 
-  return redirectAndClearState(`${base}/profile?tab=personal&gh=linked`);
+  return redirectAndClearState(buildReturnTarget(req, base, 'linked'));
 }

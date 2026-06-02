@@ -11,10 +11,12 @@ export async function getProfile(id: string) {
             name: true,
             notification_email: true,
             notifications: true,
+            consent_sharing: true,
             profile_privacy: true,
-            social_media: true,
+            additional_social_accounts: true,
             team_id: true,
             country: true,
+            telegram_account: true,
         }
     });
 
@@ -30,6 +32,7 @@ export async function updateProfile(id: string, profileData: Partial<Profile>) {
 
     const existingUser = await prisma.user.findUnique({
         where: { id: id },
+        select: { id: true },
     })
     if (!existingUser) {
         throw new Error("User not found")
@@ -63,8 +66,10 @@ export async function updateProfile(id: string, profileData: Partial<Profile>) {
             name: data.name,
             notification_email: data.notification_email,
             notifications: data.notifications,
+            consent_sharing: data.consent_sharing,
             profile_privacy: data.profile_privacy,
-            social_media: data.social_media,
+            additional_social_accounts: data.additional_social_accounts,
+            telegram_account: data.telegram_account,
         }
     })
 

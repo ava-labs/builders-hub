@@ -30,7 +30,6 @@ export type Project = {
   updated_at: string;
   is_winner?: boolean;
   members: Member[];
-  prizes: ProjectPrize[];
   badges?: ProjectBadge[];
   hackathon: ProjectHackathonInfo | null;
   origin: string;
@@ -51,12 +50,6 @@ export type Member = {
   project?: Project;
   user: User | ProjectMemberUser;
 };
-
-export type ProjectPrize = {
-  icon: string
-  prize: number
-  track: string
-}
 
 export type ProjectResource = {
   icon: string

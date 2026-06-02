@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
 import About from "@/components/hackathons/hackathon/sections/About";
@@ -15,13 +18,19 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import { format } from "date-fns";
 import type { HackathonHeader } from "@/types/hackathons";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import type { SubmissionStatus } from "@/lib/hackathons/submission-progress";
+import StagesSection from "../hackathon/sections/StagesSection";
 
 interface ModernEventLayoutProps {
   hackathon: HackathonHeader;
   id: string;
   isRegistered: boolean;
   isAuthenticated: boolean;
-  utm: string;
+  submissionStatus?: SubmissionStatus;
+  submissionProgress?: number;
+  submissionProjectId?: string | null;
+  isPreview?: boolean;
+  hostNavButtons?: React.ReactNode;
 }
 
 export default function ModernEventLayout({
@@ -29,7 +38,11 @@ export default function ModernEventLayout({
   id,
   isRegistered,
   isAuthenticated,
-  utm,
+  submissionStatus = "none",
+  submissionProgress = 0,
+  submissionProjectId = null,
+  isPreview = false,
+  hostNavButtons,
 }: ModernEventLayoutProps) {
   const lang = normalizeEventsLang(hackathon.content?.language);
 
@@ -63,10 +76,12 @@ export default function ModernEventLayout({
       ? `${format(validStartDate, "MMMM d")} - ${format(validEndDate, "d, yyyy")}`
       : `${format(validStartDate, "MMMM d")} - ${format(validEndDate, "MMMM d, yyyy")}`;
 
-  const bannerSrc =
-    hackathon.banner?.trim().length > 0
-      ? hackathon.banner
-      : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png";
+  const isValidSrc = (src: string | undefined | null) =>
+    /^(https?:\/\/|\/|data:)/.test((src ?? '').trim());
+
+  const bannerSrc = isValidSrc(hackathon.banner)
+    ? hackathon.banner!
+    : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png";
 
   const hasAbout = Boolean(hackathon.content.tracks_text);
   const hasTracks =
@@ -87,6 +102,13 @@ export default function ModernEventLayout({
     hackathon.content.partners.length > 0;
 
   const isHackathon = (hackathon.event || "hackathon") === "hackathon";
+
+  const scheduleSource = hackathon.google_calendar_id
+    ? "google-calendar"
+    : "database";
+  const googleCalendarConfig = hackathon.google_calendar_id
+    ? { calendarId: hackathon.google_calendar_id }
+    : undefined;
 
   const menuItems = [
     ...(hasAbout ? [{ name: t(lang, "menu.about"), ref: "about" }] : []),
@@ -115,7 +137,7 @@ export default function ModernEventLayout({
       <div className="pl-4 flex flex-wrap gap-4 items-center">
         <Image
           src={
-            hackathon.icon.trim().length > 0
+            isValidSrc(hackathon.icon)
               ? hackathon.icon
               : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
           }
@@ -141,9 +163,32 @@ export default function ModernEventLayout({
           className="cursor-pointer"
           variant="red"
           showChatWhenRegistered={true}
-          utm={utm}
           lang={lang}
         />
+        {isHackathon && hostNavButtons}
+        {isHackathon && isAuthenticated && submissionStatus !== "none" && (
+          <Link
+            href={
+              submissionProjectId
+                ? `/events/project-submission?event=${id}&project=${submissionProjectId}`
+                : `/events/project-submission?event=${id}`
+            }
+            className={
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80 " +
+              (submissionStatus === "complete"
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300")
+            }
+          >
+            <span className={
+              "size-1.5 rounded-full " +
+              (submissionStatus === "complete" ? "bg-emerald-500" : "bg-amber-500")
+            } />
+            {submissionStatus === "complete"
+              ? t(lang, "section.submission.editProject")
+              : `${submissionProgress}% · ${t(lang, "section.submission.continueProject")}`}
+          </Link>
+        )}
       </div>
       <div className="p-4 flex flex-col gap-24">
         <NavigationMenu items={menuItems} />
@@ -159,6 +204,7 @@ export default function ModernEventLayout({
               height={760}
               className="w-full h-auto rounded-lg"
               priority
+              unoptimized={bannerSrc.startsWith('data:')}
             />
           </div>
 
@@ -215,7 +261,6 @@ export default function ModernEventLayout({
                 className="w-full sm:w-auto min-w-[200px] cursor-pointer"
                 variant="red"
                 showChatWhenRegistered={true}
-                utm={utm}
                 lang={lang}
               />
               {isRegistered && (
@@ -231,26 +276,38 @@ export default function ModernEventLayout({
 
           {/* Content Sections - same as legacy, with empty checks */}
           <div className="py-8 sm:p-8 flex flex-col gap-20">
+            {hackathon.content.stages && hackathon.content.stages.length > 0 && (
+              <StagesSection
+                stages={hackathon.content.stages}
+                hackathon={hackathon}
+                renderInPreview={isPreview}
+              />
+            )}
             {hasAbout && <About hackathon={hackathon} />}
             {isHackathon && hasTracks && <Tracks hackathon={hackathon} />}
             {hasResources && <Resources hackathon={hackathon} />}
             {hasSchedule && (
               <Schedule
                 hackathon={hackathon}
-                scheduleSource={
-                  hackathon.google_calendar_id ? "google-calendar" : "database"
-                }
-                googleCalendarConfig={
-                  hackathon.google_calendar_id
-                    ? { calendarId: hackathon.google_calendar_id }
-                    : undefined
-                }
+                scheduleSource={scheduleSource}
+                googleCalendarConfig={googleCalendarConfig}
               />
             )}
-            {isHackathon && <Submission hackathon={hackathon} isRegistered={isRegistered} isAuthenticated={isAuthenticated} utm={utm} />}
+            {isHackathon && (
+              <Submission
+                hackathon={hackathon}
+                isRegistered={isRegistered}
+                isAuthenticated={isAuthenticated}
+                submissionStatus={submissionStatus}
+                submissionProgress={submissionProgress}
+                submissionProjectId={submissionProjectId}
+              />
+            )}
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />
-            {hasPartners && <Sponsors hackathon={hackathon} />}
+            {hasPartners && (
+              <Sponsors hackathon={hackathon} isPreview={isPreview} />
+            )}
           </div>
         </div>
       </div>
