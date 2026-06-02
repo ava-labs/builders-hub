@@ -1,4 +1,21 @@
 // All comments in English (as requested).
+
+/**
+ * Returns true when the runtime's Intl implementation accepts the given IANA
+ * time zone. Guards against bad values (e.g. the non-existent "Asia/Mumbai") or
+ * empty strings reaching Intl.DateTimeFormat, which throws a RangeError and
+ * would otherwise crash hackathon create/update.
+ */
+function isSupportedTimeZone(timeZone: string): boolean {
+    if (!timeZone) return false;
+    try {
+        new Intl.DateTimeFormat('en-US', { timeZone });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export function getDateWithTimezone(dateStr: string, timeZone: string): Date {
     if (!dateStr) {
         throw new Error(`Invalid date string: "${dateStr}"`);
@@ -10,10 +27,14 @@ export function getDateWithTimezone(dateStr: string, timeZone: string): Date {
     if (endsWithZ) {
       const utcDate: Date = new Date(s);
       if (isNaN(utcDate.getTime())) throw new Error(`Invalid date string: "${dateStr}"`);
-  
+
+      // Fall back to UTC when the time zone is missing or unrecognised, so a bad
+      // identifier can never crash event create/update.
+      const safeTimeZone: string = isSupportedTimeZone(timeZone) ? timeZone : 'UTC';
+
       // Extract wall-clock parts in the target time zone
       const fmt: Intl.DateTimeFormat = new Intl.DateTimeFormat('en-US', {
-        timeZone,
+        timeZone: safeTimeZone,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',

@@ -3378,7 +3378,7 @@ const HackathonsEdit = () => {
                                     <SelectItem value="Asia/Hong_Kong">Hong Kong (HKT) - GMT+8</SelectItem>
                                     <SelectItem value="Asia/Singapore">Singapore (SGT) - GMT+8</SelectItem>
                                     <SelectItem value="Asia/Seoul">Seoul (KST) - GMT+9</SelectItem>
-                                    <SelectItem value="Asia/Mumbai">Mumbai (IST) - GMT+5:30</SelectItem>
+                                    <SelectItem value="Asia/Kolkata">Mumbai/Kolkata (IST) - GMT+5:30</SelectItem>
                                     <SelectItem value="Asia/Dubai">Dubai (GST) - GMT+4</SelectItem>
                                     <SelectItem value="Asia/Jerusalem">Jerusalem (IST) - GMT+2/+3</SelectItem>
                                     <SelectItem value="Australia/Sydney">Sydney (AEST/AEDT) - GMT+10/+11</SelectItem>
