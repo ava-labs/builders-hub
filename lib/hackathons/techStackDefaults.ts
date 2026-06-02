@@ -16,15 +16,14 @@ export const DEFAULT_TECH_STACK_OPTIONS: { name: string }[] = [
   { name: "viem" },
   { name: "Avalanche L1" },
   { name: "Docker" },
+  { name: "x402" },
+  { name: "Account Abstraction" },
 ];
 
 export interface TechStackOption {
   name: string;
 }
 
-// Trim/drop blank entries from a tech-stack option list, falling back to the
-// defaults when nothing usable remains. Single source of truth for both the
-// hackathon-derived options and the submission form's available options.
 export function cleanTechStackOptions(
   options: readonly TechStackOption[] | null | undefined,
 ): TechStackOption[] {

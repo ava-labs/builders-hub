@@ -36,8 +36,6 @@ export async function generateMetadata({
         description: t(lang, "meta.notFound.description"),
       });
     }
-    // Don't leak private/invite-only event details (title, description, OG
-    // image) in metadata served to crawlers and link unfurlers.
     if (hackathon.is_public !== true) {
       const lang = normalizeEventsLang(hackathon.content?.language);
       return createMetadata({
@@ -78,9 +76,6 @@ export default async function HackathonPage({
   // Check if user is authenticated and registered
   const session = await getAuthSession();
 
-  // SECURITY: private/invite-only events (is_public !== true) must never render
-  // for anonymous visitors. Authenticated users keep access so invite-only
-  // registration still works (parity with the /api/events/[id] projection).
   if (hackathon && hackathon.is_public !== true && !session?.user?.id) {
     notFound();
   }

@@ -44,7 +44,7 @@ export const StepNavigation = ({
     if (currentStep === 1) {
       form.clearErrors(['project_name', 'short_description', 'full_description', 'tracks']);
     } else {
-      form.clearErrors(['tech_stack_tags', 'github_repository', 'explanation', 'demo_link', 'is_preexisting_idea']);
+      form.clearErrors(['tech_stack', 'tech_stack_tags', 'github_repository', 'explanation', 'demo_link', 'is_preexisting_idea']);
     }
 
     const result = await schema.safeParseAsync(values);

@@ -49,15 +49,39 @@ export default function SubmitStep2({ lang = "en", availableTechStack }: SubmitS
           {t(lang, "submission.step2.technical.subtitle")}
         </p>
 
-        {/* Tech stack — multi-select from the hackathon's options
-            (admin-defined per event, defaults from techStackDefaults). */}
+        <FormField
+          control={form.control}
+          name="tech_stack"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabelWithCheck
+                label={t(lang, "submission.step2.techStack.label")}
+                checked={!!field.value}
+                required
+                lang={lang}
+              />
+              <FormControl>
+                <Textarea
+                  placeholder={t(lang, "submission.step2.techStack.placeholder")}
+                  className=" h-[180px] resize-none dark:bg-zinc-950"
+                  {...field}
+                />
+              </FormControl>
+              <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
+                {t(lang, "submission.step2.techStack.hint")}
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="tech_stack_tags"
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label={t(lang, "submission.step2.techStack.label")}
+                label={t(lang, "submission.step2.techStackTags.label")}
                 checked={Array.isArray(field.value) && field.value.length > 0}
                 required
                 lang={lang}
@@ -67,12 +91,12 @@ export default function SubmitStep2({ lang = "en", availableTechStack }: SubmitS
                   options={techStackOptions}
                   selected={Array.isArray(field.value) ? field.value : []}
                   onChange={field.onChange}
-                  placeholder={t(lang, "submission.step2.techStack.placeholder")}
-                  searchPlaceholder={t(lang, "submission.step2.techStack.placeholder")}
+                  placeholder={t(lang, "submission.step2.techStackTags.placeholder")}
+                  searchPlaceholder={t(lang, "submission.step2.techStackTags.placeholder")}
                 />
               </FormControl>
               <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
-                {t(lang, "submission.step2.techStack.hint")}
+                {t(lang, "submission.step2.techStackTags.hint")}
               </p>
               <FormMessage />
             </FormItem>

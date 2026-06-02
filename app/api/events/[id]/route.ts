@@ -46,8 +46,6 @@ export async function GET(req: NextRequest, context: any) {
       const session = await getAuthSession();
       const actingUser = session?.user?.id ? await getUserById(session.user.id) : null;
       if (!canViewFullHackathon(actingUser, session, hackathon)) {
-        // Anonymous callers must not learn a private event exists; authenticated
-        // users get only the minimal projection needed to register (invite-only).
         if (!session?.user?.id) {
           return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
         }

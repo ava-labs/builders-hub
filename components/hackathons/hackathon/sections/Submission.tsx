@@ -37,9 +37,6 @@ export default function Submission({
     : null;
   const hasValidDeadline = submissionDeadlineDate !== null && !isNaN(submissionDeadlineDate.getTime());
 
-  // Guard against invalid stored timezones (e.g. legacy "Asia/Mumbai"): passing
-  // an unrecognised identifier to Intl.DateTimeFormat throws and crashes the
-  // render. Fall back to the runtime default when it is not recognised.
   const safeTimeZone = ((): string | undefined => {
     if (!hackathon.timezone) return undefined;
     try {

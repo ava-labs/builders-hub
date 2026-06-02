@@ -128,6 +128,9 @@ const BaseFormSchema = z.object({
   full_description: z
     .string()
     .min(1, { message: 'Full description is required' }),
+  tech_stack: z
+    .string()
+    .min(1, { message: 'Tech stack is required' }),
   tech_stack_tags: z
     .array(z.string())
     .min(1, { message: 'Select at least one tech stack type' }),
@@ -244,6 +247,7 @@ export const Step1Schema = BaseFormSchema.pick({
 });
 
 export const Step2Schema = BaseFormSchema.pick({
+  tech_stack: true,
   tech_stack_tags: true,
   github_repository: true,
   explanation: true,
@@ -321,6 +325,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       project_name: '',
       short_description: '',
       full_description: '',
+      tech_stack: '',
       tech_stack_tags: [],
       tracks: [],
       categories: [],
@@ -350,6 +355,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
     ];
 
     const step2Fields: (keyof SubmissionForm)[] = [
+      "tech_stack",
       "tech_stack_tags",
       "github_repository",
       "explanation",
@@ -709,6 +715,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       project_name: project.project_name ?? '',
       short_description: project.short_description ?? '',
       full_description: project.full_description ?? '',
+      tech_stack: project.tech_stack ?? '',
       tech_stack_tags: Array.isArray(project.tech_stack_tags) ? project.tech_stack_tags : [],
       github_repository: project.github_repository ? project.github_repository.split(',').filter(Boolean) : [],
       explanation: project.explanation ?? '',

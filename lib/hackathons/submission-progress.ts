@@ -11,6 +11,7 @@ type RawProject = {
   project_name: string;
   short_description: string;
   full_description: string | null;
+  tech_stack: string | null;
   tech_stack_tags: string[];
   github_repository: string | null;
   demo_link: string | null;
@@ -21,6 +22,7 @@ export const REQUIRED_SUBMISSION_FIELDS: Array<keyof RawProject> = [
   "project_name",
   "short_description",
   "full_description",
+  "tech_stack",
   "tech_stack_tags",
   "github_repository",
   "demo_link",

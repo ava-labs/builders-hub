@@ -204,6 +204,10 @@ const dict: Record<EventsLang, Dict> = {
       "Describe the tech stack, APIs, and integrations used.",
     "submission.step2.techStack.hint":
       'Mention any innovative solutions or "hacky" parts worth highlighting.',
+    "submission.step2.techStackTags.label": "Tech stack",
+    "submission.step2.techStackTags.placeholder": "Select the technologies you used",
+    "submission.step2.techStackTags.hint":
+      "Pick the main languages, frameworks, and tools from this event's list.",
     "submission.step2.github.label": "GitHub Repository",
     "submission.step2.github.placeholder":
       "Paste GitHub link (e.g., https://github.com/user/repo)",
@@ -729,6 +733,10 @@ const dict: Record<EventsLang, Dict> = {
       "Describe el stack tecnológico, APIs e integraciones utilizadas.",
     "submission.step2.techStack.hint":
       'Menciona cualquier solución innovadora o partes "hacky" que valgan la pena destacar.',
+    "submission.step2.techStackTags.label": "Tecnologías",
+    "submission.step2.techStackTags.placeholder": "Selecciona las tecnologías que usaste",
+    "submission.step2.techStackTags.hint":
+      "Elige los lenguajes, frameworks y herramientas de la lista del evento.",
     "submission.step2.github.label": "Repositorio de GitHub",
     "submission.step2.github.placeholder":
       "Pega el link de GitHub (ej. https://github.com/usuario/repo)",

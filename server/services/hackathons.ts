@@ -114,7 +114,6 @@ export class ForbiddenError extends Error {
   }
 }
 
-// devrel manages any hackathon; team1-admin only its own team's events (User.team_id === Hackathon.organizers).
 export function canManageHackathon(
   user: { custom_attributes?: string[] | null; team_id?: string | null } | null | undefined,
   hackathon: { organizers?: string | null } | null | undefined,
@@ -127,10 +126,6 @@ export function canManageHackathon(
   return false;
 }
 
-// Full-event visibility: public events are visible to everyone; private
-// (is_public !== true) events only to a manager (devrel / team1-admin for its
-// org), the creator, or a cohost. Shared by the /api/events/[id] route and the
-// server-rendered event page/metadata so the access rule lives in one place.
 export function canViewFullHackathon(
   user: { custom_attributes?: string[] | null; team_id?: string | null } | null | undefined,
   session: { user?: { id?: string | null; email?: string | null } | null } | null | undefined,
@@ -212,11 +207,6 @@ export interface GetHackathonsOptions {
   include_private?: boolean;
   cohost_email?: string | null;
   event?: string | null;
-  /**
-   * Team-scoped ownership: rows whose `organizers` matches this team_id
-   * are included alongside the user's own created/updated hackathons.
-   * Use for org-scoped admin views (e.g. team1-admin).
-   */
   organizer_team?: string | null;
   visibility?: 'all' | 'public' | 'private';
   sort?: string;
@@ -579,9 +569,6 @@ export async function updateHackathon(
   // Build update data object with only provided fields
   const updateData: any = {};
 
-  // SECURITY (IDOR): never set/overwrite the row primary key from caller input.
-  // The row to update is located solely by the `id` argument in `where`, so a
-  // caller-supplied `hackathonData.id` must not be written into the update data.
   if (hackathonData.title !== undefined) updateData.title = hackathonData.title;
   if (hackathonData.description !== undefined)
     updateData.description = hackathonData.description;
