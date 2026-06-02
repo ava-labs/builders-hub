@@ -45,14 +45,14 @@ export function makePublicClientForChain(
 
   if (!rpcUrl) return null;
 
+  // No `batch.multicall`: viem's deployless multicall fallback issues a
+  // contract-creation `eth_call`, which the Subnet-EVM Contract Deployer
+  // Allowlist precompile rejects on permissioned L1s (for any `from`).
+  // Single reads use plain `eth_call`; batch call sites opt into
+  // `multicall({ deployless: true })` explicitly with a sequential fallback.
   const base = createPublicClient({
     chain,
     transport: http(rpcUrl),
-    batch: {
-      multicall: {
-        deployless: true,
-      },
-    },
   });
 
   // Wrap `readContract` to auto-inject the connected wallet address as the
