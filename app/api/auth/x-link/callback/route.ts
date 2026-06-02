@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
 
   const session = await getAuthSession();
   if (!session) {
+    console.error('[x-link/callback] no session — session cookie lost on redirect from x.com');
     return redirectAndClearState(errorRedirect);
   }
 
@@ -57,15 +58,34 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get('state');
   const savedState = req.cookies.get('x_link_state')?.value;
   const codeVerifier = req.cookies.get('x_link_code_verifier')?.value;
+  const xError = searchParams.get('error');
+  const xErrorDescription = searchParams.get('error_description');
 
-  if (!code || !state || state !== savedState || !codeVerifier) {
+  if (xError) {
+    console.error('[x-link/callback] x.com returned error', { xError, xErrorDescription });
+    return redirectAndClearState(errorRedirect);
+  }
+  if (!code) {
+    console.error('[x-link/callback] missing code in query');
+    return redirectAndClearState(errorRedirect);
+  }
+  if (!state || state !== savedState) {
+    console.error('[x-link/callback] state mismatch', {
+      hasQueryState: !!state,
+      hasSavedState: !!savedState,
+      match: state === savedState,
+    });
+    return redirectAndClearState(errorRedirect);
+  }
+  if (!codeVerifier) {
+    console.error('[x-link/callback] missing code_verifier cookie — likely dropped by browser');
     return redirectAndClearState(errorRedirect);
   }
 
   const clientId = process.env.X_LINK_ID;
   const clientSecret = process.env.X_LINK_SECRET;
   if (!clientId || !clientSecret) {
-    console.error('Missing X_LINK_ID or X_LINK_SECRET for X account linking');
+    console.error('[x-link/callback] missing X_LINK_ID or X_LINK_SECRET env vars');
     return redirectAndClearState(errorRedirect);
   }
 
@@ -88,6 +108,11 @@ export async function GET(req: NextRequest) {
 
   const tokenData = (await tokenRes.json()) as XTokenResponse;
   if (!tokenRes.ok || !tokenData.access_token) {
+    console.error('[x-link/callback] token exchange failed', {
+      status: tokenRes.status,
+      body: tokenData,
+      redirectUri,
+    });
     return redirectAndClearState(errorRedirect);
   }
 
@@ -100,6 +125,10 @@ export async function GET(req: NextRequest) {
   const username = me.data?.username;
 
   if (!meRes.ok || !username) {
+    console.error('[x-link/callback] /users/me failed', {
+      status: meRes.status,
+      body: me,
+    });
     return redirectAndClearState(errorRedirect);
   }
 
