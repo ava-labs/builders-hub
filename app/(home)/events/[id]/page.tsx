@@ -90,6 +90,7 @@ export default async function HackathonPage({
               project_name: true,
               short_description: true,
               full_description: true,
+              tech_stack: true,
               tech_stack_tags: true,
               github_repository: true,
               demo_link: true,
