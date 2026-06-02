@@ -3,11 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { formatLLMDocument, getLLMText, LLMS_TXT_DIRECTIVE } from '@/lib/llm-utils';
 
 /**
- * These guard the two Agent Score signals we fully control in the markdown
+ * These guard the Agent Score signals we fully control in the markdown
  * (.md) representation of every page:
  *   - content starts with an H1 (content-start-position)
- *   - the document references /llms.txt (llms-txt-directive Md)
- * If a future refactor drops either, CI fails here instead of the live score
+ *   - the /llms.txt directive sits near the top, right under the H1, not in a
+ *     footer (llms-txt-directive-md — afdocs warns when it is past 50%)
+ * If a future refactor breaks either, CI fails here instead of the live score
  * silently sliding on the next audit.
  */
 describe('formatLLMDocument', () => {
@@ -32,13 +33,16 @@ describe('formatLLMDocument', () => {
     expect(out.startsWith('# Heading')).toBe(true);
   });
 
-  it('appends the llms.txt discovery directive', () => {
-    const out = formatLLMDocument('T', '# Heading\n\nbody');
+  it('places the llms.txt directive near the top — after the H1, before the body', () => {
+    const out = formatLLMDocument('T', '# Heading\n\nbody content here');
+    expect(out.startsWith('# Heading')).toBe(true);
     expect(out).toContain('/llms.txt');
-    expect(out.endsWith(LLMS_TXT_DIRECTIVE)).toBe(true);
+    // directive sits between the H1 and the body, never in a footer
+    expect(out.indexOf('/llms.txt')).toBeLessThan(out.indexOf('body content here'));
   });
 
-  it('always references the absolute llms.txt URL', () => {
+  it('formats the directive as an absolute-URL blockquote', () => {
+    expect(LLMS_TXT_DIRECTIVE.startsWith('>')).toBe(true);
     expect(LLMS_TXT_DIRECTIVE).toContain('https://build.avax.network/llms.txt');
   });
 });

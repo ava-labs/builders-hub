@@ -4,19 +4,17 @@ import { readFile } from 'fs/promises';
 const SITE_URL = 'https://build.avax.network';
 
 /**
- * Discovery footer appended to every markdown document we serve (via the
- * `.md` URLs and llms-full.txt). An AI agent that fetches a page's markdown
- * can follow it to the machine-readable site index.
+ * Discovery directive embedded near the top of every markdown document we
+ * serve (the `.md` URLs and llms-full.txt). An AI agent that fetches a page's
+ * markdown can follow it to the machine-readable site index.
  *
  * This is the signal the Agent Score "llms.txt directive (markdown)" check
- * looks for — without it, the .md representations advertise no path to
- * /llms.txt and the check fails regardless of which pages get sampled.
+ * looks for. It is placed immediately under the H1 (not in a footer) because
+ * afdocs warns when the directive sits past the 50% mark of the document.
  */
 export const LLMS_TXT_DIRECTIVE =
-  `\n\n---\n\n` +
-  `*This document is part of the [Avalanche Builder Hub](${SITE_URL}). ` +
-  `See [/llms.txt](${SITE_URL}/llms.txt) for the full machine-readable ` +
-  `documentation index, or append \`.md\` to any page URL for its raw markdown.*\n`;
+  `> 📚 Machine-readable index: [/llms.txt](${SITE_URL}/llms.txt). ` +
+  `Append \`.md\` to any page URL for its raw markdown.`;
 
 // Type assertion for getText method (available when includeProcessedMarkdown is enabled)
 interface PageDataWithText {
@@ -43,9 +41,18 @@ function stripFrontmatter(content: string): string {
  */
 export function formatLLMDocument(title: string | undefined, rawContent: string): string {
   const trimmed = rawContent.trimStart();
-  const startsWithH1 = trimmed.startsWith('# ');
-  const body = startsWithH1 ? trimmed : `# ${title || 'Untitled'}\n\n${trimmed}`;
-  return `${body}${LLMS_TXT_DIRECTIVE}`;
+
+  if (trimmed.startsWith('# ')) {
+    // Insert the directive on its own line right after the existing H1.
+    const nl = trimmed.indexOf('\n');
+    const h1 = nl === -1 ? trimmed : trimmed.slice(0, nl);
+    const rest = nl === -1 ? '' : trimmed.slice(nl + 1).replace(/^\n+/, '');
+    return rest
+      ? `${h1}\n\n${LLMS_TXT_DIRECTIVE}\n\n${rest}`
+      : `${h1}\n\n${LLMS_TXT_DIRECTIVE}\n`;
+  }
+
+  return `# ${title || 'Untitled'}\n\n${LLMS_TXT_DIRECTIVE}\n\n${trimmed}`;
 }
 
 export async function getLLMText(page: Page) {

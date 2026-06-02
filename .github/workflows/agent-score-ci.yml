@@ -77,9 +77,12 @@ jobs:
             errors=$((errors + 1))
           fi
 
-          # 2. Site-wide HTML directive in the root layout metadata.
-          if ! grep -q "/llms.txt" app/layout.tsx; then
-            echo "::error file=app/layout.tsx::root metadata must advertise /llms.txt via alternates (llms-txt-directive, html variant)"
+          # 2. Root layout must render a VISIBLE (sr-only) in-body link to
+          #    /llms.txt. afdocs does NOT credit the <head> <link rel="alternate">
+          #    tag for llms-txt-directive-html — only an in-body anchor near the
+          #    top of the page counts.
+          if ! grep -q 'href="/llms.txt"' app/layout.tsx; then
+            echo "::error file=app/layout.tsx::root layout must render an in-body <a href=\"/llms.txt\"> (llms-txt-directive-html — the <head> tag alone does not count)"
             errors=$((errors + 1))
           fi
 
