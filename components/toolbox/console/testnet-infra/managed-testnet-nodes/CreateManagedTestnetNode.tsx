@@ -15,6 +15,7 @@ import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolb
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { SUBNET_EVM_VM_ID } from '@/constants/console';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Create Managed Testnet Node',
@@ -38,6 +39,8 @@ function CreateManagedTestnetNodeBase() {
 
   const [subnetId, setSubnetId] = useState('');
   const [selectedBlockchainId, setSelectedBlockchainId] = useState('');
+  const [selectedVmId, setSelectedVmId] = useState('');
+  const [selectedChainName, setSelectedChainName] = useState('');
 
   const [createdResponse, setCreatedResponse] = useState<RegisterSubnetResponse | null>(null);
   const [createdNode, setCreatedNode] = useState<NodeRegistration | null>(null);
@@ -121,6 +124,12 @@ function CreateManagedTestnetNodeBase() {
     setIsConnectingWallet(false);
   };
 
+  // Managed nodes only provision a Subnet-EVM binary, so the API rejects any
+  // other VM with a raw "Unsupported VM" error. The selected blockchain already
+  // carries its vmId, so block non-Subnet-EVM L1s (e.g. Dispatch, Echo, Dexalot)
+  // up front with a clear message.
+  const isUnsupportedVm = Boolean(selectedBlockchainId) && selectedVmId !== '' && selectedVmId !== SUBNET_EVM_VM_ID;
+
   return (
     <Steps>
       <Step>
@@ -131,8 +140,11 @@ function CreateManagedTestnetNodeBase() {
         <SelectSubnet
           value={subnetId}
           onChange={(selection) => {
+            const firstChain = selection.subnet?.blockchains?.[0];
             setSubnetId(selection.subnetId);
-            setSelectedBlockchainId(selection.subnet?.blockchains?.[0]?.blockchainId || '');
+            setSelectedBlockchainId(firstChain?.blockchainId || '');
+            setSelectedVmId(firstChain?.vmId || '');
+            setSelectedChainName(firstChain?.blockchainName || '');
           }}
         />
       </Step>
@@ -140,10 +152,17 @@ function CreateManagedTestnetNodeBase() {
       <Step>
         <h2 className="text-sm font-semibold">Step 2: Create Node</h2>
         <p className="text-sm text-muted-foreground mb-4">Review the details and create your managed testnet node.</p>
+        {isUnsupportedVm && (
+          <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+            Managed testnet nodes currently support Subnet-EVM L1s only.{' '}
+            {selectedChainName ? `"${selectedChainName}" uses` : 'This L1 uses'} a different virtual machine and cannot
+            be hosted here. Select a Subnet-EVM L1, or run a self-hosted node instead.
+          </p>
+        )}
         <Button
           onClick={handleCreate}
           loading={isCreatingNode}
-          disabled={!subnetId || !selectedBlockchainId || isCreatingNode}
+          disabled={!subnetId || !selectedBlockchainId || isCreatingNode || isUnsupportedVm}
         >
           Create Node
         </Button>

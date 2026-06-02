@@ -4,6 +4,7 @@ import { ArrowDownUp, Clock } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs';
+import { avaxToNanoAvax } from '@avalanche-sdk/client/utils';
 import { getRPCEndpoint } from '@/components/toolbox/coreViem/utils/rpc';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { AmountInput } from '@/components/toolbox/components/AmountInput';
@@ -29,16 +30,6 @@ interface CrossChainTransferProps extends BaseConsoleToolProps {
 // Atomic export fee buffer: ~0.001 AVAX on both C-Chain (base-fee burn) and
 // P-Chain (flat tx fee). MAX subtracts this so the user always has gas left.
 const EXPORT_FEE_BUFFER_NAVAX = 1_000_000;
-
-// Snap an AVAX amount to whole nAVAX (1e-9 AVAX) precision via integer math.
-// `BigInt(amount * 1e9)` inside the SDK throws unless `amount * 1e9` is an
-// exact integer; balances derived from wei (1e18) routinely carry sub-nAVAX
-// drift, so we floor in the integer domain and divide back only once.
-function avaxToSafeNAvaxNumber(avax: number): number {
-  if (!Number.isFinite(avax) || avax <= 0) return 0;
-  const nAvax = Math.floor(avax * 1e9);
-  return nAvax > 0 ? nAvax / 1e9 : 0;
-}
 
 const metadata: ConsoleToolMetadata = {
   title: 'Cross-Chain Transfer',
@@ -261,8 +252,11 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
     setError(null);
     autoImportTriggeredRef.current = false;
 
-    const safeAmount = avaxToSafeNAvaxNumber(Number(amount));
-    if (safeAmount <= 0) {
+    // P-Chain/X-Chain transfer amounts are nAVAX (1 AVAX = 1e9 nAVAX). Use the
+    // SDK's converter, which parses the decimal safely — `BigInt(0.5)` and the
+    // float drift from `amount * 1e9` (e.g. 1.498999999) both throw otherwise.
+    const amountNAvax = avaxToNanoAvax(Number(amount));
+    if (amountNAvax <= 0n) {
       setError('Amount is below the smallest exportable unit (1 nAVAX).');
       setExportLoading(false);
       return;
@@ -274,7 +268,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           destinationChain: 'P',
           exportedOutput: {
             addresses: [pChainAddress],
-            amount: BigInt(safeAmount),
+            amount: amountNAvax,
           },
           fromAddress: walletEVMAddress as `0x${string}`,
         });
@@ -286,7 +280,7 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
           exportedOutputs: [
             {
               addresses: [coreEthAddress],
-              amount: BigInt(safeAmount),
+              amount: amountNAvax,
             },
           ],
           destinationChain: 'C',
@@ -327,6 +321,15 @@ function CrossChainTransfer({ suggestedAmount = '0.0', onSuccess }: CrossChainTr
   const handleImport = async () => {
     if (!coreWalletClient) {
       setImportError('Cross-chain transfers require Core Wallet for P-Chain signing.');
+      return;
+    }
+    // Guard against importing before the exported UTXOs have arrived — otherwise
+    // the SDK rejects with a raw "insufficient funds" (the bulk of importCross errors).
+    const utxosReady = destinationChain === 'p-chain' ? cToP_UTXOs : pToC_UTXOs;
+    if (utxosReady.length === 0) {
+      setImportError(
+        'No funds available to import yet. Wait for the export to confirm and the UTXOs to arrive on the destination chain.',
+      );
       return;
     }
     setImportLoading(true);
