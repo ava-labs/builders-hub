@@ -43,6 +43,28 @@ export const POST = withAuth(async (
     const body = await req.json();
     const { user_consents, ...registerData } = body ?? {};
 
+    // SECURITY: a registration must always belong to the authenticated user.
+    // The body-supplied email otherwise flows straight into createRegisterForm,
+    // which loads/updates that user (x_account, country, consents) and creates
+    // teammate invites as them — so a logged-in caller could register or mutate
+    // another account. Reject an explicit mismatch (mirrors the GET guard) and
+    // force the session identity onto the payload.
+    const sessionEmail = session.user?.email;
+    if (!sessionEmail) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (
+      typeof registerData.email === "string" &&
+      registerData.email.trim() &&
+      registerData.email.trim().toLowerCase() !== sessionEmail.toLowerCase()
+    ) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only register with your own account" },
+        { status: 403 }
+      );
+    }
+    registerData.email = sessionEmail;
+
     const hackathonId = registerData?.hackathon_id;
     if (session.user?.email && typeof hackathonId === "string" && hackathonId) {
       // Sharing consent is only MANDATORY for Team1-organized / co-hosted

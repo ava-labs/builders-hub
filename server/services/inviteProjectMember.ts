@@ -191,6 +191,12 @@ async function sendInvitationEmail(
 async function createProject(hackathonId: string, userId: string) {
   return await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
+      // Serialize concurrent "create my project" calls for the same
+      // (hackathon, user) so a double-submit / parallel registration can't slip
+      // past the findFirst check below and create duplicate "Untitled Project"
+      // rows. The transaction-scoped advisory lock is released on commit/rollback.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${hackathonId}:${userId}`}, 0))`;
+
       const existingProject = await tx.project.findFirst({
         where: {
           hackaton_id: hackathonId,

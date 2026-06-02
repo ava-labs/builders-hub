@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getHackathon, updateHackathon, canManageHackathon } from "@/server/services/hackathons";
+import { getHackathon, updateHackathon, canViewFullHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
 import { withAuthRole } from "@/lib/protectedRoute";
 import { ROLE_GROUPS } from "@/lib/auth/roles";
@@ -45,9 +45,9 @@ export async function GET(req: NextRequest, context: any) {
     if (hackathon.is_public !== true) {
       const session = await getAuthSession();
       const actingUser = session?.user?.id ? await getUserById(session.user.id) : null;
-      const isOwner = !!session?.user?.id && hackathon.created_by === session.user.id;
-      const isCohost = !!session?.user?.email && (hackathon.cohosts ?? []).includes(session.user.email);
-      if (!canManageHackathon(actingUser, hackathon) && !isOwner && !isCohost) {
+      if (!canViewFullHackathon(actingUser, session, hackathon)) {
+        // Anonymous callers must not learn a private event exists; authenticated
+        // users get only the minimal projection needed to register (invite-only).
         if (!session?.user?.id) {
           return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
         }

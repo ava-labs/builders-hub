@@ -17,7 +17,7 @@ import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { MultiLinkInput } from './MultiLinkInput';
 import { useProjectSubmission } from "../context/ProjectSubmissionContext";
 import { EventsLang, t } from "@/lib/events/i18n";
-import { DEFAULT_TECH_STACK_OPTIONS, type TechStackOption } from "@/lib/hackathons/techStackDefaults";
+import { cleanTechStackOptions, type TechStackOption } from "@/lib/hackathons/techStackDefaults";
 
 
 interface SubmitStep2Props {
@@ -30,12 +30,14 @@ export default function SubmitStep2({ lang = "en", availableTechStack }: SubmitS
   const { state } = useProjectSubmission();
   const hasHackathon = !!state.hackathonId;
   const isPreexistingIdea = form.watch("is_preexisting_idea");
-  const techStackOptions = useMemo(() => {
-    const source = availableTechStack && availableTechStack.length > 0
-      ? availableTechStack
-      : DEFAULT_TECH_STACK_OPTIONS;
-    return source.map((opt) => ({ value: opt.name, label: opt.name }));
-  }, [availableTechStack]);
+  const techStackOptions = useMemo(
+    () =>
+      cleanTechStackOptions(availableTechStack).map((opt) => ({
+        value: opt.name,
+        label: opt.name,
+      })),
+    [availableTechStack],
+  );
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}

@@ -127,6 +127,32 @@ export function canManageHackathon(
   return false;
 }
 
+// Full-event visibility: public events are visible to everyone; private
+// (is_public !== true) events only to a manager (devrel / team1-admin for its
+// org), the creator, or a cohost. Shared by the /api/events/[id] route and the
+// server-rendered event page/metadata so the access rule lives in one place.
+export function canViewFullHackathon(
+  user: { custom_attributes?: string[] | null; team_id?: string | null } | null | undefined,
+  session: { user?: { id?: string | null; email?: string | null } | null } | null | undefined,
+  hackathon:
+    | {
+        is_public?: boolean | null;
+        created_by?: string | null;
+        cohosts?: string[] | null;
+        organizers?: string | null;
+      }
+    | null
+    | undefined,
+): boolean {
+  if (!hackathon) return false;
+  if (hackathon.is_public === true) return true;
+  const userId = session?.user?.id;
+  const email = session?.user?.email;
+  const isOwner = !!userId && hackathon.created_by === userId;
+  const isCohost = !!email && (hackathon.cohosts ?? []).includes(email);
+  return canManageHackathon(user, hackathon) || isOwner || isCohost;
+}
+
 function pruneContentPlaceholders(content: any): any {
   if (!content || typeof content !== "object") return content;
   const next: any = { ...content };

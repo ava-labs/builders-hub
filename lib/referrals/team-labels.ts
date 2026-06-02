@@ -33,11 +33,6 @@ export function isReferralTeamId(value: unknown): value is string {
   return typeof value === "string" && value in REFERRAL_TEAM_LABELS;
 }
 
-export function formatReferralTeamLabel(value: string | null | undefined): string {
-  if (!value) return "";
-  return REFERRAL_TEAM_LABELS[value] ?? value;
-}
-
 export function isOtherTeam(value: unknown): boolean {
   return value === OTHER_TEAM_SENTINEL || value === OTHER_TEAM_CLIENT_VALUE;
 }

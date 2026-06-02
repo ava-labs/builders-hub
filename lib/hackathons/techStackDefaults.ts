@@ -22,12 +22,23 @@ export interface TechStackOption {
   name: string;
 }
 
+// Trim/drop blank entries from a tech-stack option list, falling back to the
+// defaults when nothing usable remains. Single source of truth for both the
+// hackathon-derived options and the submission form's available options.
+export function cleanTechStackOptions(
+  options: readonly TechStackOption[] | null | undefined,
+): TechStackOption[] {
+  if (Array.isArray(options) && options.length > 0) {
+    const cleaned = options
+      .filter((opt) => opt?.name?.trim())
+      .map((opt) => ({ name: opt.name.trim() }));
+    if (cleaned.length > 0) return cleaned;
+  }
+  return DEFAULT_TECH_STACK_OPTIONS;
+}
+
 export function getTechStackOptions(
   hackathon: Pick<Hackathon, "tech_stack_options"> | null | undefined,
 ): TechStackOption[] {
-  const customized = hackathon?.tech_stack_options;
-  if (Array.isArray(customized) && customized.length > 0) {
-    return customized.filter((opt) => opt?.name?.trim()).map((opt) => ({ name: opt.name.trim() }));
-  }
-  return DEFAULT_TECH_STACK_OPTIONS;
+  return cleanTechStackOptions(hackathon?.tech_stack_options);
 }
