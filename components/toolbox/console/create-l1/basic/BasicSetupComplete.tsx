@@ -248,6 +248,7 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
       await addChain({
         rpcUrl: result.rpcUrl,
         allowLookup: false,
+        coinName: job.request.tokenSymbol,
         // Quick L1 deploys are pinned to a known network at request time;
         // use that as the authoritative isTestnet flag so the resulting
         // L1ListItem matches reality even if Glacier hasn't indexed the
