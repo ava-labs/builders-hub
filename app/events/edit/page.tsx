@@ -14,7 +14,7 @@ import { ICON_OPTIONS } from '@/components/hackathons/edit/icon-registry';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HackathonsList from '@/components/hackathons/edit/HackathonsList';
 import { t } from './translations';
-import { useSession, SessionProvider } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import useHackathonsFilters from '@/hooks/useHackathonsFilters';
 import axios from 'axios';
@@ -4453,10 +4453,8 @@ const HackathonsEdit = () => {
 
 export default function Page() {
   return (
-    <SessionProvider>
-      <Suspense fallback={null}>
-        <HackathonsEdit />
-      </Suspense>
-    </SessionProvider>
+    <Suspense fallback={null}>
+      <HackathonsEdit />
+    </Suspense>
   );
 }
