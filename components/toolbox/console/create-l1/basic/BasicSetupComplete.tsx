@@ -60,7 +60,7 @@ function cChainAddressUrl(addr: string, network: Network): string {
 }
 
 function pChainSubnetUrl(id: string, network: Network): string {
-  return `${explorerBase(network)}/p-chain/subnet/${id}`;
+  return `${explorerBase(network)}/subnets/${id}`;
 }
 
 function pChainBlockchainUrl(id: string, network: Network): string {
@@ -485,31 +485,6 @@ export default function BasicSetupComplete({ job }: { job: DeploymentJob }) {
         transition={{ delay: 0.5 }}
         className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm"
       >
-        <a
-          href={`/console/explorer?rpc=${encodeURIComponent(result.rpcUrl)}`}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-primary hover:underline"
-        >
-          Open in Explorer
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-        {/* Public-facing block explorer for the L1 — shareable URL
-            distinct from /console/explorer (which is the developer
-            tooling view). Only renders when managed-testnet-nodes
-            accepted the assignment and populated the explorer field.
-            Same 3-day TTL as the validator node. */}
-        {result.explorer && (
-          <a
-            href={result.explorer.url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-primary hover:underline"
-          >
-            Public Block Explorer
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
         <a
           href="/console/testnet-infra/nodes"
           className="inline-flex items-center gap-1.5 text-primary hover:underline"
