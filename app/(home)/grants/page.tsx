@@ -21,13 +21,6 @@ const programs = [
     external: false,
     image: "/images/call-for-research-1.jpeg",
   },
-  {
-    title: "Team1 Mini Grants",
-    description: "Supporting early stage Avalanche projects with capital, mentorship, and guidance.",
-    href: "https://grants.team1.network/",
-    external: true,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg",
-  },
 {
     title: "Blizzard Fund",
     description: "A $200M+ fund investing in promising Avalanche projects with institutional support.",

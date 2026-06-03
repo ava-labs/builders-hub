@@ -18,7 +18,7 @@ import CustomPartners from "./CustomPartners";
 import CustomMentorsJudges from "./CustomMentorsJudges";
 import CustomSubmission from "./CustomSubmission";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 const HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
 
@@ -51,14 +51,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function HackathonPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const resolvedSearchParams = await searchParams;
-  const utm = resolvedSearchParams?.utm ?? "";
-
+export default async function HackathonPage() {
   const hackathon = await getHackathon(HACKATHON_ID);
 
   // Check if user is authenticated and registered
@@ -70,7 +63,7 @@ export default async function HackathonPage({
     isRegistered = !!registration;
   }
 
-  if (!hackathon) redirect("/hackathons");
+  if (!hackathon) redirect("/events");
 
   const bannerSrc = hackathon.banner?.trim().length > 0
     ? hackathon.banner
@@ -132,7 +125,6 @@ export default async function HackathonPage({
                   className="shrink-0"
                   variant="red"
                   showChatWhenRegistered={true}
-                  utm={utm as string}
                 />
               </div>
             </div>

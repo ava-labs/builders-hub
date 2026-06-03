@@ -59,9 +59,9 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         additional_social_accounts: user.additional_social_accounts || [],
         skills: user.skills || [],
         notifications: user.notifications,
+        consent_sharing: user.consent_sharing ?? null,
         profile_privacy: user.profile_privacy,
         telegram_account: user.telegram_account || null,
-        notification_means: user.notification_means || null,
     } as ExtendedProfile;
 }
 
@@ -94,11 +94,11 @@ function buildUserUpdateData(
     if (profileData.notification_email !== undefined) updateData.notification_email = profileData.notification_email;
     if (profileData.image !== undefined) updateData.image = profileData.image;
     if (profileData.country !== undefined) updateData.country = profileData.country;
-    if (profileData.x_account !== undefined) updateData.x_account = nullableTrimmedString(profileData.x_account);
     if (profileData.linkedin_account !== undefined) updateData.linkedin_account = nullableTrimmedString(profileData.linkedin_account);
     if (profileData.wallet !== undefined) updateData.wallet = profileData.wallet ?? [];
     if (profileData.skills !== undefined) updateData.skills = profileData.skills;
     if (profileData.notifications !== undefined) updateData.notifications = profileData.notifications;
+    if (profileData.consent_sharing !== undefined) updateData.consent_sharing = profileData.consent_sharing;
     if (profileData.profile_privacy !== undefined) updateData.profile_privacy = profileData.profile_privacy;
     if (profileData.telegram_account !== undefined) updateData.telegram_account = nullableTrimmedString(profileData.telegram_account);
 
@@ -111,13 +111,6 @@ function buildUserUpdateData(
     if (profileData.user_type !== undefined) {
         updateData.user_type = profileData.user_type as Prisma.InputJsonValue;
     }
-    if (profileData.notification_means !== undefined) {
-        updateData.notification_means =
-            profileData.notification_means === null
-                ? Prisma.JsonNull
-                : (profileData.notification_means as Prisma.InputJsonValue);
-    }
-
     return updateData;
 }
 
@@ -181,6 +174,8 @@ export async function updateExtendedProfile(
                 telegram_account: updatedProfile.telegram_account || undefined,
                 wallet: updatedProfile.wallet || undefined,
                 additional_social_accounts: updatedProfile.additional_social_accounts || undefined,
+                notifications: updatedProfile.notifications ?? undefined,
+                consent_sharing: updatedProfile.consent_sharing ?? undefined,
             });
         } catch (error) {
             console.error('[HubSpot UserData] Failed to sync updated profile:', error);

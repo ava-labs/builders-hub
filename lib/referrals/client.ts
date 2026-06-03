@@ -84,12 +84,15 @@ export function useCurrentReferralCode(): string {
   const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const currentReferralCode = url.searchParams.get("ref") ?? "";
-    if (!currentReferralCode) return;
+    const fromUrl = new URL(window.location.href).searchParams.get("ref") ?? "";
+    if (fromUrl) {
+      captureReferralAttributionFromUrl();
+      setReferralCode(fromUrl);
+      return;
+    }
 
-    captureReferralAttributionFromUrl();
-    setReferralCode(currentReferralCode);
+    const stored = getStoredReferralAttribution();
+    if (stored?.referralCode) setReferralCode(stored.referralCode);
   }, []);
 
   return referralCode;
@@ -99,16 +102,13 @@ export function appendReferralTrackingParams(
   baseUrl: string,
   {
     referralCode,
-    utm,
   }: {
     referralCode?: string | null;
-    utm?: string | null;
   } = {}
 ): string {
   const origin = typeof window === "undefined" ? "https://build.avax.network" : window.location.origin;
   const url = new URL(baseUrl, origin);
 
-  if (utm) url.searchParams.set("utm", utm);
   if (referralCode) url.searchParams.set("ref", referralCode);
 
   if (/^https?:\/\//i.test(baseUrl)) {

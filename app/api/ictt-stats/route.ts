@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import icttTokens from "@/constants/ictt-tokens.json";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { getIcttTransfers, type IcttTransfer } from "@/lib/ictt/transfers-cache";
-
-// Re-exported as a local alias so the rest of this file keeps its naming
-// without renaming every reference. Shape is identical.
-type ICTTTransfer = IcttTransfer;
+import { getGlobalICTTTransfers, type ICTTTransfer } from "@/lib/ictt-clickhouse";
 
 interface TokenInfo {
   name: string;
@@ -131,9 +127,8 @@ export async function GET(request: Request) {
       });
     }
 
-    // Fetch ICTT data through the shared 36h cache so /api/l1-tokens/discover
-    // and this route hit idx6 at most once per window.
-    const transfers: ICTTTransfer[] = await getIcttTransfers({ clearCache });
+    // Fetch ICTT data from the internal ClickHouse-backed aggregator
+    const transfers: ICTTTransfer[] = await getGlobalICTTTransfers();
 
     // Collect unique token addresses with CoinGecko IDs
     const coingeckoIds = new Set<string>();
@@ -213,7 +208,7 @@ export async function GET(request: Request) {
       (a, b) => b.count - a.count
     )[0];
 
-    const topTokenPercentage = totalTransfers > 0 
+    const topTokenPercentage = totalTransfers > 0 && topToken
       ? ((topToken.count / totalTransfers) * 100).toFixed(1)
       : "0";
 
@@ -267,7 +262,7 @@ export async function GET(request: Request) {
         activeChains: activeChains.size,
         activeRoutes: Object.keys(routes).length,
         topToken: {
-          name: topToken.name,
+          name: topToken?.name ?? "—",
           percentage: topTokenPercentage,
         },
       },

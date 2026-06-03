@@ -1,37 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/prisma/prisma";
 import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
+import { parseIsWinnerBody } from "@/lib/hackathons/evaluation-phase";
+import {
+  SetWinner,
+  WinnerOperationError,
+} from "@/server/services/set-project-winner";
 
 type Params = RouteParams<{ id: string }>;
 
-type Body = { is_winner?: boolean };
-
 export const POST = withAuthRole<Params>(
   "devrel",
-  async (request: NextRequest, context: Params) => {
+  async (request: NextRequest, context: Params, session) => {
     const { id: projectId } = await context.params;
-    const body = (await request.json().catch(() => ({}))) as Body;
-    if (typeof body.is_winner !== "boolean") {
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+
+    const parsed = parseIsWinnerBody(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
+    try {
+      const awardedBy = session.user.name || session.user.email || session.user.id;
+      const result = await SetWinner(projectId, parsed.isWinner, awardedBy);
+      return NextResponse.json({
+        project: {
+          id: projectId,
+          is_winner: result.isWinner,
+        },
+        message: result.message,
+      });
+    } catch (error) {
+      if (error instanceof WinnerOperationError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status },
+        );
+      }
+      if (error instanceof Error && error.message === "Project not found") {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+      console.error("Error setting project winner:", error);
       return NextResponse.json(
-        { error: "is_winner (boolean) is required" },
-        { status: 400 },
+        { error: "Failed to update project winner status" },
+        { status: 500 },
       );
     }
-
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { id: true },
-    });
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-
-    const updated = await prisma.project.update({
-      where: { id: projectId },
-      data: { is_winner: body.is_winner },
-      select: { id: true, is_winner: true },
-    });
-
-    return NextResponse.json({ project: updated });
   },
 );

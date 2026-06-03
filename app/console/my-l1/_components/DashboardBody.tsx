@@ -7,6 +7,7 @@ import { useMyL1s } from '@/hooks/useMyL1s';
 import { getL1ListStore, useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { balanceService } from '@/components/toolbox/services/balanceService';
 import { useLoadedOnce } from '@/components/console/loaded-once';
 import { useL1Health } from '@/hooks/useL1Health';
 import {
@@ -145,6 +146,20 @@ export function DashboardBody() {
       return ai - bi;
     });
   }, [managedL1s, walletL1s, walletByChainId, walletChainId, isWalletTestnet, chainOrder, hiddenL1s]);
+
+  // Pre-register RPC URLs for every visible L1 so the balance service has a
+  // chain-specific viem client before HeroCard's poll fires. Previously the
+  // service silently fell back to the wallet's connected-chain RPC, which
+  // produced wrong balances (and looked like 0 for non-Glacier L1s). The
+  // service de-dupes internally, so calling on every combined-list update is
+  // cheap.
+  useEffect(() => {
+    const eligible = combinedL1s
+      .filter((l1) => l1.evmChainId !== null && l1.rpcUrl)
+      .map((l1) => ({ evmChainId: l1.evmChainId as number, rpcUrl: l1.rpcUrl }));
+    if (eligible.length === 0) return;
+    balanceService.registerRpcUrls(eligible);
+  }, [combinedL1s]);
 
   // URL-driven selection so refresh + back button work, and so wallet network
   // switches don't change which L1 the dashboard is viewing.

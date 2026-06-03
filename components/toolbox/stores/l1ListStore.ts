@@ -320,3 +320,29 @@ export const useSetWrappedNativeToken = () => {
     l1ListStore.setState({ l1List: updatedL1List });
   };
 };
+
+/**
+ * Setter for the L1's TeleporterRegistry address.
+ *
+ * Called from the ICM setup flow (`TeleporterRegistry.tsx`) right after a
+ * successful registry deploy so the address propagates from `toolboxStore`
+ * (per-chain, mostly internal) into `l1ListStore.l1List[...].wellKnownTeleporterRegistryAddress`,
+ * which is the single source of truth read by the bridge inspectors AND
+ * the My L1 dashboard's setup-progress bar.
+ *
+ * Matches the {@link useSetWrappedNativeToken} pattern — keyed by
+ * `walletChainId` so the deploy lands on the L1 the wallet is currently on.
+ */
+export const useSetTeleporterRegistryAddress = () => {
+  const { walletChainId } = useWalletStore();
+  const l1ListStore = useL1ListStore();
+
+  return (address: string) => {
+    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) return;
+    const currentL1List = l1ListStore.getState().l1List;
+    const updatedL1List = currentL1List.map((l1: L1ListItem) =>
+      l1.evmChainId === walletChainId ? { ...l1, wellKnownTeleporterRegistryAddress: address } : l1,
+    );
+    l1ListStore.setState({ l1List: updatedL1List });
+  };
+};

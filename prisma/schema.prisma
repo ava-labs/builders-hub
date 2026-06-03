@@ -8,45 +8,51 @@ datasource db {
 }
 
 model Hackathon {
-  id                 String         @id @default(uuid())
+  id                 String                   @id @default(uuid())
   title              String
   description        String
   location           String
   total_prizes       Int
   tags               String[]
-  content            Json           @default("{}")
-  end_date           DateTime       @default(now()) @db.Timestamptz(3)
-  start_date         DateTime       @default(now()) @db.Timestamptz(3)
-  timezone           String         @default("UTC")
-  banner             String         @default("")
-  icon               String         @default("")
-  small_banner       String         @default("")
+  content            Json                     @default("{}")
+  end_date           DateTime                 @default(now()) @db.Timestamptz(3)
+  start_date         DateTime                 @default(now()) @db.Timestamptz(3)
+  timezone           String                   @default("UTC")
+  banner             String                   @default("")
+  icon               String                   @default("")
+  small_banner       String                   @default("")
   participants       Int
   organizers         String?
-  top_most           Boolean?       @default(false)
+  top_most           Boolean?                 @default(false)
   custom_link        String?
   created_by         String?
   is_public          Boolean?
   updated_by         String?
-  event              String?        @default("hackathon")
-  cohosts            String[]       @default([])
-  new_layout         Boolean?       @default(false)
+  event              String?                  @default("hackathon")
+  cohosts            String[]                 @default([])
+  new_layout         Boolean?                 @default(false)
   google_calendar_id String?
-  created_by_user    User?          @relation(fields: [created_by], references: [id])
-  updated_by_user    User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
+  evaluation_phase   HackathonEvaluationPhase @default(EVALUATION)
+  created_by_user    User?                    @relation(fields: [created_by], references: [id])
+  updated_by_user    User?                    @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects           Project[]
   registrations      RegisterForm[]
   judges             HackathonJudge[]
 }
 
+enum HackathonEvaluationPhase {
+  EVALUATION
+  PICKING
+}
+
 model HackathonJudge {
-  id            String    @id @default(uuid())
-  hackathon_id  String
-  user_id       String
-  assigned_by   String
-  assigned_at   DateTime  @default(now()) @db.Timestamptz(3)
-  hackathon     Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
-  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid())
+  hackathon_id String
+  user_id      String
+  assigned_by  String
+  assigned_at  DateTime  @default(now()) @db.Timestamptz(3)
+  hackathon    Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([hackathon_id, user_id])
   @@index([hackathon_id])
@@ -70,6 +76,7 @@ model User {
   linkedin_account           String?
   additional_social_accounts String[]                  @default([])
   notifications              Boolean?
+  consent_sharing            Boolean?
   profile_privacy            String?                   @default("public")
   custom_attributes          String[]
   team_id                    String?
@@ -102,6 +109,7 @@ model User {
   referralLinks              ReferralLink[]            @relation("ReferralLinkOwner")
   referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
   referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
+  posted_job_listings        JobListing[]              @relation("UserPostedJobListings")
 }
 
 model VerificationToken {
@@ -160,19 +168,29 @@ model Project {
   is_preexisting_idea Boolean             @default(false)
   small_cover_url     String?             @default("")
   tags                String[]            @default([])
-  is_winner           Boolean?            @default(false)
+  is_winner                Boolean?            @default(false)
+  is_rejected              Boolean             @default(false)
+  submission_email_sent    Boolean             @default(false)
   categories          String[]            @default([])
   origin              String              @default("unknown")
   other_category      String?
   deployed_addresses  Json[]              @default([])
   website             Json?
   socials             Json?
+  consent_sharing     Boolean?
+  // One-shot devrel approval for the Ecosystem Careers feature. Every project
+  // starts unapproved regardless of origin (community form, hackathon submission,
+  // grant application). A devrel flips this at /admin/ecosystem-careers, which
+  // also activates every queued listing under the project in one action.
+  careers_approved    Boolean             @default(false)
+  careers_rejected_at DateTime?           @db.Timestamptz(3)
   formData            FormData[]
   members             Member[]
   hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
   badges              ProjectBadge[]
   ProjectRepository   ProjectRepository[]
   evaluations         Evaluation[]
+  jobListings         JobListing[]
 }
 
 model Member {
@@ -404,12 +422,11 @@ model FormData {
 }
 
 model Evaluation {
-  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
   form_data_id  String?
   project_id    String?
   hackathon_id  String?
   evaluator_id  String
-  verdict       String?
   comment       String?
   score_overall Float?
   scores        Json?
@@ -417,8 +434,9 @@ model Evaluation {
   updated_at    DateTime  @updatedAt @db.Timestamptz(3)
   stage         Int       @default(0)
   evaluator     User      @relation("Evaluations", fields: [evaluator_id], references: [id], onDelete: Cascade)
-  formData      FormData? @relation(fields: [form_data_id], references: [id], onDelete: Cascade)
   project       Project?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  verdict       String?
+  formData      FormData? @relation(fields: [form_data_id], references: [id], onDelete: Cascade)
 
   @@unique([form_data_id, evaluator_id, stage])
   @@unique([project_id, evaluator_id])
@@ -612,9 +630,59 @@ model Repository {
 }
 
 model Speaker {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name     String
-  icon     String?
   category String
   picture  String
-  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  icon     String? 
+}
+
+model Resource {
+  id          String @id @default(uuid())
+  title       String
+  description String
+  link        String
+  icon        String
+}
+
+model JobListing {
+  id                       String    @id @default(uuid())
+  // 'community' | 'external' | 'legacy'
+  //   community → user-submitted via a Builders Hub Project (project_id set)
+  //   external  → ingested from web3.career on the cron (company_* set)
+  //   legacy    → the original Getro seed, frozen (company_* set)
+  source                   String
+  external_id              String?
+  // Set for source = 'community' (NULL for external/legacy)
+  project_id               String?
+  posted_by_user_id        String?
+  // Set for source = 'external' | 'legacy' (NULL for community)
+  company_name             String?
+  company_logo             String?
+  company_website          String?
+  company_tags             String[]  @default([])
+  // Shared
+  title                    String
+  short_description        String
+  description              String?
+  location                 String?
+  remote_type              String?
+  employment_type          String?
+  seniority                String?
+  tags                     String[]  @default([])
+  apply_url                String
+  source_url               String?
+  posted_at                DateTime? @db.Timestamptz(3)
+  last_seen_at             DateTime  @default(now()) @db.Timestamptz(3)
+  is_active                Boolean   @default(true)
+  rejected_at              DateTime? @db.Timestamptz(3)
+  created_at               DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at               DateTime  @updatedAt @db.Timestamptz(3)
+
+  project                  Project?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  posted_by_user           User?     @relation("UserPostedJobListings", fields: [posted_by_user_id], references: [id], onDelete: SetNull)
+
+  @@unique([source, external_id])
+  @@index([source, is_active, posted_at])
+  @@index([project_id])
 }
