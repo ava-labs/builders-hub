@@ -15,7 +15,6 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Separator } from "../ui/separator";
 import { useSession } from "next-auth/react";
-import { hasHackathonEditorRole } from "@/lib/auth/roles";
 import {
   Pagination,
   PaginationContent,
@@ -93,9 +92,9 @@ export default function Events({
 }: Props) {
   // Listing language is global (mixed events). Default to English unless you later add a global locale.
   const lang = normalizeEventsLang(undefined);
-  const { data: session } = useSession();
-  const isHackathonCreator = hasHackathonEditorRole(session?.user?.custom_attributes);
-
+  const { data: session, status } = useSession();
+  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
+  
   const router = useRouter();
 
   const [pastEvents, setPastEvents] = useState<HackathonHeader[]>(
@@ -187,6 +186,15 @@ export default function Events({
     };
   }, [filters, searchQuery, pageSize, pastEventType]);
 
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      console.log("User ID:", session.user.id);
+
+      if (session.user.custom_attributes?.includes("hackathonCreator") || session.user.custom_attributes?.includes("team1-admin")) {
+        console.log("User is hackathonCreator");
+      }
+    }
+  }, [session, status]);
 
   const handleFilterChange = (type: keyof HackathonsFilters, value: string) => {
     // Validate page number - must be >= 1

@@ -25,7 +25,6 @@ import { EmailListInput } from '@/components/common/EmailListInput';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { REFERRAL_TEAM_LABELS, isReferralTeamId } from '@/lib/referrals/team-labels';
-import { hasHackathonEditorRole } from '@/lib/auth/roles';
 import { COUNTRIES } from '@/components/profile/shell/data';
 import { getDefaultTargetCountries } from '@/lib/hackathons/countryTargetDefaults';
 import HackathonsEditStages from '@/components/hackathons/edit/stages/Stages';
@@ -1538,13 +1537,19 @@ const HackathonsEdit = () => {
       setHasEditPermission(false);
       return;
     }
-    const isSpecialRole = hasHackathonEditorRole(session.user.custom_attributes);
+    const customAttributes: string[] = session.user.custom_attributes || [];
+    const isSpecialRole =
+      customAttributes.includes("hackathonCreator") ||
+      customAttributes.includes("team1-admin") ||
+      customAttributes.includes("devrel");
 
+    // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
       setHasEditPermission(isSpecialRole);
       return;
     }
 
+    // If hackathon is selected, check if user is creator/updater, special role, or cohost
     const userEmail = session.user.email || "";
     const isCohost =
       !!userEmail && Array.isArray(selectedHackathon.cohosts)
@@ -2612,6 +2617,30 @@ const HackathonsEdit = () => {
     });
   };
 
+  // Check if user has required permissions
+  const hasRequiredPermissions = () => {
+    if (!session?.user?.custom_attributes) return false;
+    return session.user.custom_attributes.includes("team1-admin") ||
+      session.user.custom_attributes.includes("hackathonCreator") ||
+      session.user.custom_attributes.includes("devrel");
+  };
+
+  // Redirect unauthenticated users to home; authenticated without roles to home (same as proxy.ts)
+  React.useEffect(() => {
+    if (status === "loading") return;
+
+    if (status === "unauthenticated") {
+      window.location.href = "/";
+      return;
+    }
+
+    if (status === "authenticated" && !hasRequiredPermissions()) {
+      window.location.href = "/";
+      return;
+    }
+  }, [session, status]);
+
+  // Show loading while checking authentication
   if (status === "loading") {
     return (
       <div className="h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
@@ -2619,6 +2648,12 @@ const HackathonsEdit = () => {
       </div>
     );
   }
+
+  // Don't render if user is not authenticated or doesn't have permissions
+  if (status === "unauthenticated" || (status === "authenticated" && !hasRequiredPermissions())) {
+    return null; // Will redirect via useEffect
+  }
+
 
   const renderHackathonPreviewTabs = (): React.JSX.Element => {
     return (
