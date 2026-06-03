@@ -45,5 +45,18 @@ export function parsePChainError(err: unknown): string {
   if (raw.includes('nonce')) return 'Transaction nonce error. Please try again.';
   if (raw.includes('execution reverted')) return `Transaction reverted: ${raw}`;
 
+  // viem InternalRpcError (-32603) wrapping a P-Chain RPC failure. viem's default
+  // "mistyped URL / resource doesn't exist" boilerplate is NOT the real cause —
+  // the node returned an internal error without a specific reason. Surface an
+  // honest message rather than the boilerplate (the raw text is still logged for
+  // diagnosis), and don't blame the user's input, which is usually fine here.
+  if (raw.includes('An internal error was received') || raw.includes('Unable to create transaction')) {
+    return (
+      'The P-Chain RPC returned an internal error without a specific reason — this points to an ' +
+      'RPC/endpoint problem rather than your input. Wait a moment and try again; if it keeps failing, ' +
+      'the P-Chain endpoint is likely degraded.'
+    );
+  }
+
   return raw;
 }
