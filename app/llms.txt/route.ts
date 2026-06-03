@@ -9,13 +9,15 @@ type Source =
   | typeof integration
   | typeof blog;
 
-// Keep the whole document comfortably under the Agent Score 50K size cap.
-// NOTE: the site has ~1,000 pages; listing them all is ~97K chars, which would
-// fail `llms-txt-size`. The 50K cap and the 80% `llms-txt-coverage` target are
-// mutually exclusive at this scale, so we index as many pages as fit (relative
-// `.md` links, no per-page descriptions) and rely on sitemap.xml + universal
-// `.md` support for full discovery.
-const TARGET_TOTAL = 48000;
+// `llms-txt-size` and `llms-txt-coverage` are mutually exclusive at this scale:
+//   - size:     PASS < 50K, WARN 50-100K, FAIL > 100K chars
+//   - coverage: PASS >= 95%, WARN 80-95%, FAIL < 80% of sitemap pages
+// The site has ~1,000 pages, so >=95% coverage needs ~90K chars — over the 50K
+// size-PASS line but well under the 100K size-FAIL line. We deliberately take
+// the size WARNING to turn the coverage FAILURE into a PASS (a warn beats a
+// fail), indexing every page as relative `.md` links with no descriptions.
+// The cap only guards against ever crossing the 100K hard-fail threshold.
+const TARGET_TOTAL = 98000;
 
 function titleCase(slug: string): string {
   return slug
