@@ -133,13 +133,6 @@ const RAW_ROUTES = [
     type: 'api',
   },
   {
-    name: '/builder-insights',
-    method: 'GET',
-    path: '/builder-insights',
-    expectedRoles: ['builder_insights', 'Team1-Leader', 'Team1-member', 'T1-Technical', 'devrel'],
-    type: 'ui',
-  },
-  {
     name: '/evaluate',
     method: 'GET',
     path: '/evaluate',

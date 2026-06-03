@@ -30,10 +30,11 @@
  * To protect a new route: add one line here. Nothing else changes.
  */
 
-import { Resource } from "./rolePermissions";
+import { Action, Resource } from "./rolePermissions";
 
 export interface RouteConfig {
   resource?: Resource;
+  action?: Action;
   /** Any authenticated user passes; no resource:action check. */
   authOnly?: boolean;
 }
@@ -92,7 +93,7 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   // ── API – showcase / projects ─────────────────────────────────────────────
   "/api/showcase":                         { resource: "showcase" },
   "/api/showcase/*":                       { resource: "showcase" },
-  "/api/projects/export":                  { resource: "showcase" },
+  "/api/projects/export":                  { resource: "showcase", action: "export" },
 
   // ── API – judge ───────────────────────────────────────────────────────────
   "/api/judge":                            { resource: "judge" },

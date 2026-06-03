@@ -87,7 +87,7 @@ export async function proxy(req: NextRequest) {
   if (matched.authOnly) return NextResponse.next();
 
   // ── Permission check ──────────────────────────────────────────────────────
-  const action = actionFromMethod(req.method);
+  const action = matched.action ?? actionFromMethod(req.method);
   const attrs = (token.custom_attributes as string[]) ?? [];
 
   if (!hasPermission(attrs, { resource: matched.resource!, action })) {
