@@ -19,6 +19,7 @@ import { PersonalCard } from "./PersonalCard";
 import { ProjectsCard, type ProjectsCardProject } from "./ProjectsCard";
 import { AchievementsCard, type AchievementsCardBadge } from "./AchievementsCard";
 import { SettingsCard } from "./SettingsCard";
+import { PlaygroundsCard, type PlaygroundListItem } from "./PlaygroundsCard";
 import { CompletionWidget } from "./CompletionWidget";
 import {
   ReferralPanel,
@@ -49,6 +50,7 @@ type Tab =
   | "projects"
   | "achievements"
   | "settings"
+  | "playground"
   | "insights"
   | "notifications";
 interface TabSpec {
@@ -59,6 +61,7 @@ const BASE_TABS: ReadonlyArray<TabSpec> = [
   { id: "personal", label: "Personal" },
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
+  { id: "playground", label: "Playground" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -145,6 +148,8 @@ export default function ProfilePage({ teamLabel }: Props) {
   const [nounAvatarEnabled, setNounAvatarEnabled] = React.useState(false);
   const [summary, setSummary] = React.useState<SummaryResponse>(EMPTY_SUMMARY);
   const [summaryLoading, setSummaryLoading] = React.useState(true);
+  const [playgrounds, setPlaygrounds] = React.useState<PlaygroundListItem[]>([]);
+  const [playgroundsLoading, setPlaygroundsLoading] = React.useState(true);
   const [insightsData, setInsightsData] = React.useState<BuilderInsightsData | null>(
     null,
   );
@@ -192,6 +197,29 @@ export default function ProfilePage({ teamLabel }: Props) {
       })
       .finally(() => {
         if (!cancelled) setSummaryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
+
+  // Saved playground dashboards (the user's own). Lightweight list — the heavy
+  // chart data only loads when a row is expanded in the Playground tab.
+  React.useEffect(() => {
+    let cancelled = false;
+    if (!session?.user?.id) return;
+    setPlaygroundsLoading(true);
+    fetch("/api/playground")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data: PlaygroundListItem[]) => {
+        if (cancelled) return;
+        setPlaygrounds(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("[ProfilePage] failed to load playgrounds:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setPlaygroundsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -500,6 +528,7 @@ export default function ProfilePage({ teamLabel }: Props) {
     projects: summary.projects.length,
     achievements: summary.badges.filter((badge) => badge.isUnlocked).length,
     settings: null,
+    playground: playgrounds.length || null,
     insights: insightsData?.latest30DaySignups ?? null,
     notifications: null,
   };
@@ -642,6 +671,12 @@ export default function ProfilePage({ teamLabel }: Props) {
               />
             )}
             {tab === "settings" && <SettingsCard />}
+            {tab === "playground" && (
+              <PlaygroundsCard
+                playgrounds={playgrounds}
+                loading={playgroundsLoading}
+              />
+            )}
             {tab === "insights" && showInsightsTab && (
               <InsightsCard
                 data={insightsData}
