@@ -1,6 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
 import { prisma } from "../../prisma/prisma";
-import { hasHackathonAdminRole } from "./roles";
 
 export function hasAnyAttribute(
   attributes: string[] | undefined | null,
@@ -61,13 +60,6 @@ export function canManageEvaluationPhase(
 ): boolean {
   if (!session?.user) return false;
   return hasAnyAttribute(session.user.custom_attributes, ["devrel"]);
-}
-
-export function canManageHackathons(
-  session: { user?: { custom_attributes?: string[] } } | null | undefined,
-): boolean {
-  if (!session?.user) return false;
-  return hasHackathonAdminRole(session.user.custom_attributes);
 }
 
 /**

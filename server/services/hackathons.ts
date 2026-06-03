@@ -101,48 +101,6 @@ export class ValidationError extends Error {
   }
 }
 
-export class ForbiddenError extends Error {
-  public cause: string;
-  constructor(message: string) {
-    super(message);
-    this.cause = "Forbidden";
-  }
-}
-
-export function canManageHackathon(
-  user: { custom_attributes?: string[] | null; team_id?: string | null } | null | undefined,
-  hackathon: { organizers?: string | null } | null | undefined,
-): boolean {
-  const attrs = user?.custom_attributes ?? [];
-  if (attrs.includes("devrel")) return true;
-  if (attrs.includes("team1-admin") || attrs.includes("hackathonCreator")) {
-    return !!user?.team_id && !!hackathon?.organizers && hackathon.organizers === user.team_id;
-  }
-  return false;
-}
-
-export function canViewFullHackathon(
-  user: { custom_attributes?: string[] | null; team_id?: string | null } | null | undefined,
-  session: { user?: { id?: string | null; email?: string | null } | null } | null | undefined,
-  hackathon:
-    | {
-        is_public?: boolean | null;
-        created_by?: string | null;
-        cohosts?: string[] | null;
-        organizers?: string | null;
-      }
-    | null
-    | undefined,
-): boolean {
-  if (!hackathon) return false;
-  if (hackathon.is_public === true) return true;
-  const userId = session?.user?.id;
-  const email = session?.user?.email;
-  const isOwner = !!userId && hackathon.created_by === userId;
-  const isCohost = !!email && (hackathon.cohosts ?? []).includes(email);
-  return canManageHackathon(user, hackathon) || isOwner || isCohost;
-}
-
 function pruneContentPlaceholders(content: any): any {
   if (!content || typeof content !== "object") return content;
   const next: any = { ...content };
@@ -202,7 +160,6 @@ export interface GetHackathonsOptions {
   include_private?: boolean;
   cohost_email?: string | null;
   event?: string | null;
-  organizer_team?: string | null;
   visibility?: 'all' | 'public' | 'private';
   sort?: string;
 }
@@ -256,7 +213,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     }
   }
 
-  if (options.created_by || options.cohost_email || options.organizer_team) {
+  if (options.created_by || options.cohost_email) {
     const ownershipConditions: any[] = [];
     if (options.created_by) {
       // Show hackathons where user is either creator OR updater
@@ -271,9 +228,6 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
           has: options.cohost_email,
         },
       });
-    }
-    if (options.organizer_team) {
-      ownershipConditions.push({ organizers: options.organizer_team });
     }
 
     if (ownershipConditions.length > 0) {
@@ -530,20 +484,6 @@ export async function updateHackathon(
   });
   if (!existingHackathon) {
     throw new Error("Hackathon not found");
-  }
-
-  if (userId) {
-    const actingUser = await getUserById(userId);
-    if (!canManageHackathon(actingUser, existingHackathon)) {
-      throw new ForbiddenError("You can only edit hackathons organized by your team.");
-    }
-    if (
-      hackathonData.organizers !== undefined &&
-      actingUser?.team_id &&
-      !actingUser.custom_attributes?.includes("devrel")
-    ) {
-      hackathonData.organizers = actingUser.team_id;
-    }
   }
 
   if (hackathonData.content?.schedule) {
