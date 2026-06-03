@@ -225,6 +225,7 @@ function AddChainModalInner() {
       // blockExplorerUrls is per EIP-3085 optional; when set, the wallet
       // shows the same explorer link the in-app L1 dashboard treats as
       // default (Firn for Quick L1 deploys).
+      const isCoreWallet = useWalletStore.getState().walletType === 'core';
       await walletClient.request({
         method: 'wallet_addEthereumChain',
         params: [
@@ -234,7 +235,7 @@ function AddChainModalInner() {
             nativeCurrency: { name: chainData.coinName, symbol: chainData.coinName, decimals: 18 },
             rpcUrls: [chainData.rpcUrl],
             blockExplorerUrls: chainData.explorerUrl ? [chainData.explorerUrl] : undefined,
-            isTestnet: chainData.isTestnet,
+            ...(isCoreWallet ? { isTestnet: chainData.isTestnet } : {}),
           },
         ] as any,
       });
