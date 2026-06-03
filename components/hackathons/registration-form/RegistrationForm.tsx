@@ -762,9 +762,7 @@ export function RegisterForm({
               <RegisterFormStep1
                 user={session?.user}
                 lang={lang}
-                mode="full"
                 countryLocked={countryLocked}
-                requireSocials={false}
               />
               {hackathon_id && hasTeamPicker(
                 getTeamSizeRange({
