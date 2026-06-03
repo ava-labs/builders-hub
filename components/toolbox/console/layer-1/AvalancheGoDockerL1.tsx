@@ -1132,12 +1132,15 @@ curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \\
                 lang="bash"
                 code={
                   isRPC
-                    ? `# Open P2P and RPC ports
+                    ? `# Open SSH, P2P, RPC, and reverse-proxy ports
+sudo ufw allow OpenSSH
 sudo ufw allow 9651/tcp comment 'AvalancheGo P2P'
 sudo ufw allow 9650/tcp comment 'AvalancheGo RPC'
+sudo ufw allow 80,443/tcp comment 'Caddy reverse proxy (TLS)'
 sudo ufw --force enable
 sudo ufw status`
-                    : `# Open P2P port only (validators don't expose RPC)
+                    : `# Open SSH and P2P ports (validators don't expose RPC)
+sudo ufw allow OpenSSH
 sudo ufw allow 9651/tcp comment 'AvalancheGo P2P'
 sudo ufw --force enable
 sudo ufw status`
@@ -1146,7 +1149,7 @@ sudo ufw status`
 
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
                 {isRPC
-                  ? 'RPC nodes need both ports open. Consider using a reverse proxy (nginx) for SSL termination on port 9650.'
+                  ? 'On a cloud host (AWS/GCP/Azure), open these same ports in your Security Group too — the host firewall alone is not enough.'
                   : 'Validators only need the P2P port. The RPC port is bound to localhost for security.'}
               </p>
             </Step>
