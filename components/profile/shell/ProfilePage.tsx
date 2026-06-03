@@ -62,8 +62,8 @@ const BASE_TABS: ReadonlyArray<TabSpec> = [
   { id: "personal", label: "Personal" },
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
-  { id: "settings", label: "Settings" },
   { id: "playground", label: "Playground" },
+  { id: "settings", label: "Settings" },
 ];
 
 interface SummaryReferralLink {
