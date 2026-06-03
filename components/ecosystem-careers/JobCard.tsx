@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react';
+import { Banknote, Lock, MapPin } from 'lucide-react';
 import type {
   ListingSource,
   SerializableJobCard,
@@ -10,6 +10,30 @@ import { JobCardLink } from './JobCardLink';
 interface Props {
   job: SerializableJobCard;
   viewerIsDevRel?: boolean;
+  // When false, salary is shown as a locked teaser instead of the figure.
+  // Unlocked once the viewer connects both X and LinkedIn.
+  showSalary?: boolean;
+}
+
+// Salary is gated: connected viewers see the figure, everyone else sees a lock
+// that hints there's pay info worth unlocking. Renders nothing when the listing
+// has no salary at all.
+function SalaryPill({ salary, showSalary }: { salary: string | null; showSalary: boolean }) {
+  if (!salary) return null;
+  if (!showSalary) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800/80">
+        <Lock className="w-3 h-3" />
+        Salary
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-500/20">
+      <Banknote className="w-3 h-3" />
+      {salary}
+    </span>
+  );
 }
 
 // Neon-tinted provenance pill: yellow for fresh Getro weekly ingest,
@@ -49,7 +73,7 @@ function SourceBadge({ source }: { source: ListingSource }) {
   );
 }
 
-export function JobCard({ job, viewerIsDevRel = false }: Props) {
+export function JobCard({ job, viewerIsDevRel = false, showSalary = false }: Props) {
   return (
     <div className="group relative h-full">
       {viewerIsDevRel && (
@@ -108,6 +132,7 @@ export function JobCard({ job, viewerIsDevRel = false }: Props) {
             {prettySeniority(job.seniority)}
           </span>
         )}
+        <SalaryPill salary={job.salary} showSalary={showSalary} />
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed line-clamp-2">

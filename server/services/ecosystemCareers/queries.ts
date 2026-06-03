@@ -36,6 +36,8 @@ export interface JobCard {
   location: string | null;
   remoteType: string | null;
   seniority: string | null;
+  // Human-readable pay (gated behind X + LinkedIn in the UI). null when unknown.
+  salary: string | null;
   tags: string[];
   postedAt: Date | string | null;
   applyUrl: string;
@@ -99,6 +101,7 @@ function toJobCard(row: NonNullable<JobRow>): JobCard {
     location: row.location,
     remoteType: row.remote_type,
     seniority: row.seniority,
+    salary: row.salary,
     tags: row.tags,
     postedAt: row.posted_at,
     applyUrl: row.apply_url,
