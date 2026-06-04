@@ -85,6 +85,12 @@ export const ReverseProxySetup: React.FC<ReverseProxySetupProps> = ({
 
         {domain && (
           <>
+            <p className="mt-4">
+              Open ports 80 and 443 so Let&apos;s Encrypt can reach Caddy. On a cloud host, open them in your{' '}
+              <strong>Security Group</strong> too — the host firewall alone is not enough.
+            </p>
+            <DynamicCodeBlock lang="bash" code={`sudo ufw allow 80,443/tcp comment 'Caddy / ACME'`} />
+
             <p className="mt-4">Run the following command on the machine of your node:</p>
             <DynamicCodeBlock lang="bash" code={generateReverseProxyCommand(domain)} />
           </>

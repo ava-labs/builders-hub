@@ -45,7 +45,7 @@ function RedirectLogic() {
 
       // Redirect existing new users (who have accepted terms but notifications is null) to profile page
       if (pathname !== "/profile") {
-        // Store the original URL with search params (including UTM) in localStorage
+        // Store the original URL with search params in localStorage
         const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
         if (typeof window !== "undefined") {
           localStorage.setItem("redirectAfterProfile", originalUrl);

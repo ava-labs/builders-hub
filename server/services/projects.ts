@@ -1,9 +1,18 @@
 import { Project, ProjectHackathonInfo, ProjectMemberUser } from "@/types/showcase";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 
 const prisma = new PrismaClient();
+
+// website/socials are Json? columns the careers flow sends but the showcase
+// Project type doesn't model; read them off the raw payload and only persist
+// when present so we never overwrite them with an empty value.
+const isNonEmptyObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.keys(value).length > 0;
 
 export const projectValidations: Validation[] = [
   // { field: "project_name", message: "Please provide a name for the project.", validation: (project: Project) => requiredField(project, "title") },
@@ -198,6 +207,7 @@ export async function createProject(
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
   }
+  const extra = projectData as { website?: unknown; socials?: unknown };
   const newProject = await prisma.project.create({
     data: {
       project_name: projectData.project_name ?? "",
@@ -211,6 +221,13 @@ export async function createProject(
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
+      tags: projectData.tags ?? [],
+      website: isNonEmptyObject(extra.website)
+        ? (extra.website as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
+      socials: isNonEmptyObject(extra.socials)
+        ? (extra.socials as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
       hackaton_id: projectData.hackaton_id ?? null,
       members: {
         create: projectData.members?.map((member) => ({
@@ -278,6 +295,7 @@ export async function updateProject(
 export async function CheckInvitation(invitationId: string, user_id: string) {
   const user = await prisma.user.findUnique({
     where: { id: user_id },
+    select: { id: true, email: true },
   });
   const member = await prisma.member.findFirst({
     where: {
@@ -345,6 +363,10 @@ export async function GetProjectByHackathonAndUser(
   const user = await prisma.user.findFirst({
     where: {
       OR: [{ id: user_id }, { email: user_id }],
+    },
+    select: {
+      id: true,
+      email: true,
     },
   });
 

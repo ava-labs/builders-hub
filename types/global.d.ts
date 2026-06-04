@@ -30,6 +30,22 @@ declare global {
             on<T>(event: string, callback: (data: T) => void): void;
             removeListener(event: string, callback: () => void): void;
         };
+        /** Google Identity Services (https://accounts.google.com/gsi/client) */
+        google?: {
+            accounts: {
+                oauth2: {
+                    initTokenClient: (config: {
+                        client_id: string
+                        scope: string
+                        callback: (tokenResponse: {
+                            access_token?: string
+                            error?: string
+                            error_description?: string
+                        }) => void
+                    }) => { requestAccessToken: () => void }
+                }
+            }
+        };
     }
 }
 

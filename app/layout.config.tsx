@@ -210,6 +210,12 @@ export const chatMenu: MainItemType = {
   url: "/chat"
 };
 
+export const careersMenu: MainItemType = {
+  type: "main",
+  text: "Ecosystem Careers",
+  url: "/ecosystem-careers"
+};
+
 export const docsMenu: LinkItemType = {
   type: 'menu',
   text: 'Documentation',
@@ -615,6 +621,7 @@ export const baseOptions: BaseLayoutProps = {
     chatMenu,
     consoleMenu,
     docsMenu,
+    careersMenu,
     eventsMenu,
     explorerMenu,
     grantsMenu,

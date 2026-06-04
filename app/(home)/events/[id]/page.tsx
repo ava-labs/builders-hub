@@ -5,9 +5,16 @@ import { getRegisterForm } from "@/server/services/registerForms";
 import { getAuthSession } from "@/lib/auth/authSession";
 import LegacyEventLayout from "@/components/hackathons/event-layouts/LegacyEventLayout";
 import ModernEventLayout from "@/components/hackathons/event-layouts/ModernEventLayout";
+import { HostNavButtons } from "@/components/evaluate/HostNavButtons";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import { prisma } from "@/prisma/prisma";
+import {
+  calcSubmissionProgress,
+  getSubmissionStatus,
+  type SubmissionStatus,
+} from "@/lib/hackathons/submission-progress";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -52,25 +59,51 @@ export async function generateMetadata({
 
 export default async function HackathonPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
-  const utm = resolvedSearchParams?.utm ?? "";
-  
+
   const hackathon = await getHackathon(id);
 
   // Check if user is authenticated and registered
   const session = await getAuthSession();
   const isAuthenticated = !!session?.user;
   let isRegistered = false;
+  let submissionStatus: SubmissionStatus = "none";
+  let submissionProgress = 0;
+  let submissionProjectId: string | null = null;
 
   if (session?.user?.email) {
-    const registration = await getRegisterForm(session.user.email, id);
+    const [registration, userProject] = await Promise.all([
+      getRegisterForm(session.user.email, id),
+      session.user.id
+        ? prisma.project.findFirst({
+            where: {
+              hackaton_id: id,
+              members: {
+                some: { user_id: session.user.id, status: "Confirmed" },
+              },
+            },
+            select: {
+              id: true,
+              project_name: true,
+              short_description: true,
+              full_description: true,
+              tech_stack: true,
+              github_repository: true,
+              demo_link: true,
+              tracks: true,
+            },
+          })
+        : Promise.resolve(null),
+    ]);
     isRegistered = !!registration;
+    if (userProject) {
+      submissionProjectId = userProject.id;
+      submissionProgress = calcSubmissionProgress(userProject);
+      submissionStatus = getSubmissionStatus(userProject);
+    }
   }
 
   if (!hackathon) redirect("/events");
@@ -85,7 +118,10 @@ export default async function HackathonPage({
         id={id}
         isRegistered={isRegistered}
         isAuthenticated={isAuthenticated}
-        utm={utm as string}
+        submissionStatus={submissionStatus}
+        submissionProgress={submissionProgress}
+        submissionProjectId={submissionProjectId}
+        hostNavButtons={<HostNavButtons hackathonId={id} />}
       />
     );
   }
@@ -96,7 +132,9 @@ export default async function HackathonPage({
       id={id}
       isRegistered={isRegistered}
       isAuthenticated={isAuthenticated}
-      utm={utm as string}
+      submissionStatus={submissionStatus}
+      submissionProgress={submissionProgress}
+      submissionProjectId={submissionProjectId}
     />
   );
 }

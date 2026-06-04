@@ -11,6 +11,7 @@ import {
   withConsoleToolMetadata,
 } from '../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { normalizePChainFaucetAddress } from './pchainFaucetAddress';
 import { useTestnetFaucet } from '@/hooks/useTestnetFaucet';
 import { AccountRequirementsConfigKey } from '../../hooks/useAccountRequirements';
 import { useFaucetRateLimit } from '@/hooks/useFaucetRateLimit';
@@ -130,11 +131,12 @@ function ManualPChainFaucetInput() {
   const { notify } = useConsoleNotifications();
 
   const handleClaim = useCallback(async () => {
-    const trimmed = address.trim();
-    if (!trimmed) return;
-
-    // Auto-prepend P-chain prefix if user pasted bare address from CLI
-    const normalizedAddress = trimmed.startsWith('P-') ? trimmed : `P-fuji1${trimmed}`;
+    const result = normalizePChainFaucetAddress(address);
+    if ('error' in result) {
+      setError(result.error);
+      return;
+    }
+    const normalizedAddress = result.address;
 
     setError(null);
     setIsClaiming(true);

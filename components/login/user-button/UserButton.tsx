@@ -18,6 +18,7 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
+import { canAccessEvaluationTools, canAccessBuilderInsights } from '@/lib/auth/permissions';
 
 const AVATAR_PX = 36;
 
@@ -56,6 +57,9 @@ export function UserButton() {
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
+
+  const canAccessEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
+  const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -165,9 +169,10 @@ export function UserButton() {
     );
   }
 
-  // Authenticated — hover opens a small account menu (Profile + Sign Out).
-  // The pill itself no longer navigates on click; the dropdown is the only
-  // path so the user has an explicit choice every time.
+  // Authenticated — hover opens a small account menu (Profile, extras,
+  // Sign out), while clicking the avatar navigates straight to /profile.
+  // Without the explicit onClick the Radix trigger would just toggle the
+  // hover-opened menu shut, so a click on the pill did nothing.
   return (
     <>
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
@@ -179,8 +184,9 @@ export function UserButton() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label="Account menu"
+              aria-label="Profile"
               className={WRAPPER_CLASS}
+              onClick={() => router.push('/profile')}
             >
               {renderAvatar()}
             </button>
@@ -194,6 +200,22 @@ export function UserButton() {
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
+            {
+              (session?.user?.custom_attributes.includes('devrel') ||
+                session?.user?.custom_attributes?.includes('hackathonCreator') ||
+                session?.user?.custom_attributes?.includes('team1-admin')) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/events/edit'>Event Management</Link>
+                </DropdownMenuItem>
+              )
+            }
+            {
+              canAccessEvaluate && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/evaluate'>Evaluate Hackathons</Link>
+                </DropdownMenuItem>
+              )
+            }
             <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-700" />
             <DropdownMenuItem
               onClick={() => setSignOutOpen(true)}

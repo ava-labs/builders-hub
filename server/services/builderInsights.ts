@@ -7,6 +7,10 @@ import {
 } from "@/lib/referrals/targets";
 import { runHogQL } from "@/lib/posthog-query";
 import { REFERRAL_TEAM_LABELS } from "@/lib/referrals/team-labels";
+import {
+  getTopHackathonTrafficSourcesBatch,
+  type HackathonTrafficSource,
+} from "./hackathonTrafficSources";
 
 export interface MonthlySignupPoint {
   month: string;
@@ -33,6 +37,7 @@ export interface EventParticipantPoint {
   registrations: number;
   startDate: string | null;
   endDate: string | null;
+  topTrafficSources: HackathonTrafficSource[];
 }
 
 export interface TopReferrerRow {
@@ -446,6 +451,10 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     };
   });
 
+  const trafficSourcesByEvent = await getTopHackathonTrafficSourcesBatch(
+    eventParticipantRows.map((row) => row.eventId),
+  );
+
   const eventParticipants: EventParticipantPoint[] = eventParticipantRows.map((row) => ({
     eventId: row.eventId,
     event: row.event,
@@ -454,6 +463,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     registrations: toNumber(row.registrations),
     startDate: row.startDate ? row.startDate.toISOString() : null,
     endDate: row.endDate ? row.endDate.toISOString() : null,
+    topTrafficSources: trafficSourcesByEvent.get(row.eventId) ?? [],
   }));
 
   const totalHackathonsHosted = eventParticipants.length;
@@ -540,7 +550,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       detail: `${getEventStatus(event.start_date, event.end_date)} event`,
       targetType: "hackathon_registration",
       targetId: event.id,
-      destinationUrl: `/events/registration-form?event=${event.id}`,
+      destinationUrl: `/events/${event.id}`,
     };
   });
 

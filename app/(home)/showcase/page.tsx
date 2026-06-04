@@ -7,6 +7,9 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { hasShowcaseRole } from "@/lib/auth/roles";
 import { AuthLoading } from "@/components/ui/auth-loading";
 import { AccessDenied } from "@/components/ui/access-denied";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { HiringCta } from "@/components/ecosystem-careers/HiringCta";
 
 export default async function ShowCasePage({
   searchParams,
@@ -58,7 +61,8 @@ export default async function ShowCasePage({
   };
   const events = await getFilteredHackathons({});
   return (
-    <main className="container relative max-w-[1400px] pt-4 pb-16">
+    <main className="container relative max-w-[1400px] pt-4 pb-16 space-y-6">
+      <HiringCta variant="banner" />
       <ShowCaseCard
         projects={projects as unknown as Project[]}
         initialFilters={initialFilters}
