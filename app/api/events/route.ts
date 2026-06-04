@@ -180,14 +180,12 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
 
     const validatedBody = parseResult.data;
 
-    // Org attribution (enforced server-side): non-devrel creators (e.g.
-    // team1-admin) can only organize for their own team, so we force
-    // organizers = their team_id regardless of what the client sent. Devrel
-    // keeps the team they picked. team_id is attribution only — it does not
-    // restrict the event's country scope (that is content.target_countries).
+    // Org attribution (enforced server-side): every creator — devrel included —
+    // organizes for their own team, so we force organizers = their team_id
+    // regardless of what the client sent. team_id is attribution only; it does
+    // not restrict the event's country scope (that is content.target_countries).
     const userTeamId = session?.user?.team_id ?? null;
-    const organizers =
-      roleUsed === 'devrel' ? validatedBody.organizers : userTeamId ?? validatedBody.organizers;
+    const organizers = userTeamId ?? validatedBody.organizers;
 
     // SECURITY: Audit log — record who is creating the hackathon and which
     // role was used to authorise the action.  Do NOT log the full body as it
