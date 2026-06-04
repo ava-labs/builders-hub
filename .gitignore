@@ -298,6 +298,3 @@ content/docs/rpcs/x-chain/**/meta.json
 !content/docs/rpcs/x-chain/txn-format.mdx
 !content/docs/rpcs/x-chain/api.mdx
 !content/docs/rpcs/x-chain/rpc.mdx
-
-# Local Prisma SQLite dev database
-prisma/dev.db*
