@@ -63,6 +63,30 @@ export interface TopTeamReferrerRow {
   totalReferrals: number;
 }
 
+export type SocialPlatform = "x" | "linkedin" | "github" | "telegram";
+
+export interface SocialCompletionStat {
+  platform: SocialPlatform;
+  label: string;
+  count: number;
+  pct: number;
+}
+
+export interface MonthlySocialCompletionPoint {
+  month: string;
+  cohortSize: number;
+  xPct: number;
+  linkedinPct: number;
+  githubPct: number;
+  telegramPct: number;
+}
+
+export interface SocialCompletionDepthRow {
+  linkCount: number;
+  users: number;
+  pct: number;
+}
+
 export interface BuilderInsightsData {
   totalAccounts: number;
   userGeneratedReferralImpact: number;
@@ -91,6 +115,9 @@ export interface BuilderInsightsData {
   topReferrers: TopReferrerRow[];
   topTeamReferrers: TopTeamReferrerRow[];
   referralTargets: ReferralTargetPreset[];
+  socialCompletion: SocialCompletionStat[];
+  socialCompletionByCohort: MonthlySocialCompletionPoint[];
+  socialCompletionDepth: SocialCompletionDepthRow[];
 }
 
 function toNumber(value: bigint | number | null | undefined): number {
@@ -231,6 +258,9 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     totalHackathonSubmissions,
     topCountryRows,
     returningVisitorsRows,
+    socialCompletionRows,
+    socialCohortRows,
+    socialDepthRows,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.$queryRaw<Array<{ month: Date; signups: bigint }>>`
@@ -438,6 +468,52 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
       query: RETURNING_VISITORS_HOGQL,
     }),
+    prisma.$queryRaw<
+      Array<{ x: bigint; linkedin: bigint; github: bigint; telegram: bigint }>
+    >`
+      SELECT
+        COUNT(*) FILTER (WHERE "x_account" IS NOT NULL AND "x_account" <> '')::bigint AS "x",
+        COUNT(*) FILTER (WHERE "linkedin_account" IS NOT NULL AND "linkedin_account" <> '')::bigint AS "linkedin",
+        COUNT(*) FILTER (WHERE "github_account" IS NOT NULL AND "github_account" <> '')::bigint AS "github",
+        COUNT(*) FILTER (WHERE "telegram_account" IS NOT NULL AND "telegram_account" <> '')::bigint AS "telegram"
+      FROM "User"
+    `,
+    prisma.$queryRaw<
+      Array<{
+        month: Date;
+        total: bigint;
+        x: bigint;
+        linkedin: bigint;
+        github: bigint;
+        telegram: bigint;
+      }>
+    >`
+      SELECT
+        date_trunc('month', "created_at")::date AS "month",
+        COUNT(*)::bigint AS "total",
+        COUNT(*) FILTER (WHERE "x_account" IS NOT NULL AND "x_account" <> '')::bigint AS "x",
+        COUNT(*) FILTER (WHERE "linkedin_account" IS NOT NULL AND "linkedin_account" <> '')::bigint AS "linkedin",
+        COUNT(*) FILTER (WHERE "github_account" IS NOT NULL AND "github_account" <> '')::bigint AS "github",
+        COUNT(*) FILTER (WHERE "telegram_account" IS NOT NULL AND "telegram_account" <> '')::bigint AS "telegram"
+      FROM "User"
+      WHERE "created_at" >= NOW() - INTERVAL '12 months'
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `,
+    prisma.$queryRaw<Array<{ linkCount: number; users: bigint }>>`
+      SELECT "linkCount", COUNT(*)::bigint AS "users"
+      FROM (
+        SELECT (
+          (CASE WHEN "x_account" IS NOT NULL AND "x_account" <> '' THEN 1 ELSE 0 END)
+          + (CASE WHEN "linkedin_account" IS NOT NULL AND "linkedin_account" <> '' THEN 1 ELSE 0 END)
+          + (CASE WHEN "github_account" IS NOT NULL AND "github_account" <> '' THEN 1 ELSE 0 END)
+          + (CASE WHEN "telegram_account" IS NOT NULL AND "telegram_account" <> '' THEN 1 ELSE 0 END)
+        ) AS "linkCount"
+        FROM "User"
+      ) depth
+      GROUP BY "linkCount"
+      ORDER BY "linkCount" ASC
+    `,
   ]);
 
   let cumulative = 0;
@@ -554,6 +630,42 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     };
   });
 
+  const pctOfTotal = (n: number) => (totalAccounts > 0 ? (n / totalAccounts) * 100 : 0);
+
+  const socialCounts = socialCompletionRows[0];
+  const xCount = toNumber(socialCounts?.x);
+  const linkedinCount = toNumber(socialCounts?.linkedin);
+  const githubCount = toNumber(socialCounts?.github);
+  const telegramCount = toNumber(socialCounts?.telegram);
+  const socialCompletion: SocialCompletionStat[] = [
+    { platform: "x", label: "X", count: xCount, pct: pctOfTotal(xCount) },
+    { platform: "linkedin", label: "LinkedIn", count: linkedinCount, pct: pctOfTotal(linkedinCount) },
+    { platform: "github", label: "GitHub", count: githubCount, pct: pctOfTotal(githubCount) },
+    { platform: "telegram", label: "Telegram", count: telegramCount, pct: pctOfTotal(telegramCount) },
+  ];
+
+  const socialCompletionByCohort: MonthlySocialCompletionPoint[] = socialCohortRows.map((row) => {
+    const total = toNumber(row.total);
+    const ratio = (n: bigint) => (total > 0 ? (toNumber(n) / total) * 100 : 0);
+    return {
+      month: formatMonth(row.month),
+      cohortSize: total,
+      xPct: ratio(row.x),
+      linkedinPct: ratio(row.linkedin),
+      githubPct: ratio(row.github),
+      telegramPct: ratio(row.telegram),
+    };
+  });
+
+  const depthByCount = new Map<number, number>();
+  for (const row of socialDepthRows) {
+    depthByCount.set(Number(row.linkCount), toNumber(row.users));
+  }
+  const socialCompletionDepth: SocialCompletionDepthRow[] = [0, 1, 2, 3, 4].map((linkCount) => {
+    const users = depthByCount.get(linkCount) ?? 0;
+    return { linkCount, users, pct: pctOfTotal(users) };
+  });
+
   return {
     totalAccounts,
     userGeneratedReferralImpact,
@@ -609,6 +721,9 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ...activeEventTargets,
       ...ACTIVE_GRANT_TARGETS,
     ],
+    socialCompletion,
+    socialCompletionByCohort,
+    socialCompletionDepth,
   };
 }
 
