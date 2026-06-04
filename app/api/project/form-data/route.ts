@@ -10,7 +10,7 @@ import {
 
 type StageSubmitValues = Record<
   string,
-  string | string[] | Array<{ address: string }> | null
+  string | string[] | boolean | Array<{ address: string }> | null
 >;
 
 type StageAnswer = {
@@ -282,6 +282,17 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         return undefined;
       };
 
+      const getBooleanValue = (...keys: string[]): boolean | undefined => {
+        for (const key of keys) {
+          const value = values[key];
+          if (typeof value === 'boolean') {
+            return value;
+          }
+        }
+
+        return undefined;
+      };
+
       const getLinkValue = (...keys: string[]): string | undefined => {
         for (const key of keys) {
           const value = values[key];
@@ -356,6 +367,11 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         demo_link: getLinkValue('demo_link', 'demoOtherLinks'),
         tech_stack: getStringValue('explanation', 'tech_stack', 'howItsMade'),
         explanation: getStringValue('howItsMade'),
+        // Team1 sharing consent: persist to the real Project.consent_sharing
+        // column (same as the non-staged submitProject flow) so staged
+        // submissions record the consent identically, instead of leaving it
+        // only inside the stage answer envelope.
+        consent_sharing: getBooleanValue('consent_sharing'),
       };
 
       Object.entries(projectColumnValues).forEach(([column, value]) => {

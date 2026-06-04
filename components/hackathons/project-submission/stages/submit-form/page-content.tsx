@@ -22,6 +22,7 @@ import {
 } from '@/types/hackathon-stage'
 import { HackathonHeader } from '@/types/hackathons'
 import { getTechStackOptions } from '@/lib/hackathons/techStackDefaults'
+import { normalizeEventsLang, t } from '@/lib/events/i18n'
 import { ImageIcon, Loader2, X } from 'lucide-react'
 import TeamMembersWrapper from './team-members-wrapper'
 import { useProjectByHackaUser } from '@/hooks/use-get-project-hacka-user'
@@ -351,6 +352,8 @@ export default function StageSubmitPageContent({
 
     return data.url
   }
+
+  const lang = normalizeEventsLang(hackathon.content?.language)
 
   const renderField = (field: SubmitFormField): React.JSX.Element | null => {
     switch (field.type) {
@@ -891,6 +894,18 @@ export default function StageSubmitPageContent({
             render={({ field: rhfField }) => {
               const checked: boolean = rhfField.value === true
 
+              // The Team1 sharing consent is a system-wide concept (also asked
+              // at registration and in the non-staged submission). Render it
+              // with the shared, translated copy instead of the stored label so
+              // the wording (and ES/EN) stays consistent across every flow.
+              const isConsentField: boolean = booleanField.id === 'consent_sharing'
+              const displayLabel: string = isConsentField
+                ? t(lang, 'submission.step1.consentSharing.label')
+                : booleanField.label
+              const displayDescription: string = isConsentField
+                ? t(lang, 'submission.step1.consentSharing.hint')
+                : booleanField.description
+
               return (
                 <FormItem>
                   <div className="flex items-start gap-3">
@@ -908,14 +923,14 @@ export default function StageSubmitPageContent({
                     </FormControl>
                     <div className="space-y-1">
                       <FormLabel className={`${fieldLabelClassName} cursor-pointer`}>
-                        {booleanField.label}
+                        {displayLabel}
                         {booleanField.required ? (
                           <span className="ml-1 text-[#d66666]">*</span>
                         ) : null}
                       </FormLabel>
-                      {booleanField.description ? (
+                      {displayDescription ? (
                         <FormDescription className={fieldDescriptionClassName}>
-                          {booleanField.description}
+                          {displayDescription}
                         </FormDescription>
                       ) : null}
                     </div>

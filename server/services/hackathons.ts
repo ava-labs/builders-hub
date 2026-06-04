@@ -118,19 +118,21 @@ function pruneContentPlaceholders(content: any): any {
 
 /**
  * Ensures every stage that collects a submission offers the project
- * `consent_sharing` field so participants can opt in to having their project
- * showcased publicly. Injected server-side if missing, but kept **optional**
- * (forced `required: false`) — sharing consent must be opt-in, so participants
- * can always leave it unchecked. Re-applied on every save, then validated by
- * the stage Zod schema like any other field.
+ * `consent_sharing` field — the same Team1 outreach consent asked at
+ * registration and in the non-staged submission flow (it maps to the HubSpot
+ * `team1_outreach_consent` property). Injected server-side if missing, but kept
+ * **optional** (forced `required: false`) — sharing consent must be opt-in, so
+ * participants can always leave it unchecked. Re-applied on every save, then
+ * validated by the stage Zod schema like any other field. The participant form
+ * renders it with the shared, translated copy (submission.step1.consentSharing).
  */
 function ensureConsentField(stages: any): any {
   if (!Array.isArray(stages)) return stages;
   const consentField = {
     id: 'consent_sharing',
     type: 'boolean',
-    label: 'I consent to my project being shared publicly',
-    description: 'Optional. Authorizes the organizers to showcase this project publicly.',
+    label: "I consent to share this project's information with Avalanche Team1 so they can reach out to offer local support.",
+    description: 'Team1 may contact your team about local programs, partnerships, or mentorship opportunities.',
     predefinedField: true,
     required: false,
   };

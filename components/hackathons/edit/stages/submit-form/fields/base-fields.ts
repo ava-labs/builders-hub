@@ -105,12 +105,12 @@ export const BASE_SUBMIT_FORM_FIELDS = {
     },
   },
   consent_sharing: {
-    label: 'Consent to Sharing',
+    label: 'Team1 Sharing Consent',
     field: {
       id: 'consent_sharing',
       type: SubmitFormFieldType.Boolean,
-      label: 'I consent to my project being shared publicly',
-      description: 'Optional. Authorizes the organizers to showcase this project publicly.',
+      label: "I consent to share this project's information with Avalanche Team1 so they can reach out to offer local support.",
+      description: 'Team1 may contact your team about local programs, partnerships, or mentorship opportunities.',
       predefinedField: true,
       required: false,
     },
