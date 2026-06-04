@@ -16,7 +16,6 @@ export type HackathonHeader = {
   status: HackathonStatus
   small_banner: string
   banner: string
-  icon: string
   timezone: string
   content: Hackathon
   top_most: boolean
@@ -27,7 +26,9 @@ export type HackathonHeader = {
   updated_by_name?: string
   is_public: boolean
   event?: string
+  /** When true, use modern event layout; when false, use legacy layout. Null/undefined falls back to event type. */
   new_layout?: boolean | null
+  /** Google Calendar ID for schedule integration - if set, uses Google Calendar API instead of DB */
   google_calendar_id?: string | null
 }
 
@@ -39,6 +40,7 @@ export type HackathonsFilters = {
 }
 
 export type Hackathon = {
+  /** Content language for event-specific UI strings. Defaults to 'en' when missing. */
   language?: "en" | "es"
   join_custom_link: string
   join_custom_text: string
@@ -52,7 +54,6 @@ export type Hackathon = {
   speakers: Speaker[]
   become_sponsor_link: string
   submission_deadline: Date
-  submission_open?: string | Date
   mentors_judges_img_url: string
   judging_guidelines: string
   speakers_banner: string
@@ -70,7 +71,7 @@ export type Hackathon = {
 export type ScheduleActivity = {
   stage: string
   date: string
-  duration: number
+  duration: number //Duration in minutes
   name: string
   description: string
   host_name: string
@@ -81,6 +82,7 @@ export type ScheduleActivity = {
   url: string
   isVirtual: boolean
   infoUrl?: string
+  /** Video call URL (Google Meet, Zoom, etc.) - separate from physical location */
   video_call_url?: string
 }
 
@@ -89,7 +91,7 @@ export type Track = {
   short_description: string
   icon: string
   logo: string
-  description: string
+  description: string //Markdown
   total_reward: number
   partner?: string
   resources: Resource[]

@@ -1428,7 +1428,6 @@ const HackathonsEdit = () => {
       submission_custom_link: hackathon.content?.submission_custom_link ?? null,
       judging_guidelines: hackathon.content?.judging_guidelines ?? '',
       submission_deadline: toLocalDatetimeString(hackathon.content?.submission_deadline ?? ''),
-      submission_open: hackathon.content?.submission_open ? toLocalDatetimeString(hackathon.content.submission_open) : '',
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
       team_size_min: hackathon.content?.team_size_min,
       team_size_max: hackathon.content?.team_size_max,
@@ -1461,7 +1460,6 @@ const HackathonsEdit = () => {
       end_date: toLocalDatetimeString(hackathon.end_date ?? ''),
       timezone: hackathon.timezone ?? '',
       banner: hackathon.banner ?? '',
-      icon: hackathon.icon ?? '',
       small_banner: hackathon.small_banner ?? '',
       custom_link: hackathon.custom_link ?? null,
       top_most: hackathon.top_most ?? false,
@@ -1879,9 +1877,6 @@ const HackathonsEdit = () => {
   const getDataToSend = () => {
     const content = { ...formDataContent };
     content.submission_deadline = toIso8601(content.submission_deadline);
-    if (content.submission_open) {
-      content.submission_open = toIso8601(content.submission_open);
-    }
     content.registration_deadline = toIso8601(content.registration_deadline);
     content.schedule = content.schedule.map(ev => ({ ...ev, date: toIso8601(ev.date) }));
     const latest = { ...formDataLatest };
@@ -2129,7 +2124,7 @@ const HackathonsEdit = () => {
 
   const processBase64Images = async (data: any): Promise<any> => {
     const processedData = { ...data };
-    const imageFields = ['banner', 'small_banner', 'icon'];
+    const imageFields = ['banner', 'small_banner'];
     for (const field of imageFields) {
       if (processedData[field] && processedData[field].startsWith('data:image/')) {
         const fileName = `builders-hub/hackathon-images/${processedData.title.toLowerCase().replace(/ /g, '-')}/${processedData.title}-${field}-${Date.now()}.${processedData[field].split(';')[0].split('/')[1]}`;
@@ -2502,7 +2497,6 @@ const HackathonsEdit = () => {
       end_date: fmt(addDays(start, 2, 18, 0)),
       timezone: "America/New_York",
       banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
-      icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
       small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",
       event: "hackathon",
       custom_link: null,
@@ -3405,17 +3399,6 @@ const HackathonsEdit = () => {
                               </div>
                               {formDataLatest.event === 'hackathon' && (
                                 <>
-                                  <div>
-                                    <label className="font-medium text-xl mb-2 block">{t[language].submissionOpen}:</label>
-                                    <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionOpenHelp}</div>
-                                    <Input
-                                      type="datetime-local"
-                                      placeholder="Submission Opens At"
-                                      value={formDataContent.submission_open ?? ''}
-                                      onChange={(e) => setFormDataContent({ ...formDataContent, submission_open: e.target.value })}
-                                      className="w-full mb-4"
-                                    />
-                                  </div>
                                   <div>
                                     <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
                                     <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>

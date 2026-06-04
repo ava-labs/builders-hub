@@ -30,8 +30,10 @@ export async function generateInvitation(
     throw new Error("Hackathon ID is required");
   }
 
+  // Remove duplicate emails to prevent multiple invitations to the same user
   const uniqueEmails = [...new Set(emails)];
 
+  // Use existing project if provided, otherwise create a new one
   let project;
   if (projectId) {
     project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -80,12 +82,14 @@ async function handleEmailInvitation(
     return;
   }
 
+  // Use atomic upsert to prevent race conditions and duplicate members
   const member = await createOrUpdateMemberAtomically(
     invitedUser,
     email,
     project.id
   );
 
+  // Skip if member is already confirmed (no need to send invitation again)
   if (member.status === "Confirmed") {
     return;
   }
@@ -114,12 +118,17 @@ function isSelfInvitation(invitedUser: any, userId: string): boolean {
   return invitedUser?.id === userId;
 }
 
+/**
+ * Atomic operation to create or update member using transaction to prevent race conditions
+ * Since there's no unique constraint at DB level, we use a transaction-based approach
+ */
 async function createOrUpdateMemberAtomically(
   invitedUser: any,
   email: string,
   projectId: string
 ) {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // First, try to find existing member within transaction
     const existingMember = await tx.member.findFirst({
       where: {
         email,
@@ -128,6 +137,7 @@ async function createOrUpdateMemberAtomically(
     });
 
     if (existingMember) {
+      // Update existing member
       return await tx.member.update({
         where: { id: existingMember.id },
         data: {
@@ -137,6 +147,7 @@ async function createOrUpdateMemberAtomically(
         },
       });
     } else {
+      // Create new member
       return await tx.member.create({
         data: {
           user_id: invitedUser?.id,
@@ -189,10 +200,12 @@ async function sendInvitationEmail(
 }
 
 async function createProject(hackathonId: string, userId: string) {
+  // Atomic transaction to prevent race conditions during invitations
   return await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${hackathonId}:${userId}`}, 0))`;
 
+      // Find existing project WITHIN transaction
       const existingProject = await tx.project.findFirst({
         where: {
           hackaton_id: hackathonId,
@@ -208,9 +221,11 @@ async function createProject(hackathonId: string, userId: string) {
       });
 
       if (existingProject) {
+        // Return existing project
         return existingProject;
       }
 
+      // Create project AND member atomically
       const project = await tx.project.create({
         data: {
           hackaton_id: hackathonId,
@@ -228,6 +243,7 @@ async function createProject(hackathonId: string, userId: string) {
           tracks: [],
           explanation: "",
           origin: "",
+          // Member created together with project
           members: {
             create: {
               user_id: userId,
@@ -247,8 +263,9 @@ async function createProject(hackathonId: string, userId: string) {
       return project;
     },
     {
-      maxWait: 5000,
-      timeout: 10000,
+      // Transaction configuration for better performance
+      maxWait: 5000, // Maximum 5 seconds waiting for lock
+      timeout: 10000, // Maximum 10 seconds executing transaction
     }
   );
 }

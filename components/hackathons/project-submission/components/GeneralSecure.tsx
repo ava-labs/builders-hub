@@ -60,7 +60,6 @@ export default function GeneralSecureComponent({
     hackathon,
     project,
     timeLeft,
-    openCountdown,
     submissionStatus,
     getProject,
   } = useHackathonProject(hackathonId as string, invitationLink as string);
@@ -468,18 +467,7 @@ export default function GeneralSecureComponent({
         </aside>
 
         <div className="flex-1 flex flex-col gap-4 sm:gap-6">
-          {/* Submission-window banner. Pre-open: show countdown + lock form. Post-close: show read-only banner. */}
-          {submissionStatus === "not_yet_open" && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-amber-100">
-              <h3 className="font-semibold mb-1">
-                {lang === "es" ? "Las entregas aún no están abiertas" : "Submissions are not open yet"}
-              </h3>
-              <p className="text-sm">
-                {lang === "es" ? "El formulario se desbloqueará en" : "The form unlocks in"}{" "}
-                <span className="font-mono">{openCountdown}</span>.
-              </p>
-            </div>
-          )}
+          {/* Submission-window banner. Post-close: show read-only banner. */}
           {submissionStatus === "closed" && (
             <div className="rounded-md border border-zinc-500/40 bg-zinc-500/10 p-4">
               <h3 className="font-semibold mb-1">

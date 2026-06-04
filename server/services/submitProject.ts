@@ -287,18 +287,21 @@ export async function createProject(
     timeout: 10000, // Maximum 10 seconds executing transaction
   });
 
-  // Spec: "If the teammate hasn't confirmed by the time registration closes,
-  // the team auto-converts to Solo." Triggered lazily on final submission —
-  // no cron needed. Idempotent because "Removed" rows are skipped on next pass.
+  // Spec: teammates who haven't confirmed by the time the hackathon STARTS are
+  // dropped, so the team auto-converts to however many members actually signed
+  // up by start_date — solo if none confirmed, otherwise a team of 2, 3, 4, …
+  // Triggered lazily on final submission — no cron needed. Idempotent because
+  // "Removed" rows are skipped on the next pass.
   if (!isDraft && savedProject.hackaton_id) {
     try {
       const hackathon = await prisma.hackathon.findUnique({
         where: { id: savedProject.hackaton_id },
-        select: { content: true },
+        select: { start_date: true },
       });
-      const registrationDeadline = (hackathon?.content as any)?.registration_deadline;
-      const deadlineMs = registrationDeadline ? Date.parse(registrationDeadline) : NaN;
-      if (Number.isFinite(deadlineMs) && Date.now() > deadlineMs) {
+      const startMs = hackathon?.start_date
+        ? new Date(hackathon.start_date).getTime()
+        : NaN;
+      if (Number.isFinite(startMs) && Date.now() > startMs) {
         await prisma.member.updateMany({
           where: { project_id: savedProject.id, status: "Pending Confirmation" },
           data: { status: "Removed" },

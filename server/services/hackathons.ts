@@ -65,11 +65,6 @@ export const hackathonsValidations: Validation[] = [
     validation: (hackathon: any) => isNonEmptyString(hackathon?.timezone),
   },
   {
-    field: "icon",
-    message: "Please upload an icon for the hackathon.",
-    validation: (hackathon: any) => isNonEmptyString(hackathon?.icon),
-  },
-  {
     field: "banner",
     message: "Please upload a banner image for the hackathon.",
     validation: (hackathon: any) => isNonEmptyString(hackathon?.banner),
@@ -428,7 +423,6 @@ export async function createHackathon(
       tags: hackathonData.tags!,
       timezone: hackathonData.timezone!,
       cohosts: hackathonData.cohosts ?? [],
-      icon: hackathonData.icon!,
       banner: hackathonData.banner!,
       small_banner: hackathonData.small_banner!,
       top_most: hackathonData.top_most ?? false,
@@ -526,7 +520,6 @@ export async function updateHackathon(
   if (hackathonData.tags !== undefined) updateData.tags = hackathonData.tags;
   if (hackathonData.timezone !== undefined)
     updateData.timezone = hackathonData.timezone;
-  if (hackathonData.icon !== undefined) updateData.icon = hackathonData.icon;
   if (hackathonData.banner !== undefined)
     updateData.banner = hackathonData.banner;
   if (hackathonData.small_banner !== undefined)

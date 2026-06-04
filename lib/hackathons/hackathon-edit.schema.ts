@@ -156,7 +156,6 @@ export const hackathonEditSchema = z.object({
       (val) => val === '' || !isNaN(new Date(val).getTime()),
       { message: 'Please enter a valid date and time' }
     ),
-    submission_open: z.string().optional(),
     team_size_min: z.number().int().optional(),
     team_size_max: z.number().int().optional(),
     tech_stack_options: z.array(z.object({ name: z.string() })).optional(),
@@ -174,7 +173,6 @@ export const hackathonEditSchema = z.object({
     end_date: z.string().trim().min(1, 'Please set an end date for the event.').max(64),
     timezone: z.string().trim().min(1, 'Please select a timezone.').max(100),
     banner: imageUrlSchema,
-    icon: z.string(),
     small_banner: imageUrlSchema,
     custom_link: nullableUrlOrEmptySchema,
     top_most: z.boolean(),

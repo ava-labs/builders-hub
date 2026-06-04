@@ -6,7 +6,7 @@ import { useCountdown } from './Count-down';
 
 
 
-export type SubmissionWindowStatus = "not_yet_open" | "open" | "closed";
+export type SubmissionWindowStatus = "open" | "closed";
 
 export const useHackathonProject = (hackathonId: string,invitationid:string) => {
   const { data: session } = useSession();
@@ -16,14 +16,11 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000
   );
-  const [submissionOpenAt, setSubmissionOpenAt] = useState<number>(0);
   const [loadData, setLoadData] = useState<boolean>(true);
   const timeLeft = useCountdown(deadline);
-  const openCountdown = useCountdown(submissionOpenAt);
 
   const submissionStatus: SubmissionWindowStatus = (() => {
     const now = Date.now();
-    if (submissionOpenAt && now < submissionOpenAt) return "not_yet_open";
     if (deadline && now > deadline) return "closed";
     return "open";
   })();
@@ -35,12 +32,6 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
       setHackathon(response.data);
       if (response.data?.content?.submission_deadline) {
         setDeadline(new Date(response.data.content.submission_deadline).getTime());
-      }
-      if (response.data?.content?.submission_open) {
-        const openMs = new Date(response.data.content.submission_open).getTime();
-        if (Number.isFinite(openMs)) {
-          setSubmissionOpenAt(openMs);
-        }
       }
     } catch (err) {
       console.error("API Error:", err);
@@ -78,9 +69,7 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
     hackathon,
     project,
     timeLeft,
-    openCountdown,
     submissionStatus,
-    submissionOpenAt,
     loadData,
     setLoadData,
     getProject,
