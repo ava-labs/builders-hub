@@ -126,6 +126,7 @@ export function mapFormToHackathonHeader(params: {
     status: computeStatus(start_date, end_date),
     small_banner: latest.small_banner ?? '',
     banner: latest.banner ?? '',
+    icon: latest.icon ?? '',
     timezone: latest.timezone?.trim() ? latest.timezone : 'UTC',
     content: {
       language: content.language,

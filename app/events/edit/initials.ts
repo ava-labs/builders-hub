@@ -89,6 +89,7 @@ export interface IDataLatest {
   end_date: string;
   timezone: string;
   banner: string;
+  icon: string;
   small_banner: string;
   custom_link: string | null;
   top_most: boolean;
@@ -143,6 +144,7 @@ export const initialData: {
     end_date: "",
     timezone: "",
     banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
+    icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
     small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",
     custom_link: null,
     top_most: false,

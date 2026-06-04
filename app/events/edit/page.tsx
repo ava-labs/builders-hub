@@ -1460,6 +1460,7 @@ const HackathonsEdit = () => {
       end_date: toLocalDatetimeString(hackathon.end_date ?? ''),
       timezone: hackathon.timezone ?? '',
       banner: hackathon.banner ?? '',
+      icon: hackathon.icon ?? '',
       small_banner: hackathon.small_banner ?? '',
       custom_link: hackathon.custom_link ?? null,
       top_most: hackathon.top_most ?? false,
@@ -1883,10 +1884,11 @@ const HackathonsEdit = () => {
     latest.start_date = toIso8601(latest.start_date);
     latest.end_date = toIso8601(latest.end_date);
     latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
+    const { icon, ...latestWithoutIcon } = latest;
     return {
       ...formDataMain,
       content,
-      ...latest,
+      ...latestWithoutIcon,
       cohosts: cohostsEmails,
       custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
@@ -2497,6 +2499,7 @@ const HackathonsEdit = () => {
       end_date: fmt(addDays(start, 2, 18, 0)),
       timezone: "America/New_York",
       banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
+      icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
       small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",
       event: "hackathon",
       custom_link: null,

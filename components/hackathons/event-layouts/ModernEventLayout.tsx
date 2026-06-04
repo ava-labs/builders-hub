@@ -136,6 +136,16 @@ export default function ModernEventLayout({
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex flex-wrap gap-4 items-center">
+        <Image
+          src={
+            isValidSrc(hackathon.icon)
+              ? hackathon.icon
+              : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
+          }
+          alt="Event background"
+          width={40}
+          height={40}
+        />
         <span className="text-sm sm:text-xl font-bold">{hackathon.title}</span>{" "}
         {isHackathon && (
           <EventReferralButton

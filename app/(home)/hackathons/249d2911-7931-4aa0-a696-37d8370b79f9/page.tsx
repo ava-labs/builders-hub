@@ -102,6 +102,17 @@ export default async function HackathonPage() {
             <div className="p-6 md:p-8 border-b border-[#66acd6]/20">
               <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
                 <div className="flex gap-4 items-center flex-1">
+                  <Image
+                    src={
+                      hackathon.icon?.trim().length > 0
+                        ? hackathon.icon
+                        : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
+                    }
+                    alt="Hackathon icon"
+                    width={60}
+                    height={60}
+                    className="shrink-0"
+                  />
                   <h1 className="font-['Aeonik:Medium',sans-serif] text-2xl md:text-4xl font-medium text-white">
                     {hackathon.title}
                   </h1>

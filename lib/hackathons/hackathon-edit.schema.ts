@@ -173,6 +173,7 @@ export const hackathonEditSchema = z.object({
     end_date: z.string().trim().min(1, 'Please set an end date for the event.').max(64),
     timezone: z.string().trim().min(1, 'Please select a timezone.').max(100),
     banner: imageUrlSchema,
+    icon: z.string(),
     small_banner: imageUrlSchema,
     custom_link: nullableUrlOrEmptySchema,
     top_most: z.boolean(),
