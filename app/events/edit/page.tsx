@@ -21,7 +21,6 @@ import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
 import PartnerItem from '@/components/hackathons/edit/PartnerItem';
-import { EmailListInput } from '@/components/common/EmailListInput';
 import { UserSearchPicker } from '@/components/common/UserSearchPicker';
 import { TimezoneCombobox } from '@/components/events/TimezoneCombobox';
 import { useToast } from '@/hooks/use-toast';
@@ -3107,28 +3106,39 @@ const HackathonsEdit = () => {
                   <p className="text-sm text-blue-700/90 dark:text-blue-200 mb-4">
                     {t[language].cohostsDescription}
                   </p>
-                  <div className="mb-3">
-                    <UserSearchPicker
-                      scope="admin"
-                      placeholder={t[language].cohostsPlaceholder}
-                      onSelect={(user) => {
-                        const email = user.email?.trim();
-                        if (!email) return;
-                        setCohostsEmails((prev) =>
-                          prev.includes(email) ? prev : [...prev, email]
-                        );
-                      }}
-                    />
-                  </div>
-                  <EmailListInput
-                    value={cohostsEmails}
-                    onChange={(emails) => {
-                      setCohostsEmails(emails);
-                    }}
+                  <UserSearchPicker
+                    scope="admin"
                     placeholder={t[language].cohostsPlaceholder}
-                    label={t[language].cohostsLabel}
-                    description={t[language].cohostsHelp}
+                    onSelect={(user) => {
+                      const email = user.email?.trim();
+                      if (!email) return;
+                      setCohostsEmails((prev) =>
+                        prev.includes(email) ? prev : [...prev, email]
+                      );
+                    }}
                   />
+                  {cohostsEmails.length > 0 && (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {cohostsEmails.map((email) => (
+                        <li
+                          key={email}
+                          className="flex items-center gap-1.5 rounded-full border border-blue-300 dark:border-blue-600 bg-blue-100 dark:bg-blue-800/40 px-3 py-1 text-sm text-blue-800 dark:text-blue-200"
+                        >
+                          <span className="truncate max-w-[220px]">{email}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCohostsEmails((prev) => prev.filter((e) => e !== email))
+                            }
+                            aria-label={`Remove ${email}`}
+                            className="text-blue-500 hover:text-red-500 dark:text-blue-300 dark:hover:text-red-400"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   {getInlineError('cohostsEmails') && (
                     <p className="text-red-500 text-sm mt-2">{getInlineError('cohostsEmails')}</p>
                   )}
