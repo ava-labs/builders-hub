@@ -17,6 +17,7 @@ export const PROTECTED_PATHS = [
   "/hackathons/project-submission",
   "/events/registration-form",
   "/events/project-submission",
+  "/events/edit",
   "/showcase",
   "/send-notifications",
   "/profile",
