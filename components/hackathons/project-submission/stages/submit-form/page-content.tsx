@@ -863,6 +863,7 @@ export default function StageSubmitPageContent({
                       onChange={handleChange}
                       placeholder={multiSelectField.placeholder || 'Select options'}
                       searchPlaceholder="Search options"
+                      allowCreate={multiSelectField.id === 'tech_stack'}
                     />
                   </FormControl>
                   <FormMessage />
