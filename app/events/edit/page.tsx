@@ -16,6 +16,7 @@ import HackathonsList from '@/components/hackathons/edit/HackathonsList';
 import { t } from './translations';
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import useHackathonsFilters from '@/hooks/useHackathonsFilters';
 import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
@@ -2727,8 +2728,14 @@ const HackathonsEdit = () => {
       <div className="relative z-10 shrink-0 backdrop-blur-lg bg-fd-background/80 dark:bg-zinc-950/80 border-b border-zinc-200 dark:border-zinc-700 h-14 flex items-center justify-center">
         <div className="w-full px-4 md:px-8 flex justify-between items-center">
           <div className="flex items-center gap-1.5">
-            <AvalancheLogo className="size-7" fill="currentColor"/>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t[language].editEvents}</h1>
+            <Link
+              href="/events"
+              aria-label="Back to Events"
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+            >
+              <AvalancheLogo className="size-7" fill="currentColor"/>
+              <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t[language].editEvents}</h1>
+            </Link>
             <div className="flex items-center gap-2 px-3 py-1 bg-green-600 rounded-full text-sm">
               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
               <span className="text-white">Live Preview</span>
