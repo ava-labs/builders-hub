@@ -36,6 +36,8 @@ export interface JobCard {
   location: string | null;
   remoteType: string | null;
   seniority: string | null;
+  // Human-readable pay (gated behind X + LinkedIn in the UI). null when unknown.
+  salary: string | null;
   tags: string[];
   postedAt: Date | string | null;
   applyUrl: string;
@@ -45,6 +47,9 @@ export interface JobCard {
 
 export type SerializableJobCard = Omit<JobCard, 'postedAt'> & {
   postedAt: string | null;
+  // Whether the listing has a salary at all. Lets a gated viewer's card show a
+  // locked teaser without shipping the figure itself to the browser.
+  hasSalary: boolean;
 };
 
 export interface JobDetail extends JobCard {
@@ -55,7 +60,22 @@ export function toSerializableJob(job: JobCard): SerializableJobCard {
   return {
     ...job,
     postedAt: job.postedAt instanceof Date ? job.postedAt.toISOString() : job.postedAt,
+    hasSalary: !!job.salary,
   };
+}
+
+// Fields gated behind connected X + LinkedIn — salary, plus the apply/source
+// URLs that let a candidate actually apply. UI-only hiding still ships these in
+// the listing payload (readable via devtools), so strip them server-side for
+// viewers who haven't unlocked. `hasSalary` is kept so the card can still show
+// a locked teaser, and the card links to the internal detail page (which runs
+// its own gate), so it never needs the apply URL itself.
+export function redactGatedFieldsForViewer(
+  job: SerializableJobCard,
+  canViewGated: boolean,
+): SerializableJobCard {
+  if (canViewGated) return job;
+  return { ...job, salary: null, applyUrl: '', sourceUrl: null };
 }
 
 type JobRow = Awaited<ReturnType<typeof prisma.jobListing.findFirst>> & {
@@ -99,6 +119,7 @@ function toJobCard(row: NonNullable<JobRow>): JobCard {
     location: row.location,
     remoteType: row.remote_type,
     seniority: row.seniority,
+    salary: row.salary,
     tags: row.tags,
     postedAt: row.posted_at,
     applyUrl: row.apply_url,

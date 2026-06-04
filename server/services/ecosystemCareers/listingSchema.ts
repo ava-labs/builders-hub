@@ -13,6 +13,7 @@ export const listingBodySchema = z.object({
   remote_type: z.enum(REMOTE_TYPES).optional().nullable(),
   employment_type: z.enum(EMPLOYMENT_TYPES).optional().nullable(),
   seniority: z.string().max(40).optional().nullable(),
+  salary: z.string().max(80).optional().nullable(),
   tags: z.array(z.string().min(1).max(40)).max(6).optional(),
   apply_url: z
     .string()
