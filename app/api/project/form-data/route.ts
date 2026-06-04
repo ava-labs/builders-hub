@@ -31,6 +31,11 @@ const ETHEREUM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 type SanitizeResult = { ok: true } | { ok: false; error: string };
 
+/**
+ * Server-side sanitization of stage form values.
+ * Mirrors the client-side checks in utils/input-validator but runs on every
+ * request regardless of how the payload was crafted.
+ */
 function sanitizeStageValues(values: StageSubmitValues): SanitizeResult {
   for (const [key, value] of Object.entries(values)) {
     if (value === null) continue;
@@ -109,6 +114,12 @@ export const POST = withAuth(async (request: Request, _context, session) => {
 
     const sessionUserId: string = session.user.id;
 
+    /**
+     * SECURITY: Resolve the project outside the transaction so we can return
+     * an early 404 without leaking a `NextResponse` through the transaction
+     * return value.  Automatic project creation has been removed to prevent
+     * unbounded resource creation (DoS).
+     */
     let resolvedProject: { id: string; project_name: string } | null = null;
 
     if (incomingProjectId) {
@@ -121,6 +132,10 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         select: { id: true, project_name: true },
       });
 
+      // SECURITY: If the caller specified a projectId and it was not found (or
+      // does not belong to them), return 404 immediately. Do NOT fall back to
+      // another project — that silent substitution risks overwriting a different
+      // project's FormData with the current user's submission.
       if (!resolvedProject) {
         return NextResponse.json(
           { error: 'Project not found or access denied' },
@@ -139,6 +154,13 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     }
 
     if (!resolvedProject) {
+      /**
+       * SECURITY: Do NOT create a project automatically.  Previously this
+       * path created an unbounded number of "Draft Project" rows for any
+       * authenticated user, enabling a DoS / resource-exhaustion attack.
+       * Callers must create a project via the dedicated project-creation
+       * endpoint before submitting stage data.
+       */
       return NextResponse.json(
         { error: 'No project found for this hackathon. Please create a project first.' },
         { status: 404 }
@@ -146,6 +168,10 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      // SECURITY: Acquire a row-level lock on the parent Project before reading
+      // FormData. Any concurrent transaction for the same projectId will block
+      // here until this transaction commits, preventing the findFirst→create race
+      // condition that could produce duplicate FormData rows.
       await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${resolvedProject.id} FOR UPDATE`;
 
       const existingFormData = await tx.formData.findFirst({
