@@ -117,11 +117,12 @@ function pruneContentPlaceholders(content: any): any {
 }
 
 /**
- * Ensures every stage that collects a submission carries the mandatory
- * project `consent_sharing` field. The non-staged submission flow already
- * requires consent; staged submissions must inherit it. Injected server-side
- * (and forced `required`) so admins cannot drop it — re-applied on every
- * save, then validated by the stage Zod schema like any other field.
+ * Ensures every stage that collects a submission offers the project
+ * `consent_sharing` field so participants can opt in to having their project
+ * showcased publicly. Injected server-side if missing, but kept **optional**
+ * (forced `required: false`) — sharing consent must be opt-in, so participants
+ * can always leave it unchecked. Re-applied on every save, then validated by
+ * the stage Zod schema like any other field.
  */
 function ensureConsentField(stages: any): any {
   if (!Array.isArray(stages)) return stages;
@@ -129,9 +130,9 @@ function ensureConsentField(stages: any): any {
     id: 'consent_sharing',
     type: 'boolean',
     label: 'I consent to my project being shared publicly',
-    description: 'Required. Authorizes the organizers to showcase this project.',
+    description: 'Optional. Authorizes the organizers to showcase this project publicly.',
     predefinedField: true,
-    required: true,
+    required: false,
   };
   return stages.map((stage: any) => {
     if (!stage?.submitForm) return stage;
@@ -139,7 +140,7 @@ function ensureConsentField(stages: any): any {
     const hasConsent = fields.some((f: any) => f?.id === 'consent_sharing');
     const nextFields = hasConsent
       ? fields.map((f: any) =>
-          f?.id === 'consent_sharing' ? { ...f, required: true } : f
+          f?.id === 'consent_sharing' ? { ...f, required: false } : f
         )
       : [...fields, consentField];
     return { ...stage, submitForm: { ...stage.submitForm, fields: nextFields } };

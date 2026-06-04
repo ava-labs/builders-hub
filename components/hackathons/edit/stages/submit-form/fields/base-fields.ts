@@ -110,9 +110,9 @@ export const BASE_SUBMIT_FORM_FIELDS = {
       id: 'consent_sharing',
       type: SubmitFormFieldType.Boolean,
       label: 'I consent to my project being shared publicly',
-      description: 'Required. Authorizes the organizers to showcase this project.',
+      description: 'Optional. Authorizes the organizers to showcase this project publicly.',
       predefinedField: true,
-      required: true,
+      required: false,
     },
   },
   is_preexisting_idea: {
