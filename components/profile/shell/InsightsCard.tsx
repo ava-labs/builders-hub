@@ -569,91 +569,89 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
         </span>
       </header>
 
-      <Segmented<CompletionKey>
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: "platform", label: "By platform" },
-          { value: "depth", label: "By depth" },
-        ]}
-      />
-
-      {tab === "platform" ? (
-        <div className="pr-completion-bars">
-          {data.socialCompletion.map((s) => {
-            const accent = PLATFORM_ACCENT[s.platform];
-            return (
-              <div key={s.platform} className="pr-completion-bar">
-                <span className="pr-completion-bar__label">
-                  <span
-                    className="pr-completion-bar__icon"
-                    style={{ color: accent }}
-                  >
-                    <PlatformIcon platform={s.platform} />
-                  </span>
-                  {s.label}
-                </span>
-                <span className="pr-completion-bar__track">
-                  <span
-                    className="pr-completion-bar__fill"
-                    style={{ width: `${Math.min(s.pct, 100)}%`, background: accent }}
-                  />
-                </span>
-                <span className="pr-completion-bar__value">
-                  <strong>{s.pct.toFixed(1)}%</strong>
-                  <span className="pr-completion-bar__count">
-                    {formatNumber(s.count)}
-                  </span>
-                </span>
-              </div>
-            );
-          })}
-        </div>
+      {data.totalAccounts === 0 ? (
+        <p className="pr-leaderboard__empty">No accounts yet.</p>
       ) : (
-        <div className="pr-leaderboard">
-          <table>
-            <thead>
-              <tr>
-                <th>Links</th>
-                <th className="pr-num">Users</th>
-                <th className="pr-num">Share</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.socialCompletionDepth.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="pr-leaderboard__empty">
-                    No accounts yet.
-                  </td>
-                </tr>
-              ) : (
-                [...data.socialCompletionDepth]
-                  .sort((a, b) => b.linkCount - a.linkCount)
-                  .map((d) => (
-                    <tr key={d.linkCount}>
-                      <td>
-                        <span className="pr-leaderboard__name">
-                          {DEPTH_LABELS[d.linkCount] ?? `${d.linkCount} links`}
-                        </span>
-                      </td>
-                      <td className="pr-num">{formatNumber(d.users)}</td>
-                      <td className="pr-num">
-                        <span className="pr-depth-cell">
-                          <span className="pr-depth-bar">
-                            <span
-                              className="pr-depth-bar__fill"
-                              style={{ width: `${Math.min(d.pct, 100)}%` }}
-                            />
+        <>
+          <Segmented<CompletionKey>
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "platform", label: "By platform" },
+              { value: "depth", label: "By depth" },
+            ]}
+          />
+
+          {tab === "platform" ? (
+            <div className="pr-completion-bars">
+              {data.socialCompletion.map((s) => {
+                const accent = PLATFORM_ACCENT[s.platform];
+                return (
+                  <div key={s.platform} className="pr-completion-bar">
+                    <span className="pr-completion-bar__label">
+                      <span
+                        className="pr-completion-bar__icon"
+                        style={{ color: accent }}
+                      >
+                        <PlatformIcon platform={s.platform} />
+                      </span>
+                      {s.label}
+                    </span>
+                    <span className="pr-completion-bar__track">
+                      <span
+                        className="pr-completion-bar__fill"
+                        style={{ width: `${Math.min(s.pct, 100)}%`, background: accent }}
+                      />
+                    </span>
+                    <span className="pr-completion-bar__value">
+                      <strong>{s.pct.toFixed(1)}%</strong>
+                      <span className="pr-completion-bar__count">
+                        {formatNumber(s.count)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="pr-leaderboard">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Links</th>
+                    <th className="pr-num">Users</th>
+                    <th className="pr-num">Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...data.socialCompletionDepth]
+                    .sort((a, b) => b.linkCount - a.linkCount)
+                    .map((d) => (
+                      <tr key={d.linkCount}>
+                        <td>
+                          <span className="pr-leaderboard__name">
+                            {DEPTH_LABELS[d.linkCount] ?? `${d.linkCount} links`}
                           </span>
-                          {d.pct.toFixed(1)}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        <td className="pr-num">{formatNumber(d.users)}</td>
+                        <td className="pr-num">
+                          <span className="pr-depth-cell">
+                            <span className="pr-depth-bar">
+                              <span
+                                className="pr-depth-bar__fill"
+                                style={{ width: `${Math.min(d.pct, 100)}%` }}
+                              />
+                            </span>
+                            {d.pct.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
