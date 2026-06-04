@@ -7,7 +7,6 @@ import { CheckCircle, Circle, GalleryVerticalEnd, Loader2 } from 'lucide-react';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useForm } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
-import AdminSidebar from './AdminSidebar';
 import General, { hackathonAdminFormSchema } from './sections/General';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -419,7 +418,6 @@ export default function HackathonForm({
       </div>
       <div className='relative'>
         <SidebarProvider>
-          <AdminSidebar />
           <SidebarInset className='p-2 pl-4 max-w-full sm:pl-6 flex flex-col md:max-h-[70vh] md:overflow-y-auto'>
             <Form {...form}>
               <form

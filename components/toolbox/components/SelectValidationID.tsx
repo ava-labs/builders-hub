@@ -148,15 +148,34 @@ export default function SelectValidationID({
       if (contracts.length === 0) return;
 
       try {
-        const results = await chainPublicClient.multicall({
-          contracts: contracts.map((c) => ({
-            address: c.address,
-            abi: c.abi as Abi,
-            functionName: c.functionName,
-            args: c.args,
-          })),
-          allowFailure: true,
-        });
+        const mapped = contracts.map((c) => ({
+          address: c.address,
+          abi: c.abi as Abi,
+          functionName: c.functionName,
+          args: c.args,
+        }));
+
+        let results;
+        try {
+          results = await chainPublicClient.multicall({
+            contracts: mapped,
+            allowFailure: true,
+            deployless: true,
+          });
+        } catch {
+          // Deployless multicall is rejected by the Contract Deployer Allowlist
+          // precompile on permissioned L1s — fall back to sequential reads.
+          results = await Promise.all(
+            mapped.map(async (c) => {
+              try {
+                const result = await chainPublicClient.readContract(c);
+                return { status: 'success' as const, result };
+              } catch (error) {
+                return { status: 'failure' as const, error: error as Error };
+              }
+            }),
+          );
+        }
 
         const statusMap: Record<string, number> = {};
         validatorsWithId.forEach((v, i) => {

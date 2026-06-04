@@ -186,9 +186,10 @@ export function UserButton() {
     );
   }
 
-  // Authenticated — hover opens a small account menu (Profile + Sign Out).
-  // The pill itself no longer navigates on click; the dropdown is the only
-  // path so the user has an explicit choice every time.
+  // Authenticated — hover opens a small account menu (Profile, extras,
+  // Sign out), while clicking the avatar navigates straight to /profile.
+  // Without the explicit onClick the Radix trigger would just toggle the
+  // hover-opened menu shut, so a click on the pill did nothing.
   return (
     <>
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
@@ -200,8 +201,9 @@ export function UserButton() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label="Account menu"
+              aria-label="Profile"
               className={WRAPPER_CLASS}
+              onClick={() => router.push('/profile')}
             >
               {renderAvatar()}
             </button>
