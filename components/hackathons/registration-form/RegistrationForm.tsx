@@ -146,7 +146,6 @@ export function RegisterForm({
   const requireSharingConsent =
     isTeam1 && consentsLoaded && userConsentState.consent_sharing !== true;
   const lang = normalizeEventsLang(hackathon?.content?.language);
-  const totalSteps = 2;
   
   const getDefaultValues = () => ({
     
@@ -452,10 +451,11 @@ export function RegisterForm({
     setDataFromLocalStorage();
   }, [hackathon_id]);
 
+  /** Registration only has steps 1–2; clamp if state ever jumps (e.g. double-click before fix). */
   useEffect(() => {
-    if (step > totalSteps) setStep(totalSteps);
+    if (step > 2) setStep(2);
     if (step < 1) setStep(1);
-  }, [step, totalSteps]);
+  }, [step]);
 
   useEffect(() => {
     if (hackathon) {
@@ -628,7 +628,7 @@ export function RegisterForm({
   };
 
   const handleStepChange = async (newStep: number) => {
-    if (newStep >= 1 && newStep <= totalSteps) {
+    if (newStep >= 1 && newStep <= 2) {
       if (step === 1 && newStep !== 1) {
         await saveStep1ToProfile();
       }
@@ -637,7 +637,7 @@ export function RegisterForm({
   };
 
   const onNextStep = async () => {
-    if (step >= totalSteps || isAdvancingStepRef.current) return;
+    if (step >= 2 || isAdvancingStepRef.current) return;
 
     let fieldsToValidate: (keyof RegisterFormValues)[] = [];
     if (step === 1) {
@@ -816,7 +816,7 @@ export function RegisterForm({
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
-              {step === totalSteps && (
+              {step === 2 && (
                 <LoadingButton
                   isLoading={form.formState.isSubmitting}
                   loadingText={t(lang, "reg.form.saving")}
@@ -828,7 +828,7 @@ export function RegisterForm({
                 </LoadingButton>
               )}
 
-              {step !== totalSteps && (
+              {step !== 2 && (
                 <Button
                   variant="red"
                   type="button"
@@ -839,7 +839,7 @@ export function RegisterForm({
                 </Button>
               )}
 
-              {step !== totalSteps && (
+              {step !== 2 && (
                 <LoadingButton
                   isLoading={isSavingLater}
                   loadingText={t(lang, "reg.form.saving")}
@@ -860,41 +860,39 @@ export function RegisterForm({
             </div>
 
             <div className="order-1 md:order-2 mb-4 md:mb-0 flex flex-col md:flex-row items-center justify-center">
-              {totalSteps > 1 && (
-                <div className="flex items-center space-x-1">
-                  {step > 1 && (
-                    <PaginationPrevious
-                      className="dark:hover:text-gray-200 cursor-pointer"
-                      label={t(lang, "reg.form.previous")}
-                      onClick={() => setStep(step - 1)}
-                    />
-                  )}
-                  <Pagination>
-                    <PaginationContent>
-                      {Array.from({ length: totalSteps }, (_, i) => i + 1).map((page) => (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            isActive={step === page}
-                            className="cursor-pointer"
-                            onClick={() => handleStepChange(page)}
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-                    </PaginationContent>
-                  </Pagination>
-                  {step < totalSteps && (
-                    <PaginationNext
-                      className="dark:hover:text-gray-200 cursor-pointer"
-                      label={t(lang, "reg.form.next")}
-                      onClick={onNextStep}
-                    />
-                  )}
-                </div>
-              )}
+              <div className="flex items-center space-x-1">
+                {step > 1 && (
+                  <PaginationPrevious
+                    className="dark:hover:text-gray-200 cursor-pointer"
+                    label={t(lang, "reg.form.previous")}
+                    onClick={() => setStep(step - 1)}
+                  />
+                )}
+                <Pagination>
+                  <PaginationContent>
+                    {Array.from({ length: 2 }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          isActive={step === page}
+                          className="cursor-pointer"
+                          onClick={() => handleStepChange(page)}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  </PaginationContent>
+                </Pagination>
+                {step < 2 && (
+                  <PaginationNext
+                    className="dark:hover:text-gray-200 cursor-pointer"
+                    label={t(lang, "reg.form.next")}
+                    onClick={onNextStep}
+                  />
+                )}
+              </div>
               <span className="font-Aeonik text-xs sm:text-sm mt-2 md:mt-0 md:ml-2">
-                Step {step} of {totalSteps}
+                Step {step} of 2
               </span>
             </div>
           </div>
