@@ -56,6 +56,7 @@ export default async function EditListingPage({ params }: Params) {
             employment_type:
               (listing.employmentType as 'full_time' | 'contract' | 'part_time' | null) ?? '',
             seniority: extractYears(listing.seniority),
+            salary: listing.salary ?? '',
             tags: listing.tags.join(', '),
             apply_url: listing.applyUrl,
           }}
