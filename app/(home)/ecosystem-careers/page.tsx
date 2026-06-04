@@ -4,7 +4,7 @@ import { prisma } from '@/prisma/prisma';
 import {
   listActiveJobs,
   listCompaniesWithActiveJobs,
-  redactSalaryForViewer,
+  redactGatedFieldsForViewer,
   toSerializableJob,
 } from '@/server/services/ecosystemCareers/queries';
 import {
@@ -63,7 +63,7 @@ export default async function EcosystemCareersPage() {
   return (
     <EcosystemCareersClient
       initialJobs={list.jobs.map((job) =>
-        redactSalaryForViewer(toSerializableJob(job), access.canViewAll),
+        redactGatedFieldsForViewer(toSerializableJob(job), access.canViewAll),
       )}
       totalActive={list.total}
       companies={companies}
