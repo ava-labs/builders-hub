@@ -17,6 +17,7 @@ export interface ListingInput {
   remote_type?: 'remote' | 'onsite' | 'hybrid' | null;
   employment_type?: 'full_time' | 'contract' | 'part_time' | null;
   seniority?: string | null;
+  salary?: string | null;
   tags?: string[];
   apply_url: string;
 }
@@ -84,6 +85,7 @@ export async function createListing(
       remote_type: input.remote_type ?? null,
       employment_type: input.employment_type ?? null,
       seniority: trimOrNull(input.seniority),
+      salary: trimOrNull(input.salary),
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 6),
       apply_url: cleanApplyUrl(input.apply_url.trim()),
       source_url: null,
@@ -155,6 +157,7 @@ export async function updateListing(
       remote_type: input.remote_type ?? null,
       employment_type: input.employment_type ?? null,
       seniority: trimOrNull(input.seniority),
+      salary: trimOrNull(input.salary),
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 6),
       apply_url: cleanApplyUrl(input.apply_url.trim()),
       last_seen_at: new Date(),

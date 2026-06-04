@@ -39,12 +39,12 @@ export function UnlockPrompt({
   hiddenCount,
 }: Props) {
   const callout = !authenticated
-    ? 'Sign in and connect your X + LinkedIn to unlock every role.'
+    ? 'Sign in and connect your X + LinkedIn to reveal salaries, apply, and unlock every role.'
     : missingSocials.length === 2
-      ? 'Connect your X and LinkedIn profiles to see every role.'
+      ? 'Connect your X and LinkedIn profiles to reveal salaries and apply to any role.'
       : missingSocials[0] === 'x'
-        ? 'Connect your X profile to see every role.'
-        : 'Connect your LinkedIn profile to see every role.';
+        ? 'Connect your X profile to reveal salaries and apply to any role.'
+        : 'Connect your LinkedIn profile to reveal salaries and apply to any role.';
 
   const ctaHref = !authenticated
     ? `/login?callbackUrl=${encodeURIComponent(returnTo)}`
@@ -65,8 +65,8 @@ export function UnlockPrompt({
         <div className="space-y-1.5">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
             {hiddenCount && hiddenCount > 0
-              ? `${hiddenCount} more ${hiddenCount === 1 ? 'role' : 'roles'} waiting`
-              : 'Unlock the full ecosystem board'}
+              ? `${hiddenCount} more ${hiddenCount === 1 ? 'role' : 'roles'} + salaries waiting`
+              : 'Reveal salaries & apply'}
           </h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">{callout}</p>
         </div>

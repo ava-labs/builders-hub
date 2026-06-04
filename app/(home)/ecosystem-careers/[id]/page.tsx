@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import parse from 'html-react-parser';
-import { ArrowLeft, ArrowUpRight, MapPin } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Banknote, Lock, MapPin } from 'lucide-react';
 import { createMetadata } from '@/utils/metadata';
 import { prisma } from '@/prisma/prisma';
 import {
@@ -129,6 +129,18 @@ export default async function EcosystemCareerDetailPage({ params }: Params) {
                   {prettySeniority(job.seniority)}
                 </span>
               )}
+              {job.salary &&
+                (access.canViewAll ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-500/20">
+                    <Banknote className="w-3.5 h-3.5" />
+                    {job.salary}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800/80">
+                    <Lock className="w-3.5 h-3.5" />
+                    Salary
+                  </span>
+                ))}
               {job.postedAt && (
                 <span className="px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800/80">
                   Posted {formatPostedAt(job.postedAt)}

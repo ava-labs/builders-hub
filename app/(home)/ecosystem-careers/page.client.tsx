@@ -249,7 +249,7 @@ export default function EcosystemCareersClient({
           ) : viewerCanViewAll ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((job) => (
-                <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} />
+                <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} showSalary />
               ))}
             </div>
           ) : (
@@ -268,6 +268,11 @@ export default function EcosystemCareersClient({
   );
 }
 
+// Open board for visitors without both socials connected: the top
+// `previewCount` roles render in full (salary stays locked on each card), and a
+// single CTA panel below invites them to connect X + LinkedIn to reveal
+// salaries, apply, and see any remaining roles. No blur wall — the cards are
+// real and clickable; the detail page enforces the gate on click-through.
 function GatedGrid({
   jobs,
   previewCount,
@@ -282,33 +287,20 @@ function GatedGrid({
   viewerIsDevRel: boolean;
 }) {
   const visible = jobs.slice(0, previewCount);
-  const blurred = jobs.slice(previewCount);
+  const hiddenCount = Math.max(jobs.length - visible.length, 0);
   return (
-    <div className="space-y-6">
-      {visible.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visible.map((job) => (
-            <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} />
-          ))}
-        </div>
-      )}
-      {blurred.length > 0 && (
-        <div className="relative">
-          <div
-            aria-hidden
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pointer-events-none select-none filter blur-md saturate-75 opacity-80"
-          >
-            {blurred.map((job) => (
-              <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} />
-            ))}
-          </div>
-          <UnlockPrompt
-            authenticated={authenticated}
-            missingSocials={missingSocials}
-            hiddenCount={blurred.length}
-          />
-        </div>
-      )}
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {visible.map((job) => (
+          <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} showSalary={false} />
+        ))}
+      </div>
+      <UnlockPrompt
+        authenticated={authenticated}
+        missingSocials={missingSocials}
+        hiddenCount={hiddenCount}
+        variant="panel"
+      />
     </div>
   );
 }

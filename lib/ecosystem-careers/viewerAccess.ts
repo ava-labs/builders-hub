@@ -1,7 +1,10 @@
 import { prisma } from '@/prisma/prisma';
 import { getAuthSession } from '@/lib/auth/authSession';
 
-export const PUBLIC_JOB_PREVIEW_COUNT = 3;
+// Public visitors (and signed-in users missing X/LinkedIn) see this many job
+// cards in full before the "sign in to see all" CTA. Salary stays gated on
+// every card until both socials are connected.
+export const PUBLIC_JOB_PREVIEW_COUNT = 15;
 
 export interface ViewerAccess {
   authenticated: boolean;
