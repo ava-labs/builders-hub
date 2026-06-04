@@ -70,6 +70,7 @@ import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 import { ShareButton } from '@/components/chat/share-button';
 import { ShareModal } from '@/components/chat/share-modal';
+import { Components } from 'hast-util-to-jsx-runtime';
 
 const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
   ssr: false,
@@ -246,7 +247,7 @@ function Markdown({ text }: { text: string }) {
       if (!result && text) {
         processor ??= createProcessor();
         result = await processor
-          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: ChatImage })
+          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: ChatImage } as Partial<Components>)
           .catch(() => text);
         markdownCache.set(text, result);
       }

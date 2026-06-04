@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import InlineChatComponent from '@/components/chat/inline-component';
+import { Components } from 'hast-util-to-jsx-runtime';
 
 // X (Twitter) icon
 function XIcon({ className }: { className?: string }) {
@@ -126,7 +127,7 @@ function Markdown({ text }: { text: string }) {
       if (!result && text) {
         processor ??= createProcessor();
         result = await processor
-          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: undefined })
+          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: undefined } as Partial<Components>)
           .catch(() => text);
         markdownCache.set(text, result);
       }
