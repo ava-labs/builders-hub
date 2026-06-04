@@ -49,6 +49,9 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
         };
 
   if (scope === "admin") {
+    // Other users' roles are only disclosed to devrel (the judges UI renders
+    // them); event organizers adding cohosts only need contact details.
+    const callerIsDevrel = session.user?.custom_attributes?.includes("devrel") ?? false;
     const users = await prisma.user.findMany({
       where,
       select: {
@@ -57,7 +60,7 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
         email: true,
         image: true,
         user_name: true,
-        custom_attributes: true,
+        custom_attributes: callerIsDevrel,
       },
       orderBy: { name: "asc" },
       take: MAX_RESULTS,
