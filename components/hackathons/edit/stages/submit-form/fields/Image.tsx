@@ -59,22 +59,9 @@ export default function ImageStagesSubmitFormField({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor={`image-max-size-${field.id}`}>Max size per image (MB)</Label>
-        <Input
-          id={`image-max-size-${field.id}`}
-          type="number"
-          value={field.maxSizeMb ?? ''}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-            onChange({
-              ...field,
-              maxSizeMb:
-                event.target.value === '' ? undefined : Number(event.target.value),
-            })
-          }
-          placeholder="E.g. 2"
-        />
-      </div>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        Each image must be 2&nbsp;MB or smaller (platform limit).
+      </p>
 
       <label className="flex items-center gap-2">
         <input

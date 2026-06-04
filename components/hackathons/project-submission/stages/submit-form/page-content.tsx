@@ -935,10 +935,8 @@ export default function StageSubmitPageContent({
           typeof imageField.maxImages === 'number' && imageField.maxImages > 0
             ? imageField.maxImages
             : 1
-        const maxSizeMb: number =
-          typeof imageField.maxSizeMb === 'number' && imageField.maxSizeMb > 0
-            ? imageField.maxSizeMb
-            : 2
+        // 2 MB is the platform-wide upload ceiling; it is not organizer-configurable.
+        const maxSizeMb: number = 2
         const isSingleImage: boolean = maxImages === 1
 
         return (
