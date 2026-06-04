@@ -16,8 +16,16 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
   }
 
   if (scope === "admin") {
-    const isDevrel = session.user?.custom_attributes?.includes("devrel") ?? false;
-    if (!isDevrel) {
+    // Admin scope can match on (and return) email. It is reserved for the
+    // event-management roles, which need it to assign judges (devrel) and add
+    // co-hosts by email (any event organizer). Plain authenticated users cannot
+    // use it, so it is not a general email-enumeration surface.
+    const attrs = session.user?.custom_attributes ?? [];
+    const canUseAdmin =
+      attrs.includes("devrel") ||
+      attrs.includes("team1-admin") ||
+      attrs.includes("hackathonCreator");
+    if (!canUseAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }

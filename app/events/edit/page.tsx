@@ -22,6 +22,8 @@ import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, I
 import { LanguageButton } from './language-button';
 import PartnerItem from '@/components/hackathons/edit/PartnerItem';
 import { EmailListInput } from '@/components/common/EmailListInput';
+import { UserSearchPicker } from '@/components/common/UserSearchPicker';
+import { TimezoneCombobox } from '@/components/events/TimezoneCombobox';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { REFERRAL_TEAM_LABELS } from '@/lib/referrals/team-labels';
@@ -3105,6 +3107,19 @@ const HackathonsEdit = () => {
                   <p className="text-sm text-blue-700/90 dark:text-blue-200 mb-4">
                     {t[language].cohostsDescription}
                   </p>
+                  <div className="mb-3">
+                    <UserSearchPicker
+                      scope="admin"
+                      placeholder={t[language].cohostsPlaceholder}
+                      onSelect={(user) => {
+                        const email = user.email?.trim();
+                        if (!email) return;
+                        setCohostsEmails((prev) =>
+                          prev.includes(email) ? prev : [...prev, email]
+                        );
+                      }}
+                    />
+                  </div>
                   <EmailListInput
                     value={cohostsEmails}
                     onChange={(emails) => {
@@ -3421,54 +3436,12 @@ const HackathonsEdit = () => {
                               <div>
                                 <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
                                 <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].timezoneHelp}</div>
-                                <Select
+                                <TimezoneCombobox
                                   value={formDataLatest.timezone}
-                                  onValueChange={(value) => setFormDataLatest({ ...formDataLatest, timezone: value })}
-                                >
-                                  <SelectTrigger className="w-full mb-4">
-                                    <SelectValue placeholder="Select timezone" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="America/New_York">New York (EST/EDT) - GMT-5/-4</SelectItem>
-                                    <SelectItem value="America/Chicago">Chicago (CST/CDT) - GMT-6/-5</SelectItem>
-                                    <SelectItem value="America/Denver">Denver (MST/MDT) - GMT-7/-6</SelectItem>
-                                    <SelectItem value="America/Los_Angeles">Los Angeles (PST/PDT) - GMT-8/-7</SelectItem>
-                                    <SelectItem value="America/Toronto">Toronto (EST/EDT) - GMT-5/-4</SelectItem>
-                                    <SelectItem value="America/Vancouver">Vancouver (PST/PDT) - GMT-8/-7</SelectItem>
-                                    <SelectItem value="America/Mexico_City">Mexico City (CST/CDT) - GMT-6/-5</SelectItem>
-                                    <SelectItem value="America/Bogota">Bogotá, Colombia (COT) - GMT-5</SelectItem>
-                                    <SelectItem value="America/Costa_Rica">San José, Costa Rica (CST) - GMT-6</SelectItem>
-                                    <SelectItem value="America/Panama">Panama City, Panama (EST) - GMT-5</SelectItem>
-                                    <SelectItem value="America/Caracas">Caracas, Venezuela (VET) - GMT-4</SelectItem>
-                                    <SelectItem value="America/La_Paz">La Paz, Bolivia (BOT) - GMT-4</SelectItem>
-                                    <SelectItem value="America/Lima">Lima, Peru (PET) - GMT-5</SelectItem>
-                                    <SelectItem value="America/Sao_Paulo">São Paulo, Brazil (BRT) - GMT-3</SelectItem>
-                                    <SelectItem value="America/Santiago">Santiago, Chile (CLT) - GMT-3</SelectItem>
-                                    <SelectItem value="America/Buenos_Aires">Buenos Aires, Argentina (ART) - GMT-3</SelectItem>
-                                    <SelectItem value="Europe/London">London (GMT/BST) - GMT+0/+1</SelectItem>
-                                    <SelectItem value="Europe/Paris">Paris (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Berlin">Berlin (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Rome">Rome (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Madrid">Madrid (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Amsterdam">Amsterdam (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Zurich">Zurich (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Stockholm">Stockholm (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Moscow">Moscow (MSK) - GMT+3</SelectItem>
-                                    <SelectItem value="Asia/Tokyo">Tokyo (JST) - GMT+9</SelectItem>
-                                    <SelectItem value="Asia/Shanghai">Shanghai (CST) - GMT+8</SelectItem>
-                                    <SelectItem value="Asia/Hong_Kong">Hong Kong (HKT) - GMT+8</SelectItem>
-                                    <SelectItem value="Asia/Singapore">Singapore (SGT) - GMT+8</SelectItem>
-                                    <SelectItem value="Asia/Seoul">Seoul (KST) - GMT+9</SelectItem>
-                                    <SelectItem value="Asia/Kolkata">Mumbai/Kolkata (IST) - GMT+5:30</SelectItem>
-                                    <SelectItem value="Asia/Dubai">Dubai (GST) - GMT+4</SelectItem>
-                                    <SelectItem value="Asia/Jerusalem">Jerusalem (IST) - GMT+2/+3</SelectItem>
-                                    <SelectItem value="Australia/Sydney">Sydney (AEST/AEDT) - GMT+10/+11</SelectItem>
-                                    <SelectItem value="Australia/Melbourne">Melbourne (AEST/AEDT) - GMT+10/+11</SelectItem>
-                                    <SelectItem value="Australia/Perth">Perth (AWST) - GMT+8</SelectItem>
-                                    <SelectItem value="Pacific/Auckland">Auckland (NZST/NZDT) - GMT+12/+13</SelectItem>
-                                    <SelectItem value="Pacific/Honolulu">Honolulu (HST) - GMT-10</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                  onChange={(value) => setFormDataLatest({ ...formDataLatest, timezone: value })}
+                                  placeholder="Select timezone"
+                                  className="mb-4"
+                                />
                                 {getInlineError('latest.timezone') && (
                                   <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.timezone')}</p>
                                 )}
