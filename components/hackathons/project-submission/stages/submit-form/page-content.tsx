@@ -97,6 +97,9 @@ function buildProjectFallback(
     if (isArrayField) {
       if (Array.isArray(value) && value.length > 0) {
         if (value.every((v) => typeof v === 'string')) {
+          // plain string array (e.g. categories) — deduplicate case-insensitively
+          // for MultiSelect fields so stale variants (e.g. "Defi" vs "DeFi") don't
+          // both appear. Last occurrence wins to preserve the most canonical casing.
           const stringValues = value as string[]
           const deduped =
             field.type === SubmitFormFieldType.MultiSelect
@@ -104,6 +107,7 @@ function buildProjectFallback(
               : stringValues
           fallback[field.id] = deduped
         } else {
+          // array of objects — serialize each as JSON (e.g. deployed_addresses: {address, tag}[])
           const serialized = value
             .map((v) => {
               if (typeof v === 'string') return v
@@ -293,6 +297,8 @@ export default function StageSubmitPageContent({
         )
       : {}
 
+    // Only apply formData values that are non-empty so that a previous empty
+    // stage submission doesn't erase real project data (e.g. explanation).
     const nonEmptyFormData: StageSubmitValues = {}
     if (formData) {
       for (const [key, val] of Object.entries(formData)) {
@@ -301,6 +307,8 @@ export default function StageSubmitPageContent({
       }
     }
 
+    // If the project was updated after the last stage form save, project data
+    // takes priority so that edits made from the profile page are reflected here.
     const projectUpdatedAt = (project as Record<string, unknown> | null)?.updated_at as string | undefined
     const projectIsNewer =
       !!projectUpdatedAt && !!formDataTimestamp &&
@@ -404,6 +412,7 @@ export default function StageSubmitPageContent({
         const linkField: LinkStagesSubmitFormField =
           field as LinkStagesSubmitFormField
 
+        // Deployed addresses: special address+tag list UI
         if (linkField.id === 'deployed_addresses') {
           return (
             <FormField
@@ -1136,6 +1145,9 @@ export default function StageSubmitPageContent({
       let effectiveProjectId: string = resolvedProjectId
 
       if (!effectiveProjectId) {
+        // Server-side check first: the hook may have stale/error state (e.g. network
+        // blip on load). Ask the server authoritatively before creating anything —
+        // this prevents duplicate projects if one already exists but the hook missed it.
         const checkRes: Response = await fetch(
           `/api/project?hackathon_id=${encodeURIComponent(hackathon.id)}&user_id=${encodeURIComponent(user?.id ?? '')}`,
           { method: 'GET', credentials: 'include' }
