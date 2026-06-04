@@ -47,6 +47,9 @@ export interface JobCard {
 
 export type SerializableJobCard = Omit<JobCard, 'postedAt'> & {
   postedAt: string | null;
+  // Whether the listing has a salary at all. Lets a gated viewer's card show a
+  // locked teaser without shipping the figure itself to the browser.
+  hasSalary: boolean;
 };
 
 export interface JobDetail extends JobCard {
@@ -57,7 +60,18 @@ export function toSerializableJob(job: JobCard): SerializableJobCard {
   return {
     ...job,
     postedAt: job.postedAt instanceof Date ? job.postedAt.toISOString() : job.postedAt,
+    hasSalary: !!job.salary,
   };
+}
+
+// Salary is gated behind connected X + LinkedIn. UI-only hiding still ships the
+// figure in the page payload, so strip it server-side for viewers who can't see
+// it — keeping `hasSalary` so the card can still render a locked teaser.
+export function redactSalaryForViewer(
+  job: SerializableJobCard,
+  canViewSalary: boolean,
+): SerializableJobCard {
+  return canViewSalary ? job : { ...job, salary: null };
 }
 
 type JobRow = Awaited<ReturnType<typeof prisma.jobListing.findFirst>> & {
