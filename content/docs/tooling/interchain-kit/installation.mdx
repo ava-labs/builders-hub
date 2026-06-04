@@ -1,0 +1,131 @@
+---
+title: Installation
+description: Install the prerequisites and build AvalancheGo with the subnet-evm plugin for Interchain Kit
+---
+
+This guide gets your machine ready to run Interchain Kit's two flows: the Foundry harness (needs Node, pnpm, and Foundry) and the live local network (additionally needs an AvalancheGo binary with the `subnet-evm` plugin).
+
+## Prerequisites
+
+| Requirement | Version | Used by |
+|-------------|---------|---------|
+| [Node.js](https://nodejs.org) | 20+ | Both flows |
+| [pnpm](https://pnpm.io) | 9+ | Both flows |
+| [Foundry](https://book.getfoundry.sh) (`forge`) | latest | Harness + contract builds |
+| AvalancheGo + `subnet-evm` plugin | built from source | Live-network flow only |
+
+<Callout type="info" title="Harness-only setup">
+If you only want the fast Foundry harness, you can skip the AvalancheGo build (steps 3–4) — it's only needed for the live local network. You still need steps 1, 2, 5, and **6** (the contract dependencies).
+</Callout>
+
+## Step 1: Install Node.js and pnpm
+
+Interchain Kit is a pnpm workspace pinned to `pnpm@9.12.0`. Confirm Node 20+:
+
+```bash
+node --version   # v20.x or later
+```
+
+Install (or enable) pnpm 9+ via [Corepack](https://nodejs.org/api/corepack.html), which ships with Node:
+
+```bash
+corepack enable
+corepack prepare pnpm@9 --activate
+pnpm --version   # 9.x or later
+```
+
+## Step 2: Install Foundry
+
+Foundry provides `forge`, used by the harness tests and contract builds:
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+forge --version
+```
+
+## Step 3: Build AvalancheGo and the subnet-evm Plugin
+
+The live-network flow runs a real local Avalanche network, so it needs an `avalanchego` binary plus the `subnet-evm` VM plugin. Build both from source:
+
+```bash
+git clone https://github.com/ava-labs/avalanchego
+cd avalanchego
+./scripts/build.sh                         # builds the avalanchego binary
+cd graft/subnet-evm && ./scripts/build.sh  # builds the subnet-evm plugin
+```
+
+This produces:
+
+- `build/avalanchego` — the node binary
+- `build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy` — the `subnet-evm` plugin, named by its VM ID
+
+<Callout type="warning" title="The plugin must be where AvalancheGo expects it">
+AvalancheGo loads VMs by their ID. If the `subnet-evm` plugin isn't present at `build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`, your L1 won't bootstrap. Re-run the `graft/subnet-evm` build if it's missing.
+</Callout>
+
+## Step 4: Set AVALANCHEGO_PATH
+
+Interchain Kit finds your node through the `AVALANCHEGO_PATH` environment variable. Point it at the **absolute** path of the built binary:
+
+```bash
+export AVALANCHEGO_PATH=/path/to/avalanchego/build/avalanchego
+```
+
+Make it permanent by adding the line to your shell config (`~/.zshrc` on macOS, `~/.bashrc` on Linux), then reload:
+
+```bash
+echo 'export AVALANCHEGO_PATH=/path/to/avalanchego/build/avalanchego' >> ~/.zshrc
+source ~/.zshrc
+```
+
+## Step 5: Clone Interchain Kit and Install
+
+```bash
+git clone https://github.com/ava-labs/interchain-kit
+cd interchain-kit
+pnpm install
+```
+
+## Step 6: Install the Contract Dependencies
+
+The Solidity contracts depend on `forge-std`, OpenZeppelin, and `icm-contracts`, which live under `contracts/lib/`. They are **not** included in the clone and `pnpm install` does not fetch them, so you must install them before running the harness or building contracts.
+
+<Callout type="warning" title="Use git clone, not forge install">
+`icm-contracts` depends on `subnet-evm` as a nested git submodule, and `forge install --no-git` strips the `.git` directory that recursive submodule init needs. Clone the dependencies directly with `--recurse-submodules` instead:
+</Callout>
+
+```bash
+cd contracts
+mkdir -p lib
+git clone --depth 1 --branch v1.9.4 --recurse-submodules \
+  https://github.com/foundry-rs/forge-std.git lib/forge-std
+git clone --depth 1 --branch v5.0.2 --recurse-submodules \
+  https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git lib/openzeppelin-contracts-upgradeable
+git clone --depth 1 --branch v1.0.9 --recurse-submodules \
+  https://github.com/ava-labs/icm-contracts.git lib/icm-contracts
+cd ..
+```
+
+## Verify Your Setup
+
+With Node, pnpm, Foundry, and the contract dependencies installed, run the Foundry harness — no AvalancheGo build required:
+
+```bash
+pnpm test:harness   # forge test --root contracts -vv
+```
+
+A green run (18 tests passing across the example suites — `icm-basics`, `ictt-erc20`, `ictt-native`, and the harness internals) means the contracts compile and the harness is wired up. To verify the live-network prerequisites, continue to [Local Network](/docs/tooling/interchain-kit/local-network) and run `pnpm run up`.
+
+Hitting a setup error? See [Troubleshooting](/docs/tooling/interchain-kit/troubleshooting).
+
+## Next Steps
+
+<Cards>
+  <Card title="Foundry Harness" href="/docs/tooling/interchain-kit/foundry-harness">
+    Run the contract tests in milliseconds
+  </Card>
+  <Card title="Local Network" href="/docs/tooling/interchain-kit/local-network">
+    Boot a full local ICM/ICTT network
+  </Card>
+</Cards>

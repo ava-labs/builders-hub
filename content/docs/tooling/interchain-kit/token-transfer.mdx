@@ -1,0 +1,56 @@
+---
+title: Token Transfer (ICTT)
+description: Transfer an ERC-20 across chains with Interchain Token Transfer
+---
+
+`transfer-token.ts` runs a complete [Interchain Token Transfer (ICTT)](/docs/cross-chain/interchain-token-transfer/overview) ERC-20 round-trip: it deploys a token and a home contract on the C-Chain, a remote contract on the destination L1, registers them, then moves wrapped tokens across.
+
+## Prerequisites
+
+Boot a [local network](/docs/tooling/interchain-kit/local-network) and build the contracts first:
+
+```bash
+pnpm run up                  # writes .interchain-kit/artifacts/network.json
+forge build --root contracts # produces contracts/out/*.json
+```
+
+## Run It
+
+Run **from the repo root**:
+
+```bash
+pnpm exec tsx examples/transfer-token.ts
+```
+
+Override the amount and destination with flags or env vars (precedence: flag > env var > default):
+
+```bash
+pnpm exec tsx examples/transfer-token.ts --amount 100 --destination myl1
+# or
+DESTINATION=myl1 AMOUNT=42 pnpm exec tsx examples/transfer-token.ts
+```
+
+## What It Does
+
+1. Deploy a `DemoERC20` token on the C-Chain.
+2. Deploy `ERC20TokenHome` on the C-Chain to lock the token.
+3. Deploy `ERC20TokenRemote` on the destination L1 to mint the wrapped representation.
+4. The remote registers with the home over Teleporter.
+5. Approve and send tokens from the home; poll the remote until the wrapped balance arrives.
+
+The example uses 18 token decimals so the underlying and wrapped tokens scale 1:1 with no rescaling. On success you'll see the deployment lines plus a balance journey on the remote — for example `0 -> 100000000000000000000` (100 tokens at 18 decimals).
+
+<Callout type="info" title="Home and remote">
+ICTT uses a **home** contract on the chain where the token originates (it locks/holds the underlying) and a **remote** contract on each destination chain (it mints/burns a wrapped representation). Registration is a Teleporter message from the remote back to the home, so the relayer must be running in both directions.
+</Callout>
+
+## Next Steps
+
+<Cards>
+  <Card title="Validator Management" href="/docs/tooling/interchain-kit/validator-management">
+    Set up and grow an L1's validator set
+  </Card>
+  <Card title="Interchain Token Transfer docs" href="/docs/cross-chain/interchain-token-transfer/overview">
+    The home/remote model in depth
+  </Card>
+</Cards>

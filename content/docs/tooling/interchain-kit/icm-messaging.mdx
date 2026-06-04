@@ -1,0 +1,150 @@
+---
+title: ICM Messaging
+description: Send an interchain message from the C-Chain to an L1 and confirm delivery
+---
+
+`send-message.ts` is the smallest complete [Interchain Messaging (ICM)](/docs/cross-chain/icm-contracts/overview) example. It deploys `SimpleSender` on the C-Chain (pointed at the local `TeleporterMessenger`) and `SimpleReceiver` on the destination L1 (pointed at that chain's `TeleporterRegistry`), sends a string, and polls the receiver until the relayer delivers it.
+
+## Prerequisites
+
+Boot a [local network](/docs/tooling/interchain-kit/local-network) and build the contracts first:
+
+```bash
+pnpm run up                  # writes .interchain-kit/artifacts/network.json
+forge build --root contracts # produces contracts/out/*.json
+```
+
+## Run It
+
+Run **from the repo root** — `tmpnetjs` walks up from your current directory to find `.interchain-kit/` and `contracts/out/`:
+
+```bash
+pnpm exec tsx examples/send-message.ts
+```
+
+Target a specific L1 with `--destination <l1-name>` (or the `DESTINATION` env var); it defaults to the first L1 in `network.json`.
+
+## What a Successful Run Looks Like
+
+```text
+Source:      C-Chain  (evmChainId=43112)
+Destination: testlanche  (evmChainId=999001)
+Funded:      0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+
+Deploying SimpleSender on C-Chain...
+  -> 0x5FbDB231...
+Deploying SimpleReceiver on testlanche...
+  -> 0xCf7Ed3AC...
+
+Sending message: "Hello from C-Chain!"
+  tx: 0xabc...
+
+Polling receiver.latestMessage on testlanche...
+Receiver.latestMessage (after): "Hello from C-Chain!"
+
+Done. ICM round-trip succeeded.
+```
+
+## Walkthrough
+
+```typescript
+import {
+  loadNetwork,
+  pickL1,
+  loadArtifact,
+  makeClients,
+  blockchainIdToBytes32,
+  pollUntil,
+} from "tmpnetjs";
+import type { Address } from "viem";
+
+async function main() {
+  // Flag takes precedence over env var.
+  const destName = argAfter("--destination") ?? process.env.DESTINATION;
+  const network = loadNetwork();
+  const dest = pickL1(network, destName);
+
+  const src = makeClients(network.cChain, network.funded.privateKey);
+  const dst = makeClients(dest, network.funded.privateKey);
+
+  const sender = loadArtifact("SimpleSender");
+  const receiver = loadArtifact("SimpleReceiver");
+
+  // 1. Deploy SimpleSender on C-Chain (ctor: teleporterMessenger).
+  const senderTx = await src.walletClient.deployContract({
+    abi: sender.abi,
+    bytecode: sender.bytecode,
+    account: src.account,
+    chain: src.chain,
+    args: [network.cChain.teleporter],
+  });
+  const senderAddress = (await src.publicClient.waitForTransactionReceipt({ hash: senderTx }))
+    .contractAddress as Address;
+
+  // 2. Deploy SimpleReceiver on the L1 (ctor: registry, minVersion).
+  const receiverTx = await dst.walletClient.deployContract({
+    abi: receiver.abi,
+    bytecode: receiver.bytecode,
+    account: dst.account,
+    chain: dst.chain,
+    args: [dest.teleporterRegistry, 1n],
+  });
+  const receiverAddress = (await dst.publicClient.waitForTransactionReceipt({ hash: receiverTx }))
+    .contractAddress as Address;
+
+  // 3. Send the message. Teleporter addresses destinations by bytes32,
+  //    not EVM chain ID.
+  const destBlockchainIdBytes32 = blockchainIdToBytes32(dest.blockchainId);
+  const message = "Hello from C-Chain!";
+
+  const sendTx = await src.walletClient.writeContract({
+    address: senderAddress,
+    abi: sender.abi,
+    functionName: "sendMessage",
+    args: [destBlockchainIdBytes32, receiverAddress, message],
+    account: src.account,
+    chain: src.chain,
+  });
+  await src.publicClient.waitForTransactionReceipt({ hash: sendTx });
+
+  // 4. Poll the destination. The relayer collects BLS sigs from the source's
+  //    validators and delivers receiveCrossChainMessage. Local latency ~2-5s.
+  const after = await pollUntil(
+    async () =>
+      (await dst.publicClient.readContract({
+        address: receiverAddress,
+        abi: receiver.abi,
+        functionName: "latestMessage",
+      })) as string,
+    (v) => v === message,
+    { timeoutMs: 60_000, label: "receiver.latestMessage to update" },
+  );
+
+  console.log(`Receiver.latestMessage (after): "${after}"`);
+}
+
+function argAfter(flag: string): string | undefined {
+  const i = process.argv.indexOf(flag);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
+main().catch((err) => {
+  console.error("\nsend-message failed:", err.message ?? err);
+  process.exit(1);
+});
+```
+
+<Callout type="info" title="Why bytes32, not chain ID?">
+Teleporter routes messages by a chain's 32-byte blockchain ID, not its EVM chain ID. `blockchainIdToBytes32()` converts the blockchain ID from `network.json` into the format `sendMessage` expects.
+</Callout>
+
+## Next Steps
+
+<Cards>
+  <Card title="Token Transfer (ICTT)" href="/docs/tooling/interchain-kit/token-transfer">
+    Move an ERC-20 across chains
+  </Card>
+  <Card title="tmpnetjs SDK" href="/docs/tooling/interchain-kit/tmpnetjs-sdk">
+    The helpers these scripts are built on
+  </Card>
+</Cards>

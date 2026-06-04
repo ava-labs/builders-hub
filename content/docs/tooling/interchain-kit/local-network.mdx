@@ -1,0 +1,116 @@
+---
+title: Local Network
+description: Boot a complete local Avalanche network with ICM relayer and signature aggregator
+---
+
+The local-network flow boots a complete stack with a single command and validates ICM/ICTT against real consensus and a real relayer: the Primary Network, an L1, Teleporter, the ICM relayer, and the signature aggregator.
+
+## Prerequisites
+
+- Completed [installation](/docs/tooling/interchain-kit/installation), including the contract dependencies (step 6)
+- `AVALANCHEGO_PATH` set to your built `avalanchego` binary
+- The workspace packages built (next step)
+
+## Build the Workspace Packages
+
+`pnpm run up` runs the **compiled** `tmpnetjs` orchestrator (`packages/tmpnetjs/dist/`). `pnpm install` does not build the workspace packages, so build them once before your first `up`:
+
+```bash
+pnpm run build   # pnpm -r --filter './packages/**' build
+```
+
+<Callout type="warning" title="Skipping this breaks up">
+Without the build, `pnpm run up` fails immediately with `ERR_MODULE_NOT_FOUND … packages/tmpnetjs/dist/cli.js`. Re-run `pnpm run build` after pulling changes to the packages.
+</Callout>
+
+## Boot the Network
+
+```bash
+pnpm run up   # boots Primary Network + L1 + ICM + relayer + sigagg
+```
+
+The first run is a cold boot (~3 minutes) because it downloads the ICM services, starts the network, creates an L1, sets up the validator set, and launches the relayer and signature aggregator. Subsequent runs reuse a snapshot and are much faster.
+
+<Callout type="info" title="What up does">
+`pnpm run up` runs the `tmpnetjs` producer, which orchestrates the full sequence:
+
+1. Spawns 5 primary-network nodes (AvalancheGo's preconfigured local stakers).
+2. Creates a subnet on the P-Chain.
+3. Issues a `CreateChainTx` for a `subnet-evm` L1 with the `ValidatorManager` proxy pre-allocated.
+4. Spawns L1 validator + RPC nodes tracking the subnet.
+5. Converts the subnet to an L1 (`ConvertSubnetToL1Tx`).
+6. Initializes the validator set on the L1 via the signature aggregator + Warp.
+7. Deploys `TeleporterMessenger` + `TeleporterRegistry` on every chain from a single-use deployer (so addresses match across chains — the relayer requires this).
+8. Funds the relayer EOA on the C-Chain.
+9. Starts `icm-relayer` (`:8080`) and `signature-aggregator` (`:8090`) with peer discovery.
+10. Writes `network.json`, `addresses.ts`, and `.env` to `.interchain-kit/artifacts/`.
+</Callout>
+
+## Generated Artifacts
+
+Once the network is up, Interchain Kit writes everything your scripts need to `.interchain-kit/artifacts/`:
+
+| File | Contents |
+|------|----------|
+| `network.json` | Network topology — chains, blockchain IDs, Teleporter/registry addresses, funded key |
+| `addresses.ts` | Deployed contract addresses, importable from TypeScript |
+| `.env` | Environment variables for the running network |
+
+Your TypeScript scripts load `network.json` through `loadNetwork()` (see [tmpnetjs SDK](/docs/tooling/interchain-kit/tmpnetjs-sdk)).
+
+## Build the Contracts
+
+Before running any example, compile the contracts so the scripts can load their ABIs and bytecode from `contracts/out/`:
+
+```bash
+forge build --root contracts
+```
+
+<Callout type="info" title="Why this step is needed">
+The demo scripts read compiled artifacts (e.g. `contracts/out/SimpleSender.sol/SimpleSender.json`). If you skip this, you'll see `Forge artifact not found: contracts/out/...`.
+</Callout>
+
+With the network running and the contracts built, you're ready to run the [examples](/docs/tooling/interchain-kit/icm-messaging).
+
+## Stop and Clean Up
+
+```bash
+pnpm run down    # stop processes (snapshot preserved for a fast next boot)
+pnpm run clean   # nuke data, snapshots, and logs in .interchain-kit/
+```
+
+Use `down` when you want to pause and resume quickly. Use `clean` when a run failed partway and subsequent runs are reusing stale data — clean, then `up` again.
+
+## Lifecycle Commands
+
+| Command | What it does |
+|---------|--------------|
+| `pnpm test:harness` | Run the Foundry harness tests (`forge test --root contracts -vv`) |
+| `pnpm run build` | Build the workspace packages (required before the first `up`) |
+| `pnpm run up` | Boot the full local network + ICM relayer + signature aggregator |
+| `pnpm run down` | Stop the running processes; keep the snapshot |
+| `pnpm run clean` | Remove all data, snapshots, and logs under `.interchain-kit/` |
+| `pnpm fmt` | Format Solidity with `forge fmt` |
+
+## Ports
+
+The local network binds the following ports. If a boot fails with "address already in use," find and stop whatever is holding the port (for example `lsof -iTCP:8080 -sTCP:LISTEN`).
+
+| Service | Port(s) |
+|---------|---------|
+| Primary Network nodes | `9650 + 100*i` (i.e. `9650`, `9750`, …) |
+| `icm-relayer` | `8080` (API) + `9090` (metrics) |
+| `signature-aggregator` | `8090` |
+
+Hitting an error? See [Troubleshooting](/docs/tooling/interchain-kit/troubleshooting).
+
+## Next Steps
+
+<Cards>
+  <Card title="ICM Messaging" href="/docs/tooling/interchain-kit/icm-messaging">
+    Send an interchain message C-Chain → L1
+  </Card>
+  <Card title="Token Transfer (ICTT)" href="/docs/tooling/interchain-kit/token-transfer">
+    Move an ERC-20 across chains
+  </Card>
+</Cards>
