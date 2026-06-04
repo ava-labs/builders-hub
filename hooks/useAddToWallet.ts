@@ -93,7 +93,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
       } catch (switchError: any) {
         // Error 4902 means chain not found - we need to add it
         // Error -32603 is also used by some wallets for chain not found
-        if (switchError.code === 4902 || switchError.code === -32603) {
+        if (switchError.code === 4902 || switchError.code === -32603 || switchError.code === 4100) {
           // Chain not added yet, proceed to add it
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
