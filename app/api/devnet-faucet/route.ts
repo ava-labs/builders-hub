@@ -5,7 +5,9 @@ import { getAuthSession } from '@/lib/auth/authSession';
 
 const DEVNET_RPC_URL = 'https://api.avax-dev.network/ext/bc/C/rpc';
 const DEVNET_CHAIN_ID = 43117;
-const DRIP_AMOUNT = '2';
+const DEFAULT_DRIP_AMOUNT = 2;
+const MIN_DRIP_AMOUNT = 1;
+const MAX_DRIP_AMOUNT = 2000;
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
@@ -20,6 +22,20 @@ const devnetCChain = defineChain({
 });
 
 const account = SERVER_PRIVATE_KEY ? privateKeyToAccount(SERVER_PRIVATE_KEY as `0x${string}`) : null;
+
+function parseDripAmount(amountParam: string | null): number | null {
+  const amount = amountParam?.trim() || DEFAULT_DRIP_AMOUNT.toString();
+  if (!/^[1-9]\d*$/.test(amount)) {
+    return null;
+  }
+
+  const parsedAmount = Number(amount);
+  if (!Number.isSafeInteger(parsedAmount) || parsedAmount < MIN_DRIP_AMOUNT || parsedAmount > MAX_DRIP_AMOUNT) {
+    return null;
+  }
+
+  return parsedAmount;
+}
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -62,6 +78,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const dripAmount = parseDripAmount(request.nextUrl.searchParams.get('amount'));
+    if (dripAmount === null) {
+      return NextResponse.json(
+        { success: false, message: `Amount must be a whole number from ${MIN_DRIP_AMOUNT} to ${MAX_DRIP_AMOUNT} AVAX` },
+        { status: 400 }
+      );
+    }
+
     const walletClient = createWalletClient({
       account,
       chain: devnetCChain,
@@ -75,7 +99,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Check faucet balance
     const balance = await publicClient.getBalance({ address: FAUCET_ADDRESS as `0x${string}` });
-    const amountToSend = parseEther(DRIP_AMOUNT);
+    const amountToSend = parseEther(dripAmount.toString());
 
     if (balance < amountToSend) {
       return NextResponse.json(
@@ -103,7 +127,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       txHash,
       sourceAddress: FAUCET_ADDRESS,
       destinationAddress,
-      amount: DRIP_AMOUNT,
+      amount: dripAmount.toString(),
       chainId: DEVNET_CHAIN_ID,
     });
   } catch (error) {
