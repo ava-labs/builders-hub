@@ -100,7 +100,7 @@ export default function MultiSelectStagesSubmitFormField({
         />
       </div>
 
-      {field.id === 'tracks' || field.id === 'tech_stack' ? (
+      {field.id === 'tracks' || field.id === 'tech_stack_tags' ? (
         <div className="space-y-2">
           <Label>Options</Label>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">

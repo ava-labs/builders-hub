@@ -835,7 +835,7 @@ export default function StageSubmitPageContent({
               const rawOptions: string[] =
                 multiSelectField.id === 'tracks'
                   ? hackathon.content.tracks.map((track) => track.name)
-                  : multiSelectField.id === 'tech_stack'
+                  : multiSelectField.id === 'tech_stack_tags'
                     ? getTechStackOptions(hackathon.content).map((option) => option.name)
                     : (multiSelectField.options ?? [])
 
@@ -875,7 +875,7 @@ export default function StageSubmitPageContent({
                       onChange={handleChange}
                       placeholder={multiSelectField.placeholder || 'Select options'}
                       searchPlaceholder="Search options"
-                      allowCreate={multiSelectField.id === 'tech_stack'}
+                      allowCreate={multiSelectField.id === 'tech_stack_tags'}
                     />
                   </FormControl>
                   <FormMessage />

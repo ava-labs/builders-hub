@@ -143,8 +143,21 @@ export const BASE_SUBMIT_FORM_FIELDS = {
     label: 'Tech Stack',
     field: {
       id: 'tech_stack',
-      type: SubmitFormFieldType.MultiSelect,
+      type: SubmitFormFieldType.Text,
       label: 'Tech Stack',
+      description: 'Describe the tech stack used to build your project.',
+      placeholder: 'e.g. Solidity, Next.js, Foundry, Avalanche L1…',
+      predefinedField: true,
+      maxCharacters: 1000,
+      required: false,
+    },
+  },
+  tech_stack_tags: {
+    label: 'Tech Stack Tags',
+    field: {
+      id: 'tech_stack_tags',
+      type: SubmitFormFieldType.MultiSelect,
+      label: 'Tech Stack Tags',
       description: 'Select the technologies used to build your project.',
       placeholder: 'Select tech stack',
       predefinedField: true,

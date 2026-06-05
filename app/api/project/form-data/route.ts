@@ -356,6 +356,19 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         });
       };
 
+      // website/socials are stored as Json arrays of { key, value } (label + URL)
+      // by the non-staged submitProject flow. The staged predefined fields are
+      // plain Link inputs (URLs only), so map each URL to { key: '', value: url }.
+      const getKeyValueLinksValue = (
+        ...keys: string[]
+      ): Array<{ key: string; value: string }> | undefined => {
+        const urls = getStringArrayValue(...keys);
+        if (!urls) {
+          return undefined;
+        }
+        return urls.map((url) => ({ key: '', value: url }));
+      };
+
       let projectColumnsToUpdate: { [key: string]: unknown } = {};
       const projectColumnValues: Record<string, unknown> = {
         project_name: getStringValue('project_name', 'projectName'),
@@ -365,8 +378,19 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         categories: getStringArrayValue('categories'),
         github_repository: getLinkValue('github_repository', 'githubRepository'),
         demo_link: getLinkValue('demo_link', 'demoOtherLinks'),
-        tech_stack: getStringValue('explanation', 'tech_stack', 'howItsMade'),
-        explanation: getStringValue('howItsMade'),
+        // Free-text tech stack description -> Project.tech_stack; the tag list is
+        // a separate field below.
+        tech_stack: getStringValue('tech_stack', 'howItsMade'),
+        tech_stack_tags: getStringArrayValue('tech_stack_tags'),
+        explanation: getStringValue('explanation'),
+        tracks: getStringArrayValue('tracks'),
+        is_preexisting_idea: getBooleanValue('is_preexisting_idea'),
+        logo_url: getStringValue('logo_url'),
+        cover_url: getStringValue('cover_url'),
+        screenshots: getStringArrayValue('screenshots'),
+        demo_video_link: getLinkValue('demo_video_link'),
+        website: getKeyValueLinksValue('website'),
+        socials: getKeyValueLinksValue('socials'),
         // Team1 sharing consent: persist to the real Project.consent_sharing
         // column (same as the non-staged submitProject flow) so staged
         // submissions record the consent identically, instead of leaving it
