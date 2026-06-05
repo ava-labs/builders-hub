@@ -21,6 +21,7 @@ export interface SubmitListingFormInitialValues {
   remote_type: 'remote' | 'onsite' | 'hybrid' | '';
   employment_type: 'full_time' | 'contract' | 'part_time' | '';
   seniority: string;
+  salary: string;
   tags: string;
   apply_url: string;
 }
@@ -40,6 +41,7 @@ const EMPTY: SubmitListingFormInitialValues = {
   remote_type: '',
   employment_type: '',
   seniority: '',
+  salary: '',
   tags: '',
   apply_url: '',
 };
@@ -137,6 +139,7 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
       remote_type: values.remote_type || null,
       employment_type: values.employment_type,
       seniority: seniorityLabel,
+      salary: values.salary.trim() || null,
       tags,
       apply_url: values.apply_url.trim(),
     };
@@ -348,6 +351,24 @@ export function SubmitListingForm({ projects, initialValues, listingId }: Props)
               <div className="pr-helper">
                 <span>Minimum candidates should bring. Leave blank for any.</span>
               </div>
+            </div>
+          </div>
+
+          <div className="pr-field">
+            <label htmlFor="ec-salary">
+              Salary <span className="pr-opt">— optional, shown only to signed-in candidates</span>
+            </label>
+            <input
+              id="ec-salary"
+              type="text"
+              className="pr-input"
+              value={values.salary}
+              onChange={(e) => update('salary', e.target.value)}
+              maxLength={80}
+              placeholder="e.g. $120k–$160k"
+            />
+            <div className="pr-helper">
+              <span>Free-form. Candidates see it only after connecting their X + LinkedIn.</span>
             </div>
           </div>
 

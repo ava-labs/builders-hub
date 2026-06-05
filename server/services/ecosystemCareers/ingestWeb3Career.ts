@@ -33,6 +33,58 @@ interface Web3CareerJob {
   apply_url: string;
   date?: string | null;
   date_epoch?: number | null;
+  // Salary fields web3.career returns per job. The employer-stated exact
+  // values (salary_*_value / salary_currency / salary_unit) are present only
+  // when the listing provides them; the estimated_* trio is web3.career's own
+  // annual-USD model output and is populated far more often.
+  salary_min_value?: number | null;
+  salary_max_value?: number | null;
+  salary_currency?: string | null;
+  salary_unit?: string | null;
+  estimated_min_salary?: number | null;
+  estimated_max_salary?: number | null;
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+};
+
+function compactMoney(value: number, symbol: string): string {
+  if (value >= 1000) {
+    const k = value / 1000;
+    return `${symbol}${Number.isInteger(k) ? k : k.toFixed(1)}k`;
+  }
+  return `${symbol}${value}`;
+}
+
+function moneyRange(
+  min: number | null | undefined,
+  max: number | null | undefined,
+  symbol: string,
+): string | null {
+  const lo = typeof min === 'number' && min > 0 ? min : null;
+  const hi = typeof max === 'number' && max > 0 ? max : null;
+  if (lo && hi) return `${compactMoney(lo, symbol)}–${compactMoney(hi, symbol)}`;
+  if (lo) return `${compactMoney(lo, symbol)}+`;
+  if (hi) return `Up to ${compactMoney(hi, symbol)}`;
+  return null;
+}
+
+// Collapse web3.career's salary fields into the single human-readable `salary`
+// string we store. Prefer the employer-stated exact range; fall back to the
+// estimate (labelled so candidates know it isn't authoritative).
+function web3CareerSalary(j: Web3CareerJob): string | null {
+  const symbol =
+    (j.salary_currency && CURRENCY_SYMBOLS[j.salary_currency.toUpperCase()]) || '$';
+  const exact = moneyRange(j.salary_min_value, j.salary_max_value, symbol);
+  if (exact) {
+    const unit = j.salary_unit?.trim();
+    return unit ? `${exact} / ${unit}` : exact;
+  }
+  const estimate = moneyRange(j.estimated_min_salary, j.estimated_max_salary, '$');
+  return estimate ? `${estimate} (est.)` : null;
 }
 
 interface IngestOptions {
@@ -271,6 +323,7 @@ export async function ingestWeb3Career(
         remote_type: j.is_remote ? 'remote' : null,
         employment_type: null,
         seniority: null,
+        salary: web3CareerSalary(j),
         tags: (j.tags ?? []).slice(0, 10),
         // web3.career's ToS forbids modifying apply_url — its required tracking
         // params are already embedded, so store it verbatim (no cleanApplyUrl).
