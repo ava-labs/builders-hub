@@ -106,8 +106,20 @@ function buildProjectFallback(
               ? Array.from(new Map(stringValues.map((v) => [v.toLowerCase(), v])).values())
               : stringValues
           fallback[field.id] = deduped
+        } else if (
+          value.every(
+            (v) => v && typeof v === 'object' && typeof (v as { value?: unknown }).value === 'string'
+          )
+        ) {
+          // {key, value} link lists (website/socials) — the URL-only Link field
+          // can't show the key/label, so prefill it with just the URLs (value).
+          const urls = value
+            .map((v) => ((v as { value: string }).value ?? '').trim())
+            .filter(Boolean)
+          if (urls.length > 0) fallback[field.id] = urls
         } else {
-          // array of objects — serialize each as JSON (e.g. deployed_addresses: {address, tag}[])
+          // other arrays of objects — serialize each as JSON so the field's
+          // specialized parser can read it (e.g. deployed_addresses: {address, tag}[]).
           const serialized = value
             .map((v) => {
               if (typeof v === 'string') return v
