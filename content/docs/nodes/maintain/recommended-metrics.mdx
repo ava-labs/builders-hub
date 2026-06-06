@@ -61,7 +61,7 @@ AvalancheGo tracks free space on its database volume natively and self-governs o
 
 ## Secondary metrics
 
-You don't need to page on these — a real problem already shows up in the query failure rate. They exist to tell you *why* the failure rate dropped. The thresholds below match the alert configuration we run for production mainnet L1s.
+The query failure rate usually moves first, so these are your main tools for diagnosing *why* it dropped — but several are still worth paging on in their own right (the paging thresholds are noted per metric), because some failures can occur without the failure rate reacting. The thresholds below match the alert configuration we run for production mainnet L1s.
 
 ### Bad blocks (EVM L1s)
 
@@ -120,11 +120,11 @@ The validator set the node currently sees. Dropping to 0 means it has lost its v
 
 | | |
 |---|---|
-| **Metric** | `avalanche_health_checks_failing{check="health",tag="application"}` |
+| **Metric** | `avalanche_health_checks_failing{check="health",tag="all"}` |
 | **Healthy** | 0 |
 | **Paging** | > 0 (sustained) |
 
-A catch-all gauge of how many checks are *currently* failing in the node's health endpoint (networking, router, database, disk, BLS key, pending upgrades, bootstrap status, validation). It carries two labels: `check` (one of `health`, `liveness`, `readiness`) and `tag` (`all`, `application`, or a specific subnet ID). Use `{check="health",tag="application"}` for the application-level health rollup. Because it reports the current count rather than an event total, **any non-zero value already means the node is unhealthy** — page on `> 0`, optionally requiring it to persist a minute or two to avoid flapping on transient checks.
+A catch-all gauge of how many checks are *currently* failing in the node's health endpoint (networking, router, database, disk, BLS key, pending upgrades, bootstrap status, validation). It carries two labels: `check` (one of `health`, `liveness`, `readiness`) and `tag` (`all`, `application`, or a specific subnet ID). Use `tag="all"` for the complete rollup — `tag="application"` covers only node-wide checks and excludes per-subnet ones, so it is not a true catch-all. To watch one L1 specifically, select that subnet's ID as the `tag`. Because the gauge reports the current count rather than an event total, **any non-zero value already means the node is unhealthy** — page on `> 0`, optionally requiring it to persist a minute or two to avoid flapping on transient checks.
 
 ### CPU usage
 
