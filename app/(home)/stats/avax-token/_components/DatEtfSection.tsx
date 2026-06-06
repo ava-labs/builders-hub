@@ -1,19 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import { useTheme } from "next-themes";
-import { Card } from "@/components/ui/card";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { Building2, Landmark, Wallet, PieChart } from "lucide-react";
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import { useTheme } from 'next-themes';
+import { Card } from '@/components/ui/card';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Building2, Landmark, Wallet, PieChart } from 'lucide-react';
 import {
   DATS as STATIC_DATS,
   ETFS as STATIC_ETFS,
@@ -22,7 +14,7 @@ import {
   type DatEntry,
   type EtfEntry,
   type HistoryPoint,
-} from "@/constants/dat-etf";
+} from '@/constants/dat-etf';
 
 interface ApiResponse {
   dats: DatEntry[];
@@ -31,18 +23,18 @@ interface ApiResponse {
 }
 
 function formatAvax(n: number | null | undefined): string {
-  if (n == null) return "—";
-  if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
-  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  if (n == null) return '—';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
   return n.toLocaleString();
 }
 
 function formatUsd(n: number | null | undefined): string {
-  if (n == null) return "—";
-  if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
-  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
-  if (n >= 1e3) return "$" + (n / 1e3).toFixed(0) + "K";
-  return "$" + n.toFixed(0);
+  if (n == null) return '—';
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
+  return '$' + n.toFixed(0);
 }
 
 function TickerBadge({ ticker }: { ticker: string }) {
@@ -114,7 +106,7 @@ function HoldingsHistoryChart({
     return cloned;
   }, [history, currentTotal]);
 
-  const gradientId = `dat-etf-gradient-${color.replace("#", "")}`;
+  const gradientId = `dat-etf-gradient-${color.replace('#', '')}`;
 
   return (
     <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 p-4 sm:p-5">
@@ -134,14 +126,14 @@ function HoldingsHistoryChart({
             <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-zinc-200 dark:text-zinc-800" />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 10, fill: "currentColor" }}
+              tick={{ fontSize: 10, fill: 'currentColor' }}
               className="text-zinc-500 dark:text-zinc-400"
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 10, fill: "currentColor" }}
+              tick={{ fontSize: 10, fill: 'currentColor' }}
               className="text-zinc-500 dark:text-zinc-400"
               tickLine={false}
               axisLine={false}
@@ -151,24 +143,18 @@ function HoldingsHistoryChart({
             <Tooltip
               cursor={{ stroke: color, strokeOpacity: 0.2 }}
               contentStyle={{
-                background: "var(--background)",
-                border: "1px solid var(--border, #e4e4e7)",
+                background: 'var(--background)',
+                border: '1px solid var(--border, #e4e4e7)',
                 borderRadius: 8,
                 fontSize: 12,
               }}
-              formatter={(value: number) => [`${formatAvax(value)} AVAX`, "Holdings"]}
+              formatter={(value: number) => [`${formatAvax(value)} AVAX`, 'Holdings']}
               labelFormatter={(label, payload) => {
                 const note = payload?.[0]?.payload?.label;
                 return note ? `${label} — ${note}` : label;
               }}
             />
-            <Area
-              type="monotone"
-              dataKey="avax"
-              stroke={color}
-              strokeWidth={2}
-              fill={`url(#${gradientId})`}
-            />
+            <Area type="monotone" dataKey="avax" stroke={color} strokeWidth={2} fill={`url(#${gradientId})`} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -192,18 +178,18 @@ function EntityCard({
   meta?: string;
   logoSrc: string;
   logoSrcDark?: string;
-  logoTone?: "light" | "dark" | "color";
+  logoTone?: 'light' | 'dark' | 'color';
   stats: { label: string; value: string }[];
 }) {
   const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const isDark = resolvedTheme === 'dark';
 
   // Prefer an explicit dark variant; otherwise fall back to logoTone-based CSS inversion.
   const effectiveLogoSrc = isDark && logoSrcDark ? logoSrcDark : logoSrc;
-  let invertClass = "";
+  let invertClass = '';
   if (!logoSrcDark) {
-    if (logoTone === "light") invertClass = "invert dark:invert-0";
-    else if (logoTone === "dark") invertClass = "dark:invert";
+    if (logoTone === 'light') invertClass = 'invert dark:invert-0';
+    else if (logoTone === 'dark') invertClass = 'dark:invert';
   }
 
   return (
@@ -244,8 +230,8 @@ function DatCard({ dat }: { dat: DatEntry }) {
       logoSrcDark={dat.logoSrcDark}
       logoTone={dat.logoTone}
       stats={[
-        { label: "AVAX held", value: formatAvax(dat.avaxHoldings) },
-        { label: "Treasury AUM", value: formatUsd(dat.aum) },
+        { label: 'AVAX held', value: formatAvax(dat.avaxHoldings) },
+        { label: 'Treasury AUM', value: formatUsd(dat.aum) },
       ]}
     />
   );
@@ -266,12 +252,12 @@ function EtfCard({ etf }: { etf: EtfEntry }) {
       logoSrcDark={etf.logoSrcDark}
       logoTone={etf.logoTone}
       stats={[
-        { label: "AVAX held", value: formatAvax(etf.avaxHoldings) },
-        { label: "AUM", value: formatUsd(etf.aum) },
-        { label: "Sponsor fee", value: feeLabel },
+        { label: 'AVAX held', value: formatAvax(etf.avaxHoldings) },
+        { label: 'AUM', value: formatUsd(etf.aum) },
+        { label: 'Sponsor fee', value: feeLabel },
         {
-          label: "Staking",
-          value: etf.stakingMax && etf.stakingMax > 0 ? `up to ${etf.stakingMax}%` : "—",
+          label: 'Staking',
+          value: etf.stakingMax && etf.stakingMax > 0 ? `up to ${etf.stakingMax}%` : '—',
         },
       ]}
     />
@@ -287,7 +273,7 @@ export function DatEtfSection() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/avax-dat-etf");
+        const res = await fetch('/api/avax-dat-etf');
         if (!res.ok) return;
         const data: ApiResponse = await res.json();
         if (cancelled) return;
@@ -321,10 +307,27 @@ export function DatEtfSection() {
 
       {/* Aggregate stats — mirrors Network Overview cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <AggregateStatCard icon={Building2} label="Total DAT holdings" value={formatAvax(totalDatAvax)} unit="AVAX" hint={`${dats.length} entities`} />
-        <AggregateStatCard icon={Landmark} label="Total ETF holdings" value={formatAvax(totalEtfAvax)} unit="AVAX" hint={`${etfs.length} funds`} />
+        <AggregateStatCard
+          icon={Building2}
+          label="Total DAT holdings"
+          value={formatAvax(totalDatAvax)}
+          unit="AVAX"
+          hint={`${dats.length} entities`}
+        />
+        <AggregateStatCard
+          icon={Landmark}
+          label="Total ETF holdings"
+          value={formatAvax(totalEtfAvax)}
+          unit="AVAX"
+          hint={`${etfs.length} funds`}
+        />
         <AggregateStatCard icon={Wallet} label="Combined" value={formatAvax(combined)} unit="AVAX" hint="DATs + ETFs" />
-        <AggregateStatCard icon={PieChart} label="Total ETF AUM" value={formatUsd(totalEtfAum)} hint="Across all listed funds" />
+        <AggregateStatCard
+          icon={PieChart}
+          label="Total ETF AUM"
+          value={formatUsd(totalEtfAum)}
+          hint="Across all listed funds"
+        />
       </div>
 
       {/* History charts */}
@@ -374,8 +377,8 @@ export function DatEtfSection() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        VAVX market price pulled live from Yahoo Finance; remaining figures sourced from issuer filings,
-        press releases, and the AVAX One Blueprint dashboard.{loading ? " Refreshing…" : ""}
+        Live fields pulled from issuer/public data sources where available; remaining figures sourced from issuer
+        filings, press releases, and treasury dashboards.{loading ? ' Refreshing…' : ''}
       </p>
     </section>
   );
