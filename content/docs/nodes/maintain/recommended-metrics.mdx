@@ -35,7 +35,7 @@ This is the single most sensitive indicator of L1 health.
 
 AvalancheGo does not expose a success *percentage* directly — it exposes two counters, so you compute the ratio:
 
-```promql
+```text
 rate(avalanche_snowman_polls_successful{chain="<chainID>"}[5m])
 /
 (
@@ -61,7 +61,7 @@ Disk is a completely independent failure domain. A node will keep participating 
 | **Warn** | < 25% free |
 | **Page** | < 15% free |
 
-```promql
+```text
 avalanche_resource_tracker_disk_available_percentage
 ```
 
@@ -79,7 +79,7 @@ A third independent domain: *correctness*. A node can be diverging from the rest
 | **Healthy** | 0 (no increase) |
 | **Page** | any sustained increase over 5 min |
 
-```promql
+```text
 increase(avalanche_<chainID>_vm_eth_chain_block_bad_count[5m]) > 0
 ```
 
@@ -98,7 +98,7 @@ You don't normally page on these. When a critical metric — almost always **Suc
 | **Metric** | `avalanche_stake_percent_connected` |
 | **Healthy** | ≥ the node's `MinPercentConnectedHealthy` threshold |
 
-```promql
+```text
 avalanche_stake_percent_connected{chain="<chainID>"} * 100
 ```
 
@@ -112,7 +112,7 @@ The percentage of total validator *stake* this node currently has live connectio
 | **Healthy** | your expected validator count |
 | **Page** | `< 1` |
 
-```promql
+```text
 avalanche_stake_num_validators{chain="<chainID>"}
 ```
 
@@ -125,7 +125,7 @@ The size of the validator set the node currently sees. Dropping to `0` means the
 | **Metric** | `avalanche_benchlist_benched_num` |
 | **Healthy** | 0 |
 
-```promql
+```text
 avalanche_benchlist_benched_num{chain="<chainID>"}
 ```
 
@@ -138,7 +138,7 @@ The number of peers the node has temporarily stopped querying because they keep 
 | **Metric** | `avalanche_snowman_blks_processing` |
 | **Healthy** | low and stable (typically near 0) |
 
-```promql
+```text
 avalanche_snowman_blks_processing{chain="<chainID>"}
 ```
 
@@ -151,7 +151,7 @@ The number of blocks that have entered consensus but are not yet finalized. In s
 | **Metric** | `avalanche_snowman_last_accepted_height` |
 | **Healthy** | continuously increasing |
 
-```promql
+```text
 increase(avalanche_snowman_last_accepted_height{chain="<chainID>"}[5m]) == 0
 ```
 
@@ -164,7 +164,7 @@ The height of the most recently accepted block. The most direct confirmation of 
 | **Metric** | `avalanche_resource_tracker_cpu_usage` |
 | **Healthy** | well below your core count |
 
-```promql
+```text
 avalanche_resource_tracker_cpu_usage
 ```
 
@@ -188,7 +188,7 @@ There is no graceful degradation past these points, so keep validators within ~1
 | **Metric** | `avalanche_health_checks_failing` |
 | **Healthy** | 0 |
 
-```promql
+```text
 avalanche_health_checks_failing{check="health"}
 ```
 
