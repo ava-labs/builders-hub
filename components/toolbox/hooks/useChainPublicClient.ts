@@ -22,14 +22,20 @@ export function useChainPublicClient(): PublicClient | null {
 
   return useMemo(() => {
     if (!viemChain) return null;
+    // We deliberately do NOT enable `batch.multicall` here. viem aggregates
+    // batched reads via Multicall3; when Multicall3 isn't deployed on-chain
+    // (the norm for freshly-created L1s) it falls back to a *deployless*
+    // contract-creation `eth_call`. L1s that enable the Subnet-EVM Contract
+    // Deployer Allowlist precompile reject that call for ANY sender
+    // ("tx.origin … is not authorized to deploy a contract"), which silently
+    // broke every read on permissioned L1s — e.g. ProxySetup's
+    // `getProxyImplementation`. Plain individual `eth_call`s have no such
+    // restriction, so single reads go through unbatched. Call sites that
+    // genuinely need batching opt into `multicall({ deployless: true })`
+    // explicitly, with a sequential fallback (see useBatchRead).
     const base = createPublicClient({
       chain: viemChain,
       transport: http(viemChain.rpcUrls.default.http[0]),
-      batch: {
-        multicall: {
-          deployless: true,
-        },
-      },
     });
 
     const originalWait = base.waitForTransactionReceipt.bind(base);

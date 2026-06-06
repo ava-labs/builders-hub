@@ -1,0 +1,321 @@
+'use client';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import posthog from 'posthog-js';
+import { ChevronDown, Search, X } from 'lucide-react';
+import { JobCard } from '@/components/ecosystem-careers/JobCard';
+import { HiringCta } from '@/components/ecosystem-careers/HiringCta';
+import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
+import { DevRelReviewLink } from '@/components/ecosystem-careers/DevRelReviewLink';
+import type { CompanyOption, SerializableJobCard } from '@/server/services/ecosystemCareers/queries';
+
+interface Props {
+  initialJobs: SerializableJobCard[];
+  totalActive: number;
+  companies: CompanyOption[];
+  viewerCanViewAll: boolean;
+  viewerAuthenticated: boolean;
+  viewerMissingSocials: ('x' | 'linkedin')[];
+  previewCount: number;
+  viewerIsDevRel: boolean;
+  pendingProjects: number;
+  pendingListings: number;
+}
+
+const REMOTE_OPTIONS = [
+  { value: 'remote', label: 'Remote' },
+  { value: 'onsite', label: 'On-site' },
+  { value: 'hybrid', label: 'Hybrid' },
+];
+
+export default function EcosystemCareersClient({
+  initialJobs,
+  totalActive,
+  companies,
+  viewerCanViewAll,
+  viewerAuthenticated,
+  viewerMissingSocials,
+  previewCount,
+  viewerIsDevRel,
+  pendingProjects,
+  pendingListings,
+}: Props) {
+  const [search, setSearch] = useState('');
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [remoteType, setRemoteType] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return initialJobs.filter((job) => {
+      if (companyId) {
+        if (companyId.startsWith('name:')) {
+          if (job.company.name !== companyId.slice('name:'.length)) return false;
+        } else if (job.company.id !== companyId) {
+          return false;
+        }
+      }
+      if (remoteType && job.remoteType !== remoteType) return false;
+      if (!q) return true;
+      const haystack = [
+        job.title,
+        job.shortDescription,
+        job.location ?? '',
+        job.company.name,
+        job.seniority ?? '',
+        ...job.tags,
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [initialJobs, search, companyId, remoteType]);
+
+  const hasFilters = !!search || !!companyId || !!remoteType;
+
+  const lastSearchTracked = useRef('');
+  useEffect(() => {
+    if (!mounted) return;
+    const trimmed = search.trim();
+    if (trimmed === lastSearchTracked.current) return;
+    const handle = setTimeout(() => {
+      if (trimmed === lastSearchTracked.current) return;
+      lastSearchTracked.current = trimmed;
+      if (!trimmed) return;
+      posthog?.capture?.('careers_search_performed', {
+        query: trimmed,
+        company_filter: companyId,
+        remote_type: remoteType,
+        result_count: filtered.length,
+      });
+    }, 1500);
+    return () => clearTimeout(handle);
+  }, [search, companyId, remoteType, filtered.length, mounted]);
+
+  function trackFilterChange(field: 'company' | 'remote_type', value: string | null) {
+    posthog?.capture?.('careers_filter_changed', {
+      field,
+      value,
+      result_count: filtered.length,
+    });
+  }
+
+  return (
+    <>
+      {/* Match the page-level surface used by /integrations and other home
+          pages: subtle slate-to-white gradient with a faint grid overlay in
+          light mode; flat near-black in dark mode. Fixed so it stays put
+          while content scrolls. */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]" />
+        </div>
+      </div>
+      <main className="relative">
+        <section className="px-4 pt-16 pb-10">
+        <div className="max-w-5xl mx-auto text-center space-y-5">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95]">
+            <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white">
+              Ecosystem Careers
+            </span>
+          </h1>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">
+            <span className="bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">
+              Build on Avalanche.
+            </span>
+          </h2>
+          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            Open roles from teams across the Avalanche ecosystem. Click into a listing to read more and apply on the company&apos;s site.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <HiringCta variant="button" />
+            {viewerIsDevRel && (
+              <DevRelReviewLink
+                pendingProjects={pendingProjects}
+                pendingListings={pendingListings}
+              />
+            )}
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-500 max-w-2xl mx-auto pt-2">
+            Listings are reviewed and sourced externally. When you click through, you&apos;ll leave Builders Hub for a third-party site — we don&apos;t host applications, and per our{' '}
+            <a
+              href="https://www.avax.network/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-slate-700 dark:hover:text-slate-300"
+            >
+              privacy policy
+            </a>{' '}
+            we don&apos;t track what happens after.
+          </p>
+        </div>
+      </section>
+
+      <section className="px-4 pb-20">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search role, company, location, skill…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-11 pr-10 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/60 transition"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="relative lg:w-56">
+              <select
+                value={companyId ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value || null;
+                  setCompanyId(value);
+                  trackFilterChange('company', value);
+                }}
+                className="appearance-none w-full pl-4 pr-10 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
+              >
+                <option value="">All companies</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.jobsCount})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            </div>
+
+            <div className="relative lg:w-40">
+              <select
+                value={remoteType ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value || null;
+                  setRemoteType(value);
+                  trackFilterChange('remote_type', value);
+                }}
+                className="appearance-none w-full pl-4 pr-10 py-3 text-sm rounded-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
+              >
+                <option value="">Any location</option>
+                {REMOTE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            </div>
+          </div>
+
+          {mounted && (
+            <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400" suppressHydrationWarning>
+              <span>
+                {hasFilters
+                  ? `${filtered.length} of ${initialJobs.length} roles shown`
+                  : `${initialJobs.length} open ${initialJobs.length === 1 ? 'role' : 'roles'}${totalActive > initialJobs.length ? ` (showing latest of ${totalActive})` : ''}`}
+              </span>
+              {hasFilters && (
+                <button
+                  onClick={() => {
+                    posthog?.capture?.('careers_filters_reset', {
+                      had_search: !!search,
+                      had_company: !!companyId,
+                      had_remote_type: !!remoteType,
+                    });
+                    setSearch('');
+                    setCompanyId(null);
+                    setRemoteType(null);
+                  }}
+                  className="text-red-600 dark:text-red-400 hover:underline"
+                >
+                  Reset filters
+                </button>
+              )}
+            </div>
+          )}
+
+          {filtered.length === 0 ? (
+            <EmptyState hasFilters={hasFilters} />
+          ) : viewerCanViewAll ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map((job) => (
+                <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} showSalary />
+              ))}
+            </div>
+          ) : (
+            <GatedGrid
+              jobs={filtered}
+              previewCount={previewCount}
+              authenticated={viewerAuthenticated}
+              missingSocials={viewerMissingSocials}
+              viewerIsDevRel={viewerIsDevRel}
+            />
+          )}
+        </div>
+      </section>
+      </main>
+    </>
+  );
+}
+
+// Open board for visitors without both socials connected: the top
+// `previewCount` roles render in full (salary stays locked on each card), and a
+// single CTA panel below invites them to connect X + LinkedIn to reveal
+// salaries, apply, and see any remaining roles. No blur wall — the cards are
+// real and clickable; the detail page enforces the gate on click-through.
+function GatedGrid({
+  jobs,
+  previewCount,
+  authenticated,
+  missingSocials,
+  viewerIsDevRel,
+}: {
+  jobs: SerializableJobCard[];
+  previewCount: number;
+  authenticated: boolean;
+  missingSocials: ('x' | 'linkedin')[];
+  viewerIsDevRel: boolean;
+}) {
+  const visible = jobs.slice(0, previewCount);
+  const hiddenCount = Math.max(jobs.length - visible.length, 0);
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {visible.map((job) => (
+          <JobCard key={job.id} job={job} viewerIsDevRel={viewerIsDevRel} showSalary={false} />
+        ))}
+      </div>
+      <UnlockPrompt
+        authenticated={authenticated}
+        missingSocials={missingSocials}
+        hiddenCount={hiddenCount}
+        variant="panel"
+      />
+    </div>
+  );
+}
+
+function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+  return (
+    <div className="py-16 text-center">
+      <p className="text-lg font-semibold text-zinc-700 dark:text-zinc-200">
+        {hasFilters ? 'No matching roles' : 'No open roles right now'}
+      </p>
+      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
+        {hasFilters
+          ? 'Try clearing a filter or adjusting your search.'
+          : 'New listings appear here as teams across the Avalanche ecosystem post roles. Check back soon.'}
+      </p>
+    </div>
+  );
+}

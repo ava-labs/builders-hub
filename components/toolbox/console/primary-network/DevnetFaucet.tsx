@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { formatEther, defineChain } from 'viem';
+import { formatEther, defineChain, isAddress } from 'viem';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Copy, Check, AlertTriangle, Droplets, ExternalLink, RefreshCw, Wallet } from 'lucide-react';
 import {
@@ -17,6 +17,9 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 const DEVNET_RPC_URL = 'https://api.avax-dev.network/ext/bc/C/rpc';
 const DEVNET_CHAIN_ID = 43117;
 const DEVNET_CHAIN_ID_HEX = '0xa86d';
+const DEFAULT_DRIP_AMOUNT = '2';
+const MIN_DRIP_AMOUNT = 1;
+const MAX_DRIP_AMOUNT = 2000;
 
 const devnetCChain = defineChain({
   id: DEVNET_CHAIN_ID,
@@ -38,6 +41,16 @@ const metadata: ConsoleToolMetadata = {
   toolRequirements: [AccountRequirementsConfigKey.UserLoggedIn],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
+
+function isValidDripAmount(amount: string) {
+  const trimmedAmount = amount.trim();
+  if (!/^[1-9]\d*$/.test(trimmedAmount)) {
+    return false;
+  }
+
+  const parsedAmount = Number(trimmedAmount);
+  return Number.isSafeInteger(parsedAmount) && parsedAmount >= MIN_DRIP_AMOUNT && parsedAmount <= MAX_DRIP_AMOUNT;
+}
 
 function CopyButton({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -64,7 +77,17 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const { data: session } = useSession();
   const { walletEVMAddress } = useWalletStore();
   const [isDripping, setIsDripping] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string; txHash?: string } | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    message: string;
+    txHash?: string;
+    destinationAddress?: string;
+  } | null>(null);
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [recipientError, setRecipientError] = useState<string | null>(null);
+  const [hasEditedRecipientAddress, setHasEditedRecipientAddress] = useState(false);
+  const [dripAmount, setDripAmount] = useState(DEFAULT_DRIP_AMOUNT);
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   const [faucetBalance, setFaucetBalance] = useState<string | null>(null);
   const [faucetAddress, setFaucetAddress] = useState<string | null>(null);
@@ -119,6 +142,12 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
     }
   }, [isAvaLabs, walletEVMAddress, fetchUserBalance]);
 
+  useEffect(() => {
+    if (walletEVMAddress && !hasEditedRecipientAddress) {
+      setRecipientAddress(walletEVMAddress);
+    }
+  }, [walletEVMAddress, hasEditedRecipientAddress]);
+
   const handleAddNetwork = async () => {
     if (!window.ethereum) return;
     try {
@@ -156,13 +185,29 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   };
 
   const handleDrip = async () => {
-    if (!walletEVMAddress || isDripping) return;
+    if (isDripping) return;
+
+    const destinationAddress = recipientAddress.trim();
+    if (!isAddress(destinationAddress)) {
+      setRecipientError('Enter a valid EVM address');
+      return;
+    }
+
+    const requestedAmount = dripAmount.trim();
+    if (!isValidDripAmount(requestedAmount)) {
+      setAmountError(`Enter a whole number from ${MIN_DRIP_AMOUNT} to ${MAX_DRIP_AMOUNT}`);
+      return;
+    }
 
     setIsDripping(true);
     setResult(null);
+    setRecipientError(null);
+    setAmountError(null);
 
     try {
-      const response = await fetch(`/api/devnet-faucet?address=${walletEVMAddress}`);
+      const response = await fetch(
+        `/api/devnet-faucet?address=${encodeURIComponent(destinationAddress)}&amount=${encodeURIComponent(requestedAmount)}`
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -174,11 +219,14 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
         success: true,
         message: `Sent ${data.amount} AVAX`,
         txHash: data.txHash,
+        destinationAddress: data.destinationAddress,
       });
       // Refresh balances after drip
       setTimeout(() => {
         fetchBalance();
-        fetchUserBalance();
+        if (walletEVMAddress && destinationAddress.toLowerCase() === walletEVMAddress.toLowerCase()) {
+          fetchUserBalance();
+        }
       }, 2000);
     } catch {
       setResult({ success: false, message: 'Network error. Please try again.' });
@@ -304,7 +352,9 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="font-medium text-zinc-900 dark:text-white leading-tight">C-Chain</h3>
                 <span className="shrink-0">
-                  <span className="font-mono font-semibold text-zinc-900 dark:text-white">2</span>
+                  <span className="font-mono font-semibold text-zinc-900 dark:text-white">
+                    {isValidDripAmount(dripAmount) ? dripAmount.trim() : DEFAULT_DRIP_AMOUNT}
+                  </span>
                   <span className="text-sm text-zinc-500 ml-1">AVAX</span>
                 </span>
               </div>
@@ -312,10 +362,8 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
             </div>
           </div>
 
-          {!walletEVMAddress ? (
-            <p className="text-sm text-zinc-500 text-center py-2">Connect your wallet to drip devnet AVAX</p>
-          ) : (
-            <div className="space-y-3">
+          <div className="space-y-3">
+            {walletEVMAddress && (
               <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded px-3 py-2">
                 <div className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
                   <Wallet className="w-3.5 h-3.5" />
@@ -341,17 +389,90 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
                   </button>
                 </div>
               </div>
-              <p className="text-xs text-zinc-500 font-mono truncate">{walletEVMAddress}</p>
-              <button
-                onClick={handleDrip}
-                disabled={isDripping}
-                className="w-full px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-zinc-400 disabled:cursor-not-allowed rounded flex items-center justify-center gap-2"
-              >
-                <Droplets className="w-4 h-4" />
-                {isDripping ? 'Dripping...' : 'Drip 2 AVAX'}
-              </button>
+            )}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor="devnet-faucet-recipient"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  Recipient Address
+                </label>
+                {walletEVMAddress && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecipientAddress(walletEVMAddress);
+                      setRecipientError(null);
+                      setResult(null);
+                      setHasEditedRecipientAddress(false);
+                    }}
+                    className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                  >
+                    Use connected wallet
+                  </button>
+                )}
+              </div>
+              <input
+                id="devnet-faucet-recipient"
+                type="text"
+                value={recipientAddress}
+                onChange={(event) => {
+                  setRecipientAddress(event.target.value);
+                  setRecipientError(null);
+                  setResult(null);
+                  setHasEditedRecipientAddress(true);
+                }}
+                placeholder="0x..."
+                className="w-full px-3 py-2 text-sm font-mono bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+              {recipientError && <p className="text-xs text-red-500">{recipientError}</p>}
             </div>
-          )}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="devnet-faucet-amount"
+                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Amount
+              </label>
+              <div className="relative">
+                <input
+                  id="devnet-faucet-amount"
+                  type="number"
+                  min={MIN_DRIP_AMOUNT}
+                  max={MAX_DRIP_AMOUNT}
+                  step={1}
+                  value={dripAmount}
+                  onChange={(event) => {
+                    setDripAmount(event.target.value);
+                    setAmountError(null);
+                    setResult(null);
+                  }}
+                  className="w-full px-3 py-2 pr-16 text-sm font-mono bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-500">
+                  AVAX
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500">Whole AVAX only, up to {MAX_DRIP_AMOUNT.toLocaleString()}.</p>
+              {amountError && <p className="text-xs text-red-500">{amountError}</p>}
+            </div>
+            {walletEVMAddress && (
+              <p className="text-xs text-zinc-500 truncate">
+                Connected wallet: <span className="font-mono">{walletEVMAddress}</span>
+              </p>
+            )}
+            <button
+              onClick={handleDrip}
+              disabled={isDripping || !recipientAddress.trim() || !dripAmount.trim()}
+              className="w-full px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-zinc-400 disabled:cursor-not-allowed rounded flex items-center justify-center gap-2"
+            >
+              <Droplets className="w-4 h-4" />
+              {isDripping
+                ? 'Dripping...'
+                : `Drip ${isValidDripAmount(dripAmount) ? dripAmount.trim() : DEFAULT_DRIP_AMOUNT} AVAX`}
+            </button>
+          </div>
 
           {result && (
             <div
@@ -362,6 +483,9 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
               }`}
             >
               <p>{result.message}</p>
+              {result.destinationAddress && (
+                <p className="mt-1 text-xs font-mono break-all text-zinc-500">to: {result.destinationAddress}</p>
+              )}
               {result.txHash && <p className="mt-1 text-xs font-mono break-all text-zinc-500">tx: {result.txHash}</p>}
             </div>
           )}
