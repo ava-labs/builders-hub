@@ -1,0 +1,215 @@
+---
+title: Key Metrics & Alerts
+description: The most important AvalancheGo metrics to watch when running an Avalanche L1, with recommended healthy ranges and alert thresholds.
+---
+
+Once you have [monitoring set up](/docs/nodes/maintain/monitoring), the next question is *what to actually watch*. AvalancheGo exposes hundreds of Prometheus metrics — this page narrows them to the handful that tell you whether your L1 is healthy, and the thresholds at which you should be warned or paged.
+
+<Callout type="info">
+These are guidelines, not hard rules. The thresholds below are portable across L1s (they're ratios and percentages, not absolute counts), but you should still validate them against your own chain's baseline and tune alert windows to your tolerance for noise.
+</Callout>
+
+## How to read this page
+
+Metrics fall into two groups:
+
+- **Critical metrics** are *symptoms*. They describe independent failure domains, so each one can degrade without the others moving. These are the metrics you alert and page on.
+- **Explanatory metrics** are *causes*. You generally don't page on them directly; you look at them to find out *why* a critical metric moved. For example, a CPU spike doesn't need its own page — it will show up as a drop in **Successful Queries**, and that's what you investigate.
+
+Throughout, `<chainID>` is your L1's blockchain ID. Most consensus and networking metrics carry a `chain` label; the EVM (VM-level) metric embeds the chain ID in its name. All metrics are scraped from a node's `/ext/metrics` endpoint — see [Monitoring](/docs/nodes/maintain/monitoring) for setup.
+
+---
+
+## Critical metrics
+
+### 1. Successful queries
+
+This is the single most sensitive indicator of L1 health.
+
+| | |
+|---|---|
+| **Metric** | `avalanche_snowman_polls_successful` / `avalanche_snowman_polls_failed` |
+| **Healthy** | ~100% |
+| **Warn** | < 95% over 5 min |
+| **Page** | < 90% over 5 min |
+
+AvalancheGo does not expose a success *percentage* directly — it exposes two counters, so you compute the ratio:
+
+```promql
+rate(avalanche_snowman_polls_successful{chain="<chainID>"}[5m])
+/
+(
+  rate(avalanche_snowman_polls_successful{chain="<chainID>"}[5m])
+  + rate(avalanche_snowman_polls_failed{chain="<chainID>"}[5m])
+)
+```
+
+A *poll* is a round of voting in which a node asks a sample of validators whether they prefer a block. It succeeds when enough validators respond to record a preference, and fails when responses don't arrive in time. Because every validator carries a share of the total stake, this ratio drops by roughly the offline validator's stake share whenever a validator stops responding — so it catches networking faults *and* down validators in a single number.
+
+On a healthy network this sits at 100%. As it falls, finalization time degrades; **below ~80% the chain can no longer finalize and effectively halts.** That makes it both your earliest warning and your most important alert.
+
+**If this drops, check the explanatory metrics below** — connected stake, CPU, benched validators, clock skew, and block processing all surface the underlying cause.
+
+### 2. Available disk space
+
+Disk is a completely independent failure domain. A node will keep participating in consensus — with **Successful Queries** looking perfectly healthy — right up until it runs out of disk and shuts itself down. The query metric gives you *no warning* of a disk problem, which is exactly why disk needs its own alert.
+
+| | |
+|---|---|
+| **Metric** | `avalanche_resource_tracker_disk_available_percentage` |
+| **Healthy** | > 25% free |
+| **Warn** | < 25% free |
+| **Page** | < 15% free |
+
+```promql
+avalanche_resource_tracker_disk_available_percentage
+```
+
+AvalancheGo tracks free space on its database volume natively and self-governs on it: by default the node reports **unhealthy below 10% free** and performs a **fatal shutdown below 3% free** (configurable via `--system-tracker-disk-warning-available-space-percentage` and `--system-tracker-disk-required-available-space-percentage`). The thresholds above are intentionally set *above* the node's own 10% warning so you have runway to add storage or prune before the node degrades.
+
+You should also watch host-level disk usage (e.g. via `node_exporter`) as a redundant signal, since the node's own metric stops being reported once the process is down.
+
+### 3. Bad blocks (EVM L1s)
+
+A third independent domain: *correctness*. A node can be diverging from the rest of the network — building or accepting blocks the network rejects — while both its query success and disk look fine.
+
+| | |
+|---|---|
+| **Metric** | `avalanche_<chainID>_vm_eth_chain_block_bad_count` |
+| **Healthy** | 0 (no increase) |
+| **Page** | any sustained increase over 5 min |
+
+```promql
+increase(avalanche_<chainID>_vm_eth_chain_block_bad_count[5m]) > 0
+```
+
+This counter (exposed by Subnet-EVM / Coreth) increments when the node encounters a block that fails validation — a state-root mismatch, invalid transactions, or similar. A rising count signals consensus divergence or local database corruption, and usually precedes the node falling out of agreement with the rest of the validators. Any sustained increase warrants investigation.
+
+---
+
+## Explanatory metrics
+
+You don't normally page on these. When a critical metric — almost always **Successful Queries** — degrades, these tell you *why*.
+
+### Connected stake
+
+| | |
+|---|---|
+| **Metric** | `avalanche_stake_percent_connected` |
+| **Healthy** | ≥ the node's `MinPercentConnectedHealthy` threshold |
+
+```promql
+avalanche_stake_percent_connected{chain="<chainID>"} * 100
+```
+
+The percentage of total validator *stake* this node currently has live connections to. The node's own health check fails when this drops below a threshold derived from your consensus parameters — `alpha/k × 0.8 + 0.2`, which is **80% at the defaults** (`k=20`, `alpha=15`). If you run non-default snow parameters, recompute accordingly. A drop here directly explains a drop in Successful Queries: the node literally cannot reach enough stake to complete polls.
+
+### Number of validators
+
+| | |
+|---|---|
+| **Metric** | `avalanche_stake_num_validators` |
+| **Healthy** | your expected validator count |
+| **Page** | `< 1` |
+
+```promql
+avalanche_stake_num_validators{chain="<chainID>"}
+```
+
+The size of the validator set the node currently sees. Dropping to `0` means the node has lost its view of the validator set entirely (a P-Chain sync or L1 manager problem) — catastrophic for an L1, since it can no longer run consensus.
+
+### Benched validators
+
+| | |
+|---|---|
+| **Metric** | `avalanche_benchlist_benched_num` |
+| **Healthy** | 0 |
+
+```promql
+avalanche_benchlist_benched_num{chain="<chainID>"}
+```
+
+The number of peers the node has temporarily stopped querying because they keep failing or timing out. A non-zero value points at a specific misbehaving validator. Note: on very small validator sets a single dead validator holding a large stake share may *not* be benchlisted (benchlisting is capped to protect liveness), so a reading of `0` does not by itself prove every validator is healthy — cross-check against connected stake.
+
+### Block processing backlog
+
+| | |
+|---|---|
+| **Metric** | `avalanche_snowman_blks_processing` |
+| **Healthy** | low and stable (typically near 0) |
+
+```promql
+avalanche_snowman_blks_processing{chain="<chainID>"}
+```
+
+The number of blocks that have entered consensus but are not yet finalized. In steady state this stays low. A sustained climb means finalization is stalling — votes aren't coming back fast enough — which is the same condition that drops Successful Queries. The "right" ceiling depends on your chain's block rate and load, so treat a *sustained upward trend* as the signal rather than a fixed number.
+
+### Chain progress / liveness
+
+| | |
+|---|---|
+| **Metric** | `avalanche_snowman_last_accepted_height` |
+| **Healthy** | continuously increasing |
+
+```promql
+increase(avalanche_snowman_last_accepted_height{chain="<chainID>"}[5m]) == 0
+```
+
+The height of the most recently accepted block. The most direct confirmation of a halt: if this stops increasing while transactions are being submitted, the chain is not finalizing. Use it to distinguish a genuine halt from transient query noise.
+
+### CPU usage
+
+| | |
+|---|---|
+| **Metric** | `avalanche_resource_tracker_cpu_usage` |
+| **Healthy** | well below your core count |
+
+```promql
+avalanche_resource_tracker_cpu_usage
+```
+
+CPU consumed by the node, expressed in cores (a value of `2.0` means two full cores). Sustained saturation slows block verification and message handling, which shows up downstream as a drop in Successful Queries. This is the canonical example of an explanatory metric: you don't page on CPU itself, you page on the query degradation it causes and check CPU to confirm the cause.
+
+### Clock skew
+
+AvalancheGo does not page on clock skew, but it is a real liveness cliff worth a low-threshold warning from your time-sync tooling (NTP/PTP):
+
+- Beyond **~10s** of drift, peers reject this node's proposed blocks (it stays connected but stops contributing as a proposer).
+- Beyond the configured handshake tolerance (**60s** by default), peer connections drop and the node becomes isolated.
+
+There is no graceful degradation past these points, so keep validators within ~1s of UTC and alert on offsets of 2–3s.
+
+---
+
+## Node health rollup
+
+| | |
+|---|---|
+| **Metric** | `avalanche_health_checks_failing` |
+| **Healthy** | 0 |
+
+```promql
+avalanche_health_checks_failing{check="health"}
+```
+
+A convenient catch-all: the count of currently failing checks in the node's aggregate health endpoint (`/ext/health/liveness`). It rolls up the individual checks AvalancheGo runs — networking, router, database, disk space, BLS key correctness, pending upgrades, bootstrap status, and validation. Any non-zero value means the node is reporting itself unhealthy. It's coarse (it won't tell you *which* domain failed without drilling in), but it's a cheap safety net behind the specific metrics above.
+
+---
+
+## Summary
+
+| Metric | Type | Page when |
+|---|---|---|
+| Successful queries (`polls_successful` / `polls_failed`) | Critical | < 90% over 5 min |
+| Available disk (`disk_available_percentage`) | Critical | < 15% free |
+| Bad blocks (`vm_eth_chain_block_bad_count`) | Critical | any sustained increase |
+| Connected stake (`stake_percent_connected`) | Explanatory | — (diagnose) |
+| Number of validators (`stake_num_validators`) | Explanatory | < 1 |
+| Benched validators (`benchlist_benched_num`) | Explanatory | — (diagnose) |
+| Block processing (`blks_processing`) | Explanatory | — (diagnose) |
+| Chain progress (`last_accepted_height`) | Explanatory | not increasing |
+| CPU usage (`cpu_usage`) | Explanatory | — (diagnose) |
+| Clock skew (NTP/PTP) | Explanatory | offset > 2–3s |
+| Health rollup (`health_checks_failing`) | Safety net | > 0 |
+
+Start with the three critical alerts — successful queries, disk, and bad blocks — and add the explanatory metrics to your dashboards so you can quickly diagnose the cause when a critical alert fires.
