@@ -67,13 +67,13 @@ You don't need to page on these — a real problem already shows up in the query
 
 | | |
 |---|---|
-| **Metric** | `avalanche_subnetevm_eth_chain_block_bad_count{chain="<chain>"}` |
+| **Metric** | `avalanche_subnetevm_vm_eth_chain_block_bad_count{chain="<chain>"}` |
 | **Healthy** | 0 |
 | **Paging** | any sustained increase |
 
 Blocks that failed validation (state-root mismatch, invalid transactions). A rising count means this node is diverging from the network. It is an independent signal — the counter increments separately from the consensus poll counters, so a node can accumulate bad blocks without the failure rate moving, which is exactly why it gets its own alert.
 
-The metric is namespaced by VM: `avalanche_subnetevm_…` for Subnet-EVM L1s and `avalanche_evm_…` for the C-Chain (Coreth). Nodes that run the VM as an external plugin add a `vm_` segment (e.g. `avalanche_subnetevm_vm_eth_chain_block_bad_count`). There is no built-in alert threshold — `badBlockLimit` (10) in the source is just an in-memory cache size, so alert on any sustained increase rather than a fixed count.
+The metric is namespaced by VM. A Subnet-EVM L1 runs the VM as an out-of-process plugin, so its metric carries a `vm_` segment: `avalanche_subnetevm_vm_eth_chain_block_bad_count`. The in-process C-Chain (Coreth) has no `vm_` segment: `avalanche_evm_eth_chain_block_bad_count{chain="C"}`. There is no built-in alert threshold — `badBlockLimit` (10) in the source is just an in-memory cache size, so alert on any sustained increase rather than a fixed count.
 
 ### Connected stake
 
@@ -120,11 +120,11 @@ The validator set the node currently sees. Dropping to 0 means it has lost its v
 
 | | |
 |---|---|
-| **Metric** | `avalanche_health_checks_failing{tag="application"}` |
+| **Metric** | `avalanche_health_checks_failing{check="health",tag="application"}` |
 | **Healthy** | 0 |
 | **Paging** | > 0 (sustained) |
 
-A catch-all gauge of how many checks are *currently* failing in the node's health endpoint (networking, router, database, disk, BLS key, pending upgrades, bootstrap status, validation). The labels are `check` (per-check name) and `tag`; use `tag="application"` for the application-level rollup, or `tag="all"` for every registered check. Because it reports the current count rather than an event total, **any non-zero value already means the node is unhealthy** — page on `> 0`, optionally requiring it to persist a minute or two to avoid flapping on transient checks.
+A catch-all gauge of how many checks are *currently* failing in the node's health endpoint (networking, router, database, disk, BLS key, pending upgrades, bootstrap status, validation). It carries two labels: `check` (one of `health`, `liveness`, `readiness`) and `tag` (`all`, `application`, or a specific subnet ID). Use `{check="health",tag="application"}` for the application-level health rollup. Because it reports the current count rather than an event total, **any non-zero value already means the node is unhealthy** — page on `> 0`, optionally requiring it to persist a minute or two to avoid flapping on transient checks.
 
 ### CPU usage
 
@@ -144,7 +144,7 @@ AvalancheGo exposes its own CPU usage as `avalanche_resource_tracker_cpu_usage`,
 |---|---|---|
 | Query failure rate (`polls_successful` / `polls_failed`) | **Critical** | < 90% successful |
 | Disk space remaining (`disk_available_percentage`) | **Critical** | < 10% free |
-| Bad blocks (`subnetevm_eth_chain_block_bad_count`) | Secondary | any sustained increase |
+| Bad blocks (`subnetevm_vm_eth_chain_block_bad_count`) | Secondary | any sustained increase |
 | Connected stake (`stake_percent_connected`) | Secondary | < 0.8 |
 | Processing blocks (`blks_processing`) | Secondary | sustained spike |
 | Benched validators (`benchlist_benched_num`) | Secondary | > 1 / 10 min |
