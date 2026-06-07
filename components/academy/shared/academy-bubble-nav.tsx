@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { GraduationCap, Users } from 'lucide-react';
+import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
 
 const AVALANCHE_LOGO_SRC =
     "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Avalanche_Logomark_Red.svg";
@@ -173,6 +175,11 @@ function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
 export function AcademyBubbleNav() {
     const pathname = usePathname();
     const router = useRouter();
+    const { data: session } = useSession();
+    const canSeeTeam1 = hasTeam1AcademyAccess(session?.user?.custom_attributes);
+    const visibleAcademyItems = canSeeTeam1
+        ? academyItems
+        : academyItems.filter((item) => item.id !== "team1");
     const [activeItem, setActiveItem] = useState(() => getActiveItem(pathname));
     const [isVisible, setIsVisible] = useState(() => isMainAcademyPage(pathname));
     const [showOnboarding, setShowOnboarding] = useState(false);
@@ -247,7 +254,7 @@ export function AcademyBubbleNav() {
             className="fixed left-3 top-1/2 -translate-y-1/2 z-30 hidden lg:block"
         >
             <div className="flex flex-col items-start gap-2">
-                {academyItems.map((item) => {
+                {visibleAcademyItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeItem === item.id;
 

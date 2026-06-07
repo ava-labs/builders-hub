@@ -33,7 +33,8 @@ export const menuSections: NavSection[] = [
       { text: 'Avalanche L1 Academy', href: '/academy/avalanche-l1' },
       { text: 'Entrepreneur Academy', href: '/academy/entrepreneur' },
       { text: 'Blockchain Academy', href: '/academy/blockchain' },
-      { text: 'Team1 Academy', href: '/academy/team1' },
+      // Team1 Academy temporarily hidden from the navbar (mobile + desktop dropdown).
+      // { text: 'Team1 Academy', href: '/academy/team1' },
     ],
   },
   {

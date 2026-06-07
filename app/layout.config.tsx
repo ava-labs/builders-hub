@@ -371,13 +371,14 @@ export const academyMenu: LinkItemType = {
         'Build a rock-solid foundation in blockchain fundamentals, smart contracts, and privacy-preserving tech.',
       url: '/academy?path=blockchain',
     },
-    {
-      icon: <Users />,
-      text: 'Team1 Academy',
-      description:
-        'Explore Team1 learning paths from fundamentals to advanced technical leadership and event organizing.',
-      url: '/academy/team1',
-    },
+    // Team1 Academy temporarily hidden from the navbar megamenu.
+    // {
+    //   icon: <Users />,
+    //   text: 'Team1 Academy',
+    //   description:
+    //     'Explore Team1 learning paths from fundamentals to advanced technical leadership and event organizing.',
+    //   url: '/academy/team1',
+    // },
   ],
 };
 
