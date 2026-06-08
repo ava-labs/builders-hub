@@ -80,6 +80,24 @@ interface WalletFormEntry {
   issuedAt?: string;
 }
 
+function dedupeWallets(wallets: WalletFormEntry[]): WalletFormEntry[] {
+  return Object.values(
+    wallets.reduce<Record<string, WalletFormEntry>>((acc, item) => {
+      const key = item.address.toLowerCase();
+      if (!(key in acc)) {
+        acc[key] = {
+          address: item.address,
+          ...(item.tag ? { tag: item.tag } : {}),
+          ...(item.signature ? { signature: item.signature } : {}),
+          ...(item.issuedAt ? { issuedAt: item.issuedAt } : {}),
+        };
+      }
+
+      return acc;
+    }, {}),
+  );
+}
+
 function hasWalletAddress(
   value: unknown,
 ): value is { address: string; tag?: unknown; signature?: unknown; issuedAt?: unknown } {
@@ -396,24 +414,7 @@ export function useProfileForm() {
         ...restData
       } = data;
 
-      const cleanedWallets = Array.isArray(wallet)
-        ? normalizeWallets(wallet).reduce<Record<string, WalletFormEntry>>(
-            (acc, item) => {
-              const key = item.address.toLowerCase();
-              if (!(key in acc)) {
-                acc[key] = {
-                  address: item.address,
-                  ...(item.tag ? { tag: item.tag } : {}),
-                  ...(item.signature ? { signature: item.signature } : {}),
-                  ...(item.issuedAt ? { issuedAt: item.issuedAt } : {}),
-                };
-              }
-              return acc;
-            },
-            {},
-          )
-        : {};
-      const cleanedWalletEntries = Array.isArray(wallet) ? Object.values(cleanedWallets) : [];
+      const cleanedWalletEntries = Array.isArray(wallet) ? dedupeWallets(normalizeWallets(wallet)) : [];
 
       const profileData = {
         ...restData,
@@ -592,17 +593,7 @@ export function useProfileForm() {
         ...restData
       } = data;
 
-      const cleanedWalletEntries = normalizeWallets(wallet).reduce<Record<string, { address: string; tag?: string }>>(
-        (acc, item) => {
-          const key = item.address.toLowerCase();
-          if (!(key in acc)) {
-            acc[key] = item.tag ? { address: item.address, tag: item.tag } : { address: item.address };
-          }
-          return acc;
-        },
-        {},
-      );
-      const cleanedWalletArray = Object.values(cleanedWalletEntries);
+      const cleanedWalletArray = dedupeWallets(normalizeWallets(wallet));
 
       const profileData = {
         ...restData,

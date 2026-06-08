@@ -1,10 +1,12 @@
-export const WALLET_TAG_MAX_LENGTH = 50;
-export const WALLET_TAG_PATTERN = /^[A-Za-z0-9 _-]+$/;
-export const WALLET_TAG_INPUT_PATTERN = "[A-Za-z0-9 _-]*";
-export const WALLET_TAG_VALIDATION_MESSAGE =
-  "Only alphanumeric characters, spaces, underscores, and hyphens are allowed.";
+export const WALLET_TAG_OPTIONS = ["dev", "mainnet"] as const;
+export type WalletTag = (typeof WALLET_TAG_OPTIONS)[number];
 
-export function normalizeWalletTag(value: unknown): string | undefined {
+export const WALLET_TAG_MAX_LENGTH = 50;
+export const WALLET_TAG_PATTERN = /^(dev|mainnet)$/;
+export const WALLET_TAG_VALIDATION_MESSAGE =
+  "Wallet tag must be either dev or mainnet.";
+
+export function normalizeWalletTag(value: unknown): WalletTag | undefined {
   if (typeof value !== "string") {
     return undefined;
   }
@@ -14,5 +16,5 @@ export function normalizeWalletTag(value: unknown): string | undefined {
     return undefined;
   }
 
-  return WALLET_TAG_PATTERN.test(tag) ? tag : undefined;
+  return WALLET_TAG_PATTERN.test(tag) ? (tag as WalletTag) : undefined;
 }
