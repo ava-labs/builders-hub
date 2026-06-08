@@ -122,22 +122,23 @@ model VerificationToken {
 }
 
 model WalletOwnershipProof {
-  id           String   @id @default(cuid())
+  id            String   @id @default(cuid())
   userId       String
   walletAddress String
-  nonce        String   @unique
-  issuedAt     DateTime  @db.Timestamptz(3)
-  expiresAt    DateTime  @db.Timestamptz(3)
-  usedAt       DateTime? @db.Timestamptz(3)
-  signature    String?
-  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nonce         String   @unique
+  issuedAt      DateTime @db.Timestamptz(3)
+  expiresAt     DateTime @db.Timestamptz(3)
+  attemptedAt   DateTime? @db.Timestamptz(3)
+  usedAt        DateTime? @db.Timestamptz(3)
+  signature     String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([walletAddress])
   @@index([expiresAt])
-  @@index([userId, walletAddress, usedAt])
+  @@index([userId, walletAddress, attemptedAt])
 }
 
 model RegisterForm {

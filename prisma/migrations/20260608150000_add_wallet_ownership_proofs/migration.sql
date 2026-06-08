@@ -7,6 +7,7 @@ CREATE TABLE "WalletOwnershipProof" (
     "nonce" TEXT NOT NULL,
     "issuedAt" TIMESTAMPTZ(3) NOT NULL,
     "expiresAt" TIMESTAMPTZ(3) NOT NULL,
+    "attemptedAt" TIMESTAMPTZ(3),
     "usedAt" TIMESTAMPTZ(3),
     "signature" TEXT,
     "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -19,7 +20,7 @@ CREATE UNIQUE INDEX "WalletOwnershipProof_nonce_key" ON "WalletOwnershipProof"("
 CREATE INDEX "WalletOwnershipProof_userId_idx" ON "WalletOwnershipProof"("userId");
 CREATE INDEX "WalletOwnershipProof_walletAddress_idx" ON "WalletOwnershipProof"("walletAddress");
 CREATE INDEX "WalletOwnershipProof_expiresAt_idx" ON "WalletOwnershipProof"("expiresAt");
-CREATE INDEX "WalletOwnershipProof_userId_walletAddress_usedAt_idx" ON "WalletOwnershipProof"("userId", "walletAddress", "usedAt");
+CREATE INDEX "WalletOwnershipProof_userId_walletAddress_attemptedAt_idx" ON "WalletOwnershipProof"("userId", "walletAddress", "attemptedAt");
 
 ALTER TABLE "WalletOwnershipProof"
 ADD CONSTRAINT "WalletOwnershipProof_userId_fkey"

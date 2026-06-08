@@ -61,8 +61,32 @@ export async function issueWalletOwnershipProof(
   };
 }
 
-export async function consumeWalletOwnershipProof(
+export async function confirmWalletOwnershipProof(
   proof: WalletOwnershipProofPayload,
+  client: WalletOwnershipProofClient = prisma,
+): Promise<void> {
+  const normalizedWalletAddress = normalizeWalletAddress(proof.walletAddress);
+  const confirmed = await client.walletOwnershipProof.updateMany({
+    where: {
+      nonce: proof.nonce,
+      userId: proof.userId,
+      walletAddress: normalizedWalletAddress,
+      attemptedAt: { not: null },
+      usedAt: null,
+    },
+    data: {
+      usedAt: new Date(),
+      signature: proof.signature,
+    },
+  });
+
+  if (confirmed.count !== 1) {
+    throw new WalletOwnershipProofError("Wallet ownership proof could not be confirmed.", 400);
+  }
+}
+
+export async function claimWalletOwnershipProof(
+  proof: Omit<WalletOwnershipProofPayload, "signature">,
   client: WalletOwnershipProofClient = prisma,
 ): Promise<void> {
   const normalizedWalletAddress = normalizeWalletAddress(proof.walletAddress);
@@ -91,24 +115,20 @@ export async function consumeWalletOwnershipProof(
     throw new WalletOwnershipProofError("Wallet ownership proof has expired. Please reconnect your wallet.", 400);
   }
 
-  if (proofRecord.usedAt) {
-    throw new WalletOwnershipProofError("Wallet ownership proof has already been used. Please reconnect your wallet.", 400);
-  }
-
   const updated = await client.walletOwnershipProof.updateMany({
     where: {
       nonce: proof.nonce,
       userId: proof.userId,
       walletAddress: normalizedWalletAddress,
+      attemptedAt: null,
       usedAt: null,
     },
     data: {
-      usedAt: new Date(),
-      signature: proof.signature,
+      attemptedAt: new Date(),
     },
   });
 
   if (updated.count !== 1) {
-    throw new WalletOwnershipProofError("Wallet ownership proof could not be consumed. Please reconnect your wallet.", 400);
+    throw new WalletOwnershipProofError("Wallet ownership proof could not be claimed. Please reconnect your wallet.", 400);
   }
 }

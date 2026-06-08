@@ -10,7 +10,8 @@ import {
     EIP712_STATEMENT,
 } from "@/lib/profile/walletEip712";
 import {
-    consumeWalletOwnershipProof,
+    claimWalletOwnershipProof,
+    confirmWalletOwnershipProof,
     WalletOwnershipProofError,
 } from "./wallet-proof.service";
 
@@ -264,65 +265,87 @@ export async function updateExtendedProfile(
         normalizeWallets(existingUser.wallet).map((w) => w.address.toLowerCase()),
     );
 
-    await prisma.$transaction(async (tx) => {
-        if (profileData.wallet !== undefined && profileData.wallet !== null) {
-            for (const w of profileData.wallet as IncomingWalletEntry[]) {
-                const isNew = !currentAddresses.has(w.address.toLowerCase());
-                if (!isNew) continue;
+    const claimedWallets: IncomingWalletEntry[] = [];
 
-                if (!w.signature || !w.issuedAt) {
-                    throw new ProfileValidationError(
-                        `Ownership proof required for wallet ${w.address}.`,
-                        400,
-                    );
-                }
+    if (profileData.wallet !== undefined && profileData.wallet !== null) {
+        for (const w of profileData.wallet as IncomingWalletEntry[]) {
+            const isNew = !currentAddresses.has(w.address.toLowerCase());
+            if (!isNew) continue;
 
-                if (!w.nonce) {
-                    throw new ProfileValidationError(
-                        `Ownership proof nonce required for wallet ${w.address}.`,
-                        400,
-                    );
-                }
+            if (!w.signature || !w.issuedAt) {
+                throw new ProfileValidationError(
+                    `Ownership proof required for wallet ${w.address}.`,
+                    400,
+                );
+            }
 
-                const valid = await verifyTypedData({
-                    address: w.address as Address,
-                    domain: EIP712_DOMAIN,
-                    types: EIP712_TYPES_FOR_VERIFY,
-                    primaryType: "WalletOwnership",
-                    message: {
-                        statement: EIP712_STATEMENT,
+            if (!w.nonce) {
+                throw new ProfileValidationError(
+                    `Ownership proof nonce required for wallet ${w.address}.`,
+                    400,
+                );
+            }
+
+            try {
+                await claimWalletOwnershipProof(
+                    {
                         userId: sessionUserId,
-                        walletAddress: w.address as Address,
+                        walletAddress: w.address,
                         issuedAt: w.issuedAt,
                         nonce: w.nonce,
                     },
-                    signature: w.signature as `0x${string}`,
-                });
-
-                if (!valid) {
-                    throw new ProfileValidationError(
-                        `Invalid ownership signature for wallet ${w.address}.`,
-                        400,
-                    );
+                );
+            } catch (error) {
+                if (error instanceof WalletOwnershipProofError) {
+                    throw new ProfileValidationError(error.message, error.statusCode);
                 }
+                throw error;
+            }
 
-                try {
-                    await consumeWalletOwnershipProof(
-                        {
-                            userId: sessionUserId,
-                            walletAddress: w.address,
-                            issuedAt: w.issuedAt,
-                            nonce: w.nonce,
-                            signature: w.signature,
-                        },
-                        tx,
-                    );
-                } catch (error) {
-                    if (error instanceof WalletOwnershipProofError) {
-                        throw new ProfileValidationError(error.message, error.statusCode);
-                    }
-                    throw error;
+            const valid = await verifyTypedData({
+                address: w.address as Address,
+                domain: EIP712_DOMAIN,
+                types: EIP712_TYPES_FOR_VERIFY,
+                primaryType: "WalletOwnership",
+                message: {
+                    statement: EIP712_STATEMENT,
+                    userId: sessionUserId,
+                    walletAddress: w.address as Address,
+                    issuedAt: w.issuedAt,
+                    nonce: w.nonce,
+                },
+                signature: w.signature as `0x${string}`,
+            });
+
+            if (!valid) {
+                throw new ProfileValidationError(
+                    `Invalid ownership signature for wallet ${w.address}.`,
+                    400,
+                );
+            }
+
+            claimedWallets.push(w);
+        }
+    }
+
+    await prisma.$transaction(async (tx) => {
+        for (const w of claimedWallets) {
+            try {
+                await confirmWalletOwnershipProof(
+                    {
+                        userId: sessionUserId,
+                        walletAddress: w.address,
+                        issuedAt: w.issuedAt!,
+                        nonce: w.nonce!,
+                        signature: w.signature!,
+                    },
+                    tx,
+                );
+            } catch (error) {
+                if (error instanceof WalletOwnershipProofError) {
+                    throw new ProfileValidationError(error.message, error.statusCode);
                 }
+                throw error;
             }
         }
 
