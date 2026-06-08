@@ -408,8 +408,10 @@ export default function ProfilePage({ teamLabel }: Props) {
 
   const handleSave = async () => {
     try {
-      await onSubmit();
-      pushToast("Profile saved");
+      const saved = await onSubmit();
+      if (saved) {
+        pushToast("Profile saved");
+      }
     } catch {
       pushToast("Could not save profile", "error");
     }

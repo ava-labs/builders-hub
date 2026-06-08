@@ -458,7 +458,6 @@ export function useProfileForm() {
           status: response.status,
           statusText: response.statusText,
           errorData,
-          payload: profileData,
         });
         throw new Error(message);
       }
@@ -518,14 +517,14 @@ export function useProfileForm() {
   }, [watchedValues, formState.isDirty, isLoading, autoSave, form]);
 
   // Handle form submission
-  const onSubmit = async (data: ProfileFormValues) => {
+  const onSubmit = async (data: ProfileFormValues): Promise<boolean> => {
     if (!session?.user?.id) {
       toast({
         title: "Authentication required",
         description: "You must be logged in to update your profile",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     // Only format validations - no required fields
@@ -547,7 +546,7 @@ export function useProfileForm() {
     }
 
     if (hasErrors) {
-      return;
+      return false;
     }
 
     setIsSaving(true);
@@ -625,8 +624,6 @@ export function useProfileForm() {
         }
       };
 
-      console.log("Saving profile data:", profileData);
-      
       const response = await fetch(`/api/profile/extended/${session.user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -640,7 +637,6 @@ export function useProfileForm() {
           status: response.status,
           statusText: response.statusText,
           errorData,
-          payload: profileData,
         });
         throw new Error(message);
       }
@@ -688,6 +684,7 @@ export function useProfileForm() {
       
       // Update last saved data reference
       lastSavedDataRef.current = JSON.stringify(newFormData);
+      return true;
     } catch (error) {
       console.error("Error saving profile:", error);
       toast({
@@ -695,6 +692,7 @@ export function useProfileForm() {
         description: error instanceof Error ? error.message : "Error saving profile. Please try again.",
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -774,6 +772,12 @@ export function useProfileForm() {
     handleRemoveSocial,
     handleAddWallet,
     handleRemoveWallet,
-    onSubmit: form.handleSubmit(onSubmit),
+    onSubmit: async () => {
+      let saved = false;
+      await form.handleSubmit(async (data) => {
+        saved = await onSubmit(data);
+      })();
+      return saved;
+    },
   };
 }

@@ -265,7 +265,7 @@ export async function updateExtendedProfile(
         normalizeWallets(existingUser.wallet).map((w) => w.address.toLowerCase()),
     );
 
-    const claimedWallets: IncomingWalletEntry[] = [];
+    const verifiedWallets: IncomingWalletEntry[] = [];
 
     if (profileData.wallet !== undefined && profileData.wallet !== null) {
         for (const w of profileData.wallet as IncomingWalletEntry[]) {
@@ -286,36 +286,25 @@ export async function updateExtendedProfile(
                 );
             }
 
+            let valid = false;
             try {
-                await claimWalletOwnershipProof(
-                    {
+                valid = await verifyTypedData({
+                    address: w.address as Address,
+                    domain: EIP712_DOMAIN,
+                    types: EIP712_TYPES_FOR_VERIFY,
+                    primaryType: "WalletOwnership",
+                    message: {
+                        statement: EIP712_STATEMENT,
                         userId: sessionUserId,
-                        walletAddress: w.address,
+                        walletAddress: w.address as Address,
                         issuedAt: w.issuedAt,
                         nonce: w.nonce,
                     },
-                );
-            } catch (error) {
-                if (error instanceof WalletOwnershipProofError) {
-                    throw new ProfileValidationError(error.message, error.statusCode);
-                }
-                throw error;
+                    signature: w.signature as `0x${string}`,
+                });
+            } catch {
+                valid = false;
             }
-
-            const valid = await verifyTypedData({
-                address: w.address as Address,
-                domain: EIP712_DOMAIN,
-                types: EIP712_TYPES_FOR_VERIFY,
-                primaryType: "WalletOwnership",
-                message: {
-                    statement: EIP712_STATEMENT,
-                    userId: sessionUserId,
-                    walletAddress: w.address as Address,
-                    issuedAt: w.issuedAt,
-                    nonce: w.nonce,
-                },
-                signature: w.signature as `0x${string}`,
-            });
 
             if (!valid) {
                 throw new ProfileValidationError(
@@ -324,13 +313,22 @@ export async function updateExtendedProfile(
                 );
             }
 
-            claimedWallets.push(w);
+            verifiedWallets.push(w);
         }
     }
 
     await prisma.$transaction(async (tx) => {
-        for (const w of claimedWallets) {
+        for (const w of verifiedWallets) {
             try {
+                await claimWalletOwnershipProof(
+                    {
+                        userId: sessionUserId,
+                        walletAddress: w.address,
+                        issuedAt: w.issuedAt!,
+                        nonce: w.nonce!,
+                    },
+                    tx,
+                );
                 await confirmWalletOwnershipProof(
                     {
                         userId: sessionUserId,
