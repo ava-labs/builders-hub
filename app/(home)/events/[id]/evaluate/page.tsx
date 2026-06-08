@@ -116,8 +116,9 @@ export default async function HackathonEvaluatePage({
       <HackathonEvaluateDashboard
         hackathonId={hackathon.id}
         viewerId={viewerId}
-        canPickWinners={hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })}
-        canManagePhase={hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })}
+        canPickWinners={hasPermission(session?.user?.custom_attributes, { resource: "event", action: "manage" })}
+        canManagePhase={hasPermission(session?.user?.custom_attributes, { resource: "event", action: "manage" })}
+        isDevrel={isDevrel}
         initialPhase={hackathon.evaluation_phase}
         initialReviewed={reviewedCount}
         projects={projectsForViewer.map((p) => ({

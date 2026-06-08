@@ -7,7 +7,7 @@ import {
 } from "@/server/services/set-project-winner";
 import { NextRequest, NextResponse } from "next/server";
 
-export const PUT = withAuthPermission({ resource: "badge", action: "manage" }, async (req: NextRequest, _context: unknown, session: Session) => {
+export const PUT = withAuthPermission({ resource: "event", action: "manage" }, async (req: NextRequest, _context: unknown, session: Session) => {
   const body = await req.json();
   const name = session.user.name || "user";
 

@@ -11,7 +11,7 @@
  *   read    → safe reads (GET)
  *   write   → mutations (POST, PUT, PATCH)
  *   delete  → removal (DELETE)
- *   manage  → all of the above (superpower for that resource)
+ *   manage  → read + write + delete for that resource
  *   *       → every action on the matched resource
  *
  * Wildcard rules:
@@ -60,6 +60,15 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     { resource: "speaker", action: "read" },
     { resource: "showcase", action: "read" },
     { resource: "showcase", action: "export" },
+  ],
+
+  // ── Team 1 admin ─────────────────────────────────────────────────────────
+  "team1-admin": [
+    { resource: "event", action: "manage" },
+    { resource: "resource", action: "manage" },
+    { resource: "speaker", action: "manage" },
+    { resource: "showcase", action: "read" },
+    { resource: "judge", action: "assign" },
   ],
 
   // ── Showcase ──────────────────────────────────────────────────────────────
@@ -157,8 +166,9 @@ export function getPermissionsFromRoles(roles: string[]): Permission[] {
  *  1. Wildcard resource ("*") matches any required resource.
  *  2. Exact resource match.
  *  3. Parent namespace match: owning "badge" grants access to "badge:nft".
- *  4. Wildcard action ("*") or "manage" matches any required action.
- *  5. Exact action match.
+ *  4. Wildcard action ("*") matches any required action.
+ *  5. "manage" matches read + write + delete.
+ *  6. Exact action match.
  */
 export function checkPermission(
   userPermissions: Permission[],
@@ -173,7 +183,10 @@ export function checkPermission(
 
     const actionMatch =
       p.action === "*" ||
-      p.action === "manage" ||
+      (p.action === "manage" &&
+        (required.action === "read" ||
+          required.action === "write" ||
+          required.action === "delete")) ||
       p.action === required.action;
 
     return resourceMatch && actionMatch;

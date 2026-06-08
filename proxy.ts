@@ -4,19 +4,27 @@ import { matchRoute } from "@/lib/auth/routeManifest";
 import { actionFromMethod } from "@/lib/auth/rolePermissions";
 import { hasPermission } from "@/lib/auth/roles";
 
-export async function proxy(req: NextRequest) {
-  const pathname = req.nextUrl.pathname;
-  const response = NextResponse.next();
+function appendVary(response: Response, value: string): void {
+  const current = response.headers.get("Vary");
+  if (!current) {
+    response.headers.set("Vary", value);
+    return;
+  }
+  const values = current.split(",").map((part) => part.trim());
+  if (!values.includes(value)) {
+    response.headers.set("Vary", `${current}, ${value}`);
+  }
+}
 
-  // Restrict CORS to the application's own origin.
-  // Using "*" on authenticated routes allows any website to read API responses
-  // from the user's browser session (e.g. judge lists with role data).
+function applyCorsHeaders(response: Response, requestOrigin: string | null): Response {
   const allowedOrigin = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  const requestOrigin = req.headers.get("origin");
+
   if (requestOrigin === allowedOrigin) {
     response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
-    response.headers.set("Vary", "Origin");
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+    appendVary(response, "Origin");
   }
+
   response.headers.set(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS"
@@ -26,8 +34,15 @@ export async function proxy(req: NextRequest) {
     "Content-Type, Authorization"
   );
 
+  return response;
+}
+
+export async function proxy(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+  const requestOrigin = req.headers.get("origin");
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204 });
+    return applyCorsHeaders(new Response(null, { status: 204 }), requestOrigin);
   }
 
   // ── Content negotiation: serve markdown when Accept: text/markdown ────────
@@ -48,20 +63,20 @@ export async function proxy(req: NextRequest) {
     const apiUrl = new URL(`/api/raw${pathname}`, req.url);
     const rewriteResponse = NextResponse.rewrite(apiUrl);
     rewriteResponse.headers.set("Vary", "Accept");
-    return rewriteResponse;
+    return applyCorsHeaders(rewriteResponse, requestOrigin);
   }
 
   if (isContentPath && !isProtectedAcademyPath) {
     const contentResponse = NextResponse.next();
     contentResponse.headers.set("Vary", "Accept");
-    return contentResponse;
+    return applyCorsHeaders(contentResponse, requestOrigin);
   }
 
   // ── Route manifest check ──────────────────────────────────────────────────
   const matched = matchRoute(pathname);
 
   // Public route — pass through
-  if (!matched) return NextResponse.next();
+  if (!matched) return applyCorsHeaders(NextResponse.next(), requestOrigin);
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuthenticated = !!token;
@@ -70,21 +85,21 @@ export async function proxy(req: NextRequest) {
   // ── Unauthenticated ───────────────────────────────────────────────────────
   if (!isAuthenticated) {
     if (isApi) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return applyCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), requestOrigin);
     }
     // For UI routes: set header so AutoLoginModalTrigger can detect it
     const blockedResponse = NextResponse.next();
     blockedResponse.headers.set("x-auth-required", "true");
-    return blockedResponse;
+    return applyCorsHeaders(blockedResponse, requestOrigin);
   }
 
   // ── Authenticated on login page → redirect home ───────────────────────────
   if (pathname === "/login") {
-    return NextResponse.redirect(new URL("/", req.url));
+    return applyCorsHeaders(NextResponse.redirect(new URL("/", req.url)), requestOrigin);
   }
 
   // ── authOnly route — any session is enough ────────────────────────────────
-  if (matched.authOnly) return NextResponse.next();
+  if (matched.authOnly) return applyCorsHeaders(NextResponse.next(), requestOrigin);
 
   // ── Permission check ──────────────────────────────────────────────────────
   const action = matched.action ?? actionFromMethod(req.method);
@@ -92,15 +107,15 @@ export async function proxy(req: NextRequest) {
 
   if (!hasPermission(attrs, { resource: matched.resource!, action })) {
     if (isApi) {
-      return NextResponse.json(
+      return applyCorsHeaders(NextResponse.json(
         { error: "Forbidden", required: `${matched.resource}:${action}` },
         { status: 403 }
-      );
+      ), requestOrigin);
     }
-    return NextResponse.redirect(new URL("/", req.url));
+    return applyCorsHeaders(NextResponse.redirect(new URL("/", req.url)), requestOrigin);
   }
 
-  return NextResponse.next();
+  return applyCorsHeaders(NextResponse.next(), requestOrigin);
 }
 
 export const config = {

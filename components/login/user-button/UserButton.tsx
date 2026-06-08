@@ -210,7 +210,7 @@ export function UserButton() {
               )
             }
             {
-              hasPermission(session?.user?.custom_attributes, { resource: "event", action: "write" }) && (
+              hasPermission(session?.user?.custom_attributes, { resource: "judge", action: "read" }) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/evaluate'>Evaluate Hackathons</Link>
                 </DropdownMenuItem>

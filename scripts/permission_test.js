@@ -148,6 +148,13 @@ const RAW_ROUTES = [
     type: 'api',
   },
   {
+    name: '/api/events/[id]/evaluation-phase',
+    method: 'POST',
+    path: '/api/events/__test__/evaluation-phase',
+    expectedRoles: ['team1-admin', 'devrel'],
+    type: 'api',
+  },
+  {
     name: '/api/projects/[id]/winner',
     method: 'POST',
     path: '/api/projects/__test__/winner',
@@ -163,6 +170,7 @@ const ROLE_CYCLES = [
   'BuildGamesJudge',
   'NotifyEvent',
   'badge_admin',
+  'team1-admin',
   'Team1-Leader',
   'Team1-member',
   'T1-Technical',
