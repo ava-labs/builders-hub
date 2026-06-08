@@ -28,6 +28,7 @@ export interface ProfileWallet {
   label?: string;
   balance?: string;
   primary?: boolean;
+  nonce?: string;
 }
 
 export interface ReferralLinkVM {

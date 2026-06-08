@@ -10,13 +10,15 @@
 
 export const EIP712_DOMAIN = {
   name: "Avalanche Builder Hub",
-  version: "1",
+  version: "2",
 } as const;
 
 const EIP712_WALLET_OWNERSHIP_FIELDS = [
   { name: "statement", type: "string" },
+  { name: "userId", type: "string" },
   { name: "walletAddress", type: "address" },
   { name: "issuedAt", type: "string" },
+  { name: "nonce", type: "string" },
 ] as const;
 
 /** Types for use with eth_signTypedData_v4 — EIP712Domain must be declared explicitly. */

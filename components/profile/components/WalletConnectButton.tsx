@@ -10,6 +10,7 @@ import {
 } from "@reown/appkit/react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Wallet } from "lucide-react";
+import { useSession } from "next-auth/react";
 import {
   avalanche,
   avalancheFuji,
@@ -65,7 +66,12 @@ createAppKit({
 const queryClient = new QueryClient();
 
 interface WalletConnectButtonProps {
-  onWalletConnected: (address: string, signature: string, issuedAt: string) => void;
+  onWalletConnected: (
+    address: string,
+    signature: string,
+    issuedAt: string,
+    nonce: string,
+  ) => void;
   existingAddresses?: string[];
 }
 
@@ -85,6 +91,11 @@ interface Eip1193RequestArguments {
 
 interface Eip1193ProviderLike {
   request(args: Eip1193RequestArguments): Promise<unknown>;
+}
+
+interface WalletOwnershipChallengeResponse {
+  nonce: string;
+  issuedAt: string;
 }
 
 interface WindowWithEthereumProvider {
@@ -135,6 +146,7 @@ function WalletConnectAddressCapture({
   const { close, open } = useAppKit();
   const { disconnect } = useDisconnect();
   const { walletProvider } = useAppKitProvider("eip155");
+  const { data: session } = useSession();
   const onWalletConnectedRef = useRef(onWalletConnected);
   const [isSigning, setIsSigning] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
@@ -216,10 +228,33 @@ function WalletConnectAddressCapture({
     setIsSigning(true);
     setSignError(null);
     try {
+      if (!session?.user?.id) {
+        throw new Error("Session not ready. Please refresh and try again.");
+      }
       if (!walletProvider) {
         throw new Error("Wallet provider not available. Please disconnect and reconnect.");
       }
-      const issuedAt = new Date().toISOString();
+
+      const challengeResponse = await fetch(
+        `/api/profile/extended/${session.user.id}/wallet-proof`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress: address }),
+        },
+      );
+
+      if (!challengeResponse.ok) {
+        const errorData: unknown = await challengeResponse.json().catch(() => null);
+        const errorMessage =
+          errorData && typeof errorData === "object" && "error" in errorData &&
+          typeof (errorData as { error?: unknown }).error === "string"
+            ? (errorData as { error: string }).error
+            : "Failed to request wallet ownership proof.";
+        throw new Error(errorMessage);
+      }
+
+      const { issuedAt, nonce } = (await challengeResponse.json()) as WalletOwnershipChallengeResponse;
       const signature = await (walletProvider as Eip1193ProviderLike).request({
         method: "eth_signTypedData_v4",
         params: [
@@ -230,14 +265,16 @@ function WalletConnectAddressCapture({
             primaryType: "WalletOwnership",
             message: {
               statement: EIP712_STATEMENT,
+              userId: session.user.id,
               walletAddress: address,
               issuedAt,
+              nonce,
             },
           }),
         ],
       }) as `0x${string}`;
 
-      onWalletConnectedRef.current(address, signature, issuedAt);
+      onWalletConnectedRef.current(address, signature, issuedAt, nonce);
       await clearSession();
     } catch (error: unknown) {
       const msg =

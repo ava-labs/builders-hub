@@ -89,6 +89,7 @@ model User {
   wallet                     Json                      @default("[]")
   notification_means         Json?                     @default("{}")
   github_access_token        String?
+  walletOwnershipProofs      WalletOwnershipProof[]
   chatConversations          ChatConversation[]
   consoleLog                 ConsoleLog[]
   evaluations                Evaluation[]              @relation("Evaluations")
@@ -118,6 +119,25 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model WalletOwnershipProof {
+  id           String   @id @default(cuid())
+  userId       String
+  walletAddress String
+  nonce        String   @unique
+  issuedAt     DateTime  @db.Timestamptz(3)
+  expiresAt    DateTime  @db.Timestamptz(3)
+  usedAt       DateTime? @db.Timestamptz(3)
+  signature    String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([walletAddress])
+  @@index([expiresAt])
+  @@index([userId, walletAddress, usedAt])
 }
 
 model RegisterForm {

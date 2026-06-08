@@ -59,6 +59,7 @@ export const profileSchema = z.object({
         .optional(),
       signature: z.string().optional(),
       issuedAt: z.string().optional(),
+      nonce: z.string().optional(),
     }),
   ).optional().default([]),
   additional_social_accounts: z.array(z.url("Must be a valid URL")).optional().default([]),
@@ -78,6 +79,7 @@ interface WalletFormEntry {
   tag?: string;
   signature?: string;
   issuedAt?: string;
+  nonce?: string;
 }
 
 function dedupeWallets(wallets: WalletFormEntry[]): WalletFormEntry[] {
@@ -90,6 +92,7 @@ function dedupeWallets(wallets: WalletFormEntry[]): WalletFormEntry[] {
           ...(item.tag ? { tag: item.tag } : {}),
           ...(item.signature ? { signature: item.signature } : {}),
           ...(item.issuedAt ? { issuedAt: item.issuedAt } : {}),
+          ...(item.nonce ? { nonce: item.nonce } : {}),
         };
       }
 
@@ -100,7 +103,13 @@ function dedupeWallets(wallets: WalletFormEntry[]): WalletFormEntry[] {
 
 function hasWalletAddress(
   value: unknown,
-): value is { address: string; tag?: unknown; signature?: unknown; issuedAt?: unknown } {
+): value is {
+  address: string;
+  tag?: unknown;
+  signature?: unknown;
+  issuedAt?: unknown;
+  nonce?: unknown;
+} {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -228,6 +237,7 @@ export function useProfileForm() {
         const entry: WalletFormEntry = tag ? { address, tag } : { address };
         if (typeof item.signature === "string" && item.signature) entry.signature = item.signature;
         if (typeof item.issuedAt === "string" && item.issuedAt) entry.issuedAt = item.issuedAt;
+        if (typeof item.nonce === "string" && item.nonce) entry.nonce = item.nonce;
         return [entry];
       }
 
@@ -716,7 +726,7 @@ export function useProfileForm() {
   };
 
   // Wallet handlers
-  const handleAddWallet = (address: string, tag?: string, signature?: string, issuedAt?: string) => {
+  const handleAddWallet = (address: string, tag?: string, signature?: string, issuedAt?: string, nonce?: string) => {
     const currentWallets = normalizeWallets(watchedValues.wallet);
     const trimmedAddress = address?.trim() ?? "";
     if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
@@ -736,6 +746,7 @@ export function useProfileForm() {
             ...(normalizedTag ? { tag: normalizedTag } : {}),
             ...(signature ? { signature } : {}),
             ...(issuedAt ? { issuedAt } : {}),
+            ...(nonce ? { nonce } : {}),
           },
         ],
         { shouldDirty: true },

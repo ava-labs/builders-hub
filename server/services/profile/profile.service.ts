@@ -8,8 +8,11 @@ import {
     EIP712_DOMAIN,
     EIP712_TYPES_FOR_VERIFY,
     EIP712_STATEMENT,
-    PROOF_MAX_AGE_MS,
 } from "@/lib/profile/walletEip712";
+import {
+    consumeWalletOwnershipProof,
+    WalletOwnershipProofError,
+} from "./wallet-proof.service";
 
 /** Shape stored in the DB — no ownership-proof fields. */
 type StoredWalletEntry = {
@@ -21,6 +24,7 @@ type StoredWalletEntry = {
 type IncomingWalletEntry = StoredWalletEntry & {
     signature?: string;
     issuedAt?: string;
+    nonce?: string;
 };
 
 const EXTENDED_PROFILE_USER_SELECT = {
@@ -232,8 +236,13 @@ function buildUserUpdateData(
  */
 export async function updateExtendedProfile(
     id: string,
-    profileData: UpdateExtendedProfileData
+    profileData: UpdateExtendedProfileData,
+    sessionUserId: string
 ): Promise<ExtendedProfile> {
+    if (sessionUserId !== id) {
+        throw new ProfileValidationError("Forbidden: authenticated user mismatch.", 403);
+    }
+
     const existingUser = await prisma.user.findUnique({
         where: { id },
         select: { id: true, wallet: true },
@@ -241,53 +250,6 @@ export async function updateExtendedProfile(
 
     if (!existingUser) {
         throw new Error("User not found");
-    }
-
-    // Verify ownership proofs for wallets that weren't previously in the DB
-    if (profileData.wallet !== undefined && profileData.wallet !== null) {
-        const currentAddresses = new Set(
-            normalizeWallets(existingUser.wallet).map((w) => w.address.toLowerCase()),
-        );
-
-        for (const w of profileData.wallet as IncomingWalletEntry[]) {
-            const isNew = !currentAddresses.has(w.address.toLowerCase());
-            if (!isNew) continue;
-
-            if (!w.signature || !w.issuedAt) {
-                throw new ProfileValidationError(
-                    `Ownership proof required for wallet ${w.address}.`,
-                    400,
-                );
-            }
-
-            const issuedDate = new Date(w.issuedAt);
-            if (isNaN(issuedDate.getTime()) || Date.now() - issuedDate.getTime() > PROOF_MAX_AGE_MS) {
-                throw new ProfileValidationError(
-                    `Ownership proof for wallet ${w.address} has expired. Please re-connect your wallet.`,
-                    400,
-                );
-            }
-
-            const valid = await verifyTypedData({
-                address: w.address as Address,
-                domain: EIP712_DOMAIN,
-                types: EIP712_TYPES_FOR_VERIFY,
-                primaryType: "WalletOwnership",
-                message: {
-                    statement: EIP712_STATEMENT,
-                    walletAddress: w.address as Address,
-                    issuedAt: w.issuedAt,
-                },
-                signature: w.signature as `0x${string}`,
-            });
-
-            if (!valid) {
-                throw new ProfileValidationError(
-                    `Invalid ownership signature for wallet ${w.address}.`,
-                    400,
-                );
-            }
-        }
     }
 
     if (profileData.username && profileData.username.trim() !== "") {
@@ -298,10 +260,76 @@ export async function updateExtendedProfile(
     }
 
     const updateData = buildUserUpdateData(profileData);
+    const currentAddresses = new Set(
+        normalizeWallets(existingUser.wallet).map((w) => w.address.toLowerCase()),
+    );
 
-    await prisma.user.update({
-        where: { id },
-        data: updateData,
+    await prisma.$transaction(async (tx) => {
+        if (profileData.wallet !== undefined && profileData.wallet !== null) {
+            for (const w of profileData.wallet as IncomingWalletEntry[]) {
+                const isNew = !currentAddresses.has(w.address.toLowerCase());
+                if (!isNew) continue;
+
+                if (!w.signature || !w.issuedAt) {
+                    throw new ProfileValidationError(
+                        `Ownership proof required for wallet ${w.address}.`,
+                        400,
+                    );
+                }
+
+                if (!w.nonce) {
+                    throw new ProfileValidationError(
+                        `Ownership proof nonce required for wallet ${w.address}.`,
+                        400,
+                    );
+                }
+
+                const valid = await verifyTypedData({
+                    address: w.address as Address,
+                    domain: EIP712_DOMAIN,
+                    types: EIP712_TYPES_FOR_VERIFY,
+                    primaryType: "WalletOwnership",
+                    message: {
+                        statement: EIP712_STATEMENT,
+                        userId: sessionUserId,
+                        walletAddress: w.address as Address,
+                        issuedAt: w.issuedAt,
+                        nonce: w.nonce,
+                    },
+                    signature: w.signature as `0x${string}`,
+                });
+
+                if (!valid) {
+                    throw new ProfileValidationError(
+                        `Invalid ownership signature for wallet ${w.address}.`,
+                        400,
+                    );
+                }
+
+                try {
+                    await consumeWalletOwnershipProof(
+                        {
+                            userId: sessionUserId,
+                            walletAddress: w.address,
+                            issuedAt: w.issuedAt,
+                            nonce: w.nonce,
+                            signature: w.signature,
+                        },
+                        tx,
+                    );
+                } catch (error) {
+                    if (error instanceof WalletOwnershipProofError) {
+                        throw new ProfileValidationError(error.message, error.statusCode);
+                    }
+                    throw error;
+                }
+            }
+        }
+
+        await tx.user.update({
+            where: { id },
+            data: updateData,
+        });
     });
 
     const updatedProfile = await getExtendedProfile(id);

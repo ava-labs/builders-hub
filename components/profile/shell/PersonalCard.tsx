@@ -53,7 +53,7 @@ interface Props {
   siteLinks: ProfileLink[];
   onSiteLinksChange: (links: ProfileLink[]) => void;
   wallets: ProfileWallet[];
-  onAddWallet: (address: string, tag?: string, signature?: string, issuedAt?: string) => void;
+  onAddWallet: (address: string, tag?: string, signature?: string, issuedAt?: string, nonce?: string) => void;
   onRemoveWallet: (address: string) => void;
   skills: string[];
   onAddSkill: (skill: string) => void;
