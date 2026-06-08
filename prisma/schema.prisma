@@ -691,6 +691,9 @@ model JobListing {
   remote_type              String?
   employment_type          String?
   seniority                String?
+  // Human-readable pay, e.g. "$120k–$160k" or "$100k–$241k (est.)".
+  // Gated behind connected X + LinkedIn in the UI.
+  salary                   String?
   tags                     String[]  @default([])
   apply_url                String
   source_url               String?

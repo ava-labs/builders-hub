@@ -84,6 +84,21 @@ export async function checkAndReserveFaucetClaim(
       };
     }
 
+    // The claim row has a FK to users(id). If the session references a user that
+    // is no longer in the table (stale session / signup not yet committed), the
+    // insert fails with a raw "FaucetClaim_user_id_fkey" Prisma error that leaks
+    // to the client as a 500. Verify the user up front and return a clean reason.
+    const userExists = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+    if (!userExists) {
+      return {
+        allowed: false,
+        reason: 'We could not verify your account. Please sign out and sign back in, then try again.'
+      };
+    }
+
     const claim = await tx.faucetClaim.create({
       data: {
         user_id: userId,
