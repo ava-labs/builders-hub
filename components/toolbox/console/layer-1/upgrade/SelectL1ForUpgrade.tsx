@@ -45,27 +45,41 @@ export default function SelectL1ForUpgrade() {
   const [manualRpcUrl, setManualRpcUrl] = useState(selected.rpcUrl);
   const [manualChainName, setManualChainName] = useState(selected.chainName);
 
-  useEffect(() => {
+  const querySelection = useMemo(() => {
     const subnetId = searchParams.get('subnetId');
     const blockchainId = searchParams.get('blockchainId');
     const rpcUrl = searchParams.get('rpcUrl');
     const chainName = searchParams.get('chainName');
-    if (subnetId || blockchainId || rpcUrl || chainName) {
+    const isManaged = searchParams.get('isManaged') === 'true';
+    if (!subnetId && !blockchainId && !rpcUrl && !chainName) return null;
+    return { subnetId, blockchainId, rpcUrl, chainName, isManaged };
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!querySelection) return;
+    const nextSelection = {
+      subnetId: querySelection.subnetId ?? selected.subnetId,
+      blockchainId: querySelection.blockchainId ?? selected.blockchainId,
+      rpcUrl: querySelection.rpcUrl ?? selected.rpcUrl,
+      chainName: querySelection.chainName ?? selected.chainName,
+      isManaged: querySelection.isManaged,
+    };
+    if (
+      selected.subnetId !== nextSelection.subnetId ||
+      selected.blockchainId !== nextSelection.blockchainId ||
+      selected.rpcUrl !== nextSelection.rpcUrl ||
+      selected.chainName !== nextSelection.chainName ||
+      selected.isManaged !== nextSelection.isManaged
+    ) {
       setSelection({
-        subnetId: subnetId ?? selected.subnetId,
-        blockchainId: blockchainId ?? selected.blockchainId,
-        rpcUrl: rpcUrl ?? selected.rpcUrl,
-        chainName: chainName ?? selected.chainName,
-        isManaged: true,
+        ...nextSelection,
       });
-      setManualSubnetId(subnetId ?? selected.subnetId);
-      setManualBlockchainId(blockchainId ?? selected.blockchainId);
-      setManualRpcUrl(rpcUrl ?? selected.rpcUrl);
-      setManualChainName(chainName ?? selected.chainName);
     }
-    // Intentionally run once for query hydration.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setManualSubnetId(nextSelection.subnetId);
+    setManualBlockchainId(nextSelection.blockchainId);
+    setManualRpcUrl(nextSelection.rpcUrl);
+    setManualChainName(nextSelection.chainName);
+  }, [querySelection, selected, setSelection]);
 
   useEffect(() => {
     let cancelled = false;

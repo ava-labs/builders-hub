@@ -92,6 +92,12 @@ export function WalletOnlyActions({
       href: '/console/l1-tokenomics/fee-manager',
     },
     {
+      icon: FileCode,
+      title: 'Upgrade JSON',
+      description: 'Enable precompiles or schedule state upgrades.',
+      href: upgradeJsonPath(l1),
+    },
+    {
       icon: MessagesSquare,
       title: 'Configure ICM',
       description: 'Set up cross-chain messaging.',
@@ -223,6 +229,7 @@ function upgradeJsonPath(l1: CombinedL1): string {
   if (l1.blockchainId) params.set('blockchainId', l1.blockchainId);
   if (l1.rpcUrl) params.set('rpcUrl', l1.rpcUrl);
   if (l1.chainName) params.set('chainName', l1.chainName);
+  params.set('isManaged', l1.source === 'managed' ? 'true' : 'false');
   const query = params.toString();
   return `/console/layer-1/upgrade/select-l1${query ? `?${query}` : ''}`;
 }
