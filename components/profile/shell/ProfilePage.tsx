@@ -391,8 +391,14 @@ export default function ProfilePage({ teamLabel }: Props) {
 
   const handleSave = async () => {
     try {
-      await onSubmit();
-      pushToast("Profile saved");
+      const result = await onSubmit();
+      if (result === "saved") {
+        pushToast("Profile saved");
+      } else if (result === "invalid") {
+        pushToast("Please fix the highlighted fields before saving", "error");
+      } else {
+        pushToast("Could not save profile", "error");
+      }
     } catch {
       pushToast("Could not save profile", "error");
     }
