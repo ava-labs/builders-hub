@@ -44,7 +44,9 @@ export const UserTypeSchema = z.object({
  */
 export const UpdateExtendedProfileSchema = z
   .object({
-    name: z.string().trim().min(1, "Name cannot be empty.").optional(),
+    // Name is optional and may be empty — the basic profile no longer
+    // requires it, so partial/empty updates must be accepted.
+    name: z.string().trim().optional(),
     username: z.string().optional(),
     bio: z
       .string()

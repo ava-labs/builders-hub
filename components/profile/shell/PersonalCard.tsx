@@ -125,7 +125,7 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
       <div className="pr-body">
         <div className="pr-field">
           <label htmlFor="pr-fullname">
-            Full name <span className="pr-req">*</span>
+            Full name
           </label>
           <input
             id="pr-fullname"

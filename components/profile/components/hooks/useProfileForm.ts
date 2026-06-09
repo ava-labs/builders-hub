@@ -13,7 +13,7 @@ import {
 } from "@/lib/profile/socialAccountValidation";
 
 export const profileSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
+  name: z.string().trim().optional().default(''),
   username: z.string().optional(),
   bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
   email: z.email("Invalid email").optional(),
