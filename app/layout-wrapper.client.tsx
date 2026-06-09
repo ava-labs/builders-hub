@@ -56,7 +56,7 @@ export function LayoutWrapper({ children, baseOptions }: LayoutWrapperProps) {
   return (
     <>
       <ActiveNavHighlighter />
-      <CustomCountdownBanner />
+      {/* <CustomCountdownBanner /> */}
       <HomeLayout {...updatedOptions}>{children}</HomeLayout>
     </>
   );
