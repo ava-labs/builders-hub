@@ -25,6 +25,14 @@ export const ManagedTestnetNodesServiceURLs = {
   deleteNode: (subnetId: string, nodeIndex: number, password: string) =>
     `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/delete/${subnetId}/${nodeIndex}?password=${password}`,
 
+  upgradeJson: (subnetId: string, nodeIndex: number, blockchainId: string, password: string) => {
+    const params = new URLSearchParams({ password, blockchainId });
+    return `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/${subnetId}/${nodeIndex}/upgrade-json?${params.toString()}`;
+  },
+
+  restartNode: (subnetId: string, nodeIndex: number, password: string) =>
+    `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/${subnetId}/${nodeIndex}/restart?password=${password}`,
+
   rpcEndpoint: (blockchainId: string) =>
     `${MANAGED_TESTNET_NODES_SERVICE_URL}/ext/bc/${blockchainId}/rpc`
 };

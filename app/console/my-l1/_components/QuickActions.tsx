@@ -158,6 +158,12 @@ function buildQuickActions(l1: CombinedL1, validatorManagerKind: ValidatorManage
       description: 'Configure gas, fees, and permissions.',
       href: '/console/l1-tokenomics/fee-manager',
     },
+    {
+      icon: FileCode,
+      title: 'Upgrade JSON',
+      description: 'Enable precompiles or schedule state upgrades.',
+      href: upgradeJsonPath(l1),
+    },
   ];
   if (l1.teleporterRegistryAddress) {
     actions.push({
@@ -209,6 +215,16 @@ function copyGenesisAction(l1: CombinedL1): QuickAction | null {
       }
     },
   };
+}
+
+function upgradeJsonPath(l1: CombinedL1): string {
+  const params = new URLSearchParams();
+  if (l1.subnetId) params.set('subnetId', l1.subnetId);
+  if (l1.blockchainId) params.set('blockchainId', l1.blockchainId);
+  if (l1.rpcUrl) params.set('rpcUrl', l1.rpcUrl);
+  if (l1.chainName) params.set('chainName', l1.chainName);
+  const query = params.toString();
+  return `/console/layer-1/upgrade/select-l1${query ? `?${query}` : ''}`;
 }
 
 // Pick the right faucet target based on what the L1's wallet metadata
