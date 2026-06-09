@@ -38,13 +38,13 @@ import {
   X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
 
-// Form schema. Social fields are optional; only name + country + at least
-// one role are required to complete the basic setup. When a social field is
-// filled in, the value must match its platform pattern.
+// Form schema. Every field is optional — the basic profile is no longer
+// mandatory (only the Terms acceptance is). When a social field is filled in,
+// the value must match its platform pattern; otherwise empty values are fine.
 const basicProfileSchema = z
   .object({
-    name: z.string().min(1, 'Full name is required'),
-    country: z.string().min(1, 'Country is required'),
+    name: z.string().optional().default(''),
+    country: z.string().optional().default(''),
     linkedin_account: z
       .union([z.string().regex(LINKEDIN_ACCOUNT_PATTERN, 'Enter valid LinkedIn URL'), z.literal('')])
       .optional()
@@ -70,19 +70,7 @@ const basicProfileSchema = z
     employee_role: z.string().optional(),
     is_developer: z.boolean().default(false),
     is_enthusiast: z.boolean().default(false),
-  })
-  .refine(
-    (data) =>
-      data.is_student ||
-      data.is_founder ||
-      data.is_employee ||
-      data.is_developer ||
-      data.is_enthusiast,
-    {
-      message: 'Select at least one role',
-      path: ['is_enthusiast'],
-    }
-  );
+  });
 
 type BasicProfileFormValues = z.infer<typeof basicProfileSchema>;
 
@@ -298,7 +286,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm sm:text-base">Full Name *</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Full Name</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter your full name"
@@ -320,7 +308,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                   name="country"
                   render={({ field }) => (
                     <FormItem className="w-full">
-                      <FormLabel className="text-sm sm:text-base">Country *</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Country</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base w-full min-w-0">
@@ -468,12 +456,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
 
             {/* Roles */}
             <div className="space-y-3 sm:space-y-4">
-              <FormLabel className="text-sm sm:text-base">Select all roles that apply. *</FormLabel>
-              {form.formState.errors.is_enthusiast?.message && (
-                <p className="text-sm font-medium text-destructive">
-                  {String(form.formState.errors.is_enthusiast.message)}
-                </p>
-              )}
+              <FormLabel className="text-sm sm:text-base">Select all roles that apply.</FormLabel>
 
               {/* Student */}
               <div className="space-y-2">
