@@ -5,6 +5,18 @@ type RpcCheckBody = {
   rpcUrl?: string;
 };
 
+type LatestBlockResponse = {
+  timestamp?: string;
+};
+
+function parseBlockTimestamp(block: LatestBlockResponse | null): number | null {
+  const raw = block?.timestamp;
+  if (!raw) return null;
+  if (raw.startsWith('0x')) return Number.parseInt(raw, 16);
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 async function safeRpcCall<T>(rpcUrl: string, method: string, params: unknown[] = []) {
   try {
     return { ok: true as const, value: await callJsonRpc<T>(rpcUrl, method, params) };
@@ -30,17 +42,20 @@ export async function POST(request: NextRequest) {
   const urlError = validatePublicRpcUrl(rpcUrl);
   if (urlError) return NextResponse.json({ error: urlError }, { status: 400 });
 
-  const [chainConfig, activeRules] = await Promise.all([
+  const [chainConfig, activeRules, latestBlock] = await Promise.all([
     safeRpcCall<unknown>(rpcUrl, 'eth_getChainConfig'),
     safeRpcCall<unknown>(rpcUrl, 'eth_getActiveRulesAt'),
+    safeRpcCall<LatestBlockResponse>(rpcUrl, 'eth_getBlockByNumber', ['latest', false]),
   ]);
 
   return NextResponse.json({
     chainConfig: chainConfig.ok ? chainConfig.value : null,
     activeRules: activeRules.ok ? activeRules.value : null,
+    latestBlockTimestamp: latestBlock.ok ? parseBlockTimestamp(latestBlock.value) : null,
     errors: {
       chainConfig: chainConfig.ok ? null : chainConfig.error,
       activeRules: activeRules.ok ? null : activeRules.error,
+      latestBlock: latestBlock.ok ? null : latestBlock.error,
     },
   });
 }

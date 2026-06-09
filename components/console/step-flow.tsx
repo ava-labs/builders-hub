@@ -29,6 +29,7 @@ type SingleStep = {
   optional?: boolean;
   component: React.ComponentType;
   requiredChain?: RequiredChain;
+  canProceed?: () => boolean;
 };
 
 type BranchOption = {
@@ -44,6 +45,7 @@ type BranchStep = {
   optional?: boolean;
   options: BranchOption[];
   requiredChain?: RequiredChain;
+  canProceed?: () => boolean;
 };
 
 export type StepDefinition = SingleStep | BranchStep;
@@ -195,6 +197,16 @@ export default function StepFlow({
     return { currentIndex: -1, currentStep: undefined, selectedBranchOption: undefined };
   }, [currentStepKey, steps]);
 
+  const canProceedFromCurrentStep = useCallback(() => {
+    if (!currentStep || !("canProceed" in currentStep) || !currentStep.canProceed) return true;
+    return currentStep.canProceed();
+  }, [currentStep]);
+
+  const canNavigateToStep = useCallback((targetIndex: number) => {
+    if (targetIndex <= currentIndex) return true;
+    return canProceedFromCurrentStep();
+  }, [canProceedFromCurrentStep, currentIndex]);
+
   if (currentIndex < 0 || !currentStep) {
     return <div>Step &quot;{currentStepKey}&quot; not found.</div>;
   }
@@ -238,15 +250,40 @@ export default function StepFlow({
 
   // Helper: renders Link or button depending on onNavigate mode
   const NavEl = useMemo(() => {
+    type NavProps = {
+      stepKey: string;
+      stepIndex: number;
+      className?: string;
+      children: React.ReactNode;
+    };
+
     if (onNavigate) {
-      return ({ stepKey, className: cls, children }: { stepKey: string; className?: string; children: React.ReactNode }) => (
-        <button type="button" onClick={() => onNavigate(stepKey)} className={cls}>{children}</button>
+      return ({ stepKey, stepIndex, className: cls, children }: NavProps) => (
+        <button
+          type="button"
+          onClick={() => {
+            if (!canNavigateToStep(stepIndex)) return;
+            onNavigate(stepKey);
+          }}
+          className={cls}
+        >
+          {children}
+        </button>
       );
     }
-    return ({ stepKey, className: cls, children }: { stepKey: string; className?: string; children: React.ReactNode }) => (
-      <Link href={`${basePath}/${stepKey}`} className={cls}>{children}</Link>
+    return ({ stepKey, stepIndex, className: cls, children }: NavProps) => (
+      <Link
+        href={`${basePath}/${stepKey}`}
+        onClick={(event) => {
+          if (canNavigateToStep(stepIndex)) return;
+          event.preventDefault();
+        }}
+        className={cls}
+      >
+        {children}
+      </Link>
     );
-  }, [onNavigate, basePath]);
+  }, [onNavigate, basePath, canNavigateToStep]);
 
   // Extract step key for navigation (handles branch steps)
   const getStepNavKey = (step: StepDefinition): string => {
@@ -272,6 +309,7 @@ export default function StepFlow({
                 <li key={s.key} className="flex items-center gap-3">
                   <NavEl
                     stepKey={s.key}
+                    stepIndex={stepIdx}
                     className={cn(
                       "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                       isActiveStep
@@ -312,6 +350,7 @@ export default function StepFlow({
                         <React.Fragment key={opt.key}>
                           <NavEl
                             stepKey={opt.key}
+                            stepIndex={stepIdx}
                             className={cn(
                               "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                               isOptionActive
@@ -440,25 +479,21 @@ export default function StepFlow({
                 </button>
             ) : (
               nextLink && (
-                onNavigate ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextStep = steps[currentIndex + 1];
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!canProceedFromCurrentStep()) return;
+                    const nextStep = steps[currentIndex + 1];
+                    if (onNavigate) {
                       onNavigate(getStepNavKey(nextStep));
-                    }}
-                    className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
-                  >
-                    Next
-                  </button>
-                ) : (
-                  <Link
-                    href={nextLink}
-                    className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
-                  >
-                    Next
-                  </Link>
-                )
+                      return;
+                    }
+                    router.push(nextLink);
+                  }}
+                  className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  Next
+                </button>
               )
             )}
           </div>

@@ -152,6 +152,25 @@ describe('upgrade-json builder', () => {
     expect(result.errors.join('\n')).toContain('0x-prefixed hex bytecode');
   });
 
+  it('requires admin addresses when enabling allowlist precompiles', () => {
+    const result = validateUpgradePlan({
+      baseConfig: emptyUpgradeJson(),
+      activationTimestamp: 2_000_000_000,
+      precompiles: [
+        {
+          key: 'contractNativeMinterConfig',
+          mode: 'enable',
+          enabledAddresses: ['0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC'],
+        },
+      ],
+      balanceChanges: [],
+      codeChanges: [],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join('\n')).toContain('contractNativeMinterConfig requires at least one admin address');
+  });
+
   it('parses empty input as an empty upgrade config', () => {
     expect(parseUpgradeJson('').config).toEqual(emptyUpgradeJson());
   });

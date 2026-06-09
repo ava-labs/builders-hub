@@ -1,20 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Copy,
-  Download,
-  FileJson,
-  Plus,
-  RotateCw,
-  Trash2,
-} from 'lucide-react';
+import { AlertTriangle, Copy, Download, FileJson, Info, Plus, RotateCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
 import { RawInput } from '@/components/toolbox/components/Input';
+import AllowList from '@/components/toolbox/components/genesis/AllowList';
 import { SyntaxHighlightedJSON } from '@/components/toolbox/components/genesis/SyntaxHighlightedJSON';
+import type { AddressEntry, AddressRoles, Role } from '@/components/toolbox/components/genesis/types';
 import { useL1UpgradeStore } from '@/components/toolbox/stores/l1UpgradeStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import {
@@ -29,16 +24,20 @@ import {
   PrecompileConfigKey,
   PrecompileMode,
   PrecompileSelection,
-  splitAddressList,
+  isPositiveAmount,
+  isValidAddress,
+  isValidRuntimeBytecode,
   validateUpgradePlan,
 } from '@/lib/console/upgrade-json';
 
 type RpcCheckResponse = {
   chainConfig: unknown | null;
   activeRules: { precompiles?: Record<string, unknown> } | null;
+  latestBlockTimestamp?: number | null;
   errors?: {
     chainConfig?: string | null;
     activeRules?: string | null;
+    latestBlock?: string | null;
   };
 };
 
@@ -70,6 +69,33 @@ type ExistingPrecompileSchedule = {
   blockTimestamp?: number;
 };
 
+const PRECOMPILE_METADATA: Record<PrecompileConfigKey, { address: string; action: string }> = {
+  contractDeployerAllowListConfig: {
+    address: '0x0200000000000000000000000000000000000000',
+    action: 'deploy contracts',
+  },
+  contractNativeMinterConfig: {
+    address: '0x0200000000000000000000000000000000000001',
+    action: 'mint native tokens',
+  },
+  txAllowListConfig: {
+    address: '0x0200000000000000000000000000000000000002',
+    action: 'submit transactions',
+  },
+  feeManagerConfig: {
+    address: '0x0200000000000000000000000000000000000003',
+    action: 'update fee parameters',
+  },
+  rewardManagerConfig: {
+    address: '0x0200000000000000000000000000000000000004',
+    action: 'configure fee rewards',
+  },
+  warpConfig: {
+    address: '0x0200000000000000000000000000000000000005',
+    action: 'configure Warp messaging',
+  },
+};
+
 function makeInitialPrecompiles(): PrecompileSelection[] {
   return PRECOMPILE_DEFINITIONS.map((definition) => ({
     key: definition.key,
@@ -79,7 +105,9 @@ function makeInitialPrecompiles(): PrecompileSelection[] {
   }));
 }
 
-function getExistingPrecompileSchedules(config: Record<string, unknown>): Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>> {
+function getExistingPrecompileSchedules(
+  config: Record<string, unknown>,
+): Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>> {
   const schedules: Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>> = {};
   const upgrades = config.precompileUpgrades;
   if (!Array.isArray(upgrades)) return schedules;
@@ -114,6 +142,7 @@ export default function UpgradeJsonBuilder() {
   const selectedChainName = store((state) => state.chainName);
   const selectedIsManaged = store((state) => state.isManaged);
   const selectedManagedNodeCount = store((state) => state.managedNodeCount);
+  const walletAddress = useWalletStore((state) => state.walletEVMAddress);
   const selection = useMemo(
     () => ({
       subnetId: selectedSubnetId,
@@ -140,8 +169,8 @@ export default function UpgradeJsonBuilder() {
   const [rpcError, setRpcError] = useState<string | null>(null);
   const [managedInfo, setManagedInfo] = useState<ManagedFetchResponse | null>(null);
   const [precompiles, setPrecompiles] = useState<PrecompileSelection[]>(makeInitialPrecompiles);
-  const [activationTimestamp, setActivationTimestamp] = useState(() =>
-    Math.floor(Date.now() / 1000) + DEFAULT_TIMESTAMP_OFFSET_SECONDS,
+  const [activationTimestamp, setActivationTimestamp] = useState(
+    () => Math.floor(Date.now() / 1000) + DEFAULT_TIMESTAMP_OFFSET_SECONDS,
   );
   const [balanceChanges, setBalanceChanges] = useState<BalanceChange[]>([]);
   const [codeChanges, setCodeChanges] = useState<UiCodeChange[]>([]);
@@ -173,6 +202,11 @@ export default function UpgradeJsonBuilder() {
     () => Object.keys(rpcCheck?.activeRules?.precompiles ?? {}),
     [rpcCheck?.activeRules],
   );
+  const suggestedActivationTimestamp = useMemo(() => {
+    const chainTimestamp = rpcCheck?.latestBlockTimestamp;
+    if (!chainTimestamp) return null;
+    return chainTimestamp + DEFAULT_TIMESTAMP_OFFSET_SECONDS;
+  }, [rpcCheck?.latestBlockTimestamp]);
 
   useEffect(() => {
     if (!selection.subnetId || !selection.blockchainId) return;
@@ -255,6 +289,16 @@ export default function UpgradeJsonBuilder() {
     }
   }, [activationTimestamp, latestExistingTimestamp]);
 
+  useEffect(() => {
+    const minimumRecommended = Math.max(
+      suggestedActivationTimestamp ?? 0,
+      latestExistingTimestamp > 0 ? latestExistingTimestamp + DEFAULT_TIMESTAMP_OFFSET_SECONDS : 0,
+    );
+    if (minimumRecommended > 0 && activationTimestamp < minimumRecommended) {
+      setActivationTimestamp(minimumRecommended);
+    }
+  }, [activationTimestamp, latestExistingTimestamp, suggestedActivationTimestamp]);
+
   if (!selection.subnetId || !selection.blockchainId) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4">
@@ -269,12 +313,9 @@ export default function UpgradeJsonBuilder() {
     );
   }
 
-  const hasGeneratedChanges =
-    precompiles.some((precompile) => precompile.mode !== 'none') ||
-    balanceChanges.length > 0 ||
-    codeChanges.length > 0;
-
-  const canWriteManaged = selection.isManaged && validation.valid && !parsedBase.error;
+  const hasBlockingErrors = Boolean(parsedBase.error) || !validation.valid;
+  const canWriteManaged =
+    selection.isManaged && managedInfo?.managed !== false && validation.valid && !parsedBase.error;
 
   const handleImportFile = async (file: File | null) => {
     if (!file) return;
@@ -337,7 +378,9 @@ export default function UpgradeJsonBuilder() {
         throw new Error(data?.message ?? 'Failed to write managed upgrade.json.');
       }
       setManagedWritten(true);
-      toast.success('upgrade.json written', 'Review restart timing before applying it.', { id: 'managed-write' });
+      toast.success('upgrade.json written', 'Restart managed nodes after the file is written.', {
+        id: 'managed-write',
+      });
     } catch (error) {
       toast.error('Managed write failed', error instanceof Error ? error.message : undefined, { id: 'managed-write' });
     } finally {
@@ -400,7 +443,6 @@ export default function UpgradeJsonBuilder() {
             isManaged={selection.isManaged}
             managedNodeCount={managedInfo?.nodes?.length ?? selection.managedNodeCount}
             rpcError={rpcError}
-            activePrecompileKeys={activePrecompileKeys}
             chainConfigError={rpcCheck?.errors?.chainConfig ?? null}
             activeRulesError={rpcCheck?.errors?.activeRules ?? null}
           />
@@ -410,7 +452,8 @@ export default function UpgradeJsonBuilder() {
               <div>
                 <h3 className="text-sm font-semibold">Existing upgrade.json</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Source: {isLoadingSource ? 'loading...' : baseSource}. Existing entries are preserved and new entries are appended.
+                  Source: {isLoadingSource ? 'loading...' : baseSource}. Existing entries are preserved and new entries
+                  are appended.
                 </p>
               </div>
               <label className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900">
@@ -444,11 +487,16 @@ export default function UpgradeJsonBuilder() {
           <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
             <h3 className="text-sm font-semibold mb-4">Activation timing</h3>
             <CompactTextField
-              label="First new blockTimestamp"
+              label="Scheduled activation"
               type="number"
               value={activationTimestamp}
               onChange={(value) => setActivationTimestamp(Number(value))}
-              hint="Multiple generated entries are scheduled one second apart from this timestamp to keep upgrade order deterministic."
+              hint={
+                suggestedActivationTimestamp
+                  ? `Auto-filled from the latest chain timestamp plus ${DEFAULT_TIMESTAMP_OFFSET_SECONDS / 60} minutes. Multiple generated entries are scheduled one second apart.`
+                  : 'Unix timestamp when validators should activate the new rules. Multiple generated entries are scheduled one second apart.'
+              }
+              error={validation.errors.find((error) => error.includes('Activation timestamp')) ?? null}
             />
           </section>
 
@@ -457,6 +505,8 @@ export default function UpgradeJsonBuilder() {
             activePrecompileKeys={activePrecompileKeys}
             existingSchedules={existingPrecompileSchedules}
             activationTimestamp={activationTimestamp}
+            validationErrors={validation.errors}
+            walletAddress={walletAddress}
             onChange={setPrecompiles}
           />
 
@@ -464,36 +514,38 @@ export default function UpgradeJsonBuilder() {
             rpcUrl={selection.rpcUrl}
             balanceChanges={balanceChanges}
             codeChanges={codeChanges}
+            validationErrors={validation.errors}
             onBalanceChanges={setBalanceChanges}
             onCodeChanges={setCodeChanges}
           />
         </div>
 
-        <aside className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-4 self-start min-w-0">
-          <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold">upgrade.json</h3>
-              <p className="text-xs text-muted-foreground">
-                {(new Blob([generatedJson]).size / 1024).toFixed(2)} KiB
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <IconButton label="Copy" icon={<Copy className="h-4 w-4" />} onClick={copyJson} />
-              <IconButton label="Download" icon={<Download className="h-4 w-4" />} onClick={downloadJson} />
+        <aside className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-4 self-start min-w-0 overflow-hidden">
+          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">upgrade.json</h3>
+                <p className="text-xs text-muted-foreground">
+                  {(new Blob([generatedJson]).size / 1024).toFixed(2)} KiB
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={copyJson} className="h-8">
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copy
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadJson} className="h-8">
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
+                </Button>
+              </div>
             </div>
           </div>
-          <div className="max-h-[640px] overflow-auto json-preview-scroll">
+          <div className="max-h-[640px] overflow-auto json-preview-scroll bg-zinc-50 dark:bg-zinc-950 p-3">
             <SyntaxHighlightedJSON code={generatedJson} highlightedLine={null} />
           </div>
         </aside>
       </div>
-
-      <ValidationPanel
-        parseError={parsedBase.error}
-        errors={validation.errors}
-        warnings={validation.warnings}
-        hasGeneratedChanges={hasGeneratedChanges}
-      />
 
       <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -504,7 +556,14 @@ export default function UpgradeJsonBuilder() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" stickLeft loading={isSavingSnapshot} onClick={() => void saveSnapshot()}>
+            <Button
+              size="sm"
+              variant="outline"
+              stickLeft
+              loading={isSavingSnapshot}
+              disabled={hasBlockingErrors}
+              onClick={() => void saveSnapshot()}
+            >
               Save snapshot
             </Button>
             {selection.isManaged && (
@@ -535,7 +594,11 @@ export default function UpgradeJsonBuilder() {
         </div>
       </section>
 
-      <SelfHostedInstructions blockchainId={selection.blockchainId} rpcUrl={selection.rpcUrl} upgradeJson={generatedJson} />
+      <SelfHostedInstructions
+        blockchainId={selection.blockchainId}
+        rpcUrl={selection.rpcUrl}
+        upgradeJson={generatedJson}
+      />
     </div>
   );
 }
@@ -548,7 +611,6 @@ function HeaderPanel({
   isManaged,
   managedNodeCount,
   rpcError,
-  activePrecompileKeys,
   chainConfigError,
   activeRulesError,
 }: {
@@ -559,7 +621,6 @@ function HeaderPanel({
   isManaged: boolean;
   managedNodeCount: number;
   rpcError: string | null;
-  activePrecompileKeys: string[];
   chainConfigError: string | null;
   activeRulesError: string | null;
 }) {
@@ -574,22 +635,11 @@ function HeaderPanel({
             <InfoLine label="Subnet" value={subnetId} />
             <InfoLine label="Blockchain" value={blockchainId} />
             <InfoLine label="RPC" value={rpcUrl || 'Not set'} />
-            <InfoLine label="Node type" value={isManaged ? `Managed (${managedNodeCount} active)` : 'Self-hosted/manual'} />
+            <InfoLine
+              label="Node type"
+              value={isManaged ? `Managed (${managedNodeCount} active)` : 'Self-hosted/manual'}
+            />
           </div>
-        </div>
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2 min-w-56">
-          <div className="text-xs font-medium text-muted-foreground">Active precompiles from RPC</div>
-          {activePrecompileKeys.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {activePrecompileKeys.map((key) => (
-                <span key={key} className="rounded-md bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 px-2 py-1 text-[11px]">
-                  {key}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground mt-2">None reported or RPC check unavailable.</p>
-          )}
         </div>
       </div>
       {(rpcError || chainConfigError || activeRulesError) && (
@@ -606,12 +656,16 @@ function PrecompileControls({
   activePrecompileKeys,
   existingSchedules,
   activationTimestamp,
+  validationErrors,
+  walletAddress,
   onChange,
 }: {
   precompiles: PrecompileSelection[];
   activePrecompileKeys: string[];
   existingSchedules: Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>>;
   activationTimestamp: number;
+  validationErrors: string[];
+  walletAddress?: string;
   onChange: (value: PrecompileSelection[]) => void;
 }) {
   const update = (key: PrecompileConfigKey, patch: Partial<PrecompileSelection>) => {
@@ -620,16 +674,28 @@ function PrecompileControls({
 
   const toggleTarget = (key: PrecompileConfigKey, currentTargetEnabled: boolean, baseTargetEnabled: boolean) => {
     const nextEnabled = !currentTargetEnabled;
-    update(key, { mode: nextEnabled === baseTargetEnabled ? 'none' : nextEnabled ? 'enable' : 'disable' });
+    const value = precompiles.find((item) => item.key === key);
+    const nextMode = nextEnabled === baseTargetEnabled ? 'none' : nextEnabled ? 'enable' : 'disable';
+    const patch: Partial<PrecompileSelection> = { mode: nextMode };
+    if (
+      nextMode === 'enable' &&
+      key !== 'warpConfig' &&
+      walletAddress &&
+      isValidAddress(walletAddress) &&
+      (value?.adminAddresses ?? []).length === 0
+    ) {
+      patch.adminAddresses = [walletAddress];
+    }
+    update(key, patch);
   };
 
   return (
     <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
       <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
-        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompile upgrades</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-          Toggle the target state. Active state comes from RPC; scheduled state comes from the loaded upgrade.json.
-        </p>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompile upgrades</h3>
+          <InfoHint text="Active state comes from RPC. Scheduled state comes from the loaded upgrade.json. Each toggle appends a new enable or disable entry." />
+        </div>
       </div>
       <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
         {PRECOMPILE_DEFINITIONS.map((definition) => {
@@ -637,8 +703,9 @@ function PrecompileControls({
           const isActive = activePrecompileKeys.includes(definition.key);
           const existingSchedule = existingSchedules[definition.key];
           const baseTargetEnabled = existingSchedule ? existingSchedule.mode === 'enable' : isActive;
-          const targetEnabled =
-            value.mode === 'enable' ? true : value.mode === 'disable' ? false : baseTargetEnabled;
+          const targetEnabled = value.mode === 'enable' ? true : value.mode === 'disable' ? false : baseTargetEnabled;
+          const rowErrors = validationErrors.filter((error) => error.includes(definition.key));
+          const metadata = PRECOMPILE_METADATA[definition.key];
           return (
             <div key={definition.key}>
               <button
@@ -651,7 +718,10 @@ function PrecompileControls({
                     <h4 className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
                       {definition.label}
                     </h4>
-                    <StatusPill tone={isActive ? 'active' : 'muted'}>{isActive ? 'active now' : 'inactive now'}</StatusPill>
+                    <InfoHint text={`${definition.description} Precompile address: ${metadata.address}.`} />
+                    <StatusPill tone={isActive ? 'active' : 'muted'}>
+                      {isActive ? 'active now' : 'inactive now'}
+                    </StatusPill>
                     {existingSchedule && (
                       <StatusPill tone={existingSchedule.mode === 'enable' ? 'active' : 'danger'}>
                         file schedules {existingSchedule.mode}
@@ -664,30 +734,24 @@ function PrecompileControls({
                       </StatusPill>
                     )}
                   </div>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-snug">
-                    {definition.description}
-                  </p>
                 </div>
                 <div className="ml-auto flex items-center gap-2 shrink-0">
                   <Toggle checked={targetEnabled} />
                 </div>
               </button>
+              {rowErrors.length > 0 && (
+                <div className="px-3.5 pb-2 -mt-1 text-xs text-red-600 dark:text-red-400 space-y-1">
+                  {rowErrors.map((error) => (
+                    <p key={error}>{error}</p>
+                  ))}
+                </div>
+              )}
               {value.mode === 'enable' && definition.supportsAllowList && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 px-3.5 pb-3">
-                  <AddressListInput
-                    label="Admin addresses"
-                    value={value.adminAddresses ?? []}
-                    onChange={(addresses) => update(definition.key, { adminAddresses: addresses })}
-                  />
-                  <AddressListInput
-                    label="Manager addresses"
-                    value={value.managerAddresses ?? []}
-                    onChange={(addresses) => update(definition.key, { managerAddresses: addresses })}
-                  />
-                  <AddressListInput
-                    label="Enabled addresses"
-                    value={value.enabledAddresses ?? []}
-                    onChange={(addresses) => update(definition.key, { enabledAddresses: addresses })}
+                <div className="px-3.5 pb-3">
+                  <PrecompileAllowListEditor
+                    selection={value}
+                    action={metadata.action}
+                    onChange={(patch) => update(definition.key, patch)}
                   />
                 </div>
               )}
@@ -710,11 +774,11 @@ function PrecompileControls({
                     className="flex items-center gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-left h-fit"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                        Require Primary Network signers
-                      </div>
-                      <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                        Keep enabled unless validators should not verify Primary Network signers.
+                      <div className="flex items-center gap-2">
+                        <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                          Require Primary Network signers
+                        </div>
+                        <InfoHint text="Keep enabled unless validators should not verify Primary Network signers." />
                       </div>
                     </div>
                     <Toggle checked={value.requirePrimaryNetworkSigners ?? true} />
@@ -733,17 +797,18 @@ function StateUpgradeControls({
   rpcUrl,
   balanceChanges,
   codeChanges,
+  validationErrors,
   onBalanceChanges,
   onCodeChanges,
 }: {
   rpcUrl: string;
   balanceChanges: BalanceChange[];
   codeChanges: UiCodeChange[];
+  validationErrors: string[];
   onBalanceChanges: (value: BalanceChange[]) => void;
   onCodeChanges: (value: UiCodeChange[]) => void;
 }) {
-  const addBalance = () =>
-    onBalanceChanges([...balanceChanges, { id: crypto.randomUUID(), address: '', amount: '' }]);
+  const addBalance = () => onBalanceChanges([...balanceChanges, { id: crypto.randomUUID(), address: '', amount: '' }]);
   const addCode = () =>
     onCodeChanges([
       ...codeChanges,
@@ -776,10 +841,10 @@ function StateUpgradeControls({
     <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-semibold">State upgrades</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Add positive balance changes or replace account runtime bytecode. Storage-slot editing is intentionally not part of this v1 UI.
-          </p>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold">State upgrades</h3>
+            <InfoHint text="Add positive balance changes or replace account runtime bytecode. Storage-slot editing is intentionally not part of this v1 UI." />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" stickLeft icon={<Plus className="h-4 w-4" />} onClick={addBalance}>
@@ -809,6 +874,11 @@ function StateUpgradeControls({
                 onChange={(address) =>
                   onBalanceChanges(balanceChanges.map((item) => (item.id === change.id ? { ...item, address } : item)))
                 }
+                error={
+                  change.address && !isValidAddress(change.address)
+                    ? `Invalid balance-change address: ${change.address}`
+                    : null
+                }
               />
               <CompactTextField
                 label="Amount to add"
@@ -817,6 +887,11 @@ function StateUpgradeControls({
                   onBalanceChanges(balanceChanges.map((item) => (item.id === change.id ? { ...item, amount } : item)))
                 }
                 hint="Wei amount as decimal or hex. Adds to the balance; it does not set an absolute balance."
+                error={
+                  change.amount && !isPositiveAmount(change.amount)
+                    ? `Balance change for ${change.address || 'an address'} must be positive.`
+                    : null
+                }
               />
             </div>
           </div>
@@ -839,24 +914,30 @@ function StateUpgradeControls({
                 onChange={(address) =>
                   onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, address } : item)))
                 }
+                error={
+                  change.address && !isValidAddress(change.address)
+                    ? `Invalid bytecode target address: ${change.address}`
+                    : null
+                }
               />
               <CompactTextField
                 label="Source contract address"
                 value={change.sourceAddress}
                 onChange={(sourceAddress) =>
-                  onCodeChanges(
-                    codeChanges.map((item) => (item.id === change.id ? { ...item, sourceAddress } : item)),
-                  )
+                  onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, sourceAddress } : item)))
                 }
                 hint="Optional: fetch runtime bytecode from an already deployed contract."
+                error={
+                  change.sourceAddress && !isValidAddress(change.sourceAddress)
+                    ? `Invalid source contract address: ${change.sourceAddress}`
+                    : null
+                }
               />
               <CompactTextField
                 label="Source RPC URL"
                 value={change.sourceRpcUrl}
                 onChange={(sourceRpcUrl) =>
-                  onCodeChanges(
-                    codeChanges.map((item) => (item.id === change.id ? { ...item, sourceRpcUrl } : item)),
-                  )
+                  onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, sourceRpcUrl } : item)))
                 }
               />
               <div className="pt-7">
@@ -876,70 +957,37 @@ function StateUpgradeControls({
             <textarea
               value={change.code}
               onChange={(event) =>
-                onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, code: event.target.value } : item)))
+                onCodeChanges(
+                  codeChanges.map((item) => (item.id === change.id ? { ...item, code: event.target.value } : item)),
+                )
               }
               className="w-full min-h-28 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-950 text-zinc-100 p-3 font-mono text-xs resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
               spellCheck={false}
               placeholder="0x..."
             />
+            {change.code && !isValidRuntimeBytecode(change.code) && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                Runtime bytecode for {change.address || 'an address'} must be non-empty 0x-prefixed hex bytecode.
+              </p>
+            )}
           </div>
         ))}
 
         {balanceChanges.length === 0 && codeChanges.length === 0 && (
           <p className="text-sm text-muted-foreground">No state upgrades added.</p>
         )}
-      </div>
-    </section>
-  );
-}
-
-function ValidationPanel({
-  parseError,
-  errors,
-  warnings,
-  hasGeneratedChanges,
-}: {
-  parseError: string | null;
-  errors: string[];
-  warnings: string[];
-  hasGeneratedChanges: boolean;
-}) {
-  if (!parseError && errors.length === 0 && warnings.length === 0) {
-    return (
-      <div className="rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-4 flex items-start gap-3">
-        <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-        <div>
-          <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">Configuration looks valid</h3>
-          <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1">
-            {hasGeneratedChanges
-              ? 'Review validator coordination before applying this network upgrade.'
-              : 'No generated changes have been added yet.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/30 p-4">
-      <div className="flex items-start gap-3">
-        <AlertTriangle className="h-5 w-5 text-yellow-700 dark:text-yellow-300 mt-0.5" />
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">Review before applying</h3>
-          {parseError && <p className="text-xs text-red-700 dark:text-red-300">Imported JSON: {parseError}</p>}
-          {errors.map((error) => (
-            <p key={error} className="text-xs text-red-700 dark:text-red-300">
+        {validationErrors
+          .filter(
+            (error) =>
+              error.includes('balance-change') || error.includes('Balance change') || error.includes('bytecode'),
+          )
+          .map((error) => (
+            <p key={error} className="text-xs text-red-600 dark:text-red-400">
               {error}
             </p>
           ))}
-          {warnings.map((warning) => (
-            <p key={warning} className="text-xs text-yellow-800 dark:text-yellow-200">
-              {warning}
-            </p>
-          ))}
-        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -997,24 +1045,52 @@ curl --location --request POST '${rpcUrl || '<RPC_URL>'}' \\
   );
 }
 
-function AddressListInput({
-  label,
-  value,
+function PrecompileAllowListEditor({
+  selection,
+  action,
   onChange,
 }: {
-  label: string;
-  value: string[];
-  onChange: (value: string[]) => void;
+  selection: PrecompileSelection;
+  action: string;
+  onChange: (patch: Partial<PrecompileSelection>) => void;
 }) {
+  const roles = useMemo(() => selectionToAddressRoles(selection), [selection]);
+
   return (
-    <CompactTextField
-      label={label}
-      value={value.join(', ')}
-      onChange={(raw) => onChange(splitAddressList(raw))}
-      placeholder="0x..., 0x..."
-      hint="Comma or space separated."
+    <AllowList
+      addresses={roles}
+      precompileAction={action}
+      onUpdateAllowlist={(addresses) => onChange(addressRolesToSelectionPatch(addresses))}
     />
   );
+}
+
+function selectionToAddressRoles(selection: PrecompileSelection): AddressRoles {
+  return {
+    Admin: addressesToEntries(selection.adminAddresses ?? [], 'Admin'),
+    Manager: addressesToEntries(selection.managerAddresses ?? [], 'Manager'),
+    Enabled: addressesToEntries(selection.enabledAddresses ?? [], 'Enabled'),
+  };
+}
+
+function addressRolesToSelectionPatch(addresses: AddressRoles): Partial<PrecompileSelection> {
+  return {
+    adminAddresses: entriesToAddresses(addresses.Admin),
+    managerAddresses: entriesToAddresses(addresses.Manager),
+    enabledAddresses: entriesToAddresses(addresses.Enabled),
+  };
+}
+
+function addressesToEntries(addresses: string[], role: Role): AddressEntry[] {
+  return addresses.map((address, index) => ({
+    id: `${role}-${address.toLowerCase()}-${index}`,
+    address,
+    error: isValidAddress(address) ? undefined : 'Invalid Ethereum address format',
+  }));
+}
+
+function entriesToAddresses(entries: AddressEntry[]): string[] {
+  return entries.map((entry) => entry.address).filter(Boolean);
 }
 
 function CompactTextField({
@@ -1023,6 +1099,7 @@ function CompactTextField({
   onChange,
   placeholder,
   hint,
+  error,
   type = 'text',
 }: {
   label: string;
@@ -1030,20 +1107,40 @@ function CompactTextField({
   onChange: (value: string) => void;
   placeholder?: string;
   hint?: string;
+  error?: string | null;
   type?: string;
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
+      <div className="flex items-center gap-1.5">
+        <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
+        {hint && <InfoHint text={hint} />}
+      </div>
       <RawInput
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className="rounded-md text-sm"
+        error={error}
       />
-      {hint && <p className="text-[11px] text-muted-foreground leading-snug">{hint}</p>}
+      {error && <p className="text-[11px] text-red-600 dark:text-red-400 leading-snug">{error}</p>}
     </div>
+  );
+}
+
+function InfoHint({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" aria-label="More information" className="inline-flex">
+          <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        <p>{text}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -1068,19 +1165,12 @@ function Toggle({ checked }: { checked: boolean }) {
   );
 }
 
-function StatusPill({
-  tone,
-  children,
-}: {
-  tone: 'active' | 'danger' | 'muted';
-  children: React.ReactNode;
-}) {
+function StatusPill({ tone, children }: { tone: 'active' | 'danger' | 'muted'; children: React.ReactNode }) {
   return (
     <span
       className={cn(
         'rounded-md px-2 py-0.5 text-[11px]',
-        tone === 'active' &&
-          'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300',
+        tone === 'active' && 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300',
         tone === 'danger' && 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300',
         tone === 'muted' && 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
       )}
@@ -1099,15 +1189,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function IconButton({
-  label,
-  icon,
-  onClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-}) {
+function IconButton({ label, icon, onClick }: { label: string; icon: React.ReactNode; onClick: () => void }) {
   return (
     <button
       type="button"

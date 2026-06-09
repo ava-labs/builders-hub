@@ -187,9 +187,7 @@ export function buildUpgradeJson({
   codeChanges,
 }: BuildUpgradeJsonInput): UpgradeJson {
   const next = cloneUpgradeJson(baseConfig ?? emptyUpgradeJson());
-  const precompileUpgrades = Array.isArray(next.precompileUpgrades)
-    ? [...next.precompileUpgrades]
-    : [];
+  const precompileUpgrades = Array.isArray(next.precompileUpgrades) ? [...next.precompileUpgrades] : [];
   const stateUpgrades = Array.isArray(next.stateUpgrades) ? [...next.stateUpgrades] : [];
 
   let offset = 0;
@@ -286,13 +284,14 @@ export function validateUpgradePlan(input: BuildUpgradeJsonInput): ValidationRes
       if (!isValidAddress(address)) errors.push(`${selection.key} contains an invalid address: ${address}`);
     }
     if ((selection.adminAddresses ?? []).length === 0) {
-      warnings.push(`${selection.key} has no admin addresses. This can lock future management behind another network upgrade.`);
+      errors.push(`${selection.key} requires at least one admin address before it can be enabled.`);
     }
   }
 
   for (const change of input.balanceChanges) {
     if (!isValidAddress(change.address)) errors.push(`Invalid balance-change address: ${change.address || '(empty)'}`);
-    if (!isPositiveAmount(change.amount)) errors.push(`Balance change for ${change.address || 'an address'} must be positive.`);
+    if (!isPositiveAmount(change.amount))
+      errors.push(`Balance change for ${change.address || 'an address'} must be positive.`);
   }
 
   for (const change of input.codeChanges) {
