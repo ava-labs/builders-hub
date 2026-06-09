@@ -77,14 +77,30 @@ function makeInitialPrecompiles(): PrecompileSelection[] {
 
 export default function UpgradeJsonBuilder() {
   const store = useL1UpgradeStore();
-  const selection = store((state) => ({
-    subnetId: state.subnetId,
-    blockchainId: state.blockchainId,
-    rpcUrl: state.rpcUrl,
-    chainName: state.chainName,
-    isManaged: state.isManaged,
-    managedNodeCount: state.managedNodeCount,
-  }));
+  const selectedSubnetId = store((state) => state.subnetId);
+  const selectedBlockchainId = store((state) => state.blockchainId);
+  const selectedRpcUrl = store((state) => state.rpcUrl);
+  const selectedChainName = store((state) => state.chainName);
+  const selectedIsManaged = store((state) => state.isManaged);
+  const selectedManagedNodeCount = store((state) => state.managedNodeCount);
+  const selection = useMemo(
+    () => ({
+      subnetId: selectedSubnetId,
+      blockchainId: selectedBlockchainId,
+      rpcUrl: selectedRpcUrl,
+      chainName: selectedChainName,
+      isManaged: selectedIsManaged,
+      managedNodeCount: selectedManagedNodeCount,
+    }),
+    [
+      selectedBlockchainId,
+      selectedChainName,
+      selectedIsManaged,
+      selectedManagedNodeCount,
+      selectedRpcUrl,
+      selectedSubnetId,
+    ],
+  );
 
   const [baseText, setBaseText] = useState(formatUpgradeJson(emptyUpgradeJson()));
   const [baseSource, setBaseSource] = useState('empty');

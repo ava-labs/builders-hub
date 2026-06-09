@@ -19,7 +19,13 @@ const { getStore: getL1UpgradeStore, useStoreApi: useL1UpgradeStore } = createFl
   name: 'l1-upgrade-store',
   storeCreator: (set, isTestnet) => ({
     ...l1UpgradeInitialState,
-    setSelection: (selection) => set((state) => ({ ...state, ...selection })),
+    setSelection: (selection) =>
+      set((state) => {
+        const hasChanges = Object.entries(selection).some(
+          ([key, value]) => state[key as keyof typeof l1UpgradeInitialState] !== value,
+        );
+        return hasChanges ? { ...state, ...selection } : state;
+      }),
     reset: () => {
       set(l1UpgradeInitialState);
       window?.localStorage.removeItem(`${STORE_VERSION}-l1-upgrade-store-${isTestnet ? 'testnet' : 'mainnet'}`);

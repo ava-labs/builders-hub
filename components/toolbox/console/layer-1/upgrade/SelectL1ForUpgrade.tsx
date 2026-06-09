@@ -24,13 +24,21 @@ type ManagedL1 = {
 export default function SelectL1ForUpgrade() {
   const store = useL1UpgradeStore();
   const setSelection = store((state) => state.setSelection);
-  const selected = store((state) => ({
-    subnetId: state.subnetId,
-    blockchainId: state.blockchainId,
-    rpcUrl: state.rpcUrl,
-    chainName: state.chainName,
-    isManaged: state.isManaged,
-  }));
+  const selectedSubnetId = store((state) => state.subnetId);
+  const selectedBlockchainId = store((state) => state.blockchainId);
+  const selectedRpcUrl = store((state) => state.rpcUrl);
+  const selectedChainName = store((state) => state.chainName);
+  const selectedIsManaged = store((state) => state.isManaged);
+  const selected = useMemo(
+    () => ({
+      subnetId: selectedSubnetId,
+      blockchainId: selectedBlockchainId,
+      rpcUrl: selectedRpcUrl,
+      chainName: selectedChainName,
+      isManaged: selectedIsManaged,
+    }),
+    [selectedBlockchainId, selectedChainName, selectedIsManaged, selectedRpcUrl, selectedSubnetId],
+  );
   const searchParams = useSearchParams();
   const { l1List } = useL1ListStore()();
   const createChainStore = useCreateChainStore();
