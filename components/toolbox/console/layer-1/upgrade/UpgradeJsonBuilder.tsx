@@ -12,7 +12,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
 import { RawInput } from '@/components/toolbox/components/Input';
 import { SyntaxHighlightedJSON } from '@/components/toolbox/components/genesis/SyntaxHighlightedJSON';
 import { useL1UpgradeStore } from '@/components/toolbox/stores/l1UpgradeStore';
@@ -66,6 +65,11 @@ type UiCodeChange = CodeChange & {
 
 const DEFAULT_TIMESTAMP_OFFSET_SECONDS = 10 * 60;
 
+type ExistingPrecompileSchedule = {
+  mode: Exclude<PrecompileMode, 'none'>;
+  blockTimestamp?: number;
+};
+
 function makeInitialPrecompiles(): PrecompileSelection[] {
   return PRECOMPILE_DEFINITIONS.map((definition) => ({
     key: definition.key,
@@ -73,6 +77,33 @@ function makeInitialPrecompiles(): PrecompileSelection[] {
     quorumNumerator: definition.key === 'warpConfig' ? 67 : undefined,
     requirePrimaryNetworkSigners: definition.key === 'warpConfig' ? true : undefined,
   }));
+}
+
+function getExistingPrecompileSchedules(config: Record<string, unknown>): Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>> {
+  const schedules: Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>> = {};
+  const upgrades = config.precompileUpgrades;
+  if (!Array.isArray(upgrades)) return schedules;
+
+  for (const entry of upgrades) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    for (const definition of PRECOMPILE_DEFINITIONS) {
+      const rawConfig = (entry as Record<string, unknown>)[definition.key];
+      if (!rawConfig || typeof rawConfig !== 'object' || Array.isArray(rawConfig)) continue;
+      const upgradeConfig = rawConfig as Record<string, unknown>;
+      const rawTimestamp = upgradeConfig.blockTimestamp;
+      schedules[definition.key] = {
+        mode: upgradeConfig.disable === true ? 'disable' : 'enable',
+        blockTimestamp:
+          typeof rawTimestamp === 'number'
+            ? rawTimestamp
+            : typeof rawTimestamp === 'string' && /^\d+$/.test(rawTimestamp)
+              ? Number(rawTimestamp)
+              : undefined,
+      };
+    }
+  }
+
+  return schedules;
 }
 
 export default function UpgradeJsonBuilder() {
@@ -122,6 +153,7 @@ export default function UpgradeJsonBuilder() {
   const parsedBase = useMemo(() => parseUpgradeJson(baseText), [baseText]);
   const baseConfig = parsedBase.config ?? emptyUpgradeJson();
   const latestExistingTimestamp = getMaxConfiguredTimestamp(baseConfig);
+  const existingPrecompileSchedules = useMemo(() => getExistingPrecompileSchedules(baseConfig), [baseConfig]);
 
   const planInput = useMemo(
     () => ({
@@ -358,7 +390,7 @@ export default function UpgradeJsonBuilder() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(520px,640px)] gap-5 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)] gap-5 items-start">
         <div className="space-y-5 min-w-0">
           <HeaderPanel
             chainName={selection.chainName}
@@ -411,18 +443,20 @@ export default function UpgradeJsonBuilder() {
 
           <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
             <h3 className="text-sm font-semibold mb-4">Activation timing</h3>
-            <Input
+            <CompactTextField
               label="First new blockTimestamp"
               type="number"
               value={activationTimestamp}
               onChange={(value) => setActivationTimestamp(Number(value))}
-              helperText="Multiple generated entries are scheduled one second apart from this timestamp to keep upgrade order deterministic."
+              hint="Multiple generated entries are scheduled one second apart from this timestamp to keep upgrade order deterministic."
             />
           </section>
 
           <PrecompileControls
             precompiles={precompiles}
             activePrecompileKeys={activePrecompileKeys}
+            existingSchedules={existingPrecompileSchedules}
+            activationTimestamp={activationTimestamp}
             onChange={setPrecompiles}
           />
 
@@ -570,62 +604,76 @@ function HeaderPanel({
 function PrecompileControls({
   precompiles,
   activePrecompileKeys,
+  existingSchedules,
+  activationTimestamp,
   onChange,
 }: {
   precompiles: PrecompileSelection[];
   activePrecompileKeys: string[];
+  existingSchedules: Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>>;
+  activationTimestamp: number;
   onChange: (value: PrecompileSelection[]) => void;
 }) {
   const update = (key: PrecompileConfigKey, patch: Partial<PrecompileSelection>) => {
     onChange(precompiles.map((item) => (item.key === key ? { ...item, ...patch } : item)));
   };
 
+  const toggleTarget = (key: PrecompileConfigKey, currentTargetEnabled: boolean, baseTargetEnabled: boolean) => {
+    const nextEnabled = !currentTargetEnabled;
+    update(key, { mode: nextEnabled === baseTargetEnabled ? 'none' : nextEnabled ? 'enable' : 'disable' });
+  };
+
   return (
-    <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-      <h3 className="text-sm font-semibold">Precompile upgrades</h3>
-      <p className="text-xs text-muted-foreground mt-1 mb-4">
-        Choose no change, enable, or disable. Enable entries can initialize role lists; disable entries clear the precompile storage when activated.
-      </p>
-      <div className="space-y-3">
+    <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
+        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompile upgrades</h3>
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
+          Toggle the target state. Active state comes from RPC; scheduled state comes from the loaded upgrade.json.
+        </p>
+      </div>
+      <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
         {PRECOMPILE_DEFINITIONS.map((definition) => {
           const value = precompiles.find((item) => item.key === definition.key)!;
           const isActive = activePrecompileKeys.includes(definition.key);
+          const existingSchedule = existingSchedules[definition.key];
+          const baseTargetEnabled = existingSchedule ? existingSchedule.mode === 'enable' : isActive;
+          const targetEnabled =
+            value.mode === 'enable' ? true : value.mode === 'disable' ? false : baseTargetEnabled;
           return (
-            <div key={definition.key} className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-3">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div key={definition.key}>
+              <button
+                type="button"
+                onClick={() => toggleTarget(definition.key, targetEnabled, baseTargetEnabled)}
+                className="w-full flex items-center gap-3 px-3.5 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+              >
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-medium">{definition.label}</h4>
-                    {isActive && (
-                      <span className="rounded-md bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 text-[11px]">
-                        active
-                      </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
+                      {definition.label}
+                    </h4>
+                    <StatusPill tone={isActive ? 'active' : 'muted'}>{isActive ? 'active now' : 'inactive now'}</StatusPill>
+                    {existingSchedule && (
+                      <StatusPill tone={existingSchedule.mode === 'enable' ? 'active' : 'danger'}>
+                        file schedules {existingSchedule.mode}
+                        {existingSchedule.blockTimestamp ? ` @ ${existingSchedule.blockTimestamp}` : ''}
+                      </StatusPill>
+                    )}
+                    {value.mode !== 'none' && (
+                      <StatusPill tone={value.mode === 'enable' ? 'active' : 'danger'}>
+                        new {value.mode} @ {activationTimestamp}
+                      </StatusPill>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{definition.description}</p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-snug">
+                    {definition.description}
+                  </p>
                 </div>
-                <div className="grid grid-cols-3 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden min-w-[240px]">
-                  {(['none', 'enable', 'disable'] as PrecompileMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => update(definition.key, { mode })}
-                      className={cn(
-                        'px-3 py-2 text-xs font-medium border-r last:border-r-0 border-zinc-200 dark:border-zinc-800 transition-colors',
-                        value.mode === mode
-                          ? mode === 'disable'
-                            ? 'bg-red-600 text-white'
-                            : 'bg-primary text-primary-foreground'
-                          : 'hover:bg-zinc-50 dark:hover:bg-zinc-900 text-muted-foreground',
-                      )}
-                    >
-                      {mode === 'none' ? 'No change' : mode === 'enable' ? 'Enable' : 'Disable'}
-                    </button>
-                  ))}
+                <div className="ml-auto flex items-center gap-2 shrink-0">
+                  <Toggle checked={targetEnabled} />
                 </div>
-              </div>
+              </button>
               {value.mode === 'enable' && definition.supportsAllowList && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 px-3.5 pb-3">
                   <AddressListInput
                     label="Admin addresses"
                     value={value.adminAddresses ?? []}
@@ -644,24 +692,33 @@ function PrecompileControls({
                 </div>
               )}
               {value.mode === 'enable' && definition.supportsWarpConfig && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                  <Input
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-3.5 pb-3">
+                  <CompactTextField
                     label="Quorum numerator"
                     type="number"
                     value={value.quorumNumerator ?? 67}
                     onChange={(raw) => update(definition.key, { quorumNumerator: Number(raw) })}
-                    helperText="Percent threshold for Warp signer quorum."
+                    hint="Percent threshold for Warp signer quorum."
                   />
-                  <label className="flex items-center gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2 h-fit mt-7">
-                    <input
-                      type="checkbox"
-                      checked={value.requirePrimaryNetworkSigners ?? true}
-                      onChange={(event) =>
-                        update(definition.key, { requirePrimaryNetworkSigners: event.target.checked })
-                      }
-                    />
-                    <span className="text-sm">Require Primary Network signers</span>
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      update(definition.key, {
+                        requirePrimaryNetworkSigners: !(value.requirePrimaryNetworkSigners ?? true),
+                      })
+                    }
+                    className="flex items-center gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-left h-fit"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                        Require Primary Network signers
+                      </div>
+                      <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                        Keep enabled unless validators should not verify Primary Network signers.
+                      </div>
+                    </div>
+                    <Toggle checked={value.requirePrimaryNetworkSigners ?? true} />
+                  </button>
                 </div>
               )}
             </div>
@@ -746,20 +803,20 @@ function StateUpgradeControls({
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Input
+              <CompactTextField
                 label="Account address"
                 value={change.address}
                 onChange={(address) =>
                   onBalanceChanges(balanceChanges.map((item) => (item.id === change.id ? { ...item, address } : item)))
                 }
               />
-              <Input
+              <CompactTextField
                 label="Amount to add"
                 value={change.amount}
                 onChange={(amount) =>
                   onBalanceChanges(balanceChanges.map((item) => (item.id === change.id ? { ...item, amount } : item)))
                 }
-                helperText="Wei amount as decimal or hex. This adds to the balance; it does not set an absolute balance."
+                hint="Wei amount as decimal or hex. Adds to the balance; it does not set an absolute balance."
               />
             </div>
           </div>
@@ -776,14 +833,14 @@ function StateUpgradeControls({
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Input
+              <CompactTextField
                 label="Target account"
                 value={change.address}
                 onChange={(address) =>
                   onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, address } : item)))
                 }
               />
-              <Input
+              <CompactTextField
                 label="Source contract address"
                 value={change.sourceAddress}
                 onChange={(sourceAddress) =>
@@ -791,9 +848,9 @@ function StateUpgradeControls({
                     codeChanges.map((item) => (item.id === change.id ? { ...item, sourceAddress } : item)),
                   )
                 }
-                helperText="Optional: fetch runtime bytecode from an already deployed contract."
+                hint="Optional: fetch runtime bytecode from an already deployed contract."
               />
-              <Input
+              <CompactTextField
                 label="Source RPC URL"
                 value={change.sourceRpcUrl}
                 onChange={(sourceRpcUrl) =>
@@ -950,16 +1007,86 @@ function AddressListInput({
   onChange: (value: string[]) => void;
 }) {
   return (
-    <div>
-      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{label}</label>
+    <CompactTextField
+      label={label}
+      value={value.join(', ')}
+      onChange={(raw) => onChange(splitAddressList(raw))}
+      placeholder="0x..., 0x..."
+      hint="Comma or space separated."
+    />
+  );
+}
+
+function CompactTextField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  hint,
+  type = 'text',
+}: {
+  label: string;
+  value: string | number;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  hint?: string;
+  type?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
       <RawInput
-        value={value.join(', ')}
-        onChange={(event) => onChange(splitAddressList(event.target.value))}
-        placeholder="0x..., 0x..."
-        className="rounded-md"
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="rounded-md text-sm"
       />
-      <p className="text-xs text-muted-foreground mt-1">Comma or space separated.</p>
+      {hint && <p className="text-[11px] text-muted-foreground leading-snug">{hint}</p>}
     </div>
+  );
+}
+
+function Toggle({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors',
+        checked
+          ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white'
+          : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
+      )}
+    >
+      <span
+        className={cn(
+          'absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-200',
+          checked ? 'left-[18px] bg-white dark:bg-zinc-900' : 'left-0.5 bg-white dark:bg-zinc-600',
+        )}
+      />
+    </span>
+  );
+}
+
+function StatusPill({
+  tone,
+  children,
+}: {
+  tone: 'active' | 'danger' | 'muted';
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        'rounded-md px-2 py-0.5 text-[11px]',
+        tone === 'active' &&
+          'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300',
+        tone === 'danger' && 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300',
+        tone === 'muted' && 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+      )}
+    >
+      {children}
+    </span>
   );
 }
 

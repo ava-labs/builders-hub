@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Server, Search, ShieldCheck } from 'lucide-react';
+import { Check, Cpu, ShieldCheck } from 'lucide-react';
+import SelectSubnet, { type SubnetSelection } from '@/components/toolbox/components/SelectSubnet';
 import { Button } from '@/components/toolbox/components/Button';
-import { Input } from '@/components/toolbox/components/Input';
-import InputSubnetId from '@/components/toolbox/components/InputSubnetId';
-import InputChainId from '@/components/toolbox/components/InputChainId';
+import { Input, type Suggestion } from '@/components/toolbox/components/Input';
 import { useL1UpgradeStore } from '@/components/toolbox/stores/l1UpgradeStore';
 import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
@@ -19,6 +18,24 @@ type ManagedL1 = {
   rpcUrl: string;
   status: 'active' | 'expired';
   nodes: Array<{ id: string; status: string }>;
+};
+
+type SubnetBlockchain = {
+  blockchainId: string;
+  blockchainName?: string;
+  vmId?: string;
+  evmChainId?: number;
+  subnetId?: string;
+};
+
+type BlockchainOption = {
+  blockchainId: string;
+  name: string;
+  description: string;
+  rpcUrl: string;
+  vmId?: string;
+  evmChainId?: number;
+  source: 'subnet' | 'wallet' | 'managed' | 'created';
 };
 
 export default function SelectL1ForUpgrade() {
@@ -39,6 +56,7 @@ export default function SelectL1ForUpgrade() {
     }),
     [selectedBlockchainId, selectedChainName, selectedIsManaged, selectedRpcUrl, selectedSubnetId],
   );
+
   const searchParams = useSearchParams();
   const { l1List } = useL1ListStore()();
   const createChainStore = useCreateChainStore();
@@ -48,45 +66,46 @@ export default function SelectL1ForUpgrade() {
 
   const [managedL1s, setManagedL1s] = useState<ManagedL1[]>([]);
   const [isLoadingManaged, setIsLoadingManaged] = useState(false);
-  const [manualSubnetId, setManualSubnetId] = useState(selected.subnetId);
-  const [manualBlockchainId, setManualBlockchainId] = useState(selected.blockchainId);
-  const [manualRpcUrl, setManualRpcUrl] = useState(selected.rpcUrl);
-  const [manualChainName, setManualChainName] = useState(selected.chainName);
+  const [subnet, setSubnet] = useState<SubnetSelection['subnet']>(null);
+  const [subnetId, setSubnetId] = useState(selected.subnetId);
+  const [blockchainId, setBlockchainId] = useState(selected.blockchainId);
+  const [rpcUrl, setRpcUrl] = useState(selected.rpcUrl);
+  const [chainName, setChainName] = useState(selected.chainName);
 
   const querySelection = useMemo(() => {
-    const subnetId = searchParams.get('subnetId');
-    const blockchainId = searchParams.get('blockchainId');
-    const rpcUrl = searchParams.get('rpcUrl');
-    const chainName = searchParams.get('chainName');
-    const isManaged = searchParams.get('isManaged') === 'true';
-    if (!subnetId && !blockchainId && !rpcUrl && !chainName) return null;
-    return { subnetId, blockchainId, rpcUrl, chainName, isManaged };
+    const subnetIdParam = searchParams.get('subnetId');
+    const blockchainIdParam = searchParams.get('blockchainId');
+    const rpcUrlParam = searchParams.get('rpcUrl');
+    const chainNameParam = searchParams.get('chainName');
+    const isManagedParam = searchParams.get('isManaged') === 'true';
+    if (!subnetIdParam && !blockchainIdParam && !rpcUrlParam && !chainNameParam) return null;
+    return {
+      subnetId: subnetIdParam,
+      blockchainId: blockchainIdParam,
+      rpcUrl: rpcUrlParam,
+      chainName: chainNameParam,
+      isManaged: isManagedParam,
+    };
   }, [searchParams]);
 
   useEffect(() => {
     if (!querySelection) return;
-    const nextSelection = {
-      subnetId: querySelection.subnetId ?? selected.subnetId,
-      blockchainId: querySelection.blockchainId ?? selected.blockchainId,
-      rpcUrl: querySelection.rpcUrl ?? selected.rpcUrl,
-      chainName: querySelection.chainName ?? selected.chainName,
+    const nextSubnetId = querySelection.subnetId ?? selected.subnetId;
+    const nextBlockchainId = querySelection.blockchainId ?? selected.blockchainId;
+    const nextRpcUrl = querySelection.rpcUrl ?? selected.rpcUrl;
+    const nextChainName = querySelection.chainName ?? selected.chainName;
+
+    setSubnetId(nextSubnetId);
+    setBlockchainId(nextBlockchainId);
+    setRpcUrl(nextRpcUrl);
+    setChainName(nextChainName);
+    setSelection({
+      subnetId: nextSubnetId,
+      blockchainId: nextBlockchainId,
+      rpcUrl: nextRpcUrl,
+      chainName: nextChainName,
       isManaged: querySelection.isManaged,
-    };
-    if (
-      selected.subnetId !== nextSelection.subnetId ||
-      selected.blockchainId !== nextSelection.blockchainId ||
-      selected.rpcUrl !== nextSelection.rpcUrl ||
-      selected.chainName !== nextSelection.chainName ||
-      selected.isManaged !== nextSelection.isManaged
-    ) {
-      setSelection({
-        ...nextSelection,
-      });
-    }
-    setManualSubnetId(nextSelection.subnetId);
-    setManualBlockchainId(nextSelection.blockchainId);
-    setManualRpcUrl(nextSelection.rpcUrl);
-    setManualChainName(nextSelection.chainName);
+    });
   }, [querySelection, selected, setSelection]);
 
   useEffect(() => {
@@ -108,159 +127,224 @@ export default function SelectL1ForUpgrade() {
     };
   }, []);
 
-  const savedWalletL1s: Array<{ subnetId: string; blockchainId: string; chainName: string; rpcUrl: string }> = useMemo(
-    () => {
-      const walletL1List = l1List as L1ListItem[];
-      return walletL1List
-        .filter((l1) => l1.subnetId && l1.id)
-        .map((l1) => ({
-          subnetId: l1.subnetId,
-          blockchainId: l1.id,
-          chainName: l1.name,
-          rpcUrl: l1.rpcUrl,
-        }));
+  const walletL1s = l1List as L1ListItem[];
+
+  const blockchainOptions = useMemo(() => {
+    const byId = new Map<string, BlockchainOption>();
+    const add = (option: BlockchainOption) => {
+      const existing = byId.get(option.blockchainId);
+      byId.set(option.blockchainId, {
+        ...existing,
+        ...option,
+        rpcUrl: option.rpcUrl || existing?.rpcUrl || '',
+        name: option.name || existing?.name || option.blockchainId.slice(0, 8),
+      });
+    };
+
+    const subnetBlockchains = (subnet?.blockchains ?? []) as SubnetBlockchain[];
+    for (const blockchain of subnetBlockchains) {
+      if (!blockchain.blockchainId) continue;
+      add({
+        blockchainId: blockchain.blockchainId,
+        name: blockchain.blockchainName || blockchain.blockchainId.slice(0, 8),
+        description: blockchain.evmChainId ? `EVM Chain ID ${blockchain.evmChainId}` : 'Blockchain found on this subnet.',
+        rpcUrl: '',
+        vmId: blockchain.vmId,
+        evmChainId: blockchain.evmChainId,
+        source: 'subnet',
+      });
+    }
+
+    for (const l1 of walletL1s) {
+      if (!l1.id || l1.subnetId !== subnetId) continue;
+      add({
+        blockchainId: l1.id,
+        name: l1.name,
+        description: l1.description || 'Known L1 from your wallet list.',
+        rpcUrl: l1.rpcUrl,
+        source: 'wallet',
+      });
+    }
+
+    for (const l1 of managedL1s) {
+      if (!l1.blockchainId || l1.subnetId !== subnetId) continue;
+      const activeNodes = l1.nodes.filter((node) => node.status === 'active').length;
+      add({
+        blockchainId: l1.blockchainId,
+        name: l1.chainName,
+        description: activeNodes > 0 ? `Managed L1 with ${activeNodes} active node(s).` : 'Managed L1 with no active nodes.',
+        rpcUrl: l1.rpcUrl,
+        source: 'managed',
+      });
+    }
+
+    if (createdSubnetId === subnetId && createdBlockchainId) {
+      add({
+        blockchainId: createdBlockchainId,
+        name: createdChainName || createdBlockchainId.slice(0, 8),
+        description: 'The blockchain you just created in Builder Hub.',
+        rpcUrl: '',
+        source: 'created',
+      });
+    }
+
+    return Array.from(byId.values());
+  }, [createdBlockchainId, createdChainName, createdSubnetId, managedL1s, subnet, subnetId, walletL1s]);
+
+  const selectedOption = blockchainOptions.find((option) => option.blockchainId === blockchainId);
+
+  const managedMatch = managedL1s.find((l1) => l1.subnetId === subnetId && l1.blockchainId === blockchainId);
+  const managedNodeCount = managedMatch?.nodes.filter((node) => node.status === 'active').length ?? 0;
+  const isManaged = managedNodeCount > 0;
+
+  const blockchainSuggestions: Suggestion[] = blockchainOptions.map((option) => ({
+    title: `${option.name} (${option.blockchainId})`,
+    value: option.blockchainId,
+    description: option.description,
+  }));
+
+  const handleSubnetChange = useCallback(
+    (selection: SubnetSelection) => {
+      const nextSubnetId = selection.subnetId;
+      setSubnetId(nextSubnetId);
+      setSubnet(selection.subnet);
+
+      const subnetBlockchains = (selection.subnet?.blockchains ?? []) as SubnetBlockchain[];
+      const currentStillValid = subnetBlockchains.some((blockchain) => blockchain.blockchainId === blockchainId);
+      if (currentStillValid) return;
+
+      const walletMatch = walletL1s.find((l1) => l1.subnetId === nextSubnetId);
+      const managedMatch = managedL1s.find((l1) => l1.subnetId === nextSubnetId);
+      const firstChain = subnetBlockchains[0];
+      const nextBlockchainId = walletMatch?.id || managedMatch?.blockchainId || firstChain?.blockchainId || '';
+
+      setBlockchainId(nextBlockchainId);
+      setRpcUrl(walletMatch?.rpcUrl || managedMatch?.rpcUrl || '');
+      setChainName(walletMatch?.name || managedMatch?.chainName || firstChain?.blockchainName || '');
     },
-    [l1List],
+    [blockchainId, managedL1s, walletL1s],
   );
 
-  const canUseManual = manualSubnetId.trim() && manualBlockchainId.trim() && manualRpcUrl.trim();
+  useEffect(() => {
+    if (!blockchainId) return;
+    const option = blockchainOptions.find((candidate) => candidate.blockchainId === blockchainId);
+    if (!option) return;
+    if (!rpcUrl && option.rpcUrl) setRpcUrl(option.rpcUrl);
+    if (!chainName && option.name) setChainName(option.name);
+  }, [blockchainId, blockchainOptions, chainName, rpcUrl]);
 
-  const applyManual = () => {
+  useEffect(() => {
+    if (!subnetId || !blockchainId) return;
     setSelection({
-      subnetId: manualSubnetId.trim(),
-      blockchainId: manualBlockchainId.trim(),
-      rpcUrl: manualRpcUrl.trim(),
-      chainName: manualChainName.trim() || manualBlockchainId.trim().slice(0, 8),
-      isManaged: false,
-      managedNodeCount: 0,
+      subnetId,
+      blockchainId,
+      rpcUrl,
+      chainName: chainName || selectedOption?.name || blockchainId.slice(0, 8),
+      isManaged,
+      managedNodeCount,
     });
-  };
+  }, [blockchainId, chainName, isManaged, managedNodeCount, rpcUrl, selectedOption?.name, setSelection, subnetId]);
 
-  const selectManaged = (l1: ManagedL1) => {
-    const activeNodes = l1.nodes.filter((node) => node.status === 'active').length;
+  const applyCurrentSelection = () => {
+    if (!subnetId || !blockchainId) return;
     setSelection({
-      subnetId: l1.subnetId,
-      blockchainId: l1.blockchainId,
-      rpcUrl: l1.rpcUrl,
-      chainName: l1.chainName,
-      isManaged: activeNodes > 0,
-      managedNodeCount: activeNodes,
-    });
-    setManualSubnetId(l1.subnetId);
-    setManualBlockchainId(l1.blockchainId);
-    setManualRpcUrl(l1.rpcUrl);
-    setManualChainName(l1.chainName);
-  };
-
-  const selectSaved = (l1: { subnetId: string; blockchainId: string; chainName: string; rpcUrl: string }) => {
-    setSelection({ ...l1, isManaged: false, managedNodeCount: 0 });
-    setManualSubnetId(l1.subnetId);
-    setManualBlockchainId(l1.blockchainId);
-    setManualRpcUrl(l1.rpcUrl);
-    setManualChainName(l1.chainName);
-  };
-
-  const selectCreated = () => {
-    setManualSubnetId(createdSubnetId);
-    setManualBlockchainId(createdBlockchainId);
-    setManualChainName(createdChainName);
-    setSelection({
-      subnetId: createdSubnetId,
-      blockchainId: createdBlockchainId,
-      chainName: createdChainName,
-      isManaged: false,
-      managedNodeCount: 0,
+      subnetId: subnetId.trim(),
+      blockchainId: blockchainId.trim(),
+      rpcUrl: rpcUrl.trim(),
+      chainName: chainName.trim() || selectedOption?.name || blockchainId.trim().slice(0, 8),
+      isManaged,
+      managedNodeCount,
     });
   };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-5">
-        <section className="space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-5">
+        <section className="space-y-5 min-w-0">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Select the L1 to upgrade</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Builder Hub uses the Subnet ID, Blockchain ID, and RPC URL to load the current config and prepare the upgrade file.
+              Paste a Subnet ID or pick from the suggestions, then choose the blockchain whose upgrade.json should change.
             </p>
           </div>
 
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Server className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold">Managed L1s</h3>
-            </div>
-            {isLoadingManaged ? (
-              <p className="text-sm text-muted-foreground">Loading managed L1s...</p>
-            ) : managedL1s.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {managedL1s.map((l1) => {
-                  const isActive = selected.subnetId === l1.subnetId && selected.blockchainId === l1.blockchainId;
-                  const activeNodes = l1.nodes.filter((node) => node.status === 'active').length;
-                  return (
-                    <button
-                      key={`${l1.subnetId}-${l1.blockchainId}`}
-                      type="button"
-                      onClick={() => selectManaged(l1)}
-                      className={cn(
-                        'text-left rounded-lg border p-3 transition-colors',
-                        isActive
-                          ? 'border-primary bg-primary/5'
-                          : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900',
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">{l1.chainName}</div>
-                          <div className="text-xs text-muted-foreground truncate">{l1.blockchainId}</div>
-                        </div>
-                        <span className="shrink-0 rounded-md border border-zinc-200 dark:border-zinc-800 px-2 py-1 text-[11px] text-muted-foreground">
-                          {activeNodes} active
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No managed L1s found for this account.</p>
-            )}
+            <h3 className="text-sm font-semibold mb-3">Subnet</h3>
+            <SelectSubnet value={subnetId} onChange={handleSubnetChange} hidePrimaryNetwork />
           </div>
 
-          {createdSubnetId && createdBlockchainId && (
-            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold">Recently created chain</h3>
-                  <p className="text-xs text-muted-foreground mt-1">{createdChainName || createdBlockchainId}</p>
-                </div>
-                <Button size="sm" variant="outline" stickLeft onClick={selectCreated}>
-                  Use chain
-                </Button>
-              </div>
+          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Cpu className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">Blockchain</h3>
             </div>
-          )}
+            <Input
+              label="Blockchain ID"
+              value={blockchainId}
+              onChange={setBlockchainId}
+              suggestions={blockchainSuggestions}
+              helperText="Paste a custom Blockchain ID, or choose one of the blockchains found for this Subnet."
+            />
 
-          {savedWalletL1s.length > 0 && (
-            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold">Saved L1s</h3>
-              </div>
+            {blockchainOptions.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {savedWalletL1s.map((l1) => (
+                {blockchainOptions.map((option) => (
                   <button
-                    key={`${l1.subnetId}-${l1.blockchainId}`}
+                    key={option.blockchainId}
                     type="button"
-                    onClick={() => selectSaved(l1)}
-                    className="text-left rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                    onClick={() => {
+                      setBlockchainId(option.blockchainId);
+                      setChainName(option.name);
+                      if (option.rpcUrl) setRpcUrl(option.rpcUrl);
+                    }}
+                    className={cn(
+                      'text-left rounded-lg border p-3 transition-colors',
+                      blockchainId === option.blockchainId
+                        ? 'border-primary bg-primary/5'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900',
+                    )}
                   >
-                    <div className="text-sm font-medium truncate">{l1.chainName}</div>
-                    <div className="text-xs text-muted-foreground truncate">{l1.rpcUrl}</div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{option.name}</div>
+                        <div className="text-xs text-muted-foreground truncate">{option.blockchainId}</div>
+                        <div className="text-[11px] text-muted-foreground mt-1">{option.description}</div>
+                      </div>
+                      {blockchainId === option.blockchainId && <Check className="h-4 w-4 text-primary shrink-0" />}
+                    </div>
                   </button>
                 ))}
               </div>
+            )}
+
+            {subnetId && blockchainOptions.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No blockchains loaded for this Subnet yet. Paste the Blockchain ID above to continue.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+            <h3 className="text-sm font-semibold mb-3">RPC and display name</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4">
+              <Input
+                label="RPC URL"
+                value={rpcUrl}
+                onChange={setRpcUrl}
+                placeholder="https://..."
+                helperText="Used to read active rules. Leave blank if you only want to import or edit a file."
+              />
+              <Input
+                label="Chain Name"
+                value={chainName}
+                onChange={setChainName}
+                placeholder="Optional"
+              />
             </div>
-          )}
+            <Button size="sm" variant="secondary" stickLeft disabled={!subnetId || !blockchainId} onClick={applyCurrentSelection}>
+              Use this L1
+            </Button>
+          </div>
         </section>
 
         <aside className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 h-fit">
@@ -268,35 +352,18 @@ export default function SelectL1ForUpgrade() {
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold">Current Selection</h3>
           </div>
-          {selected.subnetId && selected.blockchainId ? (
+          {subnetId && blockchainId ? (
             <div className="space-y-2 text-xs">
-              <InfoRow label="Subnet ID" value={selected.subnetId} />
-              <InfoRow label="Blockchain ID" value={selected.blockchainId} />
-              <InfoRow label="RPC URL" value={selected.rpcUrl || 'Not set'} />
-              <InfoRow label="Node type" value={selected.isManaged ? 'Managed' : 'Self-hosted/manual'} />
+              <InfoRow label="Subnet ID" value={subnetId} />
+              <InfoRow label="Blockchain ID" value={blockchainId} />
+              <InfoRow label="RPC URL" value={rpcUrl || 'Not set'} />
+              <InfoRow label="Node type" value={isManaged ? `Managed (${managedNodeCount} active)` : 'Self-hosted/manual'} />
+              {isLoadingManaged && <p className="text-xs text-muted-foreground">Checking managed node status...</p>}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Select or enter an L1 before continuing.</p>
+            <p className="text-sm text-muted-foreground">Select a Subnet and Blockchain ID before continuing.</p>
           )}
         </aside>
-      </div>
-
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-        <h3 className="text-sm font-semibold mb-4">Use a custom L1</h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4">
-          <InputSubnetId value={manualSubnetId} onChange={setManualSubnetId} hidePrimaryNetwork />
-          <InputChainId
-            value={manualBlockchainId}
-            onChange={setManualBlockchainId}
-            label="Blockchain ID"
-            hidePrimaryNetwork
-          />
-          <Input label="RPC URL" value={manualRpcUrl} onChange={setManualRpcUrl} placeholder="https://..." />
-          <Input label="Chain Name" value={manualChainName} onChange={setManualChainName} placeholder="Optional" />
-        </div>
-        <Button size="sm" variant="secondary" stickLeft disabled={!canUseManual} onClick={applyManual}>
-          Use custom L1
-        </Button>
       </div>
     </div>
   );
