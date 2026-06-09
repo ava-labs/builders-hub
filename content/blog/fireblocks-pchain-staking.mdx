@@ -13,7 +13,7 @@ Custodians and institutions holding AVAX in Fireblocks regularly ask how to stak
 
 There is still a fully supported path: **Raw Signing**. Avalanche's C-Chain, P-Chain, and X-Chain all use the same secp256k1 key, so the key behind your Fireblocks AVAX wallet *is* your P-Chain key. Build the P-Chain transaction yourself, ask Fireblocks to sign its hash with that key, and broadcast. The MPC custody model stays fully intact — the private key never leaves Fireblocks, and your approval policies still gate every signature.
 
-This post walks the complete flow with working code: derive the P-Chain address, move AVAX from the C-Chain via atomic transfer (export + import), and delegate to a validator. A runnable version of everything below lives at [owenwahlgren/fireblocks-pchain-staking](https://github.com/owenwahlgren/fireblocks-pchain-staking).
+This post walks the complete flow with working code: derive the P-Chain address, move AVAX from the C-Chain via atomic transfer (export + import), and delegate to a validator. Everything you need is inline — the only dependencies are [`@avalabs/avalanchejs`](https://github.com/ava-labs/avalanchejs), the [`@fireblocks/ts-sdk`](https://developers.fireblocks.com/docs/getting-started-with-the-fireblocks-sdks), and `@noble/hashes`.
 
 ## How raw signing maps to Avalanche
 
@@ -231,4 +231,6 @@ Two ACPs currently moving through the proposal process would significantly impro
 
 ## Try it
 
-The complete example — including a verification harness that exercises the full signing path against live Fuji data without needing a Fireblocks account — is at [owenwahlgren/fireblocks-pchain-staking](https://github.com/owenwahlgren/fireblocks-pchain-staking). Questions or stuck on enablement? Reach out on the [Avalanche Discord](https://discord.gg/avax).
+Spin up a free [Fireblocks developer sandbox](https://developers.fireblocks.com/docs/sandbox-quickstart) (Raw Signing is enabled there by default), point the code above at Fuji, and you can run the full flow end to end with faucet AVAX before touching production. The [Fireblocks raw signing docs](https://developers.fireblocks.com/docs/raw-message-signing) cover the API surface in depth, and the [serialization format reference](/docs/rpcs/other/standards/serialization-primitives) has the byte-level details if you want them.
+
+Questions or stuck on enablement? Reach out on the [Avalanche Discord](https://discord.gg/avax).
