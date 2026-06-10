@@ -32,6 +32,8 @@ interface ManifestTool {
   importPath: string;
   resolved: string | null;
   exists: boolean;
+  /** 'import' = explicit MDX import; 'global-map' = bare tag via the academy renderer's toolboxComponents map. */
+  via: 'import' | 'global-map';
 }
 
 interface ManifestSurface {
@@ -48,7 +50,7 @@ function mdxSurfaces(kind: 'academy-page' | 'docs-page', scans: MdxScanResult[])
   for (const scan of scans) {
     const tools: ManifestTool[] = scan.tools
       .filter((t) => !t.importPath.startsWith(WRAPPER_IMPORT_PREFIX))
-      .map(({ name, importPath, resolved, exists }) => ({ name, importPath, resolved, exists }));
+      .map(({ name, importPath, resolved, exists, via }) => ({ name, importPath, resolved, exists, via }));
     if (tools.length === 0) continue; // wrapper-only pages embed no tools
     surfaces.push({
       kind,

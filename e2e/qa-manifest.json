@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-10T17:45:37.116Z",
+  "generatedAt": "2026-06-10T19:35:54.831Z",
   "surfaces": [
     {
       "kind": "academy-page",
@@ -12,19 +12,22 @@
           "name": "CreateChain",
           "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
           "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "CreateManagedTestnetNode",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ConvertSubnetToL1",
           "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1",
           "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -39,7 +42,8 @@
           "name": "TransactionAllowlist",
           "importPath": "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist",
           "resolved": "components/toolbox/console/l1-access-restrictions/TransactionAllowlist.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -54,13 +58,54 @@
           "name": "DeployerAllowlist",
           "importPath": "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist",
           "resolved": "components/toolbox/console/l1-access-restrictions/DeployerAllowlist.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "DeployICMDemo",
           "importPath": "@/components/toolbox/console/icm/test-connection/DeployICMDemo",
           "resolved": "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/access-restriction/04-user-error/01-remove-users-admin-wallet-from-precompiles",
+      "file": "content/academy/avalanche-l1/access-restriction/04-user-error/01-remove-users-admin-wallet-from-precompiles.mdx",
+      "title": "Remove Users Admin Wallet",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployerAllowlist",
+          "importPath": "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist",
+          "resolved": "components/toolbox/console/l1-access-restrictions/DeployerAllowlist.tsx",
+          "exists": true,
+          "via": "global-map"
+        },
+        {
+          "name": "TransactionAllowlist",
+          "importPath": "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist",
+          "resolved": "components/toolbox/console/l1-access-restrictions/TransactionAllowlist.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/access-restriction/04-user-error/02-test-for-error",
+      "file": "content/academy/avalanche-l1/access-restriction/04-user-error/02-test-for-error.mdx",
+      "title": "Test for Error",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployICMDemo",
+          "importPath": "@/components/toolbox/console/icm/test-connection/DeployICMDemo",
+          "resolved": "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx",
+          "exists": true,
+          "via": "global-map"
         }
       ]
     },
@@ -75,7 +120,8 @@
           "name": "AvalancheGoDocker",
           "importPath": "@/components/toolbox/console/layer-1/AvalancheGoDockerL1",
           "resolved": "components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -90,13 +136,15 @@
           "name": "DeployerAllowlist",
           "importPath": "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist",
           "resolved": "components/toolbox/console/l1-access-restrictions/DeployerAllowlist.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "TransactionAllowlist",
           "importPath": "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist",
           "resolved": "components/toolbox/console/l1-access-restrictions/TransactionAllowlist.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -111,19 +159,77 @@
           "name": "DeployerAllowlist",
           "importPath": "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist",
           "resolved": "components/toolbox/console/l1-access-restrictions/DeployerAllowlist.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "TransactionAllowlist",
           "importPath": "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist",
           "resolved": "components/toolbox/console/l1-access-restrictions/TransactionAllowlist.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "DeployICMDemo",
           "importPath": "@/components/toolbox/console/icm/test-connection/DeployICMDemo",
           "resolved": "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/06-setup-core",
+      "file": "content/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/06-setup-core.mdx",
+      "title": "Set Up Core Wallet",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "Faucet",
+          "importPath": "@/components/toolbox/console/primary-network/Faucet",
+          "resolved": "components/toolbox/console/primary-network/Faucet.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/02a-claim-testnet-tokens",
+      "file": "content/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/02a-claim-testnet-tokens.mdx",
+      "title": "Claim Testnet Tokens",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "CrossChainTransfer",
+          "importPath": "@/components/toolbox/console/primary-network/CrossChainTransfer",
+          "resolved": "components/toolbox/console/primary-network/CrossChainTransfer.tsx",
+          "exists": true,
+          "via": "global-map"
+        },
+        {
+          "name": "Faucet",
+          "importPath": "@/components/toolbox/console/primary-network/Faucet",
+          "resolved": "components/toolbox/console/primary-network/Faucet.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/05-create-blockchain",
+      "file": "content/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/05-create-blockchain.mdx",
+      "title": "Create a Blockchain",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true,
+          "via": "global-map"
         }
       ]
     },
@@ -138,7 +244,175 @@
           "name": "AvalancheGoDocker",
           "importPath": "@/components/toolbox/console/layer-1/AvalancheGoDockerL1",
           "resolved": "components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
+        },
+        {
+          "name": "CreateManagedTestnetNode",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/07-convert-subnet-l1",
+      "file": "content/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/07-convert-subnet-l1.mdx",
+      "title": "Convert a Subnet to an L1",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "ConvertToL1",
+          "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1",
+          "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/08-test-l1",
+      "file": "content/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/08-test-l1.mdx",
+      "title": "Test your L1",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "DeployExampleERC20",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployExampleERC20",
+          "resolved": "components/toolbox/console/ictt/setup/DeployExampleERC20.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/02-deploy-erc-20-token",
+      "file": "content/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/02-deploy-erc-20-token.mdx",
+      "title": "Deploy an ERC-20",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployExampleERC20",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployExampleERC20",
+          "resolved": "components/toolbox/console/ictt/setup/DeployExampleERC20.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/03-deploy-home",
+      "file": "content/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/03-deploy-home.mdx",
+      "title": "Deploy a Home Contract",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployTokenHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployTokenHome",
+          "resolved": "components/toolbox/console/ictt/setup/DeployTokenHome.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/04-deploy-remote",
+      "file": "content/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/04-deploy-remote.mdx",
+      "title": "Deploy a Remote Contract",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployERC20TokenRemote",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote",
+          "resolved": "components/toolbox/console/ictt/setup/DeployERC20TokenRemote.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/05-register-remote",
+      "file": "content/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/05-register-remote.mdx",
+      "title": "Register Remote Bridge",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "RegisterWithHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/RegisterWithHome",
+          "resolved": "components/toolbox/console/ictt/setup/RegisterWithHome.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/06-transfer-tokens",
+      "file": "content/academy/avalanche-l1/erc20-bridge/03-erc-20-to-erc-20-bridge/06-transfer-tokens.mdx",
+      "title": "Transfer Tokens",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "TestSend",
+          "importPath": "@/components/toolbox/console/ictt/token-transfer/TestSend",
+          "resolved": "components/toolbox/console/ictt/token-transfer/TestSend.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/02-deploy-token-remote",
+      "file": "content/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/02-deploy-token-remote.mdx",
+      "title": "Deploy Token Remote for Multi-hop",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployERC20TokenRemote",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote",
+          "resolved": "components/toolbox/console/ictt/setup/DeployERC20TokenRemote.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/03-register-remote",
+      "file": "content/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/03-register-remote.mdx",
+      "title": "Register Remote Bridge",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "RegisterWithHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/RegisterWithHome",
+          "resolved": "components/toolbox/console/ictt/setup/RegisterWithHome.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/04-multihop",
+      "file": "content/academy/avalanche-l1/erc20-bridge/04-tokens-on-multiple-chains/04-multihop.mdx",
+      "title": "Multi-hop Transfer",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "TestSend",
+          "importPath": "@/components/toolbox/console/ictt/token-transfer/TestSend",
+          "resolved": "components/toolbox/console/ictt/token-transfer/TestSend.tsx",
+          "exists": true,
+          "via": "global-map"
         }
       ]
     },
@@ -153,7 +427,8 @@
           "name": "TeleporterMessenger",
           "importPath": "@/components/toolbox/console/icm/setup/TeleporterMessenger",
           "resolved": "components/toolbox/console/icm/setup/TeleporterMessenger.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -168,7 +443,8 @@
           "name": "TeleporterRegistry",
           "importPath": "@/components/toolbox/console/icm/setup/TeleporterRegistry",
           "resolved": "components/toolbox/console/icm/setup/TeleporterRegistry.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -183,13 +459,15 @@
           "name": "CreateManagedTestnetRelayer",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ICMRelayer",
           "importPath": "@/components/toolbox/console/icm/setup/ICMRelayer",
           "resolved": "components/toolbox/console/icm/setup/ICMRelayer.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -204,7 +482,8 @@
           "name": "DeployICMDemo",
           "importPath": "@/components/toolbox/console/icm/test-connection/DeployICMDemo",
           "resolved": "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -219,7 +498,104 @@
           "name": "SendICMMessage",
           "importPath": "@/components/toolbox/console/icm/test-connection/SendICMMessage",
           "resolved": "components/toolbox/console/icm/test-connection/SendICMMessage.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/06-deploy-erc20",
+      "file": "content/academy/avalanche-l1/l1-native-tokenomics/01-tokens-fundamentals/06-deploy-erc20.mdx",
+      "title": "Deploy an ERC-20",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployExampleERC20",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployExampleERC20",
+          "resolved": "components/toolbox/console/ictt/setup/DeployExampleERC20.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/l1-native-tokenomics/01b-native-vs-erc20/10-deploy-wrapped-tokens",
+      "file": "content/academy/avalanche-l1/l1-native-tokenomics/01b-native-vs-erc20/10-deploy-wrapped-tokens.mdx",
+      "title": "Deploy a Wrapped Token",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployWrappedNative",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployWrappedNative",
+          "resolved": "components/toolbox/console/ictt/setup/DeployWrappedNative.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/05-create-custom-token",
+      "file": "content/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/05-create-custom-token.mdx",
+      "title": "Create Custom Token",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/07-configure-token-allocation",
+      "file": "content/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/07-configure-token-allocation.mdx",
+      "title": "Configure Native Token Allocation",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "GenesisBuilder",
+          "importPath": "@/components/toolbox/console/layer-1/create/GenesisBuilder",
+          "resolved": "components/toolbox/console/layer-1/create/GenesisBuilder.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/l1-native-tokenomics/04-native-minter/03-activate-native-minter",
+      "file": "content/academy/avalanche-l1/l1-native-tokenomics/04-native-minter/03-activate-native-minter.mdx",
+      "title": "Activate Native Minter",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "GenesisBuilder",
+          "importPath": "@/components/toolbox/console/layer-1/create/GenesisBuilder",
+          "resolved": "components/toolbox/console/layer-1/create/GenesisBuilder.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/l1-native-tokenomics/05-fee-config/03-activate-fee-config",
+      "file": "content/academy/avalanche-l1/l1-native-tokenomics/05-fee-config/03-activate-fee-config.mdx",
+      "title": "Activate Fee Config",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "GenesisBuilder",
+          "importPath": "@/components/toolbox/console/layer-1/create/GenesisBuilder",
+          "resolved": "components/toolbox/console/layer-1/create/GenesisBuilder.tsx",
+          "exists": true,
+          "via": "global-map"
         }
       ]
     },
@@ -234,19 +610,22 @@
           "name": "CreateChain",
           "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
           "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "CreateManagedTestnetNode",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ConvertSubnetToL1",
           "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
           "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -261,25 +640,29 @@
           "name": "CreateManagedTestnetRelayer",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ICMRelayer",
           "importPath": "@/components/toolbox/console/icm/setup/ICMRelayer",
           "resolved": "components/toolbox/console/icm/setup/ICMRelayer.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "TeleporterMessenger",
           "importPath": "@/components/toolbox/console/icm/setup/TeleporterMessenger",
           "resolved": "components/toolbox/console/icm/setup/TeleporterMessenger.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "TeleporterRegistry",
           "importPath": "@/components/toolbox/console/icm/setup/TeleporterRegistry",
           "resolved": "components/toolbox/console/icm/setup/TeleporterRegistry.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -294,7 +677,8 @@
           "name": "DeployTokenHome",
           "importPath": "@/components/toolbox/console/ictt/setup/DeployTokenHome",
           "resolved": "components/toolbox/console/ictt/setup/DeployTokenHome.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -309,7 +693,8 @@
           "name": "DeployNativeTokenRemote",
           "importPath": "@/components/toolbox/console/ictt/setup/DeployNativeTokenRemote",
           "resolved": "components/toolbox/console/ictt/setup/DeployNativeTokenRemote.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -324,13 +709,15 @@
           "name": "RegisterWithHome",
           "importPath": "@/components/toolbox/console/ictt/setup/RegisterWithHome",
           "resolved": "components/toolbox/console/ictt/setup/RegisterWithHome.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "AddCollateral",
           "importPath": "@/components/toolbox/console/ictt/setup/AddCollateral",
           "resolved": "components/toolbox/console/ictt/setup/AddCollateral.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -345,7 +732,8 @@
           "name": "TestSend",
           "importPath": "@/components/toolbox/console/ictt/token-transfer/TestSend",
           "resolved": "components/toolbox/console/ictt/token-transfer/TestSend.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -360,19 +748,22 @@
           "name": "CreateChain",
           "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
           "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "CreateManagedTestnetNode",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ConvertSubnetToL1",
           "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
           "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -387,7 +778,8 @@
           "name": "DeployWrappedNative",
           "importPath": "@/components/toolbox/console/ictt/setup/DeployWrappedNative",
           "resolved": "components/toolbox/console/ictt/setup/DeployWrappedNative.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -402,13 +794,15 @@
           "name": "CreateManagedTestnetRelayer",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ICMRelayer",
           "importPath": "@/components/toolbox/console/icm/setup/ICMRelayer",
           "resolved": "components/toolbox/console/icm/setup/ICMRelayer.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -423,7 +817,8 @@
           "name": "DeployTokenHome",
           "importPath": "@/components/toolbox/console/ictt/setup/DeployTokenHome",
           "resolved": "components/toolbox/console/ictt/setup/DeployTokenHome.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -438,7 +833,8 @@
           "name": "DeployERC20TokenRemote",
           "importPath": "@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote",
           "resolved": "components/toolbox/console/ictt/setup/DeployERC20TokenRemote.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -453,7 +849,8 @@
           "name": "RegisterWithHome",
           "importPath": "@/components/toolbox/console/ictt/setup/RegisterWithHome",
           "resolved": "components/toolbox/console/ictt/setup/RegisterWithHome.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -468,7 +865,8 @@
           "name": "TestSend",
           "importPath": "@/components/toolbox/console/ictt/token-transfer/TestSend",
           "resolved": "components/toolbox/console/ictt/token-transfer/TestSend.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -483,19 +881,22 @@
           "name": "CreateChain",
           "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
           "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "CreateManagedTestnetNode",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ConvertSubnetToL1",
           "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
           "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -510,13 +911,15 @@
           "name": "CreateManagedTestnetRelayer",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ICMRelayer",
           "importPath": "@/components/toolbox/console/icm/setup/ICMRelayer",
           "resolved": "components/toolbox/console/icm/setup/ICMRelayer.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -531,7 +934,8 @@
           "name": "DeployTokenHome",
           "importPath": "@/components/toolbox/console/ictt/setup/DeployTokenHome",
           "resolved": "components/toolbox/console/ictt/setup/DeployTokenHome.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -546,7 +950,8 @@
           "name": "DeployNativeTokenRemote",
           "importPath": "@/components/toolbox/console/ictt/setup/DeployNativeTokenRemote",
           "resolved": "components/toolbox/console/ictt/setup/DeployNativeTokenRemote.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -561,13 +966,15 @@
           "name": "RegisterWithHome",
           "importPath": "@/components/toolbox/console/ictt/setup/RegisterWithHome",
           "resolved": "components/toolbox/console/ictt/setup/RegisterWithHome.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "AddCollateral",
           "importPath": "@/components/toolbox/console/ictt/setup/AddCollateral",
           "resolved": "components/toolbox/console/ictt/setup/AddCollateral.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -582,7 +989,8 @@
           "name": "TestSend",
           "importPath": "@/components/toolbox/console/ictt/token-transfer/TestSend",
           "resolved": "components/toolbox/console/ictt/token-transfer/TestSend.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -597,13 +1005,38 @@
           "name": "AvalancheGoDocker",
           "importPath": "@/components/toolbox/console/layer-1/AvalancheGoDockerL1",
           "resolved": "components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "CreateChain",
           "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
           "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
+        },
+        {
+          "name": "CreateManagedTestnetNode",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
+          "exists": true,
+          "via": "global-map"
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/04-convert-subnet-to-l1",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/04-convert-subnet-to-l1.mdx",
+      "title": "Convert Subnet to L1",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "ConvertToL1",
+          "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1",
+          "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "exists": true,
+          "via": "global-map"
         }
       ]
     },
@@ -618,7 +1051,8 @@
           "name": "QueryL1Details",
           "importPath": "@/components/toolbox/academy/permissioned-l1s/QueryL1Details.tsx",
           "resolved": "components/toolbox/academy/permissioned-l1s/QueryL1Details.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -633,7 +1067,8 @@
           "name": "DeployValidatorManager",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -648,7 +1083,8 @@
           "name": "UpgradeProxy",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -663,7 +1099,8 @@
           "name": "Initialize",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -678,7 +1115,8 @@
           "name": "InitValidatorSet",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -693,7 +1131,8 @@
           "name": "ReadContract",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -708,7 +1147,8 @@
           "name": "QueryL1ValidatorSet",
           "importPath": "@/components/toolbox/console/permissioned-l1s/query-l1-validator-set/index.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/query-l1-validator-set/index.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -723,7 +1163,8 @@
           "name": "ChangeWeight",
           "importPath": "@/components/toolbox/console/permissioned-l1s/ChangeWeight.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/ChangeWeight.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -738,7 +1179,8 @@
           "name": "RemoveExpiredValidatorRegistration",
           "importPath": "@/components/toolbox/console/permissioned-l1s/remove-expired-registration/RemoveExpiredValidatorRegistration.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/remove-expired-registration/RemoveExpiredValidatorRegistration.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -753,31 +1195,36 @@
           "name": "CreateChain",
           "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
           "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "ConvertToL1",
           "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1",
           "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "DeployValidatorManager",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "Initialize",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "InitValidatorSet",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -792,7 +1239,8 @@
           "name": "DeployPoAManager",
           "importPath": "@/components/toolbox/console/permissioned-l1s/multisig-setup/DeployPoAManager.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/multisig-setup/DeployPoAManager.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -807,7 +1255,8 @@
           "name": "TransferOwnership",
           "importPath": "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -822,7 +1271,8 @@
           "name": "ReadPoAManager",
           "importPath": "@/components/toolbox/console/permissioned-l1s/multisig-setup/ReadPoAManager.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/multisig-setup/ReadPoAManager.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -837,25 +1287,29 @@
           "name": "ConvertSubnetToL1",
           "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
           "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "CreateChain",
           "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
           "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "CreateManagedTestnetNode",
           "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
           "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "AvalancheGoDocker",
           "importPath": "@/components/toolbox/console/layer-1/AvalancheGoDockerL1",
           "resolved": "components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -870,25 +1324,29 @@
           "name": "DeployValidatorManager",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "UpgradeProxy",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "Initialize",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         },
         {
           "name": "InitValidatorSet",
           "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
           "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -903,7 +1361,8 @@
           "name": "DeployStakingManager",
           "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployStakingManager.tsx",
           "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployStakingManager.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -918,7 +1377,8 @@
           "name": "DeployExampleRewardCalculator",
           "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployExampleRewardCalculator.tsx",
           "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployExampleRewardCalculator.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -933,7 +1393,8 @@
           "name": "InitializeStakingManager",
           "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/InitializeStakingManager.tsx",
           "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/InitializeStakingManager.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -948,7 +1409,8 @@
           "name": "EnableStakingManagerMinting",
           "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/EnableStakingManagerMinting.tsx",
           "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/EnableStakingManagerMinting.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -963,7 +1425,8 @@
           "name": "TransferOwnershipToStakingManager",
           "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/TransferOwnershipToStakingManager.tsx",
           "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/TransferOwnershipToStakingManager.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -978,7 +1441,8 @@
           "name": "QueryPoSValidatorSet",
           "importPath": "@/components/toolbox/console/permissionless-l1s/QueryPoSValidatorSet.tsx",
           "resolved": "components/toolbox/console/permissionless-l1s/QueryPoSValidatorSet.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -993,7 +1457,8 @@
           "name": "DelegateNative",
           "importPath": "@/components/toolbox/console/permissionless-l1s/delegate/DelegateNative.tsx",
           "resolved": "components/toolbox/console/permissionless-l1s/delegate/DelegateNative.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
@@ -1008,7 +1473,8 @@
           "name": "RemoveDelegationNative",
           "importPath": "@/components/toolbox/console/permissionless-l1s/withdraw/RemoveDelegationNative.tsx",
           "resolved": "components/toolbox/console/permissionless-l1s/withdraw/RemoveDelegationNative.tsx",
-          "exists": true
+          "exists": true,
+          "via": "import"
         }
       ]
     },
