@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/prisma/prisma';
 import { getUserId, jsonError, jsonOk } from '@/app/api/managed-testnet-nodes/utils';
+import { isValidAvalancheId } from '@/lib/console/l1-upgrade-selection';
 import { parseUpgradeJson } from '@/lib/console/upgrade-json';
 
 type PutSnapshotBody = {
@@ -23,6 +24,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const blockchainId = searchParams.get('blockchainId');
   if (!subnetId || !blockchainId) {
     return jsonError(400, 'subnetId and blockchainId are required');
+  }
+  if (!isValidAvalancheId(subnetId) || !isValidAvalancheId(blockchainId)) {
+    return jsonError(400, 'subnetId and blockchainId must be valid Avalanche CB58 IDs');
   }
 
   const snapshot = await prisma.l1UpgradeSnapshot.findUnique({
@@ -52,6 +56,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   const { subnetId, blockchainId } = body;
   if (!subnetId || !blockchainId) {
     return jsonError(400, 'subnetId and blockchainId are required');
+  }
+  if (!isValidAvalancheId(subnetId) || !isValidAvalancheId(blockchainId)) {
+    return jsonError(400, 'subnetId and blockchainId must be valid Avalanche CB58 IDs');
   }
 
   const upgradeJson = body.upgradeJson;

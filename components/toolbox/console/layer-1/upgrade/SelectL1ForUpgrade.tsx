@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Check, Cpu, ShieldCheck } from 'lucide-react';
+import { Info, ShieldCheck } from 'lucide-react';
 import SelectSubnet, { type SubnetSelection } from '@/components/toolbox/components/SelectSubnet';
-import { Input, type Suggestion } from '@/components/toolbox/components/Input';
+import { RawInput } from '@/components/toolbox/components/Input';
 import { useL1UpgradeStore } from '@/components/toolbox/stores/l1UpgradeStore';
 import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { validateL1UpgradeSelection } from '@/lib/console/l1-upgrade-selection';
-import { cn } from '@/lib/utils';
 
 type ManagedL1 = {
   subnetId: string;
@@ -211,12 +211,6 @@ export default function SelectL1ForUpgrade() {
   const rpcError = selectionErrors.find((error) => error.startsWith('RPC URL')) ?? null;
   const chainNameError = selectionErrors.find((error) => error.startsWith('Chain name')) ?? null;
 
-  const blockchainSuggestions: Suggestion[] = blockchainOptions.map((option) => ({
-    title: `${option.name} (${option.blockchainId})`,
-    value: option.blockchainId,
-    description: option.description,
-  }));
-
   const handleSubnetChange = useCallback(
     (selection: SubnetSelection) => {
       const nextSubnetId = selection.subnetId;
@@ -224,9 +218,6 @@ export default function SelectL1ForUpgrade() {
       setSubnet(selection.subnet);
 
       const subnetBlockchains = (selection.subnet?.blockchains ?? []) as SubnetBlockchain[];
-      const currentStillValid = subnetBlockchains.some((blockchain) => blockchain.blockchainId === blockchainId);
-      if (currentStillValid) return;
-
       const walletMatch = walletL1s.find((l1) => l1.subnetId === nextSubnetId);
       const managedMatch = managedL1s.find((l1) => l1.subnetId === nextSubnetId);
       const createdMatch =
@@ -245,8 +236,18 @@ export default function SelectL1ForUpgrade() {
       setIsManagedHint(Boolean(managedMatch));
       lastAppliedOptionIdRef.current = nextBlockchainId;
     },
-    [blockchainId, createdBlockchainId, createdChainName, createdSubnetId, managedL1s, walletL1s],
+    [createdBlockchainId, createdChainName, createdSubnetId, managedL1s, walletL1s],
   );
+
+  useEffect(() => {
+    if (!subnetId || blockchainId || blockchainOptions.length === 0) return;
+    const option = blockchainOptions[0];
+    setBlockchainId(option.blockchainId);
+    setRpcUrl(option.rpcUrl);
+    setChainName(option.name);
+    setIsManagedHint(option.source === 'managed');
+    lastAppliedOptionIdRef.current = option.blockchainId;
+  }, [blockchainId, blockchainOptions, subnetId]);
 
   useEffect(() => {
     if (!selectedOption) {
@@ -293,107 +294,39 @@ export default function SelectL1ForUpgrade() {
     subnetId,
   ]);
 
-  const handleBlockchainIdChange = (nextBlockchainId: string) => {
-    setBlockchainId(nextBlockchainId);
-    const option = blockchainOptions.find((candidate) => candidate.blockchainId === nextBlockchainId);
-    if (option) {
-      setRpcUrl(option.rpcUrl);
-      setChainName(option.name);
-      setIsManagedHint(option.source === 'managed');
-      lastAppliedOptionIdRef.current = option.blockchainId;
-      return;
-    }
-    if (selectedOption && nextBlockchainId !== selectedOption.blockchainId) {
-      setRpcUrl('');
-      setChainName('');
-      setIsManagedHint(false);
-      lastAppliedOptionIdRef.current = '';
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-5">
         <section className="space-y-5 min-w-0">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Select the L1 to upgrade</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Select the subnet to upgrade</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Paste a Subnet ID or pick from the suggestions, then choose the blockchain whose upgrade.json should
-              change.
+              Paste a Subnet ID or pick from the suggestions. Builder Hub will use the L1 blockchain for that subnet.
             </p>
           </div>
 
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
             <h3 className="text-sm font-semibold mb-3">Subnet</h3>
-            <SelectSubnet value={subnetId} onChange={handleSubnetChange} error={subnetError} hidePrimaryNetwork />
-          </div>
-
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Cpu className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold">Blockchain</h3>
-            </div>
-            <Input
-              label="Blockchain ID"
-              value={blockchainId}
-              onChange={handleBlockchainIdChange}
-              suggestions={blockchainSuggestions}
-              error={blockchainError}
-              helperText="Paste a custom Blockchain ID, or choose one of the blockchains found for this Subnet."
+            <SelectSubnet
+              value={subnetId}
+              onChange={handleSubnetChange}
+              error={subnetError || blockchainError}
+              hidePrimaryNetwork
+              hideDetails
             />
-
-            {blockchainOptions.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {blockchainOptions.map((option) => (
-                  <button
-                    key={option.blockchainId}
-                    type="button"
-                    onClick={() => {
-                      setBlockchainId(option.blockchainId);
-                      setChainName(option.name);
-                      setRpcUrl(option.rpcUrl);
-                      setIsManagedHint(option.source === 'managed');
-                      lastAppliedOptionIdRef.current = option.blockchainId;
-                    }}
-                    className={cn(
-                      'text-left rounded-lg border p-3 transition-colors',
-                      blockchainId === option.blockchainId
-                        ? 'border-primary bg-primary/5'
-                        : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900',
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{option.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">{option.blockchainId}</div>
-                        <div className="text-[11px] text-muted-foreground mt-1">{option.description}</div>
-                      </div>
-                      {blockchainId === option.blockchainId && <Check className="h-4 w-4 text-primary shrink-0" />}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {subnetId && blockchainOptions.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No blockchains loaded for this Subnet yet. Paste the Blockchain ID above to continue.
-              </p>
-            )}
           </div>
 
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-            <h3 className="text-sm font-semibold mb-3">RPC and display name</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4">
-              <Input
+              <TextField
                 label="RPC URL"
+                hint="Used to read the L1's active precompile rules and latest block timestamp. You can replace the auto-filled RPC with your own node RPC."
                 value={rpcUrl}
                 onChange={setRpcUrl}
                 placeholder="https://..."
                 error={rpcError}
-                helperText="Used to read active rules and existing precompile state."
               />
-              <Input
+              <TextField
                 label="Chain Name"
                 value={chainName}
                 onChange={setChainName}
@@ -428,11 +361,63 @@ export default function SelectL1ForUpgrade() {
               )}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Select a Subnet and Blockchain ID before continuing.</p>
+            <p className="text-sm text-muted-foreground">Select a Subnet before continuing.</p>
           )}
         </aside>
       </div>
     </div>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  hint,
+  error,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  hint?: string;
+  error?: string | null;
+}) {
+  return (
+    <div className="mb-4 space-y-2">
+      <div className="flex items-center gap-1.5">
+        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
+        {hint && <InfoHint text={hint} />}
+      </div>
+      <RawInput
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        error={error}
+        className="rounded-md"
+      />
+      {error && (
+        <div className="rounded-lg border border-red-200/50 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/30 px-3 py-1">
+          <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InfoHint({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" aria-label="More information" className="inline-flex">
+          <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={6} className="max-w-[320px] whitespace-normal break-words text-left leading-relaxed">
+        <p>{text}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

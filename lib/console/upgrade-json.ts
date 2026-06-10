@@ -283,6 +283,9 @@ export function validateUpgradePlan(input: BuildUpgradeJsonInput): ValidationRes
     for (const address of addresses) {
       if (!isValidAddress(address)) errors.push(`${selection.key} contains an invalid address: ${address}`);
     }
+    for (const address of findDuplicateAddresses(addresses)) {
+      errors.push(`${selection.key} contains a duplicate address: ${address}`);
+    }
     if ((selection.adminAddresses ?? []).length === 0) {
       errors.push(`${selection.key} requires at least one admin address before it can be enabled.`);
     }
@@ -293,6 +296,9 @@ export function validateUpgradePlan(input: BuildUpgradeJsonInput): ValidationRes
     if (!isPositiveAmount(change.amount))
       errors.push(`Balance change for ${change.address || 'an address'} must be positive.`);
   }
+  for (const address of findDuplicateAddresses(input.balanceChanges.map((change) => change.address))) {
+    errors.push(`Duplicate balance-change address: ${address}`);
+  }
 
   for (const change of input.codeChanges) {
     if (!isValidAddress(change.address)) errors.push(`Invalid bytecode target address: ${change.address || '(empty)'}`);
@@ -300,8 +306,26 @@ export function validateUpgradePlan(input: BuildUpgradeJsonInput): ValidationRes
       errors.push(`Runtime bytecode for ${change.address || 'an address'} must be non-empty 0x-prefixed hex bytecode.`);
     }
   }
+  for (const address of findDuplicateAddresses(input.codeChanges.map((change) => change.address))) {
+    errors.push(`Duplicate bytecode target address: ${address}`);
+  }
 
   return { valid: errors.length === 0, errors, warnings };
+}
+
+function findDuplicateAddresses(addresses: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const address of addresses) {
+    if (!address) continue;
+    const normalized = address.toLowerCase();
+    if (seen.has(normalized)) {
+      duplicates.add(address);
+      continue;
+    }
+    seen.add(normalized);
+  }
+  return Array.from(duplicates);
 }
 
 function cloneUpgradeJson(config: UpgradeJson): UpgradeJson {

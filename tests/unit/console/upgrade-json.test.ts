@@ -171,6 +171,34 @@ describe('upgrade-json builder', () => {
     expect(result.errors.join('\n')).toContain('contractNativeMinterConfig requires at least one admin address');
   });
 
+  it('rejects duplicate addresses in allowlists and state upgrades', () => {
+    const result = validateUpgradePlan({
+      baseConfig: emptyUpgradeJson(),
+      activationTimestamp: 2_000_000_000,
+      precompiles: [
+        {
+          key: 'feeManagerConfig',
+          mode: 'enable',
+          adminAddresses: ['0x1111111111111111111111111111111111111111'],
+          managerAddresses: ['0x1111111111111111111111111111111111111111'],
+        },
+      ],
+      balanceChanges: [
+        { id: 'b1', address: '0x2222222222222222222222222222222222222222', amount: '1' },
+        { id: 'b2', address: '0x2222222222222222222222222222222222222222', amount: '2' },
+      ],
+      codeChanges: [
+        { id: 'c1', address: '0x3333333333333333333333333333333333333333', code: '0x6000' },
+        { id: 'c2', address: '0x3333333333333333333333333333333333333333', code: '0x6001' },
+      ],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join('\n')).toContain('feeManagerConfig contains a duplicate address');
+    expect(result.errors.join('\n')).toContain('Duplicate balance-change address');
+    expect(result.errors.join('\n')).toContain('Duplicate bytecode target address');
+  });
+
   it('parses empty input as an empty upgrade config', () => {
     expect(parseUpgradeJson('').config).toEqual(emptyUpgradeJson());
   });

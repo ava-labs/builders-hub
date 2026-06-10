@@ -142,7 +142,7 @@ export default function UpgradeJsonBuilder() {
   const selectedChainName = store((state) => state.chainName);
   const selectedIsManaged = store((state) => state.isManaged);
   const selectedManagedNodeCount = store((state) => state.managedNodeCount);
-  const walletAddress = useWalletStore((state) => state.walletEVMAddress);
+  const walletAddress = useWalletStore((state) => state.walletEVMAddress || state.coreEthAddress);
   const selection = useMemo(
     () => ({
       subnetId: selectedSubnetId,
@@ -504,7 +504,6 @@ export default function UpgradeJsonBuilder() {
             precompiles={precompiles}
             activePrecompileKeys={activePrecompileKeys}
             existingSchedules={existingPrecompileSchedules}
-            activationTimestamp={activationTimestamp}
             validationErrors={validation.errors}
             walletAddress={walletAddress}
             onChange={setPrecompiles}
@@ -655,7 +654,6 @@ function PrecompileControls({
   precompiles,
   activePrecompileKeys,
   existingSchedules,
-  activationTimestamp,
   validationErrors,
   walletAddress,
   onChange,
@@ -663,7 +661,6 @@ function PrecompileControls({
   precompiles: PrecompileSelection[];
   activePrecompileKeys: string[];
   existingSchedules: Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>>;
-  activationTimestamp: number;
   validationErrors: string[];
   walletAddress?: string;
   onChange: (value: PrecompileSelection[]) => void;
@@ -719,20 +716,6 @@ function PrecompileControls({
                       {definition.label}
                     </h4>
                     <InfoHint text={`${definition.description} Precompile address: ${metadata.address}.`} />
-                    <StatusPill tone={isActive ? 'active' : 'muted'}>
-                      {isActive ? 'active now' : 'inactive now'}
-                    </StatusPill>
-                    {existingSchedule && (
-                      <StatusPill tone={existingSchedule.mode === 'enable' ? 'active' : 'danger'}>
-                        file schedules {existingSchedule.mode}
-                        {existingSchedule.blockTimestamp ? ` @ ${existingSchedule.blockTimestamp}` : ''}
-                      </StatusPill>
-                    )}
-                    {value.mode !== 'none' && (
-                      <StatusPill tone={value.mode === 'enable' ? 'active' : 'danger'}>
-                        new {value.mode} @ {activationTimestamp}
-                      </StatusPill>
-                    )}
                   </div>
                 </div>
                 <div className="ml-auto flex items-center gap-2 shrink-0">
@@ -1137,7 +1120,7 @@ function InfoHint({ text }: { text: string }) {
           <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
         </button>
       </TooltipTrigger>
-      <TooltipContent className="max-w-xs">
+      <TooltipContent sideOffset={6} className="max-w-[320px] whitespace-normal break-words text-left leading-relaxed">
         <p>{text}</p>
       </TooltipContent>
     </Tooltip>
@@ -1161,21 +1144,6 @@ function Toggle({ checked }: { checked: boolean }) {
           checked ? 'left-[18px] bg-white dark:bg-zinc-900' : 'left-0.5 bg-white dark:bg-zinc-600',
         )}
       />
-    </span>
-  );
-}
-
-function StatusPill({ tone, children }: { tone: 'active' | 'danger' | 'muted'; children: React.ReactNode }) {
-  return (
-    <span
-      className={cn(
-        'rounded-md px-2 py-0.5 text-[11px]',
-        tone === 'active' && 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300',
-        tone === 'danger' && 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300',
-        tone === 'muted' && 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
-      )}
-    >
-      {children}
     </span>
   );
 }

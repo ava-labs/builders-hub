@@ -7,6 +7,7 @@ import {
   builderHubWriteUpgradeJson,
   ManagedTestnetNodeServiceRequestError,
 } from '@/app/api/managed-testnet-nodes/service';
+import { isValidAvalancheId } from '@/lib/console/l1-upgrade-selection';
 import { parseUpgradeJson } from '@/lib/console/upgrade-json';
 import { getActiveManagedUpgradeNodes } from './utils';
 
@@ -27,6 +28,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const blockchainId = searchParams.get('blockchainId');
   if (!subnetId || !blockchainId) {
     return jsonError(400, 'subnetId and blockchainId are required');
+  }
+  if (!isValidAvalancheId(subnetId) || !isValidAvalancheId(blockchainId)) {
+    return jsonError(400, 'subnetId and blockchainId must be valid Avalanche CB58 IDs');
   }
 
   const nodes = await getActiveManagedUpgradeNodes({ userId: userId!, subnetId, blockchainId });
@@ -66,6 +70,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { subnetId, blockchainId } = body;
   if (!subnetId || !blockchainId) {
     return jsonError(400, 'subnetId and blockchainId are required');
+  }
+  if (!isValidAvalancheId(subnetId) || !isValidAvalancheId(blockchainId)) {
+    return jsonError(400, 'subnetId and blockchainId must be valid Avalanche CB58 IDs');
   }
 
   const parsed = parseUpgradeJson(
