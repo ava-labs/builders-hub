@@ -1,6 +1,7 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { badgeAssignmentService } from "@/server/services/badgeAssignmentService";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { hasPermission } from "@/lib/auth/roles";
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -9,17 +10,11 @@ export const POST = withAuth(async (req: NextRequest) => {
     const body = await req.json();
     const session = await getAuthSession();
     
-    const userRole = session?.user.role || "user";
     const customAttributes = session?.user.custom_attributes ?? [];
-    
-    // Get the required role for this badge type
     const requiredRole = badgeAssignmentService.getRequiredRoleForAssignment(body);
-    let hasAdminPermission = requiredRole ? customAttributes.includes(requiredRole) : false;
-
-    // If badge_admin is required and user doesn't have it, check for devrel (super admin)
-    if (requiredRole === "badge_admin" && !hasAdminPermission) {
-      hasAdminPermission = customAttributes.includes("devrel");
-    }
+    const hasAdminPermission = requiredRole
+      ? hasPermission(customAttributes, { resource: "badge", action: "manage" })
+      : false;
 
     // Security check: Users can only assign badges to themselves unless they have admin role
     // - If no admin role required (academy/requirement badges): user must assign to self
@@ -38,7 +33,7 @@ export const POST = withAuth(async (req: NextRequest) => {
         return NextResponse.json(
           {
             error: {
-              message: `Insufficient permissions. Required role: ${requiredRole}, User role: ${userRole}`
+              message: `Insufficient permissions. Required role: ${requiredRole}`
             }
           },
           { status: 403 }

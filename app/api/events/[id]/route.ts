@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getHackathon, updateHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
-import { withAuthRole } from "@/lib/protectedRoute";
+import { withAuthPermission } from "@/lib/protectedRoute";
+import { hasPermission } from "@/lib/auth/roles";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -23,11 +24,21 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PUT = withAuthPermission({ resource: "event", action: "write" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
     const userId = session.user.id;
+
+    const existing = await getHackathon(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+    }
+    const attrs: string[] = session.user.custom_attributes ?? [];
+    const canManage = hasPermission(attrs, { resource: "event", action: "manage" });
+    if (!canManage && existing.created_by !== userId && !existing.cohosts?.includes(session.user.email)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     if (updateData.hasOwnProperty('is_public') && typeof updateData.is_public === 'boolean' && Object.keys(updateData).length === 1) {
       const updatedHackathon = await updateHackathon(id, { is_public: updateData.is_public }, userId);
@@ -43,11 +54,21 @@ export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any,
   }
 });
 
-export const PATCH = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PATCH = withAuthPermission({ resource: "event", action: "write" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
     const updateData = await req.json();
     const userId = session.user.id;
+
+    const existing = await getHackathon(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+    }
+    const attrs: string[] = session.user.custom_attributes ?? [];
+    const canManage = hasPermission(attrs, { resource: "event", action: "manage" });
+    if (!canManage && existing.created_by !== userId && !existing.cohosts?.includes(session.user.email)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     if (updateData.hasOwnProperty('is_public') && typeof updateData.is_public === 'boolean') {
       const updatedHackathon = await updateHackathon(id, { is_public: updateData.is_public }, userId);

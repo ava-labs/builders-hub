@@ -42,6 +42,7 @@ import { resolveFieldLabel } from '@/lib/events-field-labels';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import { ThemeToggle } from '@/components/console/theme-toggle';
+import { hasPermission } from '@/lib/auth/roles';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -1498,25 +1499,24 @@ const HackathonsEdit = () => {
       setHasEditPermission(false);
       return;
     }
-    const customAttributes: string[] = session.user.custom_attributes || [];
-    const isSpecialRole =
-      customAttributes.includes("hackathonCreator") ||
-      customAttributes.includes("team1-admin") ||
-      customAttributes.includes("devrel");
-
+    const attrs: string[] = session.user.custom_attributes ?? [];
+    const isSpecialRole = hasPermission(attrs, { resource: "event", action: "write" });
+    
     // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
       setHasEditPermission(isSpecialRole);
       return;
     }
 
-    // If hackathon is selected, check if user is creator/updater, special role, or cohost
+    // If hackathon is selected, check if user is creator, special role, or cohost
+    const userId = session.user.id || "";
+    const isCreator = !!userId && selectedHackathon.created_by === userId;
     const userEmail = session.user.email || "";
     const isCohost =
       !!userEmail && Array.isArray(selectedHackathon.cohosts)
         ? selectedHackathon.cohosts.includes(userEmail)
         : false;
-    setHasEditPermission(isSpecialRole || isCohost);
+    setHasEditPermission(isSpecialRole || isCreator || isCohost);
   }, [selectedHackathon, session]);
 
   const convertToMarkdown = (text: string) => {
@@ -2597,9 +2597,7 @@ const HackathonsEdit = () => {
   // Check if user has required permissions
   const hasRequiredPermissions = () => {
     if (!session?.user?.custom_attributes) return false;
-    return session.user.custom_attributes.includes("team1-admin") ||
-      session.user.custom_attributes.includes("hackathonCreator") ||
-      session.user.custom_attributes.includes("devrel");
+    return hasPermission(session.user.custom_attributes, { resource: "event", action: "write" });
   };
 
   // Redirect unauthenticated users to home; authenticated without roles to home (same as proxy.ts)
@@ -2738,7 +2736,7 @@ const HackathonsEdit = () => {
                     <TooltipContent>{selectedHackathon ? t[language].update : t[language].save}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                {session?.user?.custom_attributes?.includes("devrel") && selectedHackathon !== null && (
+                {hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" }) && selectedHackathon !== null && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -2849,7 +2847,7 @@ const HackathonsEdit = () => {
               language={language}
               onSelect={handleSelectHackathon}
               selectedId={selectedHackathon?.id ?? null}
-              isDevrel={session?.user?.custom_attributes?.includes("devrel") || false}
+              isDevrel={hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })}
               loading={loadingHackathons}
               forceCollapsed={isSelectedHackathon || showForm}
               fullHeight={!isSelectedHackathon && !showForm}

@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { HackathonEvaluationPhase } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
-import {
-  canEvaluateHackathon,
-  canManageEvaluationPhase,
-} from "@/lib/auth/permissions";
+import { canEvaluateHackathon, hasPermission } from "@/lib/auth/roles";
 import type { RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
@@ -62,7 +59,7 @@ export async function POST(_request: NextRequest, context: Params) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!canManageEvaluationPhase(session)) {
+  if (!hasPermission(session.user?.custom_attributes, { resource: "event", action: "manage" })) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

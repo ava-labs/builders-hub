@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { getAuthSession } from "@/lib/auth/authSession";
-import {
-  canEvaluateHackathon,
-  canManageHackathonJudges,
-} from "@/lib/auth/permissions";
+import { canEvaluateHackathon } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { Gavel, ClipboardCheck } from "lucide-react";
 
 type Props = {
@@ -18,7 +16,7 @@ export async function HostNavButtons({ hackathonId }: Props) {
   if (!session?.user) return null;
 
   const [canManage, canEvaluate] = await Promise.all([
-    Promise.resolve(canManageHackathonJudges(session)),
+    Promise.resolve(hasPermission(session.user.custom_attributes, { resource: "platform", action: "admin" })),
     canEvaluateHackathon(session, hackathonId),
   ]);
 

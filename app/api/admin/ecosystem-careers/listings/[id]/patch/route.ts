@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/prisma/prisma';
-import { withAuthRole, type RouteParams } from '@/lib/protectedRoute';
+import { withAuthPermission, type RouteParams } from '@/lib/protectedRoute';
 
 const patchSchema = z.object({
   title: z.string().min(2).max(160).optional(),
   company_logo: z.string().url().or(z.literal('')).nullable().optional(),
 });
 
-export const PATCH = withAuthRole<RouteParams<{ id: string }>>(
-  'devrel',
+export const PATCH = withAuthPermission<RouteParams<{ id: string }>>(
+  { resource: 'platform', action: 'admin' },
   async (req, ctx) => {
     const { id } = await ctx.params;
 

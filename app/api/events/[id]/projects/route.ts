@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
-import {
-  canEvaluateHackathon,
-  verifyHackathonProjectsApiKey,
-} from "@/lib/auth/permissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
+import { canEvaluateHackathon } from "@/lib/auth/roles";
+import { timingSafeEqual } from "node:crypto";
 import type { RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
+
+function verifyHackathonProjectsApiKey(authHeader: string | null | undefined): boolean {
+  const expected = process.env.HACKATHON_PROJECTS_API_KEY;
+  if (!expected || expected.length === 0) return false;
+  if (!authHeader) return false;
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) return false;
+  const provided = match[1].trim();
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+  if (expectedBuf.length !== providedBuf.length) return false;
+  return timingSafeEqual(expectedBuf, providedBuf);
+}
 
 const projectMetaSelect = {
   id: true,

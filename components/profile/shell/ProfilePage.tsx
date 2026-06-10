@@ -37,10 +37,7 @@ import {
   roleFieldKey,
 } from "./adapter";
 import { computeCompletion, type CompletionStepKey } from "@/lib/profile/completion";
-import {
-  canAccessBuilderInsights,
-  canSendNotifications,
-} from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import SendNotificationsForm from "@/components/notification/send-notifications-form";
 import { InsightsCard } from "./InsightsCard";
 import type { BuilderInsightsData } from "@/server/services/builderInsights";
@@ -158,9 +155,7 @@ export default function ProfilePage({ teamLabel }: Props) {
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [insightsError, setInsightsError] = React.useState<string | null>(null);
   const personalCardRef = React.useRef<HTMLDivElement>(null);
-  const showInsightsTab = canAccessBuilderInsights(
-    session?.user?.custom_attributes,
-  );
+  const showInsightsTab = hasPermission(session?.user?.custom_attributes, { resource: "builder_insights", action: "read" });
 
   React.useEffect(() => {
     let cancelled = false;
@@ -515,7 +510,7 @@ export default function ProfilePage({ teamLabel }: Props) {
     );
   }
 
-  const showNotificationsTab = canSendNotifications(session?.user?.custom_attributes);
+  const showNotificationsTab = hasPermission(session?.user?.custom_attributes, { resource: "notification", action: "write" });
   const tabs: ReadonlyArray<TabSpec> = [
     ...BASE_TABS,
     ...(showInsightsTab ? [{ id: "insights" as const, label: "Insights" }] : []),

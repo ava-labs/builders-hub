@@ -81,7 +81,6 @@ const authUserSelect = {
   email: true,
   image: true,
   name: true,
-  custom_attributes: true,
   authentication_mode: true,
   notifications: true,
   user_name: true,
@@ -201,9 +200,23 @@ export const AuthOptions: NextAuthOptions = {
         : null;
 
       if (dbUser) {
+        // Load active UserRole rows (no expiry or future expiry)
+        const activeUserRoles = await prisma.userRole.findMany({
+          where: {
+            user_id: dbUser.id,
+            OR: [
+              { expires_at: null },
+              { expires_at: { gt: new Date() } },
+            ],
+          },
+          select: { role: true },
+        });
+
+        const allRoles = activeUserRoles.map((r: { role: string }) => r.role);
+
         token.id = dbUser.id;
         token.avatar = dbUser.image || token.avatar || user?.image || null;
-        token.custom_attributes = dbUser.custom_attributes
+        token.custom_attributes = allRoles;
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';

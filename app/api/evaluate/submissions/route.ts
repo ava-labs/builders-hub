@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { canAccessEvaluationTools } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/roles";
 
 function computeStageProgress(origin: string, data: Record<string, unknown>): number {
   if (origin !== "build_games") return 0;
@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
 
-    if (!session?.user?.id || !canAccessEvaluationTools(session.user.custom_attributes)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 401 });
+    if (!session?.user?.id || !hasPermission(session.user.custom_attributes, { resource: "judge", action: "read" })) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

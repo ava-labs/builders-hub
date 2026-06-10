@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
-import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
+import { withAuthPermission, type RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
 
-export const GET = withAuthRole<Params>(
-  "devrel",
+export const GET = withAuthPermission<Params>(
+  { resource: "judge", action: "read" },
   async (_request: NextRequest, context: Params) => {
     const { id: hackathonId } = await context.params;
 
@@ -20,7 +20,6 @@ export const GET = withAuthRole<Params>(
             email: true,
             image: true,
             user_name: true,
-            custom_attributes: true,
           },
         },
       },
@@ -30,8 +29,8 @@ export const GET = withAuthRole<Params>(
   },
 );
 
-export const POST = withAuthRole<Params>(
-  "devrel",
+export const POST = withAuthPermission<Params>(
+  { resource: "judge", action: "assign" },
   async (request: NextRequest, context: Params, session) => {
     const { id: hackathonId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as { userId?: string };
@@ -72,7 +71,6 @@ export const POST = withAuthRole<Params>(
             email: true,
             image: true,
             user_name: true,
-            custom_attributes: true,
           },
         },
       },

@@ -18,7 +18,7 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
-import { canAccessEvaluationTools, canAccessBuilderInsights } from '@/lib/auth/permissions';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 const AVATAR_PX = 36;
 
@@ -57,9 +57,6 @@ export function UserButton() {
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
-
-  const canAccessEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
-  const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -201,16 +198,21 @@ export function UserButton() {
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
             {
-              (session?.user?.custom_attributes.includes('devrel') ||
-                session?.user?.custom_attributes?.includes('hackathonCreator') ||
-                session?.user?.custom_attributes?.includes('team1-admin')) && (
+              hasPermission(session?.user?.custom_attributes, { resource: "notification", action: "write" }) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/send-notifications'>Send notifications</Link>
+                </DropdownMenuItem>
+              )
+            }
+            {
+              hasPermission(session?.user?.custom_attributes, { resource: "event", action: "write" }) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/events/edit'>Event Management</Link>
                 </DropdownMenuItem>
               )
             }
             {
-              canAccessEvaluate && (
+              hasPermission(session?.user?.custom_attributes, { resource: "judge", action: "read" }) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/evaluate'>Evaluate Hackathons</Link>
                 </DropdownMenuItem>

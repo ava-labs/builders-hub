@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/prisma/prisma';
-import { withAuthRole, type RouteParams } from '@/lib/protectedRoute';
+import { withAuthPermission, type RouteParams } from '@/lib/protectedRoute';
 
 // Per-listing approval for ingested external/getro rows. Community listings
 // go through the project-level approve route; ingested listings get their
 // own button per row because we can't bulk-approve an unknown company.
-export const POST = withAuthRole<RouteParams<{ id: string }>>(
-  'devrel',
+export const POST = withAuthPermission<RouteParams<{ id: string }>>(
+  { resource: 'platform', action: 'admin' },
   async (_req, ctx) => {
     const { id } = await ctx.params;
     const listing = await prisma.jobListing.findUnique({

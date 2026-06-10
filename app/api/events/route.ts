@@ -6,8 +6,11 @@ import {
 } from '@/server/services/hackathons';
 import { HackathonStatus } from '@/types/hackathons';
 import { getUserById } from '@/server/services/getUser';
-import { withAuth } from '@/lib/protectedRoute';
+import { withAuthPermission } from '@/lib/protectedRoute';
 import { getAuthSession } from '@/lib/auth/authSession';
+import { hasPermission } from '@/lib/auth/roles';
+
+
 import { z } from 'zod';
 
 /**
@@ -107,21 +110,24 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      const customAttributes = user.custom_attributes || [];
-      const isDevrel = customAttributes.includes("devrel");
-      const isTeam1Admin = customAttributes.includes("team1-admin");
-      const isHackathonCreator = customAttributes.includes("hackathonCreator");
-      isPrivileged = isDevrel || isTeam1Admin;
+      // Determine visibility using the new permission model
+      const attrs = user.custom_attributes || [];
+      const canManageHackathons = hasPermission(attrs, { resource: "event", action: "manage" });
+      const canWriteHackathons  = hasPermission(attrs, { resource: "event", action: "write" });
+      const hasHackathonAccess  = canManageHackathons || canWriteHackathons;
 
       if (managedOnly) {
-        options.include_private = isDevrel || isTeam1Admin || isHackathonCreator;
-        if (!isDevrel) {
+        options.include_private = hasHackathonAccess;
+        if (!canManageHackathons) {
+          // Non-admin editors only see their own events
           options.created_by = userId;
           options.cohost_email = user.email || undefined;
         }
       } else {
         options.include_private = false;
       }
+
+      console.log('API GET /events:', { userId, canManageHackathons, canWriteHackathons, managedOnly, options });
     } else {
       options.include_private = false;
     }
@@ -150,20 +156,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuth(async (req: NextRequest, context: any, session: any) => {
-  const customAttributes: string[] = session?.user?.custom_attributes || [];
-  const roleUsed = customAttributes.includes('devrel')
-    ? 'devrel'
-    : customAttributes.includes('team1-admin')
-    ? 'team1-admin'
-    : customAttributes.includes('hackathonCreator')
-    ? 'hackathonCreator'
-    : null;
-
-  if (!roleUsed) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
+export const POST = withAuthPermission({ resource: "event", action: "write" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const rawBody = await req.json();
 
@@ -184,7 +177,6 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
     // may contain PII.
     console.warn('[AUDIT] POST /api/events — hackathon creation', {
       userId: session.user.id,
-      roleUsed,
       title: validatedBody.title,
       timestamp: new Date().toISOString(),
     });

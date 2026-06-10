@@ -110,6 +110,28 @@ model User {
   referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
   referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
   posted_job_listings        JobListing[]              @relation("UserPostedJobListings")
+  user_roles                 UserRole[]
+}
+
+// ---------------------------------------------------------------------------
+// Role management with expiration
+// ---------------------------------------------------------------------------
+
+model UserRole {
+  id         String    @id @default(cuid())
+  user_id    String
+  role       String
+  expires_at DateTime?
+  granted_by String?
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, role])
+  @@index([user_id])
+  @@index([expires_at])
+  @@index([user_id, expires_at])
 }
 
 model VerificationToken {
