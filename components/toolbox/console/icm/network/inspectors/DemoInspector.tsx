@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import DeployICMDemo from '@/components/toolbox/console/icm/test-connection/DeployICMDemo';
 import { useIcmSetupStore } from '@/components/toolbox/stores/icmSetupStore';
 import { useL1List, useSelectedL1, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
@@ -28,14 +28,13 @@ export function DemoInspector() {
     selectedL1 ? (s.chains[selectedL1.id]?.demoAddress ?? null) : null,
   );
 
-  const toolboxDemo = useMemo(() => {
-    if (!selectedL1) return null;
-    try {
-      return (getToolboxStore(selectedL1.id)().icmReceiverAddress ?? null) as Address | null;
-    } catch {
-      return null;
-    }
-  }, [selectedL1]);
+  // Subscribe to the active L1's toolbox slice directly. The previous
+  // version called the store hook inside useMemo — an invalid hook call
+  // that threw on every render; the catch returned null, silently
+  // disabling this mirror. '' maps to the inert bootstrap store.
+  const toolboxDemo = getToolboxStore(selectedL1?.id ?? '')(
+    (s: { icmReceiverAddress: string }) => (s.icmReceiverAddress || null) as Address | null,
+  );
 
   useEffect(() => {
     if (!selectedL1) return;

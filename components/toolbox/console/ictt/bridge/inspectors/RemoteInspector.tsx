@@ -60,9 +60,14 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   // Heals user-created destination L1s where ICM was deployed but the
   // address never propagated to l1ListStore. The fallback chain matches
   // HomeInspector: toolbox > well-known > empty.
-  const destinationToolboxRegistry = destinationL1Id
-    ? getToolboxStore(destinationL1Id)((s: { teleporterRegistryAddress: string }) => s.teleporterRegistryAddress)
-    : '';
+  // Subscribe unconditionally (Rules of Hooks): the previous ternary only
+  // called the store hook when a destination was selected, so the hook
+  // count changed when destinationL1Id flipped and React crashed with a
+  // hook-order error. '' maps to the inert bootstrap store, whose
+  // teleporterRegistryAddress is always ''.
+  const destinationToolboxRegistry = getToolboxStore(destinationL1Id || '')(
+    (s: { teleporterRegistryAddress: string }) => s.teleporterRegistryAddress,
+  );
   const defaultRegistry = (destinationToolboxRegistry || wellKnownRegistry || '') as Address;
   const setTeleporterRegistryOnDestinationL1 = useSetTeleporterRegistryAddress();
 

@@ -30,7 +30,10 @@ export function useIcmMigrationOnce(): MigrationState {
     for (const l1 of l1List as L1ListItem[]) {
       const existing = chains[l1.id];
       try {
-        const slice = getToolboxStore(l1.id)();
+        // Plain state read — calling the store hook here (inside an
+        // effect) was an invalid hook call that threw, and the catch
+        // below silently skipped the migration for every chain.
+        const slice = getToolboxStore(l1.id).getState();
         const registryFromToolbox = (slice.teleporterRegistryAddress ?? '') as string;
         const demoFromToolbox = (slice.icmReceiverAddress ?? '') as string;
         const registryFromL1 = (l1.wellKnownTeleporterRegistryAddress ?? '') as string;
