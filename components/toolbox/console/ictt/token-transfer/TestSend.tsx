@@ -21,13 +21,22 @@ import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput
 import { Token, TokenInput } from '@/components/toolbox/components/TokenInputToolbox';
 import SelectBlockchain, { type BlockchainSelection } from '@/components/toolbox/components/SelectBlockchain';
 import { CB58ToHex } from '@avalanche-sdk/client/utils';
-import { Container } from '@/components/toolbox/components/Container';
 import { Toggle } from '@/components/toolbox/components/Toggle';
 import { Ellipsis } from 'lucide-react';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 
 const DEFAULT_GAS_LIMIT = 250000n;
 
-export default function TokenBridge() {
+const metadata: ConsoleToolMetadata = {
+  title: 'Cross-Chain Token Bridge',
+  description: 'Send tokens from the connected chain to another chain over ICTT',
+  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
+};
+
+function TokenBridge() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { walletEVMAddress } = useWalletStore();
   const walletClient = useResolvedWalletClient();
@@ -80,7 +89,9 @@ export default function TokenBridge() {
   const [tokenBalance, setTokenBalance] = useState<bigint | null>(null);
   const [tokenAllowance, setTokenAllowance] = useState<bigint | null>(null);
 
-  // Get chain info - source is current chain, destination is selected
+  // Get chain info - source is current chain, destination is selected.
+  // getToolboxStore memoizes one store per chain id ('' = inert bootstrap
+  // store), so subscribing by a runtime-changing key is hook-safe here.
   const destL1 = useL1ByChainId(destinationSelection.blockchainId);
   const destToolboxStore = getToolboxStore(destinationSelection.blockchainId)();
 
@@ -627,11 +638,7 @@ export default function TokenBridge() {
   const [isGasLimitEditing, setIsGasLimitEditing] = useState(false);
 
   return (
-    <Container
-      title="Cross-Chain Token Bridge"
-      description={`Send tokens from the current chain (${selectedL1?.name}) to another chain.`}
-      githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/ictt/token-transfer/TestSend.tsx"
-    >
+    <>
       <SelectBlockchain
         label="Destination Blockchain"
         value={destinationSelection.blockchainId}
@@ -825,6 +832,8 @@ export default function TokenBridge() {
           </div>
         </div>
       )}
-    </Container>
+    </>
   );
 }
+
+export default withConsoleToolMetadata(TokenBridge, metadata);

@@ -23,7 +23,15 @@ const toolboxInitialState = {
   poaManagerAddress: '',
 };
 
-export const getToolboxStore = (chainId: string) =>
+// In-memory storage for the bootstrap ('' chainId) store so nothing is
+// persisted under an empty key while no L1 is selected.
+const noopStateStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const createToolboxStore = (chainId: string) =>
   create(
     persist(
       combine(toolboxInitialState, (set, _get) => ({
@@ -50,38 +58,35 @@ export const getToolboxStore = (chainId: string) =>
       })),
       {
         name: `${STORE_VERSION}-toolbox-storage-${chainId}`,
-        storage: createJSONStorage(localStorageComp),
+        storage: createJSONStorage(chainId ? localStorageComp : () => noopStateStorage),
       },
     ),
   );
 
-const noopSetter = () => {};
+// One store instance per chain id. getToolboxStore used to call zustand's
+// create() on EVERY invocation, so components calling it during render
+// subscribed to a brand-new store (and re-ran persist rehydration) each
+// render, and imperative callers (e.g. stores/reset.ts) mutated throwaway
+// instances that live components never observed.
+const toolboxStores = new Map<string, ReturnType<typeof createToolboxStore>>();
 
-const emptyToolboxState = {
-  ...toolboxInitialState,
-  setValidatorMessagesLibAddress: noopSetter,
-  setValidatorManagerAddress: noopSetter,
-  setRewardCalculatorAddress: noopSetter,
-  setNativeStakingManagerAddress: noopSetter,
-  setErc20StakingManagerAddress: noopSetter,
-  setTeleporterRegistryAddress: noopSetter,
-  setIcmReceiverAddress: noopSetter,
-  setExampleErc20Address: noopSetter,
-  setErc20TokenHomeAddress: noopSetter,
-  setNativeTokenHomeAddress: noopSetter,
-  setErc20TokenRemoteAddress: noopSetter,
-  setNativeTokenRemoteAddress: noopSetter,
-  setPoaManagerAddress: noopSetter,
-  reset: noopSetter,
+export const getToolboxStore = (chainId: string) => {
+  let store = toolboxStores.get(chainId);
+  if (!store) {
+    store = createToolboxStore(chainId);
+    toolboxStores.set(chainId, store);
+  }
+  return store;
 };
 
 export const useToolboxStore = () => {
   const selectedL1 = useSelectedL1();
-  const chainId = selectedL1?.id;
-  // During bootstrap (no L1 selected), return an inert default state
-  // so we never create a store keyed by "".
-  if (!chainId) return emptyToolboxState;
-  return getToolboxStore(chainId)();
+  // Rules of Hooks: always subscribe to a store. During bootstrap (no L1
+  // selected yet) this is an inert, non-persisted store keyed by ''.
+  // The previous version returned early without calling the store hook,
+  // so the hook count changed when selectedL1 resolved mid-hydration and
+  // React crashed with a hook-order error (#4284).
+  return getToolboxStore(selectedL1?.id ?? '')();
 };
 
 export function useViemChainStore() {
