@@ -42,6 +42,14 @@ export function getShimBundle(): string {
       // Some transitive deps touch bare `process` at runtime; give the
       // browser bundle a minimal stub so the init script doesn't throw.
       banner: { js: 'var process = globalThis.process ?? { env: {} };' },
+      // The shim runs as a standalone IIFE before any app polyfills, and
+      // unlike the real Core extension it performs XP signing IN-PAGE
+      // (avalanche-sdk → sendXPTransaction), which needs Buffer. Without a
+      // Buffer global every P-Chain tx flow (convert-subnet-to-l1, stake,
+      // cross-chain transfer) threw "Buffer is not defined" from inside the
+      // shim — a harness-only failure mistakable for a product bug. inject
+      // bundles the polyfill into the IIFE so it's set before shim code runs.
+      inject: [path.join(__dirname, 'wallet-shim', 'buffer-polyfill.ts')],
     });
     shimBundle = result.outputFiles[0].text;
   }
