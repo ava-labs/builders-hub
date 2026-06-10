@@ -150,6 +150,26 @@ function stripCode(source: string): string {
 }
 
 /**
+ * Every binding name the MDX file imports itself — default and named,
+ * from ANY module. A local import shadows the global map at MDX runtime
+ * (e.g. 06-setup-core imports a `Faucet` content partial from
+ * content/common, which is NOT the toolbox Faucet the map provides).
+ */
+export function extractAllImportedBindings(source: string): Set<string> {
+  const bindings = new Set<string>();
+  for (const m of source.matchAll(/^import\s+(?:(\w+)\s*,?\s*)?(?:\{([^}]*)\})?\s*from\s+["'][^"']+["'];?/gm)) {
+    if (m[1]) bindings.add(m[1]);
+    if (m[2]) {
+      for (const part of m[2].split(',')) {
+        const named = part.trim().match(/^(?:\w+\s+as\s+)?(\w+)$/);
+        if (named) bindings.add(named[1]);
+      }
+    }
+  }
+  return bindings;
+}
+
+/**
  * Detect bare-tag usages of globally-mapped toolbox components in MDX source
  * (academy pages only — the map lives in the academy renderer). Components
  * the file already imports explicitly are skipped.
@@ -229,7 +249,7 @@ export function scanContentMdx(subdir: string): MdxScanResult[] {
     const source = fs.readFileSync(absFile, 'utf8');
     const tools = extractToolboxImports(source);
     if (subdir === 'academy') {
-      tools.push(...extractGlobalMapUsages(source, new Set(tools.map((t) => t.name))));
+      tools.push(...extractGlobalMapUsages(source, extractAllImportedBindings(source)));
     }
     if (tools.length === 0) continue;
     results.push({

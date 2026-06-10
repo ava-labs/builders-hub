@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-10T19:35:54.831Z",
+  "generatedAt": "2026-06-10T20:01:22.492Z",
   "surfaces": [
     {
       "kind": "academy-page",
@@ -175,22 +175,6 @@
           "resolved": "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx",
           "exists": true,
           "via": "import"
-        }
-      ]
-    },
-    {
-      "kind": "academy-page",
-      "route": "/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/06-setup-core",
-      "file": "content/academy/avalanche-l1/avalanche-fundamentals/03-multi-chain-architecture-intro/06-setup-core.mdx",
-      "title": "Set Up Core Wallet",
-      "walletMode": null,
-      "tools": [
-        {
-          "name": "Faucet",
-          "importPath": "@/components/toolbox/console/primary-network/Faucet",
-          "resolved": "components/toolbox/console/primary-network/Faucet.tsx",
-          "exists": true,
-          "via": "global-map"
         }
       ]
     },
