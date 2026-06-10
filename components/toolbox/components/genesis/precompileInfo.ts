@@ -34,6 +34,11 @@ export const PRECOMPILE_INFO = {
     name: 'Reward Manager',
     description: 'Manages validator rewards and fee recipient configuration for block producers.',
   },
+  warp: {
+    address: '0x0200000000000000000000000000000000000005',
+    name: 'Warp Messaging',
+    description: 'Enables Avalanche Warp Messaging for cross-chain communication signed by your validator set.',
+  },
 } as const;
 
 // Pre-deployed contracts (not precompiles, but often configured together)

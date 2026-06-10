@@ -1,21 +1,37 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Copy, Download, FileJson, Info, Plus, RotateCw, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { AlertTriangle, FileJson, Plus, RotateCw, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Button } from '@/components/toolbox/components/Button';
-import { RawInput } from '@/components/toolbox/components/Input';
+import { Input } from '@/components/toolbox/components/Input';
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import AllowList from '@/components/toolbox/components/genesis/AllowList';
-import { SyntaxHighlightedJSON } from '@/components/toolbox/components/genesis/SyntaxHighlightedJSON';
+import { JsonPreviewPanel } from '@/components/toolbox/components/genesis/JsonPreviewPanel';
+import { SectionWrapper } from '@/components/toolbox/components/genesis/SectionWrapper';
+import { PrecompileToggleList, type PrecompileItem } from '@/components/toolbox/components/genesis/PrecompileToggleList';
+import { PRECOMPILE_INFO } from '@/components/toolbox/components/genesis/precompileInfo';
+import {
+  GenesisHighlightProvider,
+  useGenesisHighlight,
+} from '@/components/toolbox/components/genesis/GenesisHighlightContext';
 import type { AddressEntry, AddressRoles, Role } from '@/components/toolbox/components/genesis/types';
+import { Switch } from '@/components/ui/switch';
 import { useL1UpgradeStore } from '@/components/toolbox/stores/l1UpgradeStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from '@/lib/toast';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { cn } from '@/lib/utils';
 import {
   BalanceChange,
   buildUpgradeJson,
-  CodeChange,
   emptyUpgradeJson,
   formatUpgradeJson,
   getMaxConfiguredTimestamp,
@@ -29,6 +45,25 @@ import {
   isValidRuntimeBytecode,
   validateUpgradePlan,
 } from '@/lib/console/upgrade-json';
+
+const metadata: ConsoleToolMetadata = {
+  title: 'Upgrade JSON',
+  description: (
+    <>
+      Schedule{' '}
+      <Link href="/docs/avalanche-l1s/upgrade/precompile-upgrades" className="text-primary hover:underline">
+        precompile upgrades
+      </Link>{' '}
+      and state upgrades for a running L1 via <code className="text-xs">upgrade.json</code>. Unlike{' '}
+      <Link href="/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1" className="text-primary hover:underline">
+        genesis configuration
+      </Link>
+      , these activate at a scheduled timestamp once every validator node loads the file and restarts.
+    </>
+  ),
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
+};
 
 type RpcCheckResponse = {
   chainConfig: unknown | null;
@@ -56,7 +91,10 @@ type ManagedFetchResponse = {
   nodes?: Array<{ id: string; nodeIndex: number | null; nodeId: string }>;
 };
 
-type UiCodeChange = CodeChange & {
+type UiCodeChange = {
+  id: string;
+  address: string;
+  code: string;
   sourceRpcUrl: string;
   sourceAddress: string;
   isFetching?: boolean;
@@ -69,31 +107,24 @@ type ExistingPrecompileSchedule = {
   blockTimestamp?: number;
 };
 
-const PRECOMPILE_METADATA: Record<PrecompileConfigKey, { address: string; action: string }> = {
-  contractDeployerAllowListConfig: {
-    address: '0x0200000000000000000000000000000000000000',
-    action: 'deploy contracts',
-  },
-  contractNativeMinterConfig: {
-    address: '0x0200000000000000000000000000000000000001',
-    action: 'mint native tokens',
-  },
-  txAllowListConfig: {
-    address: '0x0200000000000000000000000000000000000002',
-    action: 'submit transactions',
-  },
-  feeManagerConfig: {
-    address: '0x0200000000000000000000000000000000000003',
-    action: 'update fee parameters',
-  },
-  rewardManagerConfig: {
-    address: '0x0200000000000000000000000000000000000004',
-    action: 'configure fee rewards',
-  },
-  warpConfig: {
-    address: '0x0200000000000000000000000000000000000005',
-    action: 'configure Warp messaging',
-  },
+// Map upgrade.json config keys onto the shared precompile catalog used by the
+// genesis builder so both tools show identical names, addresses, and docs.
+const UPGRADE_PRECOMPILE_INFO: Record<PrecompileConfigKey, (typeof PRECOMPILE_INFO)[keyof typeof PRECOMPILE_INFO]> = {
+  contractDeployerAllowListConfig: PRECOMPILE_INFO.contractDeployerAllowList,
+  contractNativeMinterConfig: PRECOMPILE_INFO.nativeMinter,
+  txAllowListConfig: PRECOMPILE_INFO.txAllowList,
+  feeManagerConfig: PRECOMPILE_INFO.feeManager,
+  rewardManagerConfig: PRECOMPILE_INFO.rewardManager,
+  warpConfig: PRECOMPILE_INFO.warp,
+};
+
+const PRECOMPILE_ACTIONS: Record<PrecompileConfigKey, string> = {
+  contractDeployerAllowListConfig: 'deploy contracts',
+  contractNativeMinterConfig: 'mint native tokens',
+  txAllowListConfig: 'submit transactions',
+  feeManagerConfig: 'update fee parameters',
+  rewardManagerConfig: 'configure fee rewards',
+  warpConfig: 'configure Warp messaging',
 };
 
 function makeInitialPrecompiles(): PrecompileSelection[] {
@@ -134,7 +165,7 @@ function getExistingPrecompileSchedules(
   return schedules;
 }
 
-export default function UpgradeJsonBuilder() {
+function UpgradeJsonBuilderInner() {
   const store = useL1UpgradeStore();
   const selectedSubnetId = store((state) => state.subnetId);
   const selectedBlockchainId = store((state) => state.blockchainId);
@@ -143,6 +174,8 @@ export default function UpgradeJsonBuilder() {
   const selectedIsManaged = store((state) => state.isManaged);
   const selectedManagedNodeCount = store((state) => state.managedNodeCount);
   const walletAddress = useWalletStore((state) => state.walletEVMAddress || state.coreEthAddress);
+  const { notify } = useConsoleNotifications();
+  const { highlightPath, setHighlightPath, clearHighlight } = useGenesisHighlight();
   const selection = useMemo(
     () => ({
       subnetId: selectedSubnetId,
@@ -165,6 +198,7 @@ export default function UpgradeJsonBuilder() {
   const [baseText, setBaseText] = useState(formatUpgradeJson(emptyUpgradeJson()));
   const [baseSource, setBaseSource] = useState('empty');
   const [isLoadingSource, setIsLoadingSource] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
   const [rpcCheck, setRpcCheck] = useState<RpcCheckResponse | null>(null);
   const [rpcError, setRpcError] = useState<string | null>(null);
   const [managedInfo, setManagedInfo] = useState<ManagedFetchResponse | null>(null);
@@ -172,6 +206,7 @@ export default function UpgradeJsonBuilder() {
   const [activationTimestamp, setActivationTimestamp] = useState(
     () => Math.floor(Date.now() / 1000) + DEFAULT_TIMESTAMP_OFFSET_SECONDS,
   );
+  const timestampTouchedRef = useRef(false);
   const [balanceChanges, setBalanceChanges] = useState<BalanceChange[]>([]);
   const [codeChanges, setCodeChanges] = useState<UiCodeChange[]>([]);
   const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
@@ -281,23 +316,21 @@ export default function UpgradeJsonBuilder() {
     return () => {
       cancelled = true;
     };
-  }, [selection.blockchainId, selection.isManaged, selection.rpcUrl, selection.subnetId]);
+  }, [reloadTick, selection.blockchainId, selection.isManaged, selection.rpcUrl, selection.subnetId]);
 
+  // Default the activation timestamp to a sensible future value (chain tip +
+  // offset, past any already-scheduled upgrade) until the user edits it.
+  // Manual input is never overridden — out-of-range values surface as
+  // validation errors instead.
   useEffect(() => {
-    if (latestExistingTimestamp > 0 && activationTimestamp <= latestExistingTimestamp) {
-      setActivationTimestamp(latestExistingTimestamp + DEFAULT_TIMESTAMP_OFFSET_SECONDS);
-    }
-  }, [activationTimestamp, latestExistingTimestamp]);
-
-  useEffect(() => {
-    const minimumRecommended = Math.max(
+    if (timestampTouchedRef.current) return;
+    const recommended = Math.max(
+      Math.floor(Date.now() / 1000) + DEFAULT_TIMESTAMP_OFFSET_SECONDS,
       suggestedActivationTimestamp ?? 0,
       latestExistingTimestamp > 0 ? latestExistingTimestamp + DEFAULT_TIMESTAMP_OFFSET_SECONDS : 0,
     );
-    if (minimumRecommended > 0 && activationTimestamp < minimumRecommended) {
-      setActivationTimestamp(minimumRecommended);
-    }
-  }, [activationTimestamp, latestExistingTimestamp, suggestedActivationTimestamp]);
+    setActivationTimestamp(recommended);
+  }, [latestExistingTimestamp, suggestedActivationTimestamp]);
 
   if (!selection.subnetId || !selection.blockchainId) {
     return (
@@ -316,22 +349,20 @@ export default function UpgradeJsonBuilder() {
   const hasBlockingErrors = Boolean(parsedBase.error) || !validation.valid;
   const canWriteManaged =
     selection.isManaged && managedInfo?.managed !== false && validation.valid && !parsedBase.error;
+  const timestampError = validation.errors.find((error) => error.includes('Activation timestamp')) ?? null;
 
   const handleImportFile = async (file: File | null) => {
     if (!file) return;
     const text = await file.text();
-    const parsed = parseUpgradeJson(text);
-    if (parsed.error) {
-      toast.error('Invalid upgrade.json', parsed.error, { id: 'upgrade-json-import' });
-      return;
-    }
+    // Load the file as-is; invalid JSON surfaces through the inline parse
+    // error under the editor rather than being silently rejected.
     setBaseText(text);
     setBaseSource(file.name);
   };
 
   const saveSnapshot = async (status = 'draft') => {
     setIsSavingSnapshot(true);
-    try {
+    const promise = (async () => {
       const response = await fetch('/api/console/l1-upgrade/snapshot', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -349,11 +380,12 @@ export default function UpgradeJsonBuilder() {
         const data = (await response.json().catch(() => null)) as { message?: string } | null;
         throw new Error(data?.message ?? 'Failed to save snapshot.');
       }
-      toast.success('Snapshot saved', undefined, { id: 'upgrade-json-snapshot' });
-    } catch (error) {
-      toast.error('Could not save snapshot', error instanceof Error ? error.message : undefined, {
-        id: 'upgrade-json-snapshot',
-      });
+    })();
+    notify({ name: 'Upgrade Snapshot Save', type: 'local' }, promise);
+    try {
+      await promise;
+    } catch {
+      // Failure is surfaced via the console notification.
     } finally {
       setIsSavingSnapshot(false);
     }
@@ -361,7 +393,7 @@ export default function UpgradeJsonBuilder() {
 
   const writeManaged = async () => {
     setIsWritingManaged(true);
-    try {
+    const promise = (async () => {
       const response = await fetch('/api/console/l1-upgrade/managed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -377,12 +409,13 @@ export default function UpgradeJsonBuilder() {
         const data = (await response.json().catch(() => null)) as { message?: string } | null;
         throw new Error(data?.message ?? 'Failed to write managed upgrade.json.');
       }
+    })();
+    notify({ name: 'Managed upgrade.json Write', type: 'local' }, promise);
+    try {
+      await promise;
       setManagedWritten(true);
-      toast.success('upgrade.json written', 'Restart managed nodes after the file is written.', {
-        id: 'managed-write',
-      });
-    } catch (error) {
-      toast.error('Managed write failed', error instanceof Error ? error.message : undefined, { id: 'managed-write' });
+    } catch {
+      // Failure is surfaced via the console notification.
     } finally {
       setIsWritingManaged(false);
     }
@@ -390,7 +423,7 @@ export default function UpgradeJsonBuilder() {
 
   const restartManaged = async () => {
     setIsRestartingManaged(true);
-    try {
+    const promise = (async () => {
       const response = await fetch('/api/console/l1-upgrade/managed/restart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -403,62 +436,50 @@ export default function UpgradeJsonBuilder() {
         const data = (await response.json().catch(() => null)) as { message?: string } | null;
         throw new Error(data?.message ?? 'Failed to restart managed nodes.');
       }
+    })();
+    notify({ name: 'Managed Node Restart', type: 'local' }, promise);
+    try {
+      await promise;
       await saveSnapshot('restart-requested');
-      toast.success('Restart requested', 'Verify the loaded config after nodes come back.', { id: 'managed-restart' });
-    } catch (error) {
-      toast.error('Restart failed', error instanceof Error ? error.message : undefined, { id: 'managed-restart' });
+    } catch {
+      // Failure is surfaced via the console notification.
     } finally {
       setIsRestartingManaged(false);
     }
   };
 
-  const downloadJson = () => {
-    const blob = new Blob([generatedJson], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'upgrade.json';
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const copyJson = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedJson);
-      toast.success('upgrade.json copied', undefined, { id: 'upgrade-json-copy' });
-    } catch (error) {
-      toast.error('Could not copy', error instanceof Error ? error.message : undefined, { id: 'upgrade-json-copy' });
-    }
-  };
-
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)] gap-5 items-start">
-        <div className="space-y-5 min-w-0">
-          <HeaderPanel
-            chainName={selection.chainName}
-            subnetId={selection.subnetId}
-            blockchainId={selection.blockchainId}
-            rpcUrl={selection.rpcUrl}
-            isManaged={selection.isManaged}
-            managedNodeCount={managedInfo?.nodes?.length ?? selection.managedNodeCount}
-            rpcError={rpcError}
-            chainConfigError={rpcCheck?.errors?.chainConfig ?? null}
-            activeRulesError={rpcCheck?.errors?.activeRules ?? null}
-          />
+    <div className="space-y-6">
+      <HeaderPanel
+        chainName={selection.chainName}
+        subnetId={selection.subnetId}
+        blockchainId={selection.blockchainId}
+        rpcUrl={selection.rpcUrl}
+        isManaged={selection.isManaged}
+        managedNodeCount={managedInfo?.nodes?.length ?? selection.managedNodeCount}
+        rpcError={rpcError}
+        chainConfigError={rpcCheck?.errors?.chainConfig ?? null}
+        activeRulesError={rpcCheck?.errors?.activeRules ?? null}
+        isRefreshing={isLoadingSource}
+        onRefresh={() => setReloadTick((n) => n + 1)}
+      />
 
-          <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-              <div>
-                <h3 className="text-sm font-semibold">Existing upgrade.json</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Source: {isLoadingSource ? 'loading...' : baseSource}. Existing entries are preserved and new entries
-                  are appended.
-                </p>
-              </div>
-              <label className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900">
+      <Steps>
+        {/* Step 1: Build the upgrade.json */}
+        <Step>
+          <div>
+            <h2 className="text-sm font-semibold mb-1">Configure Upgrade</h2>
+            <p className="text-xs text-muted-foreground">
+              Toggle precompiles and add state upgrades. New entries are appended to the existing upgrade.json.
+            </p>
+          </div>
+
+          <div className="flex flex-col bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Upgrade Configuration</span>
+              <label className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                 <FileJson className="h-4 w-4" />
-                Import file
+                Import upgrade.json
                 <input
                   type="file"
                   accept="application/json,.json"
@@ -467,137 +488,185 @@ export default function UpgradeJsonBuilder() {
                 />
               </label>
             </div>
-            <textarea
-              value={baseText}
-              onChange={(event) => {
-                setBaseText(event.target.value);
-                setBaseSource('custom input');
-              }}
-              className="w-full min-h-40 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-950 text-zinc-100 p-3 font-mono text-xs resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
-              spellCheck={false}
-            />
-            {parsedBase.error && <p className="text-xs text-red-600 dark:text-red-400 mt-2">{parsedBase.error}</p>}
-            {latestExistingTimestamp > 0 && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Latest existing upgrade timestamp: <span className="font-mono">{latestExistingTimestamp}</span>
-              </p>
-            )}
-          </section>
 
-          <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-            <h3 className="text-sm font-semibold mb-4">Activation timing</h3>
-            <CompactTextField
-              label="Scheduled activation"
-              type="number"
-              value={activationTimestamp}
-              onChange={(value) => setActivationTimestamp(Number(value))}
-              hint={
-                suggestedActivationTimestamp
-                  ? `Auto-filled from the latest chain timestamp plus ${DEFAULT_TIMESTAMP_OFFSET_SECONDS / 60} minutes. Multiple generated entries are scheduled one second apart.`
-                  : 'Unix timestamp when validators should activate the new rules. Multiple generated entries are scheduled one second apart.'
-              }
-              error={validation.errors.find((error) => error.includes('Activation timestamp')) ?? null}
-            />
-          </section>
+            <div className="flex flex-col lg:flex-row">
+              {/* Left panel — configuration */}
+              <div className="flex-1 p-5 bg-white dark:bg-zinc-950 text-[13px] min-w-0">
+                <div className="space-y-8">
+                  <SectionWrapper
+                    title="Existing upgrade.json"
+                    titleTooltip="The file currently loaded on your nodes (or your last saved snapshot). Existing entries are preserved and new entries are appended after them."
+                    sectionId="existingUpgrade"
+                  >
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Source: {isLoadingSource ? 'loading...' : baseSource}
+                      </p>
+                      <textarea
+                        value={baseText}
+                        onChange={(event) => {
+                          setBaseText(event.target.value);
+                          setBaseSource('custom input');
+                        }}
+                        className={cn(
+                          'w-full min-h-40 px-4 py-3 bg-zinc-900 dark:bg-zinc-950 text-zinc-100 rounded-lg border font-mono text-xs resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                          parsedBase.error ? 'border-red-500' : 'border-zinc-700 dark:border-zinc-800',
+                        )}
+                        spellCheck={false}
+                      />
+                      {parsedBase.error && (
+                        <p className="text-xs text-red-600 dark:text-red-400">{parsedBase.error}</p>
+                      )}
+                      {latestExistingTimestamp > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Latest existing upgrade timestamp: <span className="font-mono">{latestExistingTimestamp}</span>
+                        </p>
+                      )}
+                    </div>
+                  </SectionWrapper>
 
-          <PrecompileControls
-            precompiles={precompiles}
-            activePrecompileKeys={activePrecompileKeys}
-            existingSchedules={existingPrecompileSchedules}
-            validationErrors={validation.errors}
-            walletAddress={walletAddress}
-            onChange={setPrecompiles}
-          />
+                  <SectionWrapper
+                    title="Activation Timing"
+                    titleTooltip="Unix timestamp when validators activate the new rules. It must be in the future and after every already-scheduled upgrade. Multiple generated entries are scheduled one second apart."
+                    sectionId="activationTiming"
+                  >
+                    <Input
+                      label="Scheduled Activation"
+                      type="number"
+                      value={activationTimestamp}
+                      onChange={(value) => {
+                        timestampTouchedRef.current = true;
+                        setActivationTimestamp(Number(value));
+                      }}
+                      error={timestampError}
+                      helperText={
+                        timestampError
+                          ? undefined
+                          : `Activates ~${new Date(activationTimestamp * 1000).toLocaleString()}${
+                              suggestedActivationTimestamp ? ' (auto-filled from the latest chain timestamp)' : ''
+                            }`
+                      }
+                      className="max-w-xs"
+                    />
+                  </SectionWrapper>
 
-          <StateUpgradeControls
-            rpcUrl={selection.rpcUrl}
-            balanceChanges={balanceChanges}
-            codeChanges={codeChanges}
-            validationErrors={validation.errors}
-            onBalanceChanges={setBalanceChanges}
-            onCodeChanges={setCodeChanges}
-          />
-        </div>
+                  <PrecompileUpgradesSection
+                    precompiles={precompiles}
+                    activePrecompileKeys={activePrecompileKeys}
+                    existingSchedules={existingPrecompileSchedules}
+                    validationErrors={validation.errors}
+                    walletAddress={walletAddress}
+                    onChange={setPrecompiles}
+                    onToggleHighlight={(key, enabled) => {
+                      if (!enabled) return;
+                      setTimeout(() => {
+                        setHighlightPath(`config.${key}`);
+                        setTimeout(() => clearHighlight(), 2000);
+                      }, 100);
+                    }}
+                  />
 
-        <aside className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-4 self-start min-w-0 overflow-hidden">
-          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">upgrade.json</h3>
-                <p className="text-xs text-muted-foreground">
-                  {(new Blob([generatedJson]).size / 1024).toFixed(2)} KiB
-                </p>
+                  <StateUpgradesSection
+                    rpcUrl={selection.rpcUrl}
+                    balanceChanges={balanceChanges}
+                    codeChanges={codeChanges}
+                    validationErrors={validation.errors}
+                    setBalanceChanges={setBalanceChanges}
+                    setCodeChanges={setCodeChanges}
+                    notify={notify}
+                    onAddHighlight={() => {
+                      setTimeout(() => {
+                        setHighlightPath('stateUpgrades');
+                        setTimeout(() => clearHighlight(), 2000);
+                      }, 100);
+                    }}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={copyJson} className="h-8">
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </Button>
-                <Button variant="outline" size="sm" onClick={downloadJson} className="h-8">
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
+
+              {/* Right panel — JSON preview */}
+              <div className="w-full lg:w-[480px] xl:w-[560px] border-t lg:border-t-0 border-zinc-200 dark:border-zinc-800 lg:sticky lg:top-4 lg:self-start">
+                <JsonPreviewPanel
+                  jsonData={generatedJson}
+                  title="upgrade.json"
+                  fileName="upgrade.json"
+                  sizeLimitKiB={null}
+                  highlightPath={highlightPath || undefined}
+                />
               </div>
             </div>
           </div>
-          <div className="max-h-[640px] overflow-auto json-preview-scroll bg-zinc-50 dark:bg-zinc-950 p-3">
-            <SyntaxHighlightedJSON code={generatedJson} highlightedLine={null} />
-          </div>
-        </aside>
-      </div>
+        </Step>
 
-      <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        {/* Step 2: Apply the upgrade */}
+        <Step>
           <div>
-            <h3 className="text-sm font-semibold">Apply or export</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Managed nodes can write the file through Builder Hub. Self-hosted nodes use the commands below.
+            <h2 className="text-sm font-semibold mb-1">Apply the Upgrade</h2>
+            <p className="text-xs text-muted-foreground">
+              Every validator node must load the file and restart before the activation timestamp.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              stickLeft
-              loading={isSavingSnapshot}
-              disabled={hasBlockingErrors}
-              onClick={() => void saveSnapshot()}
-            >
-              Save snapshot
-            </Button>
-            {selection.isManaged && (
-              <>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  stickLeft
-                  loading={isWritingManaged}
-                  disabled={!canWriteManaged}
-                  onClick={() => void writeManaged()}
-                >
-                  Write managed file
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  stickLeft
-                  loading={isRestartingManaged}
-                  disabled={!managedWritten}
-                  onClick={() => void restartManaged()}
-                >
-                  Restart managed nodes
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
 
-      <SelfHostedInstructions
-        blockchainId={selection.blockchainId}
-        rpcUrl={selection.rpcUrl}
-        upgradeJson={generatedJson}
-      />
+          <div className="space-y-4">
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold">
+                    {selection.isManaged ? 'Managed nodes' : 'Save to Builder Hub'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selection.isManaged
+                      ? 'Builder Hub writes the file to your managed nodes, then restarts them to load it.'
+                      : 'Snapshots keep your work so the builder restores it next time you open this L1.'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-auto"
+                    loading={isSavingSnapshot}
+                    disabled={hasBlockingErrors}
+                    onClick={() => void saveSnapshot()}
+                  >
+                    Save Snapshot
+                  </Button>
+                  {selection.isManaged && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-auto"
+                        loading={isWritingManaged}
+                        disabled={!canWriteManaged}
+                        onClick={() => void writeManaged()}
+                      >
+                        Write Managed File
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        className="w-auto"
+                        loading={isRestartingManaged}
+                        disabled={!managedWritten}
+                        onClick={() => void restartManaged()}
+                      >
+                        Restart Managed Nodes
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <SelfHostedInstructions
+              blockchainId={selection.blockchainId}
+              rpcUrl={selection.rpcUrl}
+              upgradeJson={generatedJson}
+            />
+          </div>
+        </Step>
+      </Steps>
     </div>
   );
 }
@@ -612,6 +681,8 @@ function HeaderPanel({
   rpcError,
   chainConfigError,
   activeRulesError,
+  isRefreshing,
+  onRefresh,
 }: {
   chainName: string;
   subnetId: string;
@@ -622,14 +693,16 @@ function HeaderPanel({
   rpcError: string | null;
   chainConfigError: string | null;
   activeRulesError: string | null;
+  isRefreshing: boolean;
+  onRefresh: () => void;
 }) {
   return (
     <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             {chainName || blockchainId.slice(0, 8)}
-          </h2>
+          </h3>
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <InfoLine label="Subnet" value={subnetId} />
             <InfoLine label="Blockchain" value={blockchainId} />
@@ -640,6 +713,16 @@ function HeaderPanel({
             />
           </div>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-auto shrink-0"
+          icon={<RotateCw className="h-4 w-4" />}
+          loading={isRefreshing}
+          onClick={onRefresh}
+        >
+          Refresh
+        </Button>
       </div>
       {(rpcError || chainConfigError || activeRulesError) && (
         <div className="mt-3 rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/30 p-3 text-xs text-yellow-800 dark:text-yellow-200">
@@ -650,13 +733,38 @@ function HeaderPanel({
   );
 }
 
-function PrecompileControls({
+function StatusBadge({
+  isActive,
+  schedule,
+}: {
+  isActive: boolean;
+  schedule?: ExistingPrecompileSchedule;
+}) {
+  if (isActive) {
+    return (
+      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400">
+        Active
+      </span>
+    );
+  }
+  if (schedule) {
+    return (
+      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400">
+        {schedule.mode === 'enable' ? 'Scheduled' : 'Disable scheduled'}
+      </span>
+    );
+  }
+  return null;
+}
+
+function PrecompileUpgradesSection({
   precompiles,
   activePrecompileKeys,
   existingSchedules,
   validationErrors,
   walletAddress,
   onChange,
+  onToggleHighlight,
 }: {
   precompiles: PrecompileSelection[];
   activePrecompileKeys: string[];
@@ -664,6 +772,7 @@ function PrecompileControls({
   validationErrors: string[];
   walletAddress?: string;
   onChange: (value: PrecompileSelection[]) => void;
+  onToggleHighlight: (key: PrecompileConfigKey, enabled: boolean) => void;
 }) {
   const update = (key: PrecompileConfigKey, patch: Partial<PrecompileSelection>) => {
     onChange(precompiles.map((item) => (item.key === key ? { ...item, ...patch } : item)));
@@ -674,6 +783,8 @@ function PrecompileControls({
     const value = precompiles.find((item) => item.key === key);
     const nextMode = nextEnabled === baseTargetEnabled ? 'none' : nextEnabled ? 'enable' : 'disable';
     const patch: Partial<PrecompileSelection> = { mode: nextMode };
+    // Auto-add the connected wallet as Admin when enabling an allowlist
+    // precompile, mirroring the genesis builder's PermissioningSection.
     if (
       nextMode === 'enable' &&
       key !== 'warpConfig' &&
@@ -684,123 +795,145 @@ function PrecompileControls({
       patch.adminAddresses = [walletAddress];
     }
     update(key, patch);
+    onToggleHighlight(key, nextMode === 'enable');
   };
 
-  return (
-    <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-900">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Precompile upgrades</h3>
-          <InfoHint text="Active state comes from RPC. Scheduled state comes from the loaded upgrade.json. Each toggle appends a new enable or disable entry." />
+  const items: PrecompileItem[] = PRECOMPILE_DEFINITIONS.map((definition) => {
+    const value = precompiles.find((item) => item.key === definition.key)!;
+    const isActive = activePrecompileKeys.includes(definition.key);
+    const existingSchedule = existingSchedules[definition.key];
+    const baseTargetEnabled = existingSchedule ? existingSchedule.mode === 'enable' : isActive;
+    const targetEnabled = value.mode === 'enable' ? true : value.mode === 'disable' ? false : baseTargetEnabled;
+    const rowErrors = validationErrors.filter((error) => error.includes(definition.key));
+
+    let expandedContent: ReactNode;
+    if (value.mode === 'enable' && definition.supportsAllowList) {
+      expandedContent = (
+        <div className="space-y-2">
+          {rowErrors.map((error) => (
+            <p key={error} className="text-xs text-red-600 dark:text-red-400">
+              {error}
+            </p>
+          ))}
+          <AllowList
+            addresses={selectionToAddressRoles(value)}
+            precompileAction={PRECOMPILE_ACTIONS[definition.key]}
+            onUpdateAllowlist={(addresses) => update(definition.key, addressRolesToSelectionPatch(addresses))}
+          />
         </div>
-      </div>
-      <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
-        {PRECOMPILE_DEFINITIONS.map((definition) => {
-          const value = precompiles.find((item) => item.key === definition.key)!;
-          const isActive = activePrecompileKeys.includes(definition.key);
-          const existingSchedule = existingSchedules[definition.key];
-          const baseTargetEnabled = existingSchedule ? existingSchedule.mode === 'enable' : isActive;
-          const targetEnabled = value.mode === 'enable' ? true : value.mode === 'disable' ? false : baseTargetEnabled;
-          const rowErrors = validationErrors.filter((error) => error.includes(definition.key));
-          const metadata = PRECOMPILE_METADATA[definition.key];
-          return (
-            <div key={definition.key}>
-              <button
-                type="button"
-                onClick={() => toggleTarget(definition.key, targetEnabled, baseTargetEnabled)}
-                className="w-full flex items-center gap-3 px-3.5 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
-                      {definition.label}
-                    </h4>
-                    <InfoHint text={`${definition.description} Precompile address: ${metadata.address}.`} />
-                  </div>
-                </div>
-                <div className="ml-auto flex items-center gap-2 shrink-0">
-                  <Toggle checked={targetEnabled} />
-                </div>
-              </button>
-              {rowErrors.length > 0 && (
-                <div className="px-3.5 pb-2 -mt-1 text-xs text-red-600 dark:text-red-400 space-y-1">
-                  {rowErrors.map((error) => (
-                    <p key={error}>{error}</p>
-                  ))}
-                </div>
-              )}
-              {value.mode === 'enable' && definition.supportsAllowList && (
-                <div className="px-3.5 pb-3">
-                  <PrecompileAllowListEditor
-                    selection={value}
-                    action={metadata.action}
-                    onChange={(patch) => update(definition.key, patch)}
-                  />
-                </div>
-              )}
-              {value.mode === 'enable' && definition.supportsWarpConfig && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-3.5 pb-3">
-                  <CompactTextField
-                    label="Quorum numerator"
-                    type="number"
-                    value={value.quorumNumerator ?? 67}
-                    onChange={(raw) => update(definition.key, { quorumNumerator: Number(raw) })}
-                    hint="Percent threshold for Warp signer quorum."
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      update(definition.key, {
-                        requirePrimaryNetworkSigners: !(value.requirePrimaryNetworkSigners ?? true),
-                      })
-                    }
-                    className="flex items-center gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-left h-fit"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                          Require Primary Network signers
-                        </div>
-                        <InfoHint text="Keep enabled unless validators should not verify Primary Network signers." />
-                      </div>
-                    </div>
-                    <Toggle checked={value.requirePrimaryNetworkSigners ?? true} />
-                  </button>
-                </div>
-              )}
+      );
+    } else if (value.mode === 'enable' && definition.supportsWarpConfig) {
+      expandedContent = (
+        <div className="space-y-2">
+          {rowErrors.map((error) => (
+            <p key={error} className="text-xs text-red-600 dark:text-red-400">
+              {error}
+            </p>
+          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+            <Input
+              label="Quorum Numerator"
+              type="number"
+              value={value.quorumNumerator ?? 67}
+              onChange={(raw) => update(definition.key, { quorumNumerator: Number(raw) })}
+              helperText="Percent threshold for Warp signer quorum."
+            />
+            <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 mt-7">
+              <span className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200">
+                Require Primary Network signers
+              </span>
+              <Switch
+                checked={value.requirePrimaryNetworkSigners ?? true}
+                onCheckedChange={(checked) => update(definition.key, { requirePrimaryNetworkSigners: checked })}
+              />
             </div>
-          );
-        })}
+          </div>
+        </div>
+      );
+    }
+
+    return {
+      id: definition.key,
+      label: definition.label,
+      checked: targetEnabled,
+      onCheckedChange: () => toggleTarget(definition.key, targetEnabled, baseTargetEnabled),
+      info: UPGRADE_PRECOMPILE_INFO[definition.key],
+      badge: <StatusBadge isActive={isActive} schedule={existingSchedule} />,
+      expandedContent,
+    };
+  });
+
+  // Errors for rows whose expanded editor is hidden (e.g. a disable entry)
+  // would otherwise be invisible — surface them under the list.
+  const hiddenErrors = validationErrors.filter((error) =>
+    PRECOMPILE_DEFINITIONS.some(
+      (definition) =>
+        error.includes(definition.key) &&
+        precompiles.find((item) => item.key === definition.key)?.mode !== 'enable',
+    ),
+  );
+
+  return (
+    <SectionWrapper
+      title="Precompile Upgrades"
+      titleTooltip="Active state comes from the RPC; scheduled state comes from the loaded upgrade.json. Each toggle appends a new enable or disable entry at the activation timestamp."
+      titleTooltipLink={{
+        href: '/docs/avalanche-l1s/upgrade/precompile-upgrades',
+        text: 'Learn more about precompile upgrades',
+      }}
+      sectionId="precompileUpgrades"
+    >
+      <div className="space-y-2">
+        <PrecompileToggleList items={items} showEnabledCount={false} />
+        {hiddenErrors.map((error) => (
+          <p key={error} className="text-xs text-red-600 dark:text-red-400">
+            {error}
+          </p>
+        ))}
       </div>
-    </section>
+    </SectionWrapper>
   );
 }
 
-function StateUpgradeControls({
+function StateUpgradesSection({
   rpcUrl,
   balanceChanges,
   codeChanges,
   validationErrors,
-  onBalanceChanges,
-  onCodeChanges,
+  setBalanceChanges,
+  setCodeChanges,
+  notify,
+  onAddHighlight,
 }: {
   rpcUrl: string;
   balanceChanges: BalanceChange[];
   codeChanges: UiCodeChange[];
   validationErrors: string[];
-  onBalanceChanges: (value: BalanceChange[]) => void;
-  onCodeChanges: (value: UiCodeChange[]) => void;
+  setBalanceChanges: Dispatch<SetStateAction<BalanceChange[]>>;
+  setCodeChanges: Dispatch<SetStateAction<UiCodeChange[]>>;
+  notify: ReturnType<typeof useConsoleNotifications>['notify'];
+  onAddHighlight: () => void;
 }) {
-  const addBalance = () => onBalanceChanges([...balanceChanges, { id: crypto.randomUUID(), address: '', amount: '' }]);
-  const addCode = () =>
-    onCodeChanges([
-      ...codeChanges,
+  const addBalance = () => {
+    setBalanceChanges((prev) => [...prev, { id: crypto.randomUUID(), address: '', amount: '' }]);
+    onAddHighlight();
+  };
+  const addCode = () => {
+    setCodeChanges((prev) => [
+      ...prev,
       { id: crypto.randomUUID(), address: '', code: '', sourceRpcUrl: rpcUrl, sourceAddress: '' },
     ]);
+    onAddHighlight();
+  };
+
+  const updateBalance = (id: string, patch: Partial<BalanceChange>) =>
+    setBalanceChanges((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  const updateCode = (id: string, patch: Partial<UiCodeChange>) =>
+    setCodeChanges((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
 
   const fetchCode = async (change: UiCodeChange) => {
-    onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, isFetching: true } : item)));
-    try {
+    updateCode(change.id, { isFetching: true });
+    const promise = (async () => {
       const response = await fetch('/api/console/l1-upgrade/code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -808,68 +941,74 @@ function StateUpgradeControls({
       });
       const data = (await response.json()) as { code?: string; error?: string };
       if (!response.ok || !data.code) throw new Error(data.error ?? 'Failed to fetch bytecode.');
-      onCodeChanges(
-        codeChanges.map((item) => (item.id === change.id ? { ...item, code: data.code!, isFetching: false } : item)),
-      );
-      toast.success('Runtime bytecode loaded', undefined, { id: `fetch-code-${change.id}` });
-    } catch (error) {
-      onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, isFetching: false } : item)));
-      toast.error('Could not fetch bytecode', error instanceof Error ? error.message : undefined, {
-        id: `fetch-code-${change.id}`,
-      });
+      return data.code;
+    })();
+    notify({ name: 'Runtime Bytecode Fetch', type: 'local' }, promise);
+    try {
+      const code = await promise;
+      updateCode(change.id, { code, isFetching: false });
+    } catch {
+      updateCode(change.id, { isFetching: false });
     }
   };
 
-  return (
-    <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold">State upgrades</h3>
-            <InfoHint text="Add positive balance changes or replace account runtime bytecode. Storage-slot editing is intentionally not part of this v1 UI." />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" stickLeft icon={<Plus className="h-4 w-4" />} onClick={addBalance}>
-            Balance
-          </Button>
-          <Button size="sm" variant="outline" stickLeft icon={<Plus className="h-4 w-4" />} onClick={addCode}>
-            Bytecode
-          </Button>
-        </div>
-      </div>
+  const generalErrors = validationErrors.filter(
+    (error) => error.includes('balance-change') || error.includes('Balance change') || error.includes('bytecode'),
+  );
 
+  return (
+    <SectionWrapper
+      title="State Upgrades"
+      titleTooltip="Add native token balances or replace account runtime bytecode at the activation timestamp. Storage-slot editing is intentionally not part of this v1 UI."
+      sectionId="stateUpgrades"
+    >
       <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-auto"
+            icon={<Plus className="h-4 w-4" />}
+            onClick={addBalance}
+          >
+            Add Balance Change
+          </Button>
+          <Button size="sm" variant="outline" className="w-auto" icon={<Plus className="h-4 w-4" />} onClick={addCode}>
+            Add Bytecode Change
+          </Button>
+        </div>
+
         {balanceChanges.map((change) => (
           <div key={change.id} className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-3">
             <div className="flex items-center justify-between gap-3 mb-3">
               <h4 className="text-sm font-medium">Balance change</h4>
-              <IconButton
-                label="Remove"
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-auto"
                 icon={<Trash2 className="h-4 w-4" />}
-                onClick={() => onBalanceChanges(balanceChanges.filter((item) => item.id !== change.id))}
-              />
+                onClick={() => setBalanceChanges((prev) => prev.filter((item) => item.id !== change.id))}
+              >
+                Remove
+              </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <CompactTextField
-                label="Account address"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3">
+              <Input
+                label="Account Address"
                 value={change.address}
-                onChange={(address) =>
-                  onBalanceChanges(balanceChanges.map((item) => (item.id === change.id ? { ...item, address } : item)))
-                }
+                onChange={(address) => updateBalance(change.id, { address })}
+                placeholder="0x..."
                 error={
                   change.address && !isValidAddress(change.address)
                     ? `Invalid balance-change address: ${change.address}`
                     : null
                 }
               />
-              <CompactTextField
-                label="Amount to add"
+              <Input
+                label="Amount to Add"
                 value={change.amount}
-                onChange={(amount) =>
-                  onBalanceChanges(balanceChanges.map((item) => (item.id === change.id ? { ...item, amount } : item)))
-                }
-                hint="Wei amount as decimal or hex. Adds to the balance; it does not set an absolute balance."
+                onChange={(amount) => updateBalance(change.id, { amount })}
+                helperText="Wei amount as decimal or hex. Adds to the balance; it does not set an absolute balance."
                 error={
                   change.amount && !isPositiveAmount(change.amount)
                     ? `Balance change for ${change.address || 'an address'} must be positive.`
@@ -884,67 +1023,64 @@ function StateUpgradeControls({
           <div key={change.id} className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-3">
             <div className="flex items-center justify-between gap-3 mb-3">
               <h4 className="text-sm font-medium">Runtime bytecode change</h4>
-              <IconButton
-                label="Remove"
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-auto"
                 icon={<Trash2 className="h-4 w-4" />}
-                onClick={() => onCodeChanges(codeChanges.filter((item) => item.id !== change.id))}
-              />
+                onClick={() => setCodeChanges((prev) => prev.filter((item) => item.id !== change.id))}
+              >
+                Remove
+              </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <CompactTextField
-                label="Target account"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3">
+              <Input
+                label="Target Account"
                 value={change.address}
-                onChange={(address) =>
-                  onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, address } : item)))
-                }
+                onChange={(address) => updateCode(change.id, { address })}
+                placeholder="0x..."
                 error={
                   change.address && !isValidAddress(change.address)
                     ? `Invalid bytecode target address: ${change.address}`
                     : null
                 }
               />
-              <CompactTextField
-                label="Source contract address"
+              <Input
+                label="Source Contract Address"
                 value={change.sourceAddress}
-                onChange={(sourceAddress) =>
-                  onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, sourceAddress } : item)))
-                }
-                hint="Optional: fetch runtime bytecode from an already deployed contract."
+                onChange={(sourceAddress) => updateCode(change.id, { sourceAddress })}
+                placeholder="0x..."
+                helperText="Optional: fetch runtime bytecode from an already deployed contract."
                 error={
                   change.sourceAddress && !isValidAddress(change.sourceAddress)
                     ? `Invalid source contract address: ${change.sourceAddress}`
                     : null
                 }
               />
-              <CompactTextField
+              <Input
                 label="Source RPC URL"
                 value={change.sourceRpcUrl}
-                onChange={(sourceRpcUrl) =>
-                  onCodeChanges(codeChanges.map((item) => (item.id === change.id ? { ...item, sourceRpcUrl } : item)))
-                }
+                onChange={(sourceRpcUrl) => updateCode(change.id, { sourceRpcUrl })}
+                placeholder="https://..."
               />
-              <div className="pt-7">
+              <div className="md:pt-7">
                 <Button
                   size="sm"
                   variant="secondary"
-                  stickLeft
+                  className="w-auto"
                   loading={change.isFetching}
                   icon={<RotateCw className="h-4 w-4" />}
                   onClick={() => void fetchCode(change)}
                 >
-                  Fetch code
+                  Fetch Code
                 </Button>
               </div>
             </div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Runtime bytecode</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Runtime Bytecode</label>
             <textarea
               value={change.code}
-              onChange={(event) =>
-                onCodeChanges(
-                  codeChanges.map((item) => (item.id === change.id ? { ...item, code: event.target.value } : item)),
-                )
-              }
-              className="w-full min-h-28 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-950 text-zinc-100 p-3 font-mono text-xs resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
+              onChange={(event) => updateCode(change.id, { code: event.target.value })}
+              className="w-full min-h-28 px-4 py-3 bg-zinc-900 dark:bg-zinc-950 text-zinc-100 rounded-lg border border-zinc-700 dark:border-zinc-800 font-mono text-xs resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               spellCheck={false}
               placeholder="0x..."
             />
@@ -959,18 +1095,13 @@ function StateUpgradeControls({
         {balanceChanges.length === 0 && codeChanges.length === 0 && (
           <p className="text-sm text-muted-foreground">No state upgrades added.</p>
         )}
-        {validationErrors
-          .filter(
-            (error) =>
-              error.includes('balance-change') || error.includes('Balance change') || error.includes('bytecode'),
-          )
-          .map((error) => (
-            <p key={error} className="text-xs text-red-600 dark:text-red-400">
-              {error}
-            </p>
-          ))}
+        {generalErrors.map((error) => (
+          <p key={error} className="text-xs text-red-600 dark:text-red-400">
+            {error}
+          </p>
+        ))}
       </div>
-    </section>
+    </SectionWrapper>
   );
 }
 
@@ -999,52 +1130,16 @@ curl --location --request POST '${rpcUrl || '<RPC_URL>'}' \\
   --header 'Content-Type: application/json' \\
   --data-raw '{"jsonrpc":"2.0","id":1,"method":"eth_getChainConfig","params":[]}'`;
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(command);
-      toast.success('Commands copied', undefined, { id: 'upgrade-commands-copy' });
-    } catch (error) {
-      toast.error('Could not copy commands', error instanceof Error ? error.message : undefined, {
-        id: 'upgrade-commands-copy',
-      });
-    }
-  };
-
   return (
-    <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-      <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold">Self-hosted node commands</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Run these on every validator node that must participate in the upgrade.
-          </p>
-        </div>
-        <IconButton label="Copy commands" icon={<Copy className="h-4 w-4" />} onClick={copy} />
+    <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold">Self-hosted node commands</h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Run these on every validator node that must participate in the upgrade.
+        </p>
       </div>
-      <pre className="overflow-auto p-4 bg-zinc-950 text-zinc-100 text-xs leading-relaxed font-mono">
-        <code>{command}</code>
-      </pre>
-    </section>
-  );
-}
-
-function PrecompileAllowListEditor({
-  selection,
-  action,
-  onChange,
-}: {
-  selection: PrecompileSelection;
-  action: string;
-  onChange: (patch: Partial<PrecompileSelection>) => void;
-}) {
-  const roles = useMemo(() => selectionToAddressRoles(selection), [selection]);
-
-  return (
-    <AllowList
-      addresses={roles}
-      precompileAction={action}
-      onUpdateAllowlist={(addresses) => onChange(addressRolesToSelectionPatch(addresses))}
-    />
+      <DynamicCodeBlock lang="bash" code={command} />
+    </div>
   );
 }
 
@@ -1076,78 +1171,6 @@ function entriesToAddresses(entries: AddressEntry[]): string[] {
   return entries.map((entry) => entry.address).filter(Boolean);
 }
 
-function CompactTextField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  hint,
-  error,
-  type = 'text',
-}: {
-  label: string;
-  value: string | number;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  hint?: string;
-  error?: string | null;
-  type?: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5">
-        <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
-        {hint && <InfoHint text={hint} />}
-      </div>
-      <RawInput
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="rounded-md text-sm"
-        error={error}
-      />
-      {error && <p className="text-[11px] text-red-600 dark:text-red-400 leading-snug">{error}</p>}
-    </div>
-  );
-}
-
-function InfoHint({ text }: { text: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button type="button" aria-label="More information" className="inline-flex">
-          <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent sideOffset={6} className="max-w-[320px] whitespace-normal break-words text-left leading-relaxed">
-        <p>{text}</p>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-function Toggle({ checked }: { checked: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        'relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors',
-        checked
-          ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white'
-          : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
-      )}
-    >
-      <span
-        className={cn(
-          'absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-200',
-          checked ? 'left-[18px] bg-white dark:bg-zinc-900' : 'left-0.5 bg-white dark:bg-zinc-600',
-        )}
-      />
-    </span>
-  );
-}
-
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
@@ -1157,16 +1180,13 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function IconButton({ label, icon, onClick }: { label: string; icon: React.ReactNode; onClick: () => void }) {
+function UpgradeJsonBuilder(_props: BaseConsoleToolProps) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
-    >
-      {icon}
-    </button>
+    <GenesisHighlightProvider>
+      <UpgradeJsonBuilderInner />
+    </GenesisHighlightProvider>
   );
 }
+
+export { UpgradeJsonBuilder };
+export default withConsoleToolMetadata(UpgradeJsonBuilder, metadata);
