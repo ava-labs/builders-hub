@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildUpgradeJson,
   emptyUpgradeJson,
+  getConfiguredPrecompileState,
   getMaxConfiguredTimestamp,
   parseUpgradeJson,
   validateUpgradePlan,
@@ -201,5 +202,122 @@ describe('upgrade-json builder', () => {
 
   it('parses empty input as an empty upgrade config', () => {
     expect(parseUpgradeJson('').config).toEqual(emptyUpgradeJson());
+  });
+
+  it('emits a disable + enable pair for reenable, keeping timestamps strictly increasing', () => {
+    const config = buildUpgradeJson({
+      baseConfig: emptyUpgradeJson(),
+      activationTimestamp: 2_000_000_000,
+      precompiles: [
+        {
+          key: 'contractNativeMinterConfig',
+          mode: 'reenable',
+          adminAddresses: ['0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC'],
+          enabledAddresses: ['0x1111111111111111111111111111111111111111'],
+        },
+        {
+          key: 'txAllowListConfig',
+          mode: 'enable',
+          adminAddresses: ['0x2222222222222222222222222222222222222222'],
+        },
+      ],
+      balanceChanges: [{ id: 'b1', address: '0x3333333333333333333333333333333333333333', amount: '5' }],
+      codeChanges: [],
+    });
+
+    expect(config.precompileUpgrades).toEqual([
+      {
+        contractNativeMinterConfig: {
+          blockTimestamp: 2_000_000_000,
+          disable: true,
+        },
+      },
+      {
+        contractNativeMinterConfig: {
+          blockTimestamp: 2_000_000_001,
+          adminAddresses: ['0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC'],
+          enabledAddresses: ['0x1111111111111111111111111111111111111111'],
+        },
+      },
+      {
+        txAllowListConfig: {
+          blockTimestamp: 2_000_000_002,
+          adminAddresses: ['0x2222222222222222222222222222222222222222'],
+        },
+      },
+    ]);
+    expect(config.stateUpgrades?.[0]?.blockTimestamp).toBe(2_000_000_003);
+  });
+
+  it('validates reenable like enable (requires an admin address)', () => {
+    const result = validateUpgradePlan({
+      baseConfig: emptyUpgradeJson(),
+      activationTimestamp: 2_000_000_000,
+      precompiles: [{ key: 'contractNativeMinterConfig', mode: 'reenable' }],
+      balanceChanges: [],
+      codeChanges: [],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join('\n')).toContain('contractNativeMinterConfig requires at least one admin address');
+  });
+});
+
+describe('getConfiguredPrecompileState', () => {
+  const admin = '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC';
+  const enabled = '0x1111111111111111111111111111111111111111';
+
+  it('reads genesis precompiles from the chain config root, normalizing null address arrays', () => {
+    const states = getConfiguredPrecompileState({
+      chainId: 99999,
+      contractNativeMinterConfig: { blockTimestamp: 0, adminAddresses: [admin], enabledAddresses: null },
+      warpConfig: { blockTimestamp: 0, quorumNumerator: 67 },
+    });
+
+    expect(states.contractNativeMinterConfig).toMatchObject({
+      enabled: true,
+      source: 'genesis',
+      adminAddresses: [admin],
+      enabledAddresses: [],
+    });
+    expect(states.warpConfig).toMatchObject({ enabled: true, quorumNumerator: 67 });
+    expect(states.txAllowListConfig).toBeUndefined();
+  });
+
+  it('applies upgradeConfig entries in order with disable clearing state', () => {
+    const states = getConfiguredPrecompileState({
+      contractNativeMinterConfig: { blockTimestamp: 0, adminAddresses: [admin] },
+      upgradeConfig: {
+        precompileUpgrades: [
+          { contractNativeMinterConfig: { blockTimestamp: 100, disable: true } },
+          { contractNativeMinterConfig: { blockTimestamp: 200, adminAddresses: [admin], enabledAddresses: [enabled] } },
+          { feeManagerConfig: { blockTimestamp: 300, disable: true } },
+        ],
+      },
+    });
+
+    expect(states.contractNativeMinterConfig).toMatchObject({
+      source: 'upgrade',
+      adminAddresses: [admin],
+      enabledAddresses: [enabled],
+    });
+    expect(states.feeManagerConfig).toBeUndefined();
+  });
+
+  it('lets the loaded base upgrade.json override node-reported state', () => {
+    const states = getConfiguredPrecompileState(
+      { txAllowListConfig: { blockTimestamp: 0, adminAddresses: [admin] } },
+      {
+        precompileUpgrades: [{ txAllowListConfig: { blockTimestamp: 500, disable: true } }],
+      },
+    );
+
+    expect(states.txAllowListConfig).toBeUndefined();
+  });
+
+  it('returns empty state for null or malformed chain config', () => {
+    expect(getConfiguredPrecompileState(null)).toEqual({});
+    expect(getConfiguredPrecompileState('garbage')).toEqual({});
+    expect(getConfiguredPrecompileState({ upgradeConfig: { precompileUpgrades: 'nope' } })).toEqual({});
   });
 });

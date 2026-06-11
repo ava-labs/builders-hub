@@ -32,8 +32,10 @@ import { cn } from '@/lib/utils';
 import {
   BalanceChange,
   buildUpgradeJson,
+  ConfiguredPrecompileState,
   emptyUpgradeJson,
   formatUpgradeJson,
+  getConfiguredPrecompileState,
   getMaxConfiguredTimestamp,
   parseUpgradeJson,
   PRECOMPILE_DEFINITIONS,
@@ -236,6 +238,10 @@ function UpgradeJsonBuilderInner() {
   const activePrecompileKeys = useMemo(
     () => Object.keys(rpcCheck?.activeRules?.precompiles ?? {}),
     [rpcCheck?.activeRules],
+  );
+  const configuredStates = useMemo(
+    () => getConfiguredPrecompileState(rpcCheck?.chainConfig, baseConfig),
+    [baseConfig, rpcCheck?.chainConfig],
   );
   const suggestedActivationTimestamp = useMemo(() => {
     const chainTimestamp = rpcCheck?.latestBlockTimestamp;
@@ -554,6 +560,7 @@ function UpgradeJsonBuilderInner() {
                     precompiles={precompiles}
                     activePrecompileKeys={activePrecompileKeys}
                     existingSchedules={existingPrecompileSchedules}
+                    configuredStates={configuredStates}
                     validationErrors={validation.errors}
                     walletAddress={walletAddress}
                     onChange={setPrecompiles}
@@ -733,6 +740,69 @@ function HeaderPanel({
   );
 }
 
+function CurrentPrecompileConfig({
+  configured,
+  isWarp,
+  onReconfigure,
+}: {
+  configured?: ConfiguredPrecompileState;
+  isWarp: boolean;
+  onReconfigure: () => void;
+}) {
+  const hasAddresses =
+    !!configured &&
+    configured.adminAddresses.length + configured.managerAddresses.length + configured.enabledAddresses.length > 0;
+
+  return (
+    <div className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2.5 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          Current configuration{configured ? ` · from ${configured.source}` : ''}
+        </div>
+        <Button size="sm" variant="outline" className="w-auto" onClick={onReconfigure}>
+          Reconfigure
+        </Button>
+      </div>
+      {isWarp ? (
+        <p className="text-xs text-zinc-700 dark:text-zinc-300">
+          {configured
+            ? `Quorum numerator ${configured.quorumNumerator ?? 67} · Primary Network signers ${
+                configured.requirePrimaryNetworkSigners === false ? 'not required' : 'required'
+              }`
+            : 'Active; the node did not report configuration details.'}
+        </p>
+      ) : hasAddresses ? (
+        <div className="space-y-1.5">
+          <RoleAddresses label="Admin" addresses={configured!.adminAddresses} />
+          <RoleAddresses label="Manager" addresses={configured!.managerAddresses} />
+          <RoleAddresses label="Enabled" addresses={configured!.enabledAddresses} />
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Active, but no allowlist addresses were reported (roles may have changed via on-chain transactions since
+          activation).
+        </p>
+      )}
+      {!isWarp && (
+        <p className="text-[11px] text-muted-foreground">
+          Current Admins can also manage this allowlist with on-chain transactions. Reconfiguring here schedules a
+          disable + re-enable pair in upgrade.json.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function RoleAddresses({ label, addresses }: { label: string; addresses: string[] }) {
+  if (addresses.length === 0) return null;
+  return (
+    <div className="text-xs">
+      <span className="text-muted-foreground">{label}:</span>{' '}
+      <span className="font-mono break-all text-zinc-800 dark:text-zinc-200">{addresses.join(', ')}</span>
+    </div>
+  );
+}
+
 function StatusBadge({
   isActive,
   schedule,
@@ -761,6 +831,7 @@ function PrecompileUpgradesSection({
   precompiles,
   activePrecompileKeys,
   existingSchedules,
+  configuredStates,
   validationErrors,
   walletAddress,
   onChange,
@@ -769,6 +840,7 @@ function PrecompileUpgradesSection({
   precompiles: PrecompileSelection[];
   activePrecompileKeys: string[];
   existingSchedules: Partial<Record<PrecompileConfigKey, ExistingPrecompileSchedule>>;
+  configuredStates: Partial<Record<PrecompileConfigKey, ConfiguredPrecompileState>>;
   validationErrors: string[];
   walletAddress?: string;
   onChange: (value: PrecompileSelection[]) => void;
@@ -798,18 +870,57 @@ function PrecompileUpgradesSection({
     onToggleHighlight(key, nextMode === 'enable');
   };
 
+  // Subnet-EVM cannot change an active precompile's config in place — it
+  // needs a disable entry followed by a re-enable entry. 'reenable' models
+  // that pair; prefill the editor with the currently configured addresses.
+  const startReconfigure = (key: PrecompileConfigKey) => {
+    const definition = PRECOMPILE_DEFINITIONS.find((item) => item.key === key)!;
+    const configured = configuredStates[key];
+    const patch: Partial<PrecompileSelection> = { mode: 'reenable' };
+    if (definition.supportsWarpConfig) {
+      patch.quorumNumerator = configured?.quorumNumerator ?? 67;
+      patch.requirePrimaryNetworkSigners = configured?.requirePrimaryNetworkSigners ?? true;
+    } else {
+      const fallbackAdmin = walletAddress && isValidAddress(walletAddress) ? [walletAddress] : [];
+      patch.adminAddresses = configured?.adminAddresses.length ? configured.adminAddresses : fallbackAdmin;
+      patch.managerAddresses = configured?.managerAddresses ?? [];
+      patch.enabledAddresses = configured?.enabledAddresses ?? [];
+    }
+    update(key, patch);
+    onToggleHighlight(key, true);
+  };
+
   const items: PrecompileItem[] = PRECOMPILE_DEFINITIONS.map((definition) => {
     const value = precompiles.find((item) => item.key === definition.key)!;
     const isActive = activePrecompileKeys.includes(definition.key);
     const existingSchedule = existingSchedules[definition.key];
     const baseTargetEnabled = existingSchedule ? existingSchedule.mode === 'enable' : isActive;
-    const targetEnabled = value.mode === 'enable' ? true : value.mode === 'disable' ? false : baseTargetEnabled;
+    const isEditing = value.mode === 'enable' || value.mode === 'reenable';
+    const targetEnabled = isEditing ? true : value.mode === 'disable' ? false : baseTargetEnabled;
     const rowErrors = validationErrors.filter((error) => error.includes(definition.key));
 
+    const reconfigureNotice = value.mode === 'reenable' && (
+      <div className="flex items-start justify-between gap-3 rounded-md border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+        <p className="text-xs text-amber-800 dark:text-amber-200">
+          Reconfiguring an active precompile generates a disable entry plus a re-enable entry with the configuration
+          below.
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-auto shrink-0"
+          onClick={() => update(definition.key, { mode: 'none' })}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+
     let expandedContent: ReactNode;
-    if (value.mode === 'enable' && definition.supportsAllowList) {
+    if (isEditing && definition.supportsAllowList) {
       expandedContent = (
         <div className="space-y-2">
+          {reconfigureNotice}
           {rowErrors.map((error) => (
             <p key={error} className="text-xs text-red-600 dark:text-red-400">
               {error}
@@ -822,9 +933,10 @@ function PrecompileUpgradesSection({
           />
         </div>
       );
-    } else if (value.mode === 'enable' && definition.supportsWarpConfig) {
+    } else if (isEditing && definition.supportsWarpConfig) {
       expandedContent = (
         <div className="space-y-2">
+          {reconfigureNotice}
           {rowErrors.map((error) => (
             <p key={error} className="text-xs text-red-600 dark:text-red-400">
               {error}
@@ -850,6 +962,16 @@ function PrecompileUpgradesSection({
           </div>
         </div>
       );
+    } else if (value.mode === 'none' && targetEnabled) {
+      // Already active (or scheduled to enable) with no pending change: show
+      // the configured addresses and offer the disable+re-enable flow.
+      expandedContent = (
+        <CurrentPrecompileConfig
+          configured={configuredStates[definition.key]}
+          isWarp={Boolean(definition.supportsWarpConfig)}
+          onReconfigure={() => startReconfigure(definition.key)}
+        />
+      );
     }
 
     return {
@@ -858,7 +980,16 @@ function PrecompileUpgradesSection({
       checked: targetEnabled,
       onCheckedChange: () => toggleTarget(definition.key, targetEnabled, baseTargetEnabled),
       info: UPGRADE_PRECOMPILE_INFO[definition.key],
-      badge: <StatusBadge isActive={isActive} schedule={existingSchedule} />,
+      badge: (
+        <>
+          <StatusBadge isActive={isActive} schedule={existingSchedule} />
+          {value.mode === 'reenable' && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400">
+              Reconfigure pending
+            </span>
+          )}
+        </>
+      ),
       expandedContent,
     };
   });
@@ -866,11 +997,10 @@ function PrecompileUpgradesSection({
   // Errors for rows whose expanded editor is hidden (e.g. a disable entry)
   // would otherwise be invisible — surface them under the list.
   const hiddenErrors = validationErrors.filter((error) =>
-    PRECOMPILE_DEFINITIONS.some(
-      (definition) =>
-        error.includes(definition.key) &&
-        precompiles.find((item) => item.key === definition.key)?.mode !== 'enable',
-    ),
+    PRECOMPILE_DEFINITIONS.some((definition) => {
+      const mode = precompiles.find((item) => item.key === definition.key)?.mode;
+      return error.includes(definition.key) && mode !== 'enable' && mode !== 'reenable';
+    }),
   );
 
   return (

@@ -6,7 +6,12 @@ export type PrecompileConfigKey =
   | 'rewardManagerConfig'
   | 'warpConfig';
 
-export type PrecompileMode = 'none' | 'enable' | 'disable';
+/**
+ * 'reenable' reconfigures an already-active precompile. Subnet-EVM requires a
+ * disable entry followed by a fresh enable entry to change an active
+ * precompile's configuration, so 'reenable' emits that pair.
+ */
+export type PrecompileMode = 'none' | 'enable' | 'disable' | 'reenable';
 
 export interface PrecompileDefinition {
   key: PrecompileConfigKey;
@@ -179,6 +184,93 @@ export function getMaxConfiguredTimestamp(config: UpgradeJson | null | undefined
   return timestamps.length > 0 ? Math.max(...timestamps) : 0;
 }
 
+export interface ConfiguredPrecompileState {
+  enabled: boolean;
+  source: 'genesis' | 'upgrade' | 'base-file';
+  adminAddresses: string[];
+  managerAddresses: string[];
+  enabledAddresses: string[];
+  quorumNumerator?: number;
+  requirePrimaryNetworkSigners?: boolean;
+}
+
+const PRECOMPILE_KEYS = PRECOMPILE_DEFINITIONS.map((definition) => definition.key);
+
+function toAddressArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function stateFromConfig(
+  raw: Record<string, unknown>,
+  source: ConfiguredPrecompileState['source'],
+): ConfiguredPrecompileState {
+  return {
+    enabled: true,
+    source,
+    adminAddresses: toAddressArray(raw.adminAddresses),
+    managerAddresses: toAddressArray(raw.managerAddresses),
+    enabledAddresses: toAddressArray(raw.enabledAddresses),
+    ...(typeof raw.quorumNumerator === 'number' ? { quorumNumerator: raw.quorumNumerator } : {}),
+    ...(typeof raw.requirePrimaryNetworkSigners === 'boolean'
+      ? { requirePrimaryNetworkSigners: raw.requirePrimaryNetworkSigners }
+      : {}),
+  };
+}
+
+function applyPrecompileUpgradeEntries(
+  states: Partial<Record<PrecompileConfigKey, ConfiguredPrecompileState>>,
+  entries: unknown,
+  source: 'upgrade' | 'base-file',
+) {
+  if (!Array.isArray(entries)) return;
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    for (const key of PRECOMPILE_KEYS) {
+      const raw = (entry as Record<string, unknown>)[key];
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const rawConfig = raw as Record<string, unknown>;
+      if (rawConfig.disable === true) {
+        delete states[key];
+      } else {
+        states[key] = stateFromConfig(rawConfig, source);
+      }
+    }
+  }
+}
+
+/**
+ * Derives the latest effective configuration per precompile from what the
+ * node reports (eth_getChainConfig: genesis precompiles at the config root
+ * plus upgradeConfig.precompileUpgrades) and the upgrade.json currently
+ * loaded in the builder. Later entries win; a disable clears the state.
+ */
+export function getConfiguredPrecompileState(
+  chainConfig: unknown,
+  baseConfig?: UpgradeJson | null,
+): Partial<Record<PrecompileConfigKey, ConfiguredPrecompileState>> {
+  const states: Partial<Record<PrecompileConfigKey, ConfiguredPrecompileState>> = {};
+
+  if (chainConfig && typeof chainConfig === 'object' && !Array.isArray(chainConfig)) {
+    const root = chainConfig as Record<string, unknown>;
+    for (const key of PRECOMPILE_KEYS) {
+      const raw = root[key];
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const rawConfig = raw as Record<string, unknown>;
+      if (rawConfig.disable === true) continue;
+      states[key] = stateFromConfig(rawConfig, 'genesis');
+    }
+
+    const upgradeConfig = root.upgradeConfig;
+    if (upgradeConfig && typeof upgradeConfig === 'object' && !Array.isArray(upgradeConfig)) {
+      applyPrecompileUpgradeEntries(states, (upgradeConfig as Record<string, unknown>).precompileUpgrades, 'upgrade');
+    }
+  }
+
+  applyPrecompileUpgradeEntries(states, baseConfig?.precompileUpgrades, 'base-file');
+
+  return states;
+}
+
 export function buildUpgradeJson({
   baseConfig,
   activationTimestamp,
@@ -194,20 +286,19 @@ export function buildUpgradeJson({
   for (const selection of precompiles) {
     if (selection.mode === 'none') continue;
 
-    const blockTimestamp = activationTimestamp + offset;
-    offset += 1;
-
-    if (selection.mode === 'disable') {
+    if (selection.mode === 'disable' || selection.mode === 'reenable') {
       precompileUpgrades.push({
         [selection.key]: {
-          blockTimestamp,
+          blockTimestamp: activationTimestamp + offset,
           disable: true,
         },
       });
-      continue;
+      offset += 1;
+      if (selection.mode === 'disable') continue;
     }
 
-    const config: Record<string, unknown> = { blockTimestamp };
+    const config: Record<string, unknown> = { blockTimestamp: activationTimestamp + offset };
+    offset += 1;
     if (selection.key === 'warpConfig') {
       config.quorumNumerator = selection.quorumNumerator ?? 67;
       config.requirePrimaryNetworkSigners = selection.requirePrimaryNetworkSigners ?? true;
