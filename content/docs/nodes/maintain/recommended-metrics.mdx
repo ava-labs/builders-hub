@@ -1,24 +1,21 @@
 ---
 title: Key Metrics & Alerts
-description: The two metrics that tell you whether your Avalanche L1 is healthy, with recommended healthy, warning, and paging thresholds.
+description: The Prometheus metrics that tell you whether your Avalanche L1 is healthy, with recommended healthy, warning, and paging thresholds.
 ---
 
-Once you have [monitoring set up](/docs/nodes/maintain/monitoring), the question is *what to actually alert on*. AvalancheGo exposes hundreds of Prometheus metrics, but two of them carry most of the signal:
+Once you have [monitoring set up](/docs/nodes/maintain/monitoring), the question is *what to actually alert on*. AvalancheGo exposes hundreds of Prometheus metrics. The **query failure rate** is the single most sensitive indicator of consensus health and the right primary alert — but it is not a catch-all. Three failures do not reliably show up in it and need their own alerts:
 
-1. **Query failure rate** — covers almost every consensus, networking, and validator problem; most issues surface here first.
-2. **Disk space remaining** — an independent failure the query failure rate cannot see.
+- **Disk filling up** — the node keeps participating in consensus until it runs out of space and shuts down.
+- **Bad blocks** — your node's VM can reject proposed blocks while still answering queries from other validators normally, so a correctness divergence can accumulate without the failure rate moving.
+- **L1 validator balance running out** — an L1 validator pays a continuous fee from a prepaid balance; when it empties, the validator goes inactive. AvalancheGo exposes no per-validator balance metric, so this must be tracked over RPC.
 
-Page on these two. Most other problems (a misbehaving validator, a network partition, a stalled chain) show up as a rise in the query failure rate, so the secondary metrics below are mainly for diagnosing *why* it moved. The exception is correctness failures such as bad blocks, which can occur independently and are worth their own alert.
+The metrics below are ordered by importance. Start with the first four — the failure rate plus its three blind spots — and use the rest mainly to diagnose *why* the failure rate moved.
 
 <Callout type="info">
-Thresholds are guidelines — most of the secondary values below reflect operational policy, not hard limits in the code. Validate them against your own chain's baseline before paging. Throughout, `<chain>` is your L1's blockchain ID (or its primary alias), which appears as the `chain` label on per-chain metrics.
+Thresholds are guidelines — most of the values below reflect operational policy, not hard limits in the code. Validate them against your own chain's baseline before paging. Throughout, `<chain>` is your L1's blockchain ID (or its primary alias), which appears as the `chain` label on per-chain metrics.
 </Callout>
 
----
-
-## Critical metrics
-
-### 1. Query failure rate
+## Query failure rate
 
 The single most sensitive indicator of L1 health. A *poll* is a round of voting where the node asks a sample of validators whether they prefer a block; it succeeds when enough validators respond in time. Because each validator carries a share of stake, the success rate drops by roughly an offline validator's stake share whenever one stops responding — so this one number catches networking faults, down validators, and finalization problems together.
 
@@ -39,9 +36,9 @@ rate(avalanche_snowman_polls_successful{chain="<chain>"}[5m])
 )
 ```
 
-When this degrades, check the secondary metrics below to find the cause.
+When this degrades, check the diagnostic metrics further down to find the cause.
 
-### 2. Disk space remaining
+## Disk space remaining
 
 A completely independent failure. The node keeps participating in consensus — with the query failure rate looking perfectly healthy — right up until it runs out of disk and shuts itself down. The failure rate gives you *no warning* of a disk problem, which is exactly why disk needs its own alert.
 
@@ -57,13 +54,7 @@ avalanche_resource_tracker_disk_available_percentage
 
 AvalancheGo tracks free space on its database volume natively and self-governs on it: by default it reports itself **unhealthy below 10% free** and performs a **fatal shutdown below 3% free** (`--system-tracker-disk-warning-available-space-percentage` defaults to 10, `--system-tracker-disk-required-available-space-percentage` defaults to 3). Page at the 10% mark — the point the node itself flags unhealthy — so you have runway to add storage or prune well before the 3% shutdown. If you run in Kubernetes or on a managed host, alert on the equivalent volume-usage metric too, since the node's own metric stops reporting once the process is down.
 
----
-
-## Secondary metrics
-
-The query failure rate usually moves first, so these are your main tools for diagnosing *why* it dropped — but several are still worth paging on in their own right (the paging thresholds are noted per metric), because some failures can occur without the failure rate reacting. The thresholds below match the alert configuration we run for production mainnet L1s.
-
-### Bad blocks (EVM L1s)
+## Bad blocks (EVM L1s)
 
 | | |
 |---|---|
@@ -71,11 +62,33 @@ The query failure rate usually moves first, so these are your main tools for dia
 | **Healthy** | 0 |
 | **Paging** | any sustained increase |
 
-Blocks that failed validation (state-root mismatch, invalid transactions). A rising count means this node is diverging from the network. It is an independent signal — the counter increments separately from the consensus poll counters, so a node can accumulate bad blocks without the failure rate moving, which is exactly why it gets its own alert.
+Blocks that failed validation (state-root mismatch, invalid transactions). A rising count means this node is diverging from the network. It is an independent signal: the VM can reject proposed blocks while the node still answers queries from other validators normally, so bad blocks can accumulate without the failure rate moving — which is exactly why this gets its own alert.
 
 The metric is namespaced by VM. A Subnet-EVM L1 runs the VM as an out-of-process plugin, so its metric carries a `vm_` segment: `avalanche_subnetevm_vm_eth_chain_block_bad_count`. The in-process C-Chain (Coreth) has no `vm_` segment: `avalanche_evm_eth_chain_block_bad_count{chain="C"}`. There is no built-in alert threshold — `badBlockLimit` (10) in the source is just an in-memory cache size, so alert on any sustained increase rather than a fixed count.
 
-### Connected stake
+## L1 validator balance (RPC)
+
+| | |
+|---|---|
+| **Source** | `platform.getCurrentValidators` or `platform.getL1Validator` → `balance` (nAVAX) |
+| **Healthy** | ample runway at your current burn rate |
+| **Paging** | projected depletion within your top-up window |
+
+Each L1 validator pays a continuous fee out of a prepaid AVAX balance; when that balance reaches `0` the validator becomes **inactive** and stops counting toward consensus. There is no Prometheus metric for an individual validator's remaining balance — the P-Chain exposes only network-wide aggregates — so poll the P-Chain RPC instead. One call returns every validator of your L1:
+
+```bash
+curl -s -X POST -H 'content-type:application/json' --data '{
+  "jsonrpc": "2.0", "id": 1,
+  "method": "platform.getCurrentValidators",
+  "params": {"subnetID": "<your subnet ID>"}
+}' https://api.avax.network/ext/bc/P
+```
+
+Each validator in the reply carries a `balance` field in nAVAX — for example `"balance": "5251734528"` is ~5.25 AVAX of remaining runway. To watch a single validator, `platform.getL1Validator` with its `validationID` returns the same field. (Note: `getCurrentValidators` only includes `balance` for subnets that have been converted to L1s; a legacy permissioned subnet returns the old staker format without it.)
+
+Because the fee accrues at a predictable rate, alert on *runway*, not a fixed number: track the balance's slope and page when projected depletion falls inside your top-up turnaround time. If enough of an L1's stake goes inactive the chain stalls and the query failure rate rises — but by then the affected validators are already offline, so monitoring balance directly is what gives you advance warning.
+
+## Connected stake
 
 | | |
 |---|---|
@@ -85,7 +98,7 @@ The metric is namespaced by VM. A Subnet-EVM L1 runs the VM as an out-of-process
 
 The fraction of total validator stake the node has live connections to. Note this is a fraction in `[0, 1]`, not a 0–100 value — compare against `0.8`, or multiply by 100 to display a percentage. When it falls, the node cannot reach enough stake to complete polls — a direct cause of failure-rate drops. The node's own health check fails below ~80% (`alpha/k` plus a buffer, at the defaults); query sending stops below 75% (`AlphaConfidence/K`).
 
-### Processing blocks
+## Processing blocks
 
 | | |
 |---|---|
@@ -96,7 +109,7 @@ The fraction of total validator stake the node has live connections to. Note thi
 
 Blocks in consensus but not yet finalized. A sustained climb usually means finalization is stalling. The thresholds above are operational policy, not code defaults — AvalancheGo's own consensus health check trips on `MaxOutstandingItems` (256) and `MaxItemProcessingTime` (30s), so tune the numbers to your chain's block rate and watch the *trend*. To confirm whether the chain is genuinely stuck (versus just busy), check that `avalanche_snowman_last_accepted_height{chain="<chain>"}` is still increasing.
 
-### Benched validators
+## Benched validators
 
 | | |
 |---|---|
@@ -106,7 +119,7 @@ Blocks in consensus but not yet finalized. A sustained climb usually means final
 
 The *count* of peers the node has temporarily stopped querying because they keep failing. A non-zero value means at least one validator is unreachable, but the gauge doesn't name which one — you'll need the node's logs to identify it. Also note benchlisting is capped by stake: a high-stake validator can keep failing without ever being benched, so `0` doesn't guarantee every validator is healthy.
 
-### Number of validators
+## Number of validators
 
 | | |
 |---|---|
@@ -114,9 +127,9 @@ The *count* of peers the node has temporarily stopped querying because they keep
 | **Healthy** | your expected validator count |
 | **Paging** | < 1 |
 
-The validator set the node currently sees. Dropping to 0 means it has lost its view of the set entirely (a P-Chain or L1 manager problem).
+The size of the validator set the node currently sees. Dropping to 0 means it has lost its view of the set entirely (a P-Chain or L1 manager problem). With continuous staking, an L1's validators no longer expire together the way a legacy Subnet's validator periods could lapse and halt the chain, so a shrinking *count* matters less than it once did. The equivalent continuous-staking risk is individual validators going inactive when their balance runs out — monitor that directly (see [L1 validator balance](#l1-validator-balance-rpc) above).
 
-### Health check failures
+## Health check failures
 
 | | |
 |---|---|
@@ -126,7 +139,7 @@ The validator set the node currently sees. Dropping to 0 means it has lost its v
 
 A catch-all gauge of how many checks are *currently* failing in the node's health endpoint (networking, router, database, disk, BLS key, pending upgrades, bootstrap status, validation). It carries two labels: `check` (one of `health`, `liveness`, `readiness`) and `tag` (`all`, `application`, or a specific subnet ID). Use `tag="all"` for the complete rollup — `tag="application"` covers only node-wide checks and excludes per-subnet ones, so it is not a true catch-all. To watch one L1 specifically, select that subnet's ID as the `tag`. Because the gauge reports the current count rather than an event total, **any non-zero value already means the node is unhealthy** — page on `> 0`, optionally requiring it to persist a minute or two to avoid flapping on transient checks.
 
-### CPU usage
+## CPU usage
 
 | | |
 |---|---|
@@ -140,16 +153,17 @@ AvalancheGo exposes its own CPU usage as `avalanche_resource_tracker_cpu_usage`,
 
 ## Summary
 
-| Metric | Type | Page when |
-|---|---|---|
-| Query failure rate (`polls_successful` / `polls_failed`) | **Critical** | < 90% successful |
-| Disk space remaining (`disk_available_percentage`) | **Critical** | < 10% free |
-| Bad blocks (`subnetevm_vm_eth_chain_block_bad_count`) | Secondary | any sustained increase |
-| Connected stake (`stake_percent_connected`) | Secondary | < 0.8 |
-| Processing blocks (`blks_processing`) | Secondary | sustained spike |
-| Benched validators (`benchlist_benched_num`) | Secondary | > 1 / 10 min |
-| Number of validators (`stake_num_validators`) | Secondary | < 1 |
-| Health check failures (`health_checks_failing`) | Secondary | > 0 sustained |
-| CPU usage (`resource_tracker_cpu_usage`) | Secondary | sustained saturation |
+| Metric | Page when |
+|---|---|
+| Query failure rate (`polls_successful` / `polls_failed`) | < 90% successful |
+| Disk space remaining (`disk_available_percentage`) | < 10% free |
+| Bad blocks (`subnetevm_vm_eth_chain_block_bad_count`) | any sustained increase |
+| L1 validator balance (RPC `getCurrentValidators` → `balance`) | runway below your top-up window |
+| Connected stake (`stake_percent_connected`) | < 0.8 |
+| Processing blocks (`blks_processing`) | sustained spike |
+| Benched validators (`benchlist_benched_num`) | > 1 / 10 min |
+| Number of validators (`stake_num_validators`) | < 1 |
+| Health check failures (`health_checks_failing`) | > 0 sustained |
+| CPU usage (`resource_tracker_cpu_usage`) | sustained saturation |
 
-Start with the two critical alerts — query failure rate and disk. Add the secondary metrics to your dashboards so you can quickly find the cause when the failure rate moves.
+Start with the query failure rate and disk alerts, add the bad-blocks alert, and — for L1s — poll each validator's balance over RPC. Put the remaining metrics on your dashboards so you can quickly find the cause when the failure rate moves.
