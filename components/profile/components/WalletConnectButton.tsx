@@ -1,777 +1,375 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useEffect, useRef, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Wallet, QrCode, Loader2 } from "lucide-react";
-import EthereumProvider from "@walletconnect/ethereum-provider";
-import { QRCodeSVG } from "qrcode.react";
+  createAppKit,
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+  useDisconnect,
+} from "@reown/appkit/react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Wallet } from "lucide-react";
+import { useSession } from "next-auth/react";
+import {
+  avalanche,
+  avalancheFuji,
+  mainnet,
+  type AppKitNetwork,
+} from "@reown/appkit/networks";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiProvider } from "wagmi";
+import {
+  EIP712_DOMAIN,
+  EIP712_TYPES_FOR_SIGNING,
+  EIP712_STATEMENT,
+} from "@/lib/profile/walletEip712";
 
-// Singleton pattern for WalletConnect Provider to prevent multiple initializations
-let walletConnectProviderInstance: EthereumProvider | null = null;
-let initializationPromise: Promise<EthereumProvider | null> | null = null;
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 
-interface WalletProvider {
-  name: string;
-  icon: string; // Can be emoji or image URL
-  iconUrl?: string; // Optional image URL for wallet icons
-  id: string;
-  available: boolean;
-  connect: () => Promise<string | null>;
-  type: "extension" | "walletconnect";
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
+  mainnet,
+  avalanche,
+  avalancheFuji,
+];
+
+const wagmiAdapter = new WagmiAdapter({
+  networks,
+  projectId,
+  ssr: false,
+});
+
+createAppKit({
+  adapters: [wagmiAdapter],
+  networks,
+  defaultNetwork: avalanche,
+  projectId,
+  enableReconnect: false,
+  metadata: {
+    name: "Avalanche Docs",
+    description: "Avalanche documentation profile wallet connection",
+    url: "https://docs.avax.network",
+    icons: ["https://docs.avax.network/favicon.ico"],
+  },
+  features: {
+    analytics: false,
+    email: false,
+    socials: false,
+    swaps: false,
+    onramp: false,
+    send: false,
+    receive: false,
+  },
+});
+
+const queryClient = new QueryClient();
+
+interface WalletConnectButtonProps {
+  onWalletConnected: (
+    address: string,
+    signature: string,
+    issuedAt: string,
+    nonce: string,
+  ) => void;
+  existingAddresses?: string[];
 }
 
-// EIP-6963 types for wallet discovery
-interface EIP6963ProviderInfo {
-  uuid: string;
-  name: string;
-  icon: string;
-  rdns: string;
+interface JsonRpcErrorLike {
+  code?: unknown;
+  message?: unknown;
 }
 
-// Common interface for Ethereum providers that support the request method (EIP-1193)
-// Using generic type parameter to allow type-safe return values
-interface EthereumProviderRequest {
-  request<T = unknown>(args: { method: string; params?: unknown[] }): Promise<T>;
+interface JsonRpcErrorResponseLike {
+  error?: JsonRpcErrorLike;
 }
 
-interface EIP6963ProviderDetail {
-  info: EIP6963ProviderInfo;
-  provider: EthereumProviderRequest;
+interface Eip1193RequestArguments {
+  method: string;
+  params?: unknown;
 }
 
-// Local type for window with wallet provider properties (avoids modifying global types)
-// Not extending Window to prevent conflicts with global ethereum type; used only for assertion.
-interface WindowWithWalletProviders {
-  ethereum?: EthereumProviderRequest & {
-    isMetaMask?: boolean;
-    isBraveWallet?: boolean;
-    isRainbow?: boolean;
-    on?(event: string, callback: (...args: unknown[]) => void): void;
-    removeListener?(event: string, callback: (...args: unknown[]) => void): void;
+interface Eip1193ProviderLike {
+  request(args: Eip1193RequestArguments): Promise<unknown>;
+}
+
+interface WalletOwnershipChallengeResponse {
+  nonce: string;
+  issuedAt: string;
+}
+
+interface WindowWithEthereumProvider {
+  ethereum?: Eip1193ProviderLike;
+}
+
+const revokePermissionsPatchedProviders = new WeakSet<Eip1193ProviderLike>();
+
+function patchUnsupportedRevokePermissions(provider: Eip1193ProviderLike | undefined): void {
+  if (!provider || revokePermissionsPatchedProviders.has(provider)) {
+    return;
+  }
+
+  const originalRequest = provider.request.bind(provider);
+
+  provider.request = (args: Eip1193RequestArguments): Promise<unknown> => {
+    if (args.method === "wallet_revokePermissions") {
+      return Promise.resolve(null);
+    }
+
+    return originalRequest(args);
   };
-  coinbaseWalletExtension?: EthereumProviderRequest;
-  // Core Wallet (Avalanche wallet) - uses window.avalanche
-  // Use the same type as global.d.ts for avalanche to maintain compatibility
-  avalanche?: {
-    request: <T>(args: {
-      method: string;
-      params?: Record<string, unknown> | unknown[];
-      id?: number;
-    }) => Promise<T>;
-    on?: <T>(event: string, callback: (data: T) => void) => void;
-    removeListener?: (event: string, callback: () => void) => void;
-  };
-  zerion?: EthereumProviderRequest;
+
+  revokePermissionsPatchedProviders.add(provider);
 }
 
-function getWalletWindow(): WindowWithWalletProviders {
-  return typeof window === "undefined" ? ({} as WindowWithWalletProviders) : (window as unknown as WindowWithWalletProviders);
+function isUnsupportedRevokePermissionsError(reason: unknown): boolean {
+  if (!reason || typeof reason !== "object") {
+    return false;
+  }
+
+  const directError = reason as JsonRpcErrorLike;
+  const nestedError = (reason as JsonRpcErrorResponseLike).error;
+  const error = nestedError ?? directError;
+
+  return (
+    error.code === -32601 &&
+    typeof error.message === "string" &&
+    error.message.includes("wallet_revokePermissions")
+  );
 }
 
-// Known wallet identifiers and their metadata
-// Keys can be: rdns (e.g., "io.zerion"), normalized rdns (e.g., "io_zerion"), or name (e.g., "zerion")
-const KNOWN_WALLETS: Record<string, { name: string; icon: string; rdns?: string }> = {
-  // By rdns (with dots)
-  "io.zerion": { name: "Zerion", icon: "Z", rdns: "io.zerion" },
-  "io.metamask": { name: "MetaMask", icon: "🦊", rdns: "io.metamask" },
-  "com.coinbase.wallet": { name: "Coinbase Wallet", icon: "🔵", rdns: "com.coinbase.wallet" },
-  "com.trustwallet.app": { name: "Trust Wallet", icon: "🔒", rdns: "com.trustwallet.app" },
-  "com.brave.wallet": { name: "Brave Wallet", icon: "🦁", rdns: "com.brave.wallet" },
-  "me.rainbow": { name: "Rainbow", icon: "🌈", rdns: "me.rainbow" },
-  "app.frame": { name: "Frame", icon: "🖼️", rdns: "app.frame" },
-  "io.rabby": { name: "Rabby", icon: "🐰", rdns: "io.rabby" },
-  // By normalized rdns (with underscores)
-  "io_zerion": { name: "Zerion", icon: "Z", rdns: "io.zerion" },
-  "io_metamask": { name: "MetaMask", icon: "🦊", rdns: "io.metamask" },
-  "com_coinbase_wallet": { name: "Coinbase Wallet", icon: "🔵", rdns: "com.coinbase.wallet" },
-  "com_trustwallet_app": { name: "Trust Wallet", icon: "🔒", rdns: "com.trustwallet.app" },
-  "com_brave_wallet": { name: "Brave Wallet", icon: "🦁", rdns: "com.brave.wallet" },
-  "me_rainbow": { name: "Rainbow", icon: "🌈", rdns: "me.rainbow" },
-  "app_frame": { name: "Frame", icon: "🖼️", rdns: "app.frame" },
-  "io_rabby": { name: "Rabby", icon: "🐰", rdns: "io.rabby" },
-  // By name (lowercase, no spaces)
-  "zerion": { name: "Zerion", icon: "Z", rdns: "io.zerion" },
-  "metamask": { name: "MetaMask", icon: "🦊", rdns: "io.metamask" },
-  "coinbasewallet": { name: "Coinbase Wallet", icon: "🔵", rdns: "com.coinbase.wallet" },
-  "trustwallet": { name: "Trust Wallet", icon: "🔒", rdns: "com.trustwallet.app" },
-  "bravewallet": { name: "Brave Wallet", icon: "🦁", rdns: "com.brave.wallet" },
-  "rainbow": { name: "Rainbow", icon: "🌈", rdns: "me.rainbow" },
-  "frame": { name: "Frame", icon: "🖼️", rdns: "app.frame" },
-  "rabby": { name: "Rabby", icon: "🐰", rdns: "io.rabby" },
-  "core": { name: "Core Wallet", icon: "🔷" },
-};
-
-export function WalletConnectButton({
+function WalletConnectAddressCapture({
   onWalletConnected,
-  currentAddress,
-  trigger,
-}: {
-  onWalletConnected: (address: string) => void;
-  currentAddress?: string;
-  /** Optional custom trigger element. Falls back to a default shadcn button. */
-  trigger?: React.ReactNode;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [walletConnectProvider, setWalletConnectProvider] = useState<EthereumProvider | null>(walletConnectProviderInstance);
-  const [qrCodeUri, setQrCodeUri] = useState<string | null>(null);
-  const [showQRCode, setShowQRCode] = useState(false);
-  const [eip6963Providers, setEip6963Providers] = useState<EIP6963ProviderDetail[]>([]);
-  
-  // Use useRef to maintain stable callback reference
+  existingAddresses,
+}: Pick<WalletConnectButtonProps, "onWalletConnected" | "existingAddresses">) {
+  const { address, isConnected } = useAppKitAccount({ namespace: "eip155" });
+  const { close, open } = useAppKit();
+  const { disconnect } = useDisconnect();
+  const { walletProvider } = useAppKitProvider("eip155");
+  const { data: session } = useSession();
   const onWalletConnectedRef = useRef(onWalletConnected);
-  
-  // Update reference when callback changes
+  const [isSigning, setIsSigning] = useState(false);
+  const [signError, setSignError] = useState<string | null>(null);
+  // Prevents the auto-disconnect effect from firing more than once per alreadySaved=true
+  // transition. close() and disconnect() from AppKit are unstable references — without this
+  // guard they would cause the effect to re-run on every render, creating an infinite loop.
+  const hasAutoDisconnectedRef = useRef(false);
+
+  // Gate on !isSigning so the auto-disconnect never fires while handleVerifyAndAdd is
+  // still running. Without this, onWalletConnectedRef.current() updates existingAddresses
+  // mid-sign → alreadySaved flips true → disconnect races with the active signing flow.
+  const alreadySaved =
+    !isSigning &&
+    isConnected &&
+    address !== undefined &&
+    (existingAddresses?.some((a) => a.toLowerCase() === address.toLowerCase()) ?? false);
+
   useEffect(() => {
     onWalletConnectedRef.current = onWalletConnected;
   }, [onWalletConnected]);
 
-  // Request accounts; wallet_revokePermissions was tried but Zerion returns 403, so we call eth_requestAccounts only
-  // eth_requestAccounts returns string[] according to EIP-1193
-  const requestAccountsWithPicker = useCallback(async (provider: EthereumProviderRequest): Promise<string[]> => {
-    const accounts = await provider.request<string[]>({ method: "eth_requestAccounts" });
-    return Array.isArray(accounts) ? accounts.filter((account): account is string => typeof account === "string") : [];
-  }, []);
-
-  // Initialize WalletConnect Provider with singleton pattern
+  // Auto-disconnect AppKit session when the connected address is already saved,
+  // preventing the same address from appearing twice in the UI.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const initWalletConnect = async () => {
-      try {
-        // If already initialized, use existing instance
-        if (walletConnectProviderInstance) {
-          setWalletConnectProvider(walletConnectProviderInstance);
-          return;
-        }
-
-        // If initialization is in progress, wait for it
-        if (initializationPromise) {
-          const provider = await initializationPromise;
-          if (provider) {
-            setWalletConnectProvider(provider);
-          }
-          return;
-        }
-
-        // Start new initialization
-        initializationPromise = (async () => {
-          const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-          
-          if (!projectId || projectId === "YOUR_PROJECT_ID") {
-            console.warn("WalletConnect Project ID not configured. Get one at https://cloud.walletconnect.com");
-            return null;
-          }
-
-          const provider = await EthereumProvider.init({
-            projectId: projectId,
-            chains: [1, 43114, 43113], // Ethereum, Avalanche Mainnet, Avalanche Fuji
-            showQrModal: false, // Disable automatic modal to use our own
-          });
-
-          // Store singleton instance
-          walletConnectProviderInstance = provider;
-          
-          return provider;
-        })();
-
-        const provider = await initializationPromise;
-        
-        if (!provider) return;
-
-        // Setup event listeners
-        provider.on("display_uri", (uri: string) => {
-          setQrCodeUri(uri);
-          setShowQRCode(true);
-          setIsConnecting(true);
-        });
-
-        provider.on("connect", () => {
-          const accounts = provider.accounts;
-          if (accounts && accounts.length > 0) {
-            setIsConnecting(false);
-            onWalletConnectedRef.current(accounts[0]);
-            setIsOpen(false);
-            setShowQRCode(false);
-            setQrCodeUri(null);
-          }
-        });
-
-        provider.on("disconnect", () => {
-          onWalletConnectedRef.current("");
-          setShowQRCode(false);
-          setQrCodeUri(null);
-        });
-
-        setWalletConnectProvider(provider);
-      } catch (error) {
-        console.error("Error initializing WalletConnect:", error);
-        initializationPromise = null; // Reset on error to allow retry
-      }
-    };
-
-    initWalletConnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
-
-  // Setup EIP-6963 wallet discovery
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const providers: EIP6963ProviderDetail[] = [];
-
-    const handleAnnounceProvider = (event: CustomEvent<EIP6963ProviderDetail>) => {
-      const detail = event.detail;
-      // Avoid duplicates
-      if (!providers.find(p => p.info.uuid === detail.info.uuid)) {
-        providers.push(detail);
-        setEip6963Providers([...providers]);
-        console.log('EIP-6963 wallet detected:', detail.info.name, detail.info.rdns);
-      }
-    };
-
-    // Listen for wallet announcements
-    window.addEventListener("eip6963:announceProvider", handleAnnounceProvider as EventListener);
-
-    // Request wallet providers to announce themselves
-    // Some wallets announce immediately, others need a request
-    window.dispatchEvent(new Event("eip6963:requestProvider"));
-    
-    // Also try after a short delay in case wallets load asynchronously
-    const timeoutId = setTimeout(() => {
-      window.dispatchEvent(new Event("eip6963:requestProvider"));
-    }, 100);
-
-    // Cleanup
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener("eip6963:announceProvider", handleAnnounceProvider as EventListener);
-    };
-  }, []);
-
-  
-  const detectWallets = (): WalletProvider[] => {
-    const wallets: WalletProvider[] = [];
-    const detectedIds = new Set<string>();
-
-    if (typeof window === "undefined") {
-      return wallets;
-    }
-
- 
-
-    // WalletConnect (for mobile wallets) - only if initialized
-    if (walletConnectProvider) {
-      wallets.push({
-        name: "WalletConnect",
-        icon: "🔗",
-        id: "walletconnect",
-        available: true,
-        type: "walletconnect",
-        connect: async () => {
-          if (!walletConnectProvider) {
-            throw new Error("WalletConnect not initialized");
-          }
-          try {
-            setIsConnecting(true);
-            // enable() generates the QR code and triggers the display_uri event immediately
-            // Then waits for the user to scan and approve the connection
-            await walletConnectProvider.enable();
-            const accounts = walletConnectProvider.accounts;
-            return accounts?.[0] || null;
-          } catch (error: any) {
-            setIsConnecting(false);
-            setShowQRCode(false);
-            setQrCodeUri(null);
-            if (error.code === 4001) {
-              throw new Error("Connection rejected");
-            }
-            throw error;
-          }
-        },
-      });
-      detectedIds.add("walletconnect");
-    }
-
-    // EIP-6963: Modern wallet discovery standard
-    // Process EIP-6963 providers from state
-    eip6963Providers.forEach((detail) => {
-      const { info, provider } = detail;
-      
-      // Try multiple matching strategies
-      const rdnsKey = info.rdns || '';
-      const rdnsKeyNormalized = info.rdns?.replace(/\./g, '_') || '';
-      const nameKey = info.name.toLowerCase().replace(/\s+/g, '');
-      
-      // Match wallet info from KNOWN_WALLETS using multiple keys
-      const walletInfo = KNOWN_WALLETS[rdnsKey] || 
-                        KNOWN_WALLETS[rdnsKeyNormalized] || 
-                        KNOWN_WALLETS[nameKey] || { 
-                          name: info.name, 
-                          icon: "💼" 
-                        };
-
-      // Use the icon from EIP-6963 if available (it's a base64 data URL or URL)
-      const iconUrl = info.icon && (info.icon.startsWith('data:') || info.icon.startsWith('http')) 
-        ? info.icon 
-        : undefined;
-
-      // Create unique ID from rdns or name
-      const walletId = info.rdns || nameKey;
-      
-      // Check if already detected
-      if (!detectedIds.has(walletId) && 
-          !detectedIds.has(rdnsKey) && 
-          !detectedIds.has(rdnsKeyNormalized) && 
-          !detectedIds.has(nameKey)) {
-        wallets.push({
-          name: walletInfo.name,
-          icon: iconUrl ? "💼" : walletInfo.icon, // Use emoji fallback if we have iconUrl, otherwise use known icon
-          iconUrl: iconUrl, // Use real wallet icon if available
-          id: walletId,
-          available: true,
-          type: "extension",
-          connect: async () => {
-            try {
-              const accounts = await requestAccountsWithPicker(provider);
-              return accounts?.[0] || null;
-            } catch (error: any) {
-              if (error.code === 4001) {
-                throw new Error(`Please connect to ${walletInfo.name}.`);
-              }
-              throw error;
-            }
-          },
-        });
-        // Mark all variations as detected to avoid duplicates
-        detectedIds.add(walletId);
-        if (info.rdns) {
-          detectedIds.add(info.rdns);
-          detectedIds.add(rdnsKeyNormalized);
-        } 
-        detectedIds.add(nameKey);
-      }
-    });
-
-    // Legacy detection: MetaMask (check isMetaMask flag first to avoid duplicates)
-    const win = getWalletWindow();
-    if (win.ethereum?.isMetaMask && !detectedIds.has("metamask")) {
-      wallets.push({
-        name: "MetaMask",
-        icon: "🦊",
-        id: "metamask",
-        available: true,
-        type: "extension",
-        connect: async () => {
-          try {
-            const accounts = await requestAccountsWithPicker(win.ethereum!);
-            return accounts?.[0] || null;
-          } catch (error: any) {
-            if (error.code === 4001) {
-              throw new Error("Please connect to MetaMask.");
-            }
-            throw error;
-          }
-        },
-      });
-      detectedIds.add("metamask");
-    }
-
-    // Zerion Wallet detection (window.zerion)
-    // Check both window.zerion and if it's already detected via EIP-6963
-    if (win.zerion && 
-        !detectedIds.has("zerion") && 
-        !detectedIds.has("io.zerion") && 
-        !detectedIds.has("io_zerion")) {
-      wallets.push({
-        name: "Zerion",
-        icon: "Z",
-        id: "zerion",
-        available: true,
-        type: "extension",
-        connect: async () => {
-          try {
-            const accounts = await requestAccountsWithPicker(win.zerion!);
-            return accounts?.[0] || null;
-          } catch (error: any) {
-            if (error.code === 4001) {
-              throw new Error("Please connect to Zerion.");
-            }
-            throw error;
-          }
-        },
-      });
-      detectedIds.add("zerion");
-      detectedIds.add("io.zerion");
-      detectedIds.add("io_zerion");
-    }
-
-    // Coinbase Wallet detection (window.coinbaseWalletExtension)
-    if (win.coinbaseWalletExtension && !detectedIds.has("coinbase")) {
-      wallets.push({
-        name: "Coinbase Wallet",
-        icon: "🔵",
-        id: "coinbase",
-        available: true,
-        type: "extension",
-        connect: async () => {
-          try {
-            const accounts = await requestAccountsWithPicker(win.coinbaseWalletExtension!);
-            return accounts?.[0] || null;
-          } catch (error: any) {
-            if (error.code === 4001) {
-              throw new Error("Please connect to Coinbase Wallet.");
-            }
-            throw error;
-          }
-        },
-      });
-      detectedIds.add("coinbase");
-    }
-
-    // Core Wallet (Avalanche wallet) - Always show, even if not installed
-    if (!detectedIds.has("core")) {
-      const isCoreInstalled = !!win.avalanche?.request;
-      wallets.push({
-        name: "Core Wallet",
-        icon: "🔷",
-        iconUrl: "/core-logo-dark.svg", // Use Core Wallet logo
-        id: "core",
-        available: isCoreInstalled,
-        type: "extension",
-        connect: async () => {
-          if (!isCoreInstalled) {
-            throw new Error("Please install Core Wallet extension to connect.");
-          }
-          try {
-            const accounts = await requestAccountsWithPicker(win.avalanche!);
-            return accounts?.[0] || null;
-          } catch (error: any) {
-            if (error.code === 4001) {
-              throw new Error("Please connect to Core Wallet.");
-            }
-            throw error;
-          }
-        },
-      });
-      detectedIds.add("core");
-    }
-
-    // Brave Wallet detection
-    if (win.ethereum?.isBraveWallet && !detectedIds.has("brave")) {
-      wallets.push({
-        name: "Brave Wallet",
-        icon: "🦁",
-        id: "brave",
-        available: true,
-        type: "extension",
-        connect: async () => {
-          try {
-            const accounts = await requestAccountsWithPicker(win.ethereum!);
-            return accounts?.[0] || null;
-          } catch (error: any) {
-            if (error.code === 4001) {
-              throw new Error("Please connect to Brave Wallet.");
-            }
-            throw error;
-          }
-        },
-      });
-      detectedIds.add("brave");
-    }
-
-    // Rainbow Wallet detection
-    if (win.ethereum?.isRainbow && !detectedIds.has("rainbow")) {
-      wallets.push({
-        name: "Rainbow",
-        icon: "🌈",
-        id: "rainbow",
-        available: true,
-        type: "extension",
-        connect: async () => {
-          try {
-            const accounts = await requestAccountsWithPicker(win.ethereum!);
-            return accounts?.[0] || null;
-          } catch (error: any) {
-            if (error.code === 4001) {
-              throw new Error("Please connect to Rainbow.");
-            }
-            throw error;
-          }
-        },
-      });
-      detectedIds.add("rainbow");
-    }
-
-    // Other EIP-1193 providers (fallback for unknown wallets)
-    if (
-      win.ethereum &&
-      !win.ethereum.isMetaMask &&
-      !win.ethereum.isBraveWallet &&
-      !win.ethereum.isRainbow &&
-      !detectedIds.has("other")
-    ) {
-      wallets.push({
-        name: "Other Wallet",
-        icon: "💼",
-        id: "other",
-        available: true,
-        type: "extension",
-        connect: async () => {
-          try {
-            const accounts = await requestAccountsWithPicker(win.ethereum!);
-            return accounts?.[0] || null;
-          } catch (error: any) {
-            if (error.code === 4001) {
-              throw new Error("Please connect to your wallet.");
-            }
-            throw error;
-          }
-        },
-      });
-      detectedIds.add("other");
-    }
-
-    console.log(`Total wallets detected: ${wallets.length}`, wallets.map(w => w.name));
-    return wallets;
-  };
-
-  const [availableWallets, setAvailableWallets] = useState<WalletProvider[]>([]);
-
-  // update available wallets when the WalletConnect provider or EIP-6963 providers change
-  useEffect(() => {
-    setAvailableWallets(detectWallets());
-  }, [walletConnectProvider, eip6963Providers, requestAccountsWithPicker]);
-
-  // Listen for account changes in MetaMask
-  useEffect(() => {
-    const win = getWalletWindow();
-    if (typeof window === "undefined" || !win.ethereum || !currentAddress) {
+    if (!alreadySaved) {
+      hasAutoDisconnectedRef.current = false;
       return;
     }
+    if (hasAutoDisconnectedRef.current) return;
+    hasAutoDisconnectedRef.current = true;
+    void (async () => {
+      try {
+        await close();
+        await disconnect({ namespace: "eip155" });
+      } catch {
+        // Session cleanup is best-effort
+      }
+    })();
+  }, [alreadySaved, close, disconnect]);
 
-    const handleAccountsChanged = (...args: unknown[]) => {
-      const accounts = Array.isArray(args[0]) ? (args[0] as string[]) : [];
-      if (accounts.length > 0 && currentAddress) {
-        onWalletConnectedRef.current(accounts[0]);
+  useEffect(() => {
+    patchUnsupportedRevokePermissions(
+      (window as unknown as WindowWithEthereumProvider).ethereum,
+    );
+
+    const handleAnnounceProvider = (event: Event) => {
+      const provider = (event as CustomEvent<{ provider?: Eip1193ProviderLike }>).detail
+        ?.provider;
+      patchUnsupportedRevokePermissions(provider);
+    };
+
+    const handleUnsupportedRevokePermissions = (event: PromiseRejectionEvent) => {
+      if (isUnsupportedRevokePermissionsError(event.reason)) {
+        event.preventDefault();
       }
     };
 
-    const ethereum = win.ethereum;
-    ethereum.on?.("accountsChanged", handleAccountsChanged);
+    window.addEventListener("eip6963:announceProvider", handleAnnounceProvider);
+    window.addEventListener("unhandledrejection", handleUnsupportedRevokePermissions);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
 
     return () => {
-      ethereum.removeListener?.("accountsChanged", handleAccountsChanged);
+      window.removeEventListener("eip6963:announceProvider", handleAnnounceProvider);
+      window.removeEventListener("unhandledrejection", handleUnsupportedRevokePermissions);
     };
-  }, [currentAddress]);
+  }, []);
 
-  const handleConnect = async (wallet: WalletProvider) => {
-    setIsConnecting(true);
+  const clearSession = async (): Promise<void> => {
     try {
-      if (wallet.type === "walletconnect") {
-    
-        await wallet.connect();
-     
-      } else {
-      
-        const address = await wallet.connect();
-        if (address) {
-          onWalletConnected(address);
-          setIsOpen(false);
-          setIsConnecting(false);
-        }
-      }
-    } catch (error: any) {
-      setIsConnecting(false);
-      setShowQRCode(false);
+      await close();
+      await disconnect({ namespace: "eip155" });
+    } catch (error: unknown) {
+      console.error("Error disconnecting wallet session:", error);
     }
   };
 
-  const handleDisconnectWalletConnect = async () => {
-    if (walletConnectProvider) {
-      try {
-        await walletConnectProvider.disconnect();
-        onWalletConnected("");
-        setShowQRCode(false);
-        setQrCodeUri(null);
-      } catch (error) {
-        console.error("Error disconnecting WalletConnect:", error);
+  const handleVerifyAndAdd = async (): Promise<void> => {
+    if (!address || isSigning) return;
+    setIsSigning(true);
+    setSignError(null);
+    try {
+      if (!session?.user?.id) {
+        throw new Error("Session not ready. Please refresh and try again.");
       }
+      if (!walletProvider) {
+        throw new Error("Wallet provider not available. Please disconnect and reconnect.");
+      }
+
+      const challengeResponse = await fetch(
+        `/api/profile/extended/${session.user.id}/wallet-proof`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress: address }),
+        },
+      );
+
+      if (!challengeResponse.ok) {
+        const errorData: unknown = await challengeResponse.json().catch(() => null);
+        const errorMessage =
+          errorData && typeof errorData === "object" && "error" in errorData &&
+          typeof (errorData as { error?: unknown }).error === "string"
+            ? (errorData as { error: string }).error
+            : "Failed to request wallet ownership proof.";
+        throw new Error(errorMessage);
+      }
+
+      const { issuedAt, nonce } = (await challengeResponse.json()) as WalletOwnershipChallengeResponse;
+      const signature = await (walletProvider as Eip1193ProviderLike).request({
+        method: "eth_signTypedData_v4",
+        params: [
+          address,
+          JSON.stringify({
+            domain: EIP712_DOMAIN,
+            types: EIP712_TYPES_FOR_SIGNING,
+            primaryType: "WalletOwnership",
+            message: {
+              statement: EIP712_STATEMENT,
+              userId: session.user.id,
+              walletAddress: address,
+              issuedAt,
+              nonce,
+            },
+          }),
+        ],
+      }) as `0x${string}`;
+
+      onWalletConnectedRef.current(address, signature, issuedAt, nonce);
+      await clearSession();
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : "Signing failed. Please try again.";
+      // User rejection — don't show a message, just stay on the screen
+      if (
+        !(error instanceof Error) ||
+        !/(user rejected|denied|cancelled|rejected)/i.test(error.message)
+      ) {
+        setSignError(msg);
+      }
+      console.error("EIP-712 signing failed:", error);
+    } finally {
+      setIsSigning(false);
     }
   };
+
+  if (isConnected && address) {
+    // alreadySaved triggers auto-disconnect via useEffect above; return null during that transition
+    if (alreadySaved) return null;
+
+    const shortened = `${address.slice(0, 8)}...${address.slice(-8)}`;
+    return (
+      <div className="pr-wallet" style={{ flex: "0 0 100%" }}>
+        <div className="pr-top">
+          <span className="pr-net">
+            <span className="pr-d" /> Avalanche C-Chain
+          </span>
+          <span className="pr-label">EVM</span>
+        </div>
+        <div className="pr-bot">
+          <div className="pr-addr" title={address}>{shortened}</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              className="pr-btn pr-btn--sm pr-btn--success"
+              disabled={isSigning}
+              onClick={() => void handleVerifyAndAdd()}
+            >
+              {isSigning ? (
+                <><Loader2 size={12} className="animate-spin" /> Signing…</>
+              ) : (
+                <><Wallet size={12} /> Verify & Add</>
+              )}
+            </button>
+            <button
+              type="button"
+              className="pr-btn pr-btn--sm"
+              disabled={isSigning}
+              onClick={() => void clearSession()}
+            >
+              Disconnect
+            </button>
+          </div>
+          {signError && (
+            <p style={{ color: "#ff6e6f", fontSize: 11, marginTop: 4 }}>{signError}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const hasExistingWallets = (existingAddresses?.length ?? 0) > 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (!open) {
-        setShowQRCode(false);
-        setQrCodeUri(null);
-        setIsConnecting(false);
-      }
-    }}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button type="button" variant="default" size="default">
-            <Wallet className="h-4 w-4 mr-2" />
-            Connect Wallet
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Connect Wallet</DialogTitle>
-          <DialogDescription>
-            {showQRCode 
-              ? "Scan the QR code with your mobile wallet" 
-              : "Select a wallet to connect to your account"}
-          </DialogDescription>
-        </DialogHeader>
-        
-        {showQRCode && qrCodeUri ? (
-          <div className="space-y-4 mt-4">
-            <div className="flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
-              <div className="w-full max-w-xs p-4 bg-white rounded-lg flex items-center justify-center mb-4">
-                <QRCodeSVG
-                  value={qrCodeUri}
-                  size={256}
-                  level="H"
-                  includeMargin={true}
-                />
-              </div>
-              {isConnecting ? (
-                <div className="flex flex-col items-center gap-2 mb-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">
-                    Waiting for connection...
-                  </p>
-                </div>
-              ) : null}
-              <p className="text-sm text-center text-muted-foreground">
-                Scan this QR code with your mobile wallet app
-              </p>
-              <p className="text-xs text-center text-muted-foreground">
-                Or copy the connection link if your wallet supports it
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setShowQRCode(false);
-                setQrCodeUri(null);
-                setIsConnecting(false);
-                if (walletConnectProvider) {
-                  handleDisconnectWalletConnect();
-                }
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        ) : isConnecting && !showQRCode ? (
-          <div className="space-y-4 mt-4">
-            <div className="flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-              <p className="text-sm text-muted-foreground">
-                Preparing connection...
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setIsConnecting(false);
-                if (walletConnectProvider) {
-                  handleDisconnectWalletConnect();
-                }
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2 mt-4">
-            {availableWallets.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-2">
-                  No wallets detected
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Please install MetaMask or Core Wallet extension, or use WalletConnect
-                </p>
-              </div>
-            ) : (
-              availableWallets
-                .sort((a, b) => {
-                  // Sort Core Wallet first
-                  if (a.id === "core") return -1;
-                  if (b.id === "core") return 1;
-                  return 0;
-                })
-                .map((wallet) => (
-                <Button
-                  key={wallet.id}
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start h-auto py-4 disabled:opacity-70 disabled:cursor-not-allowed"
-                  onClick={() => handleConnect(wallet)}
-                  disabled={isConnecting || !wallet.available}
-                >
-                  {wallet.iconUrl ? (
-                    wallet.id === "core" ? (
-                      <span className={`inline-flex shrink-0 mr-3 w-8 h-8 ${!wallet.available ? 'opacity-60' : ''}`}>
-                        <img
-                          src="/core-logo.svg"
-                          alt={wallet.name}
-                          className="w-8 h-8 rounded dark:hidden"
-                        />
-                        <img
-                          src="/core-logo-dark.svg"
-                          alt={wallet.name}
-                          className="w-8 h-8 rounded hidden dark:block"
-                        />
-                      </span>
-                    ) : (
-                      <img
-                        src={wallet.iconUrl}
-                        alt={wallet.name}
-                        className={`w-8 h-8 mr-3 rounded shrink-0 ${!wallet.available ? 'opacity-60' : ''}`}
-                      />
-                    )
-                  ) : (
-                    <span className={`text-2xl mr-3 shrink-0 ${!wallet.available ? 'opacity-60' : ''}`}>{wallet.icon}</span>
-                  )}
-                  <div className="flex flex-col items-start flex-1">
-                    <span className="font-medium">{wallet.name}</span>
-                    {wallet.type === "walletconnect" && (
-                      <span className="text-xs text-muted-foreground">
-                        Mobile & Desktop wallets
-                      </span>
-                    )}
-                    {!wallet.available && (
-                      <span className="text-xs text-muted-foreground">
-                        {wallet.id === "core" ? "Install extension to connect" : "Not available"}
-                      </span>
-                    )}
-                  </div>
-                </Button>
-              ))
-            )}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+    <Button
+      type="button"
+      variant="default"
+      size="default"
+      onClick={() => {
+        patchUnsupportedRevokePermissions(
+          (window as unknown as WindowWithEthereumProvider).ethereum,
+        );
+        window.dispatchEvent(new Event("eip6963:requestProvider"));
+        void open({ view: "Connect", namespace: "eip155" });
+      }}
+    >
+      <Wallet className="h-4 w-4 mr-2" />
+      {hasExistingWallets ? "Add another wallet" : "Connect Wallet"}
+    </Button>
   );
 }
 
+export function WalletConnectButton({
+  onWalletConnected,
+  existingAddresses,
+}: WalletConnectButtonProps) {
+  return (
+    <WagmiProvider config={wagmiAdapter.wagmiConfig} reconnectOnMount={false}>
+      <QueryClientProvider client={queryClient}>
+        <WalletConnectAddressCapture
+          onWalletConnected={onWalletConnected}
+          existingAddresses={existingAddresses}
+        />
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}

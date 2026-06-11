@@ -123,7 +123,7 @@ export const PUT = withAuth<RouteParams<{ id: string }>>(async (
     const parsedBody = await parseProfileUpdateBody(req);
     if (parsedBody instanceof NextResponse) return parsedBody;
 
-    const updatedProfile = await updateExtendedProfile(id, parsedBody);
+    const updatedProfile = await updateExtendedProfile(id, parsedBody, session.user.id);
 
     return NextResponse.json(updatedProfile);
   } catch (error) {
@@ -175,7 +175,7 @@ export const PATCH = withAuth<RouteParams<{ id: string }>>(async (
     const parsedBody = await parseProfileUpdateBody(req);
     if (parsedBody instanceof NextResponse) return parsedBody;
 
-    const updatedProfile = await updateExtendedProfile(id, parsedBody);
+    const updatedProfile = await updateExtendedProfile(id, parsedBody, session.user.id);
 
     return NextResponse.json(updatedProfile);
   } catch (error) {

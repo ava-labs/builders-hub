@@ -4,7 +4,7 @@ import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,6 +32,11 @@ const SLOT_CLASS = 'size-9 rounded-full flex items-center justify-center';
 const ICON_CLASS = `${SLOT_CLASS} p-1.5 text-zinc-400 dark:text-zinc-600`;
 const INITIALS_CLASS = `${SLOT_CLASS} text-sm font-bold tracking-tight text-[#b8b8c0] dark:text-zinc-600`;
 
+interface NounAvatarResponse {
+  seed?: AvatarSeed | null;
+  enabled?: boolean;
+}
+
 function initialsFromName(name?: string | null): string {
   if (!name) return '';
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -51,6 +56,7 @@ export function UserButton() {
   const [localEnabled, setLocalEnabled] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const loadedNounAvatarUserIdRef = useRef<string | null>(null);
   const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
@@ -62,17 +68,23 @@ export function UserButton() {
   const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    const userId = session?.user?.id;
+    if (!isAuthenticated || !userId) {
+      loadedNounAvatarUserIdRef.current = null;
       avatarContext?.setNounAvatar(null, false);
       setLocalSeed(null);
       setLocalEnabled(false);
       return;
     }
-    let cancelled = false;
-    fetch('/api/user/noun-avatar')
-      .then((res) => (res.ok ? res.json() : null))
+
+    if (loadedNounAvatarUserIdRef.current === userId) return;
+    loadedNounAvatarUserIdRef.current = userId;
+
+    const controller = new AbortController();
+    fetch('/api/user/noun-avatar', { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() as Promise<NounAvatarResponse> : null))
       .then((data) => {
-        if (!cancelled && data) {
+        if (data) {
           const seed = data.seed ?? null;
           const enabled = data.enabled ?? false;
           avatarContext?.setNounAvatar(seed, enabled);
@@ -80,17 +92,22 @@ export function UserButton() {
           setLocalEnabled(enabled);
         }
       })
-      .catch(() => {
-        if (!cancelled) {
-          avatarContext?.setNounAvatar(null, false);
-          setLocalSeed(null);
-          setLocalEnabled(false);
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
         }
+        loadedNounAvatarUserIdRef.current = null;
+        avatarContext?.setNounAvatar(null, false);
+        setLocalSeed(null);
+        setLocalEnabled(false);
       });
     return () => {
-      cancelled = true;
+      controller.abort();
+      if (loadedNounAvatarUserIdRef.current === userId) {
+        loadedNounAvatarUserIdRef.current = null;
+      }
     };
-  }, [isAuthenticated, avatarContext?.setNounAvatar]);
+  }, [isAuthenticated, session?.user?.id, avatarContext?.setNounAvatar]);
 
   useEffect(() => {
     if (!session?.user) {

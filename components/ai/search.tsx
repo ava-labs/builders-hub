@@ -40,6 +40,7 @@ import { useIsMobile } from '../../hooks/use-mobile';
 import React from 'react';
 import 'katex/dist/katex.min.css';
 import posthog from 'posthog-js';
+import { Components } from 'hast-util-to-jsx-runtime';
 
 const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
   ssr: false,
@@ -431,7 +432,7 @@ function Markdown({ text }: { text: string }) {
             pre: Pre,
             a: Link,
             img: undefined,
-          })
+          } as Partial<Components>)
           .catch(() => text);
 
         map.set(text, result);

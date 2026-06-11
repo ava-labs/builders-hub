@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react';
@@ -26,10 +27,13 @@ export function UserAvatarProvider({ children }: { children: ReactNode }) {
     setNounAvatarEnabled(enabled);
   }, []);
 
+  const value = useMemo(
+    () => ({ nounAvatarSeed, nounAvatarEnabled, setNounAvatar }),
+    [nounAvatarSeed, nounAvatarEnabled, setNounAvatar],
+  );
+
   return (
-    <UserAvatarContext.Provider
-      value={{ nounAvatarSeed, nounAvatarEnabled, setNounAvatar }}
-    >
+    <UserAvatarContext.Provider value={value}>
       {children}
     </UserAvatarContext.Provider>
   );

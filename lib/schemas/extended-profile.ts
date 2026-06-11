@@ -3,6 +3,11 @@ import {
   LINKEDIN_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
+import {
+  WALLET_TAG_MAX_LENGTH,
+  WALLET_TAG_PATTERN,
+  WALLET_TAG_VALIDATION_MESSAGE,
+} from "@/lib/profile/walletTag";
 
 /**
  * Shared Zod schemas for the extended user profile.
@@ -64,7 +69,20 @@ export const UpdateExtendedProfileSchema = z
       LINKEDIN_ACCOUNT_PATTERN,
       "Invalid LinkedIn URL.",
     ),
-    wallet: z.array(z.string()).nullable().optional(),
+      wallet: z.array(
+        z.object({
+          address: z.string().trim().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid wallet address."),
+          tag: z
+            .string()
+            .trim()
+            .max(WALLET_TAG_MAX_LENGTH, `Tag must not exceed ${WALLET_TAG_MAX_LENGTH} characters.`)
+            .regex(WALLET_TAG_PATTERN, WALLET_TAG_VALIDATION_MESSAGE)
+            .optional(),
+          signature: z.string().optional(),
+          issuedAt: z.string().optional(),
+          nonce: z.string().optional(),
+        }),
+      ).nullable().optional(),
     additional_social_accounts: z.array(z.string()).optional(),
     skills: z.array(z.string()).optional(),
     notifications: z.boolean().nullable().optional(),

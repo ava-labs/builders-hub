@@ -24,9 +24,11 @@ export interface ProfileLink {
 
 export interface ProfileWallet {
   address: string;
+  tag?: string;
   label?: string;
   balance?: string;
   primary?: boolean;
+  nonce?: string;
 }
 
 export interface ReferralLinkVM {

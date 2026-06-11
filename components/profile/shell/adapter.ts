@@ -1,4 +1,5 @@
 import type { ProfileLink, ProfileRole, ProfileWallet } from "./types";
+import { normalizeWalletTag } from "@/lib/profile/walletTag";
 
 interface RawProfileValues {
   name?: string;
@@ -16,7 +17,7 @@ interface RawProfileValues {
   x_account?: string;
   linkedin_account?: string;
   telegram_account?: string;
-  wallet?: string[];
+  wallet?: Array<string | { address: string; tag?: string | null }>;
   additional_social_accounts?: string[];
   skills?: string[];
 }
@@ -76,13 +77,28 @@ export function roleFieldKey(role: ProfileRole): keyof RawProfileValues {
 
 export function walletsFromValues(v: RawProfileValues): ProfileWallet[] {
   const list = Array.isArray(v.wallet) ? v.wallet : [];
-  return list
-    .filter((addr) => typeof addr === "string" && addr.trim() !== "")
-    .map((address, idx) => ({
-      address: address.trim(),
-      label: idx === 0 ? "Core" : "Additional",
-      primary: idx === 0,
-    }));
+  const normalized = list.flatMap((item): Array<{ address: string; tag?: string }> => {
+    if (typeof item === "string") {
+      const address = item.trim();
+      return address ? [{ address }] : [];
+    }
+
+    if (item && typeof item === "object" && typeof item.address === "string") {
+      const address = item.address.trim();
+      if (!address) return [];
+      const tag = normalizeWalletTag(item.tag);
+      return [{ address, ...(tag ? { tag } : {}) }];
+    }
+
+    return [];
+  });
+
+  return normalized.map((wallet, idx) => ({
+    address: wallet.address,
+    tag: wallet.tag,
+    label: idx === 0 ? "Core" : "Additional",
+    primary: idx === 0,
+  }));
 }
 
 export function skillsFromValues(v: RawProfileValues): string[] {
