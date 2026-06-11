@@ -7,8 +7,6 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { hasShowcaseRole } from "@/lib/auth/roles";
 import { AuthLoading } from "@/components/ui/auth-loading";
 import { AccessDenied } from "@/components/ui/access-denied";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 import { HiringCta } from "@/components/ecosystem-careers/HiringCta";
 
 export default async function ShowCasePage({
